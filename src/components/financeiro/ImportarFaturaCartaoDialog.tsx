@@ -153,6 +153,43 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
     setArquivo(f);
     setParseando(true);
 
+    // O rastro nasce ANTES de abrir o arquivo e antes de chamar a IA. Falha sem
+    // rastro foi o que fez importações desaparecerem sem ninguém saber.
+    let impId: string | null = null;
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: row, error: errImp } = await (supabase as any)
+        .from("extrato_importacoes")
+        .insert({
+          fonte_tipo: "itau_fatura_cartao",
+          nome_arquivo: f.name,
+          status: "processando",
+          importado_por: u?.user?.id ?? null,
+        })
+        .select("id")
+        .single();
+      if (errImp) throw errImp;
+      impId = row?.id ?? null;
+      setImportacaoId(impId);
+    } catch (e) {
+      console.error("[ImportarFaturaCartao] não conseguiu abrir o rastro", e);
+      toast.warning("Rastro da importação não pôde ser criado: " + formatError(e));
+    }
+
+    async function fecharRastro(status: "concluida" | "erro", detalhe?: string) {
+      if (!impId) return;
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any)
+          .from("extrato_importacoes")
+          .update({ status, erro_detalhe: detalhe ?? null })
+          .eq("id", impId);
+      } catch (e) {
+        console.error("[ImportarFaturaCartao] falha ao fechar rastro", e);
+      }
+    }
+
     try {
       const ext = f.name.split(".").pop()?.toLowerCase();
       let resultado: FaturaParsed;
@@ -192,12 +229,15 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
 
       setParsed(seguro);
       setEtapa("preview");
+      await fecharRastro("concluida");
     } catch (e) {
       console.error("[ImportarFaturaCartao] falha ao ler arquivo", e);
+      await fecharRastro("erro", rawMessage(e));
       toast.error("Falha ao ler a fatura: " + formatError(e));
       setArquivo(null);
       setEtapa("upload");
     } finally {
+
       setParseando(false);
     }
   }
