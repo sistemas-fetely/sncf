@@ -53,10 +53,9 @@ function lerRows(buf: ArrayBuffer): unknown[][] {
 }
 
 export function ehSafraInstrucoes2Via(buf: ArrayBuffer): boolean {
-  const rows = lerRows(buf);
-  const alvo = (rows[3] || []).map(normalizar).join(" | ");
-  return alvo.includes("recebimentos - instrucoes");
+  return temTitulo(lerRows(buf), RE_INSTRUCOES);
 }
+
 
 /** Valor em formato brasileiro: "1.458,38" → 1458.38 */
 function num(v: unknown): number {
