@@ -39,10 +39,13 @@ const FILAS_REGUA = new Set<string>(["A_COBRAR", "A_VENCER"]);
 
 // ── Ordem de trabalho (fixa) ──
 const FILAS: { chave: string; label: string }[] = [
+  { chave: "ENTREGA_DEVOLVIDA", label: "Mercadoria devolvida" },
+  { chave: "ENTREGA_PROBLEMA", label: "Problema na entrega" },
   { chave: "A_ENVIAR", label: "A enviar — NF + boleto + cópia do pedido" },
   { chave: "A_EMITIR_BOLETO", label: "A emitir boleto" },
   { chave: "A_REEMITIR_BOLETO", label: "A reemitir boleto" },
   { chave: "A_COBRAR", label: "A cobrar" },
+  { chave: "EMAIL_BLOQUEADO", label: "Sem canal de e-mail" },
   { chave: "A_VENCER", label: "A vencer (D-3)" },
   { chave: "ENTREGA_ATRASADA", label: "Entrega atrasada" },
   { chave: "CONCILIAR", label: "Conciliar — não cobrar" },
@@ -51,8 +54,11 @@ const FILAS: { chave: string; label: string }[] = [
   { chave: "NAO_COBRAVEL", label: "Não cobrável" },
 ];
 
+/** Filas de urgência ALTA — vão para o topo, acima de tudo que não seja vencido. */
+const FILAS_URGENCIA_ALTA = new Set<string>(["ENTREGA_DEVOLVIDA", "ENTREGA_PROBLEMA"]);
+
 const GRUPOS: Record<"agir" | "vigiar" | "nao", string[]> = {
-  agir: ["A_ENVIAR", "A_EMITIR_BOLETO", "A_REEMITIR_BOLETO", "A_COBRAR"],
+  agir: ["ENTREGA_DEVOLVIDA", "ENTREGA_PROBLEMA", "A_ENVIAR", "A_EMITIR_BOLETO", "A_REEMITIR_BOLETO", "A_COBRAR", "EMAIL_BLOQUEADO"],
   vigiar: ["A_VENCER", "BOLETO_EM_CURSO_BANCO", "EM_CURSO"],
   nao: ["CONCILIAR", "ENTREGA_ATRASADA", "NAO_COBRAVEL"],
 };
