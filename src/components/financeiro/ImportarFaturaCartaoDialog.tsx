@@ -282,7 +282,21 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4 py-2">
+          <BlocoErroBoundary titulo="A leitura da fatura quebrou">
+          {erroCartoes && (
+            <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive">
+              Falha ao carregar os cartões cadastrados: {formatError(erroCartoes)}
+            </div>
+          )}
+          {!erroCartoes && !carregandoCartoes && cartoes.length === 0 && (
+            <div className="rounded-md border border-warning/40 bg-warning/5 p-3 text-xs">
+              Nenhum cartão de crédito ativo cadastrado. Cadastre o cartão antes de importar a
+              fatura (Contas &amp; Cartões).
+            </div>
+          )}
+
           {/* ETAPA 1 - UPLOAD */}
+
           {etapa === "upload" && (
             <div className="space-y-4">
               <label className="block border-2 border-dashed rounded-lg p-10 text-center cursor-pointer hover:bg-muted/30 transition">
