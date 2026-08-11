@@ -321,6 +321,8 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
   const [abertos, setAbertos] = useState<Record<string, boolean>>(
     () => Object.fromEntries(FILAS.map((f) => [f.chave, GRUPOS.agir.includes(f.chave)])),
   );
+  /** Filas cujo estado de abertura o operador já mexeu (vence o default por vencido). */
+  const [tocados, setTocados] = useState<Record<string, boolean>>({});
   const [gruposAbertos, setGruposAbertos] = useState<Record<string, boolean>>({});
   const [detalhe, setDetalhe] = useState<LinhaMesa | null>(null);
   /** Loading do envio de pacote — por PEDIDO, não por parcela. */
