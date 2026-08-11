@@ -172,8 +172,10 @@ export function EntregaResumoInline({ l, className }: { l: LinhaMesa; className?
   return (
     <span className={`inline-flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground ${className ?? ""}`}>
       {resumo && <span>{resumo}</span>}
+      {/* Histórico neutro: houve devolução num embarque anterior e a mercadoria
+          seguiu em outro. O estado atual já está no badge principal. */}
       {l.entrega_reembarcada && (
-        <span className="rounded border border-warning/30 bg-warning/15 px-1 py-0.5 text-[9px] font-medium text-warning">
+        <span className="rounded border border-border bg-muted px-1 py-0.5 text-[9px] font-medium text-muted-foreground">
           reembarcada após devolução
         </span>
       )}
