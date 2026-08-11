@@ -93,5 +93,7 @@ export function adaptarParaTitulo(l: LinhaMesa): TituloCobranca {
     email_cobranca_enviado_em: l.email_cobranca_enviado_em,
     regua_cobrar_sem_boleto: !!l.regua_cobrar_sem_boleto,
     regua_motivo_inelegivel: l.regua_motivo_inelegivel ?? null,
+    /** Linha crua da view, para a camada de exibição (entrega/envio). */
+    _mesa: l,
   } as unknown as TituloCobranca;
 }
