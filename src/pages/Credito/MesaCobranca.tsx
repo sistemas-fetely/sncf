@@ -30,6 +30,10 @@ import { AcaoReguaDialog } from "@/components/credito/AcaoReguaDialog";
 import { PausarReguaDialog } from "@/components/credito/PausarReguaDialog";
 import { RenegociarTituloDialog } from "@/components/credito/RenegociarTituloDialog";
 import { adaptarParaTitulo, type LinhaMesa } from "@/lib/financeiro/adaptar-titulo-mesa";
+import {
+  seloEntrega, seloInstrumento, seloEnvio, EntregaResumoInline,
+  fmtDataMesa, fmtDataHoraMesa, textoUltimoEnvio, AVISO_PROVA_ENVIO,
+} from "@/lib/financeiro/mesa-lastros";
 
 /** Filas em que a régua opera dentro da Mesa (fusão Mesa × Régua). */
 const FILAS_REGUA = new Set<string>(["A_COBRAR", "A_VENCER"]);
@@ -39,10 +43,13 @@ const FILAS_REGUA = new Set<string>(["A_COBRAR", "A_VENCER"]);
 
 // ── Ordem de trabalho (fixa) ──
 const FILAS: { chave: string; label: string }[] = [
+  { chave: "ENTREGA_DEVOLVIDA", label: "Mercadoria devolvida" },
+  { chave: "ENTREGA_PROBLEMA", label: "Problema na entrega" },
   { chave: "A_ENVIAR", label: "A enviar — NF + boleto + cópia do pedido" },
   { chave: "A_EMITIR_BOLETO", label: "A emitir boleto" },
   { chave: "A_REEMITIR_BOLETO", label: "A reemitir boleto" },
   { chave: "A_COBRAR", label: "A cobrar" },
+  { chave: "EMAIL_BLOQUEADO", label: "Sem canal de e-mail" },
   { chave: "A_VENCER", label: "A vencer (D-3)" },
   { chave: "ENTREGA_ATRASADA", label: "Entrega atrasada" },
   { chave: "CONCILIAR", label: "Conciliar — não cobrar" },
@@ -51,8 +58,11 @@ const FILAS: { chave: string; label: string }[] = [
   { chave: "NAO_COBRAVEL", label: "Não cobrável" },
 ];
 
+/** Filas de urgência ALTA — vão para o topo, acima de tudo que não seja vencido. */
+const FILAS_URGENCIA_ALTA = new Set<string>(["ENTREGA_DEVOLVIDA", "ENTREGA_PROBLEMA"]);
+
 const GRUPOS: Record<"agir" | "vigiar" | "nao", string[]> = {
-  agir: ["A_ENVIAR", "A_EMITIR_BOLETO", "A_REEMITIR_BOLETO", "A_COBRAR"],
+  agir: ["ENTREGA_DEVOLVIDA", "ENTREGA_PROBLEMA", "A_ENVIAR", "A_EMITIR_BOLETO", "A_REEMITIR_BOLETO", "A_COBRAR", "EMAIL_BLOQUEADO"],
   vigiar: ["A_VENCER", "BOLETO_EM_CURSO_BANCO", "EM_CURSO"],
   nao: ["CONCILIAR", "ENTREGA_ATRASADA", "NAO_COBRAVEL"],
 };
@@ -64,97 +74,8 @@ export const FILAS_AGIR_AGORA = GRUPOS.agir;
 
 const FILAS_BOLETO = new Set<string>(["A_EMITIR_BOLETO", "A_REEMITIR_BOLETO"]);
 
-function fmtData(iso: string | null): string {
-  if (!iso) return "—";
-  const [y, m, d] = String(iso).slice(0, 10).split("-");
-  if (!y || !m || !d) return String(iso);
-  return `${d}/${m}/${y}`;
-}
-
-function fmtDataHora(iso: string | null): string {
-  if (!iso) return "—";
-  try {
-    return new Date(iso).toLocaleString("pt-BR");
-  } catch {
-    return String(iso);
-  }
-}
-
-type SeloTom = "verde" | "ambar" | "vermelho" | "neutro";
-
-const TOM_CLASS: Record<SeloTom, string> = {
-  verde: "bg-success/15 text-success border-success/30",
-  ambar: "bg-warning/15 text-warning border-warning/30",
-  vermelho: "bg-destructive/15 text-destructive border-destructive/30",
-  neutro: "bg-muted text-muted-foreground border-border",
-};
-
-function Selo({ texto, tom, tooltip }: { texto: string; tom: SeloTom; tooltip: string }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span
-          className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-medium leading-none whitespace-nowrap ${TOM_CLASS[tom]}`}
-        >
-          {texto}
-        </span>
-      </TooltipTrigger>
-      <TooltipContent className="max-w-xs text-xs">{tooltip}</TooltipContent>
-    </Tooltip>
-  );
-}
-
-function seloEntrega(l: LinhaMesa) {
-  const extra = l.entregue_em ? ` · ${fmtDataHora(l.entregue_em)}` : "";
-  switch (l.lastro_entrega) {
-    case "confirmada":
-      return <Selo texto="Entrega OK" tom="verde" tooltip={`Entrega confirmada${l.entregue_metodo ? ` (${l.entregue_metodo})` : ""}${extra}`} />;
-    case "presumida":
-      return <Selo texto="Entrega presumida (CEP)" tom="ambar" tooltip="Entrega presumida por prazo/CEP — sem confirmação do transportador" />;
-    case "sem_prova":
-      return <Selo texto="Entrega sem prova" tom="ambar" tooltip="Não há prova de entrega registrada" />;
-    case "em_transito":
-      return <Selo texto="Em trânsito" tom="vermelho" tooltip="Mercadoria ainda em trânsito" />;
-    default:
-      return <Selo texto={l.lastro_entrega ?? "—"} tom="neutro" tooltip={`Lastro de entrega: ${l.lastro_entrega ?? "não informado"}`} />;
-  }
-}
-
-function seloInstrumento(l: LinhaMesa) {
-  switch (l.lastro_instrumento) {
-    case "pagavel":
-      return <Selo texto="Boleto pagável" tom="verde" tooltip={`Boleto pagável${l.boleto_status ? ` (${l.boleto_status})` : ""}`} />;
-    case "inexistente":
-      return <Selo texto="Sem boleto" tom="vermelho" tooltip="Cliente não tem instrumento de pagamento — nada a pagar" />;
-    case "exige_reemissao":
-      return <Selo texto="Reemitir" tom="ambar" tooltip="Boleto exige reemissão antes de cobrar" />;
-    case "em_processo":
-      return <Selo texto="No banco" tom="neutro" tooltip="Instrumento em processamento no banco" />;
-    case "nao_aplicavel":
-      return <Selo texto={l.instrumento ?? "não aplicável"} tom="neutro" tooltip={`Instrumento: ${l.instrumento ?? "não aplicável"}`} />;
-    default:
-      return <Selo texto={l.lastro_instrumento ?? "—"} tom="neutro" tooltip={`Lastro de instrumento: ${l.lastro_instrumento ?? "não informado"}`} />;
-  }
-}
-
-function seloEnvio(l: LinhaMesa) {
-  switch (l.lastro_envio) {
-    case "aceito_provedor":
-      return (
-        <Selo
-          texto="Enviado"
-          tom="verde"
-          tooltip={`Provedor aceitou o envio — não confirma que o cliente abriu.${l.pacote_enviado_em ? ` Envio em ${fmtDataHora(l.pacote_enviado_em)}.` : ""}`}
-        />
-      );
-    case "sem_registro":
-      return <Selo texto="Sem registro de envio" tom="ambar" tooltip="Não há registro de envio do pacote ao cliente" />;
-    case "envio_com_falha":
-      return <Selo texto="E-mail falhou" tom="vermelho" tooltip="O provedor recusou/falhou o envio do e-mail" />;
-    default:
-      return <Selo texto={l.lastro_envio ?? "—"} tom="neutro" tooltip={`Lastro de envio: ${l.lastro_envio ?? "não informado"}`} />;
-  }
-}
+const fmtData = fmtDataMesa;
+const fmtDataHora = fmtDataHoraMesa;
 
 // ── Agrupamento por pedido (mesmo padrão de gruposCliente do BancoSafra) ──
 interface GrupoPedidoMesa {
@@ -327,6 +248,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
         qtdVencido: vencidas.length,
         totalVencido: vencidas.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0),
         maxAtraso: maiorAtraso(rows),
+        urgenciaAlta: FILAS_URGENCIA_ALTA.has(f.chave) && rows.length > 0,
         ordemBase: i,
       };
     }).sort((a, b) => {
@@ -334,6 +256,10 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
       const bv = b.qtdVencido > 0 ? 1 : 0;
       if (av !== bv) return bv - av;
       if (av === 1 && a.maxAtraso !== b.maxAtraso) return b.maxAtraso - a.maxAtraso;
+      // Sem vencido: filas de urgência alta (entrega devolvida / problema) vêm antes.
+      const au = a.urgenciaAlta ? 1 : 0;
+      const bu = b.urgenciaAlta ? 1 : 0;
+      if (av === 0 && au !== bu) return bu - au;
       return a.ordemBase - b.ordemBase;
     });
   }, [porFila]);
@@ -611,6 +537,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                     {g.ressalvas && (
                                       <span className="min-w-0 text-[10px] text-warning">{g.ressalvas}</span>
                                     )}
+                                    <EntregaResumoInline l={g.urgente} className="min-w-0" />
                                   </button>
                                 </CollapsibleTrigger>
                                 {f.chave === "A_ENVIAR" && (
@@ -678,7 +605,12 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                               {seloEnvio(l)}
                                             </div>
                                           </TableCell>
-                                          <TableCell className="py-1.5 text-[10px] text-warning">{l.ressalvas ?? ""}</TableCell>
+                                          <TableCell className="py-1.5">
+                                            {l.ressalvas && (
+                                              <div className="text-[10px] text-warning">{l.ressalvas}</div>
+                                            )}
+                                            <EntregaResumoInline l={l} />
+                                          </TableCell>
                                           {FILAS_REGUA.has(f.chave) && (
                                             <TableCell className="py-1.5" onClick={(e) => e.stopPropagation()}>
                                               {!tituloAdapt || !etapa ? (
@@ -773,15 +705,24 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                     ["Estágio", detalhe.estagio ?? "—"],
                     ["Faturado em", fmtDataHora(detalhe.faturado_em)],
                     ["NF", detalhe.nf_numero ?? "—"],
-                    ["Pacote enviado em", fmtDataHora(detalhe.pacote_enviado_em)],
+                    ["Último envio", textoUltimoEnvio(detalhe)],
                     ["E-mail de cobrança em", fmtDataHora(detalhe.email_cobranca_enviado_em)],
                     ["Próxima ação (régua)", fmtData(detalhe.data_proxima_acao_regua)],
                     ["Régua pausada", detalhe.pausa_regua_automatica ? "sim" : "não"],
                     ["Lastro entrega", detalhe.lastro_entrega ?? "—"],
+                    ["Estado do funil de entrega", detalhe.entrega_funil_estado ?? "—"],
+                    ["Transportadora", detalhe.entrega_transportadora ?? "—"],
+                    ["Ocorrência", [detalhe.entrega_ocorrencia_codigo, detalhe.entrega_ocorrencia_texto].filter(Boolean).join(" ") || "—"],
+                    ["Data da entrega", fmtData(detalhe.entrega_data)],
+                    ["Previsão de entrega", fmtData(detalhe.entrega_previsao)],
+                    ["Recebedor", detalhe.entrega_recebedor ? `recebido por: ${detalhe.entrega_recebedor}` : "—"],
+                    ["Reembarcada após devolução", detalhe.entrega_reembarcada ? "sim" : "não"],
                     ["Entregue método", detalhe.entregue_metodo ?? "—"],
                     ["Entregue em", fmtDataHora(detalhe.entregue_em)],
                     ["Lastro instrumento", detalhe.lastro_instrumento ?? "—"],
                     ["Lastro envio", detalhe.lastro_envio ?? "—"],
+                    ["Envio falhou em", fmtData(detalhe.envio_falhou_em)],
+                    ["Motivo da falha de envio", detalhe.envio_falha_motivo ?? "—"],
                     ["Fila", detalhe.fila ?? "—"],
                     ["Ação sugerida", detalhe.acao_sugerida ?? "—"],
                     ["Ressalvas", detalhe.ressalvas ?? "—"],
@@ -807,6 +748,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                       </div>
                     </div>
                   )}
+                  <p className="pt-2 text-[10px] leading-snug text-muted-foreground">{AVISO_PROVA_ENVIO}</p>
                 </div>
               </>
             )}
