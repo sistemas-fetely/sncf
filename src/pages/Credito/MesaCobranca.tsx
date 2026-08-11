@@ -751,6 +751,15 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
             onClose={() => setAcaoRegua(null)}
           />
         )}
+
+        <EnviarPacoteDialog
+          linha={pacote?.linha ?? null}
+          valorTotalPedido={pacote?.total ?? null}
+          open={!!pacote}
+          onOpenChange={(v) => { if (!v) setPacote(null); }}
+          onEnviado={async () => { await q.refetch(); }}
+        />
+
       </div>
     </TooltipProvider>
   );
