@@ -484,6 +484,21 @@ export default function ExtratoImportacao() {
             .maybeSingle();
           if (exist) { duplicadas++; continue; }
 
+          // Antes de inserir: tentar enriquecer a linha do extrato que já
+          // representa esse dinheiro. Sem isso, o mesmo valor é contado duas vezes.
+          const { data: alvoId, error: errEnr } = await sb.rpc("fn_extrato_enriquecer", {
+            p_conta: conta,
+            p_data: p.dt_efetiva,
+            p_valor: p.valor_recebido,
+            p_contraparte_nome: `SAFRAPAY ${p.produto} ${p.modalidade}`.trim(),
+            p_contraparte_documento: null,
+            p_referencia_pedido: null,
+            p_tipo_meio: "cartao",
+            p_classe: null,
+          });
+          if (errEnr) throw errEnr;
+          if (alvoId) { enriquecidas++; continue; }
+
           const { error: errIns } = await sb.from("movimentacoes_bancarias").insert({
             conta_bancaria_id: conta,
             data_transacao: p.dt_efetiva,
