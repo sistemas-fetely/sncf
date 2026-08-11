@@ -13,9 +13,10 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Upload, Loader2, FileText, Link2 } from "lucide-react";
+import { Upload, Loader2, FileText, Link2, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { ImportadorItauPagamentos } from "@/components/financeiro/ImportadorItauPagamentos";
+import { ImportarFaturaCartaoDialog } from "@/components/financeiro/ImportarFaturaCartaoDialog";
 import { parseOFX } from "@/lib/financeiro/ofx-parser";
 import { parseXlsxSafraLancamentos } from "@/lib/financeiro/xlsx-safra-lancamentos-parser";
 import { parseXlsxMpWithdraw } from "@/lib/financeiro/xlsx-mp-withdraw-parser";
@@ -94,6 +95,7 @@ export default function ExtratoImportacao() {
   const [arquivos, setArquivos] = useState<File[]>([]);
   const [processando, setProcessando] = useState(false);
   const [reprocessandoItau, setReprocessandoItau] = useState(false);
+  const [importarFaturaOpen, setImportarFaturaOpen] = useState(false);
 
   async function enriquecerItau() {
     setReprocessandoItau(true);
