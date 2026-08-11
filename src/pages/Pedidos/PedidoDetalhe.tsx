@@ -99,6 +99,8 @@ import { ExportarPedidoDialog } from "@/components/pedidos/dialogs/ExportarPedid
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useFreteTipos } from "@/hooks/pedidos/useFreteTipos";
 import { SituacaoFinanceiraBloco } from "@/components/pedidos/SituacaoFinanceiraBloco";
+import { useProvaPagamento } from "@/hooks/pedidos/useProvaPagamento";
+import { ProvaPagamentoAlerta } from "@/components/pedidos/ProvaPagamentoAlerta";
 
 
 
