@@ -22,9 +22,15 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ChevronDown, Search, Send, Copy, Loader2, AlertTriangle } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useEnviarEmailNfBoletos } from "@/hooks/pedidos/useEnviarEmailNfBoletos";
 import { useLogEmailEnvio } from "@/hooks/pedidos/usePedidoEmailLog";
+import { useReguaEtapas, resolverEtapaParaTitulo, type ReguaEtapa } from "@/hooks/credito/useReguaFila";
+import type { TituloCobranca } from "@/hooks/credito/useTitulosCobranca";
+import { AcaoReguaDialog } from "@/components/credito/AcaoReguaDialog";
+import { PausarReguaDialog } from "@/components/credito/PausarReguaDialog";
+import { RenegociarTituloDialog } from "@/components/credito/RenegociarTituloDialog";
 
 // ── Tipos ──
 interface LinhaMesa {
