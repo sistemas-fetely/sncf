@@ -595,7 +595,9 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
               </Button>
             </div>
           )}
+          </BlocoErroBoundary>
         </div>
+
 
         {/* FOOTER (só na etapa preview) */}
         {etapa === "preview" && (
