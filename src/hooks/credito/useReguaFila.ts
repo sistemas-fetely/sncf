@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { TituloCobranca } from "@/hooks/credito/useTitulosCobranca";
+import { adaptarParaTitulo, type LinhaMesa } from "@/lib/financeiro/adaptar-titulo-mesa";
 import { PROVAS, PROVA_FORA_KPI, type EixoProva } from "@/lib/financeiro/eixos-estado";
 
 export type PerfilCadencia = "padrao" | "bandeira_amarela" | "vip";
