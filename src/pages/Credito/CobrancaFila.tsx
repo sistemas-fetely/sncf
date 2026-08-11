@@ -8,7 +8,7 @@ import { useRemessasSafra } from "@/hooks/credito/useRemessasSafra";
 import BancoSafra from "@/pages/administrativo/BancoSafra";
 import PrimeiroPagamentoTab from "@/pages/Credito/PrimeiroPagamentoTab";
 import TitulosTab from "@/pages/Credito/TitulosTab";
-// ReguaTab aposentado: a régua operacional vive dentro da Mesa (fusão Mesa × Régua).
+import ReguaTab from "@/pages/Credito/ReguaTab";
 import AdiantamentoSemNfTab from "@/pages/Credito/AdiantamentoSemNfTab";
 import MesaCobranca, { FILAS_AGIR_AGORA } from "@/pages/Credito/MesaCobranca";
 import { useAdiantamentoSemNf } from "@/hooks/credito/useAdiantamentoSemNf";
@@ -16,6 +16,7 @@ import { useAdiantamentoSemNf } from "@/hooks/credito/useAdiantamentoSemNf";
 import CreditoClientesIndex from "@/pages/Credito/CreditoClientesIndex";
 import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
 import { useTitulosCobranca } from "@/hooks/credito/useTitulosCobranca";
+import { useReguaFilaHoje } from "@/hooks/credito/useReguaFila";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -1211,6 +1212,8 @@ export default function CobrancaFila() {
       return (data ?? []) as any[];
     },
   });
+  const { data: reguaHoje = [] } = useReguaFilaHoje();
+  const totalReguaHoje = reguaHoje.length;
   const totalAgirAgora = (mesaQ.data ?? []).filter((l) => FILAS_AGIR_AGORA.includes(l.fila ?? "")).length;
 
   const tabTriggerCls =
@@ -1247,6 +1250,7 @@ export default function CobrancaFila() {
         <TabsList className="bg-transparent border-b border-border rounded-none w-full justify-start h-auto p-0 gap-6">
           {[
             { value: "mesa", label: `Mesa${totalAgirAgora > 0 ? ` · ${totalAgirAgora}` : ""}` },
+            { value: "regua", label: `Régua${totalReguaHoje > 0 ? ` · ${totalReguaHoje}` : ""}` },
             { value: "fila", label: `Fila${totalPedidos > 0 ? ` · ${totalPedidos}` : ""}` },
             { value: "titulos", label: `Títulos${totalTitulosAbertos > 0 ? ` · ${totalTitulosAbertos}` : ""}` },
             { value: "adiantamento", label: `Adiantamento s/ NF${totalAdiantamentos > 0 ? ` · ${totalAdiantamentos}` : ""}` },
@@ -1267,6 +1271,10 @@ export default function CobrancaFila() {
               setTabAtiva("banco");
             }}
           />
+        </TabsContent>
+
+        <TabsContent value="regua">
+          <ReguaTab />
         </TabsContent>
 
         <TabsContent value="fila">

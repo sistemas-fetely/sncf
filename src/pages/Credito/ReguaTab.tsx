@@ -36,10 +36,11 @@ const CANAL_LABEL: Record<string, string> = {
 };
 
 function KpiCard({
-  label, valor, ativo, onClick, tone,
+  label, valor, total, ativo, onClick, tone,
 }: {
   label: string;
   valor: number;
+  total: number;
   ativo: boolean;
   onClick: () => void;
   tone?: "default" | "danger" | "warn";
@@ -62,6 +63,7 @@ function KpiCard({
     >
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className="text-2xl font-semibold mt-1">{valor}</div>
+      <div className="text-xs text-muted-foreground tabular-nums">{formatBRL(total)}</div>
     </button>
   );
 }
@@ -130,6 +132,13 @@ function CardTitulo({
         )}
       </div>
 
+      {(titulo as any).regua_cobrar_sem_boleto && (
+        <div className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1.5 text-[11px] font-medium text-amber-900 dark:bg-amber-950/40 dark:border-amber-900 dark:text-amber-100">
+          <AlertTriangle className="h-3 w-3 inline mr-1 -mt-0.5" />
+          Cobrar a dívida, mas NÃO reenviar este boleto — vencido, precisa reemissão
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-1.5 pt-1">
         <Button size="sm" className="h-7 text-xs" onClick={onAcao} disabled={!etapa}>
           Registrar ação
@@ -191,10 +200,17 @@ export default function ReguaTab() {
   const [pausarDialog, setPausarDialog] = useState<{ titulo: TituloCobranca; etapa: ReguaEtapa | null } | null>(null);
   const [renegociarDialog, setRenegociarDialog] = useState<{ titulo: TituloCobranca; etapa: ReguaEtapa | null } | null>(null);
 
-  const totalAtraso = useMemo(
-    () => todosTitulos.filter((t) => t.status_gestao === "atrasado").length,
+  const somaValor = (lista: TituloCobranca[]) =>
+    lista.reduce((acc, t) => acc + Number(t.valor_efetivo ?? 0), 0);
+
+  const emAtraso = useMemo(
+    () => todosTitulos.filter((t) => t.status_gestao === "atrasado"),
     [todosTitulos],
   );
+  const totalAtraso = emAtraso.length;
+  const somaAtraso = useMemo(() => somaValor(emAtraso), [emAtraso]);
+  const somaFila = useMemo(() => somaValor(fila), [fila]);
+  const somaPausados = useMemo(() => somaValor(pausados), [pausados]);
 
   const lista = vista === "fila" ? fila : pausados;
   const loading = vista === "fila" ? loadingFila : loadingPausados;
@@ -208,7 +224,11 @@ export default function ReguaTab() {
       if (!map.has(key)) map.set(key, { etapa, titulos: [] });
       map.get(key)!.titulos.push(t);
     }
-    return Array.from(map.entries());
+    // Etapa mais avançada da régua primeiro (maior dias_offset) — cobrança
+    // formal antes de lembrete de cortesia.
+    return Array.from(map.entries()).sort(
+      (a, b) => (b[1].etapa?.dias_offset ?? -9999) - (a[1].etapa?.dias_offset ?? -9999),
+    );
   }, [lista, etapas]);
 
   return (
@@ -218,12 +238,14 @@ export default function ReguaTab() {
           <KpiCard
             label="Fila de hoje"
             valor={fila.length}
+            total={somaFila}
             ativo={vista === "fila"}
             onClick={() => setVista("fila")}
           />
           <KpiCard
             label="Pausados"
             valor={pausados.length}
+            total={somaPausados}
             ativo={vista === "pausados"}
             onClick={() => setVista("pausados")}
             tone="warn"
@@ -231,6 +253,7 @@ export default function ReguaTab() {
           <KpiCard
             label="Em atraso total"
             valor={totalAtraso}
+            total={somaAtraso}
             ativo={false}
             onClick={() => { /* somente informativo */ }}
             tone="danger"
