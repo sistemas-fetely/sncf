@@ -581,11 +581,10 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
               {FILAS.map((f) => <SelectItem key={f.chave} value={f.chave}>{f.label}</SelectItem>)}
             </SelectContent>
           </Select>
-          <div className="flex items-center gap-2">
-            <Switch id="so-atraso" checked={soAtraso} onCheckedChange={setSoAtraso} />
-            <Label htmlFor="so-atraso" className="text-xs">Só em atraso</Label>
-          </div>
-        </div>
+          {soVencido && (
+            <span className="text-xs text-destructive">Mostrando só títulos vencidos</span>
+          )}
+
 
         {/* Grupos */}
         {q.isLoading ? (
