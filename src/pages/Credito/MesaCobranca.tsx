@@ -181,6 +181,61 @@ function seloEnvio(l: LinhaMesa) {
   }
 }
 
+// ── Agrupamento por pedido (mesmo padrão de gruposCliente do BancoSafra) ──
+interface GrupoPedidoMesa {
+  chave: string;
+  cliente: string;
+  pedido: string;
+  parcelas: LinhaMesa[];
+  instrumento: string;
+  nf: string;
+  total: number;
+  /** Parcela mais urgente (maior dias_atraso) — dita vencimento, atraso e lastros. */
+  urgente: LinhaMesa;
+  ressalvas: string;
+  abrirPorPadrao: boolean;
+}
+
+function agruparPorPedidoMesa(rows: LinhaMesa[]): GrupoPedidoMesa[] {
+  const map = new Map<string, LinhaMesa[]>();
+  const ordem: string[] = [];
+  for (const l of rows) {
+    const k = l.pedido_id ?? `sem-pedido:${l.titulo_id}`;
+    if (!map.has(k)) { map.set(k, []); ordem.push(k); }
+    map.get(k)!.push(l);
+  }
+  return ordem.map((k) => {
+    const parcelas = map.get(k)!;
+    const instrumentos = Array.from(new Set(parcelas.map((p) => p.instrumento ?? "—")));
+    const urgente = parcelas.reduce((a, b) =>
+      Number(b.dias_atraso ?? 0) > Number(a.dias_atraso ?? 0) ? b : a,
+    );
+    const ressalvas = Array.from(
+      new Set(parcelas.map((p) => (p.ressalvas ?? "").trim()).filter(Boolean)),
+    ).join(" · ");
+    return {
+      chave: k,
+      cliente: parcelas[0].nome_exibicao ?? "—",
+      pedido: parcelas[0].pedido ?? "—",
+      parcelas,
+      instrumento: instrumentos.length === 1 ? instrumentos[0] : "misto",
+      nf: parcelas.find((p) => p.nf_numero)?.nf_numero ?? "—",
+      total: parcelas.reduce((s, p) => s + Number(p.valor_atual ?? 0), 0),
+      urgente,
+      ressalvas,
+      abrirPorPadrao: parcelas.some((p) => Number(p.dias_atraso ?? 0) > 0),
+    };
+  });
+}
+
+function TextoAtraso({ dias }: { dias: number }) {
+  return dias > 0 ? (
+    <span className="text-destructive">{dias}d em atraso</span>
+  ) : (
+    <span className="text-muted-foreground">vence em {Math.abs(dias)}d</span>
+  );
+}
+
 // ── Página ──
 interface MesaCobrancaProps {
   /** Navega o hub para Banco → Remessas Safra. Se ausente, o link não é renderizado. */
