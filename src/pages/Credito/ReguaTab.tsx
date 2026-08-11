@@ -248,21 +248,38 @@ export default function ReguaTab() {
   const lista = vista === "fila" ? fila : pausados;
   const loading = vista === "fila" ? loadingFila : loadingPausados;
 
+  /** Próxima ação já vencida = trabalho atrasado da régua. */
+  const acaoAtrasada = (t: TituloCobranca) => {
+    const d = (t as any).data_proxima_acao_regua as string | null | undefined;
+    if (!d) return false;
+    return String(d).slice(0, 10) < new Date().toISOString().slice(0, 10);
+  };
+
+  /** Ordena por data da próxima ação crescente, nulos por último. */
+  const porProximaAcao = (a: TituloCobranca, b: TituloCobranca) => {
+    const da = ((a as any).data_proxima_acao_regua as string | null) ?? null;
+    const db = ((b as any).data_proxima_acao_regua as string | null) ?? null;
+    if (da === db) return 0;
+    if (!da) return 1;
+    if (!db) return -1;
+    return da < db ? -1 : 1;
+  };
+
   // Agrupa por descrição da etapa aplicável
   const grupos = useMemo(() => {
     const map = new Map<string, { etapa: ReguaEtapa | null; titulos: TituloCobranca[] }>();
-    for (const t of lista) {
+    for (const t of [...lista].sort(porProximaAcao)) {
       const etapa = resolverEtapaParaTitulo(t, etapas);
       const key = etapa?.descricao_acao ?? "Sem etapa aplicável";
       if (!map.has(key)) map.set(key, { etapa, titulos: [] });
       map.get(key)!.titulos.push(t);
     }
-    // Etapa mais avançada da régua primeiro (maior dias_offset) — cobrança
-    // formal antes de lembrete de cortesia.
+    // Grupo com ação mais atrasada primeiro (menor data de próxima ação).
     return Array.from(map.entries()).sort(
-      (a, b) => (b[1].etapa?.dias_offset ?? -9999) - (a[1].etapa?.dias_offset ?? -9999),
+      (a, b) => porProximaAcao(a[1].titulos[0], b[1].titulos[0]),
     );
   }, [lista, etapas]);
+
 
   return (
     <div className="space-y-4">
