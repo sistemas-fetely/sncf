@@ -71,7 +71,7 @@ export function EnviarBlingDialog({
 
   const temBlingId = !!parceiroStatus?.bling_id;
   const temRemessaAtiva = Array.isArray(remessasAtivas) && remessasAtivas.length > 0;
-  const carregando = checkingBling || checkingRemessas;
+  const carregando = checkingBling || checkingRemessas || checkingProva;
 
   const handleSincronizar = async () => {
     try {
@@ -83,6 +83,15 @@ export function EnviarBlingDialog({
   };
 
   const handleEnviar = async () => {
+    // Despacho sem lastro bancário fica registrado — o humano decide, o sistema anota.
+    if (prova && !prova.libera_despacho) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).rpc("fn_registrar_despacho_sem_prova", { p_pedido_id: pedido_id });
+      } catch (e) {
+        console.error("Falha ao registrar despacho sem prova:", e);
+      }
+    }
     try {
       await enviar.mutateAsync({ pedido_id });
       setOpen(false);
@@ -92,7 +101,14 @@ export function EnviarBlingDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!enviar.isPending) setOpen(v); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (enviar.isPending) return;
+        setAssumeRisco(false);
+        setOpen(v);
+      }}
+    >
       <DialogTrigger asChild>
         {variante === "discreta" ? (
           <Button
