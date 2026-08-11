@@ -45194,14 +45194,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -51458,6 +51458,28 @@ export type Database = {
         Returns: boolean
       }
       fn_extrair_dimensoes: { Args: { p_texto: string }; Returns: number[] }
+      fn_extrato_classificar: {
+        Args: { p_conta: string; p_descricao: string }
+        Returns: {
+          destino: string
+          fonte_codigo: string
+          papel: string
+        }[]
+      }
+      fn_extrato_enriquecer: {
+        Args: {
+          p_classe?: string
+          p_conta: string
+          p_contraparte_documento?: string
+          p_contraparte_nome?: string
+          p_data: string
+          p_referencia_pedido?: string
+          p_tipo_meio?: string
+          p_tolerancia_dias?: number
+          p_valor: number
+        }
+        Returns: string
+      }
       fn_faturar_pedido: {
         Args: { p_nf_id: string; p_pedido_id: string }
         Returns: Json
@@ -51735,6 +51757,17 @@ export type Database = {
       fn_resolver_condicao: { Args: { p_condicao: string }; Returns: string }
       fn_resolver_pedido_por_ref_bling: {
         Args: { p_ref: string }
+        Returns: string
+      }
+      fn_saldo_diario_registrar: {
+        Args: {
+          p_conta: string
+          p_data: string
+          p_importacao?: string
+          p_observacao?: string
+          p_origem?: string
+          p_saldo: number
+        }
         Returns: string
       }
       fn_sem_acento: { Args: { p_txt: string }; Returns: string }
