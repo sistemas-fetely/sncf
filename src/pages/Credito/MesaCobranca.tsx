@@ -77,13 +77,13 @@ const FILAS: { chave: string; label: string }[] = [
   { chave: "NAO_COBRAVEL", label: "Não cobrável" },
 ];
 
-const GRUPOS = {
+const GRUPOS: Record<"agir" | "vigiar" | "nao", string[]> = {
   agir: ["A_ENVIAR", "A_EMITIR_BOLETO", "A_REEMITIR_BOLETO", "A_COBRAR"],
   vigiar: ["A_VENCER", "BOLETO_EM_CURSO_BANCO", "EM_CURSO"],
   nao: ["CONCILIAR", "ENTREGA_ATRASADA", "NAO_COBRAVEL"],
-} as const;
+};
 
-const NAO_COBRAR = new Set(GRUPOS.nao);
+const NAO_COBRAR = new Set<string>(GRUPOS.nao);
 
 function fmtData(iso: string | null): string {
   if (!iso) return "—";
@@ -189,7 +189,7 @@ export default function MesaCobranca() {
   const [soAtraso, setSoAtraso] = useState(false);
   const [grupoAtivo, setGrupoAtivo] = useState<keyof typeof GRUPOS | null>(null);
   const [abertos, setAbertos] = useState<Record<string, boolean>>(
-    () => Object.fromEntries(FILAS.map((f) => [f.chave, GRUPOS.agir.includes(f.chave as any)])),
+    () => Object.fromEntries(FILAS.map((f) => [f.chave, GRUPOS.agir.includes(f.chave)])),
   );
   const [detalhe, setDetalhe] = useState<LinhaMesa | null>(null);
   const [enviandoId, setEnviandoId] = useState<string | null>(null);
@@ -215,7 +215,7 @@ export default function MesaCobranca() {
   const filtradas = useMemo(() => {
     const termo = busca.trim().toLowerCase();
     return linhas.filter((l) => {
-      if (grupoAtivo && !GRUPOS[grupoAtivo].includes((l.fila ?? "") as any)) return false;
+      if (grupoAtivo && !GRUPOS[grupoAtivo].includes(l.fila ?? "")) return false;
       if (filaF !== "todas" && l.fila !== filaF) return false;
       if (instrumentoF !== "todos" && l.instrumento !== instrumentoF) return false;
       if (soAtraso && !((l.dias_atraso ?? 0) > 0)) return false;
@@ -228,7 +228,7 @@ export default function MesaCobranca() {
   }, [linhas, busca, instrumentoF, filaF, soAtraso, grupoAtivo]);
 
   const resumoGrupo = (grupo: keyof typeof GRUPOS) => {
-    const alvo = linhas.filter((l) => GRUPOS[grupo].includes((l.fila ?? "") as any));
+    const alvo = linhas.filter((l) => GRUPOS[grupo].includes(l.fila ?? ""));
     return { qtd: alvo.length, soma: alvo.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0) };
   };
 
@@ -292,7 +292,11 @@ export default function MesaCobranca() {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="space-y-4 p-4">
-        <CasaPageHeader titulo="Mesa de Cobrança" subtitulo="Fila de trabalho por lastro de cobrança" />
+        <CasaPageHeader
+          breadcrumb={[{ label: "Recebimento" }, { label: "Cobrança" }]}
+          title="Mesa de Cobrança"
+          subtitle="Fila de trabalho por lastro de cobrança"
+        />
 
         {q.isError && (
           <Alert variant="destructive">
@@ -369,7 +373,7 @@ export default function MesaCobranca() {
               const rows = porFila[f.chave] ?? [];
               const soma = rows.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0);
               const acao = rows.find((r) => r.acao_sugerida)?.acao_sugerida ?? null;
-              const naoCobrar = NAO_COBRAR.has(f.chave as any);
+              const naoCobrar = NAO_COBRAR.has(f.chave);
               return (
                 <Collapsible
                   key={f.chave}
@@ -445,9 +449,6 @@ export default function MesaCobranca() {
                                     {seloInstrumento(l)}
                                     {seloEnvio(l)}
                                   </div>
-                                  {l.ressalvas && (
-                                    <div className="mt-1 text-[10px] text-warning">{l.ressalvas}</div>
-                                  )}
                                 </TableCell>
                                 <TableCell className="py-1.5 text-[10px] text-warning">{l.ressalvas ?? ""}</TableCell>
                                 {f.chave === "A_ENVIAR" && (
