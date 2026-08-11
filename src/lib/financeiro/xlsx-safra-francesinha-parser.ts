@@ -117,10 +117,9 @@ function hoje(): string {
 }
 
 export function ehSafraFrancesinha(buf: ArrayBuffer): boolean {
-  const rows = lerRows(buf);
-  const alvo = (rows[3] || []).map(normalizar).join(" | ");
-  return alvo.includes("francesinha");
+  return temTitulo(lerRows(buf), /francesinha/);
 }
+
 
 /** Acha, numa linha que contenha o rótulo, os números à direita dele */
 function numerosAposRotulo(rows: unknown[][], rotulo: string): number[] {
