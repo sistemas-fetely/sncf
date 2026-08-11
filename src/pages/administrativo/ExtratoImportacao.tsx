@@ -741,10 +741,22 @@ export default function ExtratoImportacao() {
         })
         .eq("id", impId);
 
-      toast.success(
-        `${file.name}: ${novas} novas · ${enriquecidas} enriquecidas · ${duplicadas} duplicadas` +
-          (linhasSaldo > 0 ? ` · ${linhasSaldo} linha(s) de saldo` : "")
-      );
+      if (fonte === "safra_instrucoes_2via") {
+        toast.success(
+          `${file.name}: ${novas} boleto(s) na conferência da carteira — nenhuma movimentação ou baixa gerada.`
+        );
+      } else if (fonte === "safra_francesinha") {
+        toast.success(
+          `${file.name}: ${linhasLidas} liquidação(ões) lidas · ${enriquecidas} enriquecidas` +
+            (semPar > 0 ? ` · ${semPar} sem par no extrato` : "") +
+            (duplicadas > 0 ? " · snapshot repetido" : "")
+        );
+      } else {
+        toast.success(
+          `${file.name}: ${novas} novas · ${enriquecidas} enriquecidas · ${duplicadas} duplicadas` +
+            (linhasSaldo > 0 ? ` · ${linhasSaldo} linha(s) de saldo` : "")
+        );
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       await sb
