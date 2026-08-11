@@ -10,6 +10,8 @@ export interface SafraPayVenda {
   data_venda: string;         // DD/MM/AAAA → ISO
   hora: string;
   nsu: string;
+  terminal: string;
+  autorizacao: string;
   produto: string;            // MASTERCARD, VISA, ELO, AMEX
   modalidade: string;         // CREDITO A VISTA, CRED PARC S/JURO 2-6, etc.
   parcelas: number;
@@ -18,6 +20,7 @@ export interface SafraPayVenda {
   valor_liquido: number;
   origem: "safrapay_tipo1";
 }
+
 
 export interface SafraPayTipo1Parsed {
   vendas: SafraPayVenda[];
@@ -59,7 +62,10 @@ export function parseCsvSafraPayTipo1(text: string): SafraPayTipo1Parsed {
       data_venda: parseSafraData(cols[4] || ""),
       hora: (cols[5] || "").trim(),
       nsu: (cols[6] || "").replace(/^'/, "").trim(),
+      terminal: (cols[3] || "").replace(/^'/, "").trim(),
+      autorizacao: (cols[13] || "").replace(/^'/, "").trim(),
       produto: (cols[7] || "").trim(),
+
       modalidade: (cols[8] || "").trim(),
       parcelas: parseInt(cols[9] || "1", 10) || 1,
       valor_bruto: parseSafraValor(cols[11] || "0"),

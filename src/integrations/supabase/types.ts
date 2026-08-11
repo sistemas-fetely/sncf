@@ -28489,6 +28489,54 @@ export type Database = {
         }
         Relationships: []
       }
+      safra_retorno_arquivo: {
+        Row: {
+          arquivo_nome: string
+          created_at: string
+          data_geracao: string | null
+          data_movimento: string | null
+          erro_detalhe: string | null
+          hash_arquivo: string
+          id: string
+          nro_sequencial: number
+          processado_em: string | null
+          qtd_liquidacoes: number
+          qtd_registros: number
+          status: string
+          valor_liquidacoes: number
+        }
+        Insert: {
+          arquivo_nome: string
+          created_at?: string
+          data_geracao?: string | null
+          data_movimento?: string | null
+          erro_detalhe?: string | null
+          hash_arquivo: string
+          id?: string
+          nro_sequencial: number
+          processado_em?: string | null
+          qtd_liquidacoes?: number
+          qtd_registros?: number
+          status?: string
+          valor_liquidacoes?: number
+        }
+        Update: {
+          arquivo_nome?: string
+          created_at?: string
+          data_geracao?: string | null
+          data_movimento?: string | null
+          erro_detalhe?: string | null
+          hash_arquivo?: string
+          id?: string
+          nro_sequencial?: number
+          processado_em?: string | null
+          qtd_liquidacoes?: number
+          qtd_registros?: number
+          status?: string
+          valor_liquidacoes?: number
+        }
+        Relationships: []
+      }
       safrapay_venda: {
         Row: {
           anomes: string | null
@@ -51971,6 +52019,20 @@ export type Database = {
         Args: { p_eventos: Json; p_status_atual: string }
         Returns: string
       }
+      fn_cnab_resolver_titulo: {
+        Args: {
+          p_nosso_numero: string
+          p_seu_numero?: string
+          p_uso_empresa: string
+        }
+        Returns: {
+          casado_por: string
+          numero_titulo: string
+          titulo_id: string
+        }[]
+      }
+      fn_cnab_seu_numero: { Args: { p_titulo_id: string }; Returns: string }
+      fn_cnab_uso_empresa: { Args: { p_titulo_id: string }; Returns: string }
       fn_cnpj_valido: { Args: { p_cnpj: string }; Returns: boolean }
       fn_conferir_codigos_fornecedor: {
         Args: { p_codigos: string[]; p_fornecedor_id: string }

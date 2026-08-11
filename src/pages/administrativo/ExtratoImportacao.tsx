@@ -21,6 +21,9 @@ import { parseOFX } from "@/lib/financeiro/ofx-parser";
 import { parseXlsxSafraLancamentos } from "@/lib/financeiro/xlsx-safra-lancamentos-parser";
 import { parseXlsxMpWithdraw } from "@/lib/financeiro/xlsx-mp-withdraw-parser";
 import { parseCsvSafraPayTipo2 } from "@/lib/financeiro/csv-safrapay-tipo2-parser";
+import { parseCsvSafraPayTipo1 } from "@/lib/financeiro/csv-safrapay-tipo1-parser";
+import { parseCsvSafraPayTipo3 } from "@/lib/financeiro/csv-safrapay-tipo3-parser";
+import { detectarCsvSafraPay } from "@/lib/financeiro/csv-safrapay-detect";
 import { parseXlsxMpSettlement } from "@/lib/financeiro/xlsx-mp-settlement-parser";
 import { parseXlsxMpReserveRelease } from "@/lib/financeiro/xlsx-mp-reserve-release-parser";
 import { parseXlsxSafraInstrucoes2Via } from "@/lib/financeiro/xlsx-safra-instrucoes-parser";
@@ -60,7 +63,10 @@ type Fonte =
   | "ofx"
   | "safra_lancamentos"
   | "mp_withdraw"
+  | "safrapay_vendas"
   | "safrapay_liquidacao"
+  | "safrapay_ajustes"
+  | "super_agenda"
   | "mp_settlement"
   | "mp_release"
   | "safra_instrucoes_2via"
@@ -115,7 +121,10 @@ const FONTE_TIPO_DB: Record<Fonte, string> = {
   ofx: "ofx",
   safra_lancamentos: "safra_lancamentos",
   mp_withdraw: "mp_withdraw",
+  safrapay_vendas: "safrapay_vendas",
   safrapay_liquidacao: "safrapay_liquidacao",
+  safrapay_ajustes: "safrapay_ajustes",
+  super_agenda: "super_agenda",
   mp_settlement: "mp_settlement",
   mp_release: "mp_release",
   safra_instrucoes_2via: "safra_instrucoes_2via",
@@ -129,7 +138,10 @@ const BLOCO_DA_FONTE: Record<Fonte, Bloco> = {
   ofx: "extrato",
   safra_lancamentos: "extrato",
   mp_withdraw: "auxiliar",
+  safrapay_vendas: "auxiliar",
   safrapay_liquidacao: "auxiliar",
+  safrapay_ajustes: "auxiliar",
+  super_agenda: "auxiliar",
   mp_settlement: "auxiliar",
   mp_release: "auxiliar",
   safra_instrucoes_2via: "auxiliar",
@@ -144,7 +156,12 @@ const NOME_BLOCO: Record<Bloco, string> = {
 const PARSER_ROTULO: Partial<Record<Fonte, string>> = {
   safra_instrucoes_2via: "Recebimentos - Instruções 2ª via",
   safra_francesinha: "Gestão de Cobrança - Francesinha",
+  safrapay_vendas: "SafraPay Tipo 1 - Vendas",
+  safrapay_liquidacao: "SafraPay Tipo 2 - Realizado",
+  safrapay_ajustes: "SafraPay Tipo 3 - Ajustes",
+  super_agenda: "SafraPay SUPER AGENDA (não importável)",
 };
+
 
 export default function ExtratoImportacao() {
   const { user } = useAuth();
@@ -241,14 +258,36 @@ export default function ExtratoImportacao() {
     const impId = impRow.id as string;
 
     let fonte: Fonte = "safra_lancamentos";
+    let textoCsv = "";
     try {
       if (!base) throw new Error(`Extensão não reconhecida: ${file.name} (aceito .ofx, .xlsx, .csv)`);
-      fonte =
-        base === "ofx" ? "ofx"
-          : base === "csv" ? "safrapay_liquidacao"
-          : await detectarSubtipoXlsx(file);
+      if (base === "ofx") {
+        fonte = "ofx";
+      } else if (base === "csv") {
+        // O CSV SafraPay declara o tipo na primeira coluna de cada linha.
+        textoCsv = await file.text();
+        const det = detectarCsvSafraPay(textoCsv);
+        if (!det.tipo)
+          throw new Error(
+            `CSV não reconhecido como SafraPay (coluna T ausente e nenhuma assinatura conhecida). Primeiras linhas:\n${det.amostra}`
+          );
+        fonte = det.tipo;
+      } else {
+        fonte = await detectarSubtipoXlsx(file);
+      }
       trilha.fonte = fonte;
 
+      // O rastro grava a fonte real antes de qualquer recusa
+      await sb
+        .from("extrato_importacoes")
+        .update({ fonte_tipo: FONTE_TIPO_DB[fonte] })
+        .eq("id", impId);
+
+      if (fonte === "super_agenda") {
+        throw new Error(
+          "SUPER AGENDA é previsão de recebível, será tratada no Fluxo Futuro — não importada aqui."
+        );
+      }
 
       const blocoCerto = BLOCO_DA_FONTE[fonte];
       if (blocoCerto !== bloco) {
@@ -257,13 +296,6 @@ export default function ExtratoImportacao() {
         );
       }
 
-      await sb
-        .from("extrato_importacoes")
-        .update({
-          fonte_tipo: FONTE_TIPO_DB[fonte],
-        })
-
-        .eq("id", impId);
     } catch (e) {
       await sb
         .from("extrato_importacoes")
@@ -572,9 +604,78 @@ export default function ExtratoImportacao() {
           if (errIns) throw errIns;
           novas++;
         }
+      } else if (fonte === "safrapay_vendas") {
+        // Tipo 1 — valor integral da venda e NSU na data da autorização.
+        // Não é dinheiro na conta: alimenta a prova de pagamento de cartão.
+        const parsed = parseCsvSafraPayTipo1(textoCsv || (await file.text()));
+        linhasLidas = parsed.vendas.length;
+        if (linhasLidas === 0) throw new Error("Nenhuma venda no arquivo SafraPay Tipo 1");
+
+        const datasV = parsed.vendas.map((v) => v.data_venda).filter(Boolean).sort();
+        periodoInicio = datasV[0] || null;
+        periodoFim = datasV[datasV.length - 1] || null;
+
+        for (const v of parsed.vendas) {
+          if (!v.nsu || !v.data_venda) continue;
+          const { data: exist } = await sb
+            .from("safrapay_venda")
+            .select("id")
+            .eq("nsu", v.nsu)
+            .eq("data_venda", v.data_venda)
+            .maybeSingle();
+          if (exist) { duplicadas++; continue; }
+
+          const { error: errIns } = await sb.from("safrapay_venda").insert({
+            nsu: v.nsu,
+            ec: parsed.ec || null,
+            anomes: parsed.anomes || null,
+            terminal: v.terminal || null,
+            data_venda: v.data_venda,
+            hora: v.hora || null,
+            produto: v.produto || null,
+            modalidade: v.modalidade || null,
+            parcelas: v.parcelas,
+            autorizacao: v.autorizacao || null,
+            valor_bruto: v.valor_bruto,
+            valor_liquido: v.valor_liquido,
+            mdr: Number((v.valor_bruto - v.valor_liquido).toFixed(2)),
+            arquivo_origem: file.name,
+            importado_em: new Date().toISOString(),
+          });
+          if (errIns) throw errIns;
+          novas++;
+        }
+      } else if (fonte === "safrapay_ajustes") {
+        // Tipo 3 — ajuste de adquirência sempre acompanha um crédito que já está
+        // no OFX: só enriquece, nunca cria linha nova.
+        const parsed = parseCsvSafraPayTipo3(textoCsv || (await file.text()));
+        linhasLidas = parsed.ajustes.length;
+        if (linhasLidas === 0) throw new Error("Nenhum ajuste no arquivo SafraPay Tipo 3");
+
+        const datasA = parsed.ajustes.map((a) => a.dt_ajuste).filter(Boolean).sort();
+        periodoInicio = datasA[0] || null;
+        periodoFim = datasA[datasA.length - 1] || null;
+
+        for (const a of parsed.ajustes) {
+          if (!a.dt_ajuste || a.valor === 0) continue;
+          const { data: alvoId, error: errEnr } = await sb.rpc("fn_extrato_enriquecer", {
+            p_conta: conta,
+            p_data: a.dt_ajuste,
+            p_valor: a.natureza === "D" ? -Math.abs(a.valor) : Math.abs(a.valor),
+            p_contraparte_nome: `SAFRAPAY AJUSTE ${a.descricao}`.trim(),
+            p_contraparte_documento: null,
+            p_referencia_pedido: null,
+            p_tipo_meio: "cartao",
+            p_classe: null,
+          });
+          if (errEnr) throw errEnr;
+          if (alvoId) enriquecidas++;
+          else semPar++;
+        }
       } else if (fonte === "safrapay_liquidacao") {
-        const text = await file.text();
+        const text = textoCsv || (await file.text());
         const parsed = parseCsvSafraPayTipo2(text);
+
         linhasLidas = parsed.parcelas.length;
         if (linhasLidas === 0) throw new Error("Nenhuma parcela liquidada no arquivo SafraPay Tipo 2");
 
@@ -836,7 +937,17 @@ export default function ExtratoImportacao() {
             (semPar > 0 ? ` · ${semPar} sem par no extrato` : "") +
             (duplicadas > 0 ? " · snapshot repetido" : "")
         );
+      } else if (fonte === "safrapay_vendas") {
+        toast.success(
+          `${PARSER_ROTULO.safrapay_vendas} — ${file.name}: ${linhasLidas} venda(s) lidas · ${novas} novas · ${duplicadas} já conhecidas`
+        );
+      } else if (fonte === "safrapay_ajustes") {
+        toast.success(
+          `${PARSER_ROTULO.safrapay_ajustes} — ${file.name}: ${linhasLidas} ajuste(s) · ${enriquecidas} enriquecidos` +
+            (semPar > 0 ? ` · ${semPar} sem par no extrato` : "")
+        );
       } else {
+
         toast.success(
           `${file.name}: ${novas} novas · ${enriquecidas} enriquecidas · ${duplicadas} duplicadas` +
             (linhasSaldo > 0 ? ` · ${linhasSaldo} linha(s) de saldo` : "")
