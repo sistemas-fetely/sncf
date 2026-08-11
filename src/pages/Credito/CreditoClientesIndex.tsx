@@ -188,8 +188,9 @@ export default function CreditoClientesIndex() {
         }
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard label="Total de haveres" value={fmtBRL.format(totalHaveres)} tone="success" />
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <KpiCard label="Crédito livre" value={fmtBRL.format(totalHaveres)} tone="success" />
+        <KpiCard label="Adiantamento reservado" value={fmtBRL.format(totalReservado)} />
         <KpiCard label="Total a vencer" value={fmtBRL.format(totalAVencer)} />
         <KpiCard
           label="Total vencidos"
