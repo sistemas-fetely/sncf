@@ -519,17 +519,13 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                     size="sm"
                                     variant="outline"
                                     className="h-7 shrink-0 text-xs"
-                                    disabled={enviandoId === g.urgente.pedido_id}
-                                    onClick={() => { void handleEnviarPacote(g.urgente).catch(() => {}); }}
+                                    onClick={() => abrirEnviarPacote(g.urgente, Number(g.total ?? 0))}
                                   >
-                                    {enviandoId === g.urgente.pedido_id ? (
-                                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                                    ) : (
-                                      <Send className="mr-1 h-3 w-3" />
-                                    )}
+                                    <Send className="mr-1 h-3 w-3" />
                                     Enviar pacote
                                   </Button>
                                 )}
+
                               </div>
                               <CollapsibleContent>
                                 <div className="border-t px-2 pb-2">
