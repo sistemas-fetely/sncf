@@ -1251,7 +1251,6 @@ export default function CobrancaFila() {
             { value: "titulos", label: `Títulos${totalTitulosAbertos > 0 ? ` · ${totalTitulosAbertos}` : ""}` },
             { value: "adiantamento", label: `Adiantamento s/ NF${totalAdiantamentos > 0 ? ` · ${totalAdiantamentos}` : ""}` },
             { value: "banco", label: "Banco" },
-            { value: "banco", label: "Banco" },
             { value: "credito-cliente", label: "Crédito do cliente" },
           ].map((tab) => (
 
@@ -1312,9 +1311,6 @@ export default function CobrancaFila() {
           <AdiantamentoSemNfTab />
         </TabsContent>
 
-        <TabsContent value="regua">
-          <ReguaTab />
-        </TabsContent>
 
 
         <TabsContent value="banco">
