@@ -1984,7 +1984,7 @@ export default function PedidoDetalhe() {
                         Coberto pelo recebível da mãe {familiaRecebivel?.familia_mae_externo ?? "—"} — não cobrar aqui
                       </p>
                     ) : (
-                      <p className="text-sm text-muted-foreground text-center py-6">Nenhum título gerado ainda.</p>
+                      <SituacaoFinanceiraBloco pedidoId={pedido.id} compacto />
                     )
                   ) : (
                     <div className="space-y-2">
