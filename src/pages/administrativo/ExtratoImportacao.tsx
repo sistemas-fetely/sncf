@@ -780,7 +780,7 @@ export default function ExtratoImportacao() {
           .select("id")
           .eq("conta_bancaria_id", conta)
           .eq("fonte_tipo", FONTE_TIPO_DB.safra_francesinha)
-          .ilike("nome_arquivo", `${PREFIXO_NOME.safra_francesinha}%`)
+          .eq("fonte_tipo", FONTE_TIPO_DB.safra_francesinha)
           .eq("periodo_fim", parsed.data_referencia)
           .eq("status", "concluida")
           .neq("id", impId)
