@@ -144,6 +144,23 @@ interface CondicaoPagamento {
   ordem: number | null;
 }
 
+interface ImpactoEdicao {
+  caminho?: string | null;
+  motivo?: string | null;
+  limite_concedido?: number | null;
+  prazo_max_dias?: number | null;
+  direcao?: "desce" | "lateral" | "sobe" | null;
+  direcao_rotulo?: string | null;
+  pode_aplicar?: boolean | null;
+  papeis_com_alcada?: string[] | null;
+  exposicao_atual?: number | null;
+  exposicao_nova?: number | null;
+  prazo_atual_dias?: number | null;
+  prazo_novo_dias?: number | null;
+  condicao_atual?: string | null;
+}
+
+
 function SecaoPagamento({ pedidoId, pedido, guarda }: {
   pedidoId: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
