@@ -316,7 +316,7 @@ const App = () => (
                   ═══════════════════════════════════════════════ */}
               <Route element={<VendasLayout />}>
                 <Route path="/pedidos" element={<PedidosIndex />} />
-                <Route path="/recebimento/cobranca" element={<CobrancaFila />} />
+                <Route path="/recebimento/cobranca" element={<MesaCobranca />} />
                 <Route path="/recebimento/entradas" element={<EntradasRecebidas />} />
 
                 <Route path="/vendas/nfs" element={<NfsDeVenda />} />
