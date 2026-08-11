@@ -605,7 +605,12 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                               {seloEnvio(l)}
                                             </div>
                                           </TableCell>
-                                          <TableCell className="py-1.5 text-[10px] text-warning">{l.ressalvas ?? ""}</TableCell>
+                                          <TableCell className="py-1.5">
+                                            {l.ressalvas && (
+                                              <div className="text-[10px] text-warning">{l.ressalvas}</div>
+                                            )}
+                                            <EntregaResumoInline l={l} />
+                                          </TableCell>
                                           {FILAS_REGUA.has(f.chave) && (
                                             <TableCell className="py-1.5" onClick={(e) => e.stopPropagation()}>
                                               {!tituloAdapt || !etapa ? (
