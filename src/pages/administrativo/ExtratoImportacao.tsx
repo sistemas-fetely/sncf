@@ -604,9 +604,78 @@ export default function ExtratoImportacao() {
           if (errIns) throw errIns;
           novas++;
         }
+      } else if (fonte === "safrapay_vendas") {
+        // Tipo 1 — valor integral da venda e NSU na data da autorização.
+        // Não é dinheiro na conta: alimenta a prova de pagamento de cartão.
+        const parsed = parseCsvSafraPayTipo1(textoCsv || (await file.text()));
+        linhasLidas = parsed.vendas.length;
+        if (linhasLidas === 0) throw new Error("Nenhuma venda no arquivo SafraPay Tipo 1");
+
+        const datasV = parsed.vendas.map((v) => v.data_venda).filter(Boolean).sort();
+        periodoInicio = datasV[0] || null;
+        periodoFim = datasV[datasV.length - 1] || null;
+
+        for (const v of parsed.vendas) {
+          if (!v.nsu || !v.data_venda) continue;
+          const { data: exist } = await sb
+            .from("safrapay_venda")
+            .select("id")
+            .eq("nsu", v.nsu)
+            .eq("data_venda", v.data_venda)
+            .maybeSingle();
+          if (exist) { duplicadas++; continue; }
+
+          const { error: errIns } = await sb.from("safrapay_venda").insert({
+            nsu: v.nsu,
+            ec: parsed.ec || null,
+            anomes: parsed.anomes || null,
+            terminal: v.terminal || null,
+            data_venda: v.data_venda,
+            hora: v.hora || null,
+            produto: v.produto || null,
+            modalidade: v.modalidade || null,
+            parcelas: v.parcelas,
+            autorizacao: v.autorizacao || null,
+            valor_bruto: v.valor_bruto,
+            valor_liquido: v.valor_liquido,
+            mdr: Number((v.valor_bruto - v.valor_liquido).toFixed(2)),
+            arquivo_origem: file.name,
+            importado_em: new Date().toISOString(),
+          });
+          if (errIns) throw errIns;
+          novas++;
+        }
+      } else if (fonte === "safrapay_ajustes") {
+        // Tipo 3 — ajuste de adquirência sempre acompanha um crédito que já está
+        // no OFX: só enriquece, nunca cria linha nova.
+        const parsed = parseCsvSafraPayTipo3(textoCsv || (await file.text()));
+        linhasLidas = parsed.ajustes.length;
+        if (linhasLidas === 0) throw new Error("Nenhum ajuste no arquivo SafraPay Tipo 3");
+
+        const datasA = parsed.ajustes.map((a) => a.dt_ajuste).filter(Boolean).sort();
+        periodoInicio = datasA[0] || null;
+        periodoFim = datasA[datasA.length - 1] || null;
+
+        for (const a of parsed.ajustes) {
+          if (!a.dt_ajuste || a.valor === 0) continue;
+          const { data: alvoId, error: errEnr } = await sb.rpc("fn_extrato_enriquecer", {
+            p_conta: conta,
+            p_data: a.dt_ajuste,
+            p_valor: a.natureza === "D" ? -Math.abs(a.valor) : Math.abs(a.valor),
+            p_contraparte_nome: `SAFRAPAY AJUSTE ${a.descricao}`.trim(),
+            p_contraparte_documento: null,
+            p_referencia_pedido: null,
+            p_tipo_meio: "cartao",
+            p_classe: null,
+          });
+          if (errEnr) throw errEnr;
+          if (alvoId) enriquecidas++;
+          else semPar++;
+        }
       } else if (fonte === "safrapay_liquidacao") {
-        const text = await file.text();
+        const text = textoCsv || (await file.text());
         const parsed = parseCsvSafraPayTipo2(text);
+
         linhasLidas = parsed.parcelas.length;
         if (linhasLidas === 0) throw new Error("Nenhuma parcela liquidada no arquivo SafraPay Tipo 2");
 
