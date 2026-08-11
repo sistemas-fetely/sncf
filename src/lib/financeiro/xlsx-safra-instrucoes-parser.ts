@@ -171,7 +171,8 @@ export function parseXlsxSafraInstrucoes2Via(buf: ArrayBuffer): SafraInstrucoesP
       numero_documento_truncado: txt(r[cols.documento]),
       pagador: txt(r[cols.pagador]),
       data_vencimento: dataISO(r[cols.vencimento]),
-      data_pagamento: valorRecebido === 0 ? dataISO(r[cols.pagamento]) : dataISO(r[cols.pagamento]),
+      // ABERTO: Data Pagamento vazia → null, nunca data inválida
+      data_pagamento: dataISO(r[cols.pagamento]),
       valor_boleto: arred2(num(r[cols.valorBoleto])),
       valor_recebido: valorRecebido,
       diferenca: arred2(num(r[cols.diferenca])),
