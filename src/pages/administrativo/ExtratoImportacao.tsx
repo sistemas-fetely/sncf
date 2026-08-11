@@ -538,6 +538,21 @@ export default function ExtratoImportacao() {
 
           const tipoMeio = t.tipo_meio_pagamento.toLowerCase().includes("bancaria") ? "pix" : "cartao";
 
+          // Enriquecer o crédito que já entrou pelo extrato, se existir
+          const { data: alvoId, error: errEnr } = await sb.rpc("fn_extrato_enriquecer", {
+            p_conta: conta,
+            p_data: t.data_liberacao || t.data_aprovacao,
+            p_valor: t.valor_liquido,
+            p_contraparte_nome: `MP ${t.meio_pagamento.toUpperCase()}`.trim(),
+            p_contraparte_documento: null,
+            p_referencia_pedido: t.codigo_referencia || null,
+            p_tipo_meio: tipoMeio,
+            p_classe: null,
+          });
+          if (errEnr) throw errEnr;
+          if (alvoId) { enriquecidas++; continue; }
+
+
           const { error: errIns } = await sb.from("movimentacoes_bancarias").insert({
             conta_bancaria_id: conta,
             data_transacao: t.data_liberacao || t.data_aprovacao,
