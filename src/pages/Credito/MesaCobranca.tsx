@@ -643,7 +643,15 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                 </Collapsible>
               );
             })}
+            {filasOrdenadas.filter((f) => f.rows.length === 0).length > 0 && (
+              <div className="px-1 pt-1 text-xs text-muted-foreground">
+                {filasOrdenadas.filter((f) => f.rows.length === 0).length} filas vazias
+              </div>
+            )}
+              </>
+            )}
           </div>
+
         )}
 
         {/* Drawer somente-leitura */}
