@@ -793,6 +793,33 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
             )}
           </SheetContent>
         </Sheet>
+
+        {/* Régua operacional dentro da Mesa */}
+        {acaoRegua && (acaoRegua.tipo === "enviada" || acaoRegua.tipo === "pulada") && (
+          <AcaoReguaDialog
+            titulo={acaoRegua.titulo}
+            etapa={acaoRegua.etapa}
+            modo={acaoRegua.tipo}
+            open
+            onClose={() => setAcaoRegua(null)}
+          />
+        )}
+        {acaoRegua && acaoRegua.tipo === "pausar" && (
+          <PausarReguaDialog
+            titulo={acaoRegua.titulo}
+            etapa={acaoRegua.etapa}
+            open
+            onClose={() => setAcaoRegua(null)}
+          />
+        )}
+        {acaoRegua && acaoRegua.tipo === "renegociar" && (
+          <RenegociarTituloDialog
+            titulo={acaoRegua.titulo}
+            etapa={acaoRegua.etapa}
+            open
+            onClose={() => setAcaoRegua(null)}
+          />
+        )}
       </div>
     </TooltipProvider>
   );
