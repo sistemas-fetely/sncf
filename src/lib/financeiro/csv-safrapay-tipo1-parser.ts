@@ -10,6 +10,8 @@ export interface SafraPayVenda {
   data_venda: string;         // DD/MM/AAAA → ISO
   hora: string;
   nsu: string;
+  terminal: string;
+  autorizacao: string;
   produto: string;            // MASTERCARD, VISA, ELO, AMEX
   modalidade: string;         // CREDITO A VISTA, CRED PARC S/JURO 2-6, etc.
   parcelas: number;
@@ -18,6 +20,7 @@ export interface SafraPayVenda {
   valor_liquido: number;
   origem: "safrapay_tipo1";
 }
+
 
 export interface SafraPayTipo1Parsed {
   vendas: SafraPayVenda[];
