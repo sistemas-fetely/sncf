@@ -45,6 +45,7 @@ import { ImpactoEdicaoBanner } from "@/components/pedidos/ImpactoEdicaoBanner";
 import { ReabrirAnaliseAction } from "@/components/pedidos/ReabrirAnaliseAction";
 import { LinkPagamentoCard } from "@/components/pedidos/LinkPagamentoCard";
 import { PortaoLinksPanel } from "@/components/pedidos/PortaoLinksPanel";
+import { useVoltarParaOrigem } from "@/hooks/useVoltarParaOrigem";
 
 const DIAS_PRIMEIRO_PAGAMENTO_FALLBACK = 9;
 const INTERVALO_PARCELAS_FALLBACK = 30;
@@ -188,6 +189,7 @@ function CobrancaStepper({ fase }: { fase: 1 | 2 | 3 }) {
 
 function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
   const navigate = useNavigate();
+  const voltarPara = useVoltarParaOrigem("/recebimento/cobranca");
   const { toast } = useToast();
   const [datas, setDatas] = useState<Record<string, string>>({});
   const [salvando, setSalvando] = useState(false);
@@ -380,6 +382,7 @@ export default function CobrancaDetalhe() {
 
   const { pedidoId } = useParams<{ pedidoId: string }>();
   const navigate = useNavigate();
+  const voltarPara = useVoltarParaOrigem("/recebimento/cobranca");
   const qc = useQueryClient();
   const { toast } = useToast();
 
@@ -644,7 +647,7 @@ export default function CobrancaDetalhe() {
             Erro ao carregar pedido: {(pedidoQ.error as Error).message}
           </AlertDescription>
         </Alert>
-        <Button variant="ghost" onClick={() => navigate("/recebimento/cobranca")}>
+        <Button variant="ghost" onClick={() => navigate(voltarPara)}>
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
       </div>
@@ -658,7 +661,7 @@ export default function CobrancaDetalhe() {
         <Alert variant="destructive">
           <AlertDescription>Pedido não encontrado.</AlertDescription>
         </Alert>
-        <Button variant="ghost" className="mt-4" onClick={() => navigate("/recebimento/cobranca")}>
+        <Button variant="ghost" className="mt-4" onClick={() => navigate(voltarPara)}>
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
       </div>
@@ -680,7 +683,7 @@ export default function CobrancaDetalhe() {
             Erro ao calcular proposta: {(propostaQ.error as Error).message}
           </AlertDescription>
         </Alert>
-        <Button variant="ghost" onClick={() => navigate("/recebimento/cobranca")}>
+        <Button variant="ghost" onClick={() => navigate(voltarPara)}>
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
       </div>
@@ -1172,7 +1175,7 @@ export default function CobrancaDetalhe() {
                 Alterar pagamento
               </Button>
             )}
-            <Button variant="outline" onClick={() => navigate("/recebimento/cobranca")}>
+            <Button variant="outline" onClick={() => navigate(voltarPara)}>
               Cancelar
             </Button>
             <Button
