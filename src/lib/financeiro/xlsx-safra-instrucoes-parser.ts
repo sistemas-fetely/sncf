@@ -116,16 +116,26 @@ function hoje(): string {
 export function parseXlsxSafraInstrucoes2Via(buf: ArrayBuffer): SafraInstrucoesParsed {
   const rows = lerRows(buf);
 
-  const titulo = (rows[3] || []).map(normalizar).join(" | ");
-  if (!titulo.includes("recebimentos - instrucoes")) {
+  if (!temTitulo(rows, RE_INSTRUCOES)) {
     throw new Error(
       "Arquivo não é o relatório Safra 'Recebimentos - Instruções 2ª via'. " +
-        `Esperado na linha 4 o título 'Recebimentos - Instruções' e na linha 6 o cabeçalho: ${CABECALHO_INSTRUCOES_ESPERADO}`
+        `Esperado o título 'Recebimentos - Instruções' nas primeiras linhas e o cabeçalho: ${CABECALHO_INSTRUCOES_ESPERADO}. ` +
+        `Primeiras linhas lidas: ${textoPrimeirasLinhas(rows).slice(0, 400)}`
     );
   }
 
-  const header = (rows[5] || []).map(normalizar);
+  // Cabeçalho mora na linha 6, mas não confiamos no índice fixo: achamos a
+  // primeira linha que tem "Nosso Nº" e "Pagador".
+  let linhaHeader = rows.findIndex(
+    (r) =>
+      (r || []).some((c) => normalizar(c) === normalizar("Nosso Nº")) &&
+      (r || []).some((c) => normalizar(c) === normalizar("Pagador"))
+  );
+  if (linhaHeader < 0) linhaHeader = 5;
+
+  const header = (rows[linhaHeader] || []).map(normalizar);
   const idx = (rotulo: string) => header.findIndex((h) => h === normalizar(rotulo));
+
   const cols = {
     vencimento: idx("Data Vencimento"),
     pagamento: idx("Data Pagamento"),
