@@ -584,6 +584,8 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
           {soVencido && (
             <span className="text-xs text-destructive">Mostrando só títulos vencidos</span>
           )}
+        </div>
+
 
 
         {/* Grupos */}
