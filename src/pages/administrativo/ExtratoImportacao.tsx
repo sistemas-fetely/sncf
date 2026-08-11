@@ -218,7 +218,12 @@ export default function ExtratoImportacao() {
     },
   });
 
-  async function processarArquivo(file: File, conta: string, bloco: Bloco) {
+  async function processarArquivo(
+    file: File,
+    conta: string,
+    bloco: Bloco,
+    trilha: { fonte?: Fonte; resumo?: string } = {}
+  ) {
     if (!conta || !user) throw new Error("Selecione a conta bancária");
     const base = detectarFonteBase(file);
 
@@ -247,6 +252,8 @@ export default function ExtratoImportacao() {
         base === "ofx" ? "ofx"
           : base === "csv" ? "safrapay_liquidacao"
           : await detectarSubtipoXlsx(file);
+      trilha.fonte = fonte;
+
 
       const blocoCerto = BLOCO_DA_FONTE[fonte];
       if (blocoCerto !== bloco) {
