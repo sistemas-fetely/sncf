@@ -55,6 +55,7 @@ import {
   MoreHorizontal,
   Search,
 } from "lucide-react";
+import { sugerirVencimentoBoleto } from "@/lib/financeiro/sugerir-vencimento-boleto";
 import { useEnviarEmailBoleto } from "@/hooks/credito/useEnviarEmailBoleto";
 import { useBaixasPendentes } from "@/hooks/credito/useBaixasPendentes";
 import { useRemessasSafra } from "@/hooks/credito/useRemessasSafra";
@@ -332,7 +333,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       // Anotada como `string` de propósito: alarga o literal e evita TS2589 no select aninhado.
       // O resultado segue tipado à mão via `as unknown as TitulosBoleto[]` abaixo.
       const SELECT_BOLETOS: string =
-        "id, numero_titulo, data_vencimento_atual, valor_bruto, boleto_status, boleto_enviado_em, prorrogacao_nova_data, prorrogacao_solicitada_em, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social)), pedido:pedidos(id_externo)";
+        "id, numero_titulo, data_vencimento_atual, valor_bruto, boleto_status, boleto_enviado_em, prorrogacao_nova_data, prorrogacao_solicitada_em, numero_parcela, total_parcelas, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social)), pedido:pedidos(id_externo, faturado_em, condicao_solicitada)";
       const { data, error } = await supabase
         .from("titulo_a_receber")
         .select(SELECT_BOLETOS)
