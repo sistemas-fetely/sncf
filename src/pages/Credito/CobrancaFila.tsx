@@ -9,6 +9,8 @@ import BancoSafra from "@/pages/administrativo/BancoSafra";
 import PrimeiroPagamentoTab from "@/pages/Credito/PrimeiroPagamentoTab";
 import TitulosTab from "@/pages/Credito/TitulosTab";
 import ReguaTab from "@/pages/Credito/ReguaTab";
+import AdiantamentoSemNfTab from "@/pages/Credito/AdiantamentoSemNfTab";
+import { useAdiantamentoSemNf } from "@/hooks/credito/useAdiantamentoSemNf";
 
 import CreditoClientesIndex from "@/pages/Credito/CreditoClientesIndex";
 import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
