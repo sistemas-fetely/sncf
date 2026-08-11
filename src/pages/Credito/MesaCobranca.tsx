@@ -595,26 +595,37 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
           </div>
         ) : (
           <div className="space-y-2">
-            {FILAS.map((f) => {
-              const rows = porFila[f.chave] ?? [];
+            {filasOrdenadas.map((f) => {
+              const rows = f.rows;
               const soma = rows.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0);
               const acao = rows.find((r) => r.acao_sugerida)?.acao_sugerida ?? null;
               const naoCobrar = NAO_COBRAR.has(f.chave);
+              // Fila com vencido nasce expandida; depois respeita o clique do operador.
+              const aberto = tocados[f.chave] ? !!abertos[f.chave] : f.qtdVencido > 0 || !!abertos[f.chave];
               return (
                 <Collapsible
                   key={f.chave}
-                  open={!!abertos[f.chave]}
-                  onOpenChange={(o) => setAbertos((p) => ({ ...p, [f.chave]: o }))}
-                  className="rounded-md border"
+                  open={aberto}
+                  onOpenChange={(o) => {
+                    setAbertos((p) => ({ ...p, [f.chave]: o }));
+                    setTocados((p) => ({ ...p, [f.chave]: true }));
+                  }}
+                  className={`rounded-md border ${f.qtdVencido > 0 ? "border-destructive/50" : ""}`}
                 >
                   <CollapsibleTrigger className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-muted/50">
-                    <ChevronDown className={`h-4 w-4 shrink-0 transition ${abertos[f.chave] ? "" : "-rotate-90"}`} />
+                    <ChevronDown className={`h-4 w-4 shrink-0 transition ${aberto ? "" : "-rotate-90"}`} />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold">{f.label}</span>
                         <Badge variant="secondary" className="tabular-nums">{rows.length}</Badge>
                         <span className="text-xs tabular-nums text-muted-foreground">{formatBRL(soma)}</span>
+                        {f.qtdVencido > 0 && (
+                          <Badge className="shrink-0 bg-red-100 text-red-800 hover:bg-red-100 text-[10px]">
+                            {f.qtdVencido} vencido{f.qtdVencido > 1 ? "s" : ""} · {formatBRL(f.totalVencido)}
+                          </Badge>
+                        )}
                       </div>
+
                       {acao && <div className="truncate text-xs text-muted-foreground">{acao}</div>}
                       {naoCobrar && (
                         <div className="text-xs text-warning">Estes títulos não devem ser cobrados do cliente.</div>
