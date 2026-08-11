@@ -490,14 +490,56 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
         </div>
 
         {/* Cartões-resumo */}
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-4">
+          {/* VENCIDO — transversal a todas as filas, primeiro da fila visual. */}
+          <Card
+            onClick={() => { setSoVencido((v) => !v); setGrupoAtivo(null); }}
+            className={`cursor-pointer transition ${
+              soVencido ? "ring-2 ring-destructive" : "hover:bg-muted/50"
+            } ${
+              resumoVencido.qtd > 0
+                ? "border-destructive bg-destructive/10"
+                : "border-muted bg-muted/30 opacity-70"
+            }`}
+          >
+            <CardContent className="p-3">
+              <div
+                className={`text-[11px] font-semibold tracking-wide ${
+                  resumoVencido.qtd > 0 ? "text-destructive" : "text-muted-foreground"
+                }`}
+              >
+                VENCIDO
+              </div>
+              {resumoVencido.qtd > 0 ? (
+                <>
+                  <div className="mt-1 flex items-baseline gap-2">
+                    <span className="text-2xl font-semibold tabular-nums text-destructive">
+                      {resumoVencido.qtd}
+                    </span>
+                    <span className="text-xs text-muted-foreground">títulos</span>
+                  </div>
+                  <div className="text-sm font-medium tabular-nums text-destructive">
+                    {formatBRL(resumoVencido.soma)}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="mt-1 text-sm text-muted-foreground">nenhum vencido</div>
+                  <div className="text-sm tabular-nums text-muted-foreground">
+                    {formatBRL(0)}
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
           {cards.map((c) => {
             const r = resumoGrupo(c.chave);
-            const ativo = grupoAtivo === c.chave;
+            const ativo = !soVencido && grupoAtivo === c.chave;
             return (
               <Card
                 key={c.chave}
-                onClick={() => setGrupoAtivo(ativo ? null : c.chave)}
+                onClick={() => { setSoVencido(false); setGrupoAtivo(ativo ? null : c.chave); }}
                 className={`cursor-pointer transition ${ativo ? "ring-2 ring-primary" : "hover:bg-muted/50"}`}
               >
                 <CardContent className="p-3">
@@ -512,6 +554,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
             );
           })}
         </div>
+
 
         {/* Filtros */}
         <div className="flex flex-wrap items-center gap-2">
