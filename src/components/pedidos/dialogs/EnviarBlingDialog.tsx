@@ -182,15 +182,30 @@ export function EnviarBlingDialog({
             </Button>
           </div>
         ) : (
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <p>
-              Ao confirmar, o pedido será criado no Bling com seus títulos a receber.
-              Esta ação é irreversível dentro do sistema (depois precisa cancelar lá direto).
-            </p>
-            <p className="text-xs">
-              Se faltar alguma informação (forma sem id Bling parametrizado),
-              o envio falha com mensagem clara e nada é alterado no pedido.
-            </p>
+          <div className="space-y-3">
+            {prova && <ProvaPagamentoAlerta prova={prova} />}
+            {prova && !prova.libera_despacho && (
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="assume-risco"
+                  checked={assumeRisco}
+                  onCheckedChange={(v) => setAssumeRisco(v === true)}
+                />
+                <Label htmlFor="assume-risco" className="text-xs cursor-pointer leading-snug">
+                  Estou despachando sem confirmação bancária e assumo essa decisão.
+                </Label>
+              </div>
+            )}
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <p>
+                Ao confirmar, o pedido será criado no Bling com seus títulos a receber.
+                Esta ação é irreversível dentro do sistema (depois precisa cancelar lá direto).
+              </p>
+              <p className="text-xs">
+                Se faltar alguma informação (forma sem id Bling parametrizado),
+                o envio falha com mensagem clara e nada é alterado no pedido.
+              </p>
+            </div>
           </div>
         )}
 
@@ -203,7 +218,11 @@ export function EnviarBlingDialog({
             Cancelar
           </Button>
           {temBlingId && !temRemessaAtiva && (
-            <Button onClick={handleEnviar} disabled={enviar.isPending} className="gap-1.5">
+            <Button
+              onClick={handleEnviar}
+              disabled={enviar.isPending || (!!prova && !prova.libera_despacho && !assumeRisco)}
+              className="gap-1.5"
+            >
               {enviar.isPending ? (
                 <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</>
               ) : (
