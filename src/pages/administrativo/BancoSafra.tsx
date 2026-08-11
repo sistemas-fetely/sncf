@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -420,6 +420,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       .map((b) => b.id);
     setEscopoEntrada(escopo);
     setSelecionados(new Set(validos));
+    setBuscaEntrada("");
     setEntradaDialogOpen(true);
   };
   const fecharDialogEntrada = () => {
@@ -455,6 +456,65 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         .reduce((s, b) => s + Number(b.valor_bruto || 0), 0),
     [entradaLista, selecionados],
   );
+
+  /** Busca do Dialog de entrada — cliente, pedido ou título. */
+  const [buscaEntrada, setBuscaEntrada] = useState("");
+  const entradaFiltrada = useMemo(() => {
+    const termo = semAcento(buscaEntrada.trim());
+    if (!termo) return entradaLista;
+    return entradaLista.filter((b) =>
+      semAcento(
+        [
+          b.conta?.parceiro?.razao_social ?? "",
+          b.pedido?.id_externo ?? "",
+          b.numero_titulo ?? "",
+        ].join(" "),
+      ).includes(termo),
+    );
+  }, [entradaLista, buscaEntrada]);
+
+  /** Agrupamento por PEDIDO — mesmo conceito de gruposCliente. */
+  const gruposEntrada = useMemo(() => {
+    const map = new Map<string, TitulosBoleto[]>();
+    const ordem: string[] = [];
+    for (const b of entradaFiltrada) {
+      const k = b.pedido?.id_externo ?? `sem-pedido:${b.id}`;
+      if (!map.has(k)) { map.set(k, []); ordem.push(k); }
+      map.get(k)!.push(b);
+    }
+    return ordem.map((k) => {
+      const lista = map.get(k)!;
+      const selecionaveis = lista
+        .filter((b) => !b.data_vencimento_atual || b.data_vencimento_atual >= hojeIso)
+        .map((b) => b.id);
+      const marcados = selecionaveis.filter((id) => selecionados.has(id));
+      return {
+        chave: k,
+        pedido: lista[0].pedido?.id_externo ?? "— sem pedido —",
+        cliente: lista[0].conta?.parceiro?.razao_social || "— sem cliente —",
+        boletos: lista,
+        total: lista.reduce((s, b) => s + Number(b.valor_bruto || 0), 0),
+        selecionaveis,
+        estado:
+          selecionaveis.length > 0 && marcados.length === selecionaveis.length
+            ? ("todos" as const)
+            : marcados.length > 0
+              ? ("parcial" as const)
+              : ("nenhum" as const),
+      };
+    });
+  }, [entradaFiltrada, hojeIso, selecionados]);
+
+  const toggleGrupoEntrada = (ids: string[], marcarTodos: boolean) => {
+    setSelecionados((prev) => {
+      const n = new Set(prev);
+      for (const id of ids) {
+        if (marcarTodos) n.add(id);
+        else n.delete(id);
+      }
+      return n;
+    });
+  };
 
   // edição inline de boletos
   const [edits, setEdits] = useState<Record<string, { data?: string; valor?: string }>>({});
@@ -892,7 +952,8 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                                   }
                                   className="text-[11px] text-muted-foreground hover:text-foreground hover:underline"
                                 >
-                                  Sugestão: {formatDateBR(sug)} ·{" "}
+                                  Fat {formatDateBR(b.pedido?.faturado_em ?? null)?.slice(0, 5) || "—"}
+                                  {dias ? ` +${dias}d` : ""} → {formatDateBR(sug)?.slice(0, 5)} ·{" "}
                                   <span className="font-medium underline">usar</span>
                                 </button>
                               </TooltipTrigger>
@@ -1359,6 +1420,16 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
             </div>
           )}
 
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              className="h-9 pl-8"
+              placeholder="Buscar cliente, pedido ou título"
+              value={buscaEntrada}
+              onChange={(e) => setBuscaEntrada(e.target.value)}
+            />
+          </div>
+
           <div className="max-h-[360px] overflow-y-auto border rounded-md">
             <Table>
               <TableHeader>
@@ -1372,52 +1443,102 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                     />
                   </TableHead>
                   <TableHead>Título</TableHead>
-                  <TableHead>Cliente</TableHead>
                   <TableHead>Vencimento</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {entradaLista.map((b) => {
-                  const passado = !!b.data_vencimento_atual && b.data_vencimento_atual < hojeIso;
-                  const marcado = selecionados.has(b.id);
-                  return (
-                    <TableRow key={b.id} className={passado ? "bg-red-50/60" : ""}>
+                {gruposEntrada.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-6">
+                      Nenhum título encontrado.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {gruposEntrada.map((g) => (
+                  <Fragment key={g.chave}>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
                       <TableCell>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="inline-flex">
-                              <Checkbox
-                                checked={marcado}
-                                onCheckedChange={() => toggleSelecionado(b.id)}
-                                disabled={passado}
-                                aria-label={`Selecionar ${b.numero_titulo}`}
-                              />
-                            </span>
-                          </TooltipTrigger>
-                          {passado && (
-                            <TooltipContent>
-                              Ajuste a data na lista para habilitar
-                            </TooltipContent>
-                          )}
-                        </Tooltip>
+                        <Checkbox
+                          checked={
+                            g.estado === "todos"
+                              ? true
+                              : g.estado === "parcial"
+                                ? "indeterminate"
+                                : false
+                          }
+                          onCheckedChange={() =>
+                            toggleGrupoEntrada(g.selecionaveis, g.estado !== "todos")
+                          }
+                          disabled={g.selecionaveis.length === 0}
+                          aria-label={`Selecionar pedido ${g.pedido}`}
+                        />
                       </TableCell>
-                      <TableCell className="font-mono text-xs">{b.numero_titulo || "—"}</TableCell>
-                      <TableCell className="max-w-[220px] truncate">{b.conta?.parceiro?.razao_social || "—"}</TableCell>
-                      <TableCell className={passado ? "text-red-700 font-medium" : ""}>
-                        <div className="flex items-center gap-2">
-                          {formatDateBR(b.data_vencimento_atual)}
-                          {passado && (
-                            <Badge variant="outline" className="border-red-300 text-red-700 text-[10px]">
-                              Vencimento no passado
-                            </Badge>
-                          )}
+                      <TableCell colSpan={2}>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="truncate text-sm font-medium" title={g.cliente}>
+                            {g.cliente}
+                          </span>
+                          <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
+                            {g.pedido}
+                          </span>
+                          <Badge variant="outline" className="shrink-0 text-[10px]">
+                            {g.boletos.length}
+                          </Badge>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right font-mono">{formatBRL(Number(b.valor_bruto || 0))}</TableCell>
+                      <TableCell className="text-right font-mono text-xs">
+                        {formatBRL(g.total)}
+                      </TableCell>
                     </TableRow>
-                  );
-                })}
+                    {g.boletos.map((b) => {
+                      const passado = !!b.data_vencimento_atual && b.data_vencimento_atual < hojeIso;
+                      const marcado = selecionados.has(b.id);
+                      return (
+                        <TableRow key={b.id} className={passado ? "bg-red-50/60" : ""}>
+                          <TableCell className="pl-6">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex">
+                                  <Checkbox
+                                    checked={marcado}
+                                    onCheckedChange={() => toggleSelecionado(b.id)}
+                                    disabled={passado}
+                                    aria-label={`Selecionar ${b.numero_titulo}`}
+                                  />
+                                </span>
+                              </TooltipTrigger>
+                              {passado && (
+                                <TooltipContent>
+                                  Ajuste a data na lista para habilitar
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">
+                            {b.numero_titulo || "—"}
+                            {b.numero_parcela && b.total_parcelas ? (
+                              <span className="text-muted-foreground">
+                                {" "}{b.numero_parcela}/{b.total_parcelas}
+                              </span>
+                            ) : null}
+                          </TableCell>
+                          <TableCell className={passado ? "text-red-700 font-medium" : ""}>
+                            <div className="flex items-center gap-2">
+                              {formatDateBR(b.data_vencimento_atual)}
+                              {passado && (
+                                <Badge variant="outline" className="border-red-300 text-red-700 text-[10px]">
+                                  Vencimento no passado
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right font-mono">{formatBRL(Number(b.valor_bruto || 0))}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </Fragment>
+                ))}
               </TableBody>
             </Table>
           </div>
