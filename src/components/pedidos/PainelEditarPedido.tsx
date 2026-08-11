@@ -364,20 +364,67 @@ function SecaoPagamento({ pedidoId, pedido, guarda }: {
               </Alert>
             )}
 
+            {impacto && !impactoQ.isFetching && (direcao || impacto.direcao_rotulo) && (
+              <div
+                className={`rounded-md border p-3 space-y-1.5 text-sm ${
+                  direcao === "desce"
+                    ? "border-emerald-500/40 bg-emerald-500/10"
+                    : "border-amber-500/40 bg-amber-500/10"
+                }`}
+              >
+                <div className={`font-medium ${direcao === "desce" ? "text-emerald-700" : "text-amber-700"}`}>
+                  {impacto.direcao_rotulo || direcao}
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span className="text-muted-foreground">Exposição</span>
+                  <span>
+                    {fmtBRL.format(num(impacto.exposicao_atual))} → {fmtBRL.format(num(impacto.exposicao_nova))}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span className="text-muted-foreground">Prazo</span>
+                  <span>
+                    {num(impacto.prazo_atual_dias)} dias → {num(impacto.prazo_novo_dias)} dias
+                  </span>
+                </div>
+              </div>
+            )}
+
             {guarda.exigeMotivo && <CampoMotivo value={motivo} onChange={setMotivo} />}
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)} disabled={salvar.isPending}>Cancelar</Button>
+            <Button
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={salvar.isPending || reabrir.isPending}
+            >
+              Cancelar
+            </Button>
+            {mostrarReanalise && (
+              <Button
+                variant="outline"
+                onClick={() => reabrir.mutate()}
+                disabled={!slug || motivo.trim().length < 3 || reabrir.isPending || impactoQ.isFetching}
+                className="border-amber-500/60 text-amber-700 hover:bg-amber-500/10"
+              >
+                {reabrir.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Reenviar para análise
+              </Button>
+            )}
             <BotaoSalvar
               onClick={() => salvar.mutate()}
-              disabled={!slug || !motivoOk || !guarda.temPapel || bloqueadoPeloImpacto || impactoQ.isFetching}
+              disabled={
+                !slug || !motivoOk || !guarda.temPapel || bloqueadoPeloImpacto ||
+                impactoQ.isFetching || !podeAplicar
+              }
               pending={salvar.isPending}
-              motivoTooltip={tooltipPapel}
+              motivoTooltip={tooltipAlcada || tooltipPapel}
             >
               Salvar
             </BotaoSalvar>
           </DialogFooter>
+
         </DialogContent>
       </Dialog>
     </div>
