@@ -274,6 +274,19 @@ export default function CreditoClientesIndex() {
                             <span className="text-muted-foreground">—</span>
                           )}
                         </td>
+                        <td
+                          className="px-4 py-2 text-right"
+                          title="Adiantamento amarrado a um pedido — sai sozinho no faturamento"
+                        >
+                          {(c.reservado ?? 0) > 0 ? (
+                            <span className="font-medium text-sky-600">
+                              {fmtBRL.format(c.reservado)}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+
                         <td className="px-4 py-2 text-right">
                           {(c.em_aberto ?? 0) > 0
                             ? fmtBRL.format(c.em_aberto)
