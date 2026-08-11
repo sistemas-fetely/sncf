@@ -1420,6 +1420,16 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
             </div>
           )}
 
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              className="h-9 pl-8"
+              placeholder="Buscar cliente, pedido ou título"
+              value={buscaEntrada}
+              onChange={(e) => setBuscaEntrada(e.target.value)}
+            />
+          </div>
+
           <div className="max-h-[360px] overflow-y-auto border rounded-md">
             <Table>
               <TableHeader>
@@ -1433,52 +1443,102 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                     />
                   </TableHead>
                   <TableHead>Título</TableHead>
-                  <TableHead>Cliente</TableHead>
                   <TableHead>Vencimento</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {entradaLista.map((b) => {
-                  const passado = !!b.data_vencimento_atual && b.data_vencimento_atual < hojeIso;
-                  const marcado = selecionados.has(b.id);
-                  return (
-                    <TableRow key={b.id} className={passado ? "bg-red-50/60" : ""}>
+                {gruposEntrada.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-6">
+                      Nenhum título encontrado.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {gruposEntrada.map((g) => (
+                  <Fragment key={g.chave}>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
                       <TableCell>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="inline-flex">
-                              <Checkbox
-                                checked={marcado}
-                                onCheckedChange={() => toggleSelecionado(b.id)}
-                                disabled={passado}
-                                aria-label={`Selecionar ${b.numero_titulo}`}
-                              />
-                            </span>
-                          </TooltipTrigger>
-                          {passado && (
-                            <TooltipContent>
-                              Ajuste a data na lista para habilitar
-                            </TooltipContent>
-                          )}
-                        </Tooltip>
+                        <Checkbox
+                          checked={
+                            g.estado === "todos"
+                              ? true
+                              : g.estado === "parcial"
+                                ? "indeterminate"
+                                : false
+                          }
+                          onCheckedChange={() =>
+                            toggleGrupoEntrada(g.selecionaveis, g.estado !== "todos")
+                          }
+                          disabled={g.selecionaveis.length === 0}
+                          aria-label={`Selecionar pedido ${g.pedido}`}
+                        />
                       </TableCell>
-                      <TableCell className="font-mono text-xs">{b.numero_titulo || "—"}</TableCell>
-                      <TableCell className="max-w-[220px] truncate">{b.conta?.parceiro?.razao_social || "—"}</TableCell>
-                      <TableCell className={passado ? "text-red-700 font-medium" : ""}>
-                        <div className="flex items-center gap-2">
-                          {formatDateBR(b.data_vencimento_atual)}
-                          {passado && (
-                            <Badge variant="outline" className="border-red-300 text-red-700 text-[10px]">
-                              Vencimento no passado
-                            </Badge>
-                          )}
+                      <TableCell colSpan={2}>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="truncate text-sm font-medium" title={g.cliente}>
+                            {g.cliente}
+                          </span>
+                          <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
+                            {g.pedido}
+                          </span>
+                          <Badge variant="outline" className="shrink-0 text-[10px]">
+                            {g.boletos.length}
+                          </Badge>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right font-mono">{formatBRL(Number(b.valor_bruto || 0))}</TableCell>
+                      <TableCell className="text-right font-mono text-xs">
+                        {formatBRL(g.total)}
+                      </TableCell>
                     </TableRow>
-                  );
-                })}
+                    {g.boletos.map((b) => {
+                      const passado = !!b.data_vencimento_atual && b.data_vencimento_atual < hojeIso;
+                      const marcado = selecionados.has(b.id);
+                      return (
+                        <TableRow key={b.id} className={passado ? "bg-red-50/60" : ""}>
+                          <TableCell className="pl-6">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex">
+                                  <Checkbox
+                                    checked={marcado}
+                                    onCheckedChange={() => toggleSelecionado(b.id)}
+                                    disabled={passado}
+                                    aria-label={`Selecionar ${b.numero_titulo}`}
+                                  />
+                                </span>
+                              </TooltipTrigger>
+                              {passado && (
+                                <TooltipContent>
+                                  Ajuste a data na lista para habilitar
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">
+                            {b.numero_titulo || "—"}
+                            {b.numero_parcela && b.total_parcelas ? (
+                              <span className="text-muted-foreground">
+                                {" "}{b.numero_parcela}/{b.total_parcelas}
+                              </span>
+                            ) : null}
+                          </TableCell>
+                          <TableCell className={passado ? "text-red-700 font-medium" : ""}>
+                            <div className="flex items-center gap-2">
+                              {formatDateBR(b.data_vencimento_atual)}
+                              {passado && (
+                                <Badge variant="outline" className="border-red-300 text-red-700 text-[10px]">
+                                  Vencimento no passado
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right font-mono">{formatBRL(Number(b.valor_bruto || 0))}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </Fragment>
+                ))}
               </TableBody>
             </Table>
           </div>
