@@ -166,8 +166,9 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
   const [tocados, setTocados] = useState<Record<string, boolean>>({});
   const [gruposAbertos, setGruposAbertos] = useState<Record<string, boolean>>({});
   const [detalhe, setDetalhe] = useState<LinhaMesa | null>(null);
-  /** Loading do envio de pacote — por PEDIDO, não por parcela. */
-  const [enviandoId, setEnviandoId] = useState<string | null>(null);
+  /** Diálogo de confirmação do envio do pacote (destinatário editável + CC). */
+  const [pacote, setPacote] = useState<{ linha: LinhaMesa; total: number } | null>(null);
+
   /** Ação de régua em curso (título adaptado + etapa aplicável). */
   const [acaoRegua, setAcaoRegua] = useState<{
     titulo: TituloCobranca;
