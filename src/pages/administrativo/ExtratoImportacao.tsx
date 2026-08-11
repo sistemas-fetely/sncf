@@ -937,7 +937,17 @@ export default function ExtratoImportacao() {
             (semPar > 0 ? ` · ${semPar} sem par no extrato` : "") +
             (duplicadas > 0 ? " · snapshot repetido" : "")
         );
+      } else if (fonte === "safrapay_vendas") {
+        toast.success(
+          `${PARSER_ROTULO.safrapay_vendas} — ${file.name}: ${linhasLidas} venda(s) lidas · ${novas} novas · ${duplicadas} já conhecidas`
+        );
+      } else if (fonte === "safrapay_ajustes") {
+        toast.success(
+          `${PARSER_ROTULO.safrapay_ajustes} — ${file.name}: ${linhasLidas} ajuste(s) · ${enriquecidas} enriquecidos` +
+            (semPar > 0 ? ` · ${semPar} sem par no extrato` : "")
+        );
       } else {
+
         toast.success(
           `${file.name}: ${novas} novas · ${enriquecidas} enriquecidas · ${duplicadas} duplicadas` +
             (linhasSaldo > 0 ? ` · ${linhasSaldo} linha(s) de saldo` : "")
