@@ -472,81 +472,118 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                     {rows.length === 0 ? (
                       <div className="px-3 py-2 text-xs text-muted-foreground">Fila limpa.</div>
                     ) : (
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="text-[11px]">
-                            <TableHead className="h-8">Cliente</TableHead>
-                            <TableHead className="h-8">Pedido</TableHead>
-                            <TableHead className="h-8">Título</TableHead>
-                            <TableHead className="h-8">Instrumento</TableHead>
-                            <TableHead className="h-8">NF</TableHead>
-                            <TableHead className="h-8 text-right">Valor</TableHead>
-                            <TableHead className="h-8">Vencimento</TableHead>
-                            <TableHead className="h-8">Atraso</TableHead>
-                            <TableHead className="h-8">Lastros</TableHead>
-                            <TableHead className="h-8">Ressalvas</TableHead>
-                            {f.chave === "A_ENVIAR" && <TableHead className="h-8" />}
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {rows.map((l) => {
-                            const atraso = Number(l.dias_atraso ?? 0);
-                            return (
-                              <TableRow
-                                key={l.titulo_id}
-                                className="cursor-pointer text-xs"
-                                onClick={() => setDetalhe(l)}
-                              >
-                                <TableCell className="py-1.5 font-medium">{l.nome_exibicao ?? "—"}</TableCell>
-                                <TableCell className="py-1.5">{l.pedido ?? "—"}</TableCell>
-                                <TableCell className="py-1.5">
-                                  {l.numero_titulo ?? "—"}
-                                  {l.numero_parcela && l.total_parcelas ? (
-                                    <span className="text-muted-foreground"> {l.numero_parcela}/{l.total_parcelas}</span>
-                                  ) : null}
-                                </TableCell>
-                                <TableCell className="py-1.5">{l.instrumento ?? "—"}</TableCell>
-                                <TableCell className="py-1.5">{l.nf_numero ?? "—"}</TableCell>
-                                <TableCell className="py-1.5 text-right tabular-nums">{formatBRL(Number(l.valor_atual ?? 0))}</TableCell>
-                                <TableCell className="py-1.5 tabular-nums">{fmtData(l.vencimento)}</TableCell>
-                                <TableCell className="py-1.5 tabular-nums">
-                                  {atraso > 0 ? (
-                                    <span className="text-destructive">{atraso}d em atraso</span>
-                                  ) : (
-                                    <span className="text-muted-foreground">vence em {Math.abs(atraso)}d</span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="py-1.5">
-                                  <div className="flex flex-wrap items-center gap-1">
-                                    {seloEntrega(l)}
-                                    {seloInstrumento(l)}
-                                    {seloEnvio(l)}
-                                  </div>
-                                </TableCell>
-                                <TableCell className="py-1.5 text-[10px] text-warning">{l.ressalvas ?? ""}</TableCell>
+                      <div className="space-y-1.5 p-2">
+                        {agruparPorPedidoMesa(rows).map((g) => {
+                          const chaveGrupo = `${f.chave}:${g.chave}`;
+                          const aberto = gruposAbertos[chaveGrupo] ?? g.abrirPorPadrao;
+                          const atrasoUrgente = Number(g.urgente.dias_atraso ?? 0);
+                          return (
+                            <Collapsible
+                              key={chaveGrupo}
+                              open={aberto}
+                              onOpenChange={(o) => setGruposAbertos((p) => ({ ...p, [chaveGrupo]: o }))}
+                              className="rounded-md border"
+                            >
+                              <div className="flex items-center gap-2 px-2 py-1.5">
+                                <CollapsibleTrigger asChild>
+                                  <button className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 text-left text-xs">
+                                    <ChevronDown
+                                      className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${aberto ? "" : "-rotate-90"}`}
+                                    />
+                                    <span className="truncate font-medium" title={g.cliente}>{g.cliente}</span>
+                                    <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{g.pedido}</span>
+                                    <Badge variant="outline" className="shrink-0 text-[10px]">
+                                      {g.parcelas.length}
+                                    </Badge>
+                                    <span className="shrink-0 text-muted-foreground">{g.instrumento}</span>
+                                    <span className="shrink-0 text-muted-foreground">NF {g.nf}</span>
+                                    <span className="shrink-0 font-mono tabular-nums">{formatBRL(g.total)}</span>
+                                    <span className="shrink-0 tabular-nums text-muted-foreground">
+                                      {fmtData(g.urgente.vencimento)}
+                                    </span>
+                                    <span className="shrink-0 tabular-nums">
+                                      <TextoAtraso dias={atrasoUrgente} />
+                                    </span>
+                                    <span className="flex shrink-0 flex-wrap items-center gap-1">
+                                      {seloEntrega(g.urgente)}
+                                      {seloInstrumento(g.urgente)}
+                                      {seloEnvio(g.urgente)}
+                                    </span>
+                                    {g.ressalvas && (
+                                      <span className="min-w-0 text-[10px] text-warning">{g.ressalvas}</span>
+                                    )}
+                                  </button>
+                                </CollapsibleTrigger>
                                 {f.chave === "A_ENVIAR" && (
-                                  <TableCell className="py-1.5" onClick={(e) => e.stopPropagation()}>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-7 text-xs"
-                                      disabled={enviandoId === l.titulo_id}
-                                      onClick={() => { void handleEnviarPacote(l).catch(() => {}); }}
-                                    >
-                                      {enviandoId === l.titulo_id ? (
-                                        <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                                      ) : (
-                                        <Send className="mr-1 h-3 w-3" />
-                                      )}
-                                      Enviar pacote
-                                    </Button>
-                                  </TableCell>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 shrink-0 text-xs"
+                                    disabled={enviandoId === g.urgente.pedido_id}
+                                    onClick={() => { void handleEnviarPacote(g.urgente).catch(() => {}); }}
+                                  >
+                                    {enviandoId === g.urgente.pedido_id ? (
+                                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <Send className="mr-1 h-3 w-3" />
+                                    )}
+                                    Enviar pacote
+                                  </Button>
                                 )}
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
+                              </div>
+                              <CollapsibleContent>
+                                <div className="border-t px-2 pb-2">
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow className="text-[11px]">
+                                        <TableHead className="h-8">Título</TableHead>
+                                        <TableHead className="h-8">Instrumento</TableHead>
+                                        <TableHead className="h-8">NF</TableHead>
+                                        <TableHead className="h-8 text-right">Valor</TableHead>
+                                        <TableHead className="h-8">Vencimento</TableHead>
+                                        <TableHead className="h-8">Atraso</TableHead>
+                                        <TableHead className="h-8">Lastros</TableHead>
+                                        <TableHead className="h-8">Ressalvas</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {g.parcelas.map((l) => (
+                                        <TableRow
+                                          key={l.titulo_id}
+                                          className="cursor-pointer text-xs"
+                                          onClick={() => setDetalhe(l)}
+                                        >
+                                          <TableCell className="py-1.5">
+                                            {l.numero_titulo ?? "—"}
+                                            {l.numero_parcela && l.total_parcelas ? (
+                                              <span className="text-muted-foreground"> {l.numero_parcela}/{l.total_parcelas}</span>
+                                            ) : null}
+                                          </TableCell>
+                                          <TableCell className="py-1.5">{l.instrumento ?? "—"}</TableCell>
+                                          <TableCell className="py-1.5">{l.nf_numero ?? "—"}</TableCell>
+                                          <TableCell className="py-1.5 text-right tabular-nums">{formatBRL(Number(l.valor_atual ?? 0))}</TableCell>
+                                          <TableCell className="py-1.5 tabular-nums">{fmtData(l.vencimento)}</TableCell>
+                                          <TableCell className="py-1.5 tabular-nums">
+                                            <TextoAtraso dias={Number(l.dias_atraso ?? 0)} />
+                                          </TableCell>
+                                          <TableCell className="py-1.5">
+                                            <div className="flex flex-wrap items-center gap-1">
+                                              {seloEntrega(l)}
+                                              {seloInstrumento(l)}
+                                              {seloEnvio(l)}
+                                            </div>
+                                          </TableCell>
+                                          <TableCell className="py-1.5 text-[10px] text-warning">{l.ressalvas ?? ""}</TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                </div>
+                              </CollapsibleContent>
+                            </Collapsible>
+                          );
+                        })}
+                      </div>
                     )}
                   </CollapsibleContent>
                 </Collapsible>
