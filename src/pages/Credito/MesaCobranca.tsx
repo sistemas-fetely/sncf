@@ -19,11 +19,9 @@ import {
 } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, Search, Send, Copy, Loader2, AlertTriangle } from "lucide-react";
+import { ChevronDown, Search, Send, Copy, AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { useEnviarEmailNfBoletos } from "@/hooks/pedidos/useEnviarEmailNfBoletos";
-import { useLogEmailEnvio } from "@/hooks/pedidos/usePedidoEmailLog";
 import { useReguaEtapas, resolverEtapaParaTitulo, type ReguaEtapa } from "@/hooks/credito/useReguaFila";
 import type { TituloCobranca } from "@/hooks/credito/useTitulosCobranca";
 import { AcaoReguaDialog } from "@/components/credito/AcaoReguaDialog";
@@ -152,8 +150,6 @@ interface MesaCobrancaProps {
 
 export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) {
   const { toast } = useToast();
-  const enviarNfBoletos = useEnviarEmailNfBoletos();
-  const logEnvio = useLogEmailEnvio();
 
   const [busca, setBusca] = useState("");
   const [instrumentoF, setInstrumentoF] = useState("todos");
