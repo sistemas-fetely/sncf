@@ -985,6 +985,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     valor: number | null;
     tom: "vermelho" | "ambar" | "neutro";
     acao: { label: string; onClick: () => void; disabled?: boolean; loading?: boolean } | null;
+    acaoSecundaria?: { label: string; onClick: () => void; disabled?: boolean } | null;
   };
   const linhasFaixa: LinhaFaixa[] = [];
   if (boletosKpis.pendentes > 0) {
@@ -1009,6 +1010,13 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         disabled: pendentesEntrada.length === 0 || gerandoEntrada,
         loading: gerandoEntrada,
       },
+      acaoSecundaria:
+        pendentesComSugestao.length > 0
+          ? {
+              label: "Aplicar sugestões de vencimento",
+              onClick: () => setSugestoesDialogOpen(true),
+            }
+          : null,
     });
   }
   if (boletosKpis.vencidos > 0) {
@@ -1140,6 +1148,17 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                         </span>
                       )}
                     </button>
+                    {l.acaoSecundaria && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="shrink-0"
+                        onClick={l.acaoSecundaria.onClick}
+                        disabled={l.acaoSecundaria.disabled}
+                      >
+                        {l.acaoSecundaria.label}
+                      </Button>
+                    )}
                     {l.acao && (
                       <Button
                         size="sm"
