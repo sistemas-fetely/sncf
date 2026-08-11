@@ -1044,6 +1044,9 @@ export type Database = {
           analise_ia_processada_em: string | null
           analise_ia_resumo: string | null
           condicao_final_aprovada: Json | null
+          condicao_solicitada_operador: string | null
+          condicao_solicitada_operador_em: string | null
+          condicao_solicitada_operador_por: string | null
           criado_em: string
           decidido_em: string | null
           decidido_por: string | null
@@ -1073,6 +1076,9 @@ export type Database = {
           analise_ia_processada_em?: string | null
           analise_ia_resumo?: string | null
           condicao_final_aprovada?: Json | null
+          condicao_solicitada_operador?: string | null
+          condicao_solicitada_operador_em?: string | null
+          condicao_solicitada_operador_por?: string | null
           criado_em?: string
           decidido_em?: string | null
           decidido_por?: string | null
@@ -1102,6 +1108,9 @@ export type Database = {
           analise_ia_processada_em?: string | null
           analise_ia_resumo?: string | null
           condicao_final_aprovada?: Json | null
+          condicao_solicitada_operador?: string | null
+          condicao_solicitada_operador_em?: string | null
+          condicao_solicitada_operador_por?: string | null
           criado_em?: string
           decidido_em?: string | null
           decidido_por?: string | null
@@ -19355,6 +19364,36 @@ export type Database = {
           importado?: boolean
           ordem?: number
           rotulo?: string
+        }
+        Relationships: []
+      }
+      pagamento_alcada: {
+        Row: {
+          ativo: boolean
+          direcao: string
+          exige_motivo: boolean
+          observacao: string | null
+          papeis: Database["public"]["Enums"]["app_role"][]
+          rotulo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          direcao: string
+          exige_motivo?: boolean
+          observacao?: string | null
+          papeis: Database["public"]["Enums"]["app_role"][]
+          rotulo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          direcao?: string
+          exige_motivo?: boolean
+          observacao?: string | null
+          papeis?: Database["public"]["Enums"]["app_role"][]
+          rotulo?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -52894,10 +52933,16 @@ export type Database = {
           nivel: string
         }[]
       }
-      reabrir_analise_pedido: {
-        Args: { p_motivo?: string; p_pedido_id: string }
-        Returns: Json
-      }
+      reabrir_analise_pedido:
+        | { Args: { p_motivo?: string; p_pedido_id: string }; Returns: Json }
+        | {
+            Args: {
+              p_condicao_slug?: string
+              p_motivo?: string
+              p_pedido_id: string
+            }
+            Returns: Json
+          }
       reabrir_nf_pj: {
         Args: { _motivo: string; _nota_id: string }
         Returns: Json
