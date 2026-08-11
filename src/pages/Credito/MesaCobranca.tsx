@@ -748,6 +748,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                       </div>
                     </div>
                   )}
+                  <p className="pt-2 text-[10px] leading-snug text-muted-foreground">{AVISO_PROVA_ENVIO}</p>
                 </div>
               </>
             )}
