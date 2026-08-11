@@ -369,6 +369,8 @@ export default function ReguaTab() {
                 <CardTitulo
                   titulo={t}
                   etapa={etapa}
+                  acaoAtrasada={vista === "fila" && acaoAtrasada(t)}
+
                   onAcao={() => setAcaoDialog({ titulo: t, etapa, modo: "enviada" })}
                   onPular={() => setAcaoDialog({ titulo: t, etapa, modo: "pulada" })}
                   onPausar={() => setPausarDialog({ titulo: t, etapa })}
