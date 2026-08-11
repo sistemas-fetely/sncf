@@ -892,7 +892,8 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                                   }
                                   className="text-[11px] text-muted-foreground hover:text-foreground hover:underline"
                                 >
-                                  Sugestão: {formatDateBR(sug)} ·{" "}
+                                  Fat {formatDateBR(b.pedido?.faturado_em ?? null)?.slice(0, 5) || "—"}
+                                  {dias ? ` +${dias}d` : ""} → {formatDateBR(sug)?.slice(0, 5)} ·{" "}
                                   <span className="font-medium underline">usar</span>
                                 </button>
                               </TooltipTrigger>
