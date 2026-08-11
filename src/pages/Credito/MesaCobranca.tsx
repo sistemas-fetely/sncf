@@ -624,10 +624,16 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                         <TableHead className="h-8">Atraso</TableHead>
                                         <TableHead className="h-8">Lastros</TableHead>
                                         <TableHead className="h-8">Ressalvas</TableHead>
+                                        {FILAS_REGUA.has(f.chave) && (
+                                          <TableHead className="h-8">Régua</TableHead>
+                                        )}
                                       </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                      {g.parcelas.map((l) => (
+                                      {g.parcelas.map((l) => {
+                                        const tituloAdapt = FILAS_REGUA.has(f.chave) ? adaptarParaTitulo(l) : null;
+                                        const etapa = tituloAdapt ? resolverEtapaParaTitulo(tituloAdapt, etapas) : null;
+                                        return (
                                         <TableRow
                                           key={l.titulo_id}
                                           className="cursor-pointer text-xs"
@@ -654,8 +660,56 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                             </div>
                                           </TableCell>
                                           <TableCell className="py-1.5 text-[10px] text-warning">{l.ressalvas ?? ""}</TableCell>
+                                          {FILAS_REGUA.has(f.chave) && (
+                                            <TableCell className="py-1.5" onClick={(e) => e.stopPropagation()}>
+                                              {!tituloAdapt || !etapa ? (
+                                                <span className="text-[10px] text-muted-foreground">
+                                                  sem ação de régua hoje
+                                                </span>
+                                              ) : (
+                                                <div className="flex flex-wrap items-center gap-1">
+                                                  <Badge variant="outline" className="text-[10px]">
+                                                    {etapa.codigo} · {etapa.canal_sugerido}
+                                                  </Badge>
+                                                  <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="h-6 px-2 text-[10px]"
+                                                    onClick={() => setAcaoRegua({ titulo: tituloAdapt, etapa, tipo: "enviada" })}
+                                                  >
+                                                    Registrar ação
+                                                  </Button>
+                                                  <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="h-6 px-2 text-[10px]"
+                                                    onClick={() => setAcaoRegua({ titulo: tituloAdapt, etapa, tipo: "pulada" })}
+                                                  >
+                                                    Pular
+                                                  </Button>
+                                                  <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="h-6 px-2 text-[10px]"
+                                                    onClick={() => setAcaoRegua({ titulo: tituloAdapt, etapa, tipo: "pausar" })}
+                                                  >
+                                                    Pausar
+                                                  </Button>
+                                                  <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="h-6 px-2 text-[10px]"
+                                                    onClick={() => setAcaoRegua({ titulo: tituloAdapt, etapa, tipo: "renegociar" })}
+                                                  >
+                                                    Renegociar
+                                                  </Button>
+                                                </div>
+                                              )}
+                                            </TableCell>
+                                          )}
                                         </TableRow>
-                                      ))}
+                                        );
+                                      })}
                                     </TableBody>
                                   </Table>
                                 </div>
