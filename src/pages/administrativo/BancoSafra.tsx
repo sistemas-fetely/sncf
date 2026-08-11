@@ -456,6 +456,65 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     [entradaLista, selecionados],
   );
 
+  /** Busca do Dialog de entrada — cliente, pedido ou título. */
+  const [buscaEntrada, setBuscaEntrada] = useState("");
+  const entradaFiltrada = useMemo(() => {
+    const termo = semAcento(buscaEntrada.trim());
+    if (!termo) return entradaLista;
+    return entradaLista.filter((b) =>
+      semAcento(
+        [
+          b.conta?.parceiro?.razao_social ?? "",
+          b.pedido?.id_externo ?? "",
+          b.numero_titulo ?? "",
+        ].join(" "),
+      ).includes(termo),
+    );
+  }, [entradaLista, buscaEntrada]);
+
+  /** Agrupamento por PEDIDO — mesmo conceito de gruposCliente. */
+  const gruposEntrada = useMemo(() => {
+    const map = new Map<string, TitulosBoleto[]>();
+    const ordem: string[] = [];
+    for (const b of entradaFiltrada) {
+      const k = b.pedido?.id_externo ?? `sem-pedido:${b.id}`;
+      if (!map.has(k)) { map.set(k, []); ordem.push(k); }
+      map.get(k)!.push(b);
+    }
+    return ordem.map((k) => {
+      const lista = map.get(k)!;
+      const selecionaveis = lista
+        .filter((b) => !b.data_vencimento_atual || b.data_vencimento_atual >= hojeIso)
+        .map((b) => b.id);
+      const marcados = selecionaveis.filter((id) => selecionados.has(id));
+      return {
+        chave: k,
+        pedido: lista[0].pedido?.id_externo ?? "— sem pedido —",
+        cliente: lista[0].conta?.parceiro?.razao_social || "— sem cliente —",
+        boletos: lista,
+        total: lista.reduce((s, b) => s + Number(b.valor_bruto || 0), 0),
+        selecionaveis,
+        estado:
+          selecionaveis.length > 0 && marcados.length === selecionaveis.length
+            ? ("todos" as const)
+            : marcados.length > 0
+              ? ("parcial" as const)
+              : ("nenhum" as const),
+      };
+    });
+  }, [entradaFiltrada, hojeIso, selecionados]);
+
+  const toggleGrupoEntrada = (ids: string[], marcarTodos: boolean) => {
+    setSelecionados((prev) => {
+      const n = new Set(prev);
+      for (const id of ids) {
+        if (marcarTodos) n.add(id);
+        else n.delete(id);
+      }
+      return n;
+    });
+  };
+
   // edição inline de boletos
   const [edits, setEdits] = useState<Record<string, { data?: string; valor?: string }>>({});
   const [salvando, setSalvando] = useState<Record<string, boolean>>({});
