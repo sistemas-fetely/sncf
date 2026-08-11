@@ -211,20 +211,19 @@ export default function ExtratoImportacao() {
     },
   });
 
-  async function processarArquivo(file: File) {
+  async function processarArquivo(file: File, conta: string, bloco: Bloco) {
     if (!conta || !user) throw new Error("Selecione a conta bancária");
     const base = detectarFonteBase(file);
-    if (!base) throw new Error(`Extensão não reconhecida: ${file.name}`);
-    const fonte: Fonte = base === "ofx" ? "ofx"
-      : base === "csv" ? "safrapay_liquidacao"
-      : await detectarSubtipoXlsx(file);
 
-
+    // A linha do histórico nasce ANTES de qualquer leitura: se a detecção ou o
+    // parser explodir, o erro fica registrado no histórico e não some.
+    const tipoProvisorio =
+      base === "ofx" ? "ofx" : base === "csv" ? "safrapay_liquidacao" : "safra_lancamentos";
     const { data: impRow, error: errImp } = await sb
       .from("extrato_importacoes")
       .insert({
         conta_bancaria_id: conta,
-        fonte_tipo: fonte,
+        fonte_tipo: tipoProvisorio,
         nome_arquivo: file.name,
         status: "processando",
         importado_por: user.id,
@@ -233,6 +232,37 @@ export default function ExtratoImportacao() {
       .single();
     if (errImp) throw errImp;
     const impId = impRow.id as string;
+
+    let fonte: Fonte = "safra_lancamentos";
+    try {
+      if (!base) throw new Error(`Extensão não reconhecida: ${file.name} (aceito .ofx, .xlsx, .csv)`);
+      fonte =
+        base === "ofx" ? "ofx"
+          : base === "csv" ? "safrapay_liquidacao"
+          : await detectarSubtipoXlsx(file);
+
+      const blocoCerto = BLOCO_DA_FONTE[fonte];
+      if (blocoCerto !== bloco) {
+        toast.warning(
+          `${file.name} foi reconhecido como ${PARSER_ROTULO[fonte] || fonte} — o lugar dele é o bloco "${NOME_BLOCO[blocoCerto]}". Importando de qualquer forma.`
+        );
+      }
+
+      await sb
+        .from("extrato_importacoes")
+        .update({
+          fonte_tipo: FONTE_TIPO_DB[fonte],
+          nome_arquivo: `${PREFIXO_NOME[fonte] ?? ""}${file.name}`,
+        })
+        .eq("id", impId);
+    } catch (e) {
+      await sb
+        .from("extrato_importacoes")
+        .update({ status: "erro", erro_detalhe: rawMessage(e) })
+        .eq("id", impId);
+      throw e;
+    }
+
 
     try {
       let linhasLidas = 0;
