@@ -155,6 +155,7 @@ export default function ExtratoImportacao() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [conta, setConta] = useState<string>("");
+  const [contaAux, setContaAux] = useState<string>("");
   const [arquivos, setArquivos] = useState<File[]>([]);
   const [arquivosAux, setArquivosAux] = useState<File[]>([]);
   const [processando, setProcessando] = useState(false);
@@ -164,6 +165,11 @@ export default function ExtratoImportacao() {
   const [conferencia, setConferencia] = useState<{ contaId: string; dataReferencia: string } | null>(
     null
   );
+  // 1c — o operador precisa ver qual parser cada arquivo acionou
+  const [resultados, setResultados] = useState<
+    { arquivo: string; parser: string; resultado: string; ok: boolean }[]
+  >([]);
+
 
 
   async function enriquecerItau() {
