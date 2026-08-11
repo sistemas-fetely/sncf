@@ -29,6 +29,8 @@ import type { TituloCobranca } from "@/hooks/credito/useTitulosCobranca";
 import { AcaoReguaDialog } from "@/components/credito/AcaoReguaDialog";
 import { PausarReguaDialog } from "@/components/credito/PausarReguaDialog";
 import { RenegociarTituloDialog } from "@/components/credito/RenegociarTituloDialog";
+import { EnviarPacoteDialog } from "@/components/credito/EnviarPacoteDialog";
+
 import { adaptarParaTitulo, type LinhaMesa } from "@/lib/financeiro/adaptar-titulo-mesa";
 import {
   seloEntrega, seloInstrumento, seloEnvio, EntregaResumoInline,
