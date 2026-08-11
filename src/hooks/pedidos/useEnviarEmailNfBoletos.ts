@@ -1,16 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-
-const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-
-function fmtDataBR(iso: string | null | undefined): string {
-  if (!iso) return "—";
-  // Aceita 'YYYY-MM-DD' ou ISO completo
-  const [y, m, d] = String(iso).slice(0, 10).split("-");
-  if (!y || !m || !d) return String(iso);
-  return `${d}/${m}/${y}`;
-}
+import { montarPacoteCobranca, type TituloPacote } from "@/lib/financeiro/montar-pacote-cobranca";
 
 export function useEnviarEmailNfBoletos() {
   const qc = useQueryClient();
@@ -38,54 +29,35 @@ export function useEnviarEmailNfBoletos() {
         .eq("id", pedido.parceiro_id)
         .maybeSingle();
 
-      // b) Títulos boleto
+      // b) TODOS os títulos do pedido — o montador é quem recorta por status/instrumento
       const { data: titulosRaw, error: errT } = await (supabase as any)
         .from("titulo_a_receber")
-        .select("id, numero_parcela, total_parcelas, data_vencimento_atual, valor_bruto, boleto_status, linha_digitavel")
+        .select(
+          "id, numero_parcela, total_parcelas, data_vencimento_atual, valor_bruto, status, tipo_pagamento, boleto_status, linha_digitavel",
+        )
         .eq("pedido_id", pedido_id)
-        .eq("tipo_pagamento", "boleto")
         .order("numero_parcela", { ascending: true });
       if (errT) throw new Error(errT.message);
-      const titulos = (titulosRaw ?? []) as any[];
-      if (!titulos.length) throw new Error("Pedido não possui títulos de boleto.");
-      const enviaveis = new Set(["registrado", "remessa_gerada"]);
-      const pendentes = titulos.filter(
-        (t) => !enviaveis.has(t.boleto_status) || !t.linha_digitavel,
-      );
-      if (pendentes.length > 0) {
-        // Prioriza causas mais graves: vencido > rejeitado > sem linha > pendente/outros
-        const vencido = pendentes.find((t) => t.boleto_status === "vencido");
-        const rejeitado = pendentes.find((t) => t.boleto_status === "rejeitado");
-        let msg: string;
-        if (vencido) {
-          msg = `Boleto vencido (parcela ${vencido.numero_parcela}) — o boleto Safra não é pagável após o vencimento. Reemita o boleto com nova data antes de enviar ao cliente.`;
-        } else if (rejeitado) {
-          msg = `Boleto rejeitado pelo banco (parcela ${rejeitado.numero_parcela}) — corrija os dados e gere nova remessa.`;
-        } else {
-          const bloqueio = pendentes[0];
-          if (!bloqueio.linha_digitavel) {
-            msg = `Parcela ${bloqueio.numero_parcela} sem linha digitável — gere a remessa Safra antes de enviar.`;
-          } else {
-            msg = `Há boletos sem remessa gerada neste pedido — gere a remessa Safra antes de enviar.`;
-          }
-        }
-        throw new Error(msg);
-      }
 
-      // c) NF (PDF + XML)
+      const pacote = montarPacoteCobranca((titulosRaw ?? []) as TituloPacote[]);
+
+      // c) NF (PDF sempre; XML só no envio de faturamento)
       const { data: anexosResp, error: anexosErr } = await supabase.functions.invoke(
         "enviar-pedido-bling",
         { body: { acao: "anexos_nf", pedido_id } },
       );
       if (anexosErr) throw new Error(anexosErr.message || "Falha ao buscar NF");
       if (!anexosResp?.sucesso) throw new Error(anexosResp?.erro || "Falha ao buscar NF");
-      const nfAttachments = anexosResp.attachments ?? [];
+      const todosAnexosNf: Array<{ filename: string; content: string }> = anexosResp.attachments ?? [];
+      const nfAttachments = skipEstagioCheck
+        ? todosAnexosNf.filter((a) => !/\.xml$/i.test(a.filename ?? ""))
+        : todosAnexosNf;
       const nf_numeros: string[] = anexosResp.nf_numeros ?? [];
       if (!nfAttachments.length) throw new Error("Nenhum anexo de NF disponível");
 
-      // d) Boletos PDF
+      // d) Boletos PDF — só dos títulos abertos de boleto
       const boletoAttachments: Array<{ filename: string; content: string }> = [];
-      for (const t of titulos) {
+      for (const t of pacote.titulosBoleto) {
         const { data: bResp, error: bErr } = await supabase.functions.invoke(
           "gerar-boleto-pdf",
           { body: { titulo_id: t.id } },
@@ -95,12 +67,12 @@ export function useEnviarEmailNfBoletos() {
         boletoAttachments.push({ filename: bResp.nome_arquivo, content: bResp.pdf_base64 });
       }
 
-      // e) Lista pro template
-      const boletos = titulos.map((t) => ({
-        parcela: `${t.numero_parcela}/${t.total_parcelas}`,
-        vencimento: fmtDataBR(t.data_vencimento_atual),
-        valor: fmtBRL.format(Number(t.valor_bruto ?? 0)),
-        linha_digitavel: t.linha_digitavel,
+      // e) Lista pro template (já formatada pelo montador)
+      const boletos = pacote.boletos.map((b) => ({
+        parcela: b.parcela,
+        vencimento: b.vencimento,
+        valor: b.valor,
+        linha_digitavel: b.linha_digitavel,
       }));
 
       // f) attachments finais
@@ -119,6 +91,8 @@ export function useEnviarEmailNfBoletos() {
             pedido_id_externo: pedido.id_externo,
             nf_numero: nf_numeros[0],
             boletos,
+            instrumento_texto: pacote.instrumentoTexto ?? undefined,
+            tem_xml: !skipEstagioCheck,
           },
           attachments,
         },
@@ -133,6 +107,7 @@ export function useEnviarEmailNfBoletos() {
 
       return { email: emails[0], id_externo: pedido.id_externo };
     },
+
     onSuccess: (data, vars) => {
       toast({
         title: "NF + boletos enviados",
