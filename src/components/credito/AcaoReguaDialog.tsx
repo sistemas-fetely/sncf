@@ -133,6 +133,7 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose }: Props) {
       toast.success(modo === "enviada" ? "Ação registrada." : "Etapa pulada.");
       qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
       qc.invalidateQueries({ queryKey: ["regua-log"] });
+      qc.invalidateQueries({ queryKey: ["cobranca-mesa"] });
       onClose();
     },
     onError: (err: any) => toast.error(err?.message ?? "Erro ao registrar ação."),
@@ -174,6 +175,7 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose }: Props) {
       toast.success("E-mail enviado e ação registrada.");
       qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
       qc.invalidateQueries({ queryKey: ["regua-log"] });
+      qc.invalidateQueries({ queryKey: ["cobranca-mesa"] });
       onClose();
     } catch (err: any) {
       toast.error(err?.message ?? "Erro ao enviar e-mail.");

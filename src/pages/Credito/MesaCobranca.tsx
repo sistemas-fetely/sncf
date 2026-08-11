@@ -22,9 +22,15 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ChevronDown, Search, Send, Copy, Loader2, AlertTriangle } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useEnviarEmailNfBoletos } from "@/hooks/pedidos/useEnviarEmailNfBoletos";
 import { useLogEmailEnvio } from "@/hooks/pedidos/usePedidoEmailLog";
+import { useReguaEtapas, resolverEtapaParaTitulo, type ReguaEtapa } from "@/hooks/credito/useReguaFila";
+import type { TituloCobranca } from "@/hooks/credito/useTitulosCobranca";
+import { AcaoReguaDialog } from "@/components/credito/AcaoReguaDialog";
+import { PausarReguaDialog } from "@/components/credito/PausarReguaDialog";
+import { RenegociarTituloDialog } from "@/components/credito/RenegociarTituloDialog";
 
 // ── Tipos ──
 interface LinhaMesa {
@@ -60,7 +66,56 @@ interface LinhaMesa {
   fila: string | null;
   acao_sugerida: string | null;
   ressalvas: string | null;
+  parceiro_cnpj: string | null;
+  subestado_atraso: string | null;
+  vip_relacionamento: boolean | null;
+  flag_bandeira_amarela: boolean | null;
+  flag_grupo_economico_inadimplente: boolean | null;
 }
+
+/** Filas em que a régua opera dentro da Mesa (fusão Mesa × Régua). */
+const FILAS_REGUA = new Set<string>(["A_COBRAR", "A_VENCER"]);
+
+/**
+ * Adapta a linha da Mesa para o shape que os componentes de régua já esperam.
+ * Não é fonte de verdade: só preenche o que a view tem e deixa null/undefined
+ * no resto (os diálogos leem apenas id, número, valor, vencimento, atraso,
+ * cnpj, nomes, e-mails, tipo de pagamento e status do boleto).
+ */
+function adaptarParaTitulo(l: LinhaMesa): TituloCobranca {
+  return {
+    id: l.titulo_id,
+    numero_titulo: l.numero_titulo ?? "",
+    numero_parcela: l.numero_parcela ?? 1,
+    total_parcelas: l.total_parcelas ?? 1,
+    valor_efetivo: Number(l.valor_atual ?? 0),
+    valor_bruto: Number(l.valor_atual ?? 0),
+    data_vencimento_atual: l.vencimento ?? "",
+    data_vencimento_original: l.vencimento ?? "",
+    dias_atraso: Number(l.dias_atraso ?? 0),
+    boleto_status: l.boleto_status,
+    linha_digitavel: l.linha_digitavel,
+    tipo_pagamento: l.instrumento ?? "",
+    pedido_id: l.pedido_id ?? "",
+    parceiro_id: l.parceiro_id,
+    parceiro_razao_social: l.nome_exibicao,
+    parceiro_nome_fantasia: l.apelido,
+    parceiro_cnpj: l.parceiro_cnpj,
+    parceiro_email: l.email_cliente,
+    parceiro_email_cobranca: l.email_cliente,
+    nf_numero: l.nf_numero,
+    pedido_estagio: l.estagio,
+    data_proxima_acao_regua: l.data_proxima_acao_regua,
+    pausa_regua_automatica: !!l.pausa_regua_automatica,
+    subestado_atraso: (l.subestado_atraso ?? null) as TituloCobranca["subestado_atraso"],
+    vip_relacionamento: l.vip_relacionamento,
+    flag_bandeira_amarela: l.flag_bandeira_amarela,
+    flag_grupo_economico_inadimplente: l.flag_grupo_economico_inadimplente,
+    email_cobranca_enviado_em: l.email_cobranca_enviado_em,
+  } as unknown as TituloCobranca;
+}
+
+
 
 // ── Ordem de trabalho (fixa) ──
 const FILAS: { chave: string; label: string }[] = [
@@ -259,6 +314,17 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
   const [detalhe, setDetalhe] = useState<LinhaMesa | null>(null);
   /** Loading do envio de pacote — por PEDIDO, não por parcela. */
   const [enviandoId, setEnviandoId] = useState<string | null>(null);
+  /** Ação de régua em curso (título adaptado + etapa aplicável). */
+  const [acaoRegua, setAcaoRegua] = useState<{
+    titulo: TituloCobranca;
+    etapa: ReguaEtapa | null;
+    tipo: "enviada" | "pulada" | "pausar" | "renegociar";
+  } | null>(null);
+
+  const etapasQ = useReguaEtapas();
+  const etapas = etapasQ.data ?? [];
+
+
 
   const qc = useQueryClient();
   const q = useQuery({
@@ -371,6 +437,15 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
             </AlertDescription>
           </Alert>
         )}
+
+        <div className="flex justify-end">
+          <Link
+            to="/credito/regua-etapas"
+            className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          >
+            Configurar etapas da régua →
+          </Link>
+        </div>
 
         {/* Cartões-resumo */}
         <div className="grid gap-3 sm:grid-cols-3">
@@ -549,10 +624,16 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                         <TableHead className="h-8">Atraso</TableHead>
                                         <TableHead className="h-8">Lastros</TableHead>
                                         <TableHead className="h-8">Ressalvas</TableHead>
+                                        {FILAS_REGUA.has(f.chave) && (
+                                          <TableHead className="h-8">Régua</TableHead>
+                                        )}
                                       </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                      {g.parcelas.map((l) => (
+                                      {g.parcelas.map((l) => {
+                                        const tituloAdapt = FILAS_REGUA.has(f.chave) ? adaptarParaTitulo(l) : null;
+                                        const etapa = tituloAdapt ? resolverEtapaParaTitulo(tituloAdapt, etapas) : null;
+                                        return (
                                         <TableRow
                                           key={l.titulo_id}
                                           className="cursor-pointer text-xs"
@@ -579,8 +660,56 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                             </div>
                                           </TableCell>
                                           <TableCell className="py-1.5 text-[10px] text-warning">{l.ressalvas ?? ""}</TableCell>
+                                          {FILAS_REGUA.has(f.chave) && (
+                                            <TableCell className="py-1.5" onClick={(e) => e.stopPropagation()}>
+                                              {!tituloAdapt || !etapa ? (
+                                                <span className="text-[10px] text-muted-foreground">
+                                                  sem ação de régua hoje
+                                                </span>
+                                              ) : (
+                                                <div className="flex flex-wrap items-center gap-1">
+                                                  <Badge variant="outline" className="text-[10px]">
+                                                    {etapa.codigo} · {etapa.canal_sugerido}
+                                                  </Badge>
+                                                  <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="h-6 px-2 text-[10px]"
+                                                    onClick={() => setAcaoRegua({ titulo: tituloAdapt, etapa, tipo: "enviada" })}
+                                                  >
+                                                    Registrar ação
+                                                  </Button>
+                                                  <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="h-6 px-2 text-[10px]"
+                                                    onClick={() => setAcaoRegua({ titulo: tituloAdapt, etapa, tipo: "pulada" })}
+                                                  >
+                                                    Pular
+                                                  </Button>
+                                                  <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="h-6 px-2 text-[10px]"
+                                                    onClick={() => setAcaoRegua({ titulo: tituloAdapt, etapa, tipo: "pausar" })}
+                                                  >
+                                                    Pausar
+                                                  </Button>
+                                                  <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="h-6 px-2 text-[10px]"
+                                                    onClick={() => setAcaoRegua({ titulo: tituloAdapt, etapa, tipo: "renegociar" })}
+                                                  >
+                                                    Renegociar
+                                                  </Button>
+                                                </div>
+                                              )}
+                                            </TableCell>
+                                          )}
                                         </TableRow>
-                                      ))}
+                                        );
+                                      })}
                                     </TableBody>
                                   </Table>
                                 </div>
@@ -664,6 +793,33 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
             )}
           </SheetContent>
         </Sheet>
+
+        {/* Régua operacional dentro da Mesa */}
+        {acaoRegua && (acaoRegua.tipo === "enviada" || acaoRegua.tipo === "pulada") && (
+          <AcaoReguaDialog
+            titulo={acaoRegua.titulo}
+            etapa={acaoRegua.etapa}
+            modo={acaoRegua.tipo}
+            open
+            onClose={() => setAcaoRegua(null)}
+          />
+        )}
+        {acaoRegua && acaoRegua.tipo === "pausar" && (
+          <PausarReguaDialog
+            titulo={acaoRegua.titulo}
+            etapa={acaoRegua.etapa}
+            open
+            onClose={() => setAcaoRegua(null)}
+          />
+        )}
+        {acaoRegua && acaoRegua.tipo === "renegociar" && (
+          <RenegociarTituloDialog
+            titulo={acaoRegua.titulo}
+            etapa={acaoRegua.etapa}
+            open
+            onClose={() => setAcaoRegua(null)}
+          />
+        )}
       </div>
     </TooltipProvider>
   );
