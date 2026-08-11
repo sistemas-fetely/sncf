@@ -255,7 +255,9 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
   const [abertos, setAbertos] = useState<Record<string, boolean>>(
     () => Object.fromEntries(FILAS.map((f) => [f.chave, GRUPOS.agir.includes(f.chave)])),
   );
+  const [gruposAbertos, setGruposAbertos] = useState<Record<string, boolean>>({});
   const [detalhe, setDetalhe] = useState<LinhaMesa | null>(null);
+  /** Loading do envio de pacote — por PEDIDO, não por parcela. */
   const [enviandoId, setEnviandoId] = useState<string | null>(null);
 
   const q = useQuery({
