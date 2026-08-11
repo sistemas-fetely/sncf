@@ -46209,14 +46209,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -52622,6 +52622,14 @@ export type Database = {
       }
       fn_eh_comprador: { Args: { p_user_id: string }; Returns: boolean }
       fn_embalagem_calibracao_medir: { Args: never; Returns: number }
+      fn_enriquecer_pagamentos: {
+        Args: {
+          p_conta?: string
+          p_dry_run?: boolean
+          p_tolerancia_dias?: number
+        }
+        Returns: Json
+      }
       fn_estado_canonico_b2c: {
         Args: { p_eventos: Json; p_status_atual: string }
         Returns: string
