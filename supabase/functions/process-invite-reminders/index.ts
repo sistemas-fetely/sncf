@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { RESEND_FROM_ADDRESS } from "../_shared/resend-send.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -129,7 +130,7 @@ async function sendReminder(supabase: any, convite: any, link: string, now: Date
     : `Olá, ${nome}! Sua ficha de pré-cadastro na Fetely ainda está pendente. Por favor, preencha clicando no botão abaixo.`;
 
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"></head><body style="background-color:#ffffff;font-family:'Segoe UI',Arial,sans-serif;margin:0;padding:0;"><div style="max-width:560px;margin:0 auto;padding:30px 25px;"><div style="margin-bottom:24px;"><span style="font-size:20px;font-weight:bold;color:#1a3a5c;">Fetély.</span><span style="font-size:12px;color:#999;margin-left:8px;">Gestão de Pessoas</span></div><h1 style="font-size:22px;font-weight:bold;color:#1a3a5c;margin:0 0 20px;">${title}</h1><p style="font-size:15px;color:#3a3a4a;line-height:1.6;margin:0 0 16px;">${body}</p><a href="${link}" style="display:inline-block;background-color:#1a3a5c;color:#ffffff;padding:12px 28px;border-radius:6px;font-size:15px;font-weight:bold;text-decoration:none;margin:8px 0 24px;">Preencher minha ficha</a><hr style="border-color:#e5e7eb;margin:24px 0;"/><p style="font-size:12px;color:#999999;margin:0;">Fetely · Gestão de Pessoas</p></div></body></html>`;
-  const plain = `${title}\n\n${body}\n\nAcesse: ${link}\n\nFetely People`;
+  const plain = `${title}\n\n${body}\n\nAcesse: ${link}\n\nFetély`;
 
   const unsubToken = await getOrCreateUnsubToken(supabase, convite.email);
 
@@ -145,7 +146,7 @@ async function sendReminder(supabase: any, convite: any, link: string, now: Date
     payload: {
       message_id: idempotencyKey,
       to: convite.email.toLowerCase(),
-      from: "Fetely People <noreply@notify.fetelycorp.com.br>",
+      from: RESEND_FROM_ADDRESS,
       sender_domain: "notify.fetelycorp.com.br",
       subject: title,
       html,
