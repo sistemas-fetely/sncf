@@ -278,6 +278,9 @@ function SecaoPagamento({ pedidoId, pedido, guarda }: {
 
   const motivoOk = !guarda.exigeMotivo || motivo.trim().length >= 3;
   const tooltipPapel = !guarda.temPapel ? `Requer papel: ${(guarda.exigePapel || []).join(", ")}` : null;
+  const tooltipAlcada = !podeAplicar
+    ? `Sem alçada para esta troca.${papeisAlcada.length ? ` Requer: ${papeisAlcada.join(" ou ")}.` : ""}`
+    : null;
 
   return (
     <div className="space-y-3">
