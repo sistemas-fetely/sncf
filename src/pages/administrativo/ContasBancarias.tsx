@@ -58,6 +58,7 @@ const UNIDADE_LABEL: Record<string, string> = {
 
 export default function ContasBancarias() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<ContaBancaria | null>(null);
