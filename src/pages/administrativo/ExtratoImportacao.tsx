@@ -898,7 +898,7 @@ export default function ExtratoImportacao() {
             ...r,
             {
               arquivo: f.name,
-              parser: trilha.fonte ? FONTE_LABEL[trilha.fonte] : "—",
+              parser: trilha.fonte ? (PARSER_ROTULO[trilha.fonte] ?? trilha.fonte) : "—",
               resultado: "Importado",
               ok: true,
             },
@@ -909,7 +909,7 @@ export default function ExtratoImportacao() {
             ...r,
             {
               arquivo: f.name,
-              parser: trilha.fonte ? FONTE_LABEL[trilha.fonte] : "não reconhecido",
+              parser: trilha.fonte ? (PARSER_ROTULO[trilha.fonte] ?? trilha.fonte) : "não reconhecido",
               resultado: formatError(e),
               ok: false,
             },
