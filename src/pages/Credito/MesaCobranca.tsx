@@ -537,6 +537,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                     {g.ressalvas && (
                                       <span className="min-w-0 text-[10px] text-warning">{g.ressalvas}</span>
                                     )}
+                                    <EntregaResumoInline l={g.urgente} className="min-w-0" />
                                   </button>
                                 </CollapsibleTrigger>
                                 {f.chave === "A_ENVIAR" && (
