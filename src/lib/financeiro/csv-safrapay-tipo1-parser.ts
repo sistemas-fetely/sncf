@@ -62,7 +62,10 @@ export function parseCsvSafraPayTipo1(text: string): SafraPayTipo1Parsed {
       data_venda: parseSafraData(cols[4] || ""),
       hora: (cols[5] || "").trim(),
       nsu: (cols[6] || "").replace(/^'/, "").trim(),
+      terminal: (cols[3] || "").replace(/^'/, "").trim(),
+      autorizacao: (cols[13] || "").replace(/^'/, "").trim(),
       produto: (cols[7] || "").trim(),
+
       modalidade: (cols[8] || "").trim(),
       parcelas: parseInt(cols[9] || "1", 10) || 1,
       valor_bruto: parseSafraValor(cols[11] || "0"),
