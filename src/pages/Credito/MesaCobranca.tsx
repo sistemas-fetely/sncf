@@ -19,8 +19,6 @@ import {
 } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { ChevronDown, Search, Send, Copy, Loader2, AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -251,6 +249,11 @@ interface GrupoPedidoMesa {
   abrirPorPadrao: boolean;
 }
 
+/** Maior dias_atraso de um conjunto de linhas (0 se nenhuma vencida). */
+function maiorAtraso(rows: LinhaMesa[]): number {
+  return rows.reduce((m, l) => Math.max(m, Number(l.dias_atraso ?? 0)), 0);
+}
+
 function agruparPorPedidoMesa(rows: LinhaMesa[]): GrupoPedidoMesa[] {
   const map = new Map<string, LinhaMesa[]>();
   const ordem: string[] = [];
@@ -259,8 +262,11 @@ function agruparPorPedidoMesa(rows: LinhaMesa[]): GrupoPedidoMesa[] {
     if (!map.has(k)) { map.set(k, []); ordem.push(k); }
     map.get(k)!.push(l);
   }
-  return ordem.map((k) => {
-    const parcelas = map.get(k)!;
+  const grupos = ordem.map((k) => {
+    // Dentro do grupo: parcela mais atrasada primeiro.
+    const parcelas = [...map.get(k)!].sort(
+      (a, b) => Number(b.dias_atraso ?? 0) - Number(a.dias_atraso ?? 0),
+    );
     const instrumentos = Array.from(new Set(parcelas.map((p) => p.instrumento ?? "—")));
     const urgente = parcelas.reduce((a, b) =>
       Number(b.dias_atraso ?? 0) > Number(a.dias_atraso ?? 0) ? b : a,
@@ -281,6 +287,8 @@ function agruparPorPedidoMesa(rows: LinhaMesa[]): GrupoPedidoMesa[] {
       abrirPorPadrao: parcelas.some((p) => Number(p.dias_atraso ?? 0) > 0),
     };
   });
+  // Pedido mais atrasado primeiro.
+  return grupos.sort((a, b) => maiorAtraso(b.parcelas) - maiorAtraso(a.parcelas));
 }
 
 function TextoAtraso({ dias }: { dias: number }) {
@@ -305,11 +313,14 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
   const [busca, setBusca] = useState("");
   const [instrumentoF, setInstrumentoF] = useState("todos");
   const [filaF, setFilaF] = useState("todas");
-  const [soAtraso, setSoAtraso] = useState(false);
+  /** Cartão VENCIDO — única forma de filtrar atraso (o toggle "Só em atraso" foi removido). */
+  const [soVencido, setSoVencido] = useState(false);
   const [grupoAtivo, setGrupoAtivo] = useState<keyof typeof GRUPOS | null>(null);
   const [abertos, setAbertos] = useState<Record<string, boolean>>(
     () => Object.fromEntries(FILAS.map((f) => [f.chave, GRUPOS.agir.includes(f.chave)])),
   );
+  /** Filas cujo estado de abertura o operador já mexeu (vence o default por vencido). */
+  const [tocados, setTocados] = useState<Record<string, boolean>>({});
   const [gruposAbertos, setGruposAbertos] = useState<Record<string, boolean>>({});
   const [detalhe, setDetalhe] = useState<LinhaMesa | null>(null);
   /** Loading do envio de pacote — por PEDIDO, não por parcela. */
@@ -348,22 +359,30 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
   const filtradas = useMemo(() => {
     const termo = busca.trim().toLowerCase();
     return linhas.filter((l) => {
-      if (grupoAtivo && !GRUPOS[grupoAtivo].includes(l.fila ?? "")) return false;
+      if (soVencido) {
+        // Filtro transversal de vencidos: ignora o recorte por grupo de cartão.
+        if (!((l.dias_atraso ?? 0) > 0)) return false;
+      } else if (grupoAtivo && !GRUPOS[grupoAtivo].includes(l.fila ?? "")) return false;
       if (filaF !== "todas" && l.fila !== filaF) return false;
       if (instrumentoF !== "todos" && l.instrumento !== instrumentoF) return false;
-      if (soAtraso && !((l.dias_atraso ?? 0) > 0)) return false;
       if (termo) {
         const alvo = [l.nome_exibicao, l.pedido, l.numero_titulo].join(" ").toLowerCase();
         if (!alvo.includes(termo)) return false;
       }
       return true;
     });
-  }, [linhas, busca, instrumentoF, filaF, soAtraso, grupoAtivo]);
+  }, [linhas, busca, instrumentoF, filaF, soVencido, grupoAtivo]);
 
   const resumoGrupo = (grupo: keyof typeof GRUPOS) => {
     const alvo = linhas.filter((l) => GRUPOS[grupo].includes(l.fila ?? ""));
     return { qtd: alvo.length, soma: alvo.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0) };
   };
+
+  /** Vencidos: transversal a todas as filas. */
+  const resumoVencido = useMemo(() => {
+    const alvo = linhas.filter((l) => (l.dias_atraso ?? 0) > 0);
+    return { qtd: alvo.length, soma: alvo.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0) };
+  }, [linhas]);
 
   const porFila = useMemo(() => {
     const map: Record<string, LinhaMesa[]> = Object.fromEntries(FILAS.map((f) => [f.chave, []]));
@@ -374,6 +393,29 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
     }
     return map;
   }, [filtradas]);
+
+  /** Ordem por urgência: filas com vencido primeiro (mais atrasada no topo); demais mantêm a ordem de trabalho. */
+  const filasOrdenadas = useMemo(() => {
+    return FILAS.map((f, i) => {
+      const rows = porFila[f.chave] ?? [];
+      const vencidas = rows.filter((l) => (l.dias_atraso ?? 0) > 0);
+      return {
+        ...f,
+        rows,
+        qtdVencido: vencidas.length,
+        totalVencido: vencidas.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0),
+        maxAtraso: maiorAtraso(rows),
+        ordemBase: i,
+      };
+    }).sort((a, b) => {
+      const av = a.qtdVencido > 0 ? 1 : 0;
+      const bv = b.qtdVencido > 0 ? 1 : 0;
+      if (av !== bv) return bv - av;
+      if (av === 1 && a.maxAtraso !== b.maxAtraso) return b.maxAtraso - a.maxAtraso;
+      return a.ordemBase - b.ordemBase;
+    });
+  }, [porFila]);
+
 
   const handleEnviarPacote = async (l: LinhaMesa) => {
     if (!l.pedido_id) {
@@ -448,14 +490,56 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
         </div>
 
         {/* Cartões-resumo */}
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-4">
+          {/* VENCIDO — transversal a todas as filas, primeiro da fila visual. */}
+          <Card
+            onClick={() => { setSoVencido((v) => !v); setGrupoAtivo(null); }}
+            className={`cursor-pointer transition ${
+              soVencido ? "ring-2 ring-destructive" : "hover:bg-muted/50"
+            } ${
+              resumoVencido.qtd > 0
+                ? "border-destructive bg-destructive/10"
+                : "border-muted bg-muted/30 opacity-70"
+            }`}
+          >
+            <CardContent className="p-3">
+              <div
+                className={`text-[11px] font-semibold tracking-wide ${
+                  resumoVencido.qtd > 0 ? "text-destructive" : "text-muted-foreground"
+                }`}
+              >
+                VENCIDO
+              </div>
+              {resumoVencido.qtd > 0 ? (
+                <>
+                  <div className="mt-1 flex items-baseline gap-2">
+                    <span className="text-2xl font-semibold tabular-nums text-destructive">
+                      {resumoVencido.qtd}
+                    </span>
+                    <span className="text-xs text-muted-foreground">títulos</span>
+                  </div>
+                  <div className="text-sm font-medium tabular-nums text-destructive">
+                    {formatBRL(resumoVencido.soma)}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="mt-1 text-sm text-muted-foreground">nenhum vencido</div>
+                  <div className="text-sm tabular-nums text-muted-foreground">
+                    {formatBRL(0)}
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
           {cards.map((c) => {
             const r = resumoGrupo(c.chave);
-            const ativo = grupoAtivo === c.chave;
+            const ativo = !soVencido && grupoAtivo === c.chave;
             return (
               <Card
                 key={c.chave}
-                onClick={() => setGrupoAtivo(ativo ? null : c.chave)}
+                onClick={() => { setSoVencido(false); setGrupoAtivo(ativo ? null : c.chave); }}
                 className={`cursor-pointer transition ${ativo ? "ring-2 ring-primary" : "hover:bg-muted/50"}`}
               >
                 <CardContent className="p-3">
@@ -470,6 +554,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
             );
           })}
         </div>
+
 
         {/* Filtros */}
         <div className="flex flex-wrap items-center gap-2">
@@ -496,11 +581,12 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
               {FILAS.map((f) => <SelectItem key={f.chave} value={f.chave}>{f.label}</SelectItem>)}
             </SelectContent>
           </Select>
-          <div className="flex items-center gap-2">
-            <Switch id="so-atraso" checked={soAtraso} onCheckedChange={setSoAtraso} />
-            <Label htmlFor="so-atraso" className="text-xs">Só em atraso</Label>
-          </div>
+          {soVencido && (
+            <span className="text-xs text-destructive">Mostrando só títulos vencidos</span>
+          )}
         </div>
+
+
 
         {/* Grupos */}
         {q.isLoading ? (
@@ -509,26 +595,37 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
           </div>
         ) : (
           <div className="space-y-2">
-            {FILAS.map((f) => {
-              const rows = porFila[f.chave] ?? [];
+            {filasOrdenadas.map((f) => {
+              const rows = f.rows;
               const soma = rows.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0);
               const acao = rows.find((r) => r.acao_sugerida)?.acao_sugerida ?? null;
               const naoCobrar = NAO_COBRAR.has(f.chave);
+              // Fila com vencido nasce expandida; depois respeita o clique do operador.
+              const aberto = tocados[f.chave] ? !!abertos[f.chave] : f.qtdVencido > 0 || !!abertos[f.chave];
               return (
                 <Collapsible
                   key={f.chave}
-                  open={!!abertos[f.chave]}
-                  onOpenChange={(o) => setAbertos((p) => ({ ...p, [f.chave]: o }))}
-                  className="rounded-md border"
+                  open={aberto}
+                  onOpenChange={(o) => {
+                    setAbertos((p) => ({ ...p, [f.chave]: o }));
+                    setTocados((p) => ({ ...p, [f.chave]: true }));
+                  }}
+                  className={`rounded-md border ${f.qtdVencido > 0 ? "border-destructive/50" : ""}`}
                 >
                   <CollapsibleTrigger className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-muted/50">
-                    <ChevronDown className={`h-4 w-4 shrink-0 transition ${abertos[f.chave] ? "" : "-rotate-90"}`} />
+                    <ChevronDown className={`h-4 w-4 shrink-0 transition ${aberto ? "" : "-rotate-90"}`} />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold">{f.label}</span>
                         <Badge variant="secondary" className="tabular-nums">{rows.length}</Badge>
                         <span className="text-xs tabular-nums text-muted-foreground">{formatBRL(soma)}</span>
+                        {f.qtdVencido > 0 && (
+                          <Badge className="shrink-0 bg-red-100 text-red-800 hover:bg-red-100 text-[10px]">
+                            {f.qtdVencido} vencido{f.qtdVencido > 1 ? "s" : ""} · {formatBRL(f.totalVencido)}
+                          </Badge>
+                        )}
                       </div>
+
                       {acao && <div className="truncate text-xs text-muted-foreground">{acao}</div>}
                       {naoCobrar && (
                         <div className="text-xs text-warning">Estes títulos não devem ser cobrados do cliente.</div>
