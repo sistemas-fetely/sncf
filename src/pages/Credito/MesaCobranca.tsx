@@ -438,6 +438,15 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
           </Alert>
         )}
 
+        <div className="flex justify-end">
+          <Link
+            to="/credito/regua-etapas"
+            className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          >
+            Configurar etapas da régua →
+          </Link>
+        </div>
+
         {/* Cartões-resumo */}
         <div className="grid gap-3 sm:grid-cols-3">
           {cards.map((c) => {
