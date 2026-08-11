@@ -42,6 +42,17 @@ export interface LinhaMesa {
   regua_elegivel?: boolean | null;
   regua_motivo_inelegivel?: string | null;
   regua_cobrar_sem_boleto?: boolean | null;
+  // ── Colunas novas (entrega + falha de envio) ──
+  entrega_funil_estado?: string | null;
+  entrega_ocorrencia_codigo?: string | null;
+  entrega_ocorrencia_texto?: string | null;
+  entrega_data?: string | null;
+  entrega_previsao?: string | null;
+  entrega_recebedor?: string | null;
+  entrega_transportadora?: string | null;
+  entrega_reembarcada?: boolean | null;
+  envio_falhou_em?: string | null;
+  envio_falha_motivo?: string | null;
 }
 
 /**
