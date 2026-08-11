@@ -359,22 +359,30 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
   const filtradas = useMemo(() => {
     const termo = busca.trim().toLowerCase();
     return linhas.filter((l) => {
-      if (grupoAtivo && !GRUPOS[grupoAtivo].includes(l.fila ?? "")) return false;
+      if (soVencido) {
+        // Filtro transversal de vencidos: ignora o recorte por grupo de cartão.
+        if (!((l.dias_atraso ?? 0) > 0)) return false;
+      } else if (grupoAtivo && !GRUPOS[grupoAtivo].includes(l.fila ?? "")) return false;
       if (filaF !== "todas" && l.fila !== filaF) return false;
       if (instrumentoF !== "todos" && l.instrumento !== instrumentoF) return false;
-      if (soAtraso && !((l.dias_atraso ?? 0) > 0)) return false;
       if (termo) {
         const alvo = [l.nome_exibicao, l.pedido, l.numero_titulo].join(" ").toLowerCase();
         if (!alvo.includes(termo)) return false;
       }
       return true;
     });
-  }, [linhas, busca, instrumentoF, filaF, soAtraso, grupoAtivo]);
+  }, [linhas, busca, instrumentoF, filaF, soVencido, grupoAtivo]);
 
   const resumoGrupo = (grupo: keyof typeof GRUPOS) => {
     const alvo = linhas.filter((l) => GRUPOS[grupo].includes(l.fila ?? ""));
     return { qtd: alvo.length, soma: alvo.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0) };
   };
+
+  /** Vencidos: transversal a todas as filas. */
+  const resumoVencido = useMemo(() => {
+    const alvo = linhas.filter((l) => (l.dias_atraso ?? 0) > 0);
+    return { qtd: alvo.length, soma: alvo.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0) };
+  }, [linhas]);
 
   const porFila = useMemo(() => {
     const map: Record<string, LinhaMesa[]> = Object.fromEntries(FILAS.map((f) => [f.chave, []]));
@@ -385,6 +393,29 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
     }
     return map;
   }, [filtradas]);
+
+  /** Ordem por urgência: filas com vencido primeiro (mais atrasada no topo); demais mantêm a ordem de trabalho. */
+  const filasOrdenadas = useMemo(() => {
+    return FILAS.map((f, i) => {
+      const rows = porFila[f.chave] ?? [];
+      const vencidas = rows.filter((l) => (l.dias_atraso ?? 0) > 0);
+      return {
+        ...f,
+        rows,
+        qtdVencido: vencidas.length,
+        totalVencido: vencidas.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0),
+        maxAtraso: maiorAtraso(rows),
+        ordemBase: i,
+      };
+    }).sort((a, b) => {
+      const av = a.qtdVencido > 0 ? 1 : 0;
+      const bv = b.qtdVencido > 0 ? 1 : 0;
+      if (av !== bv) return bv - av;
+      if (av === 1 && a.maxAtraso !== b.maxAtraso) return b.maxAtraso - a.maxAtraso;
+      return a.ordemBase - b.ordemBase;
+    });
+  }, [porFila]);
+
 
   const handleEnviarPacote = async (l: LinhaMesa) => {
     if (!l.pedido_id) {
