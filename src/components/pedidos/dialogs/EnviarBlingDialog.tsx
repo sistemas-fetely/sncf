@@ -7,9 +7,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Send, Loader2, AlertTriangle, RefreshCw, Package } from "lucide-react";
 import { useEnviarBling } from "@/hooks/pedidos/useEnviarBling";
 import { useSyncContato } from "@/hooks/parceiros/useSyncContato";
+import { useProvaPagamento } from "@/hooks/pedidos/useProvaPagamento";
+import { ProvaPagamentoAlerta } from "@/components/pedidos/ProvaPagamentoAlerta";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
