@@ -107,10 +107,9 @@ async function detectarSubtipoXlsx(file: File): Promise<Exclude<Fonte, "ofx">> {
 }
 
 /**
- * `extrato_importacoes.fonte_tipo` tem CHECK e não aceita valor novo. As duas
- * fontes de cobrança Safra são gravadas como `safra_lancamentos` e a distinção
- * fica no nome do arquivo (prefixo) e no resumo da tela. Histórico sempre existe:
- * importação que não aparece no histórico não aconteceu.
+ * `extrato_importacoes.fonte_tipo` agora é validado por trigger contra
+ * `extrato_fontes` — cada fonte grava o próprio código, sem disfarce.
+ * Histórico sempre existe: importação que não aparece no histórico não aconteceu.
  */
 const FONTE_TIPO_DB: Record<Fonte, string> = {
   ofx: "ofx",
@@ -119,14 +118,10 @@ const FONTE_TIPO_DB: Record<Fonte, string> = {
   safrapay_liquidacao: "safrapay_liquidacao",
   mp_settlement: "mp_settlement",
   mp_release: "mp_release",
-  safra_instrucoes_2via: "safra_lancamentos",
-  safra_francesinha: "safra_lancamentos",
+  safra_instrucoes_2via: "safra_instrucoes_2via",
+  safra_francesinha: "csv_safra",
 };
 
-const PREFIXO_NOME: Partial<Record<Fonte, string>> = {
-  safra_instrucoes_2via: "[Instruções 2ª via] ",
-  safra_francesinha: "[Francesinha] ",
-};
 
 type Bloco = "extrato" | "auxiliar";
 
