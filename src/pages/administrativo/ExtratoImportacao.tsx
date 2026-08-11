@@ -90,23 +90,20 @@ async function detectarSubtipoXlsx(file: File): Promise<Exclude<Fonte, "ofx">> {
   const sheet = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: null }) as unknown[][];
 
-  const semAcento = (v: unknown) =>
-    String(v ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  // Fontes de cobrança Safra: título nas primeiras linhas, em qualquer coluna,
+  // sem acento e sem caixa. O nome do arquivo NUNCA é critério — ele varia
+  // ("Francesinha (8).xlsx").
+  if (temTitulo(rows, /recebimentos\s*-\s*instrucoes/)) return "safra_instrucoes_2via";
+  if (temTitulo(rows, /francesinha/)) return "safra_francesinha";
 
-  // Fontes de cobrança Safra: o título mora na linha 4 (índice 3)
-  const linha4 = (rows[3] || []).map(semAcento).join("|");
-  if (/recebimentos - instrucoes/.test(linha4)) return "safra_instrucoes_2via";
-  if (/francesinha/.test(linha4)) return "safra_francesinha";
-
-  const cabecalho = rows.slice(0, 5)
-    .map((r) => (r || []).map(semAcento).join("|"))
-    .join("|");
+  const cabecalho = textoPrimeirasLinhas(rows, 5);
 
   if (/data de liberacao do dinheiro/.test(cabecalho)) return "mp_settlement";
   if (/valor liquido creditado/.test(cabecalho) && /saldo/.test(cabecalho)) return "mp_release";
   if (/withdraw_id|numero da retirada/.test(cabecalho)) return "mp_withdraw";
   return "safra_lancamentos";
 }
+
 /**
  * `extrato_importacoes.fonte_tipo` tem CHECK e não aceita valor novo. As duas
  * fontes de cobrança Safra são gravadas como `safra_lancamentos` e a distinção
