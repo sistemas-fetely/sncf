@@ -42,9 +42,9 @@ const FILAS_REGUA = new Set<string>(["A_COBRAR", "A_VENCER"]);
 
 
 // ── Ordem de trabalho (fixa) ──
+// Devolução e ocorrência de transportadora são trabalho de Logística: as filas
+// ENTREGA_DEVOLVIDA e ENTREGA_PROBLEMA não existem mais na vw_cobranca_mesa.
 const FILAS: { chave: string; label: string }[] = [
-  { chave: "ENTREGA_DEVOLVIDA", label: "Mercadoria devolvida" },
-  { chave: "ENTREGA_PROBLEMA", label: "Problema na entrega" },
   { chave: "A_ENVIAR", label: "A enviar — NF + boleto + cópia do pedido" },
   { chave: "A_EMITIR_BOLETO", label: "A emitir boleto" },
   { chave: "A_REEMITIR_BOLETO", label: "A reemitir boleto" },
@@ -58,14 +58,12 @@ const FILAS: { chave: string; label: string }[] = [
   { chave: "NAO_COBRAVEL", label: "Não cobrável" },
 ];
 
-/** Filas de urgência ALTA — vão para o topo, acima de tudo que não seja vencido. */
-const FILAS_URGENCIA_ALTA = new Set<string>(["ENTREGA_DEVOLVIDA", "ENTREGA_PROBLEMA"]);
-
 const GRUPOS: Record<"agir" | "vigiar" | "nao", string[]> = {
-  agir: ["ENTREGA_DEVOLVIDA", "ENTREGA_PROBLEMA", "A_ENVIAR", "A_EMITIR_BOLETO", "A_REEMITIR_BOLETO", "A_COBRAR", "EMAIL_BLOQUEADO"],
+  agir: ["A_ENVIAR", "A_EMITIR_BOLETO", "A_REEMITIR_BOLETO", "A_COBRAR", "EMAIL_BLOQUEADO"],
   vigiar: ["A_VENCER", "BOLETO_EM_CURSO_BANCO", "EM_CURSO"],
   nao: ["CONCILIAR", "ENTREGA_ATRASADA", "NAO_COBRAVEL"],
 };
+
 
 const NAO_COBRAR = new Set<string>(GRUPOS.nao);
 
@@ -247,7 +245,6 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
         qtdVencido: vencidas.length,
         totalVencido: vencidas.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0),
         maxAtraso: maiorAtraso(rows),
-        urgenciaAlta: FILAS_URGENCIA_ALTA.has(f.chave) && rows.length > 0,
         ordemBase: i,
       };
     }).sort((a, b) => {
@@ -255,12 +252,9 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
       const bv = b.qtdVencido > 0 ? 1 : 0;
       if (av !== bv) return bv - av;
       if (av === 1 && a.maxAtraso !== b.maxAtraso) return b.maxAtraso - a.maxAtraso;
-      // Sem vencido: filas de urgência alta (entrega devolvida / problema) vêm antes.
-      const au = a.urgenciaAlta ? 1 : 0;
-      const bu = b.urgenciaAlta ? 1 : 0;
-      if (av === 0 && au !== bu) return bu - au;
       return a.ordemBase - b.ordemBase;
     });
+
   }, [porFila]);
 
 
