@@ -122,6 +122,7 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
       toast.success(`Renegociação concluída — ${qtd} título(s) criado(s).`);
       qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
       qc.invalidateQueries({ queryKey: ["regua-log"] });
+      qc.invalidateQueries({ queryKey: ["cobranca-mesa"] });
       onClose();
     },
     onError: (err: any) => toast.error(err?.message ?? "Erro ao renegociar."),

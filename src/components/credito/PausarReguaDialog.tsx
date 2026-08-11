@@ -44,6 +44,7 @@ export function PausarReguaDialog({ titulo, etapa, open, onClose }: Props) {
       toast.success("Régua pausada para este título.");
       qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
       qc.invalidateQueries({ queryKey: ["regua-log"] });
+      qc.invalidateQueries({ queryKey: ["cobranca-mesa"] });
       setMotivo("");
       onClose();
     },
