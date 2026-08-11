@@ -487,6 +487,40 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     }
   };
 
+  /** Aplica em lote as sugestões de vencimento (em sequência, para na primeira falha). */
+  const aplicarSugestoes = async () => {
+    setAplicandoSugestoes(true);
+    let salvos = 0;
+    try {
+      for (const b of pendentesComSugestao) {
+        try {
+          const { error } = await (supabase as any)
+            .from("titulo_a_receber")
+            .update({ data_vencimento_atual: sugestoes[b.id] })
+            .eq("id", b.id);
+          if (error) throw error;
+          salvos++;
+        } catch (e) {
+          throw new Error(
+            `${(e as Error).message} — ${salvos} título(s) salvo(s) antes da falha (${b.numero_titulo ?? b.id}).`,
+          );
+        }
+      }
+      toast({ title: `${salvos} vencimentos atualizados pela sugestão` });
+      setSugestoesDialogOpen(false);
+      await refetchBoletos();
+    } catch (e) {
+      toast({
+        title: "Erro ao aplicar sugestões",
+        description: (e as Error).message,
+        variant: "destructive",
+      });
+      await refetchBoletos();
+    } finally {
+      setAplicandoSugestoes(false);
+    }
+  };
+
   const handleGerarBaixa = async (tituloIds: string[] = []) => {
     setGerandoBaixa(true);
     try {
