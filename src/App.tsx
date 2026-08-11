@@ -655,6 +655,7 @@ const App = () => (
                 <Route path="caixa-banco" element={<CaixaBanco />} />
                 <Route path="banco-safra" element={<BancoSafra />} />
                 <Route path="caixa-banco/contas" element={<ContasBancarias />} />
+                <Route path="caixa-banco/contas/:contaId" element={<ExtratoConta />} />
                 <Route path="conciliacao" element={<Conciliacao />} />
                 <Route path="regras-ofx" element={<RegrasOFX />} />
                 <Route path="contas-receber" element={<ContasReceber />} />
