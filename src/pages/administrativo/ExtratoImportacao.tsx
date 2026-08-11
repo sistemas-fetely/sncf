@@ -30,6 +30,8 @@ import * as XLSX from "xlsx";
 import { gerarHashMov } from "@/lib/financeiro/hash-mov";
 
 import { formatDateBR } from "@/lib/format-currency";
+import { formatError, rawMessage } from "@/lib/format-error";
+import { BlocoErroBoundary } from "@/components/BlocoErroBoundary";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
@@ -105,19 +107,65 @@ async function detectarSubtipoXlsx(file: File): Promise<Exclude<Fonte, "ofx">> {
   if (/withdraw_id|numero da retirada/.test(cabecalho)) return "mp_withdraw";
   return "safra_lancamentos";
 }
+/**
+ * `extrato_importacoes.fonte_tipo` tem CHECK e não aceita valor novo. As duas
+ * fontes de cobrança Safra são gravadas como `safra_lancamentos` e a distinção
+ * fica no nome do arquivo (prefixo) e no resumo da tela. Histórico sempre existe:
+ * importação que não aparece no histórico não aconteceu.
+ */
+const FONTE_TIPO_DB: Record<Fonte, string> = {
+  ofx: "ofx",
+  safra_lancamentos: "safra_lancamentos",
+  mp_withdraw: "mp_withdraw",
+  safrapay_liquidacao: "safrapay_liquidacao",
+  mp_settlement: "mp_settlement",
+  mp_release: "mp_release",
+  safra_instrucoes_2via: "safra_lancamentos",
+  safra_francesinha: "safra_lancamentos",
+};
 
+const PREFIXO_NOME: Partial<Record<Fonte, string>> = {
+  safra_instrucoes_2via: "[Instruções 2ª via] ",
+  safra_francesinha: "[Francesinha] ",
+};
+
+type Bloco = "extrato" | "auxiliar";
+
+const BLOCO_DA_FONTE: Record<Fonte, Bloco> = {
+  ofx: "extrato",
+  safra_lancamentos: "extrato",
+  mp_withdraw: "auxiliar",
+  safrapay_liquidacao: "auxiliar",
+  mp_settlement: "auxiliar",
+  mp_release: "auxiliar",
+  safra_instrucoes_2via: "auxiliar",
+  safra_francesinha: "auxiliar",
+};
+
+const NOME_BLOCO: Record<Bloco, string> = {
+  extrato: "1. Extratos",
+  auxiliar: "2. Relatórios auxiliares",
+};
+
+const PARSER_ROTULO: Partial<Record<Fonte, string>> = {
+  safra_instrucoes_2via: "Recebimentos - Instruções 2ª via",
+  safra_francesinha: "Gestão de Cobrança - Francesinha",
+};
 
 export default function ExtratoImportacao() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [conta, setConta] = useState<string>("");
   const [arquivos, setArquivos] = useState<File[]>([]);
+  const [arquivosAux, setArquivosAux] = useState<File[]>([]);
   const [processando, setProcessando] = useState(false);
+  const [processandoAux, setProcessandoAux] = useState(false);
   const [reprocessandoItau, setReprocessandoItau] = useState(false);
   const [importarFaturaOpen, setImportarFaturaOpen] = useState(false);
   const [conferencia, setConferencia] = useState<{ contaId: string; dataReferencia: string } | null>(
     null
   );
+
 
   async function enriquecerItau() {
     setReprocessandoItau(true);
@@ -133,7 +181,7 @@ export default function ExtratoImportacao() {
       qc.invalidateQueries({ queryKey: ["conciliacao-furos"] });
       qc.invalidateQueries({ queryKey: ["movimentacoes-bancarias"] });
     } catch (e) {
-      toast.error("Falha ao enriquecer: " + (e instanceof Error ? e.message : String(e)));
+      toast.error("Falha ao enriquecer: " + formatError(e));
     } finally {
       setReprocessandoItau(false);
     }
@@ -165,20 +213,19 @@ export default function ExtratoImportacao() {
     },
   });
 
-  async function processarArquivo(file: File) {
+  async function processarArquivo(file: File, conta: string, bloco: Bloco) {
     if (!conta || !user) throw new Error("Selecione a conta bancária");
     const base = detectarFonteBase(file);
-    if (!base) throw new Error(`Extensão não reconhecida: ${file.name}`);
-    const fonte: Fonte = base === "ofx" ? "ofx"
-      : base === "csv" ? "safrapay_liquidacao"
-      : await detectarSubtipoXlsx(file);
 
-
+    // A linha do histórico nasce ANTES de qualquer leitura: se a detecção ou o
+    // parser explodir, o erro fica registrado no histórico e não some.
+    const tipoProvisorio =
+      base === "ofx" ? "ofx" : base === "csv" ? "safrapay_liquidacao" : "safra_lancamentos";
     const { data: impRow, error: errImp } = await sb
       .from("extrato_importacoes")
       .insert({
         conta_bancaria_id: conta,
-        fonte_tipo: fonte,
+        fonte_tipo: tipoProvisorio,
         nome_arquivo: file.name,
         status: "processando",
         importado_por: user.id,
@@ -187,6 +234,37 @@ export default function ExtratoImportacao() {
       .single();
     if (errImp) throw errImp;
     const impId = impRow.id as string;
+
+    let fonte: Fonte = "safra_lancamentos";
+    try {
+      if (!base) throw new Error(`Extensão não reconhecida: ${file.name} (aceito .ofx, .xlsx, .csv)`);
+      fonte =
+        base === "ofx" ? "ofx"
+          : base === "csv" ? "safrapay_liquidacao"
+          : await detectarSubtipoXlsx(file);
+
+      const blocoCerto = BLOCO_DA_FONTE[fonte];
+      if (blocoCerto !== bloco) {
+        toast.warning(
+          `${file.name} foi reconhecido como ${PARSER_ROTULO[fonte] || fonte} — o lugar dele é o bloco "${NOME_BLOCO[blocoCerto]}". Importando de qualquer forma.`
+        );
+      }
+
+      await sb
+        .from("extrato_importacoes")
+        .update({
+          fonte_tipo: FONTE_TIPO_DB[fonte],
+          nome_arquivo: `${PREFIXO_NOME[fonte] ?? ""}${file.name}`,
+        })
+        .eq("id", impId);
+    } catch (e) {
+      await sb
+        .from("extrato_importacoes")
+        .update({ status: "erro", erro_detalhe: rawMessage(e) })
+        .eq("id", impId);
+      throw e;
+    }
+
 
     try {
       let linhasLidas = 0;
@@ -694,7 +772,8 @@ export default function ExtratoImportacao() {
           .from("extrato_importacoes")
           .select("id")
           .eq("conta_bancaria_id", conta)
-          .eq("fonte_tipo", "safra_francesinha")
+          .eq("fonte_tipo", FONTE_TIPO_DB.safra_francesinha)
+          .ilike("nome_arquivo", `${PREFIXO_NOME.safra_francesinha}%`)
           .eq("periodo_fim", parsed.data_referencia)
           .eq("status", "concluida")
           .neq("id", impId)
@@ -743,11 +822,11 @@ export default function ExtratoImportacao() {
 
       if (fonte === "safra_instrucoes_2via") {
         toast.success(
-          `${file.name}: ${novas} boleto(s) na conferência da carteira — nenhuma movimentação ou baixa gerada.`
+          `${PARSER_ROTULO.safra_instrucoes_2via} — ${file.name}: ${novas} boleto(s) na conferência da carteira — nenhuma movimentação ou baixa gerada.`
         );
       } else if (fonte === "safra_francesinha") {
         toast.success(
-          `${file.name}: ${linhasLidas} liquidação(ões) lidas · ${enriquecidas} enriquecidas` +
+          `${PARSER_ROTULO.safra_francesinha} — ${file.name}: ${linhasLidas} liquidação(ões) lidas · ${enriquecidas} enriquecidas` +
             (semPar > 0 ? ` · ${semPar} sem par no extrato` : "") +
             (duplicadas > 0 ? " · snapshot repetido" : "")
         );
@@ -758,42 +837,44 @@ export default function ExtratoImportacao() {
         );
       }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
+      console.error("[ExtratoImportacao] falha ao processar", file.name, e);
       await sb
         .from("extrato_importacoes")
-        .update({ status: "erro", erro_detalhe: msg })
+        .update({ status: "erro", erro_detalhe: rawMessage(e) })
         .eq("id", impId);
       throw e;
     }
   }
 
-  async function handleImportar() {
+  async function handleImportar(bloco: Bloco) {
+    const files = bloco === "extrato" ? arquivos : arquivosAux;
+    const setFiles = bloco === "extrato" ? setArquivos : setArquivosAux;
+    const setProc = bloco === "extrato" ? setProcessando : setProcessandoAux;
+
     if (!conta) {
       toast.error("Selecione a conta bancária");
       return;
     }
-    if (arquivos.length === 0) {
+    if (files.length === 0) {
       toast.error("Selecione ao menos um arquivo");
       return;
     }
-    setProcessando(true);
+    setProc(true);
     try {
-      for (const f of arquivos) {
+      for (const f of files) {
         try {
           if (await ehRelatorioPagamentosItau(f)) {
             toast.error(
-              "Este arquivo é o Relatório de Pagamentos Itaú — use o card 'Pagamentos Itaú' abaixo nesta mesma página."
+              "Este arquivo é o Relatório de Pagamentos Itaú — use o card 'Pagamentos Itaú' no bloco 2 desta mesma página."
             );
             continue;
           }
-          await processarArquivo(f);
+          await processarArquivo(f, conta, bloco);
         } catch (e) {
-          toast.error(
-            `Falha em ${f.name}: ${e instanceof Error ? e.message : String(e)}`
-          );
+          toast.error(`Falha em ${f.name}: ${formatError(e)}`);
         }
       }
-      setArquivos([]);
+      setFiles([]);
       // Aplicar regras automáticas nas linhas novas
       try {
         const { data, error } = await sb.rpc("fn_regras_aplicar");
@@ -801,14 +882,14 @@ export default function ExtratoImportacao() {
         const n = typeof data === "number" ? data : (data ?? 0);
         if (n > 0) toast.success(`Regras aplicadas: ${n} classificações automáticas`);
       } catch (e) {
-        toast.error("Falha ao aplicar regras: " + (e instanceof Error ? e.message : String(e)));
+        toast.error("Falha ao aplicar regras: " + formatError(e));
       }
       qc.invalidateQueries({ queryKey: ["movimentacoes-bancarias"] });
       qc.invalidateQueries({ queryKey: ["extrato-inbox"] });
       refetch();
 
     } finally {
-      setProcessando(false);
+      setProc(false);
     }
   }
 
@@ -848,11 +929,11 @@ export default function ExtratoImportacao() {
               </Select>
             </div>
             <div>
-              <Label>Arquivos (.ofx, .xlsx, .csv — múltiplos)</Label>
+              <Label>Arquivos de extrato (.ofx, .xlsx de lançamentos — múltiplos)</Label>
               <Input
                 type="file"
                 multiple
-                accept=".ofx,.xlsx,.csv"
+                accept=".ofx,.xlsx"
                 onChange={(e) => setArquivos(Array.from(e.target.files || []))}
               />
               {arquivos.length > 0 && (
@@ -870,7 +951,7 @@ export default function ExtratoImportacao() {
               )}
             </div>
             <Button
-              onClick={handleImportar}
+              onClick={() => handleImportar("extrato")}
               disabled={processando || !conta || arquivos.length === 0}
               className="bg-admin hover:bg-admin/90 text-admin-foreground gap-2"
             >
@@ -893,31 +974,85 @@ export default function ExtratoImportacao() {
         </div>
 
         <Card>
-          <CardContent className="pt-6 space-y-1 text-xs text-muted-foreground">
-            <div className="text-sm font-semibold text-foreground">
-              Cobrança Safra (solte no campo de arquivos acima — detecção automática)
+          <CardContent className="pt-6 space-y-4">
+            <div className="space-y-1 text-xs text-muted-foreground">
+              <div className="text-sm font-semibold text-foreground">Cobrança Safra</div>
+              <div>
+                <span className="font-medium text-foreground">Recebimentos - Instruções 2ª via</span>{" "}
+                (.xlsx): papel de <span className="font-medium">conferência</span>. Alimenta apenas a
+                carteira de conferência — não escreve em movimentações bancárias e não dá baixa em
+                título nenhum.
+              </div>
+              <div>
+                <span className="font-medium text-foreground">Gestão de Cobrança - Francesinha</span>{" "}
+                (.xlsx): snapshot diário com juros, descontos, comissões, DDA e ocorrência CNAB. Só
+                enriquece a linha do extrato — nunca insere linha nova, porque o dinheiro do boleto
+                chega pelo OFX.
+              </div>
             </div>
+
             <div>
-              <span className="font-medium text-foreground">Recebimentos - Instruções 2ª via</span>{" "}
-              (.xlsx): papel de <span className="font-medium">conferência</span>. Alimenta apenas a
-              carteira de conferência — não escreve em movimentações bancárias e não dá baixa em
-              título nenhum.
+              <Label>Conta bancária</Label>
+              <Select value={conta} onValueChange={setConta}>
+                <SelectTrigger><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
+                <SelectContent>
+                  {contas.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.nome_exibicao}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+
             <div>
-              <span className="font-medium text-foreground">Gestão de Cobrança - Francesinha</span>{" "}
-              (.xlsx): snapshot diário com juros, descontos, comissões, DDA e ocorrência CNAB. Só
-              enriquece a linha do extrato — nunca insere linha nova, porque o dinheiro do boleto
-              chega pelo OFX.
+              <Label>
+                Arquivos auxiliares (.xlsx, .csv — Francesinha, Instruções 2ª via, SafraPay,
+                Mercado Pago)
+              </Label>
+              <Input
+                type="file"
+                multiple
+                accept=".xlsx,.csv"
+                onChange={(e) => setArquivosAux(Array.from(e.target.files || []))}
+              />
+              {arquivosAux.length > 0 && (
+                <ul className="mt-2 text-xs text-muted-foreground space-y-1">
+                  {arquivosAux.map((f) => (
+                    <li key={f.name} className="flex items-center gap-2">
+                      <FileText className="h-3 w-3" />
+                      {f.name}
+                      <span className="text-[10px] uppercase">
+                        {detectarFonteBase(f) || "?"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                A detecção é automática pelo conteúdo do arquivo. Se o arquivo pertencer ao bloco
+                1, o sistema avisa e importa igual.
+              </p>
             </div>
+
+            <Button
+              onClick={() => handleImportar("auxiliar")}
+              disabled={processandoAux || !conta || arquivosAux.length === 0}
+              className="bg-admin hover:bg-admin/90 text-admin-foreground gap-2"
+            >
+              {processandoAux ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              Importar auxiliares {arquivosAux.length > 0 ? `(${arquivosAux.length})` : ""}
+            </Button>
           </CardContent>
         </Card>
 
         {conferencia && (
-          <ResumoSafraCarteira
-            contaId={conferencia.contaId}
-            dataReferencia={conferencia.dataReferencia}
-          />
+          <BlocoErroBoundary titulo="O resumo da carteira Safra falhou">
+            <ResumoSafraCarteira
+              contaId={conferencia.contaId}
+              dataReferencia={conferencia.dataReferencia}
+            />
+          </BlocoErroBoundary>
         )}
+
 
         <div className="flex items-center justify-between">
           <div>
