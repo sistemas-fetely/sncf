@@ -3357,6 +3357,12 @@ export type Database = {
           created_at: string
           id: string
           nome: string
+          pix_beneficiario_cidade: string | null
+          pix_beneficiario_nome: string | null
+          pix_chave: string | null
+          pix_conta_bancaria_id: string | null
+          pix_verificado_em: string | null
+          pix_verificado_obs: string | null
           updated_at: string
         }
         Insert: {
@@ -3364,6 +3370,12 @@ export type Database = {
           created_at?: string
           id?: string
           nome: string
+          pix_beneficiario_cidade?: string | null
+          pix_beneficiario_nome?: string | null
+          pix_chave?: string | null
+          pix_conta_bancaria_id?: string | null
+          pix_verificado_em?: string | null
+          pix_verificado_obs?: string | null
           updated_at?: string
         }
         Update: {
@@ -3371,9 +3383,23 @@ export type Database = {
           created_at?: string
           id?: string
           nome?: string
+          pix_beneficiario_cidade?: string | null
+          pix_beneficiario_nome?: string | null
+          pix_chave?: string | null
+          pix_conta_bancaria_id?: string | null
+          pix_verificado_em?: string | null
+          pix_verificado_obs?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "banco_recebimento_pix_conta_bancaria_id_fkey"
+            columns: ["pix_conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       beneficios_catalogo: {
         Row: {
@@ -21953,6 +21979,9 @@ export type Database = {
           observacao: string | null
           pago_em: string | null
           pedido_id: string
+          pix_gerado_em: string | null
+          pix_gerado_por: string | null
+          pix_txid: string | null
           plano_restante: Json
           sequencia: number
           status: string
@@ -21969,6 +21998,9 @@ export type Database = {
           observacao?: string | null
           pago_em?: string | null
           pedido_id: string
+          pix_gerado_em?: string | null
+          pix_gerado_por?: string | null
+          pix_txid?: string | null
           plano_restante?: Json
           sequencia?: number
           status?: string
@@ -21985,6 +22017,9 @@ export type Database = {
           observacao?: string | null
           pago_em?: string | null
           pedido_id?: string
+          pix_gerado_em?: string | null
+          pix_gerado_por?: string | null
+          pix_txid?: string | null
           plano_restante?: Json
           sequencia?: number
           status?: string
@@ -53446,6 +53481,19 @@ export type Database = {
       }
       fn_pedido_gera_titulo: { Args: { p_pedido_id: string }; Returns: boolean }
       fn_pedido_tem_lastro: { Args: { p_pedido_id: string }; Returns: Json }
+      fn_pix_brcode: {
+        Args: {
+          p_chave: string
+          p_cidade: string
+          p_nome: string
+          p_txid: string
+          p_uso_unico?: boolean
+          p_valor: number
+        }
+        Returns: string
+      }
+      fn_pix_crc16: { Args: { p_texto: string }; Returns: string }
+      fn_pix_txid: { Args: { p_id_externo: string }; Returns: string }
       fn_plano_recebimento_pedido: {
         Args: { p_pedido_id: string }
         Returns: {
@@ -53734,6 +53782,7 @@ export type Database = {
         Returns: number
       }
       gerar_periodos_ferias_pendentes: { Args: never; Returns: undefined }
+      gerar_pix_portao: { Args: { p_portao_id: string }; Returns: Json }
       gerar_plano_pagamento: {
         Args: { p_parcelas: Json; p_stage_id: string; p_user_id?: string }
         Returns: Json
