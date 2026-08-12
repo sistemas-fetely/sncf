@@ -1215,7 +1215,7 @@ export default function CobrancaDetalhe() {
               <Button
                 variant="ghost"
                 onClick={() => setAjustarDescontoOpen(true)}
-                disabled={materializar.isPending || criarPortao.isPending || materializarComHaver.isPending}
+                disabled={montarPlano.isPending}
               >
                 Ajustar desconto
               </Button>
@@ -1224,7 +1224,7 @@ export default function CobrancaDetalhe() {
               <Button
                 variant="ghost"
                 onClick={() => setEditarCondicaoOpen(true)}
-                disabled={materializar.isPending || criarPortao.isPending || materializarComHaver.isPending}
+                disabled={montarPlano.isPending}
               >
                 Alterar pagamento
               </Button>
@@ -1234,10 +1234,10 @@ export default function CobrancaDetalhe() {
             </Button>
             <Button
               onClick={handleAceitar}
-              disabled={!podeMaterializar || materializar.isPending || criarPortao.isPending || materializarComHaver.isPending}
+              disabled={!podeMaterializar || montarPlano.isPending}
             >
-              {(materializar.isPending || criarPortao.isPending || materializarComHaver.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
-              {exigePortao ? "Aceitar e gerar portão" : "Aceitar e materializar"}
+              {montarPlano.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              Aceitar e montar plano
             </Button>
           </div>
         </CardContent>
@@ -1246,37 +1246,39 @@ export default function CobrancaDetalhe() {
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{exigePortao ? "Confirmar criação do portão" : "Confirmar materialização"}</DialogTitle>
+            <DialogTitle>Confirmar plano de pagamento</DialogTitle>
             <DialogDescription>
-              {exigePortao ? (
-                <>Vamos criar o portão. O pedido ficará aguardando o primeiro pagamento à vista antes de liberar a NF.</>
-              ) : (
-                <>
-                  Esta operação é irreversível. Serão criados <strong>{titulos.length}</strong>{" "}
-                  título{titulos.length !== 1 ? "s" : ""} totalizando{" "}
-                  <strong>{fmtBRL.format(totalEditado)}</strong>.
-                  {valorHaverAplicar > 0 && (
-                    <> {" "}Haver aplicado: <strong>{fmtBRL.format(valorHaverAplicar)}</strong>.</>
-                  )}
-                </>
-              )}
+              <>
+                Serão criadas <strong>{titulos.length}</strong> linha
+                {titulos.length !== 1 ? "s" : ""} totalizando{" "}
+                <strong>{fmtBRL.format(totalEditado)}</strong>, das quais{" "}
+                <strong>{qtdPortao}</strong> de portão somando{" "}
+                <strong>{fmtBRL.format(totalPortao)}</strong>.
+                {qtdPortao > 0 && (
+                  <> O pedido só é liberado quando todas as linhas de portão estiverem pagas.</>
+                )}
+                {valorHaverAplicar > 0 && (
+                  <> {" "}Haver aplicado: <strong>{fmtBRL.format(valorHaverAplicar)}</strong>.</>
+                )}
+              </>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => setConfirmOpen(false)}
-              disabled={materializar.isPending || criarPortao.isPending || materializarComHaver.isPending}
+              disabled={montarPlano.isPending}
             >
               Voltar
             </Button>
-            <Button onClick={handleConfirmar} disabled={materializar.isPending || criarPortao.isPending || materializarComHaver.isPending}>
-              {(materializar.isPending || criarPortao.isPending || materializarComHaver.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
+            <Button onClick={handleConfirmar} disabled={montarPlano.isPending}>
+              {montarPlano.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
               Confirmar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
 
       <EditarCondicaoPagamentoDialog
         open={editarCondicaoOpen}
