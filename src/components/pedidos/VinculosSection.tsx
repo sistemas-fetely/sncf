@@ -205,6 +205,8 @@ export function VinculosSection({
       </CardHeader>
       <CardContent className="space-y-3">
         <GrupoRemessas remessas={remessas ?? []} id_externo={id_externo} />
+        {acoesBling}
+
         {vinculos && (
           <>
             <Grupo rotulo="Split de" pedidos={vinculos.remessa_de ? [vinculos.remessa_de] : []} />
