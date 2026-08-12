@@ -703,6 +703,27 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
         />
       </div>
 
+      {/* Terminais que NÃO são inadimplência — fora dos números de atraso. */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <KpiCard
+          label="Devolvido"
+          labelTooltip="Mercadoria devolvida pelo cliente. Não é inadimplência."
+          qtd={kpisTerminais.devolvido.qtd}
+          valor={kpisTerminais.devolvido.valor}
+          ativo={cardsAtivos.has("devolvido")}
+          onClick={() => toggleCard("devolvido")}
+        />
+        <KpiCard
+          label="Baixado por perda"
+          labelTooltip="Título baixado por perda. Não é inadimplência."
+          qtd={kpisTerminais.baixado_por_perda.qtd}
+          valor={kpisTerminais.baixado_por_perda.valor}
+          ativo={cardsAtivos.has("baixado_por_perda")}
+          onClick={() => toggleCard("baixado_por_perda")}
+        />
+      </div>
+
+
 
       {/* Filtro por tipo de pagamento */}
       <div className="flex flex-wrap items-center gap-3">
