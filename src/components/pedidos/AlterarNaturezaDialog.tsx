@@ -90,6 +90,16 @@ export function AlterarNaturezaDialog({
         </DialogHeader>
 
         <div className="space-y-4">
+          {ehRemessaFilha && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Esta é uma remessa. A natureza pertence ao pedido pai e a troca vale para
+                toda a família.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="space-y-1.5">
             <Label>Natureza</Label>
             <Select value={codigo} onValueChange={setCodigo} disabled={isLoading}>
