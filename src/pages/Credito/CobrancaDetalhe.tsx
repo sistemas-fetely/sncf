@@ -603,17 +603,25 @@ export default function CobrancaDetalhe() {
 
   const handleConfirmar = () => {
     if (!pedidoId) return;
-    if (exigePortao) {
-      criarPortao.mutate({ pedidoId, titulosEditados: titulos }, { onSettled: () => setConfirmOpen(false) });
-    } else if (valorHaverAplicar > 0 && haverCliente?.haverId) {
-      materializarComHaver.mutate(
-        { pedidoId, titulosEditados: titulos, haverId: haverCliente.haverId, valorHaver: valorHaverAplicar },
-        { onSettled: () => setConfirmOpen(false) },
-      );
-    } else {
-      materializar.mutate({ pedidoId, titulosEditados: titulos }, { onSettled: () => setConfirmOpen(false) });
-    }
+    // Porta única: montar_plano_pagamento cobre portão, parcelamento e haver.
+    montarPlano.mutate(
+      {
+        pedidoId,
+        linhas: titulos.map((t) => ({
+          numero_parcela: t.numero_parcela,
+          tipo_pagamento: t.tipo_pagamento,
+          valor: Number(t.valor_bruto || 0),
+          data_prevista: t.data_vencimento,
+          eh_portao: !!t.eh_portao,
+          eh_entrada: !!t.eh_entrada,
+          condicao_pagamento: t.condicao_pagamento ?? null,
+          link_pagamento: t.link_pagamento ?? null,
+        })),
+      },
+      { onSettled: () => setConfirmOpen(false) },
+    );
   };
+
 
   const handleTogglePortao = async (valor: boolean) => {
     if (!pedidoId) return;
