@@ -1567,6 +1567,38 @@ export default function PedidoDetalhe() {
                       <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Forma</p>
                       <p className="text-sm">{pedido.forma_solicitada ?? "—"}</p>
                     </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Natureza</p>
+                      <div className="flex items-center gap-1.5">
+                        {naturezaTrocaLiberada ? (
+                          <p className="text-sm">{natureza?.nome ?? "Venda"}</p>
+                        ) : (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <p className="text-sm cursor-default">{natureza?.nome ?? "Venda"}</p>
+                              </TooltipTrigger>
+                              <TooltipContent>{naturezaTrocaTooltip}</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                        {naturezaTrocaLiberada && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 text-muted-foreground"
+                            title="Trocar natureza de operação"
+                            onClick={() => {
+                              setNaturezaSugerida(null);
+                              setNaturezaDialogOpen(true);
+                            }}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
                     {pedido.bling_id_destino && (
                       <div>
                         <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">
