@@ -38330,6 +38330,7 @@ export type Database = {
       vw_boleto_vencimento_conferencia: {
         Row: {
           boleto_status: string | null
+          carteira_data_referencia: string | null
           cliente: string | null
           data_foi_alterada: boolean | null
           dias_diferenca: number | null
@@ -38888,6 +38889,7 @@ export type Database = {
           lastro_envio: string | null
           lastro_instrumento: string | null
           linha_digitavel: string | null
+          mesa_exige_acao: boolean | null
           nf_numero: string | null
           nome_canonico: string | null
           nome_exibicao: string | null
