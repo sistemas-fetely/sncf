@@ -25,6 +25,8 @@ export function useEnviarEmailPedidoCobranca() {
       let situacao_link: string | null = null;
       let expira_em: string | null = null;
       let pix_txid: string | null = null;
+      let pix_qr_url: string | null = null;
+      let pix_token: string | null = null;
 
       const { data: linkView } = await (supabase as any)
         .from("vw_pedido_link_pagamento")
@@ -53,7 +55,7 @@ export function useEnviarEmailPedidoCobranca() {
         if (!link_pagamento) {
           const { data: portao } = await (supabase as any)
             .from("pedido_portao")
-            .select("link_pagamento, tipo_pagamento, pix_txid")
+            .select("link_pagamento, tipo_pagamento, pix_txid, pix_qr_url, pix_token")
             .eq("pedido_id", pedido_id)
             .eq("status", "provisorio")
             .not("link_pagamento", "is", null)
@@ -64,6 +66,8 @@ export function useEnviarEmailPedidoCobranca() {
             link_pagamento = portao.link_pagamento;
             tipo_do_link = portao.tipo_pagamento ?? null;
             pix_txid = portao.pix_txid ?? null;
+            pix_qr_url = portao.pix_qr_url ?? null;
+            pix_token = portao.pix_token ?? null;
           }
         }
 
@@ -132,18 +136,24 @@ export function useEnviarEmailPedidoCobranca() {
 
       if (ehBrCode) {
         // txid do portão: cai no extrato bancário, ajuda o cliente e a conciliação.
-        if (!pix_txid) {
+        if (!pix_txid || !pix_qr_url || !pix_token) {
           const { data: portaoTx } = await (supabase as any)
             .from("pedido_portao")
-            .select("pix_txid")
+            .select("pix_txid, pix_qr_url, pix_token")
             .eq("pedido_id", pedido_id)
             .eq("status", "provisorio")
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle();
-          pix_txid = portaoTx?.pix_txid ?? null;
+          pix_txid = pix_txid ?? portaoTx?.pix_txid ?? null;
+          pix_qr_url = pix_qr_url ?? portaoTx?.pix_qr_url ?? null;
+          pix_token = pix_token ?? portaoTx?.pix_token ?? null;
         }
         if (pix_txid) templateData.pix_txid = pix_txid;
+        // Imagem hospedada do QR (bucket público) — no e-mail não existe canvas.
+        if (pix_qr_url) templateData.qr_code_pix = pix_qr_url;
+        // Página pública de pagamento: caminho principal no e-mail (origem de produção).
+        if (pix_token) templateData.link_pagina_pagamento = `https://sncf.lovable.app/pagar/${pix_token}`;
       }
 
       const idempotencyKey = reenvio
