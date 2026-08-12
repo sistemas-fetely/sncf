@@ -96,7 +96,7 @@ import { EnviarEmailNfDialog } from "@/components/pedidos/dialogs/EnviarEmailNfD
 import { EnviarEmailNfBoletosDialog } from "@/components/pedidos/dialogs/EnviarEmailNfBoletosDialog";
 import { useBoletosDoPedido } from "@/hooks/pedidos/useBoletosDoPedido";
 import { ComunicacaoPedidoPanel } from "@/components/pedidos/ComunicacaoPedidoPanel";
-import { PortaoLinksPanel } from "@/components/pedidos/PortaoLinksPanel";
+import { EstadoInstrumentoCobranca } from "@/components/pedidos/EstadoInstrumentoCobranca";
 import { ExportarPedidoDialog } from "@/components/pedidos/dialogs/ExportarPedidoDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertTriangle, Pencil } from "lucide-react";
@@ -2149,7 +2149,7 @@ export default function PedidoDetalhe() {
                         </div>
                       </div>
                     )}
-                    <PortaoLinksPanel pedidoId={pedido.id} />
+                    <EstadoInstrumentoCobranca pedidoId={pedido.id} />
                   </div>
                 </TabsContent>
               </Tabs>
