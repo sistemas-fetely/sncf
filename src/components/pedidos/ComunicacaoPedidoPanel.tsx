@@ -125,6 +125,15 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
     enabled: !!pedido_id,
   });
 
+  // Boletos SEMPRE via montador: só títulos com status 'aberto' e tipo boleto.
+  const titulosBoleto = useMemo(() => {
+    try {
+      return montarPacoteCobranca((titulosBoletoQ.data ?? []) as TituloPacote[]).titulosBoleto;
+    } catch {
+      return [] as TituloPacote[];
+    }
+  }, [titulosBoletoQ.data]);
+
   const nfQ = useQuery({
     queryKey: ["comunic-nf", pedido_id],
     queryFn: async () => {
@@ -213,7 +222,7 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
           await enviarBoleto.mutateAsync(tituloEntradaQ.data.id);
         }
       } else if (dialogTipo === "boleto") {
-        for (const t of titulosBoletoQ.data ?? []) {
+        for (const t of titulosBoleto) {
           await enviarBoleto.mutateAsync(t.id);
         }
       } else if (dialogTipo === "nf") {
@@ -240,14 +249,6 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
   };
 
   // ── Visibilidade ──
-  // Boletos SEMPRE via montador: só títulos com status 'aberto' e tipo boleto.
-  const titulosBoleto = useMemo(() => {
-    try {
-      return montarPacoteCobranca((titulosBoletoQ.data ?? []) as TituloPacote[]).titulosBoleto;
-    } catch {
-      return [] as TituloPacote[];
-    }
-  }, [titulosBoletoQ.data]);
   const nfExiste = !!nfQ.data?.id;
   const portao = portaoQ.data;
   const tituloEntrada = tituloEntradaQ.data;
