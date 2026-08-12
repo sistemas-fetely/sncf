@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { gerarPedidoPdf } from "@/lib/pedidoPdf";
 import { fetchPedidoParaExportar } from "@/hooks/pedidos/usePedidoParaExportar";
+import { ehBrCodePix } from "@/lib/financeiro/instrumento-pagamento";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (s?: string | null) =>
@@ -13,7 +14,7 @@ export function useEnviarEmailPedidoCobranca() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ pedido_id, emails, cc }: { pedido_id: string; emails: string[]; cc?: string[] }) => {
+    mutationFn: async ({ pedido_id, emails, cc, reenvio }: { pedido_id: string; emails: string[]; cc?: string[]; reenvio?: boolean }) => {
       const exp = await fetchPedidoParaExportar(pedido_id);
       const pedido = exp.pedido;
       const parceiro = exp.parceiro;
@@ -23,6 +24,7 @@ export function useEnviarEmailPedidoCobranca() {
       let tipo_do_link: string | null = null;
       let situacao_link: string | null = null;
       let expira_em: string | null = null;
+      let pix_txid: string | null = null;
 
       const { data: linkView } = await (supabase as any)
         .from("vw_pedido_link_pagamento")
@@ -51,7 +53,7 @@ export function useEnviarEmailPedidoCobranca() {
         if (!link_pagamento) {
           const { data: portao } = await (supabase as any)
             .from("pedido_portao")
-            .select("link_pagamento, tipo_pagamento")
+            .select("link_pagamento, tipo_pagamento, pix_txid")
             .eq("pedido_id", pedido_id)
             .eq("status", "provisorio")
             .not("link_pagamento", "is", null)
@@ -61,6 +63,7 @@ export function useEnviarEmailPedidoCobranca() {
           if (portao?.link_pagamento) {
             link_pagamento = portao.link_pagamento;
             tipo_do_link = portao.tipo_pagamento ?? null;
+            pix_txid = portao.pix_txid ?? null;
           }
         }
 
@@ -82,15 +85,18 @@ export function useEnviarEmailPedidoCobranca() {
         );
       }
 
+      // BR Code PIX (EMV) não é URL e não expira: travas (b) e (c) não se aplicam.
+      const ehBrCode = ehBrCodePix(link_pagamento);
+
       // (b) link malformado
-      if (link_pagamento && !/^https?:\/\//i.test(link_pagamento.trim())) {
+      if (link_pagamento && !ehBrCode && !/^https?:\/\//i.test(link_pagamento.trim())) {
         throw new Error(
           `Link inválido no cadastro ("${link_pagamento}"). Cadastre a URL completa do SafraPay antes de enviar.`,
         );
       }
 
       // (c) link vencido
-      if (situacao_link === "expirado") {
+      if (!ehBrCode && situacao_link === "expirado") {
         throw new Error(
           `Link de pagamento vencido em ${fmtDate(expira_em)}. Gere um link novo no SafraPay e cole antes de enviar — o cliente receberia um link morto.`,
         );
@@ -124,12 +130,32 @@ export function useEnviarEmailPedidoCobranca() {
       }
       if (link_pagamento) templateData.link_pagamento = link_pagamento;
 
-      const { error: errEmail } = await supabase.functions.invoke("send-transactional-email", {
+      if (ehBrCode) {
+        // txid do portão: cai no extrato bancário, ajuda o cliente e a conciliação.
+        if (!pix_txid) {
+          const { data: portaoTx } = await (supabase as any)
+            .from("pedido_portao")
+            .select("pix_txid")
+            .eq("pedido_id", pedido_id)
+            .eq("status", "provisorio")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          pix_txid = portaoTx?.pix_txid ?? null;
+        }
+        if (pix_txid) templateData.pix_txid = pix_txid;
+      }
+
+      const idempotencyKey = reenvio
+        ? `cobranca-pedido-${pedido_id}-r${Date.now()}`
+        : `cobranca-pedido-${pedido_id}`;
+
+      const { data: respEmail, error: errEmail } = await supabase.functions.invoke("send-transactional-email", {
         body: {
           templateName: "cobranca-pedido",
           recipientEmail: emails[0],
           ...(emails.length > 1 ? { cc: emails.slice(1) } : {}),
-          idempotencyKey: `cobranca-pedido-${pedido_id}-${Date.now()}`,
+          idempotencyKey,
           templateData,
           attachments: [
             {
@@ -141,6 +167,12 @@ export function useEnviarEmailPedidoCobranca() {
         },
       });
       if (errEmail) throw new Error(`Falha ao enviar email: ${errEmail.message}`);
+
+      // Duplicata: o Resend barrou pela chave idempotente. Sucesso informativo —
+      // não marca títulos nem link como reenviados, porque nada saiu agora.
+      if ((respEmail as any)?.duplicate === true) {
+        return { email: emails[0], id_externo: pedido.id_externo, duplicate: true as const };
+      }
 
       // Marca os titulos em aberto como "email enviado" (no-op se ainda nao ha titulos — portao)
       await (supabase as any)
@@ -160,13 +192,20 @@ export function useEnviarEmailPedidoCobranca() {
       }
 
 
-      return { email: emails[0], id_externo: pedido.id_externo };
+      return { email: emails[0], id_externo: pedido.id_externo, duplicate: false as const };
     },
     onSuccess: (data, vars) => {
-      toast({
-        title: "Email de cobrança enviado",
-        description: `Enviado para ${data.email} · ${data.id_externo}`,
-      });
+      if (data.duplicate) {
+        toast({
+          title: "Cobrança já enviada",
+          description: "Esta cobrança já havia sido enviada antes — nada foi reenviado.",
+        });
+      } else {
+        toast({
+          title: "Email de cobrança enviado",
+          description: `Enviado para ${data.email} · ${data.id_externo}`,
+        });
+      }
       qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });
       qc.invalidateQueries({ queryKey: ["pedido-titulos", vars.pedido_id] });
     },
