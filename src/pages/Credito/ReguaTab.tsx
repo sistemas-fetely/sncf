@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { RefreshCw, Star, AlertTriangle, Users, Play, Send } from "lucide-react";
+import { RefreshCw, Star, AlertTriangle, Users, Play, Send, ChevronRight } from "lucide-react";
 import {
   useReguaEtapas,
   useReguaFilaHoje,
@@ -115,6 +115,60 @@ function SeloConferencia({ c }: { c: BoletoVencimentoConferencia | undefined }) 
   );
 }
 
+/**
+ * Título sem ação pendente: uma linha, não um card. Continua 100% visível e
+ * clicável — expande no card completo. Verde aqui é SELO, nunca fundo: verde
+ * de fundo colide com os selos de lastro (que já são verdes) e, em tela
+ * financeira, é lido como "pago" — e estes são recebíveis em aberto.
+ */
+function LinhaCompacta({
+  titulo, contatadoEm, aberto, onToggle,
+}: {
+  titulo: TituloCobranca;
+  contatadoEm: string | null;
+  aberto: boolean;
+  onToggle: () => void;
+}) {
+  const razao = nomeCanonico(titulo.parceiro_razao_social, "—");
+  const mesa = (titulo as any)._mesa as LinhaMesa | undefined;
+  const vencimento = mesa?.vencimento ?? titulo.data_vencimento_atual ?? null;
+  const atraso = titulo.dias_atraso ?? 0;
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={aberto}
+      className="w-full flex items-center gap-2 rounded-md border bg-card/60 px-2.5 py-1.5 text-left hover:bg-accent/50 transition-colors"
+    >
+      <ChevronRight className={cn("h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform", aberto && "rotate-90")} />
+      <span className="text-xs font-medium truncate min-w-0 flex-1">{razao}</span>
+      <span className="hidden md:inline text-[10px] font-mono text-muted-foreground shrink-0">
+        {titulo.numero_titulo}
+      </span>
+      <TooltipProvider>
+        {contatadoEm ? (
+          <Selo
+            texto={`em dia · contato ${fmtDataMesa(contatadoEm)}`}
+            tom="verde"
+            tooltip="Etapa da régua já cumprida — nada a fazer neste título hoje."
+          />
+        ) : (
+          <Selo
+            texto={atraso === 0 ? "vence hoje" : `vence ${fmtDataMesa(vencimento)}`}
+            tom="neutro"
+            tooltip="Ainda não chegou a data de nenhuma etapa da régua."
+          />
+        )}
+      </TooltipProvider>
+      <Badge variant="outline" className="text-[10px] shrink-0">
+        {atraso === 0 ? "hoje" : atraso > 0 ? `há ${atraso}d` : `D${atraso}`}
+      </Badge>
+      <span className="text-xs font-semibold tabular-nums shrink-0 w-24 text-right">
+        {formatBRL(titulo.valor_efetivo)}
+      </span>
+    </button>
+  );
+}
 function CardTitulo({
   titulo, etapa, acaoAtrasada, conferencia, onAcao, onPular, onPausar, onRenegociar, onEnviarPacote, onReenviar,
 }: {
@@ -358,20 +412,48 @@ export default function ReguaTab() {
     return da < db ? -1 : 1;
   };
 
-  // Agrupa por descrição da etapa aplicável
-  const grupos = useMemo(() => {
-    const map = new Map<string, { etapa: ReguaEtapa | null; titulos: TituloCobranca[] }>();
+  /**
+   * RÉGUA-É-FILA-DE-AÇÃO. Três baldes:
+   *  - comAcao: tem etapa pendente → card cheio, agrupado por etapa
+   *  - jaContatado: etapa cumprida → linha compacta com selo verde
+   *  - aguardando: ainda não chegou etapa nenhuma → linha compacta neutra
+   */
+  const baldes = useMemo(() => {
+    const comAcao: { t: TituloCobranca; etapa: ReguaEtapa }[] = [];
+    const jaContatado: { t: TituloCobranca; em: string | null }[] = [];
+    const aguardando: TituloCobranca[] = [];
     for (const t of [...lista].sort(porProximaAcao)) {
       const etapa = resolverEtapaParaTitulo(t, etapas);
-      const key = etapa?.descricao_acao ?? "Régua em dia — nenhuma etapa pendente";
+      if (etapa) { comAcao.push({ t, etapa }); continue; }
+      const u = etapaUltimaDoTitulo(t, etapas);
+      if (u) jaContatado.push({ t, em: u.em });
+      else aguardando.push(t);
+    }
+    return { comAcao, jaContatado, aguardando };
+  }, [lista, etapas]);
+
+  // Agrupa só os com ação, por descrição da etapa aplicável.
+  const grupos = useMemo(() => {
+    const map = new Map<string, { etapa: ReguaEtapa | null; titulos: TituloCobranca[] }>();
+    for (const { t, etapa } of baldes.comAcao) {
+      const key = etapa.descricao_acao;
       if (!map.has(key)) map.set(key, { etapa, titulos: [] });
       map.get(key)!.titulos.push(t);
     }
-    // Grupo com ação mais atrasada primeiro (menor data de próxima ação).
     return Array.from(map.entries()).sort(
       (a, b) => porProximaAcao(a[1].titulos[0], b[1].titulos[0]),
     );
-  }, [lista, etapas]);
+  }, [baldes]);
+
+  const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
+  const alternar = (id: string) =>
+    setExpandidos((prev) => {
+      const s = new Set(prev);
+      if (s.has(id)) s.delete(id); else s.add(id);
+      return s;
+    });
+
+  const somaLista = (ts: TituloCobranca[]) => somaValor(ts);
 
 
   return (
@@ -380,8 +462,8 @@ export default function ReguaTab() {
         <div className="grid grid-cols-3 gap-3 flex-1 max-w-2xl">
           <KpiCard
             label="Fila de hoje"
-            valor={fila.length}
-            total={somaFila}
+            valor={vista === "fila" ? baldes.comAcao.length : fila.length}
+            total={vista === "fila" ? somaLista(baldes.comAcao.map((x) => x.t)) : somaFila}
             ativo={vista === "fila"}
             onClick={() => setVista("fila")}
           />
@@ -476,6 +558,97 @@ export default function ReguaTab() {
           </div>
         </section>
       ))}
+
+      {!loading && vista === "fila" && baldes.comAcao.length === 0 && lista.length > 0 && (
+        <div className="rounded-md border border-success/30 bg-success/5 px-3 py-4 text-center text-sm text-muted-foreground">
+          Nenhuma ação de régua pendente hoje. Os {lista.length} títulos abaixo estão em dia
+          ou ainda não chegaram na data.
+        </div>
+      )}
+
+      {!loading && vista === "fila" && baldes.jaContatado.length > 0 && (
+        <section className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-muted-foreground">
+              Já contatado — régua cumprida
+            </h3>
+            <span className="text-xs text-muted-foreground">
+              {baldes.jaContatado.length} título(s) · {formatBRL(somaLista(baldes.jaContatado.map((x) => x.t)))}
+            </span>
+          </div>
+          <div className="space-y-1">
+            {baldes.jaContatado.map(({ t, em }) => (
+              <div key={t.id} className="space-y-1">
+                <LinhaCompacta
+                  titulo={t}
+                  contatadoEm={em}
+                  aberto={expandidos.has(t.id)}
+                  onToggle={() => alternar(t.id)}
+                />
+                {expandidos.has(t.id) && (
+                  <CardTitulo
+                    titulo={t}
+                    etapa={null}
+                    conferencia={conferencias?.get(t.id)}
+                    onAcao={() => setAcaoDialog({ titulo: t, etapa: null, modo: "enviada" })}
+                    onPular={() => setAcaoDialog({ titulo: t, etapa: null, modo: "pulada" })}
+                    onPausar={() => setPausarDialog({ titulo: t, etapa: null })}
+                    onRenegociar={() => setRenegociarDialog({ titulo: t, etapa: null })}
+                    onEnviarPacote={(l) => setPacote(l)}
+                    onReenviar={() => {
+                      const u = etapaUltimaDoTitulo(t, etapas);
+                      if (!u) return;
+                      setAcaoDialog({ titulo: t, etapa: u.etapa, modo: "enviada", reenvio: true, ultimaEm: u.em });
+                    }}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {!loading && vista === "fila" && baldes.aguardando.length > 0 && (
+        <section className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-muted-foreground">
+              Aguardando data — nenhuma etapa ainda
+            </h3>
+            <span className="text-xs text-muted-foreground">
+              {baldes.aguardando.length} título(s) · {formatBRL(somaLista(baldes.aguardando))}
+            </span>
+          </div>
+          <div className="space-y-1">
+            {baldes.aguardando.map((t) => (
+              <div key={t.id} className="space-y-1">
+                <LinhaCompacta
+                  titulo={t}
+                  contatadoEm={null}
+                  aberto={expandidos.has(t.id)}
+                  onToggle={() => alternar(t.id)}
+                />
+                {expandidos.has(t.id) && (
+                  <CardTitulo
+                    titulo={t}
+                    etapa={null}
+                    conferencia={conferencias?.get(t.id)}
+                    onAcao={() => setAcaoDialog({ titulo: t, etapa: null, modo: "enviada" })}
+                    onPular={() => setAcaoDialog({ titulo: t, etapa: null, modo: "pulada" })}
+                    onPausar={() => setPausarDialog({ titulo: t, etapa: null })}
+                    onRenegociar={() => setRenegociarDialog({ titulo: t, etapa: null })}
+                    onEnviarPacote={(l) => setPacote(l)}
+                    onReenviar={() => {
+                      const u = etapaUltimaDoTitulo(t, etapas);
+                      if (!u) return;
+                      setAcaoDialog({ titulo: t, etapa: u.etapa, modo: "enviada", reenvio: true, ultimaEm: u.em });
+                    }}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <EnviarPacoteDialog
         linha={pacote}
