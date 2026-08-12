@@ -488,6 +488,8 @@ export default function ReguaTab() {
           titulo={acaoDialog.titulo}
           etapa={acaoDialog.etapa}
           modo={acaoDialog.modo}
+          reenvio={acaoDialog.reenvio}
+          ultimaEm={acaoDialog.ultimaEm}
           open={!!acaoDialog}
           onClose={() => setAcaoDialog(null)}
         />
