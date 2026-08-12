@@ -31,6 +31,9 @@ interface Props {
   pedido_origem_id: string | null;
   /** Ações de vínculo vindas de fora (ex.: consolidar outro pedido aqui). */
   acoesExtra?: ReactNode;
+  /** Ação de exceção logo abaixo de "Envios ao Bling" (ex.: desvincular do Bling). */
+  acoesBling?: ReactNode;
+
 }
 
 function rotuloEstagio(estagio: string) {
