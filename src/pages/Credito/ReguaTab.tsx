@@ -455,6 +455,11 @@ export default function ReguaTab() {
                   onPausar={() => setPausarDialog({ titulo: t, etapa })}
                   onRenegociar={() => setRenegociarDialog({ titulo: t, etapa })}
                   onEnviarPacote={(l) => setPacote(l)}
+                  onReenviar={() => {
+                    const u = etapaUltimaDoTitulo(t, etapas);
+                    if (!u) return;
+                    setAcaoDialog({ titulo: t, etapa: u.etapa, modo: "enviada", reenvio: true, ultimaEm: u.em });
+                  }}
                 />
                 {vista === "pausados" && (
                   <Button
