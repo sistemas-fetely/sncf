@@ -11,6 +11,7 @@ import { AlertTriangle, Loader2, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useEnviarEmailNfBoletos } from "@/hooks/pedidos/useEnviarEmailNfBoletos";
 import { useLogEmailEnvio } from "@/hooks/pedidos/usePedidoEmailLog";
+import { useEmailCobrancaParceiro } from "@/hooks/credito/useEmailCobrancaParceiro";
 import type { LinhaMesa } from "@/lib/financeiro/adaptar-titulo-mesa";
 
 const RE_EMAIL = /^[^\s@,]+@[^\s@,]+\.[^\s@,]{2,}$/;
