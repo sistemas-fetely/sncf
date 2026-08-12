@@ -559,6 +559,97 @@ export default function ReguaTab() {
         </section>
       ))}
 
+      {!loading && vista === "fila" && baldes.comAcao.length === 0 && lista.length > 0 && (
+        <div className="rounded-md border border-success/30 bg-success/5 px-3 py-4 text-center text-sm text-muted-foreground">
+          Nenhuma ação de régua pendente hoje. Os {lista.length} títulos abaixo estão em dia
+          ou ainda não chegaram na data.
+        </div>
+      )}
+
+      {!loading && vista === "fila" && baldes.jaContatado.length > 0 && (
+        <section className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-muted-foreground">
+              Já contatado — régua cumprida
+            </h3>
+            <span className="text-xs text-muted-foreground">
+              {baldes.jaContatado.length} título(s) · {formatBRL(somaLista(baldes.jaContatado.map((x) => x.t)))}
+            </span>
+          </div>
+          <div className="space-y-1">
+            {baldes.jaContatado.map(({ t, em }) => (
+              <div key={t.id} className="space-y-1">
+                <LinhaCompacta
+                  titulo={t}
+                  contatadoEm={em}
+                  aberto={expandidos.has(t.id)}
+                  onToggle={() => alternar(t.id)}
+                />
+                {expandidos.has(t.id) && (
+                  <CardTitulo
+                    titulo={t}
+                    etapa={null}
+                    conferencia={conferencias?.get(t.id)}
+                    onAcao={() => setAcaoDialog({ titulo: t, etapa: null, modo: "enviada" })}
+                    onPular={() => setAcaoDialog({ titulo: t, etapa: null, modo: "pulada" })}
+                    onPausar={() => setPausarDialog({ titulo: t, etapa: null })}
+                    onRenegociar={() => setRenegociarDialog({ titulo: t, etapa: null })}
+                    onEnviarPacote={(l) => setPacote(l)}
+                    onReenviar={() => {
+                      const u = etapaUltimaDoTitulo(t, etapas);
+                      if (!u) return;
+                      setAcaoDialog({ titulo: t, etapa: u.etapa, modo: "enviada", reenvio: true, ultimaEm: u.em });
+                    }}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {!loading && vista === "fila" && baldes.aguardando.length > 0 && (
+        <section className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-muted-foreground">
+              Aguardando data — nenhuma etapa ainda
+            </h3>
+            <span className="text-xs text-muted-foreground">
+              {baldes.aguardando.length} título(s) · {formatBRL(somaLista(baldes.aguardando))}
+            </span>
+          </div>
+          <div className="space-y-1">
+            {baldes.aguardando.map((t) => (
+              <div key={t.id} className="space-y-1">
+                <LinhaCompacta
+                  titulo={t}
+                  contatadoEm={null}
+                  aberto={expandidos.has(t.id)}
+                  onToggle={() => alternar(t.id)}
+                />
+                {expandidos.has(t.id) && (
+                  <CardTitulo
+                    titulo={t}
+                    etapa={null}
+                    conferencia={conferencias?.get(t.id)}
+                    onAcao={() => setAcaoDialog({ titulo: t, etapa: null, modo: "enviada" })}
+                    onPular={() => setAcaoDialog({ titulo: t, etapa: null, modo: "pulada" })}
+                    onPausar={() => setPausarDialog({ titulo: t, etapa: null })}
+                    onRenegociar={() => setRenegociarDialog({ titulo: t, etapa: null })}
+                    onEnviarPacote={(l) => setPacote(l)}
+                    onReenviar={() => {
+                      const u = etapaUltimaDoTitulo(t, etapas);
+                      if (!u) return;
+                      setAcaoDialog({ titulo: t, etapa: u.etapa, modo: "enviada", reenvio: true, ultimaEm: u.em });
+                    }}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <EnviarPacoteDialog
         linha={pacote}
         open={!!pacote}
