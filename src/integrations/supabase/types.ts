@@ -22061,6 +22061,8 @@ export type Database = {
           pedido_id: string
           pix_gerado_em: string | null
           pix_gerado_por: string | null
+          pix_qr_url: string | null
+          pix_token: string | null
           pix_txid: string | null
           plano_restante: Json
           sequencia: number
@@ -22080,6 +22082,8 @@ export type Database = {
           pedido_id: string
           pix_gerado_em?: string | null
           pix_gerado_por?: string | null
+          pix_qr_url?: string | null
+          pix_token?: string | null
           pix_txid?: string | null
           plano_restante?: Json
           sequencia?: number
@@ -22099,6 +22103,8 @@ export type Database = {
           pedido_id?: string
           pix_gerado_em?: string | null
           pix_gerado_por?: string | null
+          pix_qr_url?: string | null
+          pix_token?: string | null
           pix_txid?: string | null
           plano_restante?: Json
           sequencia?: number
@@ -54285,6 +54291,7 @@ export type Database = {
         Args: { p_cpr_id: string }
         Returns: Json
       }
+      obter_pagamento_publico: { Args: { p_token: string }; Returns: Json }
       org_sync_in_progress: { Args: never; Returns: boolean }
       pagar_fatura_cartao:
         | {
@@ -54699,6 +54706,10 @@ export type Database = {
           p_tipo_evento: string
         }
         Returns: Json
+      }
+      registrar_pix_qr_url: {
+        Args: { p_portao_id: string; p_url: string }
+        Returns: undefined
       }
       registrar_retorno_devolucao: {
         Args: {
