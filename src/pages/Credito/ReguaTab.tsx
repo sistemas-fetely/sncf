@@ -169,6 +169,7 @@ function LinhaCompacta({
     </button>
   );
 }
+function CardTitulo({
   titulo, etapa, acaoAtrasada, conferencia, onAcao, onPular, onPausar, onRenegociar, onEnviarPacote, onReenviar,
 }: {
   titulo: TituloCobranca;
