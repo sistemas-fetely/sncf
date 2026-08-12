@@ -115,6 +115,17 @@ export function usePedidoDetalhe(pedidoId: string | undefined) {
         }
       }
 
+      // Alerta de incoerência natureza × forma/condição de pagamento. Autoridade é
+      // o banco; a tela só exibe `motivo`. Degrada em silêncio se a RPC falhar.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let naturezaAlerta: any | null = null;
+      {
+        const { data: alerta } = await sb.rpc("fn_pedido_natureza_alerta", {
+          p_pedido_id: refPedidoId,
+        });
+        naturezaAlerta = alerta ?? null;
+      }
+
       const recebidoEm = new Date(pedido.recebido_em).getTime();
       const fimEm = new Date(pedido.faturado_em || pedido.cancelado_em || Date.now()).getTime();
       const idade_minutos = Math.max(0, Math.round((fimEm - recebidoEm) / 60000));
@@ -130,6 +141,8 @@ export function usePedidoDetalhe(pedidoId: string | undefined) {
         analiseCredito: analiseCredito || null,
         analisesAnteriores,
         natureza,
+        naturezaAlerta,
+
         idade_minutos,
         sla_estourado,
       };
