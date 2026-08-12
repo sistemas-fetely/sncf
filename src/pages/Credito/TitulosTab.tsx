@@ -644,6 +644,22 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
 
   const totalFiltrado = filtrados.reduce((acc, t) => acc + (t.valor_efetivo ?? 0), 0);
 
+  /* Terminais neutros: contados à parte, nunca somados em atraso/inadimplência. */
+  const kpisTerminais = useMemo(() => {
+    const acc = {
+      devolvido: { qtd: 0, valor: 0 },
+      baixado_por_perda: { qtd: 0, valor: 0 },
+    };
+    for (const t of baseSemCards) {
+      const alvo = acc[t.status_gestao as keyof typeof acc];
+      if (!alvo) continue;
+      alvo.qtd++;
+      alvo.valor += t.valor_efetivo ?? 0;
+    }
+    return acc;
+  }, [baseSemCards]);
+
+
   /* Estágio 3: agrupamento por pedido. `universo` entra de novo só para contar os ocultos — os títulos do mesmo pedido que os filtros escondem. */
   const grupos = useMemo(() => agruparPorPedido(filtrados, universo), [filtrados, universo]);
 
