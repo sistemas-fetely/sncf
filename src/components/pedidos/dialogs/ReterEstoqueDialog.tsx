@@ -43,8 +43,13 @@ export function ReterEstoqueDialog({ open, onOpenChange, pedidoId, idExterno }: 
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (e: any) => {
-      toast({ title: "Não foi possível reter", description: e?.message ?? "Erro desconhecido", variant: "destructive" });
+      const msg = e?.message ?? "Erro desconhecido";
+      const dica = String(msg).includes("enviado ao Bling")
+        ? " Se o envio ao Bling foi desfeito, use 'Desvincular do Bling' em Vínculos."
+        : "";
+      toast({ title: "Não foi possível reter", description: `${msg}${dica}`, variant: "destructive" });
     },
+
   });
 
   return (
