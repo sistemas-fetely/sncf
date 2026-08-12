@@ -41,6 +41,7 @@ export function EnviarPacoteDialog({ linha, valorTotalPedido, open, onOpenChange
   const qc = useQueryClient();
   const enviarNfBoletos = useEnviarEmailNfBoletos();
   const logEnvio = useLogEmailEnvio();
+  const emailPreferidoQ = useEmailCobrancaParceiro(open ? linha?.parceiro_id : null);
 
   const [destinatario, setDestinatario] = useState("");
   const [ccTexto, setCcTexto] = useState("");
@@ -48,10 +49,10 @@ export function EnviarPacoteDialog({ linha, valorTotalPedido, open, onOpenChange
 
   useEffect(() => {
     if (open) {
-      setDestinatario(linha?.email_cliente ?? "");
+      setDestinatario(emailPreferidoQ.data?.email ?? linha?.email_cliente ?? "");
       setCcTexto("");
     }
-  }, [open, linha?.email_cliente]);
+  }, [open, linha?.email_cliente, emailPreferidoQ.data?.email]);
 
   const destinatarioTrim = destinatario.trim();
   const destinatarioValido = RE_EMAIL.test(destinatarioTrim);
