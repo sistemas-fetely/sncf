@@ -6,6 +6,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LinkPagamentoCard } from "@/components/pedidos/LinkPagamentoCard";
+import { PixQrCodePortao } from "@/components/pedidos/PixQrCodePortao";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (s?: string | null) =>
@@ -52,7 +53,7 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("pedido_portao")
-        .select("sequencia, valor, data_vencimento, tipo_pagamento, link_pagamento, plano_restante, status")
+        .select("id, sequencia, valor, data_vencimento, tipo_pagamento, link_pagamento, plano_restante, status, pix_txid, pix_gerado_em")
         .eq("pedido_id", pedidoId)
         .eq("status", "provisorio")
         .order("created_at", { ascending: false })
@@ -125,6 +126,15 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
       </div>
 
       <LinkPagamentoCard pedidoId={pedidoId} />
+
+      <PixQrCodePortao
+        portaoId={portao.id}
+        pedidoId={pedidoId}
+        tipoPagamento={portao.tipo_pagamento}
+        linkPagamento={portao.link_pagamento}
+        pixTxid={portao.pix_txid}
+        valor={Number(portao.valor ?? 0)}
+      />
 
       <div className="border rounded-md overflow-hidden">
         <Table>
