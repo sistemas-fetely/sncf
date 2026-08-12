@@ -44,7 +44,7 @@ export function FetelyAuthLayout({ children, title, subtitle }: Props) {
 
         {/* Rodapé */}
         <p className="text-center text-xs text-muted-foreground">
-          People Fetely · {new Date().getFullYear()}
+          Fetély · {new Date().getFullYear()}
         </p>
       </div>
     </div>

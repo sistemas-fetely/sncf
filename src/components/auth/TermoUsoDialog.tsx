@@ -23,7 +23,7 @@ export function TermoUsoDialog({ open, onOpenChange, versao }: Props) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-primary" />
-            Termo de Uso do People Fetely — v{versao}
+            Termo de Uso do Fetély — v{versao}
           </DialogTitle>
           <DialogDescription>
             Política interna de uso aceitável dos sistemas da Fetely.
@@ -35,7 +35,7 @@ export function TermoUsoDialog({ open, onOpenChange, versao }: Props) {
             <section>
               <h3 className="font-semibold mb-1">1. O que é este termo</h3>
               <p className="text-muted-foreground leading-relaxed">
-                Este termo define as regras de uso do <strong>People Fetely</strong> e
+                Este termo define as regras de uso do <strong>Fetély</strong> e
                 dos sistemas associados pela Fetely Comércio Importação e Exportação Ltda.
                 Ao clicar em "Aceito", você confirma que leu, entendeu e concorda com as
                 diretrizes abaixo.
@@ -57,7 +57,7 @@ export function TermoUsoDialog({ open, onOpenChange, versao }: Props) {
             <section>
               <h3 className="font-semibold mb-1">3. Confidencialidade</h3>
               <p className="text-muted-foreground leading-relaxed">
-                Todas as informações acessadas via People Fetely são <strong>confidenciais</strong>,
+                Todas as informações acessadas via Fetély são <strong>confidenciais</strong>,
                 incluindo (sem limitação): dados pessoais de colaboradores, salários, benefícios,
                 contratos, documentos fiscais, estratégias comerciais, e qualquer outra informação
                 identificada como sensível. Você não deve reproduzir, transmitir, armazenar fora

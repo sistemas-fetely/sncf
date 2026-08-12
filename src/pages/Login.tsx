@@ -57,7 +57,7 @@ export default function Login() {
       subtitle={
         mode === "login"
           ? "Use seu email corporativo Fetely."
-          : "Preencha pra solicitar acesso ao People Fetely."
+          : "Preencha pra solicitar acesso ao Fetély."
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
