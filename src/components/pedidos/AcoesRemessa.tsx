@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Send, AlertTriangle, RefreshCw } from "lucide-react";
+import { Loader2, Send, AlertTriangle, RefreshCw, Warehouse, Truck } from "lucide-react";
 import { DividirRemessaDialog } from "@/components/pedidos/dialogs/DividirRemessaDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useRemessas } from "@/hooks/pedidos/useRemessas";
 import { useEnviarBling } from "@/hooks/pedidos/useEnviarBling";
+import { useEmpurrarXpm } from "@/hooks/pedidos/useEmpurrarXpm";
 import { useSyncContato } from "@/hooks/parceiros/useSyncContato";
 import { useAuth } from "@/contexts/AuthContext";
 import { ReenviarBlingDialog } from "@/components/pedidos/dialogs/ReenviarBlingDialog";
@@ -26,6 +27,7 @@ interface Props {
 export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, bling_id_destino }: Props) {
   const { data: remessas, isLoading } = useRemessas(pedido_id);
   const enviar = useEnviarBling();
+  const empurrarXpm = useEmpurrarXpm();
   const sync = useSyncContato();
   const { roles } = useAuth();
   const isSuperAdmin = (roles ?? []).includes("super_admin");
@@ -58,7 +60,10 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
     const totalUnidades = itens.reduce((s: number, it: any) => s + (Number(it.quantidade) || 0), 0);
     const podeEnviar = rem.status === "pronta_para_envio" && !rem.bling_pedido_id && !precisaSincronizar;
     const podeDividir = !rem.bling_pedido_id && totalUnidades >= 2;
-    return podeEnviar || podeDividir;
+    // XPM é independente do Bling: uma remessa já faturada no Bling ainda pode
+    // não ter descido pro armazém. `xpm_expedicao_codigo` é a trava de idempotência.
+    const podeEmpurrarXpm = estagioDeEnvio && rem.status !== "cancelada" && !rem.xpm_expedicao_codigo;
+    return podeEnviar || podeDividir || podeEmpurrarXpm;
   });
 
   const mostrarAlerta = precisaSincronizar;
@@ -128,6 +133,8 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
         const totalUnidades = itens.reduce((s: number, it: any) => s + (Number(it.quantidade) || 0), 0);
         const podeEnviar = rem.status === "pronta_para_envio" && !rem.bling_pedido_id && !precisaSincronizar;
         const podeDividir = !rem.bling_pedido_id && totalUnidades >= 2;
+        const podeEmpurrarXpm = estagioDeEnvio && rem.status !== "cancelada" && !rem.xpm_expedicao_codigo;
+        const ocupado = enviar.isPending || empurrarXpm.isPending;
 
         return (
           <div key={rem.id} className="space-y-2">
@@ -136,7 +143,7 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
                 size="sm"
                 className="w-full gap-1.5"
                 title={`Enviar ${codigo} pro Bling`}
-                disabled={enviar.isPending}
+                disabled={ocupado}
                 onClick={() => enviar.mutate({ pedido_id, remessa_id: rem.id })}
               >
                 {enviar.isPending ? (
@@ -145,6 +152,64 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
                   <><Send className="h-4 w-4 shrink-0" />Enviar pro Bling ({tentativa})</>
                 )}
               </Button>
+            )}
+
+            {podeEmpurrarXpm && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full gap-1.5"
+                title={`Empurrar ${codigo} pra XPM`}
+                disabled={ocupado}
+                onClick={() => empurrarXpm.mutate({ pedido_id, remessa_id: rem.id })}
+              >
+                {empurrarXpm.isPending ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" />Empurrando…</>
+                ) : (
+                  <><Warehouse className="h-4 w-4 shrink-0" />Empurrar pra XPM</>
+                )}
+              </Button>
+            )}
+
+            {podeEnviar && podeEmpurrarXpm && (
+              <Button
+                size="sm"
+                variant="secondary"
+                className="w-full gap-1.5"
+                title={`Enviar ${codigo} pro Bling e empurrar pra XPM`}
+                disabled={ocupado}
+                onClick={async () => {
+                  // Sequencial e com await: se o Bling falhar, a XPM não roda.
+                  // FAIL-LOUD — mutateAsync propaga o erro, o toast já sai no hook.
+                  try {
+                    await enviar.mutateAsync({ pedido_id, remessa_id: rem.id });
+                  } catch {
+                    return;
+                  }
+                  await empurrarXpm.mutateAsync({ pedido_id, remessa_id: rem.id }).catch(() => {});
+                }}
+              >
+                {ocupado ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</>
+                ) : (
+                  <><Truck className="h-4 w-4 shrink-0" />Enviar pros dois</>
+                )}
+              </Button>
+            )}
+
+            {rem.xpm_envio_erro && !rem.xpm_expedicao_codigo && (
+              <Alert variant="default" className="bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-900">
+                <AlertTriangle className="h-4 w-4 text-red-600" />
+                <AlertDescription className="text-red-800 dark:text-red-300 text-xs">
+                  XPM recusou: {rem.xpm_envio_erro}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {rem.xpm_expedicao_codigo && (
+              <p className="text-xs text-muted-foreground px-1">
+                XPM: expedição {rem.xpm_expedicao_codigo}
+              </p>
             )}
             {podeDividir && (
               <DividirRemessaDialog
