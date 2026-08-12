@@ -321,7 +321,7 @@ export default function ReguaTab() {
   const { data: conferencias } = useBoletoVencimentoConferencia();
 
   const [vista, setVista] = useState<Vista>("fila");
-  const [acaoDialog, setAcaoDialog] = useState<{ titulo: TituloCobranca; etapa: ReguaEtapa | null; modo: "enviada" | "pulada" } | null>(null);
+  const [acaoDialog, setAcaoDialog] = useState<{ titulo: TituloCobranca; etapa: ReguaEtapa | null; modo: "enviada" | "pulada"; reenvio?: boolean; ultimaEm?: string | null } | null>(null);
   const [pausarDialog, setPausarDialog] = useState<{ titulo: TituloCobranca; etapa: ReguaEtapa | null } | null>(null);
   const [renegociarDialog, setRenegociarDialog] = useState<{ titulo: TituloCobranca; etapa: ReguaEtapa | null } | null>(null);
   const [pacote, setPacote] = useState<LinhaMesa | null>(null);
