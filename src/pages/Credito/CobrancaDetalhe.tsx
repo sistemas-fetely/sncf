@@ -1084,6 +1084,16 @@ export default function CobrancaDetalhe() {
                           </Select>
                         )}
                       </TableCell>
+                      <TableCell>
+                        <span title="Esta linha bloqueia a liberação do pedido até ser paga.">
+                          <Switch
+                            checked={!!t.eh_portao}
+                            onCheckedChange={(v) => atualizarTitulo(idx, { eh_portao: v })}
+                            aria-label="Linha de portão"
+                          />
+                        </span>
+                      </TableCell>
+
                       <TableCell className="text-right">
                         <Input
                           type="number"
