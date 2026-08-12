@@ -13778,6 +13778,7 @@ export type Database = {
           origem: string
           origem_descricao: string | null
           origem_pedido_id: string | null
+          origem_titulo_id: string | null
           parceiro_id: string
           saldo: number
           status: string
@@ -13794,6 +13795,7 @@ export type Database = {
           origem?: string
           origem_descricao?: string | null
           origem_pedido_id?: string | null
+          origem_titulo_id?: string | null
           parceiro_id: string
           saldo: number
           status?: string
@@ -13810,6 +13812,7 @@ export type Database = {
           origem?: string
           origem_descricao?: string | null
           origem_pedido_id?: string | null
+          origem_titulo_id?: string | null
           parceiro_id?: string
           saldo?: number
           status?: string
@@ -14019,6 +14022,83 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "haver_cliente_origem_titulo_id_fkey"
+            columns: ["origem_titulo_id"]
+            isOneToOne: false
+            referencedRelation: "titulo_a_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haver_cliente_origem_titulo_id_fkey"
+            columns: ["origem_titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_boleto_vencimento_conferencia"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "haver_cliente_origem_titulo_id_fkey"
+            columns: ["origem_titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ciclo_titulo"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "haver_cliente_origem_titulo_id_fkey"
+            columns: ["origem_titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cobranca_mesa"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "haver_cliente_origem_titulo_id_fkey"
+            columns: ["origem_titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_baixas_manuais_sem_batimento"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "haver_cliente_origem_titulo_id_fkey"
+            columns: ["origem_titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_baixas_pendentes"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "haver_cliente_origem_titulo_id_fkey"
+            columns: ["origem_titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebimento_pedido_nivel"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "haver_cliente_origem_titulo_id_fkey"
+            columns: ["origem_titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_b2b"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haver_cliente_origem_titulo_id_fkey"
+            columns: ["origem_titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_remessa_safra_titulos"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "haver_cliente_origem_titulo_id_fkey"
+            columns: ["origem_titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_safra_carteira_divergencia"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "haver_cliente_origem_titulo_id_fkey"
+            columns: ["origem_titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulos_cobranca"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "haver_cliente_parceiro_id_fkey"
@@ -52091,6 +52171,14 @@ export type Database = {
         }
         Returns: Json
       }
+      alterar_natureza_pedido: {
+        Args: {
+          p_motivo?: string
+          p_natureza_codigo: string
+          p_pedido_id: string
+        }
+        Returns: Json
+      }
       alterar_pagamento_pedido: {
         Args: {
           p_condicao_slug: string
@@ -53485,6 +53573,10 @@ export type Database = {
         Returns: boolean
       }
       fn_pedido_gera_titulo: { Args: { p_pedido_id: string }; Returns: boolean }
+      fn_pedido_natureza_alerta: {
+        Args: { p_pedido_id: string }
+        Returns: Json
+      }
       fn_pedido_tem_lastro: { Args: { p_pedido_id: string }; Returns: Json }
       fn_pix_brcode: {
         Args: {

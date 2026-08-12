@@ -16,9 +16,13 @@ export interface PedidoDetalhe {
   analisesAnteriores: Array<{ status_final: string | null; decidido_em: string | null }>;
   /** Dimensão de natureza de operação — flag que decide se a operação gera título a receber. */
   natureza: { codigo: string | null; nome: string | null; gera_titulo_receber: boolean } | null;
+  /** Resultado cru de fn_pedido_natureza_alerta para o pedido de referência. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  naturezaAlerta: any | null;
   idade_minutos: number;
   sla_estourado: boolean;
 }
+
 
 export function usePedidoDetalhe(pedidoId: string | undefined) {
   return useQuery({
@@ -111,6 +115,17 @@ export function usePedidoDetalhe(pedidoId: string | undefined) {
         }
       }
 
+      // Alerta de incoerência natureza × forma/condição de pagamento. Autoridade é
+      // o banco; a tela só exibe `motivo`. Degrada em silêncio se a RPC falhar.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let naturezaAlerta: any | null = null;
+      {
+        const { data: alerta } = await sb.rpc("fn_pedido_natureza_alerta", {
+          p_pedido_id: refPedidoId,
+        });
+        naturezaAlerta = alerta ?? null;
+      }
+
       const recebidoEm = new Date(pedido.recebido_em).getTime();
       const fimEm = new Date(pedido.faturado_em || pedido.cancelado_em || Date.now()).getTime();
       const idade_minutos = Math.max(0, Math.round((fimEm - recebidoEm) / 60000));
@@ -126,6 +141,8 @@ export function usePedidoDetalhe(pedidoId: string | undefined) {
         analiseCredito: analiseCredito || null,
         analisesAnteriores,
         natureza,
+        naturezaAlerta,
+
         idade_minutos,
         sla_estourado,
       };

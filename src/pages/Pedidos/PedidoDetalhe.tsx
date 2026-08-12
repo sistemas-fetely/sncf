@@ -98,6 +98,9 @@ import { useBoletosDoPedido } from "@/hooks/pedidos/useBoletosDoPedido";
 import { ComunicacaoPedidoPanel } from "@/components/pedidos/ComunicacaoPedidoPanel";
 import { ExportarPedidoDialog } from "@/components/pedidos/dialogs/ExportarPedidoDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AlertTriangle, Pencil } from "lucide-react";
+import { AlterarNaturezaDialog } from "@/components/pedidos/AlterarNaturezaDialog";
+
 import { useFreteTipos } from "@/hooks/pedidos/useFreteTipos";
 import { SituacaoFinanceiraBloco } from "@/components/pedidos/SituacaoFinanceiraBloco";
 import { useProvaPagamento } from "@/hooks/pedidos/useProvaPagamento";
@@ -944,6 +947,9 @@ export default function PedidoDetalhe() {
   const { data: titulosResumo } = useTitulosPedidoResumo(id);
   const [aplicarHaverOpen, setAplicarHaverOpen] = useState(false);
   const [desvincularBlingOpen, setDesvincularBlingOpen] = useState(false);
+  const [naturezaDialogOpen, setNaturezaDialogOpen] = useState(false);
+  const [naturezaSugerida, setNaturezaSugerida] = useState<string | null>(null);
+
   const [restaurandoSnapshot, setRestaurandoSnapshot] = useState(false);
   const [confirmRestaurar, setConfirmRestaurar] = useState(false);
   const [corrigindoSnapshot, setCorrigindoSnapshot] = useState(false);
@@ -1103,7 +1109,20 @@ export default function PedidoDetalhe() {
   if (isLoading) return <div className="p-6 space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-32 w-full" /><Skeleton className="h-64 w-full" /></div>;
   if (!data) return <div className="p-6">Pedido não encontrado.</div>;
 
-  const { pedido, parceiro, itens, eventos, analiseCredito, analisesAnteriores, natureza, idade_minutos, sla_estourado } = data;
+  const { pedido, parceiro, itens, eventos, analiseCredito, analisesAnteriores, natureza, naturezaAlerta, idade_minutos, sla_estourado } = data;
+  const naturezaTrocaLiberada =
+    !naturezaAlerta ||
+    (naturezaAlerta.estagio_permite !== false &&
+      !naturezaAlerta.tem_titulo &&
+      !naturezaAlerta.tem_remessa);
+  const naturezaTrocaTooltip = naturezaTrocaLiberada
+    ? "Trocar natureza de operação"
+    : naturezaAlerta?.tem_titulo
+      ? "Não é possível trocar: já existe título ativo neste pedido."
+      : naturezaAlerta?.tem_remessa
+        ? "Não é possível trocar: já existe remessa criada neste pedido."
+        : "Não é possível trocar: o estágio atual não permite alterar a natureza.";
+
   const rotuloPedido = pedido.id_externo ?? String(pedido.id).slice(0, 8);
   const nomeClienteExibido =
     (parceiro?.nome_fantasia ?? "").trim() || (parceiro?.razao_social ?? "").trim() || "Cliente";
@@ -1290,7 +1309,31 @@ export default function PedidoDetalhe() {
           </p>
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <EstagioBadge estagio={estagio} />
-            <NaturezaOperacaoBadge codigo={natureza?.codigo ?? null} nome={natureza?.nome ?? null} />
+            {natureza?.codigo && natureza.codigo !== "venda" && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className={cn(
+                        "inline-flex items-center gap-1",
+                        naturezaTrocaLiberada ? "cursor-pointer" : "cursor-default",
+                      )}
+                      onClick={() => {
+                        if (!naturezaTrocaLiberada) return;
+                        setNaturezaSugerida(null);
+                        setNaturezaDialogOpen(true);
+                      }}
+                    >
+                      <NaturezaOperacaoBadge codigo={natureza?.codigo ?? null} nome={natureza?.nome ?? null} />
+                      <Pencil className="h-3 w-3 text-muted-foreground" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>{naturezaTrocaTooltip}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+
             {priorizado && <BadgePriorizacao score={priorizado.score_total} breakdown={priorizado.score_breakdown} compact />}
             <span className="text-xs text-muted-foreground"><FormatoIdade minutos={idade_minutos} /></span>
             {sla_estourado && <Badge variant="destructive" className="gap-1 text-[10px]"><AlertCircle className="h-3 w-3" />SLA estourado</Badge>}
@@ -1399,7 +1442,54 @@ export default function PedidoDetalhe() {
         </div>
       )}
 
+      {/* NATUREZA-INCOERENTE: banco decide, tela só mostra o motivo em texto humano. */}
+      {naturezaAlerta?.incoerente === true && (
+        <div className="mx-6 mb-3 flex items-start justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-200">
+          <div className="flex items-start gap-2 min-w-0">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-wide">Natureza incoerente</p>
+              <p className="text-sm">{naturezaAlerta.motivo}</p>
+              {!naturezaAlerta.pode_trocar && (
+                <p className="text-xs mt-1 opacity-80">
+                  {naturezaAlerta.tem_titulo
+                    ? "Troca travada: já existe título ativo neste pedido."
+                    : naturezaAlerta.tem_remessa
+                      ? "Troca travada: já existe remessa criada neste pedido."
+                      : "Troca travada: o estágio atual não permite alterar a natureza."}
+                </p>
+              )}
+            </div>
+          </div>
+          {naturezaAlerta.pode_trocar && (
+            <Button
+              size="sm"
+              className="shrink-0"
+              onClick={() => {
+                setNaturezaSugerida(naturezaAlerta.sugestao_codigo ?? null);
+                setNaturezaDialogOpen(true);
+              }}
+            >
+              Trocar para {naturezaAlerta.sugestao_nome}
+            </Button>
+          )}
+        </div>
+      )}
+
+      <AlterarNaturezaDialog
+        open={naturezaDialogOpen}
+        onOpenChange={(v) => {
+          setNaturezaDialogOpen(v);
+          if (!v) setNaturezaSugerida(null);
+        }}
+        pedidoId={pedido.id}
+        codigoAtual={natureza?.codigo ?? null}
+        codigoSugerido={naturezaSugerida}
+        focarMotivo={!!naturezaSugerida}
+      />
+
       <Separator />
+
 
       <div className="flex flex-col lg:flex-row lg:items-start">
 
