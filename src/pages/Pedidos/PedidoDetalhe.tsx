@@ -2436,6 +2436,42 @@ export default function PedidoDetalhe() {
                   split_de_pedido_id={(pedido as any).split_de_pedido_id ?? null}
                   consolidado_em_pedido_id={(pedido as any).consolidado_em_pedido_id ?? null}
                   pedido_origem_id={pedido.pedido_origem_id ?? null}
+                  acoesBling={(() => {
+                    // Ação de exceção: só super_admin, só antes de faturar, e só se houver vínculo vivo.
+                    if (!isSuperAdmin) return null;
+                    if (!["pre_separacao", "em_separacao"].includes(estagio)) return null;
+                    const remessas = (remessasData ?? []) as any[];
+                    if ((pedido as any).nf_numero) return null;
+                    if (remessas.some((r) => r.nf_numero)) return null;
+                    const vinculoVivo =
+                      !!(pedido as any).bling_enviado_em ||
+                      remessas.some(
+                        (r) =>
+                          r.status !== "cancelada" &&
+                          (r.status === "enviada_bling" || r.bling_pedido_id != null)
+                      );
+                    if (!vinculoVivo) return null;
+                    return (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start gap-1.5 h-auto py-1.5 text-xs text-muted-foreground hover:text-destructive"
+                          onClick={() => setDesvincularBlingOpen(true)}
+                        >
+                          <Link2Off className="h-3.5 w-3.5 shrink-0" />
+                          Desvincular do Bling
+                        </Button>
+                        <DesvincularBlingDialog
+                          open={desvincularBlingOpen}
+                          onOpenChange={setDesvincularBlingOpen}
+                          pedidoId={pedido.id}
+                          idExterno={pedido.id_externo}
+                          blingId={(pedido as any).bling_id_destino ?? null}
+                        />
+                      </>
+                    );
+                  })()}
                   acoesExtra={
                     !estagioFinal && isSuperAdmin ? (
                       <BotaoConsolidarPedido
@@ -2447,6 +2483,7 @@ export default function PedidoDetalhe() {
                     ) : null
                   }
                 />
+
               )}
 
 
