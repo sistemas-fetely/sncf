@@ -127,6 +127,15 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
 
       <LinkPagamentoCard pedidoId={pedidoId} />
 
+      <PixQrCodePortao
+        portaoId={portao.id}
+        pedidoId={pedidoId}
+        tipoPagamento={portao.tipo_pagamento}
+        linkPagamento={portao.link_pagamento}
+        pixTxid={portao.pix_txid}
+        valor={Number(portao.valor ?? 0)}
+      />
+
       <div className="border rounded-md overflow-hidden">
         <Table>
           <TableHeader>
