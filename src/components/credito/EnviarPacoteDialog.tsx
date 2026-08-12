@@ -47,12 +47,22 @@ export function EnviarPacoteDialog({ linha, valorTotalPedido, open, onOpenChange
   const [ccTexto, setCcTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
 
+  const [editado, setEditado] = useState(false);
+
   useEffect(() => {
     if (open) {
       setDestinatario(emailPreferidoQ.data?.email ?? linha?.email_cliente ?? "");
       setCcTexto("");
+      setEditado(false);
     }
-  }, [open, linha?.email_cliente, emailPreferidoQ.data?.email]);
+  }, [open, linha?.email_cliente]);
+
+  // Quando o e-mail preferido chega depois da abertura, preenche — sem sobrescrever edição.
+  useEffect(() => {
+    if (open && !editado && emailPreferidoQ.data?.email) {
+      setDestinatario(emailPreferidoQ.data.email);
+    }
+  }, [open, editado, emailPreferidoQ.data?.email]);
 
   const destinatarioTrim = destinatario.trim();
   const destinatarioValido = RE_EMAIL.test(destinatarioTrim);
