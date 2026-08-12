@@ -50,6 +50,13 @@ export function useAlterarNaturezaPedido() {
       qc.invalidateQueries({ queryKey: ["pedido-titulos", vars.pedidoId] });
       qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
       qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
+      if (vars.pedidoFilhoId && vars.pedidoFilhoId !== vars.pedidoId) {
+        qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedidoFilhoId] });
+        qc.invalidateQueries({ queryKey: ["pedido", vars.pedidoFilhoId] });
+        qc.invalidateQueries({ queryKey: ["pedido-eventos", vars.pedidoFilhoId] });
+        qc.invalidateQueries({ queryKey: ["pedido-titulos", vars.pedidoFilhoId] });
+      }
+
       toast.success(
         `Natureza alterada para ${data?.natureza_nome ?? vars.naturezaCodigo}`,
         {
