@@ -98,6 +98,9 @@ import { useBoletosDoPedido } from "@/hooks/pedidos/useBoletosDoPedido";
 import { ComunicacaoPedidoPanel } from "@/components/pedidos/ComunicacaoPedidoPanel";
 import { ExportarPedidoDialog } from "@/components/pedidos/dialogs/ExportarPedidoDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AlertTriangle, Pencil } from "lucide-react";
+import { AlterarNaturezaDialog } from "@/components/pedidos/AlterarNaturezaDialog";
+
 import { useFreteTipos } from "@/hooks/pedidos/useFreteTipos";
 import { SituacaoFinanceiraBloco } from "@/components/pedidos/SituacaoFinanceiraBloco";
 import { useProvaPagamento } from "@/hooks/pedidos/useProvaPagamento";
@@ -1103,7 +1106,20 @@ export default function PedidoDetalhe() {
   if (isLoading) return <div className="p-6 space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-32 w-full" /><Skeleton className="h-64 w-full" /></div>;
   if (!data) return <div className="p-6">Pedido não encontrado.</div>;
 
-  const { pedido, parceiro, itens, eventos, analiseCredito, analisesAnteriores, natureza, idade_minutos, sla_estourado } = data;
+  const { pedido, parceiro, itens, eventos, analiseCredito, analisesAnteriores, natureza, naturezaAlerta, idade_minutos, sla_estourado } = data;
+  const naturezaTrocaLiberada =
+    !naturezaAlerta ||
+    (naturezaAlerta.estagio_permite !== false &&
+      !naturezaAlerta.tem_titulo &&
+      !naturezaAlerta.tem_remessa);
+  const naturezaTrocaTooltip = naturezaTrocaLiberada
+    ? "Trocar natureza de operação"
+    : naturezaAlerta?.tem_titulo
+      ? "Não é possível trocar: já existe título ativo neste pedido."
+      : naturezaAlerta?.tem_remessa
+        ? "Não é possível trocar: já existe remessa criada neste pedido."
+        : "Não é possível trocar: o estágio atual não permite alterar a natureza.";
+
   const rotuloPedido = pedido.id_externo ?? String(pedido.id).slice(0, 8);
   const nomeClienteExibido =
     (parceiro?.nome_fantasia ?? "").trim() || (parceiro?.razao_social ?? "").trim() || "Cliente";
