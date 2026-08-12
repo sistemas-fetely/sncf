@@ -66,6 +66,7 @@ const Movimentacoes = lazy(() => import("@/pages/Movimentacoes"));
 const PagamentosPJ = lazy(() => import("@/pages/PagamentosPJ"));
 const PagamentoPJRelatorio = lazy(() => import("@/pages/PagamentoPJRelatorio"));
 const CadastroPublico = lazy(() => import("@/pages/CadastroPublico"));
+const PagarPix = lazy(() => import("@/pages/publico/PagarPix"));
 const ConvitesCadastro = lazy(() => import("@/pages/ConvitesCadastro"));
 const ConviteDetalhe = lazy(() => import("@/pages/ConviteDetalhe"));
 const Unsubscribe = lazy(() => import("@/pages/Unsubscribe"));
@@ -273,6 +274,7 @@ const App = () => (
               <Route path="/sem-permissao" element={<SemPermissao />} />
               <Route path="/aguardando-aprovacao" element={<AguardandoAprovacao />} />
               <Route path="/cadastro/:token" element={<CadastroPublico />} />
+              <Route path="/pagar/:token" element={<PagarPix />} />
               <Route path="/vagas/:id" element={<VagaPublica />} />
               <Route path="/vagas/:id/candidatura" element={<PortalCandidatura />} />
               <Route path="/vagas/:id/teste" element={<EntregaTeste />} />

@@ -10,7 +10,10 @@ export interface PixPortaoGerado {
   pedido: string | null;
   beneficiario: string | null;
   banco: string | null;
+  /** token estável da página pública /pagar/:token — regerar o QR não muda o token */
+  token?: string | null;
 }
+
 
 interface Args {
   portao_id: string;

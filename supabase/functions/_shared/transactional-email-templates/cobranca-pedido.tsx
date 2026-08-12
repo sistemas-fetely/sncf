@@ -22,6 +22,7 @@ interface CobrancaPedidoProps {
   tipo_pagamento?:   TipoPagamento
   qr_code_pix?:      string
   pix_txid?:         string
+  link_pagina_pagamento?: string
 }
 
 /** BR Code PIX (EMV) é texto opaco — sempre começa com "000201" e nunca é URL. */
@@ -80,6 +81,7 @@ const CobrancaPedidoEmail = ({
   tipo_pagamento,
   qr_code_pix,
   pix_txid,
+  link_pagina_pagamento,
 }: CobrancaPedidoProps) => {
   const { headline, subline, ctaLabel, ctaColor } = getConteudo(tipo_pagamento)
   const tipoPag = (tipo_pagamento ?? '').toLowerCase()
@@ -207,12 +209,26 @@ const CobrancaPedidoEmail = ({
             {/* PIX: BR Code copia e cola (texto opaco, nunca link clicável) */}
             {isPix && (
               <Section style={{ textAlign: 'center', marginTop: '24px' }}>
-                {qr_code_pix && !isBrCode && (
-                  <Img src={qr_code_pix} alt="QR Code PIX" style={{ margin: '0 auto 16px', display: 'block' }} />
+                {qr_code_pix && (
+                  <Img src={qr_code_pix} alt="QR Code PIX" width="240" style={{ margin: '0 auto 16px', display: 'block', width: '240px' }} />
+                )}
+                {link_pagina_pagamento && (
+                  <Section style={{ textAlign: 'center', marginBottom: '20px' }}>
+                    <Button href={link_pagina_pagamento} style={{ ...ctaButton, backgroundColor: Verde }}>
+                      Abrir página de pagamento
+                    </Button>
+                    <Text style={ctaNote}>
+                      Na página você copia o código PIX com um toque.
+                    </Text>
+                  </Section>
                 )}
                 {link_pagamento && (
                   <Section style={pixLinkBox}>
-                    <Text style={pixLabelStyle}>PIX copia e cola — copie o código abaixo no app do seu banco</Text>
+                    <Text style={pixLabelStyle}>
+                      {link_pagina_pagamento
+                        ? 'Ou, se preferir, copie o código PIX abaixo no app do seu banco'
+                        : 'PIX copia e cola — copie o código abaixo no app do seu banco'}
+                    </Text>
                     <Text style={pixCopiavel}>
                       <code style={pixCodeStyle}>{link_pagamento}</code>
                     </Text>
@@ -321,7 +337,7 @@ const ctaButton     = { color: '#ffffff', fontSize: '15px', fontWeight: '700', p
 const ctaNote       = { fontSize: '12px', color: '#999', textAlign: 'center' as const, marginTop: '10px' }
 const pixLinkBox    = { backgroundColor: '#f0f7ee', borderRadius: '8px', padding: '12px 20px', marginBottom: '12px', border: '1px solid #c8e0c4' }
 const pixLabelStyle = { fontSize: '11px', color: '#5a7a54', textAlign: 'center' as const, margin: '0 0 6px', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }
-const pixCopiavel   = { fontSize: '11px', color: '#2d5a27', fontFamily: 'monospace, Courier, "Courier New"', wordBreak: 'break-all' as const, textAlign: 'center' as const, margin: '0', fontWeight: '600' as const }
+const pixCopiavel   = { fontSize: '12px', color: '#2d5a27', fontFamily: 'monospace, Courier, "Courier New"', wordBreak: 'break-all' as const, textAlign: 'left' as const, margin: '0', padding: '12px 14px', backgroundColor: '#f4f4f0', borderRadius: '8px', border: '1px solid #e0dccb', lineHeight: '1.7', fontWeight: '600' as const }
 const pixCodeStyle  = { fontFamily: 'monospace, Courier, "Courier New"', fontSize: '11px', color: '#2d5a27', wordBreak: 'break-all' as const, lineHeight: '1.5' }
 const pixInfoLabel  = { fontSize: '11px', color: '#5a7a54', textAlign: 'left' as const, padding: '2px 0', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }
 const pixInfoValor  = { fontSize: '13px', color: '#2d5a27', textAlign: 'right' as const, padding: '2px 0', fontWeight: '700' as const }

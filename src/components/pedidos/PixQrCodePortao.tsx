@@ -1,11 +1,13 @@
-import { useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
+import { useEffect, useRef, useState } from "react";
+import { QRCodeSVG, QRCodeCanvas } from "qrcode.react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Copy, Loader2, QrCode, RefreshCw } from "lucide-react";
+import { Check, Copy, ExternalLink, Loader2, QrCode, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatBRL } from "@/lib/format-currency";
+import { supabase } from "@/integrations/supabase/client";
 import { useGerarPixPortao } from "@/hooks/pedidos/useGerarPixPortao";
 
 interface Props {
@@ -31,10 +33,29 @@ export function PixQrCodePortao({
   banco,
 }: Props) {
   const { toast } = useToast();
+  const qc = useQueryClient();
   const gerar = useGerarPixPortao();
   const [copiado, setCopiado] = useState(false);
+  const [copiadoLink, setCopiadoLink] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const subindoRef = useRef(false);
 
-  if (tipoPagamento !== "pix") return null;
+  const ehPix = tipoPagamento === "pix";
+
+  // pix_qr_url / pix_token vivem no portão — a RPC os grava, o front só lê.
+  const { data: portaoPix } = useQuery({
+    queryKey: ["portao-pix-qr", portaoId],
+    enabled: ehPix && !!portaoId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("pedido_portao")
+        .select("pix_qr_url, pix_token")
+        .eq("id", portaoId)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return (data ?? null) as { pix_qr_url: string | null; pix_token: string | null } | null;
+    },
+  });
 
   const resultado = gerar.data;
   // payload EMV é texto opaco: só exibir, copiar e virar QR.
@@ -43,8 +64,59 @@ export function PixQrCodePortao({
   const valorFinal = resultado?.valor ?? valor ?? null;
   const beneficiarioFinal = resultado?.beneficiario ?? beneficiario ?? null;
   const bancoFinal = resultado?.banco ?? banco ?? null;
+  const token = (resultado as any)?.token ?? portaoPix?.pix_token ?? null;
+  const qrUrl = portaoPix?.pix_qr_url ?? null;
 
   const temQr = !!payload && !!txid;
+  const linkPublico = token ? `${window.location.origin}/pagar/${token}` : null;
+
+  // ── Sobe o PNG do QR pro bucket público (só se ainda não houver imagem) ──
+  useEffect(() => {
+    if (!ehPix || !payload || !portaoId) return;
+    if (qrUrl) return;
+    if (subindoRef.current) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    subindoRef.current = true;
+    const t = setTimeout(() => {
+      canvas.toBlob(async (blob) => {
+        try {
+          if (!blob) throw new Error("Não foi possível gerar o PNG do QR.");
+          const path = `${portaoId}-${crypto.randomUUID()}.png`;
+          const { error: errUp } = await supabase.storage
+            .from("pix-qr")
+            .upload(path, blob, { contentType: "image/png", upsert: false });
+          if (errUp) throw new Error(errUp.message);
+
+          const { data: pub } = supabase.storage.from("pix-qr").getPublicUrl(path);
+          const url = pub?.publicUrl;
+          if (!url) throw new Error("URL pública do QR não disponível.");
+
+          const { error: errRpc } = await (supabase as any).rpc("registrar_pix_qr_url", {
+            p_portao_id: portaoId,
+            p_url: url,
+          });
+          if (errRpc) throw new Error(errRpc.message);
+
+          qc.invalidateQueries({ queryKey: ["portao-pix-qr", portaoId] });
+        } catch (e: any) {
+          // Falha no upload NÃO invalida o QR da tela nem o copia-e-cola.
+          subindoRef.current = false;
+          toast({
+            title: "Imagem do QR não foi salva",
+            description: `O QR e o copia-e-cola continuam válidos, mas a imagem para e-mail não pôde ser salva. ${e?.message ?? ""}`.trim(),
+            variant: "destructive",
+          });
+        }
+      }, "image/png");
+    }, 120);
+
+    return () => clearTimeout(t);
+  }, [ehPix, payload, portaoId, qrUrl, qc, toast]);
+
+  if (!ehPix) return null;
 
   const copiar = () => {
     if (!payload) return;
@@ -52,6 +124,15 @@ export function PixQrCodePortao({
       setCopiado(true);
       setTimeout(() => setCopiado(false), 1400);
       toast({ title: "Copiado", description: "Copia e cola PIX copiado." });
+    });
+  };
+
+  const copiarLink = () => {
+    if (!linkPublico) return;
+    navigator.clipboard.writeText(linkPublico).then(() => {
+      setCopiadoLink(true);
+      setTimeout(() => setCopiadoLink(false), 1400);
+      toast({ title: "Copiado", description: "Link da página de pagamento copiado." });
     });
   };
 
@@ -80,6 +161,21 @@ export function PixQrCodePortao({
             </Button>
           )}
         </div>
+
+        {/* canvas oculto — fonte do PNG 320x320 com fundo branco sólido */}
+        {payload && (
+          <div style={{ position: "absolute", left: -9999, top: -9999 }} aria-hidden>
+            <QRCodeCanvas
+              ref={canvasRef as any}
+              value={payload}
+              size={320}
+              level="M"
+              marginSize={2}
+              bgColor="#FFFFFF"
+              fgColor="#000000"
+            />
+          </div>
+        )}
 
         {!temQr ? (
           <div className="space-y-2">
@@ -119,6 +215,36 @@ export function PixQrCodePortao({
                   </Button>
                 </div>
               </div>
+
+              {linkPublico && (
+                <div className="space-y-1">
+                  <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Página de pagamento
+                  </span>
+                  <div className="flex items-start gap-2 min-w-0">
+                    <code className="flex-1 min-w-0 truncate font-mono text-[11px] bg-muted text-muted-foreground rounded px-2 py-1.5">
+                      {linkPublico}
+                    </code>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 shrink-0"
+                      onClick={copiarLink}
+                      title="Copiar link"
+                    >
+                      {copiadoLink ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                    </Button>
+                    <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" asChild title="Abrir">
+                      <a href={linkPublico} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    É o link que o cliente abre para pagar.
+                  </p>
+                </div>
+              )}
 
               <dl className="grid grid-cols-1 gap-1 text-xs">
                 <div className="flex gap-2">
