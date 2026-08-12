@@ -120,16 +120,33 @@ export function useHistoricoReguaTitulo(tituloId: string | null | undefined, lim
 }
 
 /**
- * Resolve a etapa aplicável para um título dado o conjunto de etapas ativas.
- * Perfil: bandeira_amarela > vip > padrao (com fallback para padrao).
- * Escolhe a linha com maior dias_offset <= dias_atraso.
- * Para títulos a_vencer (dias_atraso <= 0), aceita etapas com dias_offset negativo aplicáveis.
+ * A etapa aplicável é decidida pelo BANCO (`vw_cobranca_mesa.etapa_atual_codigo`),
+ * que já exclui as etapas cumpridas — mesma regra da RPC `registrar_acao_regua`.
+ * A tela só traduz código+offset para o objeto da etapa.
+ *
+ * O cálculo puro por `dias_atraso` continua como fallback para títulos que não
+ * vieram da view. Ele NÃO conhece o log de ações e por isso oferece etapa já
+ * cumprida — foi essa divergência que gerou lembrete duplicado (12/08/2026).
  */
 export function resolverEtapaParaTitulo(
   titulo: TituloCobranca,
   etapas: ReguaEtapa[],
 ): ReguaEtapa | null {
   const ativas = etapas.filter((e) => e.ativa);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mesa = (titulo as any)._mesa as LinhaMesa | undefined;
+
+  if (mesa && "etapa_atual_codigo" in mesa) {
+    if (!mesa.etapa_atual_codigo) return null;
+    return (
+      ativas.find(
+        (e) =>
+          e.codigo === mesa.etapa_atual_codigo &&
+          e.dias_offset === Number(mesa.etapa_atual_offset),
+      ) ?? null
+    );
+  }
+
   const perfilPreferido: PerfilCadencia = titulo.flag_bandeira_amarela
     ? "bandeira_amarela"
     : titulo.vip_relacionamento
@@ -140,11 +157,8 @@ export function resolverEtapaParaTitulo(
     const doPerfil = ativas.filter((e) => e.perfil_cadencia === perfil);
     if (doPerfil.length === 0) return null;
     const atraso = titulo.dias_atraso ?? 0;
-    // Etapas aplicáveis = dias_offset <= atraso.
-    // Se atraso negativo (a_vencer), matcha lembretes pré-vencimento (dias_offset negativo mais próximo de 0 mas ainda <= atraso).
     const aplicaveis = doPerfil.filter((e) => e.dias_offset <= atraso);
     if (aplicaveis.length === 0) return null;
-    // Pega a maior dias_offset entre as aplicáveis (a mais recente na régua).
     return aplicaveis.reduce((a, b) => (b.dias_offset > a.dias_offset ? b : a));
   };
 
@@ -152,4 +166,21 @@ export function resolverEtapaParaTitulo(
     tentarPerfil(perfilPreferido) ??
     (perfilPreferido !== "padrao" ? tentarPerfil("padrao") : null)
   );
+}
+
+/** Última etapa efetivamente cumprida, para o caminho de reenvio consciente. */
+export function etapaUltimaDoTitulo(
+  titulo: TituloCobranca,
+  etapas: ReguaEtapa[],
+): { etapa: ReguaEtapa; em: string | null } | null {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mesa = (titulo as any)._mesa as LinhaMesa | undefined;
+  if (!mesa?.etapa_ultima_codigo) return null;
+  const etapa = etapas.find(
+    (e) =>
+      e.codigo === mesa.etapa_ultima_codigo &&
+      e.dias_offset === Number(mesa.etapa_ultima_offset),
+  );
+  if (!etapa) return null;
+  return { etapa, em: mesa.etapa_ultima_em ?? null };
 }

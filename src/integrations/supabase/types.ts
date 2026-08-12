@@ -38915,6 +38915,11 @@ export type Database = {
           envio_falha_motivo: string | null
           envio_falhou_em: string | null
           estagio: string | null
+          etapa_atual_codigo: string | null
+          etapa_atual_offset: number | null
+          etapa_ultima_codigo: string | null
+          etapa_ultima_em: string | null
+          etapa_ultima_offset: number | null
           faturado_em: string | null
           fila: string | null
           flag_bandeira_amarela: boolean | null
@@ -45284,14 +45289,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -46799,14 +46804,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]

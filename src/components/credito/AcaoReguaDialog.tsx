@@ -35,6 +35,10 @@ interface Props {
   titulo: TituloCobranca;
   etapa: ReguaEtapa | null;
   modo: "enviada" | "pulada";
+  /** Reenvio consciente de etapa já cumprida: chave de idempotência ganha sufixo. */
+  reenvio?: boolean;
+  /** Quando o reenvio é de etapa já cumprida, a data da última ação. */
+  ultimaEm?: string | null;
   open: boolean;
   onClose: () => void;
 }
@@ -58,7 +62,7 @@ function formatDiasOffset(dias: number): string {
   return dias > 0 ? `D+${dias}` : `D${dias}`;
 }
 
-export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose }: Props) {
+export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose, reenvio = false, ultimaEm = null }: Props) {
   const qc = useQueryClient();
   const [canal, setCanal] = useState<CanalRegua>(etapa?.canal_sugerido ?? "email");
   const [mensagem, setMensagem] = useState<string>("");
@@ -158,17 +162,34 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose }: Props) {
       }
 
       const assunto = `Fetély · Título ${titulo.numero_titulo ?? ""} — Vencimento ${formatDateBR(titulo.data_vencimento_atual)}`;
-      const { error: errEmail } = await supabase.functions.invoke("send-transactional-email", {
+      // Chave estável impede duplicata acidental. Reenvio DELIBERADO ganha sufixo
+      // próprio — sem isso o Resend devolve 409 e a tela mostra erro feio.
+      const chave = reenvio
+        ? `regua-${titulo.id}-${etapa.codigo}-${etapa.dias_offset}-r${Date.now()}`
+        : `regua-${titulo.id}-${etapa.codigo}-${etapa.dias_offset}`;
+
+      const { data: respEnvio, error: errEmail } = await supabase.functions.invoke<{
+        success?: boolean; duplicate?: boolean;
+      }>("send-transactional-email", {
         body: {
           templateName: "regua-cobranca",
           recipientEmail: effectiveEmails[0],
           cc: effectiveEmails.slice(1),
-          idempotencyKey: `regua-${titulo.id}-${etapa.codigo}-${etapa.dias_offset}`,
+          idempotencyKey: chave,
           templateData: { corpo: mensagem, assunto },
           ...(attachments ? { attachments } : {}),
         },
       });
       if (errEmail) throw new Error(`Falha ao enviar e-mail: ${errEmail.message}`);
+
+      if (respEnvio?.duplicate) {
+        // Já havia sido enviado com esta chave: não registra ação de novo.
+        toast.info("Este e-mail já havia sido enviado antes — nada foi reenviado.");
+        qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
+        qc.invalidateQueries({ queryKey: ["cobranca-mesa"] });
+        onClose();
+        return;
+      }
 
       await registrar("email", mensagem);
 
@@ -196,7 +217,7 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose }: Props) {
         {/* Header */}
         <DialogHeader className="px-6 pt-6 pb-4 border-b space-y-1.5">
           <DialogTitle className="text-base font-semibold">
-            {modo === "enviada" ? "Registrar ação" : "Pular etapa"}
+            {modo === "pulada" ? "Pular etapa" : reenvio ? "Reenviar lembrete" : "Registrar ação"}
           </DialogTitle>
           <div className="text-sm font-medium text-foreground">{clienteNome}</div>
           <div className="text-xs text-muted-foreground">
@@ -208,6 +229,16 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose }: Props) {
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {etapa ? (
             <div className="space-y-4">
+              {reenvio && (
+                <Alert className="border-amber-300 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-900">
+                  <AlertTriangle className="h-4 w-4 text-amber-700" />
+                  <AlertDescription className="text-xs text-amber-900 dark:text-amber-100">
+                    Esta etapa já foi cumprida{ultimaEm ? ` em ${formatDateBR(ultimaEm)}` : ""}. O
+                    cliente já recebeu este contato — reenviar manda a mensagem de novo.
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {/* Chip etapa */}
               <div className="flex items-start gap-2">
                 <Badge variant="secondary" className="font-mono shrink-0">

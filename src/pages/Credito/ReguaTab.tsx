@@ -8,6 +8,7 @@ import {
   useReguaFilaHoje,
   useReguaPausados,
   resolverEtapaParaTitulo,
+  etapaUltimaDoTitulo,
   type ReguaEtapa,
 } from "@/hooks/credito/useReguaFila";
 import { useTitulosCobranca } from "@/hooks/credito/useTitulosCobranca";
@@ -115,7 +116,7 @@ function SeloConferencia({ c }: { c: BoletoVencimentoConferencia | undefined }) 
 }
 
 function CardTitulo({
-  titulo, etapa, acaoAtrasada, conferencia, onAcao, onPular, onPausar, onRenegociar, onEnviarPacote,
+  titulo, etapa, acaoAtrasada, conferencia, onAcao, onPular, onPausar, onRenegociar, onEnviarPacote, onReenviar,
 }: {
   titulo: TituloCobranca;
   etapa: ReguaEtapa | null;
@@ -126,11 +127,13 @@ function CardTitulo({
   onPausar: () => void;
   onRenegociar: () => void;
   onEnviarPacote: (l: LinhaMesa) => void;
+  onReenviar: () => void;
 }) {
   const razao = nomeCanonico(titulo.parceiro_razao_social, "—");
   const apelido = apelidoParceiro(titulo.parceiro_razao_social, titulo.parceiro_nome_fantasia);
   const proxima = (titulo as any).data_proxima_acao_regua as string | null | undefined;
   const mesa = (titulo as any)._mesa as LinhaMesa | undefined;
+  const ultima = (titulo as any)._mesa?.etapa_ultima_em as string | null | undefined;
   const vencimento = mesa?.vencimento ?? titulo.data_vencimento_atual ?? null;
   const atraso = titulo.dias_atraso ?? 0;
   return (
@@ -235,6 +238,12 @@ function CardTitulo({
         </div>
       )}
 
+      {!etapa && ultima && (
+        <div className="text-[11px] text-muted-foreground">
+          Régua em dia — último contato em {fmtDataMesa(ultima)}
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-1.5 pt-1">
         <Button size="sm" className="h-7 text-xs" onClick={onAcao} disabled={!etapa}>
           Registrar ação
@@ -248,6 +257,11 @@ function CardTitulo({
         <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onRenegociar}>
           Renegociar
         </Button>
+        {!etapa && ultima && (
+          <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground" onClick={onReenviar}>
+            Reenviar lembrete
+          </Button>
+        )}
         {(() => {
           const l = (titulo as any)._mesa as LinhaMesa | undefined;
           if (!l?.pedido_id || l.fila !== "A_ENVIAR") return null;
@@ -307,7 +321,7 @@ export default function ReguaTab() {
   const { data: conferencias } = useBoletoVencimentoConferencia();
 
   const [vista, setVista] = useState<Vista>("fila");
-  const [acaoDialog, setAcaoDialog] = useState<{ titulo: TituloCobranca; etapa: ReguaEtapa | null; modo: "enviada" | "pulada" } | null>(null);
+  const [acaoDialog, setAcaoDialog] = useState<{ titulo: TituloCobranca; etapa: ReguaEtapa | null; modo: "enviada" | "pulada"; reenvio?: boolean; ultimaEm?: string | null } | null>(null);
   const [pausarDialog, setPausarDialog] = useState<{ titulo: TituloCobranca; etapa: ReguaEtapa | null } | null>(null);
   const [renegociarDialog, setRenegociarDialog] = useState<{ titulo: TituloCobranca; etapa: ReguaEtapa | null } | null>(null);
   const [pacote, setPacote] = useState<LinhaMesa | null>(null);
@@ -349,7 +363,7 @@ export default function ReguaTab() {
     const map = new Map<string, { etapa: ReguaEtapa | null; titulos: TituloCobranca[] }>();
     for (const t of [...lista].sort(porProximaAcao)) {
       const etapa = resolverEtapaParaTitulo(t, etapas);
-      const key = etapa?.descricao_acao ?? "Sem etapa aplicável";
+      const key = etapa?.descricao_acao ?? "Régua em dia — nenhuma etapa pendente";
       if (!map.has(key)) map.set(key, { etapa, titulos: [] });
       map.get(key)!.titulos.push(t);
     }
@@ -441,6 +455,11 @@ export default function ReguaTab() {
                   onPausar={() => setPausarDialog({ titulo: t, etapa })}
                   onRenegociar={() => setRenegociarDialog({ titulo: t, etapa })}
                   onEnviarPacote={(l) => setPacote(l)}
+                  onReenviar={() => {
+                    const u = etapaUltimaDoTitulo(t, etapas);
+                    if (!u) return;
+                    setAcaoDialog({ titulo: t, etapa: u.etapa, modo: "enviada", reenvio: true, ultimaEm: u.em });
+                  }}
                 />
                 {vista === "pausados" && (
                   <Button
@@ -469,6 +488,8 @@ export default function ReguaTab() {
           titulo={acaoDialog.titulo}
           etapa={acaoDialog.etapa}
           modo={acaoDialog.modo}
+          reenvio={acaoDialog.reenvio}
+          ultimaEm={acaoDialog.ultimaEm}
           open={!!acaoDialog}
           onClose={() => setAcaoDialog(null)}
         />

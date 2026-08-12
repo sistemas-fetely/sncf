@@ -48,6 +48,17 @@ export interface LinhaMesa {
    */
   mesa_exige_acao?: boolean | null;
 
+  /**
+   * ETAPA-DA-REGUA-MORA-NO-BANCO: `etapa_atual_*` é a etapa aplicável que ainda
+   * NÃO foi cumprida — NULL significa régua em dia, nada a fazer. `etapa_ultima_*`
+   * é a última ação registrada. A tela não recalcula etapa: lê daqui.
+   */
+  etapa_atual_codigo?: string | null;
+  etapa_atual_offset?: number | null;
+  etapa_ultima_codigo?: string | null;
+  etapa_ultima_offset?: number | null;
+  etapa_ultima_em?: string | null;
+
   // ── Colunas novas (entrega + falha de envio) ──
   entrega_funil_estado?: string | null;
   entrega_ocorrencia_codigo?: string | null;
