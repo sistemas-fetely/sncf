@@ -915,6 +915,7 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-1 pt-1">
+                  <BadgeStatusGestao status={detalhe.status_gestao} />
                   <BadgeSubestado sub={detalhe.subestado_atraso} />
                   {detalhe.titulo_renegociado_origem_id && (
                     <Badge variant="outline" className="text-[10px]">
