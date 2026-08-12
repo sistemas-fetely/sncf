@@ -33,6 +33,7 @@ import { apelidoParceiro } from "@/lib/parceiros/nome";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
+import { BadgeStatusGestao } from "@/lib/financeiro/status-gestao";
 import { BaixaManualDialog } from "@/components/credito/BaixaManualDialog";
 import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTituloHaverDialog";
 import { ReemitirBoletoDialog } from "@/components/credito/ReemitirBoletoDialog";
