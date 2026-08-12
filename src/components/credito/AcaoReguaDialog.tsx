@@ -62,7 +62,7 @@ function formatDiasOffset(dias: number): string {
   return dias > 0 ? `D+${dias}` : `D${dias}`;
 }
 
-export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose }: Props) {
+export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose, reenvio = false, ultimaEm = null }: Props) {
   const qc = useQueryClient();
   const [canal, setCanal] = useState<CanalRegua>(etapa?.canal_sugerido ?? "email");
   const [mensagem, setMensagem] = useState<string>("");
