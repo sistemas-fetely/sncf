@@ -363,7 +363,7 @@ export default function ReguaTab() {
     const map = new Map<string, { etapa: ReguaEtapa | null; titulos: TituloCobranca[] }>();
     for (const t of [...lista].sort(porProximaAcao)) {
       const etapa = resolverEtapaParaTitulo(t, etapas);
-      const key = etapa?.descricao_acao ?? "Sem etapa aplicável";
+      const key = etapa?.descricao_acao ?? "Régua em dia — nenhuma etapa pendente";
       if (!map.has(key)) map.set(key, { etapa, titulos: [] });
       map.get(key)!.titulos.push(t);
     }
