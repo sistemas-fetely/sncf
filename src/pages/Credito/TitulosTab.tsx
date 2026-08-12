@@ -663,6 +663,7 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
     <div className="space-y-4">
       {/* KPIs — clicar aplica o recorte */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+
         <KpiCard
           label="A vencer"
           qtd={kpis.aVencer.qtd}
