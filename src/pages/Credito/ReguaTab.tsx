@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { RefreshCw, Star, AlertTriangle, Users, Play, Send } from "lucide-react";
+import { RefreshCw, Star, AlertTriangle, Users, Play, Send, ChevronRight } from "lucide-react";
 import {
   useReguaEtapas,
   useReguaFilaHoje,
