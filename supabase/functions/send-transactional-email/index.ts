@@ -225,6 +225,27 @@ Deno.serve(async (req) => {
       })
     } catch (sendErr) {
       const sendMsg = sendErr instanceof Error ? sendErr.message : String(sendErr)
+
+      // 409 invalid_idempotent_request NÃO é falha de canal: é o Resend dizendo
+      // "esse e-mail já foi enviado com esta chave". Gravar como 'failed' fazia
+      // lastro_envio concluir que o canal estava quebrado e mandava o operador
+      // reenviar algo que o cliente já recebeu.
+      const ehDuplicado =
+        sendMsg.includes('invalid_idempotent_request') || sendMsg.startsWith('Resend 409')
+
+      if (ehDuplicado) {
+        console.warn('Resend duplicate blocked', idempotencyKey)
+        await supabase.from('email_send_log').insert({
+          message_id: messageId, template_name: templateName,
+          recipient_email: effectiveRecipient, status: 'duplicado', metadata: emailMetadata,
+          error_message: sendMsg,
+        })
+        return new Response(
+          JSON.stringify({ success: true, duplicate: true, messageId }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
+
       console.error('Resend send failed', sendMsg)
       await supabase.from('email_send_log').insert({
         message_id: messageId, template_name: templateName,
