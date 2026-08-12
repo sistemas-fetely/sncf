@@ -46,9 +46,15 @@ import { ReabrirAnaliseAction } from "@/components/pedidos/ReabrirAnaliseAction"
 import { LinkPagamentoCard } from "@/components/pedidos/LinkPagamentoCard";
 import { PortaoLinksPanel } from "@/components/pedidos/PortaoLinksPanel";
 import { useVoltarParaOrigem } from "@/hooks/useVoltarParaOrigem";
+import { useMontarPlanoPagamento } from "@/hooks/credito/useMontarPlanoPagamento";
+
 
 const DIAS_PRIMEIRO_PAGAMENTO_FALLBACK = 9;
 const INTERVALO_PARCELAS_FALLBACK = 30;
+
+/** COMPOSIÇÃO DE PAGAMENTO: portão é atributo da linha, não "a primeira parcela". */
+type LinhaPlano = TituloProposto & { eh_portao?: boolean };
+
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
@@ -391,6 +397,8 @@ export default function CobrancaDetalhe() {
   const materializar = useMaterializarCobranca();
   const materializarComHaver = useMaterializarComHaver();
   const criarPortao = useCriarPortaoProvisorio();
+  const montarPlano = useMontarPlanoPagamento();
+
   const { roles: authRoles } = useAuth();
   const isSuperAdmin = (authRoles ?? []).includes("super_admin");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -407,7 +415,7 @@ export default function CobrancaDetalhe() {
   const jaPagoPedido = Number(titulosResumoQ.data?.somaPagos ?? 0);
   const jaPagoHaver = Number(titulosResumoQ.data?.somaHaver ?? 0);
 
-  const [titulos, setTitulos] = useState<TituloProposto[]>([]);
+  const [titulos, setTitulos] = useState<LinhaPlano[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const { regraDe: regraEdicaoCampo } = usePedidoEdicaoCampo((pedidoQ.data as any)?.estagio);
   // Esconde o gatilho antigo quando a seção nova de pagamento está liberada para o estágio.
@@ -493,14 +501,24 @@ export default function CobrancaDetalhe() {
   const temDivergenciaLeve = Math.abs(diff) > 0.005 && pctDiff <= 0.01;
   const temDivergenciaGrave = pctDiff > 0.01;
 
+  const qtdPortao = titulos.filter((t) => t.eh_portao).length;
+  const totalPortao = titulos.reduce(
+    (acc, t) => acc + (t.eh_portao ? Number(t.valor_bruto || 0) : 0),
+    0,
+  );
+  const pctPortao = totalEditado > 0 ? (totalPortao / totalEditado) * 100 : 0;
+
+
+
   const temValorInvalido = titulos.some((t) => Number(t.valor_bruto) <= 0);
   const temDataPassada = !!dataPedidoStr && titulos.some(
     (t) => t.data_vencimento < dataPedidoStr,
   );
 
-  const atualizarTitulo = (idx: number, patch: Partial<TituloProposto>) => {
+  const atualizarTitulo = (idx: number, patch: Partial<LinhaPlano>) => {
     setTitulos((prev) => prev.map((t, i) => (i === idx ? { ...t, ...patch } : t)));
   };
+
 
   const handleValorTotalChange = (v: number) => {
     setValorTotalCobrar(v);
@@ -527,7 +545,7 @@ export default function CobrancaDetalhe() {
   };
 
 
-  const renumerar = (lista: TituloProposto[]): TituloProposto[] => {
+  const renumerar = (lista: LinhaPlano[]): LinhaPlano[] => {
     const n = lista.length;
     return lista.map((t, i) => ({ ...t, ordem: i, numero_parcela: i + 1, total_parcelas: n }));
   };
@@ -538,11 +556,12 @@ export default function CobrancaDetalhe() {
       const novaData = ultima
         ? addDiasISO(ultima.data_vencimento, intervaloDias)
         : addDiasISO(todayISO(), diasPrimeiroPagamento);
-      const novo: TituloProposto = {
+      const novo: LinhaPlano = {
         ordem: prev.length,
         numero_parcela: prev.length + 1,
         total_parcelas: prev.length + 1,
         eh_entrada: false,
+        eh_portao: false,
         tipo_pagamento: ultima?.tipo_pagamento ?? "boleto",
         valor_bruto: 0,
         data_vencimento: novaData,
@@ -552,6 +571,7 @@ export default function CobrancaDetalhe() {
       return parcelasIguais ? redistribuirValoresIguais(nova, valorTotalCobrar) : nova;
     });
   };
+
 
   const handleRemoverParcela = (idx: number) => {
     setTitulos((prev) => {
@@ -592,17 +612,25 @@ export default function CobrancaDetalhe() {
 
   const handleConfirmar = () => {
     if (!pedidoId) return;
-    if (exigePortao) {
-      criarPortao.mutate({ pedidoId, titulosEditados: titulos }, { onSettled: () => setConfirmOpen(false) });
-    } else if (valorHaverAplicar > 0 && haverCliente?.haverId) {
-      materializarComHaver.mutate(
-        { pedidoId, titulosEditados: titulos, haverId: haverCliente.haverId, valorHaver: valorHaverAplicar },
-        { onSettled: () => setConfirmOpen(false) },
-      );
-    } else {
-      materializar.mutate({ pedidoId, titulosEditados: titulos }, { onSettled: () => setConfirmOpen(false) });
-    }
+    // Porta única: montar_plano_pagamento cobre portão, parcelamento e haver.
+    montarPlano.mutate(
+      {
+        pedidoId,
+        linhas: titulos.map((t) => ({
+          numero_parcela: t.numero_parcela,
+          tipo_pagamento: t.tipo_pagamento,
+          valor: Number(t.valor_bruto || 0),
+          data_prevista: t.data_vencimento,
+          eh_portao: !!t.eh_portao,
+          eh_entrada: !!t.eh_entrada,
+          condicao_pagamento: t.condicao_pagamento ?? null,
+          link_pagamento: t.link_pagamento ?? null,
+        })),
+      },
+      { onSettled: () => setConfirmOpen(false) },
+    );
   };
+
 
   const handleTogglePortao = async (valor: boolean) => {
     if (!pedidoId) return;
@@ -985,6 +1013,20 @@ export default function CobrancaDetalhe() {
           </div>
 
 
+          {/* Resumo da composição de pagamento */}
+          <p className="text-xs text-muted-foreground mb-2">
+            Plano: {titulos.length} linha(s) · total {fmtBRL.format(totalEditado)} ·{" "}
+            {qtdPortao} de portão somando {fmtBRL.format(totalPortao)}
+            {exigePortao && (
+              <>
+                {" "}· este pedido exige portão
+                {totalPortao <= 0.005
+                  ? " — marque ao menos uma linha como portão"
+                  : ` (cobertura de ${pctPortao.toFixed(0)}% do plano; o mínimo é validado no banco ao confirmar)`}
+              </>
+            )}
+          </p>
+
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -992,6 +1034,7 @@ export default function CobrancaDetalhe() {
                   <TableHead className="w-16">#</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Pagamento</TableHead>
+                  <TableHead className="w-20">Portão</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead>Vencimento</TableHead>
                   <TableHead>Condição</TableHead>
@@ -1003,7 +1046,8 @@ export default function CobrancaDetalhe() {
                 {titulos.map((t, idx) => {
                   const dataInvalida = !!dataPedidoStr && t.data_vencimento < dataPedidoStr;
                   const valorInvalido = Number(t.valor_bruto) <= 0;
-                  const tipoDesabilitado = pedidoQ.data?.estagio !== "cobranca" || (t.eh_entrada && exigePortao);
+                  const tipoDesabilitado = pedidoQ.data?.estagio !== "cobranca";
+
                   return (
                     <TableRow key={idx}>
                       <TableCell className="font-mono text-xs">
@@ -1040,6 +1084,16 @@ export default function CobrancaDetalhe() {
                           </Select>
                         )}
                       </TableCell>
+                      <TableCell>
+                        <span title="Esta linha bloqueia a liberação do pedido até ser paga.">
+                          <Switch
+                            checked={!!t.eh_portao}
+                            onCheckedChange={(v) => atualizarTitulo(idx, { eh_portao: v })}
+                            aria-label="Linha de portão"
+                          />
+                        </span>
+                      </TableCell>
+
                       <TableCell className="text-right">
                         <Input
                           type="number"
@@ -1100,7 +1154,7 @@ export default function CobrancaDetalhe() {
               </TableBody>
               <TableFooter>
                 <TableRow>
-                  <TableCell colSpan={3} className="text-right font-medium">
+                  <TableCell colSpan={4} className="text-right font-medium">
                     Total
                   </TableCell>
                   <TableCell
@@ -1161,7 +1215,7 @@ export default function CobrancaDetalhe() {
               <Button
                 variant="ghost"
                 onClick={() => setAjustarDescontoOpen(true)}
-                disabled={materializar.isPending || criarPortao.isPending || materializarComHaver.isPending}
+                disabled={montarPlano.isPending}
               >
                 Ajustar desconto
               </Button>
@@ -1170,7 +1224,7 @@ export default function CobrancaDetalhe() {
               <Button
                 variant="ghost"
                 onClick={() => setEditarCondicaoOpen(true)}
-                disabled={materializar.isPending || criarPortao.isPending || materializarComHaver.isPending}
+                disabled={montarPlano.isPending}
               >
                 Alterar pagamento
               </Button>
@@ -1180,10 +1234,10 @@ export default function CobrancaDetalhe() {
             </Button>
             <Button
               onClick={handleAceitar}
-              disabled={!podeMaterializar || materializar.isPending || criarPortao.isPending || materializarComHaver.isPending}
+              disabled={!podeMaterializar || montarPlano.isPending}
             >
-              {(materializar.isPending || criarPortao.isPending || materializarComHaver.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
-              {exigePortao ? "Aceitar e gerar portão" : "Aceitar e materializar"}
+              {montarPlano.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              Aceitar e montar plano
             </Button>
           </div>
         </CardContent>
@@ -1192,37 +1246,39 @@ export default function CobrancaDetalhe() {
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{exigePortao ? "Confirmar criação do portão" : "Confirmar materialização"}</DialogTitle>
+            <DialogTitle>Confirmar plano de pagamento</DialogTitle>
             <DialogDescription>
-              {exigePortao ? (
-                <>Vamos criar o portão. O pedido ficará aguardando o primeiro pagamento à vista antes de liberar a NF.</>
-              ) : (
-                <>
-                  Esta operação é irreversível. Serão criados <strong>{titulos.length}</strong>{" "}
-                  título{titulos.length !== 1 ? "s" : ""} totalizando{" "}
-                  <strong>{fmtBRL.format(totalEditado)}</strong>.
-                  {valorHaverAplicar > 0 && (
-                    <> {" "}Haver aplicado: <strong>{fmtBRL.format(valorHaverAplicar)}</strong>.</>
-                  )}
-                </>
-              )}
+              <>
+                Serão criadas <strong>{titulos.length}</strong> linha
+                {titulos.length !== 1 ? "s" : ""} totalizando{" "}
+                <strong>{fmtBRL.format(totalEditado)}</strong>, das quais{" "}
+                <strong>{qtdPortao}</strong> de portão somando{" "}
+                <strong>{fmtBRL.format(totalPortao)}</strong>.
+                {qtdPortao > 0 && (
+                  <> O pedido só é liberado quando todas as linhas de portão estiverem pagas.</>
+                )}
+                {valorHaverAplicar > 0 && (
+                  <> {" "}Haver aplicado: <strong>{fmtBRL.format(valorHaverAplicar)}</strong>.</>
+                )}
+              </>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => setConfirmOpen(false)}
-              disabled={materializar.isPending || criarPortao.isPending || materializarComHaver.isPending}
+              disabled={montarPlano.isPending}
             >
               Voltar
             </Button>
-            <Button onClick={handleConfirmar} disabled={materializar.isPending || criarPortao.isPending || materializarComHaver.isPending}>
-              {(materializar.isPending || criarPortao.isPending || materializarComHaver.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
+            <Button onClick={handleConfirmar} disabled={montarPlano.isPending}>
+              {montarPlano.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
               Confirmar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
 
       <EditarCondicaoPagamentoDialog
         open={editarCondicaoOpen}

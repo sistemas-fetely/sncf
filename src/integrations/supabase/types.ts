@@ -22065,6 +22065,7 @@ export type Database = {
           pix_token: string | null
           pix_txid: string | null
           plano_restante: Json
+          provisao_id: string | null
           sequencia: number
           status: string
           tipo_pagamento: string | null
@@ -22086,6 +22087,7 @@ export type Database = {
           pix_token?: string | null
           pix_txid?: string | null
           plano_restante?: Json
+          provisao_id?: string | null
           sequencia?: number
           status?: string
           tipo_pagamento?: string | null
@@ -22107,6 +22109,7 @@ export type Database = {
           pix_token?: string | null
           pix_txid?: string | null
           plano_restante?: Json
+          provisao_id?: string | null
           sequencia?: number
           status?: string
           tipo_pagamento?: string | null
@@ -22309,6 +22312,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_portao_provisao_id_fkey"
+            columns: ["provisao_id"]
+            isOneToOne: false
+            referencedRelation: "provisao_recebimento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_portao_provisao_id_fkey"
+            columns: ["provisao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_provisao_caixa"
+            referencedColumns: ["provisao_id"]
+          },
+          {
+            foreignKeyName: "pedido_portao_provisao_id_fkey"
+            columns: ["provisao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_provisao_descoberta"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -26287,10 +26311,16 @@ export type Database = {
           created_by: string | null
           data_prevista: string
           eh_entrada: boolean
+          eh_portao: boolean
           forma_pagamento_id: string | null
           id: string
           numero_parcela: number
+          pago_em: string | null
+          pago_por: string | null
           pedido_id: string
+          prova_obs: string | null
+          prova_ref: string | null
+          prova_tipo: string | null
           status: string
           tipo_pagamento: string
           total_parcelas: number
@@ -26304,10 +26334,16 @@ export type Database = {
           created_by?: string | null
           data_prevista: string
           eh_entrada?: boolean
+          eh_portao?: boolean
           forma_pagamento_id?: string | null
           id?: string
           numero_parcela?: number
+          pago_em?: string | null
+          pago_por?: string | null
           pedido_id: string
+          prova_obs?: string | null
+          prova_ref?: string | null
+          prova_tipo?: string | null
           status?: string
           tipo_pagamento: string
           total_parcelas?: number
@@ -26321,10 +26357,16 @@ export type Database = {
           created_by?: string | null
           data_prevista?: string
           eh_entrada?: boolean
+          eh_portao?: boolean
           forma_pagamento_id?: string | null
           id?: string
           numero_parcela?: number
+          pago_em?: string | null
+          pago_por?: string | null
           pedido_id?: string
+          prova_obs?: string | null
+          prova_ref?: string | null
+          prova_tipo?: string | null
           status?: string
           tipo_pagamento?: string
           total_parcelas?: number
@@ -28095,6 +28137,7 @@ export type Database = {
           ordem: number
           parcela_unica: boolean
           passa_por_analise: boolean
+          portao_minimo_pct: number
           updated_at: string
         }
         Insert: {
@@ -28108,6 +28151,7 @@ export type Database = {
           ordem?: number
           parcela_unica: boolean
           passa_por_analise: boolean
+          portao_minimo_pct?: number
           updated_at?: string
         }
         Update: {
@@ -28121,6 +28165,7 @@ export type Database = {
           ordem?: number
           parcela_unica?: boolean
           passa_por_analise?: boolean
+          portao_minimo_pct?: number
           updated_at?: string
         }
         Relationships: []
@@ -52629,6 +52674,16 @@ export type Database = {
         }
         Returns: Json
       }
+      confirmar_pagamento_linha: {
+        Args: {
+          p_data_pagamento?: string
+          p_observacao?: string
+          p_prova_ref?: string
+          p_prova_tipo?: string
+          p_provisao_id: string
+        }
+        Returns: Json
+      }
       confirmar_par_transferencia: {
         Args: { p_credito_id: string; p_debito_id: string }
         Returns: Json
@@ -54266,6 +54321,10 @@ export type Database = {
       }
       migrar_para_oportunidade_comercial: {
         Args: { p_motivo: string; p_origem?: string; p_pedido_id: string }
+        Returns: Json
+      }
+      montar_plano_pagamento: {
+        Args: { p_linhas: Json; p_motivo?: string; p_pedido_id: string }
         Returns: Json
       }
       move_to_dlq: {

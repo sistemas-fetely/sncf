@@ -1,0 +1,94 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { rawMessage } from "@/lib/format-error";
+
+export type ProvaTipo = "pix_txid" | "cartao_nsu" | "haver" | "ofx" | "manual" | "boleto_cnab";
+
+interface Args {
+  provisao_id: string;
+  prova_tipo: ProvaTipo;
+  prova_ref?: string | null;
+  data_pagamento: string; // ISO (date ou timestamptz)
+  observacao?: string | null;
+}
+
+export interface ConfirmarLinhaResult {
+  ok: boolean;
+  provisao_id?: string;
+  pedido_id?: string;
+  valor?: number;
+  eh_portao?: boolean;
+  adiantamento_id?: string | null;
+  portao_linhas_faltando?: number;
+  portao_valor_faltando?: number;
+  avancou?: boolean;
+}
+
+const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+/**
+ * Confirma o pagamento de UMA linha do plano (`provisao_recebimento`).
+ * O pedido só é liberado quando TODAS as linhas de portão estiverem pagas —
+ * quem decide isso é o banco, e a resposta diz o que ainda falta.
+ */
+export function useConfirmarPagamentoLinha() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (args: Args): Promise<ConfirmarLinhaResult> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc("confirmar_pagamento_linha", {
+        p_provisao_id: args.provisao_id,
+        p_prova_tipo: args.prova_tipo,
+        p_prova_ref: args.prova_ref?.trim() || null,
+        p_data_pagamento: args.data_pagamento,
+        p_observacao: args.observacao?.trim() || null,
+      });
+      if (error) throw error;
+      return (data ?? { ok: true }) as ConfirmarLinhaResult;
+    },
+
+    onSuccess: (res) => {
+      const faltando = res.portao_linhas_faltando ?? 0;
+      if (res.avancou) {
+        toast({
+          title: "Pedido liberado",
+          description: "Todas as linhas de portão estão pagas — o pedido avançou.",
+        });
+      } else if (faltando > 0) {
+        toast({
+          title: "Pagamento registrado",
+          description: `Ainda faltam ${faltando} linha(s) de portão, somando ${fmtBRL.format(
+            Number(res.portao_valor_faltando ?? 0),
+          )}.`,
+        });
+      } else {
+        toast({ title: "Pagamento registrado" });
+      }
+
+      const keys: (readonly unknown[])[] = [
+        ["pedido-detalhe", res.pedido_id],
+        ["pedido-portao-provisorio", res.pedido_id],
+        ["provisoes-pedido", res.pedido_id],
+        ["pedidos-fila"],
+        ["pedidos-pipeline"],
+        ["contas-receber-titulos"],
+        ["primeiro-pagamento-fila"],
+        ["cobranca-fila"],
+        ["aguardando-pagamento-fila"],
+      ];
+      keys.forEach((queryKey) => qc.invalidateQueries({ queryKey }));
+    },
+
+    onError: (e: unknown) => {
+      console.error("[confirmar_pagamento_linha]", e);
+      toast({
+        title: "Erro ao confirmar pagamento",
+        description: rawMessage(e),
+        variant: "destructive",
+      });
+    },
+  });
+}
