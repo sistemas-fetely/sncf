@@ -8,6 +8,7 @@ import {
   useReguaFilaHoje,
   useReguaPausados,
   resolverEtapaParaTitulo,
+  etapaUltimaDoTitulo,
   type ReguaEtapa,
 } from "@/hooks/credito/useReguaFila";
 import { useTitulosCobranca } from "@/hooks/credito/useTitulosCobranca";
