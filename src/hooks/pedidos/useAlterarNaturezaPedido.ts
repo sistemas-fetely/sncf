@@ -20,7 +20,10 @@ interface Vars {
   pedidoId: string;
   naturezaCodigo: string;
   motivo: string;
+  /** Remessa filha aberta na tela: a natureza foi gravada no pai, mas a filha também precisa recarregar. */
+  pedidoFilhoId?: string;
 }
+
 
 /**
  * Troca a natureza de operação do pedido. O banco é a autoridade: valida estágio,

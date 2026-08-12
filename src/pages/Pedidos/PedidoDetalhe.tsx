@@ -1109,7 +1109,7 @@ export default function PedidoDetalhe() {
   if (isLoading) return <div className="p-6 space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-32 w-full" /><Skeleton className="h-64 w-full" /></div>;
   if (!data) return <div className="p-6">Pedido não encontrado.</div>;
 
-  const { pedido, parceiro, itens, eventos, analiseCredito, analisesAnteriores, natureza, naturezaAlerta, idade_minutos, sla_estourado } = data;
+  const { pedido, parceiro, itens, eventos, analiseCredito, analisesAnteriores, natureza, naturezaAlerta, naturezaRefPedidoId, idade_minutos, sla_estourado } = data;
   const naturezaTrocaLiberada =
     !naturezaAlerta ||
     (naturezaAlerta.estagio_permite !== false &&
