@@ -42,6 +42,12 @@ export interface LinhaMesa {
   regua_elegivel?: boolean | null;
   regua_motivo_inelegivel?: string | null;
   regua_cobrar_sem_boleto?: boolean | null;
+  /**
+   * MESA-É-FILA-DE-AÇÃO: true só quando existe ato a praticar. Cartão a vencer
+   * e "Em curso" são estado, não trabalho — a view decide, a tela obedece.
+   */
+  mesa_exige_acao?: boolean | null;
+
   // ── Colunas novas (entrega + falha de envio) ──
   entrega_funil_estado?: string | null;
   entrega_ocorrencia_codigo?: string | null;

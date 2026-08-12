@@ -2,7 +2,19 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export type SituacaoConferencia = "CONFERE" | "DIVERGENTE" | "CEGO";
-export type FonteProva = "retorno_cnab" | "francesinha" | "remessa_enviada" | "sem_prova";
+/**
+ * `safra_carteira_conferencia` é alimentada por DOIS relatórios do Safra, então
+ * a prova diz qual deles gravou: `instrucoes_2via` (Recebimentos - Instruções 2ª
+ * via) ou `francesinha` (Gestão de Cobrança). `carteira_safra` é a linha órfã de
+ * import. Rótulo de prova não se chuta.
+ */
+export type FonteProva =
+  | "retorno_cnab"
+  | "instrucoes_2via"
+  | "francesinha"
+  | "carteira_safra"
+  | "remessa_enviada"
+  | "sem_prova";
 
 export interface BoletoVencimentoConferencia {
   titulo_id: string;
