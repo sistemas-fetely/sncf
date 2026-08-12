@@ -217,7 +217,7 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose, reenvio = 
         {/* Header */}
         <DialogHeader className="px-6 pt-6 pb-4 border-b space-y-1.5">
           <DialogTitle className="text-base font-semibold">
-            {modo === "enviada" ? "Registrar ação" : "Pular etapa"}
+            {modo === "pulada" ? "Pular etapa" : reenvio ? "Reenviar lembrete" : "Registrar ação"}
           </DialogTitle>
           <div className="text-sm font-medium text-foreground">{clienteNome}</div>
           <div className="text-xs text-muted-foreground">
