@@ -20,33 +20,33 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
-  let remessa_id: string | null = null;
   let pedido_id: string | null = null;
   let payload: Record<string, unknown> | null = null;
   let userId: string | null = null;
 
   try {
     const body = await req.json().catch(() => ({}));
-    remessa_id = body?.remessa_id ?? null;
-    if (!remessa_id) return json({ sucesso: false, erro: "remessa_id obrigatório" }, 400);
+    pedido_id = body?.pedido_id ?? null;
+    if (!pedido_id) return json({ sucesso: false, erro: "pedido_id obrigatório" }, 400);
 
+    // quem clicou (para trilha de autoria; a edge roda com service role)
     const authHeader = req.headers.get("Authorization") ?? "";
     if (authHeader.startsWith("Bearer ")) {
       const { data: u } = await sb.auth.getUser(authHeader.replace("Bearer ", ""));
       userId = u?.user?.id ?? null;
     }
 
+    // 1. Montador de payload mora no banco (FONTE-ÚNICA). A edge só transporta.
     const { data: montado, error: eMontar } = await sb.rpc("fn_xpm_payload_expedicao", {
-      p_remessa_id: remessa_id,
+      p_pedido_id: pedido_id,
     });
     if (eMontar) throw new Error(`montar payload: ${eMontar.message}`);
 
-    pedido_id = montado?.pedido_id ?? null;
-
+    // 2. Bloqueio pré-voo: não sai pela metade, e o motivo vai pra tela.
     if (!montado?.ok) {
       const motivos: string[] = montado?.bloqueios ?? ["Falha desconhecida ao montar payload"];
       const msg = motivos.join(" · ");
-      await sb.from("pedido_remessa").update({ xpm_envio_erro: msg }).eq("id", remessa_id);
+      await sb.from("pedidos").update({ xpm_envio_erro: msg }).eq("id", pedido_id);
       return json({ sucesso: false, erro: msg, bloqueios: motivos }, 422);
     }
 
@@ -54,6 +54,7 @@ Deno.serve(async (req) => {
     const codigo: string = montado.codigo;
     const ambiente: string = montado.ambiente;
 
+    // 3. Credenciais e base pelo ambiente configurado — nunca hardcode.
     const sistema = ambiente === "producao" ? "zenlog_prd" : "zenlog";
     const { data: cfgRow, error: eCfg } = await sb
       .from("integracoes_config").select("config").eq("sistema", sistema).single();
@@ -68,6 +69,7 @@ Deno.serve(async (req) => {
 
     const base = cfg.base_url;
 
+    // 4. Autenticar (ZENLOG-TENANT-OBRIGATORIO: tenantName é exigido)
     const authRes = await fetch(`${base}/api/TokenAuth/AuthenticatePAT`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -79,6 +81,7 @@ Deno.serve(async (req) => {
       throw new Error(`auth falhou: ${authJson?.error?.message ?? authRes.status}`);
     }
 
+    // 5. Create
     let respStatus: number | null = null;
     let respBody: unknown = null;
     let sucesso = false;
@@ -109,6 +112,7 @@ Deno.serve(async (req) => {
       sucesso = false;
     }
 
+    // 6. CREATE-NAO-E-RECIBO: 200 não prova gravação. Confirma por GET.
     let expedicaoIdZenlog: number | null = null;
     let confirmado = false;
     if (sucesso) {
@@ -129,9 +133,9 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 7. Log sempre — sucesso e falha.
     await sb.from("xpm_envios_log").insert({
       pedido_id,
-      remessa_id,
       operacao: "create",
       enviado_por: userId,
       payload_enviado: payload,
@@ -144,14 +148,15 @@ Deno.serve(async (req) => {
       duracao_ms: Date.now() - t0,
     });
 
+    // 8. Estado do pedido (FAIL-LOUD: erro fica gravado e visível)
     if (sucesso) {
-      const { error: eUp } = await sb.from("pedido_remessa").update({
+      const { error: eUp } = await sb.from("pedidos").update({
         xpm_expedicao_codigo: codigo,
         xpm_enviado_em: new Date().toISOString(),
         xpm_enviado_por: userId,
         xpm_envio_erro: null,
-      }).eq("id", remessa_id);
-      if (eUp) throw new Error(`gravar remessa: ${eUp.message}`);
+      }).eq("id", pedido_id);
+      if (eUp) throw new Error(`gravar pedido: ${eUp.message}`);
 
       return json({
         sucesso: true,
@@ -161,17 +166,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    await sb.from("pedido_remessa")
+    await sb.from("pedidos")
       .update({ xpm_envio_erro: erroMsg })
-      .eq("id", remessa_id);
+      .eq("id", pedido_id);
 
     return json({ sucesso: false, erro: erroMsg, duracao_ms: Date.now() - t0 }, 502);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    if (remessa_id) {
+    if (pedido_id) {
       await sb.from("xpm_envios_log").insert({
         pedido_id,
-        remessa_id,
         operacao: "create",
         enviado_por: userId,
         payload_enviado: payload ?? {},
@@ -179,7 +183,7 @@ Deno.serve(async (req) => {
         erro_msg: msg,
         duracao_ms: Date.now() - t0,
       });
-      await sb.from("pedido_remessa").update({ xpm_envio_erro: msg }).eq("id", remessa_id);
+      await sb.from("pedidos").update({ xpm_envio_erro: msg }).eq("id", pedido_id);
     }
     return json({ sucesso: false, erro: msg }, 500);
   }
