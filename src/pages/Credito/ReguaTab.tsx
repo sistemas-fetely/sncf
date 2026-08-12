@@ -462,8 +462,8 @@ export default function ReguaTab() {
         <div className="grid grid-cols-3 gap-3 flex-1 max-w-2xl">
           <KpiCard
             label="Fila de hoje"
-            valor={fila.length}
-            total={somaFila}
+            valor={vista === "fila" ? baldes.comAcao.length : fila.length}
+            total={vista === "fila" ? somaLista(baldes.comAcao.map((x) => x.t)) : somaFila}
             ativo={vista === "fila"}
             onClick={() => setVista("fila")}
           />
