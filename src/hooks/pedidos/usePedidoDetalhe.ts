@@ -16,9 +16,13 @@ export interface PedidoDetalhe {
   analisesAnteriores: Array<{ status_final: string | null; decidido_em: string | null }>;
   /** Dimensão de natureza de operação — flag que decide se a operação gera título a receber. */
   natureza: { codigo: string | null; nome: string | null; gera_titulo_receber: boolean } | null;
+  /** Resultado cru de fn_pedido_natureza_alerta para o pedido de referência. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  naturezaAlerta: any | null;
   idade_minutos: number;
   sla_estourado: boolean;
 }
+
 
 export function usePedidoDetalhe(pedidoId: string | undefined) {
   return useQuery({
