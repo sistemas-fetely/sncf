@@ -229,6 +229,16 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose, reenvio = 
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {etapa ? (
             <div className="space-y-4">
+              {reenvio && (
+                <Alert className="border-amber-300 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-900">
+                  <AlertTriangle className="h-4 w-4 text-amber-700" />
+                  <AlertDescription className="text-xs text-amber-900 dark:text-amber-100">
+                    Esta etapa já foi cumprida{ultimaEm ? ` em ${formatDateBR(ultimaEm)}` : ""}. O
+                    cliente já recebeu este contato — reenviar manda a mensagem de novo.
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {/* Chip etapa */}
               <div className="flex items-start gap-2">
                 <Badge variant="secondary" className="font-mono shrink-0">
