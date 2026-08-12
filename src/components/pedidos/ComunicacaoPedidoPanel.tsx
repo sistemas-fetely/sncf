@@ -23,6 +23,10 @@ import { Badge } from "@/components/ui/badge";
 import {
   useLinkPagamentoPedido, useRegistrarLinkPagamento, fmtDataBR,
 } from "@/hooks/pedidos/useLinkPagamentoPedido";
+import {
+  montarPacoteCobranca, type TituloPacote,
+} from "@/lib/financeiro/montar-pacote-cobranca";
+import { resolverEmailCobranca } from "@/lib/financeiro/email-cobranca-parceiro";
 
 type TipoEmail = "cobranca" | "portao_boleto" | "boleto" | "nf" | "nf_boletos";
 
@@ -63,7 +67,7 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("parceiros_comerciais")
-        .select("email, razao_social")
+        .select("email, email_cobranca, contatos, razao_social")
         .eq("id", parceiro_id)
         .maybeSingle();
       return data;
@@ -159,15 +163,21 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
   const [novoLink, setNovoLink] = useState("");
   const [geradoEm, setGeradoEm] = useState(hojeISO);
 
+  // Precedência: contatos.financeiro.email > email_cobranca > email.
+  const emailPreferido = useMemo(
+    () => resolverEmailCobranca(parceiroQ.data ?? null).email,
+    [parceiroQ.data],
+  );
+
   useEffect(() => {
-    if (dialogOpen && parceiroQ.data?.email && !emailPrincipal) {
-      setEmailPrincipal(parceiroQ.data.email);
+    if (dialogOpen && emailPreferido && !emailPrincipal) {
+      setEmailPrincipal(emailPreferido);
     }
-  }, [dialogOpen, parceiroQ.data, emailPrincipal]);
+  }, [dialogOpen, emailPreferido, emailPrincipal]);
 
   const abrirDialog = (tipo: TipoEmail) => {
     setDialogTipo(tipo);
-    setEmailPrincipal(parceiroQ.data?.email ?? "");
+    setEmailPrincipal(emailPreferido ?? "");
     setEmailsAdicionais([]);
     setNovoEmail("");
     setNovoLink("");
@@ -230,7 +240,14 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
   };
 
   // ── Visibilidade ──
-  const titulosBoleto = titulosBoletoQ.data ?? [];
+  // Boletos SEMPRE via montador: só títulos com status 'aberto' e tipo boleto.
+  const titulosBoleto = useMemo(() => {
+    try {
+      return montarPacoteCobranca((titulosBoletoQ.data ?? []) as TituloPacote[]).titulosBoleto;
+    } catch {
+      return [] as TituloPacote[];
+    }
+  }, [titulosBoletoQ.data]);
   const nfExiste = !!nfQ.data?.id;
   const portao = portaoQ.data;
   const tituloEntrada = tituloEntradaQ.data;
