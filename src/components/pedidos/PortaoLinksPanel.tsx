@@ -52,7 +52,7 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("pedido_portao")
-        .select("sequencia, valor, data_vencimento, tipo_pagamento, link_pagamento, plano_restante, status")
+        .select("id, sequencia, valor, data_vencimento, tipo_pagamento, link_pagamento, plano_restante, status, pix_txid, pix_gerado_em")
         .eq("pedido_id", pedidoId)
         .eq("status", "provisorio")
         .order("created_at", { ascending: false })
