@@ -1482,10 +1482,13 @@ export default function PedidoDetalhe() {
           setNaturezaDialogOpen(v);
           if (!v) setNaturezaSugerida(null);
         }}
-        pedidoId={pedido.id}
+        pedidoId={naturezaRefPedidoId}
+        pedidoFilhoId={naturezaRefPedidoId !== pedido.id ? pedido.id : undefined}
+        ehRemessaFilha={naturezaRefPedidoId !== pedido.id}
         codigoAtual={natureza?.codigo ?? null}
         codigoSugerido={naturezaSugerida}
         focarMotivo={!!naturezaSugerida}
+
       />
 
       <Separator />
