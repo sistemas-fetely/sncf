@@ -130,7 +130,7 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
           size="sm"
           className="w-full gap-1.5 whitespace-normal h-auto text-xs leading-tight py-2"
           title={`Enviar ${id_externo} pro Bling`}
-          disabled={enviar.isPending}
+          disabled={ocupado}
           onClick={() => enviar.mutate({ pedido_id })}
         >
           {enviar.isPending ? (
@@ -140,6 +140,64 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
 
           )}
         </Button>
+      )}
+
+      {!precisaSincronizar && podeEmpurrarXpm && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="w-full gap-1.5 whitespace-normal h-auto text-xs leading-tight py-2"
+          title={`Empurrar ${id_externo} pra XPM`}
+          disabled={ocupado}
+          onClick={() => empurrarXpm.mutate({ pedido_id })}
+        >
+          {empurrarXpm.isPending ? (
+            <><Loader2 className="h-4 w-4 animate-spin" />Empurrando…</>
+          ) : (
+            <><Warehouse className="h-4 w-4 shrink-0" />Empurrar pra XPM</>
+          )}
+        </Button>
+      )}
+
+      {mostrarInicial && podeEmpurrarXpm && (
+        <Button
+          size="sm"
+          variant="secondary"
+          className="w-full gap-1.5 whitespace-normal h-auto text-xs leading-tight py-2"
+          title={`Enviar ${id_externo} pro Bling e empurrar pra XPM`}
+          disabled={ocupado}
+          onClick={async () => {
+            // Sequencial e com await: se o Bling falhar, a XPM nao roda.
+            // FAIL-LOUD — o toast de erro ja sai de dentro de cada hook.
+            try {
+              await enviar.mutateAsync({ pedido_id });
+            } catch {
+              return;
+            }
+            await empurrarXpm.mutateAsync({ pedido_id }).catch(() => {});
+          }}
+        >
+          {ocupado ? (
+            <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</>
+          ) : (
+            <><Truck className="h-4 w-4 shrink-0" />Enviar pros dois</>
+          )}
+        </Button>
+      )}
+
+      {pedidoXpm?.xpm_envio_erro && !jaEmpurrado && (
+        <Alert variant="default" className="bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-900">
+          <AlertTriangle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-800 dark:text-red-300 text-xs">
+            XPM recusou: {pedidoXpm.xpm_envio_erro}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {jaEmpurrado && (
+        <p className="text-xs text-muted-foreground px-1">
+          XPM: expedição {pedidoXpm!.xpm_expedicao_codigo}
+        </p>
       )}
 
       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
@@ -153,8 +211,6 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
         const totalUnidades = itens.reduce((s: number, it: any) => s + (Number(it.quantidade) || 0), 0);
         const podeEnviar = rem.status === "pronta_para_envio" && !rem.bling_pedido_id && !precisaSincronizar;
         const podeDividir = !rem.bling_pedido_id && totalUnidades >= 2;
-        const podeEmpurrarXpm = estagioDeEnvio && rem.status !== "cancelada" && !rem.xpm_expedicao_codigo;
-        const ocupado = enviar.isPending || empurrarXpm.isPending;
 
         return (
           <div key={rem.id} className="space-y-2">
@@ -163,7 +219,7 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
                 size="sm"
                 className="w-full gap-1.5"
                 title={`Enviar ${codigo} pro Bling`}
-                disabled={ocupado}
+                disabled={enviar.isPending}
                 onClick={() => enviar.mutate({ pedido_id, remessa_id: rem.id })}
               >
                 {enviar.isPending ? (
@@ -174,63 +230,7 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
               </Button>
             )}
 
-            {podeEmpurrarXpm && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="w-full gap-1.5"
-                title={`Empurrar ${codigo} pra XPM`}
-                disabled={ocupado}
-                onClick={() => empurrarXpm.mutate({ pedido_id, remessa_id: rem.id })}
-              >
-                {empurrarXpm.isPending ? (
-                  <><Loader2 className="h-4 w-4 animate-spin" />Empurrando…</>
-                ) : (
-                  <><Warehouse className="h-4 w-4 shrink-0" />Empurrar pra XPM</>
-                )}
-              </Button>
-            )}
 
-            {podeEnviar && podeEmpurrarXpm && (
-              <Button
-                size="sm"
-                variant="secondary"
-                className="w-full gap-1.5"
-                title={`Enviar ${codigo} pro Bling e empurrar pra XPM`}
-                disabled={ocupado}
-                onClick={async () => {
-                  // Sequencial e com await: se o Bling falhar, a XPM não roda.
-                  // FAIL-LOUD — mutateAsync propaga o erro, o toast já sai no hook.
-                  try {
-                    await enviar.mutateAsync({ pedido_id, remessa_id: rem.id });
-                  } catch {
-                    return;
-                  }
-                  await empurrarXpm.mutateAsync({ pedido_id, remessa_id: rem.id }).catch(() => {});
-                }}
-              >
-                {ocupado ? (
-                  <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</>
-                ) : (
-                  <><Truck className="h-4 w-4 shrink-0" />Enviar pros dois</>
-                )}
-              </Button>
-            )}
-
-            {rem.xpm_envio_erro && !rem.xpm_expedicao_codigo && (
-              <Alert variant="default" className="bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-900">
-                <AlertTriangle className="h-4 w-4 text-red-600" />
-                <AlertDescription className="text-red-800 dark:text-red-300 text-xs">
-                  XPM recusou: {rem.xpm_envio_erro}
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {rem.xpm_expedicao_codigo && (
-              <p className="text-xs text-muted-foreground px-1">
-                XPM: expedição {rem.xpm_expedicao_codigo}
-              </p>
-            )}
             {podeDividir && (
               <DividirRemessaDialog
                 remessaId={rem.id}
