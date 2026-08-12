@@ -1154,7 +1154,7 @@ export default function CobrancaDetalhe() {
               </TableBody>
               <TableFooter>
                 <TableRow>
-                  <TableCell colSpan={3} className="text-right font-medium">
+                  <TableCell colSpan={4} className="text-right font-medium">
                     Total
                   </TableCell>
                   <TableCell
