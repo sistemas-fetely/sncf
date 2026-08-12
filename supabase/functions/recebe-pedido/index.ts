@@ -412,6 +412,12 @@ if (body.tipo === "canal_badges") {
     const descontoCelebraValor = Number(body.desconto_celebra_valor ?? 0);
     const bonusPixValor        = Number(body.bonus_pix_valor        ?? 0);
 
+    const veioAcrescimoIE =
+      body.acrescimo_ie_valor !== undefined || body.acrescimo_ie_aplicado !== undefined;
+    const acrescimoIeValor = Number(body.acrescimo_ie_valor ?? 0);
+    const acrescimoIePct = body.acrescimo_ie_pct != null ? Number(body.acrescimo_ie_pct) : null;
+    const acrescimoIeOrigem = acrescimoIeValor > 0 ? "fop_declarado" : null;
+
     if (body.frete_tipo != null || valorFreteFinal > 0 || descontoCelebraValor > 0 || bonusPixValor > 0) {
       await supabase.from("pedidos").update({
         valor_frete:            valorFreteFinal,
@@ -422,6 +428,11 @@ if (body.tipo === "canal_badges") {
     }
 
     await supabase.from("pedidos").update({
+      ...(veioAcrescimoIE ? {
+        acrescimo_ie_valor:  acrescimoIeValor,
+        acrescimo_ie_pct:    acrescimoIePct,
+        acrescimo_ie_origem: acrescimoIeOrigem,
+      } : {}),
       snapshot_original: {
         valor_bruto:             body.valor_bruto,
         valor_liquido:           body.valor_liquido,
@@ -431,6 +442,9 @@ if (body.tipo === "canal_badges") {
         bonus_pix_valor:         bonusPixValor,
         itens_json:              body.itens_json ?? null,
         gravado_em:              new Date().toISOString(),
+        acrescimo_ie_valor:    veioAcrescimoIE ? acrescimoIeValor : null,
+        acrescimo_ie_pct:      veioAcrescimoIE ? acrescimoIePct : null,
+        acrescimo_ie_aplicado: veioAcrescimoIE ? body.acrescimo_ie_aplicado === true : null,
       },
     }).eq("id", data.pedido_id);
 
