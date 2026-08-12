@@ -200,6 +200,17 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
     [q.data],
   );
 
+  /**
+   * MESA-É-FILA-DE-AÇÃO: a lista mostra só título com ato a praticar. Cartão a
+   * vencer (cliente já autorizou) e "Em curso" (acompanhar não é ação) somem da
+   * lista — mas continuam nos cartões-resumo e reaparecem com um clique em
+   * VIGIAR / NÃO É COBRANÇA, ou pelo filtro de fila. Nada fica escondido; só
+   * deixa de sujar a mesa. Envio falhado não precisa de exceção: a precedência
+   * da fila joga o título em A_ENVIAR, que exige ação.
+   */
+  const revelandoSemAcao = grupoAtivo !== null || soVencido || filaF !== "todas";
+
+
 
   const instrumentos = useMemo(
     () => Array.from(new Set(linhas.map((l) => l.instrumento).filter(Boolean))) as string[],
@@ -209,6 +220,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
   const filtradas = useMemo(() => {
     const termo = busca.trim().toLowerCase();
     return linhas.filter((l) => {
+      if (!revelandoSemAcao && l.mesa_exige_acao !== true) return false;
       if (soVencido) {
         // Filtro transversal de vencidos: ignora o recorte por grupo de cartão.
         if (!((l.dias_atraso ?? 0) > 0)) return false;
@@ -221,7 +233,8 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
       }
       return true;
     });
-  }, [linhas, busca, instrumentoF, filaF, soVencido, grupoAtivo]);
+  }, [linhas, busca, instrumentoF, filaF, soVencido, grupoAtivo, revelandoSemAcao]);
+
 
   const resumoGrupo = (grupo: keyof typeof GRUPOS) => {
     const alvo = linhas.filter((l) => GRUPOS[grupo].includes(l.fila ?? ""));
@@ -421,7 +434,17 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
           <div className="space-y-2">
             {filasOrdenadas.filter((f) => f.rows.length > 0).length === 0 ? (
               <div className="rounded-md border px-3 py-6 text-center text-sm text-muted-foreground">
-                Nenhum título aberto na mesa.
+                {linhas.length > 0 && !revelandoSemAcao ? (
+                  <>
+                    Nada a fazer agora. Os {linhas.length} títulos da mesa estão sem ação
+                    pendente — liquidam sozinhos ou só aguardam prazo.
+                    <div className="mt-1 text-xs">
+                      Clique em VIGIAR ou NÃO É COBRANÇA acima para vê-los.
+                    </div>
+                  </>
+                ) : (
+                  "Nenhum título aberto na mesa."
+                )}
               </div>
             ) : (
               <>

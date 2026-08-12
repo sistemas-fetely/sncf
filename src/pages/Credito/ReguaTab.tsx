@@ -78,8 +78,10 @@ function KpiCard({
 
 const FONTE_LABEL: Record<string, string> = {
   retorno_cnab: "retorno CNAB do banco",
-  francesinha: "francesinha do banco",
-  remessa_enviada: "remessa enviada ao banco",
+  instrucoes_2via: "relatório Instruções 2ª via do Safra",
+  francesinha: "francesinha do Safra",
+  carteira_safra: "carteira do Safra (import sem origem registrada)",
+  remessa_enviada: "remessa que ENVIAMOS ao banco — não é confirmação do banco",
   sem_prova: "sem prova",
 };
 
