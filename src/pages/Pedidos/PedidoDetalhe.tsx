@@ -57,6 +57,7 @@ import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialo
 import { CancelarPedidoDialog } from "@/components/pedidos/dialogs/CancelarPedidoDialog";
 import { ConsolidarPedidoDialog } from "@/components/pedidos/dialogs/ConsolidarPedidoDialog";
 import { ReterEstoqueDialog } from "@/components/pedidos/dialogs/ReterEstoqueDialog";
+import { DesvincularBlingDialog } from "@/components/pedidos/dialogs/DesvincularBlingDialog";
 import { AnotarPedidoDialog } from "@/components/pedidos/dialogs/AnotarPedidoDialog";
 import { CanalFopTab } from "@/components/pedidos/CanalFopTab";
 import { BotaoEditarPedido } from "@/components/pedidos/BotaoEditarPedido";
@@ -78,7 +79,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 import { AREA_LABELS, STATUS_TITULO_LABELS, URGENCIA_LABELS } from "@/types/pedido";
 import type { AreaPedido, EstagioPedido, StatusTitulo, TipoTituloPagamento, TituloAReceber, UrgenciaDeclarada } from "@/types/pedido";
-import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy, Truck, RefreshCw, Scissors, Mail, MailCheck, ShieldAlert, MessageCircle, Link2, Wallet, PauseCircle, Bell, XCircle, History, RotateCcw, Scale, PackageX } from "lucide-react";
+import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy, Truck, RefreshCw, Scissors, Mail, MailCheck, ShieldAlert, MessageCircle, Link2, Wallet, PauseCircle, Bell, XCircle, History, RotateCcw, Scale, PackageX, Link2Off } from "lucide-react";
 import { useFreteComparativo } from "@/hooks/pedidos/useFreteComparativo";
 import { CompararTransportadorasDialog } from "@/components/pedidos/dialogs/CompararTransportadorasDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -942,6 +943,7 @@ export default function PedidoDetalhe() {
   const { data: dimEixosTitulos } = useTituloEixosDim();
   const { data: titulosResumo } = useTitulosPedidoResumo(id);
   const [aplicarHaverOpen, setAplicarHaverOpen] = useState(false);
+  const [desvincularBlingOpen, setDesvincularBlingOpen] = useState(false);
   const [restaurandoSnapshot, setRestaurandoSnapshot] = useState(false);
   const [confirmRestaurar, setConfirmRestaurar] = useState(false);
   const [corrigindoSnapshot, setCorrigindoSnapshot] = useState(false);
@@ -2435,6 +2437,42 @@ export default function PedidoDetalhe() {
                   split_de_pedido_id={(pedido as any).split_de_pedido_id ?? null}
                   consolidado_em_pedido_id={(pedido as any).consolidado_em_pedido_id ?? null}
                   pedido_origem_id={pedido.pedido_origem_id ?? null}
+                  acoesBling={(() => {
+                    // Ação de exceção: só super_admin, só antes de faturar, e só se houver vínculo vivo.
+                    if (!isSuperAdmin) return null;
+                    if (!["pre_separacao", "em_separacao"].includes(estagio)) return null;
+                    const remessas = (remessasData ?? []) as any[];
+                    if ((pedido as any).nf_numero) return null;
+                    if (remessas.some((r) => r.nf_numero)) return null;
+                    const vinculoVivo =
+                      !!(pedido as any).bling_enviado_em ||
+                      remessas.some(
+                        (r) =>
+                          r.status !== "cancelada" &&
+                          (r.status === "enviada_bling" || r.bling_pedido_id != null)
+                      );
+                    if (!vinculoVivo) return null;
+                    return (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start gap-1.5 h-auto py-1.5 text-xs text-muted-foreground hover:text-destructive"
+                          onClick={() => setDesvincularBlingOpen(true)}
+                        >
+                          <Link2Off className="h-3.5 w-3.5 shrink-0" />
+                          Desvincular do Bling
+                        </Button>
+                        <DesvincularBlingDialog
+                          open={desvincularBlingOpen}
+                          onOpenChange={setDesvincularBlingOpen}
+                          pedidoId={pedido.id}
+                          idExterno={pedido.id_externo}
+                          blingId={(pedido as any).bling_id_destino ?? null}
+                        />
+                      </>
+                    );
+                  })()}
                   acoesExtra={
                     !estagioFinal && isSuperAdmin ? (
                       <BotaoConsolidarPedido
@@ -2446,6 +2484,7 @@ export default function PedidoDetalhe() {
                     ) : null
                   }
                 />
+
               )}
 
 

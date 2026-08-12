@@ -31,6 +31,9 @@ interface Props {
   pedido_origem_id: string | null;
   /** Ações de vínculo vindas de fora (ex.: consolidar outro pedido aqui). */
   acoesExtra?: ReactNode;
+  /** Ação de exceção logo abaixo de "Envios ao Bling" (ex.: desvincular do Bling). */
+  acoesBling?: ReactNode;
+
 }
 
 function rotuloEstagio(estagio: string) {
@@ -124,7 +127,9 @@ export function VinculosSection({
   consolidado_em_pedido_id,
   pedido_origem_id,
   acoesExtra,
+  acoesBling,
 }: Props) {
+
   const vincular = useVincularComplementar();
   const { data: vinculos } = useVinculosPedido({
     pedido_id,
@@ -156,7 +161,7 @@ export function VinculosSection({
         !!vinculos.origem ||
         vinculos.complementares.length > 0));
 
-  const temAcoes = podeSplit || !!acoesExtra;
+  const temAcoes = podeSplit || !!acoesExtra || !!acoesBling;
   if (!temAlgumVinculo && !temAcoes) return null;
 
   const handleBuscar = async () => {
@@ -200,6 +205,8 @@ export function VinculosSection({
       </CardHeader>
       <CardContent className="space-y-3">
         <GrupoRemessas remessas={remessas ?? []} id_externo={id_externo} />
+        {acoesBling}
+
         {vinculos && (
           <>
             <Grupo rotulo="Split de" pedidos={vinculos.remessa_de ? [vinculos.remessa_de] : []} />
