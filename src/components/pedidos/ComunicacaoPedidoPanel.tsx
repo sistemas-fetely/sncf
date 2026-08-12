@@ -107,15 +107,16 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
   const titulosBoletoQ = useQuery({
     queryKey: ["comunic-titulos-boleto", pedido_id],
     queryFn: async () => {
+      // Traz TODOS os títulos não-entrada; o montador é quem recorta por status/instrumento.
       const { data } = await (supabase as any)
         .from("titulo_a_receber")
-        .select("id, numero_parcela, total_parcelas, valor_bruto, data_vencimento_atual, linha_digitavel")
+        .select(
+          "id, numero_parcela, total_parcelas, valor_bruto, data_vencimento_atual, linha_digitavel, status, tipo_pagamento, boleto_status",
+        )
         .eq("pedido_id", pedido_id)
-        .eq("tipo_pagamento", "boleto")
-        .eq("boleto_status", "registrado")
         .eq("eh_entrada", false)
-        .not("linha_digitavel", "is", null);
-      return (data ?? []) as any[];
+        .order("numero_parcela", { ascending: true });
+      return (data ?? []) as TituloPacote[];
     },
     enabled: !!pedido_id,
   });
