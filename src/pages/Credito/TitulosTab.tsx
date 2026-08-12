@@ -337,6 +337,9 @@ function matchData(t: TituloCobranca, vencDe: string, vencAte: string): boolean 
 /** "Todos" LISTA tudo, inclusive encerrados, que seguem fora dos números dos cards. */
 function matchCards(t: TituloCobranca, cards: Set<string>, mesAtual: string): boolean {
   if (cards.has("todos")) return true;
+  // Terminais que não são dívida: filtro próprio, fora dos KPIs de cobrança.
+  if (cards.has("devolvido") && t.status_gestao === "devolvido") return true;
+  if (cards.has("baixado_por_perda") && t.status_gestao === "baixado_por_perda") return true;
   const passa =
     (cards.has("a_vencer") && t.status_gestao === "a_vencer") ||
     (cards.has("vence_hoje") && t.status_gestao === "vence_hoje") ||
