@@ -942,6 +942,7 @@ export default function PedidoDetalhe() {
   const { data: dimEixosTitulos } = useTituloEixosDim();
   const { data: titulosResumo } = useTitulosPedidoResumo(id);
   const [aplicarHaverOpen, setAplicarHaverOpen] = useState(false);
+  const [desvincularBlingOpen, setDesvincularBlingOpen] = useState(false);
   const [restaurandoSnapshot, setRestaurandoSnapshot] = useState(false);
   const [confirmRestaurar, setConfirmRestaurar] = useState(false);
   const [corrigindoSnapshot, setCorrigindoSnapshot] = useState(false);
