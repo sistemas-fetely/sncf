@@ -46209,14 +46209,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -52230,6 +52230,15 @@ export type Database = {
       desfazer_conciliacao_ofx: { Args: { p_ofx_id: string }; Returns: Json }
       desfazer_remessa: { Args: { p_remessa_id: string }; Returns: Json }
       despausar_regua_titulo: { Args: { p_titulo_id: string }; Returns: Json }
+      desvincular_envio_bling: {
+        Args: {
+          p_ator?: string
+          p_confirmado_no_bling?: boolean
+          p_motivo: string
+          p_pedido_id: string
+        }
+        Returns: Json
+      }
       detectar_duplicatas_nf: {
         Args: { p_chaves: string[]; p_cnpj_numero?: Json }
         Returns: {
