@@ -501,6 +501,15 @@ export default function CobrancaDetalhe() {
   const temDivergenciaLeve = Math.abs(diff) > 0.005 && pctDiff <= 0.01;
   const temDivergenciaGrave = pctDiff > 0.01;
 
+  const qtdPortao = titulos.filter((t) => t.eh_portao).length;
+  const totalPortao = titulos.reduce(
+    (acc, t) => acc + (t.eh_portao ? Number(t.valor_bruto || 0) : 0),
+    0,
+  );
+  const pctPortao = totalEditado > 0 ? (totalPortao / totalEditado) * 100 : 0;
+
+
+
   const temValorInvalido = titulos.some((t) => Number(t.valor_bruto) <= 0);
   const temDataPassada = !!dataPedidoStr && titulos.some(
     (t) => t.data_vencimento < dataPedidoStr,
