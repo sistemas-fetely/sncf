@@ -1004,6 +1004,20 @@ export default function CobrancaDetalhe() {
           </div>
 
 
+          {/* Resumo da composição de pagamento */}
+          <p className="text-xs text-muted-foreground mb-2">
+            Plano: {titulos.length} linha(s) · total {fmtBRL.format(totalEditado)} ·{" "}
+            {qtdPortao} de portão somando {fmtBRL.format(totalPortao)}
+            {exigePortao && (
+              <>
+                {" "}· este pedido exige portão
+                {totalPortao <= 0.005
+                  ? " — marque ao menos uma linha como portão"
+                  : ` (cobertura de ${pctPortao.toFixed(0)}% do plano; o mínimo é validado no banco ao confirmar)`}
+              </>
+            )}
+          </p>
+
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -1011,6 +1025,7 @@ export default function CobrancaDetalhe() {
                   <TableHead className="w-16">#</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Pagamento</TableHead>
+                  <TableHead className="w-20">Portão</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead>Vencimento</TableHead>
                   <TableHead>Condição</TableHead>
@@ -1022,7 +1037,8 @@ export default function CobrancaDetalhe() {
                 {titulos.map((t, idx) => {
                   const dataInvalida = !!dataPedidoStr && t.data_vencimento < dataPedidoStr;
                   const valorInvalido = Number(t.valor_bruto) <= 0;
-                  const tipoDesabilitado = pedidoQ.data?.estagio !== "cobranca" || (t.eh_entrada && exigePortao);
+                  const tipoDesabilitado = pedidoQ.data?.estagio !== "cobranca";
+
                   return (
                     <TableRow key={idx}>
                       <TableCell className="font-mono text-xs">
