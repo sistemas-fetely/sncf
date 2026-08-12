@@ -11,6 +11,7 @@ import { AlertTriangle, Loader2, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useEnviarEmailNfBoletos } from "@/hooks/pedidos/useEnviarEmailNfBoletos";
 import { useLogEmailEnvio } from "@/hooks/pedidos/usePedidoEmailLog";
+import { useEmailCobrancaParceiro } from "@/hooks/credito/useEmailCobrancaParceiro";
 import type { LinhaMesa } from "@/lib/financeiro/adaptar-titulo-mesa";
 
 const RE_EMAIL = /^[^\s@,]+@[^\s@,]+\.[^\s@,]{2,}$/;
@@ -40,17 +41,28 @@ export function EnviarPacoteDialog({ linha, valorTotalPedido, open, onOpenChange
   const qc = useQueryClient();
   const enviarNfBoletos = useEnviarEmailNfBoletos();
   const logEnvio = useLogEmailEnvio();
+  const emailPreferidoQ = useEmailCobrancaParceiro(open ? linha?.parceiro_id : null);
 
   const [destinatario, setDestinatario] = useState("");
   const [ccTexto, setCcTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
 
+  const [editado, setEditado] = useState(false);
+
   useEffect(() => {
     if (open) {
-      setDestinatario(linha?.email_cliente ?? "");
+      setDestinatario(emailPreferidoQ.data?.email ?? linha?.email_cliente ?? "");
       setCcTexto("");
+      setEditado(false);
     }
   }, [open, linha?.email_cliente]);
+
+  // Quando o e-mail preferido chega depois da abertura, preenche — sem sobrescrever edição.
+  useEffect(() => {
+    if (open && !editado && emailPreferidoQ.data?.email) {
+      setDestinatario(emailPreferidoQ.data.email);
+    }
+  }, [open, editado, emailPreferidoQ.data?.email]);
 
   const destinatarioTrim = destinatario.trim();
   const destinatarioValido = RE_EMAIL.test(destinatarioTrim);
@@ -169,7 +181,7 @@ export function EnviarPacoteDialog({ linha, valorTotalPedido, open, onOpenChange
               type="email"
               placeholder="financeiro@cliente.com.br"
               value={destinatario}
-              onChange={(e) => setDestinatario(e.target.value)}
+              onChange={(e) => { setEditado(true); setDestinatario(e.target.value); }}
               aria-invalid={!!erroDestinatario}
             />
             {erroDestinatario && (

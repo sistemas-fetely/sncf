@@ -23,6 +23,10 @@ import { Badge } from "@/components/ui/badge";
 import {
   useLinkPagamentoPedido, useRegistrarLinkPagamento, fmtDataBR,
 } from "@/hooks/pedidos/useLinkPagamentoPedido";
+import {
+  montarPacoteCobranca, type TituloPacote,
+} from "@/lib/financeiro/montar-pacote-cobranca";
+import { resolverEmailCobranca } from "@/lib/financeiro/email-cobranca-parceiro";
 
 type TipoEmail = "cobranca" | "portao_boleto" | "boleto" | "nf" | "nf_boletos";
 
@@ -63,7 +67,7 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("parceiros_comerciais")
-        .select("email, razao_social")
+        .select("email, email_cobranca, contatos, razao_social")
         .eq("id", parceiro_id)
         .maybeSingle();
       return data;
@@ -107,18 +111,28 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
   const titulosBoletoQ = useQuery({
     queryKey: ["comunic-titulos-boleto", pedido_id],
     queryFn: async () => {
+      // Traz TODOS os títulos não-entrada; o montador é quem recorta por status/instrumento.
       const { data } = await (supabase as any)
         .from("titulo_a_receber")
-        .select("id, numero_parcela, total_parcelas, valor_bruto, data_vencimento_atual, linha_digitavel")
+        .select(
+          "id, numero_parcela, total_parcelas, valor_bruto, data_vencimento_atual, linha_digitavel, status, tipo_pagamento, boleto_status",
+        )
         .eq("pedido_id", pedido_id)
-        .eq("tipo_pagamento", "boleto")
-        .eq("boleto_status", "registrado")
         .eq("eh_entrada", false)
-        .not("linha_digitavel", "is", null);
-      return (data ?? []) as any[];
+        .order("numero_parcela", { ascending: true });
+      return (data ?? []) as TituloPacote[];
     },
     enabled: !!pedido_id,
   });
+
+  // Boletos SEMPRE via montador: só títulos com status 'aberto' e tipo boleto.
+  const titulosBoleto = useMemo(() => {
+    try {
+      return montarPacoteCobranca((titulosBoletoQ.data ?? []) as TituloPacote[]).titulosBoleto;
+    } catch {
+      return [] as TituloPacote[];
+    }
+  }, [titulosBoletoQ.data]);
 
   const nfQ = useQuery({
     queryKey: ["comunic-nf", pedido_id],
@@ -158,15 +172,21 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
   const [novoLink, setNovoLink] = useState("");
   const [geradoEm, setGeradoEm] = useState(hojeISO);
 
+  // Precedência: contatos.financeiro.email > email_cobranca > email.
+  const emailPreferido = useMemo(
+    () => resolverEmailCobranca(parceiroQ.data ?? null).email,
+    [parceiroQ.data],
+  );
+
   useEffect(() => {
-    if (dialogOpen && parceiroQ.data?.email && !emailPrincipal) {
-      setEmailPrincipal(parceiroQ.data.email);
+    if (dialogOpen && emailPreferido && !emailPrincipal) {
+      setEmailPrincipal(emailPreferido);
     }
-  }, [dialogOpen, parceiroQ.data, emailPrincipal]);
+  }, [dialogOpen, emailPreferido, emailPrincipal]);
 
   const abrirDialog = (tipo: TipoEmail) => {
     setDialogTipo(tipo);
-    setEmailPrincipal(parceiroQ.data?.email ?? "");
+    setEmailPrincipal(emailPreferido ?? "");
     setEmailsAdicionais([]);
     setNovoEmail("");
     setNovoLink("");
@@ -202,7 +222,7 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
           await enviarBoleto.mutateAsync(tituloEntradaQ.data.id);
         }
       } else if (dialogTipo === "boleto") {
-        for (const t of titulosBoletoQ.data ?? []) {
+        for (const t of titulosBoleto) {
           await enviarBoleto.mutateAsync(t.id);
         }
       } else if (dialogTipo === "nf") {
@@ -229,7 +249,6 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
   };
 
   // ── Visibilidade ──
-  const titulosBoleto = titulosBoletoQ.data ?? [];
   const nfExiste = !!nfQ.data?.id;
   const portao = portaoQ.data;
   const tituloEntrada = tituloEntradaQ.data;
