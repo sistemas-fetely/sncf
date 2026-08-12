@@ -16,7 +16,10 @@ export type StatusGestao =
   | "pago"
   | "pago_com_atraso"
   | "pago_judicial"
-  | "cancelado";
+  | "cancelado"
+  /* terminais que NÃO são inadimplência */
+  | "devolvido"
+  | "baixado_por_perda";
 
 
 

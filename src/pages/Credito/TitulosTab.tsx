@@ -33,6 +33,7 @@ import { apelidoParceiro } from "@/lib/parceiros/nome";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
+import { BadgeStatusGestao } from "@/lib/financeiro/status-gestao";
 import { BaixaManualDialog } from "@/components/credito/BaixaManualDialog";
 import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTituloHaverDialog";
 import { ReemitirBoletoDialog } from "@/components/credito/ReemitirBoletoDialog";
@@ -337,6 +338,9 @@ function matchData(t: TituloCobranca, vencDe: string, vencAte: string): boolean 
 /** "Todos" LISTA tudo, inclusive encerrados, que seguem fora dos números dos cards. */
 function matchCards(t: TituloCobranca, cards: Set<string>, mesAtual: string): boolean {
   if (cards.has("todos")) return true;
+  // Terminais que não são dívida: filtro próprio, fora dos KPIs de cobrança.
+  if (cards.has("devolvido") && t.status_gestao === "devolvido") return true;
+  if (cards.has("baixado_por_perda") && t.status_gestao === "baixado_por_perda") return true;
   const passa =
     (cards.has("a_vencer") && t.status_gestao === "a_vencer") ||
     (cards.has("vence_hoje") && t.status_gestao === "vence_hoje") ||
@@ -641,6 +645,22 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
 
   const totalFiltrado = filtrados.reduce((acc, t) => acc + (t.valor_efetivo ?? 0), 0);
 
+  /* Terminais neutros: contados à parte, nunca somados em atraso/inadimplência. */
+  const kpisTerminais = useMemo(() => {
+    const acc = {
+      devolvido: { qtd: 0, valor: 0 },
+      baixado_por_perda: { qtd: 0, valor: 0 },
+    };
+    for (const t of baseSemCards) {
+      const alvo = acc[t.status_gestao as keyof typeof acc];
+      if (!alvo) continue;
+      alvo.qtd++;
+      alvo.valor += t.valor_efetivo ?? 0;
+    }
+    return acc;
+  }, [baseSemCards]);
+
+
   /* Estágio 3: agrupamento por pedido. `universo` entra de novo só para contar os ocultos — os títulos do mesmo pedido que os filtros escondem. */
   const grupos = useMemo(() => agruparPorPedido(filtrados, universo), [filtrados, universo]);
 
@@ -660,6 +680,7 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
     <div className="space-y-4">
       {/* KPIs — clicar aplica o recorte */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+
         <KpiCard
           label="A vencer"
           qtd={kpis.aVencer.qtd}
@@ -698,6 +719,27 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
           onClick={() => toggleCard("todos")}
         />
       </div>
+
+      {/* Terminais que NÃO são inadimplência — fora dos números de atraso. */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <KpiCard
+          label="Devolvido"
+          labelTooltip="Mercadoria devolvida pelo cliente. Não é inadimplência."
+          qtd={kpisTerminais.devolvido.qtd}
+          valor={kpisTerminais.devolvido.valor}
+          ativo={cardsAtivos.has("devolvido")}
+          onClick={() => toggleCard("devolvido")}
+        />
+        <KpiCard
+          label="Baixado por perda"
+          labelTooltip="Título baixado por perda. Não é inadimplência."
+          qtd={kpisTerminais.baixado_por_perda.qtd}
+          valor={kpisTerminais.baixado_por_perda.valor}
+          ativo={cardsAtivos.has("baixado_por_perda")}
+          onClick={() => toggleCard("baixado_por_perda")}
+        />
+      </div>
+
 
 
       {/* Filtro por tipo de pagamento */}
@@ -874,6 +916,7 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-1 pt-1">
+                  <BadgeStatusGestao status={detalhe.status_gestao} />
                   <BadgeSubestado sub={detalhe.subestado_atraso} />
                   {detalhe.titulo_renegociado_origem_id && (
                     <Badge variant="outline" className="text-[10px]">
