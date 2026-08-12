@@ -412,20 +412,48 @@ export default function ReguaTab() {
     return da < db ? -1 : 1;
   };
 
-  // Agrupa por descrição da etapa aplicável
-  const grupos = useMemo(() => {
-    const map = new Map<string, { etapa: ReguaEtapa | null; titulos: TituloCobranca[] }>();
+  /**
+   * RÉGUA-É-FILA-DE-AÇÃO. Três baldes:
+   *  - comAcao: tem etapa pendente → card cheio, agrupado por etapa
+   *  - jaContatado: etapa cumprida → linha compacta com selo verde
+   *  - aguardando: ainda não chegou etapa nenhuma → linha compacta neutra
+   */
+  const baldes = useMemo(() => {
+    const comAcao: { t: TituloCobranca; etapa: ReguaEtapa }[] = [];
+    const jaContatado: { t: TituloCobranca; em: string | null }[] = [];
+    const aguardando: TituloCobranca[] = [];
     for (const t of [...lista].sort(porProximaAcao)) {
       const etapa = resolverEtapaParaTitulo(t, etapas);
-      const key = etapa?.descricao_acao ?? "Régua em dia — nenhuma etapa pendente";
+      if (etapa) { comAcao.push({ t, etapa }); continue; }
+      const u = etapaUltimaDoTitulo(t, etapas);
+      if (u) jaContatado.push({ t, em: u.em });
+      else aguardando.push(t);
+    }
+    return { comAcao, jaContatado, aguardando };
+  }, [lista, etapas]);
+
+  // Agrupa só os com ação, por descrição da etapa aplicável.
+  const grupos = useMemo(() => {
+    const map = new Map<string, { etapa: ReguaEtapa | null; titulos: TituloCobranca[] }>();
+    for (const { t, etapa } of baldes.comAcao) {
+      const key = etapa.descricao_acao;
       if (!map.has(key)) map.set(key, { etapa, titulos: [] });
       map.get(key)!.titulos.push(t);
     }
-    // Grupo com ação mais atrasada primeiro (menor data de próxima ação).
     return Array.from(map.entries()).sort(
       (a, b) => porProximaAcao(a[1].titulos[0], b[1].titulos[0]),
     );
-  }, [lista, etapas]);
+  }, [baldes]);
+
+  const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
+  const alternar = (id: string) =>
+    setExpandidos((prev) => {
+      const s = new Set(prev);
+      if (s.has(id)) s.delete(id); else s.add(id);
+      return s;
+    });
+
+  const somaLista = (ts: TituloCobranca[]) => somaValor(ts);
 
 
   return (
