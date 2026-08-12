@@ -116,7 +116,7 @@ function SeloConferencia({ c }: { c: BoletoVencimentoConferencia | undefined }) 
 }
 
 function CardTitulo({
-  titulo, etapa, acaoAtrasada, conferencia, onAcao, onPular, onPausar, onRenegociar, onEnviarPacote,
+  titulo, etapa, acaoAtrasada, conferencia, onAcao, onPular, onPausar, onRenegociar, onEnviarPacote, onReenviar,
 }: {
   titulo: TituloCobranca;
   etapa: ReguaEtapa | null;
@@ -127,11 +127,13 @@ function CardTitulo({
   onPausar: () => void;
   onRenegociar: () => void;
   onEnviarPacote: (l: LinhaMesa) => void;
+  onReenviar: () => void;
 }) {
   const razao = nomeCanonico(titulo.parceiro_razao_social, "—");
   const apelido = apelidoParceiro(titulo.parceiro_razao_social, titulo.parceiro_nome_fantasia);
   const proxima = (titulo as any).data_proxima_acao_regua as string | null | undefined;
   const mesa = (titulo as any)._mesa as LinhaMesa | undefined;
+  const ultima = (titulo as any)._mesa?.etapa_ultima_em as string | null | undefined;
   const vencimento = mesa?.vencimento ?? titulo.data_vencimento_atual ?? null;
   const atraso = titulo.dias_atraso ?? 0;
   return (
