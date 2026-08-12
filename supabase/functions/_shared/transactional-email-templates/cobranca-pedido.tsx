@@ -21,6 +21,12 @@ interface CobrancaPedidoProps {
   link_pagamento?:   string
   tipo_pagamento?:   TipoPagamento
   qr_code_pix?:      string
+  pix_txid?:         string
+}
+
+/** BR Code PIX (EMV) é texto opaco — sempre começa com "000201" e nunca é URL. */
+function ehBrCodePix(valor?: string | null): boolean {
+  return (valor ?? '').trim().startsWith('000201')
 }
 
 const Verde      = '#2d5a27'
@@ -73,11 +79,13 @@ const CobrancaPedidoEmail = ({
   link_pagamento,
   tipo_pagamento,
   qr_code_pix,
+  pix_txid,
 }: CobrancaPedidoProps) => {
   const { headline, subline, ctaLabel, ctaColor } = getConteudo(tipo_pagamento)
   const tipoPag = (tipo_pagamento ?? '').toLowerCase()
-  const isPix     = tipoPag === 'pix'
-  const isCartao  = tipoPag.includes('cart')
+  const isBrCode  = ehBrCodePix(link_pagamento)
+  const isPix     = tipoPag === 'pix' || isBrCode
+  const isCartao  = !isBrCode && tipoPag.includes('cart')
 
   return (
     <Html lang="pt-BR" dir="ltr">
@@ -196,16 +204,36 @@ const CobrancaPedidoEmail = ({
               </Section>
             )}
 
-            {/* PIX: QR Code + link como texto */}
+            {/* PIX: BR Code copia e cola (texto opaco, nunca link clicável) */}
             {isPix && (
               <Section style={{ textAlign: 'center', marginTop: '24px' }}>
-                {qr_code_pix && (
+                {qr_code_pix && !isBrCode && (
                   <Img src={qr_code_pix} alt="QR Code PIX" style={{ margin: '0 auto 16px', display: 'block' }} />
                 )}
                 {link_pagamento && (
                   <Section style={pixLinkBox}>
-                    <Text style={pixLabelStyle}>Código PIX — copie e cole no seu banco:</Text>
-                    <Text style={pixCopiavel}>{link_pagamento}</Text>
+                    <Text style={pixLabelStyle}>PIX copia e cola — copie o código abaixo no app do seu banco</Text>
+                    <Text style={pixCopiavel}>
+                      <code style={pixCodeStyle}>{link_pagamento}</code>
+                    </Text>
+                    <table width="100%" cellPadding="0" cellSpacing="0" border={0} style={{ marginTop: '12px' }}>
+                      {valor_liquido && (
+                        <tr>
+                          <td style={pixInfoLabel}>Valor</td>
+                          <td style={pixInfoValor}>{valor_liquido}</td>
+                        </tr>
+                      )}
+                      {pix_txid && (
+                        <tr>
+                          <td style={pixInfoLabel}>Identificador no extrato</td>
+                          <td style={{ ...pixInfoValor, fontFamily: 'monospace, Courier, "Courier New"' }}>{pix_txid}</td>
+                        </tr>
+                      )}
+                    </table>
+                    <Text style={pixAviso}>
+                      Código de uso único e do valor exato acima. Pagamentos com valor diferente podem não ser
+                      identificados automaticamente.
+                    </Text>
                   </Section>
                 )}
                 <Text style={ctaNote}>
@@ -294,6 +322,10 @@ const ctaNote       = { fontSize: '12px', color: '#999', textAlign: 'center' as 
 const pixLinkBox    = { backgroundColor: '#f0f7ee', borderRadius: '8px', padding: '12px 20px', marginBottom: '12px', border: '1px solid #c8e0c4' }
 const pixLabelStyle = { fontSize: '11px', color: '#5a7a54', textAlign: 'center' as const, margin: '0 0 6px', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }
 const pixCopiavel   = { fontSize: '11px', color: '#2d5a27', fontFamily: 'monospace, Courier, "Courier New"', wordBreak: 'break-all' as const, textAlign: 'center' as const, margin: '0', fontWeight: '600' as const }
+const pixCodeStyle  = { fontFamily: 'monospace, Courier, "Courier New"', fontSize: '11px', color: '#2d5a27', wordBreak: 'break-all' as const, lineHeight: '1.5' }
+const pixInfoLabel  = { fontSize: '11px', color: '#5a7a54', textAlign: 'left' as const, padding: '2px 0', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }
+const pixInfoValor  = { fontSize: '13px', color: '#2d5a27', textAlign: 'right' as const, padding: '2px 0', fontWeight: '700' as const }
+const pixAviso      = { fontSize: '11px', color: '#5a7a54', textAlign: 'left' as const, margin: '10px 0 0', lineHeight: '1.5' }
 const footer        = { backgroundColor: VerdeEscuro, padding: '20px 32px' }
 const footerText    = { fontSize: '11px', color: 'rgba(255,255,255,0.65)', margin: '0 0 5px', textAlign: 'center' as const }
 
