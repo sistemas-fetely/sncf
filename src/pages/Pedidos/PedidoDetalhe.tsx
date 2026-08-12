@@ -1109,7 +1109,7 @@ export default function PedidoDetalhe() {
   if (isLoading) return <div className="p-6 space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-32 w-full" /><Skeleton className="h-64 w-full" /></div>;
   if (!data) return <div className="p-6">Pedido não encontrado.</div>;
 
-  const { pedido, parceiro, itens, eventos, analiseCredito, analisesAnteriores, natureza, naturezaAlerta, idade_minutos, sla_estourado } = data;
+  const { pedido, parceiro, itens, eventos, analiseCredito, analisesAnteriores, natureza, naturezaAlerta, naturezaRefPedidoId, idade_minutos, sla_estourado } = data;
   const naturezaTrocaLiberada =
     !naturezaAlerta ||
     (naturezaAlerta.estagio_permite !== false &&
@@ -1482,10 +1482,13 @@ export default function PedidoDetalhe() {
           setNaturezaDialogOpen(v);
           if (!v) setNaturezaSugerida(null);
         }}
-        pedidoId={pedido.id}
+        pedidoId={naturezaRefPedidoId}
+        pedidoFilhoId={naturezaRefPedidoId !== pedido.id ? pedido.id : undefined}
+        ehRemessaFilha={naturezaRefPedidoId !== pedido.id}
         codigoAtual={natureza?.codigo ?? null}
         codigoSugerido={naturezaSugerida}
         focarMotivo={!!naturezaSugerida}
+
       />
 
       <Separator />
@@ -1567,6 +1570,38 @@ export default function PedidoDetalhe() {
                       <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Forma</p>
                       <p className="text-sm">{pedido.forma_solicitada ?? "—"}</p>
                     </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Natureza</p>
+                      <div className="flex items-center gap-1.5">
+                        {naturezaTrocaLiberada ? (
+                          <p className="text-sm">{natureza?.nome ?? "Venda"}</p>
+                        ) : (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <p className="text-sm cursor-default">{natureza?.nome ?? "Venda"}</p>
+                              </TooltipTrigger>
+                              <TooltipContent>{naturezaTrocaTooltip}</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                        {naturezaTrocaLiberada && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 text-muted-foreground"
+                            title="Trocar natureza de operação"
+                            onClick={() => {
+                              setNaturezaSugerida(null);
+                              setNaturezaDialogOpen(true);
+                            }}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
                     {pedido.bling_id_destino && (
                       <div>
                         <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">

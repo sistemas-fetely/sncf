@@ -20,7 +20,10 @@ interface Vars {
   pedidoId: string;
   naturezaCodigo: string;
   motivo: string;
+  /** Remessa filha aberta na tela: a natureza foi gravada no pai, mas a filha também precisa recarregar. */
+  pedidoFilhoId?: string;
 }
+
 
 /**
  * Troca a natureza de operação do pedido. O banco é a autoridade: valida estágio,
@@ -47,6 +50,13 @@ export function useAlterarNaturezaPedido() {
       qc.invalidateQueries({ queryKey: ["pedido-titulos", vars.pedidoId] });
       qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
       qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
+      if (vars.pedidoFilhoId && vars.pedidoFilhoId !== vars.pedidoId) {
+        qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedidoFilhoId] });
+        qc.invalidateQueries({ queryKey: ["pedido", vars.pedidoFilhoId] });
+        qc.invalidateQueries({ queryKey: ["pedido-eventos", vars.pedidoFilhoId] });
+        qc.invalidateQueries({ queryKey: ["pedido-titulos", vars.pedidoFilhoId] });
+      }
+
       toast.success(
         `Natureza alterada para ${data?.natureza_nome ?? vars.naturezaCodigo}`,
         {

@@ -25,7 +25,12 @@ import { useAlterarNaturezaPedido } from "@/hooks/pedidos/useAlterarNaturezaPedi
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  /** Pedido onde a natureza é gravada (o pai, quando a tela mostra uma remessa filha). */
   pedidoId: string;
+  /** Id da remessa filha aberta na tela, para recarregar junto. */
+  pedidoFilhoId?: string;
+  /** Mostra o aviso de que a troca vale para toda a família. */
+  ehRemessaFilha?: boolean;
   /** Natureza atual do pedido. */
   codigoAtual?: string | null;
   /** Pré-seleção vinda do banner de incoerência. */
@@ -38,6 +43,8 @@ export function AlterarNaturezaDialog({
   open,
   onOpenChange,
   pedidoId,
+  pedidoFilhoId,
+  ehRemessaFilha,
   codigoAtual,
   codigoSugerido,
   focarMotivo,
@@ -65,10 +72,11 @@ export function AlterarNaturezaDialog({
   const confirmar = () => {
     if (!podeConfirmar) return;
     alterar.mutate(
-      { pedidoId, naturezaCodigo: codigo, motivo: motivo.trim() },
+      { pedidoId, naturezaCodigo: codigo, motivo: motivo.trim(), pedidoFilhoId },
       { onSuccess: () => onOpenChange(false) },
     );
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -82,6 +90,16 @@ export function AlterarNaturezaDialog({
         </DialogHeader>
 
         <div className="space-y-4">
+          {ehRemessaFilha && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Esta é uma remessa. A natureza pertence ao pedido pai e a troca vale para
+                toda a família.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="space-y-1.5">
             <Label>Natureza</Label>
             <Select value={codigo} onValueChange={setCodigo} disabled={isLoading}>
