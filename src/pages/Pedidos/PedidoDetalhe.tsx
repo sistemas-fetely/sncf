@@ -96,6 +96,7 @@ import { EnviarEmailNfDialog } from "@/components/pedidos/dialogs/EnviarEmailNfD
 import { EnviarEmailNfBoletosDialog } from "@/components/pedidos/dialogs/EnviarEmailNfBoletosDialog";
 import { useBoletosDoPedido } from "@/hooks/pedidos/useBoletosDoPedido";
 import { ComunicacaoPedidoPanel } from "@/components/pedidos/ComunicacaoPedidoPanel";
+import { PortaoLinksPanel } from "@/components/pedidos/PortaoLinksPanel";
 import { ExportarPedidoDialog } from "@/components/pedidos/dialogs/ExportarPedidoDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertTriangle, Pencil } from "lucide-react";
@@ -2115,38 +2116,41 @@ export default function PedidoDetalhe() {
                   <PedidoTarefasTab pedidoId={pedido.id} />
                 </TabsContent>
                 <TabsContent value="parcelas">
-                  <div className="mb-3"><PlanoRecebimentoCard pedidoId={pedido.id} compacto /></div>
-                  {!titulosData || titulosData.length === 0 ? (
-                    !familiaCarregando && !familiaErro && familiaRecebivel?.recebivel_na_familia === true ? (
-                      <p className="text-sm text-muted-foreground text-center py-6">
-                        Coberto pelo recebível da mãe {familiaRecebivel?.familia_mae_externo ?? "—"} — não cobrar aqui
-                      </p>
+                  <div className="space-y-3">
+                    <PlanoRecebimentoCard pedidoId={pedido.id} compacto />
+                    {!titulosData || titulosData.length === 0 ? (
+                      !familiaCarregando && !familiaErro && familiaRecebivel?.recebivel_na_familia === true ? (
+                        <p className="text-sm text-muted-foreground text-center py-6">
+                          Coberto pelo recebível da mãe {familiaRecebivel?.familia_mae_externo ?? "—"} — não cobrar aqui
+                        </p>
+                      ) : (
+                        <SituacaoFinanceiraBloco pedidoId={pedido.id} compacto />
+                      )
                     ) : (
-                      <SituacaoFinanceiraBloco pedidoId={pedido.id} compacto />
-                    )
-                  ) : (
-                    <div className="space-y-2">
-                      {titulosData.map((t: TituloAReceber) => (
-                        <div key={t.id} className="flex items-center justify-between gap-2 border-b border-border/40 pb-2 last:border-0 last:pb-0">
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-mono text-xs">{t.numero_parcela}/{t.total_parcelas}</span>
-                              {t.eh_entrada && <Badge variant="outline" className="text-[9px] h-4 px-1 border-emerald-500 text-emerald-700">entrada</Badge>}
+                      <div className="space-y-2">
+                        {titulosData.map((t: TituloAReceber) => (
+                          <div key={t.id} className="flex items-center justify-between gap-2 border-b border-border/40 pb-2 last:border-0 last:pb-0">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-mono text-xs">{t.numero_parcela}/{t.total_parcelas}</span>
+                                {t.eh_entrada && <Badge variant="outline" className="text-[9px] h-4 px-1 border-emerald-500 text-emerald-700">entrada</Badge>}
+                              </div>
+                              <p className="text-xs text-muted-foreground">{TIPO_LABEL[t.tipo_pagamento]} · {fmtDate(t.data_vencimento_atual)}</p>
                             </div>
-                            <p className="text-xs text-muted-foreground">{TIPO_LABEL[t.tipo_pagamento]} · {fmtDate(t.data_vencimento_atual)}</p>
+                            <div className="text-right shrink-0">
+                              <p className="text-sm font-semibold">{fmtBRL.format(Number(t.valor_atual || 0))}</p>
+                              <BadgeEstadoParcela titulo={t} eixos={eixosTitulos} dim={dimEixosTitulos} compacto />
+                            </div>
                           </div>
-                          <div className="text-right shrink-0">
-                            <p className="text-sm font-semibold">{fmtBRL.format(Number(t.valor_atual || 0))}</p>
-                            <BadgeEstadoParcela titulo={t} eixos={eixosTitulos} dim={dimEixosTitulos} compacto />
-                          </div>
+                        ))}
+                        <div className="flex justify-between text-sm pt-1">
+                          <span className="text-muted-foreground">Total</span>
+                          <span className="font-bold">{fmtBRL.format(titulosData.reduce((acc: number, t: TituloAReceber) => acc + Number(t.valor_atual || 0), 0))}</span>
                         </div>
-                      ))}
-                      <div className="flex justify-between text-sm pt-1">
-                        <span className="text-muted-foreground">Total</span>
-                        <span className="font-bold">{fmtBRL.format(titulosData.reduce((acc: number, t: TituloAReceber) => acc + Number(t.valor_atual || 0), 0))}</span>
                       </div>
-                    </div>
-                  )}
+                    )}
+                    <PortaoLinksPanel pedidoId={pedido.id} />
+                  </div>
                 </TabsContent>
               </Tabs>
               </CardContent>
