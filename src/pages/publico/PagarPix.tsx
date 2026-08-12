@@ -101,13 +101,8 @@ export default function PagarPix() {
             Este pagamento já foi encerrado
           </h2>
           <p className="text-sm text-muted-foreground">
-            Não há nada pendente por aqui. Se você acredita que ainda falta pagar algo, fale com a
-            Fetély e a gente resolve junto.
-          </p>
-          <p className="text-sm">
-            <a href="mailto:sac@fetely.com.br" className="font-medium underline" style={{ color: "#1a3d2b" }}>
-              sac@fetely.com.br
-            </a>
+            Não há nada pendente por aqui. Se você acredita que ainda falta pagar algo, responda o
+            e-mail que recebeu da Fetély ou fale com seu contato comercial. A gente resolve junto.
           </p>
         </div>
       </Moldura>
