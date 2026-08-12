@@ -72,12 +72,49 @@ function KpiCard({
   );
 }
 
+const FONTE_LABEL: Record<string, string> = {
+  retorno_cnab: "retorno CNAB do banco",
+  francesinha: "francesinha do banco",
+  remessa_enviada: "remessa enviada ao banco",
+  sem_prova: "sem prova",
+};
+
+function SeloConferencia({ c }: { c: BoletoVencimentoConferencia | undefined }) {
+  if (!c) return null;
+  if (c.situacao === "CONFERE") {
+    return (
+      <Selo
+        texto="vencimento conferido"
+        tom="verde"
+        tooltip={`Data confirmada pela fonte: ${FONTE_LABEL[c.fonte_prova ?? ""] ?? c.fonte_prova ?? "não informada"}`}
+      />
+    );
+  }
+  if (c.situacao === "DIVERGENTE") {
+    return (
+      <Selo
+        texto="vencimento diverge do banco"
+        tom="vermelho"
+        tooltip={`sistema ${fmtDataMesa(c.venc_sistema)} · banco ${fmtDataMesa(c.venc_banco)}`}
+      />
+    );
+  }
+  return (
+    <Selo
+      texto="vencimento não conferido"
+      tom="ambar"
+      tooltip="nenhuma prova do banco para este boleto — importe um retorno CNAB ou a francesinha"
+    />
+  );
+}
+
 function CardTitulo({
-  titulo, etapa, acaoAtrasada, onAcao, onPular, onPausar, onRenegociar, onEnviarPacote,
+  titulo, etapa, acaoAtrasada, conferencia, onAcao, onPular, onPausar, onRenegociar, onEnviarPacote,
 }: {
   titulo: TituloCobranca;
   etapa: ReguaEtapa | null;
   acaoAtrasada?: boolean;
+  conferencia?: BoletoVencimentoConferencia;
   onAcao: () => void;
   onPular: () => void;
   onPausar: () => void;
@@ -87,6 +124,9 @@ function CardTitulo({
   const razao = nomeCanonico(titulo.parceiro_razao_social, "—");
   const apelido = apelidoParceiro(titulo.parceiro_razao_social, titulo.parceiro_nome_fantasia);
   const proxima = (titulo as any).data_proxima_acao_regua as string | null | undefined;
+  const mesa = (titulo as any)._mesa as LinhaMesa | undefined;
+  const vencimento = mesa?.vencimento ?? titulo.data_vencimento_atual ?? null;
+  const atraso = titulo.dias_atraso ?? 0;
   return (
     <div
       className={cn(
@@ -115,11 +155,11 @@ function CardTitulo({
         </div>
         <div className="text-right shrink-0">
           <div className="font-semibold text-sm">{formatBRL(titulo.valor_efetivo)}</div>
-          {(titulo.dias_atraso ?? 0) > 0 ? (
+          {atraso > 0 ? (
             <Badge variant="destructive" className="text-[10px]">
               há {titulo.dias_atraso}d
             </Badge>
-          ) : (titulo.dias_atraso ?? 0) < 0 ? (
+          ) : atraso < 0 ? (
             <Badge variant="outline" className="text-[10px]">
               D{titulo.dias_atraso}
             </Badge>
@@ -128,6 +168,23 @@ function CardTitulo({
           )}
         </div>
       </div>
+
+      <TooltipProvider>
+        <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-border bg-muted/50 px-2 py-1.5">
+          <span className="text-sm font-semibold tabular-nums">
+            {atraso === 0 ? "vence hoje" : `vence ${fmtDataMesa(vencimento)}`}
+          </span>
+          {atraso > 0 ? (
+            <Badge variant="destructive" className="text-[10px]">há {titulo.dias_atraso}d</Badge>
+          ) : atraso < 0 ? (
+            <Badge variant="outline" className="text-[10px]">D{titulo.dias_atraso}</Badge>
+          ) : (
+            <Badge variant="outline" className="text-[10px]">hoje</Badge>
+          )}
+          <SeloConferencia c={conferencia} />
+        </div>
+      </TooltipProvider>
+
 
       <div className="flex flex-wrap gap-1">
         {etapa && (
