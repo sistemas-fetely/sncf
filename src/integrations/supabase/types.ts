@@ -23166,6 +23166,10 @@ export type Database = {
       }
       pedidos: {
         Row: {
+          acrescimo_ie_base: number | null
+          acrescimo_ie_origem: string | null
+          acrescimo_ie_pct: number | null
+          acrescimo_ie_valor: number | null
           alerta_logistica: string | null
           analise_pedido_detalhes: Json | null
           analise_pedido_executada_em: string | null
@@ -23258,6 +23262,10 @@ export type Database = {
           xpm_expedicao_codigo: string | null
         }
         Insert: {
+          acrescimo_ie_base?: number | null
+          acrescimo_ie_origem?: string | null
+          acrescimo_ie_pct?: number | null
+          acrescimo_ie_valor?: number | null
           alerta_logistica?: string | null
           analise_pedido_detalhes?: Json | null
           analise_pedido_executada_em?: string | null
@@ -23350,6 +23358,10 @@ export type Database = {
           xpm_expedicao_codigo?: string | null
         }
         Update: {
+          acrescimo_ie_base?: number | null
+          acrescimo_ie_origem?: string | null
+          acrescimo_ie_pct?: number | null
+          acrescimo_ie_valor?: number | null
           alerta_logistica?: string | null
           analise_pedido_detalhes?: Json | null
           analise_pedido_executada_em?: string | null
