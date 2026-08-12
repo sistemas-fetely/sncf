@@ -238,6 +238,12 @@ function CardTitulo({
         </div>
       )}
 
+      {!etapa && ultima && (
+        <div className="text-[11px] text-muted-foreground">
+          Régua em dia — último contato em {fmtDataMesa(ultima)}
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-1.5 pt-1">
         <Button size="sm" className="h-7 text-xs" onClick={onAcao} disabled={!etapa}>
           Registrar ação
