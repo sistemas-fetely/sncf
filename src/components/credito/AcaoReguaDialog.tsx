@@ -162,17 +162,34 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose, reenvio = 
       }
 
       const assunto = `Fetély · Título ${titulo.numero_titulo ?? ""} — Vencimento ${formatDateBR(titulo.data_vencimento_atual)}`;
-      const { error: errEmail } = await supabase.functions.invoke("send-transactional-email", {
+      // Chave estável impede duplicata acidental. Reenvio DELIBERADO ganha sufixo
+      // próprio — sem isso o Resend devolve 409 e a tela mostra erro feio.
+      const chave = reenvio
+        ? `regua-${titulo.id}-${etapa.codigo}-${etapa.dias_offset}-r${Date.now()}`
+        : `regua-${titulo.id}-${etapa.codigo}-${etapa.dias_offset}`;
+
+      const { data: respEnvio, error: errEmail } = await supabase.functions.invoke<{
+        success?: boolean; duplicate?: boolean;
+      }>("send-transactional-email", {
         body: {
           templateName: "regua-cobranca",
           recipientEmail: effectiveEmails[0],
           cc: effectiveEmails.slice(1),
-          idempotencyKey: `regua-${titulo.id}-${etapa.codigo}-${etapa.dias_offset}`,
+          idempotencyKey: chave,
           templateData: { corpo: mensagem, assunto },
           ...(attachments ? { attachments } : {}),
         },
       });
       if (errEmail) throw new Error(`Falha ao enviar e-mail: ${errEmail.message}`);
+
+      if (respEnvio?.duplicate) {
+        // Já havia sido enviado com esta chave: não registra ação de novo.
+        toast.info("Este e-mail já havia sido enviado antes — nada foi reenviado.");
+        qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
+        qc.invalidateQueries({ queryKey: ["cobranca-mesa"] });
+        onClose();
+        return;
+      }
 
       await registrar("email", mensagem);
 
