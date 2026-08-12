@@ -46,9 +46,15 @@ import { ReabrirAnaliseAction } from "@/components/pedidos/ReabrirAnaliseAction"
 import { LinkPagamentoCard } from "@/components/pedidos/LinkPagamentoCard";
 import { PortaoLinksPanel } from "@/components/pedidos/PortaoLinksPanel";
 import { useVoltarParaOrigem } from "@/hooks/useVoltarParaOrigem";
+import { useMontarPlanoPagamento } from "@/hooks/credito/useMontarPlanoPagamento";
+
 
 const DIAS_PRIMEIRO_PAGAMENTO_FALLBACK = 9;
 const INTERVALO_PARCELAS_FALLBACK = 30;
+
+/** COMPOSIÇÃO DE PAGAMENTO: portão é atributo da linha, não "a primeira parcela". */
+type LinhaPlano = TituloProposto & { eh_portao?: boolean };
+
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
@@ -391,6 +397,8 @@ export default function CobrancaDetalhe() {
   const materializar = useMaterializarCobranca();
   const materializarComHaver = useMaterializarComHaver();
   const criarPortao = useCriarPortaoProvisorio();
+  const montarPlano = useMontarPlanoPagamento();
+
   const { roles: authRoles } = useAuth();
   const isSuperAdmin = (authRoles ?? []).includes("super_admin");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -407,7 +415,7 @@ export default function CobrancaDetalhe() {
   const jaPagoPedido = Number(titulosResumoQ.data?.somaPagos ?? 0);
   const jaPagoHaver = Number(titulosResumoQ.data?.somaHaver ?? 0);
 
-  const [titulos, setTitulos] = useState<TituloProposto[]>([]);
+  const [titulos, setTitulos] = useState<LinhaPlano[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const { regraDe: regraEdicaoCampo } = usePedidoEdicaoCampo((pedidoQ.data as any)?.estagio);
   // Esconde o gatilho antigo quando a seção nova de pagamento está liberada para o estágio.
@@ -498,9 +506,10 @@ export default function CobrancaDetalhe() {
     (t) => t.data_vencimento < dataPedidoStr,
   );
 
-  const atualizarTitulo = (idx: number, patch: Partial<TituloProposto>) => {
+  const atualizarTitulo = (idx: number, patch: Partial<LinhaPlano>) => {
     setTitulos((prev) => prev.map((t, i) => (i === idx ? { ...t, ...patch } : t)));
   };
+
 
   const handleValorTotalChange = (v: number) => {
     setValorTotalCobrar(v);
@@ -527,7 +536,7 @@ export default function CobrancaDetalhe() {
   };
 
 
-  const renumerar = (lista: TituloProposto[]): TituloProposto[] => {
+  const renumerar = (lista: LinhaPlano[]): LinhaPlano[] => {
     const n = lista.length;
     return lista.map((t, i) => ({ ...t, ordem: i, numero_parcela: i + 1, total_parcelas: n }));
   };
@@ -538,11 +547,12 @@ export default function CobrancaDetalhe() {
       const novaData = ultima
         ? addDiasISO(ultima.data_vencimento, intervaloDias)
         : addDiasISO(todayISO(), diasPrimeiroPagamento);
-      const novo: TituloProposto = {
+      const novo: LinhaPlano = {
         ordem: prev.length,
         numero_parcela: prev.length + 1,
         total_parcelas: prev.length + 1,
         eh_entrada: false,
+        eh_portao: false,
         tipo_pagamento: ultima?.tipo_pagamento ?? "boleto",
         valor_bruto: 0,
         data_vencimento: novaData,
@@ -552,6 +562,7 @@ export default function CobrancaDetalhe() {
       return parcelasIguais ? redistribuirValoresIguais(nova, valorTotalCobrar) : nova;
     });
   };
+
 
   const handleRemoverParcela = (idx: number) => {
     setTitulos((prev) => {
