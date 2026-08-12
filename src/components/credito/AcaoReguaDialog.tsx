@@ -35,6 +35,10 @@ interface Props {
   titulo: TituloCobranca;
   etapa: ReguaEtapa | null;
   modo: "enviada" | "pulada";
+  /** Reenvio consciente de etapa já cumprida: chave de idempotência ganha sufixo. */
+  reenvio?: boolean;
+  /** Quando o reenvio é de etapa já cumprida, a data da última ação. */
+  ultimaEm?: string | null;
   open: boolean;
   onClose: () => void;
 }
