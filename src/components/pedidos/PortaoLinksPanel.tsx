@@ -5,7 +5,6 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { LinkPagamentoCard } from "@/components/pedidos/LinkPagamentoCard";
 import { PixQrCodePortao } from "@/components/pedidos/PixQrCodePortao";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -124,8 +123,6 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
             : 'Ainda não há título a receber (ele nasce quando o portão é pago). O link de pagamento é ÚNICO para o pedido — não existe um link por parcela — e pode ser enviado pelo botão "Enviar cobrança".'}
         </p>
       </div>
-
-      <LinkPagamentoCard pedidoId={pedidoId} />
 
       <PixQrCodePortao
         portaoId={portao.id}

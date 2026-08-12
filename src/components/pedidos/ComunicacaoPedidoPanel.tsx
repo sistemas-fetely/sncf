@@ -27,6 +27,7 @@ import {
   montarPacoteCobranca, type TituloPacote,
 } from "@/lib/financeiro/montar-pacote-cobranca";
 import { resolverEmailCobranca } from "@/lib/financeiro/email-cobranca-parceiro";
+import { ehBrCodePix } from "@/lib/financeiro/instrumento-pagamento";
 
 type TipoEmail = "cobranca" | "portao_boleto" | "boleto" | "nf" | "nf_boletos";
 
@@ -80,7 +81,7 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("pedido_portao")
-        .select("tipo_pagamento, link_pagamento")
+        .select("tipo_pagamento, link_pagamento, valor, pix_txid")
         .eq("pedido_id", pedido_id)
         .eq("status", "provisorio")
         .order("created_at", { ascending: false })
@@ -216,7 +217,9 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
       const cc = emailsAdicionais;
 
       if (dialogTipo === "cobranca") {
-        await enviarCobranca.mutateAsync({ pedido_id, emails: [principal], cc });
+        await enviarCobranca.mutateAsync({
+          pedido_id, emails: [principal], cc, reenvio: !!ultimoPorTipo["cobranca"],
+        });
       } else if (dialogTipo === "portao_boleto") {
         if (tituloEntradaQ.data?.id) {
           await enviarBoleto.mutateAsync(tituloEntradaQ.data.id);
@@ -332,8 +335,11 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
   const tipoLinkNorm = (linkInfo?.tipo_pagamento ?? portao?.tipo_pagamento ?? "").toString().toLowerCase();
   const tipoExigeLink = tipoLinkNorm.includes("cart") || tipoLinkNorm.includes("pix");
   const linkExpirado = linkInfo?.situacao === "expirado";
+  // BR Code PIX gerado pelo SNCF é instrumento válido — não é URL, não vence.
+  const brCodePix = ehBrCodePix(portao?.link_pagamento) ? String(portao?.link_pagamento).trim() : null;
   const precisaRenovar =
     dialogTipo === "cobranca" &&
+    !brCodePix &&
     (linkExpirado || (!!linkUrl && !linkUrlValida) || (!linkUrl && tipoExigeLink));
   const diasVencer = linkInfo?.dias_para_vencer ?? 0;
 
@@ -409,7 +415,37 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
           </DialogHeader>
 
           <div className="space-y-4">
-            {dialogTipo === "cobranca" && !!linkUrl && (
+            {dialogTipo === "cobranca" && !!ultimoPorTipo["cobranca"] && (
+              <div className="rounded-md border border-amber-300 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950/30">
+                <p className="text-xs font-medium text-amber-900 dark:text-amber-300">
+                  O cliente já recebeu esta cobrança em {fmtDateTime(ultimoPorTipo["cobranca"].enviado_em)}.
+                  Enviar novamente é um reenvio consciente.
+                </p>
+              </div>
+            )}
+
+            {dialogTipo === "cobranca" && !!brCodePix && (
+              <div className="rounded-md border border-emerald-300 bg-emerald-50 p-3 space-y-1.5 dark:border-emerald-800 dark:bg-emerald-950/30">
+                <p className="text-[10px] uppercase tracking-widest text-emerald-800 dark:text-emerald-300">
+                  PIX copia e cola
+                </p>
+                <p className="text-xs text-emerald-900 dark:text-emerald-200">
+                  O e-mail seguirá com o código PIX copia-e-cola gerado pelo SNCF (sem link do SafraPay).
+                </p>
+                {portao?.valor != null && (
+                  <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">
+                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(portao.valor))}
+                  </p>
+                )}
+                {portao?.pix_txid && (
+                  <p className="text-xs text-emerald-900/80 dark:text-emerald-300/80">
+                    Identificador no extrato: <span className="font-mono">{portao.pix_txid}</span>
+                  </p>
+                )}
+              </div>
+            )}
+
+            {dialogTipo === "cobranca" && !brCodePix && !!linkUrl && (
               <div className="rounded-md border bg-muted/40 p-3 space-y-1.5">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
