@@ -161,7 +161,7 @@ export function VinculosSection({
         !!vinculos.origem ||
         vinculos.complementares.length > 0));
 
-  const temAcoes = podeSplit || !!acoesExtra;
+  const temAcoes = podeSplit || !!acoesExtra || !!acoesBling;
   if (!temAlgumVinculo && !temAcoes) return null;
 
   const handleBuscar = async () => {
