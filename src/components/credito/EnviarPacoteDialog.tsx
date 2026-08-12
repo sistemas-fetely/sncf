@@ -181,7 +181,7 @@ export function EnviarPacoteDialog({ linha, valorTotalPedido, open, onOpenChange
               type="email"
               placeholder="financeiro@cliente.com.br"
               value={destinatario}
-              onChange={(e) => setDestinatario(e.target.value)}
+              onChange={(e) => { setEditado(true); setDestinatario(e.target.value); }}
               aria-invalid={!!erroDestinatario}
             />
             {erroDestinatario && (
