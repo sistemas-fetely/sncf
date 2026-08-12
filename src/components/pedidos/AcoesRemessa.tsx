@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Send, AlertTriangle, RefreshCw } from "lucide-react";
+import { Loader2, Send, AlertTriangle, RefreshCw, Warehouse, Truck } from "lucide-react";
 import { DividirRemessaDialog } from "@/components/pedidos/dialogs/DividirRemessaDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useRemessas } from "@/hooks/pedidos/useRemessas";
 import { useEnviarBling } from "@/hooks/pedidos/useEnviarBling";
+import { useEmpurrarXpm } from "@/hooks/pedidos/useEmpurrarXpm";
 import { useSyncContato } from "@/hooks/parceiros/useSyncContato";
 import { useAuth } from "@/contexts/AuthContext";
 import { ReenviarBlingDialog } from "@/components/pedidos/dialogs/ReenviarBlingDialog";
@@ -26,6 +27,7 @@ interface Props {
 export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, bling_id_destino }: Props) {
   const { data: remessas, isLoading } = useRemessas(pedido_id);
   const enviar = useEnviarBling();
+  const empurrarXpm = useEmpurrarXpm();
   const sync = useSyncContato();
   const { roles } = useAuth();
   const isSuperAdmin = (roles ?? []).includes("super_admin");
@@ -58,7 +60,10 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
     const totalUnidades = itens.reduce((s: number, it: any) => s + (Number(it.quantidade) || 0), 0);
     const podeEnviar = rem.status === "pronta_para_envio" && !rem.bling_pedido_id && !precisaSincronizar;
     const podeDividir = !rem.bling_pedido_id && totalUnidades >= 2;
-    return podeEnviar || podeDividir;
+    // XPM é independente do Bling: uma remessa já faturada no Bling ainda pode
+    // não ter descido pro armazém. `xpm_expedicao_codigo` é a trava de idempotência.
+    const podeEmpurrarXpm = estagioDeEnvio && rem.status !== "cancelada" && !rem.xpm_expedicao_codigo;
+    return podeEnviar || podeDividir || podeEmpurrarXpm;
   });
 
   const mostrarAlerta = precisaSincronizar;
