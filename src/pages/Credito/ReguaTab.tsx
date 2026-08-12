@@ -257,6 +257,11 @@ function CardTitulo({
         <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onRenegociar}>
           Renegociar
         </Button>
+        {!etapa && ultima && (
+          <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground" onClick={onReenviar}>
+            Reenviar lembrete
+          </Button>
+        )}
         {(() => {
           const l = (titulo as any)._mesa as LinhaMesa | undefined;
           if (!l?.pedido_id || l.fila !== "A_ENVIAR") return null;
