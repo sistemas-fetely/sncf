@@ -127,7 +127,9 @@ export function VinculosSection({
   consolidado_em_pedido_id,
   pedido_origem_id,
   acoesExtra,
+  acoesBling,
 }: Props) {
+
   const vincular = useVincularComplementar();
   const { data: vinculos } = useVinculosPedido({
     pedido_id,
