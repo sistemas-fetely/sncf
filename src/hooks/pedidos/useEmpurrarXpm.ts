@@ -11,9 +11,12 @@ interface EmpurrarXpmResponse {
   duracao_ms?: number;
 }
 
+// A expedição é do PEDIDO, não da remessa. `pedido_remessa` é histórico de
+// tentativas de envio ao Bling, e /NN pertence só ao split — derivar código de
+// expedição dali colidiria com id_externo de pedidos-filho reais.
+// Ver sncf_documentacao `decisao-remessa-e-tentativa-envio`.
 interface EmpurrarXpmParams {
   pedido_id: string;
-  remessa_id: string;
 }
 
 export function useEmpurrarXpm() {
@@ -21,16 +24,17 @@ export function useEmpurrarXpm() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ remessa_id }: EmpurrarXpmParams): Promise<EmpurrarXpmResponse> => {
+    mutationFn: async ({ pedido_id }: EmpurrarXpmParams): Promise<EmpurrarXpmResponse> => {
       const { data, error } = await supabase.functions.invoke<EmpurrarXpmResponse>(
         "empurrar-pedido-xpm",
-        { body: { remessa_id } },
+        { body: { pedido_id } },
       );
       if (error) {
         // A edge devolve 422 com a lista de bloqueios no corpo; sem isso o
         // operador só veria "erro genérico" e não saberia o que corrigir.
         let msg = error.message;
         try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const b = await (error as any).context?.json?.();
           if (Array.isArray(b?.bloqueios) && b.bloqueios.length > 0) {
             msg = b.bloqueios.join(" · ");
@@ -50,14 +54,14 @@ export function useEmpurrarXpm() {
         description: `Expedição ${data.codigo_expedicao}${amb}${data.duracao_ms ? ` · ${data.duracao_ms}ms` : ""}`,
       });
       qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });
-      qc.invalidateQueries({ queryKey: ["remessas", vars.pedido_id] });
+      qc.invalidateQueries({ queryKey: ["pedido-xpm", vars.pedido_id] });
       qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
       qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
     },
     onError: (e: Error, vars) => {
       toast({ title: "Erro ao empurrar pra XPM", description: e.message, variant: "destructive" });
-      // O erro fica gravado em pedido_remessa.xpm_envio_erro: recarrega pra exibir.
-      qc.invalidateQueries({ queryKey: ["remessas", vars.pedido_id] });
+      // O erro fica gravado em pedidos.xpm_envio_erro: recarrega pra exibir.
+      qc.invalidateQueries({ queryKey: ["pedido-xpm", vars.pedido_id] });
       qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });
     },
   });
