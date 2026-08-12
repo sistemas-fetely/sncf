@@ -19,6 +19,12 @@ export interface PedidoDetalhe {
   /** Resultado cru de fn_pedido_natureza_alerta para o pedido de referência. */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   naturezaAlerta: any | null;
+  /**
+   * NATUREZA-MORA-NO-PAI: em remessa filha a natureza pertence ao pedido pai.
+   * Este é o id no qual a natureza deve ser lida E gravada.
+   */
+  naturezaRefPedidoId: string;
+
   idade_minutos: number;
   sla_estourado: boolean;
 }
@@ -142,6 +148,8 @@ export function usePedidoDetalhe(pedidoId: string | undefined) {
         analisesAnteriores,
         natureza,
         naturezaAlerta,
+        naturezaRefPedidoId: refPedidoId as string,
+
 
         idade_minutos,
         sla_estourado,
