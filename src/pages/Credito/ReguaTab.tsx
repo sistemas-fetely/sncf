@@ -115,7 +115,60 @@ function SeloConferencia({ c }: { c: BoletoVencimentoConferencia | undefined }) 
   );
 }
 
-function CardTitulo({
+/**
+ * Título sem ação pendente: uma linha, não um card. Continua 100% visível e
+ * clicável — expande no card completo. Verde aqui é SELO, nunca fundo: verde
+ * de fundo colide com os selos de lastro (que já são verdes) e, em tela
+ * financeira, é lido como "pago" — e estes são recebíveis em aberto.
+ */
+function LinhaCompacta({
+  titulo, contatadoEm, aberto, onToggle,
+}: {
+  titulo: TituloCobranca;
+  contatadoEm: string | null;
+  aberto: boolean;
+  onToggle: () => void;
+}) {
+  const razao = nomeCanonico(titulo.parceiro_razao_social, "—");
+  const mesa = (titulo as any)._mesa as LinhaMesa | undefined;
+  const vencimento = mesa?.vencimento ?? titulo.data_vencimento_atual ?? null;
+  const atraso = titulo.dias_atraso ?? 0;
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={aberto}
+      className="w-full flex items-center gap-2 rounded-md border bg-card/60 px-2.5 py-1.5 text-left hover:bg-accent/50 transition-colors"
+    >
+      <ChevronRight className={cn("h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform", aberto && "rotate-90")} />
+      <span className="text-xs font-medium truncate min-w-0 flex-1">{razao}</span>
+      <span className="hidden md:inline text-[10px] font-mono text-muted-foreground shrink-0">
+        {titulo.numero_titulo}
+      </span>
+      <TooltipProvider>
+        {contatadoEm ? (
+          <Selo
+            texto={`em dia · contato ${fmtDataMesa(contatadoEm)}`}
+            tom="verde"
+            tooltip="Etapa da régua já cumprida — nada a fazer neste título hoje."
+          />
+        ) : (
+          <Selo
+            texto={atraso === 0 ? "vence hoje" : `vence ${fmtDataMesa(vencimento)}`}
+            tom="neutro"
+            tooltip="Ainda não chegou a data de nenhuma etapa da régua."
+          />
+        )}
+      </TooltipProvider>
+      <Badge variant="outline" className="text-[10px] shrink-0">
+        {atraso === 0 ? "hoje" : atraso > 0 ? `há ${atraso}d` : `D${atraso}`}
+      </Badge>
+      <span className="text-xs font-semibold tabular-nums shrink-0 w-24 text-right">
+        {formatBRL(titulo.valor_efetivo)}
+      </span>
+    </button>
+  );
+}
   titulo, etapa, acaoAtrasada, conferencia, onAcao, onPular, onPausar, onRenegociar, onEnviarPacote, onReenviar,
 }: {
   titulo: TituloCobranca;
