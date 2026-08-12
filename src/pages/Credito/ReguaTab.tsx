@@ -302,6 +302,7 @@ export default function ReguaTab() {
   const { data: fila = [], isLoading: loadingFila } = useReguaFilaHoje();
   const { data: pausados = [], isLoading: loadingPausados } = useReguaPausados();
   const { data: todosTitulos = [] } = useTitulosCobranca();
+  const { data: conferencias } = useBoletoVencimentoConferencia();
 
   const [vista, setVista] = useState<Vista>("fila");
   const [acaoDialog, setAcaoDialog] = useState<{ titulo: TituloCobranca; etapa: ReguaEtapa | null; modo: "enviada" | "pulada" } | null>(null);
