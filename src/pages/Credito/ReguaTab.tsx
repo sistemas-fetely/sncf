@@ -432,6 +432,7 @@ export default function ReguaTab() {
                   titulo={t}
                   etapa={etapa}
                   acaoAtrasada={vista === "fila" && acaoAtrasada(t)}
+                  conferencia={conferencias?.get(t.id)}
 
                   onAcao={() => setAcaoDialog({ titulo: t, etapa, modo: "enviada" })}
                   onPular={() => setAcaoDialog({ titulo: t, etapa, modo: "pulada" })}
