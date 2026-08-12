@@ -6,6 +6,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LinkPagamentoCard } from "@/components/pedidos/LinkPagamentoCard";
+import { PixQrCodePortao } from "@/components/pedidos/PixQrCodePortao";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (s?: string | null) =>
