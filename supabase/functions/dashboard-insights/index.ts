@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY não configurada");
 
-    const prompt = `Você é o assistente inteligente do People Fetely, sistema de RH da Fetely — uma empresa brasileira de artigos de festa, papelaria e decoração com espírito comemorativo.
+    const prompt = `Você é o assistente inteligente do Fetély, sistema de RH da Fetely — uma empresa brasileira de artigos de festa, papelaria e decoração com espírito comemorativo.
 
 DADOS ATUAIS DO SISTEMA:
 - ${data.convitesPendentes} convites de cadastro pendentes

@@ -28,7 +28,7 @@ const RecuperacaoSenha = ({
 }: Props) => (
   <Html lang="pt-BR" dir="ltr">
     <Head />
-    <Preview>Recuperação de senha — People Fetely</Preview>
+    <Preview>Recuperação de senha — Fetély</Preview>
     <Body style={main}>
       <Container style={container}>
         <Section style={header}>
@@ -40,7 +40,7 @@ const RecuperacaoSenha = ({
 
           <Text style={text}>
             Oi, {nome.split(" ")[0]}. Recebemos um pedido para redefinir sua senha
-            no <strong>People Fetely</strong>. Se foi você, clica no botão abaixo:
+            no <strong>Fetély</strong>. Se foi você, clica no botão abaixo:
           </Text>
 
           <Section style={btnContainer}>
@@ -74,7 +74,7 @@ const RecuperacaoSenha = ({
 
 export const template = {
   component: RecuperacaoSenha,
-  subject: "Recuperação de senha — People Fetely",
+  subject: "Recuperação de senha — Fetély",
   displayName: "Recuperação de senha",
   previewData: {
     nome: "Bruna Foshi",

@@ -95,7 +95,7 @@ export default function ResetPassword() {
 
       toast.success(
         primeiroAcesso
-          ? "Bem-vindo(a) ao People Fetely! Acesso ativado."
+          ? "Bem-vindo(a) ao Fetély! Acesso ativado."
           : "Senha atualizada com sucesso!"
       );
       navigate("/");
@@ -135,7 +135,7 @@ export default function ResetPassword() {
         title={primeiroAcesso ? "Defina sua senha" : "Nova senha"}
         subtitle={
           primeiroAcesso
-            ? "Último passo pra ativar seu acesso ao People Fetely."
+            ? "Último passo pra ativar seu acesso ao Fetély."
             : "Escolha uma nova senha pra sua conta."
         }
       >
@@ -199,7 +199,7 @@ export default function ResetPassword() {
                     onClick={() => setTermoAberto(true)}
                     className="text-primary hover:underline font-medium"
                   >
-                    Termo de Uso do People Fetely v{versaoTermo}
+                    Termo de Uso do Fetély v{versaoTermo}
                   </button>
                   , incluindo as diretrizes de uso aceitável, confidencialidade e LGPD.
                 </Label>

@@ -5,7 +5,7 @@ import {
 } from 'npm:@react-email/components@0.0.22'
 import type { TemplateEntry } from './registry.ts'
 
-const SITE_NAME = 'Fetely People'
+const SITE_NAME = 'Fetély'
 const COR_VERDE = '#1a3d2b'
 const COR_CREME = '#F5F0E8'
 

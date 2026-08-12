@@ -94,7 +94,7 @@ export function PrimeiroAcessoOverlay() {
         console.error("Erro ao registrar aceite do termo (não-blocking):", termoError);
       }
 
-      toast.success("Acesso ativado! Bem-vindo(a) ao People Fetely.");
+      toast.success("Acesso ativado! Bem-vindo(a) ao Fetély.");
       await new Promise((r) => setTimeout(r, 800));
       window.location.replace("/");
     } catch (err: any) {
@@ -117,7 +117,7 @@ export function PrimeiroAcessoOverlay() {
           <DialogHeader>
             <DialogTitle>Ative seu acesso</DialogTitle>
             <DialogDescription>
-              Último passo. Defina sua senha para começar a usar o People Fetely.
+              Último passo. Defina sua senha para começar a usar o Fetély.
             </DialogDescription>
           </DialogHeader>
 
@@ -185,7 +185,7 @@ export function PrimeiroAcessoOverlay() {
                     onClick={() => setTermoAberto(true)}
                     className="text-primary hover:underline font-medium"
                   >
-                    Termo de Uso do People Fetely v{versaoTermo}
+                    Termo de Uso do Fetély v{versaoTermo}
                   </button>
                   , incluindo as diretrizes de uso aceitável, confidencialidade e LGPD.
                 </Label>
