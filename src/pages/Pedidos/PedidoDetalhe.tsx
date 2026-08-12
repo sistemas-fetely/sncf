@@ -57,6 +57,7 @@ import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialo
 import { CancelarPedidoDialog } from "@/components/pedidos/dialogs/CancelarPedidoDialog";
 import { ConsolidarPedidoDialog } from "@/components/pedidos/dialogs/ConsolidarPedidoDialog";
 import { ReterEstoqueDialog } from "@/components/pedidos/dialogs/ReterEstoqueDialog";
+import { DesvincularBlingDialog } from "@/components/pedidos/dialogs/DesvincularBlingDialog";
 import { AnotarPedidoDialog } from "@/components/pedidos/dialogs/AnotarPedidoDialog";
 import { CanalFopTab } from "@/components/pedidos/CanalFopTab";
 import { BotaoEditarPedido } from "@/components/pedidos/BotaoEditarPedido";
@@ -78,7 +79,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 import { AREA_LABELS, STATUS_TITULO_LABELS, URGENCIA_LABELS } from "@/types/pedido";
 import type { AreaPedido, EstagioPedido, StatusTitulo, TipoTituloPagamento, TituloAReceber, UrgenciaDeclarada } from "@/types/pedido";
-import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy, Truck, RefreshCw, Scissors, Mail, MailCheck, ShieldAlert, MessageCircle, Link2, Wallet, PauseCircle, Bell, XCircle, History, RotateCcw, Scale, PackageX } from "lucide-react";
+import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy, Truck, RefreshCw, Scissors, Mail, MailCheck, ShieldAlert, MessageCircle, Link2, Wallet, PauseCircle, Bell, XCircle, History, RotateCcw, Scale, PackageX, Link2Off } from "lucide-react";
 import { useFreteComparativo } from "@/hooks/pedidos/useFreteComparativo";
 import { CompararTransportadorasDialog } from "@/components/pedidos/dialogs/CompararTransportadorasDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
