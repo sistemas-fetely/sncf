@@ -485,17 +485,16 @@ export default function CobrancaDetalhe() {
 
     const somaProposta = novos.reduce((acc, t) => acc + Number(t.valor_bruto || 0), 0);
     const bruto = Number(pedidoQ.data?.valor_liquido ?? propostaQ.data?.valor_total ?? somaProposta);
-    const novoTotal = Math.max(0, bruto - jaPagoPedido);
+    const novoTotal = Math.max(0, bruto - creditoAplicado);
     setValorTotalCobrar(novoTotal);
-    if (jaPagoPedido > 0.005) setTitulos((prev) => redistribuirValoresIguais(prev, novoTotal));
+    if (creditoAplicado > 0.005 || jaPagoPedido > 0.005) setTitulos((prev) => redistribuirValoresIguais(prev, novoTotal));
     setParcelasIguais(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [propostaQ.data, pedidoQ.data?.valor_liquido, jaPagoPedido, paramDiasQ.isLoading, paramIntervaloQ.isLoading]);
+  }, [propostaQ.data, pedidoQ.data?.valor_liquido, creditoAplicado, jaPagoPedido, paramDiasQ.isLoading, paramIntervaloQ.isLoading]);
 
 
   // A proposta nasce pelo que FALTA cobrar, não pelo valor da nota. `montar_plano_pagamento`
   // reconcilia com `novas + pagas + haver = líquido`, então o plano cheio seria recusado.
-  const creditoAplicado = Number(titulosResumoQ.data?.creditoAplicado ?? 0);
   const valorPedido = Number(pedidoQ.data?.valor_liquido ?? propostaQ.data?.valor_total ?? 0);
   const dataPedidoStr: string | undefined = pedidoQ.data?.data_pedido;
 
