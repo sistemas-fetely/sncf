@@ -91,9 +91,12 @@ export function useEnviarEmailNfBoletos() {
             pedido_id_externo: pedido.id_externo,
             nf_numero: nf_numeros[0],
             boletos,
+            pix: pacote.pix,
+            tem_pix: pacote.temPix,
             instrumento_texto: pacote.instrumentoTexto ?? undefined,
             tem_xml: !skipEstagioCheck,
           },
+
           attachments,
         },
       });
