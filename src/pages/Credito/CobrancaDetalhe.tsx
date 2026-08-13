@@ -122,6 +122,27 @@ function usePedidoMinimo(pedidoId: string | undefined) {
   });
 }
 
+function usePedidoPortaoRegra(pedidoId: string | undefined) {
+  return useQuery({
+    queryKey: ["pedido-portao-regra", pedidoId],
+    enabled: !!pedidoId,
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("vw_pedido_portao_regra")
+        .select("exige_portao_regra, porque, portao_minimo_pct")
+        .eq("pedido_id", pedidoId)
+        .maybeSingle();
+      if (error) throw error;
+      return data as {
+        exige_portao_regra: boolean | null;
+        porque: string | null;
+        portao_minimo_pct: number | null;
+      } | null;
+    },
+  });
+}
+
 function LinhaInfo({ label, value, copiavel }: { label: string; value: string; copiavel?: string }) {
   const [copiado, setCopiado] = useState(false);
   function copiar() {
