@@ -458,9 +458,9 @@ export default function CobrancaDetalhe() {
 
   const handleAplicarHaver = (v: number) => {
     const aplicar = Math.max(0, Math.min(Number.isFinite(v) ? v : 0, maxHaver));
-    setValorHaverAplicar(aplicar);
+    setValorHaverAplicar(Math.round(aplicar * 100) / 100);
     const novoTotal = Math.max(0, baseCobravel - aplicar);
-    setValorTotalCobrar(novoTotal);
+    setValorTotalCobrar(Math.round(novoTotal * 100) / 100);
     setTitulos((prev) => redistribuirValoresIguais(prev, novoTotal));
   };
 
