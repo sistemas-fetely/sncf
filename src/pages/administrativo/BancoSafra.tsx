@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TrilhoBoleto } from "@/components/financeiro/TrilhoBoleto";
 import { resumirTrilho } from "@/lib/financeiro/marcos-boleto";
+import type { Database } from "@/integrations/supabase/types";
 import {
   Table,
   TableBody,
@@ -640,7 +641,12 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     if (!edit) return;
     setSalvando((p) => ({ ...p, [b.id]: true }));
     try {
-      const update: Record<string, any> = {};
+      /* Tipado de propósito: `Record<string, any>` deixava nome de coluna errado
+         passar silencioso — e isto grava direto em titulo_a_receber. */
+      const update: Partial<Pick<
+        Database["public"]["Tables"]["titulo_a_receber"]["Update"],
+        "data_vencimento_atual" | "valor_bruto"
+      >> = {};
       if (edit.data && edit.data !== b.data_vencimento_atual) update.data_vencimento_atual = edit.data;
       if (edit.valor) {
         const v = parseFloat(edit.valor.replace(",", "."));
@@ -650,7 +656,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         setEdits((p) => { const n = { ...p }; delete n[b.id]; return n; });
         return;
       }
-      const { error } = await (supabase as any).from("titulo_a_receber").update(update).eq("id", b.id);
+      const { error } = await supabase.from("titulo_a_receber").update(update).eq("id", b.id);
       if (error) throw error;
       setEdits((p) => { const n = { ...p }; delete n[b.id]; return n; });
       toast({ title: "Boleto atualizado", description: `${b.numero_titulo} salvo com sucesso.` });
@@ -669,7 +675,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     try {
       for (const b of pendentesComSugestao) {
         try {
-          const { error } = await (supabase as any)
+          const { error } = await supabase
             .from("titulo_a_receber")
             .update({ data_vencimento_atual: sugestoes[b.id] })
             .eq("id", b.id);
