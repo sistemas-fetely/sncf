@@ -7,6 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
  * muda — ele é o snapshot da venda. Portanto quem quer saber "quanto ainda há
  * a cobrar" precisa descontar os títulos já pagos, nunca mexer no líquido.
  *
+ * 13/08/2026 — CRÉDITO PARCIAL TAMBÉM É PAGAMENTO. Quando o crédito não cobre o
+ * pedido inteiro não nasce título de haver: nasce `adiantamento_cliente` vinculado
+ * ao pedido. Quem soma só título enxerga zero e propõe cobrar o valor cheio.
+ *
  * Somente leitura. Nenhuma escrita, nenhuma RPC.
  */
 
@@ -26,6 +30,10 @@ export interface TitulosPedidoResumo {
   somaHaver: number;
   /** Soma de TODOS os títulos não cancelados já liquidados (qualquer meio). */
   somaPagos: number;
+  /** Soma dos adiantamentos vinculados ao pedido com saldo (crédito/portão/split). */
+  somaAdiantamento: number;
+  /** Tudo que já é dinheiro do cliente neste pedido: títulos pagos + adiantamento vinculado. */
+  totalAbatido: number;
   temHaver: boolean;
 }
 
@@ -61,7 +69,28 @@ export function useTitulosPedidoResumo(pedidoId?: string | null) {
         .filter((t) => STATUS_PAGOS.includes(String(t.status)))
         .reduce((acc, t) => acc + t.valor_bruto, 0);
 
-      return { titulos: vivos, somaHaver, somaPagos, temHaver: somaHaver > 0.005 };
+      const { data: adiantData, error: adiantErr } = await (supabase as any)
+        .from("adiantamento_cliente")
+        .select("saldo, status")
+        .eq("pedido_id", pedidoId)
+        .in("status", ["disponivel", "parcial"]);
+      if (adiantErr) throw adiantErr;
+
+      const somaAdiantamento = (adiantData ?? []).reduce(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (acc: number, a: any) => acc + Number(a.saldo ?? 0),
+        0,
+      );
+
+      return {
+        titulos: vivos,
+        somaHaver,
+        somaPagos,
+        somaAdiantamento,
+        totalAbatido: somaPagos + somaAdiantamento,
+        temHaver: somaHaver > 0.005,
+      };
     },
   });
 }
+
