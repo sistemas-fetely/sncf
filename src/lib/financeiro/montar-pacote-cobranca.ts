@@ -26,6 +26,10 @@ export interface TituloPacote {
   tipo_pagamento: string | null;
   boleto_status: string | null;
   linha_digitavel: string | null;
+  pix_txid?: string | null;
+  pix_qr_url?: string | null;
+  pix_token?: string | null;
+  link_pagamento?: string | null;
 }
 
 export interface BoletoPacote {
@@ -37,14 +41,31 @@ export interface BoletoPacote {
   linha_digitavel: string | null;
 }
 
+export interface PixPacote {
+  titulo_id: string;
+  numero_parcela: number | null;
+  parcela: string;
+  vencimento: string;
+  valor: string;
+  pix_txid: string | null;
+  qr_code_pix: string | null;
+  link_pagina_pagamento: string | null;
+  link_pagamento: string | null;
+}
+
 export interface PacoteCobranca {
   /** Títulos com status 'aberto' — a base de tudo. */
   abertos: TituloPacote[];
   /** Subconjunto de `abertos` cujo tipo_pagamento é boleto. */
   titulosBoleto: TituloPacote[];
+  /** Subconjunto de `abertos` cujo tipo_pagamento é pix. */
+  titulosPix: TituloPacote[];
   /** Lista formatada para o corpo do e-mail (só boletos abertos). */
   boletos: BoletoPacote[];
+  /** Lista formatada para o corpo do e-mail (só pix abertos). */
+  pix: PixPacote[];
   temBoleto: boolean;
+  temPix: boolean;
   /** Instrumentos presentes nos títulos abertos: 'boleto' | 'cartao' | 'pix' | ... */
   instrumentos: string[];
   /** Frase para o corpo do e-mail quando não há boleto a pagar. */
@@ -52,6 +73,7 @@ export interface PacoteCobranca {
   /** Soma dos títulos abertos. */
   totalAberto: number;
 }
+
 
 const ENVIAVEIS = new Set(["registrado", "remessa_gerada"]);
 
