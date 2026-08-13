@@ -762,7 +762,6 @@ export default function CobrancaDetalhe() {
     return [...analisesPedido].sort(cmp)[0];
   })();
   const obsCredito = analiseEscolhida?.parecer_final?.trim() || "—";
-  const creditoRecomendaPortao = !!analiseEscolhida?.exige_portao;
 
   const freteLabel = (() => {
     const tipo = (pedido.frete_tipo ?? "").toString().trim();
