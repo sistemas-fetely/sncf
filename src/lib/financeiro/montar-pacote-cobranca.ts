@@ -26,6 +26,10 @@ export interface TituloPacote {
   tipo_pagamento: string | null;
   boleto_status: string | null;
   linha_digitavel: string | null;
+  pix_txid?: string | null;
+  pix_qr_url?: string | null;
+  pix_token?: string | null;
+  link_pagamento?: string | null;
 }
 
 export interface BoletoPacote {
@@ -37,14 +41,31 @@ export interface BoletoPacote {
   linha_digitavel: string | null;
 }
 
+export interface PixPacote {
+  titulo_id: string;
+  numero_parcela: number | null;
+  parcela: string;
+  vencimento: string;
+  valor: string;
+  pix_txid: string | null;
+  qr_code_pix: string | null;
+  link_pagina_pagamento: string | null;
+  link_pagamento: string | null;
+}
+
 export interface PacoteCobranca {
   /** Títulos com status 'aberto' — a base de tudo. */
   abertos: TituloPacote[];
   /** Subconjunto de `abertos` cujo tipo_pagamento é boleto. */
   titulosBoleto: TituloPacote[];
+  /** Subconjunto de `abertos` cujo tipo_pagamento é pix. */
+  titulosPix: TituloPacote[];
   /** Lista formatada para o corpo do e-mail (só boletos abertos). */
   boletos: BoletoPacote[];
+  /** Lista formatada para o corpo do e-mail (só pix abertos). */
+  pix: PixPacote[];
   temBoleto: boolean;
+  temPix: boolean;
   /** Instrumentos presentes nos títulos abertos: 'boleto' | 'cartao' | 'pix' | ... */
   instrumentos: string[];
   /** Frase para o corpo do e-mail quando não há boleto a pagar. */
@@ -52,6 +73,7 @@ export interface PacoteCobranca {
   /** Soma dos títulos abertos. */
   totalAberto: number;
 }
+
 
 const ENVIAVEIS = new Set(["registrado", "remessa_gerada"]);
 
@@ -119,11 +141,40 @@ export function montarPacoteCobranca(titulos: TituloPacote[]): PacoteCobranca {
     linha_digitavel: t.linha_digitavel,
   }));
 
+  const titulosPix = abertos
+    .filter((t) => (t.tipo_pagamento ?? "").toLowerCase() === "pix")
+    .sort((a, b) => (a.numero_parcela ?? 0) - (b.numero_parcela ?? 0));
+
+  // Guard de meio de pagamento PIX: título PIX aberto sem QR, sem token e sem
+  // copia-e-cola é dívida sem cobrança — o cliente receberia a NF sem como pagar.
+  const pixSemMeio = titulosPix.find(
+    (t) => !t.pix_qr_url && !t.pix_token && !t.link_pagamento,
+  );
+  if (pixSemMeio) {
+    throw new Error(
+      `Parcela ${pixSemMeio.numero_parcela} é PIX e não tem QR nem link de pagamento — gere o PIX na tela de Cobrança antes de enviar, senão o cliente recebe a NF sem como pagar.`,
+    );
+  }
+
+  const pix: PixPacote[] = titulosPix.map((t) => ({
+    titulo_id: t.id,
+    numero_parcela: t.numero_parcela,
+    parcela: `${t.numero_parcela ?? "—"}/${t.total_parcelas ?? "—"}`,
+    vencimento: fmtDataBR(t.data_vencimento_atual),
+    valor: fmtBRL.format(Number(t.valor_bruto ?? 0)),
+    pix_txid: t.pix_txid ?? null,
+    qr_code_pix: t.pix_qr_url ?? null,
+    link_pagina_pagamento: t.pix_token ? `https://sncf.lovable.app/pagar/${t.pix_token}` : null,
+    link_pagamento: t.link_pagamento ?? null,
+  }));
+
   const instrumentos = Array.from(
     new Set(abertos.map((t) => (t.tipo_pagamento ?? "").toLowerCase()).filter(Boolean)),
   );
 
-  const semBoleto = instrumentos.filter((i) => i !== "boleto");
+  // PIX fica fora da frase: PIX é dívida a pagar (o corpo mostra o bloco de PIX),
+  // ao contrário de cartão, que já liquidou na operadora.
+  const semBoleto = instrumentos.filter((i) => i !== "boleto" && i !== "pix");
   const instrumentoTexto =
     boletos.length === 0 && semBoleto.length > 0
       ? `A cobrança deste pedido é ${semBoleto.map(rotulo).join(" / ")} — não há boleto a pagar.`
@@ -132,10 +183,14 @@ export function montarPacoteCobranca(titulos: TituloPacote[]): PacoteCobranca {
   return {
     abertos,
     titulosBoleto,
+    titulosPix,
     boletos,
+    pix,
     temBoleto: boletos.length > 0,
+    temPix: pix.length > 0,
     instrumentos,
     instrumentoTexto,
     totalAberto: abertos.reduce((s, t) => s + Number(t.valor_bruto ?? 0), 0),
   };
 }
+

@@ -1,6 +1,6 @@
 import * as React from 'npm:react@18.3.1'
 import {
-  Body, Container, Head, Html, Preview, Text, Hr, Section, Row, Column, Link,
+  Body, Button, Container, Head, Html, Img, Preview, Text, Hr, Section, Row, Column, Link,
 } from 'npm:@react-email/components@0.0.22'
 import type { TemplateEntry } from './registry.ts'
 
@@ -11,11 +11,23 @@ interface BoletoItem {
   linha_digitavel?: string
 }
 
+interface PixItem {
+  parcela?:               string
+  vencimento?:            string
+  valor?:                 string
+  pix_txid?:              string | null
+  qr_code_pix?:           string | null
+  link_pagina_pagamento?: string | null
+  link_pagamento?:        string | null
+}
+
 interface Props {
   parceiro_nome?:     string
   pedido_id_externo?: string
   nf_numero?:         string
   boletos?:           BoletoItem[]
+  pix?:               PixItem[]
+  tem_pix?:           boolean
   /** Frase de instrumento quando não há boleto (cartão / pix). */
   instrumento_texto?: string
   /** XML anexado (só no envio de faturamento). */
@@ -32,15 +44,18 @@ const NfEntregaBoletoEmail = ({
   pedido_id_externo,
   nf_numero,
   boletos = [],
+  pix = [],
+  tem_pix = false,
   instrumento_texto,
   tem_xml = true,
 }: Props) => {
   const temBoleto = boletos.length > 0
+  const temPix = tem_pix && pix.length > 0
   const anexoNota = tem_xml ? 'A NF (PDF) e o XML' : 'A NF (PDF)'
   return (
     <Html lang="pt-BR" dir="ltr">
       <Head />
-      <Preview>{temBoleto ? 'Fetély · Sua nota fiscal e seus boletos.' : 'Fetély · Sua nota fiscal.'}</Preview>
+      <Preview>{temBoleto ? 'Fetély · Sua nota fiscal e seus boletos.' : temPix ? 'Fetély · Sua nota fiscal e seu PIX.' : 'Fetély · Sua nota fiscal.'}</Preview>
       <Body style={main}>
         <Container style={container}>
 
@@ -59,7 +74,7 @@ const NfEntregaBoletoEmail = ({
           <Section style={body}>
             <Text style={headlineNormal}>
               <span style={headlineBold}>
-                {temBoleto ? 'Sua nota fiscal e seus boletos.' : 'Sua nota fiscal.'}
+                {temBoleto ? 'Sua nota fiscal e seus boletos.' : temPix ? 'Sua nota fiscal e seu PIX.' : 'Sua nota fiscal.'}
               </span>
             </Text>
 
@@ -67,9 +82,11 @@ const NfEntregaBoletoEmail = ({
               {`${pedido_id_externo ? `O pedido ${pedido_id_externo}` : 'Seu pedido'} foi faturado. ${anexoNota} ${tem_xml ? 'seguem' : 'segue'} anexad${tem_xml ? 'os' : 'a'}.`}
               {temBoleto
                 ? ' Os boletos para pagamento estão na lista abaixo (e também em anexo). É só pagar até os vencimentos.'
-                : instrumento_texto
-                  ? ` ${instrumento_texto}`
-                  : ' Não há boleto a pagar neste pedido.'}
+                : temPix
+                  ? ' Para pagar, use o PIX abaixo: escaneie o QR Code, copie o código ou abra a página de pagamento.'
+                  : instrumento_texto
+                    ? ` ${instrumento_texto}`
+                    : ' Não há boleto a pagar neste pedido.'}
             </Text>
 
             <Hr style={divider} />
@@ -105,6 +122,43 @@ const NfEntregaBoletoEmail = ({
                     </Text>
                     {b.linha_digitavel && (
                       <Text style={linhaDigitavel}>{b.linha_digitavel}</Text>
+                    )}
+                  </Section>
+                ))}
+              </>
+            )}
+
+            {temPix && (
+              <>
+                <Text style={listaTitulo}>PIX para pagamento</Text>
+                {pix.map((p, i) => (
+                  <Section key={i} style={boletoCard}>
+                    <Text style={boletoHeader}>
+                      Parcela {p.parcela ?? `${i + 1}`} · vence {p.vencimento ?? '—'} · {p.valor ?? '—'}
+                    </Text>
+                    {p.qr_code_pix && (
+                      <Img
+                        src={p.qr_code_pix}
+                        alt="QR Code PIX"
+                        width="200"
+                        style={{ margin: '8px auto 12px', display: 'block', width: '200px' }}
+                      />
+                    )}
+                    {p.link_pagamento && (
+                      <>
+                        <Text style={pixLabelStyle}>PIX copia e cola — cole no app do seu banco</Text>
+                        <Text style={linhaDigitavel}>{p.link_pagamento}</Text>
+                      </>
+                    )}
+                    {p.link_pagina_pagamento && (
+                      <Section style={{ textAlign: 'center', marginTop: '12px' }}>
+                        <Button href={p.link_pagina_pagamento} style={ctaButton}>
+                          Abrir página de pagamento
+                        </Button>
+                      </Section>
+                    )}
+                    {p.pix_txid && (
+                      <Text style={pixTxidStyle}>Identificador no extrato: {p.pix_txid}</Text>
                     )}
                   </Section>
                 ))}
@@ -167,6 +221,9 @@ const listaTitulo     = { fontSize: '12px', color: '#888', textTransform: 'upper
 const boletoCard      = { backgroundColor: '#faf8f3', borderRadius: '8px', padding: '12px 16px', marginBottom: '10px', border: '1px solid #ece6d4' }
 const boletoHeader    = { fontSize: '13px', color: '#222', fontWeight: '600', margin: '0 0 6px' }
 const linhaDigitavel  = { fontSize: '12px', color: '#444', fontFamily: '"Courier New", Courier, monospace', backgroundColor: '#fff', padding: '8px 10px', borderRadius: '4px', border: '1px solid #e5e0d0', wordBreak: 'break-all' as const, margin: '0' }
+const pixLabelStyle   = { fontSize: '11px', color: '#888', textTransform: 'uppercase' as const, letterSpacing: '0.5px', margin: '0 0 6px' }
+const pixTxidStyle    = { fontSize: '11px', color: '#999', margin: '10px 0 0', fontFamily: '"Courier New", Courier, monospace' }
+const ctaButton       = { backgroundColor: Verde, color: '#ffffff', borderRadius: '6px', padding: '11px 22px', fontSize: '13px', fontWeight: '700', textDecoration: 'none', display: 'inline-block' }
 const ctaNote         = { fontSize: '12px', color: '#999', textAlign: 'center' as const, marginTop: '10px' }
 const footer          = { backgroundColor: VerdeEscuro, padding: '20px 32px' }
 const footerText      = { fontSize: '11px', color: 'rgba(255,255,255,0.65)', margin: '0 0 5px', textAlign: 'center' as const }
@@ -184,6 +241,18 @@ export const template: TemplateEntry = {
       { parcela: '1/3', vencimento: '20/06/2026', valor: 'R$ 1.586,47', linha_digitavel: '00190.00009 03452.701028 89000.063305 7 92420000158647' },
       { parcela: '2/3', vencimento: '20/07/2026', valor: 'R$ 1.586,47', linha_digitavel: '00190.00009 03452.701028 89000.063305 7 92450000158647' },
       { parcela: '3/3', vencimento: '20/08/2026', valor: 'R$ 1.586,48', linha_digitavel: '00190.00009 03452.701028 89000.063305 7 92480000158648' },
+    ],
+    tem_pix: true,
+    pix: [
+      {
+        parcela: '1/1',
+        vencimento: '20/06/2026',
+        valor: 'R$ 4.759,42',
+        pix_txid: 'SNCF0001',
+        qr_code_pix: 'https://sncf.lovable.app/pix-qr-exemplo.png',
+        link_pagina_pagamento: 'https://sncf.lovable.app/pagar/exemplo-token',
+        link_pagamento: '00020126580014br.gov.bcb.pix0136exemplo-de-chave-pix5204000053039865802BR',
+      },
     ],
   },
 }

@@ -31994,8 +31994,12 @@ export type Database = {
           numero_titulo: string
           pausa_regua_automatica: boolean
           pedido_id: string
+          pix_qr_url: string | null
+          pix_token: string | null
+          pix_txid: string | null
           prorrogacao_nova_data: string | null
           prorrogacao_solicitada_em: string | null
+          provisao_id: string | null
           reemissao_aplicada_em: string | null
           reemissao_motivo: string | null
           reemissao_nova_data: string | null
@@ -32060,8 +32064,12 @@ export type Database = {
           numero_titulo: string
           pausa_regua_automatica?: boolean
           pedido_id: string
+          pix_qr_url?: string | null
+          pix_token?: string | null
+          pix_txid?: string | null
           prorrogacao_nova_data?: string | null
           prorrogacao_solicitada_em?: string | null
+          provisao_id?: string | null
           reemissao_aplicada_em?: string | null
           reemissao_motivo?: string | null
           reemissao_nova_data?: string | null
@@ -32126,8 +32134,12 @@ export type Database = {
           numero_titulo?: string
           pausa_regua_automatica?: boolean
           pedido_id?: string
+          pix_qr_url?: string | null
+          pix_token?: string | null
+          pix_txid?: string | null
           prorrogacao_nova_data?: string | null
           prorrogacao_solicitada_em?: string | null
+          provisao_id?: string | null
           reemissao_aplicada_em?: string | null
           reemissao_motivo?: string | null
           reemissao_nova_data?: string | null
@@ -32661,6 +32673,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_provisao_id_fkey"
+            columns: ["provisao_id"]
+            isOneToOne: false
+            referencedRelation: "provisao_recebimento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_provisao_id_fkey"
+            columns: ["provisao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_provisao_caixa"
+            referencedColumns: ["provisao_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_provisao_id_fkey"
+            columns: ["provisao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_provisao_descoberta"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "titulo_a_receber_remessa_safra_id_fkey"
