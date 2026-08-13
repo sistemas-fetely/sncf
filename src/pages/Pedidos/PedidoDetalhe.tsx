@@ -1652,7 +1652,8 @@ export default function PedidoDetalhe() {
                       const descontoSimples = Math.max(0, ajusteSimples);
                       const acrescimoSimples = Math.max(0, -ajusteSimples);
                       const temFrete       = frete > 0.01;
-                      const creditoHaver   = Number(titulosResumo?.somaHaver ?? 0);
+                      const creditoHaver   = Number(titulosResumo?.creditoAplicado ?? 0);
+                      const fonteCredito   = titulosResumo?.fonteCredito ?? null;
                       return (
                         <div className="space-y-1.5">
                           <div className="flex justify-between text-sm">
@@ -1702,7 +1703,9 @@ export default function PedidoDetalhe() {
                             <>
                               <div className="flex justify-between text-sm">
                                 <span className="text-emerald-700 dark:text-emerald-400">
-                                  Crédito aplicado (haver)
+                                  {fonteCredito === "adiantamento_vinculado"
+                                    ? "Crédito do cliente (vinculado)"
+                                    : "Crédito aplicado (haver)"}
                                 </span>
                                 <span className="text-emerald-700 dark:text-emerald-400">
                                   −{fmtBRL.format(creditoHaver)}

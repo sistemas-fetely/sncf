@@ -417,6 +417,7 @@ export default function CobrancaDetalhe() {
   const jaPagoPedido = Number(titulosResumoQ.data?.totalAbatido ?? 0);
   const jaAdiantado = Number(titulosResumoQ.data?.somaAdiantamento ?? 0);
   const jaPagoHaver = Number(titulosResumoQ.data?.somaHaver ?? 0);
+  const creditoAplicado = Number(titulosResumoQ.data?.creditoAplicado ?? 0);
 
 
   const [titulos, setTitulos] = useState<LinhaPlano[]>([]);
