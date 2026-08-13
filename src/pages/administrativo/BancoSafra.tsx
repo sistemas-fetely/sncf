@@ -24,6 +24,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { TrilhoBoleto } from "@/components/financeiro/TrilhoBoleto";
+import { resumirTrilho } from "@/lib/financeiro/marcos-boleto";
 import {
   Table,
   TableBody,
@@ -101,20 +103,11 @@ const BOLETO_STATUS_CFG: Record<string, { label: string; cls: string }> = {
   vencido: { label: "Vencido", cls: "bg-orange-100 text-orange-800" },
   baixa_solicitada: { label: "Baixa pendente", cls: "bg-orange-200 text-orange-900" },
   baixa_remessa_gerada: { label: "Baixa em remessa", cls: "bg-purple-100 text-purple-800" },
+  // Existe no CHECK do banco desde sempre e nunca esteve aqui: caía no fallback
+  // cinza sem rótulo. São os títulos devolvidos cuja baixa o Safra já confirmou.
+  baixado_banco: { label: "Baixado (Safra)", cls: "bg-slate-200 text-slate-700" },
 };
 
-/** Cor sólida para o ponto de status (as classes -100 do badge somem num círculo de 8px). */
-const BOLETO_STATUS_DOT: Record<string, string> = {
-  pendente: "bg-gray-400",
-  remessa_gerada: "bg-yellow-500",
-  registrado: "bg-blue-500",
-  pago_manual: "bg-emerald-500",
-  pago_banco: "bg-green-600",
-  rejeitado: "bg-red-500",
-  vencido: "bg-orange-500",
-  baixa_solicitada: "bg-orange-600",
-  baixa_remessa_gerada: "bg-purple-500",
-};
 
 /**
  * O que este boleto EXIGE do operador — não o que ele "é".
