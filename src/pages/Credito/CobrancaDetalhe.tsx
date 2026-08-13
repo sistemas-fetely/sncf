@@ -408,12 +408,16 @@ export default function CobrancaDetalhe() {
   const haverSaldo = haverCliente?.saldo ?? 0;
   const haverDisponivel = !exigePortao && haverSaldo > 0;
 
-  // HAVER-É-PAGAMENTO: parte do pedido pode já estar quitada (haver ou entrada
-  // paga por qualquer meio). A base do parcelamento é o líquido MENOS o que já
-  // está pago — `pedidos.valor_liquido` nunca é reduzido no banco.
+  // HAVER-É-PAGAMENTO: parte do pedido pode já estar quitada (haver, entrada
+  // paga por qualquer meio, ou adiantamento vinculado). A base do parcelamento
+  // é o líquido MENOS o que já é dinheiro do cliente — `pedidos.valor_liquido`
+  // nunca é reduzido no banco.
   const titulosResumoQ = useTitulosPedidoResumo(pedidoId);
-  const jaPagoPedido = Number(titulosResumoQ.data?.somaPagos ?? 0);
+  // CRÉDITO PARCIAL TAMBÉM É PAGAMENTO: título pago OU adiantamento vinculado.
+  const jaPagoPedido = Number(titulosResumoQ.data?.totalAbatido ?? 0);
+  const jaAdiantado = Number(titulosResumoQ.data?.somaAdiantamento ?? 0);
   const jaPagoHaver = Number(titulosResumoQ.data?.somaHaver ?? 0);
+
 
   const [titulos, setTitulos] = useState<LinhaPlano[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -833,6 +837,24 @@ export default function CobrancaDetalhe() {
             <p className="text-muted-foreground text-xs">Valor total</p>
             <p className="font-medium">{fmtBRL.format(valorPedido)}</p>
           </div>
+          {jaPagoPedido > 0.005 && (
+            <div>
+              <p className="text-muted-foreground text-xs">
+                {jaAdiantado > 0.005 ? "Crédito do cliente aplicado" : "Já pago"}
+              </p>
+              <p className="font-medium text-emerald-700">
+                −{fmtBRL.format(jaPagoPedido)}
+              </p>
+            </div>
+          )}
+          {jaPagoPedido > 0.005 && (
+            <div>
+              <p className="text-muted-foreground text-xs">A cobrar</p>
+              <p className="font-medium">
+                {fmtBRL.format(Math.max(0, valorPedido - jaPagoPedido))}
+              </p>
+            </div>
+          )}
           <div>
             <p className="text-muted-foreground text-xs">Frete</p>
             <p className="font-medium">{freteLabel}</p>
@@ -843,6 +865,7 @@ export default function CobrancaDetalhe() {
           </div>
           <div>
             <p className="text-muted-foreground text-xs">Condição original</p>
+
             <p className="font-medium">{proposta.condicao_original}</p>
           </div>
           {pedido.condicao_solicitada &&
@@ -1025,7 +1048,13 @@ export default function CobrancaDetalhe() {
                   : ` (cobertura de ${pctPortao.toFixed(0)}% do plano; o mínimo é validado no banco ao confirmar)`}
               </>
             )}
+            {jaPagoPedido > 0.005 && (
+              <>
+                {" "}· {fmtBRL.format(jaPagoPedido)} já coberto por crédito do cliente — não cobrar esta parte
+              </>
+            )}
           </p>
+
 
           <div className="rounded-md border">
             <Table>
