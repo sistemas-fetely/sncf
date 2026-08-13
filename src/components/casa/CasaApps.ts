@@ -64,6 +64,7 @@ export const CASA_APPS: CasaApp[] = [
     ],
     icon: Users,
     tela_slug: "tela.pessoas",
+    slugPrefix: "tela.pessoas_",
     appChaves: ["pessoas"],
   },
   {
