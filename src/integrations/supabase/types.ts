@@ -26377,10 +26377,16 @@ export type Database = {
           eh_portao: boolean
           forma_pagamento_id: string | null
           id: string
+          link_pagamento: string | null
           numero_parcela: number
           pago_em: string | null
           pago_por: string | null
           pedido_id: string
+          pix_gerado_em: string | null
+          pix_gerado_por: string | null
+          pix_qr_url: string | null
+          pix_token: string | null
+          pix_txid: string | null
           prova_obs: string | null
           prova_ref: string | null
           prova_tipo: string | null
@@ -26400,10 +26406,16 @@ export type Database = {
           eh_portao?: boolean
           forma_pagamento_id?: string | null
           id?: string
+          link_pagamento?: string | null
           numero_parcela?: number
           pago_em?: string | null
           pago_por?: string | null
           pedido_id: string
+          pix_gerado_em?: string | null
+          pix_gerado_por?: string | null
+          pix_qr_url?: string | null
+          pix_token?: string | null
+          pix_txid?: string | null
           prova_obs?: string | null
           prova_ref?: string | null
           prova_tipo?: string | null
@@ -26423,10 +26435,16 @@ export type Database = {
           eh_portao?: boolean
           forma_pagamento_id?: string | null
           id?: string
+          link_pagamento?: string | null
           numero_parcela?: number
           pago_em?: string | null
           pago_por?: string | null
           pedido_id?: string
+          pix_gerado_em?: string | null
+          pix_gerado_por?: string | null
+          pix_qr_url?: string | null
+          pix_token?: string | null
+          pix_txid?: string | null
           prova_obs?: string | null
           prova_ref?: string | null
           prova_tipo?: string | null
@@ -53701,6 +53719,10 @@ export type Database = {
         Args: { p_pedido_id: string }
         Returns: boolean
       }
+      fn_pedido_dinheiro_antes_da_nf: {
+        Args: { p_pedido_id: string }
+        Returns: Json
+      }
       fn_pedido_gera_titulo: { Args: { p_pedido_id: string }; Returns: boolean }
       fn_pedido_natureza_alerta: {
         Args: { p_pedido_id: string }
@@ -54013,6 +54035,7 @@ export type Database = {
       }
       gerar_periodos_ferias_pendentes: { Args: never; Returns: undefined }
       gerar_pix_portao: { Args: { p_portao_id: string }; Returns: Json }
+      gerar_pix_provisao: { Args: { p_provisao_id: string }; Returns: Json }
       gerar_plano_pagamento: {
         Args: { p_parcelas: Json; p_stage_id: string; p_user_id?: string }
         Returns: Json
@@ -54840,6 +54863,10 @@ export type Database = {
       }
       registrar_pix_qr_url: {
         Args: { p_portao_id: string; p_url: string }
+        Returns: undefined
+      }
+      registrar_pix_qr_url_provisao: {
+        Args: { p_provisao_id: string; p_url: string }
         Returns: undefined
       }
       registrar_retorno_devolucao: {
