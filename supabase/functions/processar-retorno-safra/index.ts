@@ -185,6 +185,7 @@ serve(async (req) => {
 
     const body = await req.json();
     const arquivoConteudo: string = body.arquivo_conteudo ?? "";
+    const arquivoNome: string | null = body?.arquivo_nome ?? null;
     if (!arquivoConteudo) {
       return new Response(JSON.stringify({ ok: false, erro: "arquivo_conteudo é obrigatório" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
