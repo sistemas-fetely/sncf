@@ -73,6 +73,8 @@ function diasDesde(iso: string | null | undefined): number | null {
 type TitulosBoleto = {
   id: string;
   numero_titulo: string | null;
+  /** Status do TÍTULO (aberto, devolvido, perda...) — distinto do boleto_status. */
+  status: string | null;
   data_vencimento_atual: string | null;
   valor_bruto: number | null;
   boleto_status: string | null;
