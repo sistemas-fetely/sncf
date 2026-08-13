@@ -28218,6 +28218,7 @@ export type Database = {
           ordem: number
           parcela_unica: boolean
           passa_por_analise: boolean
+          pix_a_prazo: boolean
           portao_minimo_pct: number
           updated_at: string
         }
@@ -28232,6 +28233,7 @@ export type Database = {
           ordem?: number
           parcela_unica: boolean
           passa_por_analise: boolean
+          pix_a_prazo?: boolean
           portao_minimo_pct?: number
           updated_at?: string
         }
@@ -28246,6 +28248,7 @@ export type Database = {
           ordem?: number
           parcela_unica?: boolean
           passa_por_analise?: boolean
+          pix_a_prazo?: boolean
           portao_minimo_pct?: number
           updated_at?: string
         }
@@ -39110,6 +39113,7 @@ export type Database = {
           acao_sugerida: string | null
           apelido: string | null
           boleto_status: string | null
+          cobra_pela_regua: boolean | null
           data_proxima_acao_regua: string | null
           dias_atraso: number | null
           email_cliente: string | null
