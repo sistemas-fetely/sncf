@@ -1095,15 +1095,17 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                                   }
                                   className="text-[11px] text-muted-foreground hover:text-foreground hover:underline"
                                 >
-                                  Fat {formatDateBR(b.pedido?.faturado_em ?? null)?.slice(0, 5) || "—"}
+                                  {(b.numero_parcela ?? 1) > 1
+                                    ? `P1 ${formatDateBR(ancoraPorPedido[b.pedido?.id_externo ?? ""] ?? null)?.slice(0, 5) ?? "—"}`
+                                    : `Fat ${formatDateBR(dataFaturamentoIso(b.pedido?.faturado_em))?.slice(0, 5) || "—"}`}
                                   {dias ? ` +${dias}d` : ""} → {formatDateBR(sug)?.slice(0, 5)} ·{" "}
                                   <span className="font-medium underline">usar</span>
                                 </button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                Faturamento ({formatDateBR(b.pedido?.faturado_em ?? null)?.slice(0, 5)})
-                                {dias ? ` + ${dias} dias da condição` : " + dias da condição"}, nunca
-                                antes de faturamento + 7 dias
+                                {(b.numero_parcela ?? 1) > 1
+                                  ? `Intervalo comercial contado a partir do vencimento da parcela 1`
+                                  : `Faturamento (${formatDateBR(dataFaturamentoIso(b.pedido?.faturado_em))?.slice(0, 5)}) + dias da condição, nunca antes de faturamento + 7 dias`}
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
