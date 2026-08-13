@@ -551,9 +551,10 @@ export default function CobrancaDetalhe() {
 
 
   const handleValorTotalChange = (v: number) => {
-    setValorTotalCobrar(v);
+    const arredondado = Math.round(v * 100) / 100;
+    setValorTotalCobrar(arredondado);
     if (parcelasIguais) {
-      setTitulos((prev) => redistribuirValoresIguais(prev, v));
+      setTitulos((prev) => redistribuirValoresIguais(prev, arredondado));
     }
   };
 
