@@ -248,41 +248,19 @@ Deno.serve(async (req) => {
      * Body esperado:
      *   - email (obrigatório)
      *   - full_name (obrigatório)
-     *   - vinculo_tipo: 'clt' | 'pj' | 'externo' | null
-     *   - colaborador_clt_id (se vinculo_tipo='clt')
-     *   - contrato_pj_id (se vinculo_tipo='pj')
-     *   - tipo_externo (se vinculo_tipo='externo'): aceito, mas não persistido aqui
      *   - grupo_ids: array de IDs de grupos_acesso (vazio = sem grupos)
      *
      * Doutrina:
-     *   - A identidade usuário↔vínculo vive em vinculos.usuario_id (gravada em outro fluxo)
-     *   - Marcos: vínculo é opcional em V1 (Flavio cravado)
+     *   - UM TRILHO SÓ: vínculo usuário↔pessoa é feito depois pelo botão Vincular
+     *     da Mesa de Usuários, via RPC `mesa_vincular_usuario`. Este wizard não
+     *     escreve mais em colaboradores_clt/contratos_pj.
      *   - Email de boas-vindas com link de recovery (user define senha no 1º acesso)
      */
     if (action === "create_user_v2") {
-      const { email, full_name, vinculo_tipo, colaborador_clt_id, contrato_pj_id, tipo_externo, grupo_ids } = body;
+      const { email, full_name, grupo_ids } = body;
 
       if (!email || !full_name) {
         return new Response(JSON.stringify({ error: "Email e nome são obrigatórios" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      if (vinculo_tipo === "clt" && !colaborador_clt_id) {
-        return new Response(JSON.stringify({ error: "colaborador_clt_id obrigatório quando vinculo_tipo=clt" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (vinculo_tipo === "pj" && !contrato_pj_id) {
-        return new Response(JSON.stringify({ error: "contrato_pj_id obrigatório quando vinculo_tipo=pj" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (vinculo_tipo === "externo" && !tipo_externo) {
-        return new Response(JSON.stringify({ error: "tipo_externo obrigatório quando vinculo_tipo=externo" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -316,32 +294,13 @@ Deno.serve(async (req) => {
         });
       };
 
-      const profileColabTipo = vinculo_tipo === "clt" ? "clt"
-        : vinculo_tipo === "pj" ? "pj"
-        : "all";
       const { error: profileErr } = await adminClient.from("profiles").upsert({
         user_id: userId,
         full_name,
         approved: true,
-        colaborador_tipo: profileColabTipo,
+        colaborador_tipo: "all",
       }, { onConflict: "user_id" });
       if (profileErr) return await rollbackUser("Falha ao criar o perfil do usuário", profileErr.message);
-
-      if (vinculo_tipo) {
-
-
-        if (vinculo_tipo === "clt") {
-          const { error: cltErr } = await adminClient.from("colaboradores_clt")
-            .update({ user_id: userId })
-            .eq("id", colaborador_clt_id);
-          if (cltErr) return await rollbackUser("Falha ao vincular colaborador CLT", cltErr.message);
-        } else if (vinculo_tipo === "pj") {
-          const { error: pjErr } = await adminClient.from("contratos_pj")
-            .update({ user_id: userId })
-            .eq("id", contrato_pj_id);
-          if (pjErr) return await rollbackUser("Falha ao vincular contrato PJ", pjErr.message);
-        }
-      }
 
       if (grupo_ids && Array.isArray(grupo_ids) && grupo_ids.length > 0) {
         const grupoInserts = grupo_ids.map((gid: string) => ({
@@ -352,7 +311,6 @@ Deno.serve(async (req) => {
         const { error: grupoErr } = await adminClient.from("grupo_acesso_usuarios").insert(grupoInserts);
         if (grupoErr) return await rollbackUser("Falha ao atribuir grupos ao usuário", grupoErr.message);
       }
-
 
       let linkPrimeiroAcesso: string | null = null;
       try {
@@ -391,7 +349,6 @@ Deno.serve(async (req) => {
         success: true,
         user_id: userId,
         email,
-        vinculo_tipo: vinculo_tipo || null,
         grupos_atribuidos: grupo_ids?.length || 0,
         link_primeiro_acesso: linkPrimeiroAcesso,
       }), {
