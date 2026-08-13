@@ -1048,7 +1048,13 @@ export default function CobrancaDetalhe() {
                   : ` (cobertura de ${pctPortao.toFixed(0)}% do plano; o mínimo é validado no banco ao confirmar)`}
               </>
             )}
+            {jaPagoPedido > 0.005 && (
+              <>
+                {" "}· {fmtBRL.format(jaPagoPedido)} já coberto por crédito do cliente — não cobrar esta parte
+              </>
+            )}
           </p>
+
 
           <div className="rounded-md border">
             <Table>
