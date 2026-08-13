@@ -55,7 +55,7 @@ import {
   MoreHorizontal,
   Search,
 } from "lucide-react";
-import { sugerirVencimentoBoleto } from "@/lib/financeiro/sugerir-vencimento-boleto";
+import { sugerirVencimentoBoleto, dataFaturamentoIso } from "@/lib/financeiro/sugerir-vencimento-boleto";
 import { useEnviarEmailBoleto } from "@/hooks/credito/useEnviarEmailBoleto";
 import { useBaixasPendentes } from "@/hooks/credito/useBaixasPendentes";
 import { useRemessasSafra } from "@/hooks/credito/useRemessasSafra";
@@ -470,20 +470,44 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     [boletos],
   );
 
+  // edição inline de boletos (declarada aqui porque as sugestões dependem dela)
+  const [edits, setEdits] = useState<Record<string, { data?: string; valor?: string }>>({});
+
+  /**
+   * A parcela 1 é sugerida pela regra pura (faturamento + dia nominal, piso 7d).
+   * As demais seguem a data EFETIVA da parcela 1 — edição em curso na tela tem
+   * precedência sobre o salvo, para o operador ver a cascata antes de gravar.
+   */
+  const ancoraPorPedido = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const b of boletos) {
+      if ((b.numero_parcela ?? 1) !== 1) continue;
+      const ped = b.pedido?.id_externo;
+      if (!ped) continue;
+      const efetiva = edits[b.id]?.data ?? b.data_vencimento_atual ?? null;
+      if (efetiva) map[ped] = efetiva;
+    }
+    return map;
+  }, [boletos, edits]);
+
   /** Sugestão de vencimento por título pendente (só sugestão — nunca grava sozinha). */
   const sugestoes = useMemo(() => {
     const map: Record<string, string> = {};
     for (const b of pendentesEntrada) {
+      const parcela = b.numero_parcela ?? 1;
+      const ped = b.pedido?.id_externo;
+      const ancora = parcela > 1 && ped ? ancoraPorPedido[ped] : null;
       const s = sugerirVencimentoBoleto(
         b.pedido?.faturado_em,
         b.pedido?.condicao_solicitada,
-        b.numero_parcela,
+        parcela,
         b.total_parcelas,
+        ancora,
       );
       if (s) map[b.id] = s;
     }
     return map;
-  }, [pendentesEntrada]);
+  }, [pendentesEntrada, ancoraPorPedido]);
 
   /** Pendentes com sugestão diferente da data salva — universo do dialog em lote. */
   const pendentesComSugestao = useMemo(
@@ -615,8 +639,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     });
   };
 
-  // edição inline de boletos
-  const [edits, setEdits] = useState<Record<string, { data?: string; valor?: string }>>({});
+  // edição inline de boletos (state declarado acima, junto das sugestões)
   const [salvando, setSalvando] = useState<Record<string, boolean>>({});
   const temEdicao = (id: string) => !!(edits[id]?.data || edits[id]?.valor);
   const handleSalvar = async (b: TitulosBoleto) => {
@@ -1072,15 +1095,17 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                                   }
                                   className="text-[11px] text-muted-foreground hover:text-foreground hover:underline"
                                 >
-                                  Fat {formatDateBR(b.pedido?.faturado_em ?? null)?.slice(0, 5) || "—"}
+                                  {(b.numero_parcela ?? 1) > 1
+                                    ? `P1 ${formatDateBR(ancoraPorPedido[b.pedido?.id_externo ?? ""] ?? null)?.slice(0, 5) ?? "—"}`
+                                    : `Fat ${formatDateBR(dataFaturamentoIso(b.pedido?.faturado_em))?.slice(0, 5) || "—"}`}
                                   {dias ? ` +${dias}d` : ""} → {formatDateBR(sug)?.slice(0, 5)} ·{" "}
                                   <span className="font-medium underline">usar</span>
                                 </button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                Faturamento ({formatDateBR(b.pedido?.faturado_em ?? null)?.slice(0, 5)})
-                                {dias ? ` + ${dias} dias da condição` : " + dias da condição"}, nunca
-                                antes de faturamento + 7 dias
+                                {(b.numero_parcela ?? 1) > 1
+                                  ? `Intervalo comercial contado a partir do vencimento da parcela 1`
+                                  : `Faturamento (${formatDateBR(dataFaturamentoIso(b.pedido?.faturado_em))?.slice(0, 5)}) + dias da condição, nunca antes de faturamento + 7 dias`}
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
@@ -1536,6 +1561,27 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                                     {x.qtd} {ATENCAO_CFG[x.tipo].label}
                                   </Badge>
                                 ))}
+                                {(() => {
+                                  const alvos = sp.boletos.filter(
+                                    (b) => sugestoes[b.id] && sugestoes[b.id] !== (edits[b.id]?.data ?? b.data_vencimento_atual ?? ""),
+                                  );
+                                  if (alvos.length === 0) return null;
+                                  return (
+                                    <button
+                                      type="button"
+                                      className="text-[11px] font-medium text-muted-foreground underline hover:text-foreground"
+                                      onClick={() =>
+                                        setEdits((p) => {
+                                          const n = { ...p };
+                                          for (const b of alvos) n[b.id] = { ...n[b.id], data: sugestoes[b.id] };
+                                          return n;
+                                        })
+                                      }
+                                    >
+                                      usar sugestões ({alvos.length})
+                                    </button>
+                                  );
+                                })()}
                               </div>
                               {renderTabela(sp.boletos, true)}
                             </div>
