@@ -21,6 +21,9 @@ export interface CasaApp {
    *  qualquer permissão com este prefixo (ex: "tela.fin_" para Finanças
    *  recortada por tela), mesmo sem o slug-mãe. */
   slugPrefix?: string;
+  /** Apps da sncf_navegacao que compoem este app da Casa. Usado para resolver
+   *  o destino da aba quando o defaultRoute nao esta visivel para o usuario. */
+  appChaves?: string[];
 }
 
 export const CASA_APPS: CasaApp[] = [
@@ -31,6 +34,7 @@ export const CASA_APPS: CasaApp[] = [
     routeMatchers: ["/"],
     icon: Home,
     tela_slug: "tela.home",
+    appChaves: ["casa"],
   },
   {
     id: "pessoas",
@@ -60,6 +64,7 @@ export const CASA_APPS: CasaApp[] = [
     ],
     icon: Users,
     tela_slug: "tela.pessoas",
+    appChaves: ["pessoas"],
   },
   {
     id: "financas",
@@ -69,6 +74,7 @@ export const CASA_APPS: CasaApp[] = [
     icon: Wallet,
     tela_slug: "tela.financeiro",
     slugPrefix: "tela.fin_",
+    appChaves: ["financas"],
   },
   {
     id: "marca",
@@ -77,6 +83,7 @@ export const CASA_APPS: CasaApp[] = [
     routeMatchers: ["/administrativo-fetely"],
     icon: Sparkles,
     tela_slug: "tela.admin_fetely",
+    appChaves: ["patrimonio"],
   },
   {
     id: "credito",
@@ -85,6 +92,7 @@ export const CASA_APPS: CasaApp[] = [
     routeMatchers: ["/credito"],
     icon: CreditCard,
     tela_slug: "tela.credito",
+    appChaves: ["credito"],
   },
   {
     id: "recebimento",
@@ -93,6 +101,7 @@ export const CASA_APPS: CasaApp[] = [
     routeMatchers: ["/recebimento", "/pedidos", "/comercial", "/vendas", "/administrativo-fetely/parceiros", "/credito/clientes", "/logistica", "/parceiros", "/canal-cpo"],
     icon: HandCoins,
     tela_slug: "tela.pedidos",
+    appChaves: ["sops"],
   },
   {
     id: "comercial",
@@ -101,6 +110,7 @@ export const CASA_APPS: CasaApp[] = [
     routeMatchers: ["/comercial/oportunidades"],
     icon: Boxes,
     tela_slug: "tela.comercial",
+    appChaves: ["comercial"],
   },
   {
     id: "acervo",
@@ -118,6 +128,7 @@ export const CASA_APPS: CasaApp[] = [
     ],
     icon: BookOpen,
     tela_slug: "tela.sncf",
+    appChaves: ["acervo", "meu_espaco"],
   },
   {
     id: "mesa",
