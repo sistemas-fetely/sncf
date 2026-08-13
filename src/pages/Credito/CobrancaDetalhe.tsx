@@ -408,12 +408,16 @@ export default function CobrancaDetalhe() {
   const haverSaldo = haverCliente?.saldo ?? 0;
   const haverDisponivel = !exigePortao && haverSaldo > 0;
 
-  // HAVER-É-PAGAMENTO: parte do pedido pode já estar quitada (haver ou entrada
-  // paga por qualquer meio). A base do parcelamento é o líquido MENOS o que já
-  // está pago — `pedidos.valor_liquido` nunca é reduzido no banco.
+  // HAVER-É-PAGAMENTO: parte do pedido pode já estar quitada (haver, entrada
+  // paga por qualquer meio, ou adiantamento vinculado). A base do parcelamento
+  // é o líquido MENOS o que já é dinheiro do cliente — `pedidos.valor_liquido`
+  // nunca é reduzido no banco.
   const titulosResumoQ = useTitulosPedidoResumo(pedidoId);
-  const jaPagoPedido = Number(titulosResumoQ.data?.somaPagos ?? 0);
+  // CRÉDITO PARCIAL TAMBÉM É PAGAMENTO: título pago OU adiantamento vinculado.
+  const jaPagoPedido = Number(titulosResumoQ.data?.totalAbatido ?? 0);
+  const jaAdiantado = Number(titulosResumoQ.data?.somaAdiantamento ?? 0);
   const jaPagoHaver = Number(titulosResumoQ.data?.somaHaver ?? 0);
+
 
   const [titulos, setTitulos] = useState<LinhaPlano[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
