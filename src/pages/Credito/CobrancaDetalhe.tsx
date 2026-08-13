@@ -417,6 +417,7 @@ export default function CobrancaDetalhe() {
   const jaPagoPedido = Number(titulosResumoQ.data?.totalAbatido ?? 0);
   const jaAdiantado = Number(titulosResumoQ.data?.somaAdiantamento ?? 0);
   const jaPagoHaver = Number(titulosResumoQ.data?.somaHaver ?? 0);
+  const creditoAplicado = Number(titulosResumoQ.data?.creditoAplicado ?? 0);
 
 
   const [titulos, setTitulos] = useState<LinhaPlano[]>([]);
@@ -484,14 +485,16 @@ export default function CobrancaDetalhe() {
 
     const somaProposta = novos.reduce((acc, t) => acc + Number(t.valor_bruto || 0), 0);
     const bruto = Number(pedidoQ.data?.valor_liquido ?? propostaQ.data?.valor_total ?? somaProposta);
-    const novoTotal = Math.max(0, bruto - jaPagoPedido);
+    const novoTotal = Math.max(0, bruto - creditoAplicado);
     setValorTotalCobrar(novoTotal);
-    if (jaPagoPedido > 0.005) setTitulos((prev) => redistribuirValoresIguais(prev, novoTotal));
+    if (creditoAplicado > 0.005 || jaPagoPedido > 0.005) setTitulos((prev) => redistribuirValoresIguais(prev, novoTotal));
     setParcelasIguais(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [propostaQ.data, pedidoQ.data?.valor_liquido, jaPagoPedido, paramDiasQ.isLoading, paramIntervaloQ.isLoading]);
+  }, [propostaQ.data, pedidoQ.data?.valor_liquido, creditoAplicado, jaPagoPedido, paramDiasQ.isLoading, paramIntervaloQ.isLoading]);
 
 
+  // A proposta nasce pelo que FALTA cobrar, não pelo valor da nota. `montar_plano_pagamento`
+  // reconcilia com `novas + pagas + haver = líquido`, então o plano cheio seria recusado.
   const valorPedido = Number(pedidoQ.data?.valor_liquido ?? propostaQ.data?.valor_total ?? 0);
   const dataPedidoStr: string | undefined = pedidoQ.data?.data_pedido;
 
@@ -499,7 +502,7 @@ export default function CobrancaDetalhe() {
     () => titulos.reduce((acc, t) => acc + Number(t.valor_bruto || 0), 0),
     [titulos],
   );
-  const valorACobrar = Math.max(0, valorPedido - jaPagoPedido);
+  const valorACobrar = Math.max(0, valorPedido - creditoAplicado);
   const diff = totalEditado - valorACobrar;
   const pctDiff = valorACobrar > 0 ? Math.abs(diff) / valorACobrar : 0;
   const temDivergenciaLeve = Math.abs(diff) > 0.005 && pctDiff <= 0.01;
@@ -1055,6 +1058,16 @@ export default function CobrancaDetalhe() {
             )}
           </p>
 
+          {creditoAplicado > 0.005 && (
+            <div className="flex items-center justify-between rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm dark:border-emerald-900 dark:bg-emerald-950/40">
+              <span className="text-emerald-800 dark:text-emerald-200">
+                Crédito do cliente já abatido deste pedido — não entra no plano
+              </span>
+              <span className="font-semibold text-emerald-800 dark:text-emerald-200">
+                −{fmtBRL.format(creditoAplicado)}
+              </span>
+            </div>
+          )}
 
           <div className="rounded-md border">
             <Table>
@@ -1199,6 +1212,9 @@ export default function CobrancaDetalhe() {
                   </TableCell>
                   <TableCell colSpan={4} className="text-xs text-muted-foreground">
                     Pedido: {fmtBRL.format(valorPedido)}
+                    {creditoAplicado > 0.005 && (
+                      <> · líquido {fmtBRL.format(pedido.valor_liquido)}</>
+                    )}
                     {jaPagoPedido > 0.005 && (
                       <> · já pago {fmtBRL.format(jaPagoPedido)} · a cobrar {fmtBRL.format(valorACobrar)}</>
                     )}
