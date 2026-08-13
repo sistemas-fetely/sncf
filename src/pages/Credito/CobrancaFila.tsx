@@ -262,9 +262,16 @@ function ImportarRetornoModal({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any).functions.invoke(
         "processar-retorno-safra",
-        { body: { arquivo_conteudo: texto } }
+        { body: { arquivo_conteudo: texto, arquivo_nome: file.name } }
       );
       if (error) throw error;
+      if (data?.ja_processado) {
+        toast({
+          title: "Retorno já processado",
+          description: data.erro,
+        });
+        return;
+      }
       setResultado(data);
       onSuccess();
     } catch (err) {
