@@ -145,9 +145,56 @@ const ATENCAO_CFG: Record<Exclude<Atencao, "nenhuma">, { label: string; cls: str
 function diasAte(dataIso: string, hojeIso: string): number {
   return Math.round(
     (new Date(dataIso + "T00:00:00").getTime() - new Date(hojeIso + "T00:00:00").getTime()) / 86400000,
-  );
+/**
+ * Subagrupa os boletos de um cliente por PEDIDO. Sem isso, dois pedidos do mesmo
+ * cliente aparecem intercalados por data de vencimento e um pedido inteiro sem
+ * boleto passa despercebido no meio de outro já registrado.
+ */
+function agruparPorPedido(boletos: TitulosBoleto[], hojeIso: string) {
+  const map = new Map<string, TitulosBoleto[]>();
+  for (const b of boletos) {
+    const k = b.pedido?.id_externo || "— sem pedido —";
+    const arr = map.get(k);
+    if (arr) arr.push(b);
+    else map.set(k, [b]);
+  }
+  const subs = Array.from(map.entries()).map(([pedido, lista]) => {
+    let total = 0;
+    let prioridade = 3;
+    let proximo: string | null = null;
+    const cont = new Map<Atencao, { qtd: number; valor: number }>();
+    for (const b of lista) {
+      const v = Number(b.valor_bruto || 0);
+      total += v;
+      const a = classificarAtencao(b, hojeIso);
+      if (a !== "nenhuma") {
+        const acc = cont.get(a) ?? { qtd: 0, valor: 0 };
+        acc.qtd++; acc.valor += v;
+        cont.set(a, acc);
+        const p = a === "vencido" ? 1 : b.data_vencimento_atual && diasAte(b.data_vencimento_atual, hojeIso) <= 7 ? 0 : 2;
+        if (p < prioridade) prioridade = p;
+      }
+      if (b.data_vencimento_atual && (!proximo || b.data_vencimento_atual < proximo)) {
+        proximo = b.data_vencimento_atual;
+      }
+    }
+    return {
+      pedido,
+      boletos: lista,
+      total,
+      prioridade,
+      proximo,
+      atencaoLista: (["emitir", "reemitir", "vencido"] as const)
+        .map((k) => ({ tipo: k, ...(cont.get(k) ?? { qtd: 0, valor: 0 }) }))
+        .filter((x) => x.qtd > 0),
+    };
+  });
+  subs.sort((a, b) => {
+    if (a.prioridade !== b.prioridade) return a.prioridade - b.prioridade;
+    return (a.proximo ?? "9999-12-31").localeCompare(b.proximo ?? "9999-12-31");
+  });
+  return subs;
 }
-
 
 function BotaoBaixarBoletoPdf({ boleto }: { boleto: any }) {
   const { toast } = useToast();
