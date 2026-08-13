@@ -24533,7 +24533,7 @@ export type Database = {
             foreignKeyName: "pedidos_compra_departamento_id_fkey"
             columns: ["departamento_id"]
             isOneToOne: false
-            referencedRelation: "parametros"
+            referencedRelation: "departamentos"
             referencedColumns: ["id"]
           },
           {
