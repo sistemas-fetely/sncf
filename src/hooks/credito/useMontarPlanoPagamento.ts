@@ -64,7 +64,15 @@ export function useMontarPlanoPagamento() {
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["cobranca-fila"] });
       qc.invalidateQueries({ queryKey: ["cobranca-proposta"] });
+      qc.invalidateQueries({ queryKey: ["cobranca-pedido-minimo"] });
+      qc.invalidateQueries({ queryKey: ["pedido-detalhe"] });
+      qc.invalidateQueries({ queryKey: ["provisoes-pedido"] });
+      qc.invalidateQueries({ queryKey: ["pedido-portao-provisorio"] });
+      qc.invalidateQueries({ queryKey: ["estado-instrumento-portao"] });
+      qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
+      qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
       const portoes = res.portoes ?? 0;
+
       toast({
         title: "Plano de pagamento montado",
         description:

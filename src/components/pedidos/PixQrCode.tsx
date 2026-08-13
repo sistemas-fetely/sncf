@@ -142,7 +142,7 @@ export function PixQrCode({
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <QrCode className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-foreground">QR Code PIX do portão</span>
+            <span className="text-sm font-medium text-foreground">QR Code PIX da cobrança</span>
           </div>
           {temQr && (
             <Button

@@ -449,19 +449,11 @@ serve(async (req) => {
       pedido_id, fonte: lastro.fonte, porque: lastro.porque,
     });
 
-    // 4b. DINHEIRO-ANTES-DA-NF — lastro não basta em regra "pago contra a NF".
-    // Provisão prevista já dá lastro (LASTRO-E-VINCULO), então sem esta checagem o
-    // pedido pix_faturamento faturaria e expediria com o dinheiro não recebido, e o
-    // combinado com o cliente viraria acordo verbal. Regras a prazo não entram aqui.
-    const { data: dinheiroRpc, error: dinheiroErr } = await supabase
-      .rpc("fn_pedido_dinheiro_antes_da_nf", { p_pedido_id: pedido_id });
-    if (dinheiroErr) {
-      return await falhaLimpando(`Falha ao avaliar o pagamento antecipado: ${dinheiroErr.message}`, 500);
-    }
-    const dinheiro = (dinheiroRpc ?? {}) as { exige?: boolean; ok?: boolean; porque?: string; falta?: number };
-    if (dinheiro.exige && !dinheiro.ok) {
-      return await falhaLimpando(dinheiro.porque ?? "Pagamento não recebido antes da NF.", 409);
-    }
+    // Nao existe trava de "dinheiro antes da NF". A condicao pix_faturamento e credito
+    // a prazo aprovado na analise: o cliente paga contra a NF, com data de vencimento, e
+    // se nao pagar o titulo vence e entra na regua de cobranca — mesma mecanica do boleto.
+    // Lastro (4a) e a unica pergunta que este envio faz sobre recebivel.
+
 
 
     const { data: titulosRpc } = await supabase

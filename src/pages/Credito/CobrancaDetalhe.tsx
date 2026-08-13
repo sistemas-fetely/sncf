@@ -304,9 +304,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
 
           {titulosQ.isLoading && <Skeleton className="h-40 w-full" />}
 
-          {!titulosQ.isLoading && titulosQ.data?.length === 0 && (
-            <PortaoLinksPanel pedidoId={pedido.id} />
-          )}
+          {!titulosQ.isLoading && <PortaoLinksPanel pedidoId={pedido.id} />}
 
           {titulosQ.data && titulosQ.data.length > 0 && (
             <div className="overflow-x-auto">
