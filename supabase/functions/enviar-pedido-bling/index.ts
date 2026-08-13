@@ -694,10 +694,26 @@ if (itensSemProdutoBling.length > 0) {
       ).toFixed(2)
     );
 
-    const descontoFator =
-      somaItensJson > 0 && baseItens < somaItensJson
+    // AJUSTE-FATOR-SIMETRICO: o fator encolhe (desconto no total) e tambem amplia
+    // (acrescimo fiscal por situacao de IE; frete rateado em remessa filha). Antes ele
+    // travava em 1 quando a base era maior que a soma dos itens, e o guard de R$ 5,00
+    // derrubava o envio. O acrescimo e preco de mercadoria: rateia no unitario.
+    const ajusteFator =
+      somaItensJson > 0
         ? parseFloat((baseItens / somaItensJson).toFixed(6))
         : 1;
+
+    // Trava de sanidade: fator fora desta faixa nao e desconto nem acrescimo, e erro
+    // de origem (itens_json com preco errado, remessa com valor incoerente). FAIL-LOUD
+    // antes de mandar preco distorcido para a NF.
+    if (ajusteFator < 0.5 || ajusteFator > 1.5) {
+      return await falhaLimpando(
+        `Fator de ajuste fora da faixa aceitavel (${ajusteFator}): base dos itens ` +
+        `R$ ${baseItens.toFixed(2)} contra soma dos itens R$ ${somaItensJson.toFixed(2)}. ` +
+        `Corrija a origem dos precos antes de reenviar.`,
+        409,
+      );
+    }
 
     const rawItens = itens.length > 0
       ? itens.map((it: any) => {
