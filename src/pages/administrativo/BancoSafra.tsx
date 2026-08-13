@@ -55,7 +55,7 @@ import {
   MoreHorizontal,
   Search,
 } from "lucide-react";
-import { sugerirVencimentoBoleto } from "@/lib/financeiro/sugerir-vencimento-boleto";
+import { sugerirVencimentoBoleto, dataFaturamentoIso } from "@/lib/financeiro/sugerir-vencimento-boleto";
 import { useEnviarEmailBoleto } from "@/hooks/credito/useEnviarEmailBoleto";
 import { useBaixasPendentes } from "@/hooks/credito/useBaixasPendentes";
 import { useRemessasSafra } from "@/hooks/credito/useRemessasSafra";
