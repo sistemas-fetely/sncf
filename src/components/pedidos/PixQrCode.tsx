@@ -8,10 +8,10 @@ import { Check, Copy, ExternalLink, Loader2, QrCode, RefreshCw } from "lucide-re
 import { useToast } from "@/hooks/use-toast";
 import { formatBRL } from "@/lib/format-currency";
 import { supabase } from "@/integrations/supabase/client";
-import { useGerarPixPortao } from "@/hooks/pedidos/useGerarPixPortao";
+import { useGerarPixProvisao } from "@/hooks/pedidos/useGerarPixProvisao";
 
 interface Props {
-  portaoId: string;
+  provisaoId: string;
   pedidoId: string;
   tipoPagamento?: string | null;
   /** payload EMV já gravado pela RPC em pedido_portao.link_pagamento */
@@ -22,8 +22,8 @@ interface Props {
   banco?: string | null;
 }
 
-export function PixQrCodePortao({
-  portaoId,
+export function PixQrCode({
+  provisaoId,
   pedidoId,
   tipoPagamento,
   linkPagamento,
@@ -34,7 +34,7 @@ export function PixQrCodePortao({
 }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
-  const gerar = useGerarPixPortao();
+  const gerar = useGerarPixProvisao();
   const [copiado, setCopiado] = useState(false);
   const [copiadoLink, setCopiadoLink] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -42,15 +42,15 @@ export function PixQrCodePortao({
 
   const ehPix = tipoPagamento === "pix";
 
-  // pix_qr_url / pix_token vivem no portão — a RPC os grava, o front só lê.
+  // pix_qr_url / pix_token vivem na LINHA de cobrança — a RPC grava, o front só lê.
   const { data: portaoPix } = useQuery({
-    queryKey: ["portao-pix-qr", portaoId],
-    enabled: ehPix && !!portaoId,
+    queryKey: ["provisao-pix-qr", provisaoId],
+    enabled: ehPix && !!provisaoId,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("pedido_portao")
+        .from("provisao_recebimento")
         .select("pix_qr_url, pix_token")
-        .eq("id", portaoId)
+        .eq("id", provisaoId)
         .maybeSingle();
       if (error) throw new Error(error.message);
       return (data ?? null) as { pix_qr_url: string | null; pix_token: string | null } | null;
@@ -72,7 +72,7 @@ export function PixQrCodePortao({
 
   // ── Sobe o PNG do QR pro bucket público (só se ainda não houver imagem) ──
   useEffect(() => {
-    if (!ehPix || !payload || !portaoId) return;
+    if (!ehPix || !payload || !provisaoId) return;
     if (qrUrl) return;
     if (subindoRef.current) return;
 
@@ -84,7 +84,7 @@ export function PixQrCodePortao({
       canvas.toBlob(async (blob) => {
         try {
           if (!blob) throw new Error("Não foi possível gerar o PNG do QR.");
-          const path = `${portaoId}-${crypto.randomUUID()}.png`;
+          const path = `${provisaoId}-${crypto.randomUUID()}.png`;
           const { error: errUp } = await supabase.storage
             .from("pix-qr")
             .upload(path, blob, { contentType: "image/png", upsert: false });
@@ -94,13 +94,13 @@ export function PixQrCodePortao({
           const url = pub?.publicUrl;
           if (!url) throw new Error("URL pública do QR não disponível.");
 
-          const { error: errRpc } = await (supabase as any).rpc("registrar_pix_qr_url", {
-            p_portao_id: portaoId,
+          const { error: errRpc } = await (supabase as any).rpc("registrar_pix_qr_url_provisao", {
+            p_provisao_id: provisaoId,
             p_url: url,
           });
           if (errRpc) throw new Error(errRpc.message);
 
-          qc.invalidateQueries({ queryKey: ["portao-pix-qr", portaoId] });
+          qc.invalidateQueries({ queryKey: ["provisao-pix-qr", provisaoId] });
         } catch (e: any) {
           // Falha no upload NÃO invalida o QR da tela nem o copia-e-cola.
           subindoRef.current = false;
@@ -114,7 +114,7 @@ export function PixQrCodePortao({
     }, 120);
 
     return () => clearTimeout(t);
-  }, [ehPix, payload, portaoId, qrUrl, qc, toast]);
+  }, [ehPix, payload, provisaoId, qrUrl, qc, toast]);
 
   if (!ehPix) return null;
 
@@ -149,7 +149,7 @@ export function PixQrCodePortao({
               variant="ghost"
               size="sm"
               className="text-xs text-muted-foreground"
-              onClick={() => gerar.mutate({ portao_id: portaoId, pedido_id: pedidoId })}
+              onClick={() => gerar.mutate({ provisaoId, pedido_id: pedidoId })}
               disabled={gerar.isPending}
             >
               {gerar.isPending ? (
@@ -184,7 +184,7 @@ export function PixQrCodePortao({
             </p>
             <Button
               size="sm"
-              onClick={() => gerar.mutate({ portao_id: portaoId, pedido_id: pedidoId })}
+              onClick={() => gerar.mutate({ provisaoId, pedido_id: pedidoId })}
               disabled={gerar.isPending}
             >
               {gerar.isPending ? (

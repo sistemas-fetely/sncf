@@ -16,19 +16,19 @@ export interface PixPortaoGerado {
 
 
 interface Args {
-  portao_id: string;
+  provisaoId: string;
   /** usado só para invalidar as queries do pedido */
   pedido_id?: string | null;
 }
 
-export function useGerarPixPortao() {
+export function useGerarPixProvisao() {
   const qc = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ portao_id }: Args) => {
-      const { data, error } = await (supabase as any).rpc("gerar_pix_portao", {
-        p_portao_id: portao_id,
+    mutationFn: async ({ provisaoId }: Args) => {
+      const { data, error } = await (supabase as any).rpc("gerar_pix_provisao", {
+        p_provisao_id: provisaoId,
       });
       // FAIL-LOUD: a mensagem do Postgres explica exatamente o que está errado.
       if (error) throw new Error(error.message || formatError(error));
