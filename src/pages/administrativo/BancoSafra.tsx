@@ -882,19 +882,26 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       let qtdVencido = 0;
       let proximoVencimento: string | null = null;
       const contagem = new Map<string, number>();
+      const atencao = new Map<Atencao, { qtd: number; valor: number }>();
+      let emitirMaisUrgente: string | null = null;
       /** Pedidos na ordem de vencimento (lista já vem ordenada asc). */
       const pedidos: string[] = [];
       for (const b of lista) {
         const v = Number(b.valor_bruto || 0);
         total += v;
-        const atrasado =
-          b.boleto_status === "vencido" ||
-          (b.boleto_status === "pendente" &&
-            !!b.data_vencimento_atual &&
-            b.data_vencimento_atual < hojeIso);
-        if (atrasado) {
+        const a = classificarAtencao(b, hojeIso);
+        if (a === "vencido") {
           qtdVencido++;
           totalVencido += v;
+        }
+        if (a !== "nenhuma") {
+          const acc = atencao.get(a) ?? { qtd: 0, valor: 0 };
+          acc.qtd++; acc.valor += v;
+          atencao.set(a, acc);
+          if ((a === "emitir" || a === "reemitir") && b.data_vencimento_atual &&
+              (!emitirMaisUrgente || b.data_vencimento_atual < emitirMaisUrgente)) {
+            emitirMaisUrgente = b.data_vencimento_atual;
+          }
         }
         if (
           b.data_vencimento_atual &&
@@ -913,6 +920,9 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         label: BOLETO_STATUS_CFG[status]?.label ?? status,
         dot: BOLETO_STATUS_DOT[status] ?? "bg-gray-400",
       }));
+      const atencaoLista = (["emitir", "reemitir", "vencido"] as const)
+        .map((k) => ({ tipo: k, ...(atencao.get(k) ?? { qtd: 0, valor: 0 }) }))
+        .filter((x) => x.qtd > 0);
       return {
         nome,
         boletos: lista,
@@ -922,10 +932,21 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         proximoVencimento,
         mixStatus,
         pedidos,
-        abrirPorPadrao: qtdVencido > 0,
+        atencaoLista,
+        prioridade: (() => {
+          const temEmitir = (atencao.get("emitir")?.qtd ?? 0) + (atencao.get("reemitir")?.qtd ?? 0) > 0;
+          const emitirApertado =
+            temEmitir && !!emitirMaisUrgente && diasAte(emitirMaisUrgente, hojeIso) <= 7;
+          if (emitirApertado) return 0;
+          if (qtdVencido > 0) return 1;
+          if (temEmitir) return 2;
+          return 3;
+        })(),
+        abrirPorPadrao: qtdVencido > 0 || (atencao.get("emitir")?.qtd ?? 0) + (atencao.get("reemitir")?.qtd ?? 0) > 0,
       };
     });
     grupos.sort((a, b) => {
+      if (a.prioridade !== b.prioridade) return a.prioridade - b.prioridade;
       if (b.totalVencido !== a.totalVencido) return b.totalVencido - a.totalVencido;
       const va = a.proximoVencimento ?? "9999-12-31";
       const vb = b.proximoVencimento ?? "9999-12-31";
