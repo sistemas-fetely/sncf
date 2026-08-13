@@ -1058,6 +1058,16 @@ export default function CobrancaDetalhe() {
             )}
           </p>
 
+          {creditoAplicado > 0.005 && (
+            <div className="flex items-center justify-between rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm dark:border-emerald-900 dark:bg-emerald-950/40">
+              <span className="text-emerald-800 dark:text-emerald-200">
+                Crédito do cliente já abatido deste pedido — não entra no plano
+              </span>
+              <span className="font-semibold text-emerald-800 dark:text-emerald-200">
+                −{fmtBRL.format(creditoAplicado)}
+              </span>
+            </div>
+          )}
 
           <div className="rounded-md border">
             <Table>
@@ -1202,6 +1212,9 @@ export default function CobrancaDetalhe() {
                   </TableCell>
                   <TableCell colSpan={4} className="text-xs text-muted-foreground">
                     Pedido: {fmtBRL.format(valorPedido)}
+                    {creditoAplicado > 0.005 && (
+                      <> · líquido {fmtBRL.format(pedido.valor_liquido)}</>
+                    )}
                     {jaPagoPedido > 0.005 && (
                       <> · já pago {fmtBRL.format(jaPagoPedido)} · a cobrar {fmtBRL.format(valorACobrar)}</>
                     )}
