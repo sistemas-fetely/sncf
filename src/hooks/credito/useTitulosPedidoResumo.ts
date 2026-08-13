@@ -35,6 +35,10 @@ export interface TitulosPedidoResumo {
   /** Tudo que já é dinheiro do cliente neste pedido: títulos pagos + adiantamento vinculado. */
   totalAbatido: number;
   temHaver: boolean;
+  /** Crédito do cliente abatido deste pedido, exista título de haver ou não. */
+  creditoAplicado: number;
+  /** De onde veio o crédito, para a tela nomear a linha. */
+  fonteCredito: "titulo_haver" | "haver_aplicado" | "adiantamento_vinculado" | null;
 }
 
 export function useTitulosPedidoResumo(pedidoId?: string | null) {
@@ -82,6 +86,34 @@ export function useTitulosPedidoResumo(pedidoId?: string | null) {
         0,
       );
 
+      const { data: haverData, error: haverErr } = await (supabase as any)
+        .from("haver_aplicacao")
+        .select("valor_aplicado")
+        .eq("pedido_id", pedidoId);
+      if (haverErr) throw haverErr;
+      const somaHaverAplicado = (haverData ?? []).reduce(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (acc: number, h: any) => acc + Number(h.valor_aplicado ?? 0),
+        0,
+      );
+
+      /**
+       * HAVER-É-PAGAMENTO, agora também ANTES DA NF. O crédito existe em até três
+       * lugares para o mesmo dinheiro: título de haver (pós-faturamento),
+       * `haver_aplicacao` (o abatimento em si) e `adiantamento_cliente` vinculado.
+       * GREATEST, nunca soma — somar contaria o mesmo real duas ou três vezes.
+       * Mesma regra de `fn_pedido_tem_lastro`.
+       */
+      const creditoAplicado = Math.max(somaHaver, somaHaverAplicado, somaAdiantamento);
+      const fonteCredito =
+        creditoAplicado <= 0.005
+          ? null
+          : somaHaver >= creditoAplicado - 0.005
+            ? ("titulo_haver" as const)
+            : somaHaverAplicado >= creditoAplicado - 0.005
+              ? ("haver_aplicado" as const)
+              : ("adiantamento_vinculado" as const);
+
       return {
         titulos: vivos,
         somaHaver,
@@ -89,6 +121,8 @@ export function useTitulosPedidoResumo(pedidoId?: string | null) {
         somaAdiantamento,
         totalAbatido: somaPagos + somaAdiantamento,
         temHaver: somaHaver > 0.005,
+        creditoAplicado,
+        fonteCredito,
       };
     },
   });
