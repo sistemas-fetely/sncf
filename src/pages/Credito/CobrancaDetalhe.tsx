@@ -509,7 +509,7 @@ export default function CobrancaDetalhe() {
     const somaProposta = novos.reduce((acc, t) => acc + Number(t.valor_bruto || 0), 0);
     const bruto = Number(pedidoQ.data?.valor_liquido ?? propostaQ.data?.valor_total ?? somaProposta);
     const novoTotal = Math.max(0, bruto - creditoAplicado);
-    setValorTotalCobrar(novoTotal);
+    setValorTotalCobrar(Math.round(novoTotal * 100) / 100);
     if (creditoAplicado > 0.005 || jaPagoPedido > 0.005) setTitulos((prev) => redistribuirValoresIguais(prev, novoTotal));
     setParcelasIguais(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
