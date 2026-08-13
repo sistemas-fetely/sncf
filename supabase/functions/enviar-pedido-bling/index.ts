@@ -683,9 +683,9 @@ if (itensSemProdutoBling.length > 0) {
       ? Math.max(0, remessaValor - valorFrete)
       : remessaValor;
 
-    // Soma real dos itens_json — denominador correto para o descontoFator.
+    // Soma real dos itens_json — denominador correto para o ajusteFator.
     // Usar pedido.valor_bruto era incorreto: quando o desconto master é aplicado
-    // só no total (não por linha), valor_bruto = valor_liquido e descontoFator = 1,
+    // só no total (não por linha), valor_bruto = valor_liquido e ajusteFator = 1,
     // mas a soma dos itens pode ser maior — causando diff enorme e preço negativo
     // no último item. A soma real dos itens é sempre o denominador certo.
     const somaItensJson = parseFloat(
