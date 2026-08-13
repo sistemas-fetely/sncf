@@ -1447,12 +1447,16 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
             <div className="space-y-2">
               {gruposCliente.map((g) => {
                 const aberto = gruposAbertos[g.nome] ?? g.abrirPorPadrao;
+                /* Grupo inteiro encerrado (devolvido / baixado por perda) não exige nada
+                   de ninguém: continua visível para consulta, mas para de disputar
+                   atenção com o que ainda está vivo. */
+                const grupoEncerrado = resumirTrilho(g.boletos, hojeIso)?.encerrado ?? false;
                 return (
                   <Collapsible
                     key={g.nome}
                     open={aberto}
                     onOpenChange={(o) => setGruposAbertos((p) => ({ ...p, [g.nome]: o }))}
-                    className={`relative overflow-hidden rounded-md border ${g.prioridade <= 2 ? "border-l-0" : ""}`}
+                    className={`relative overflow-hidden rounded-md border ${g.prioridade <= 2 ? "border-l-0" : ""} ${grupoEncerrado ? "opacity-60" : ""}`}
                   >
                     {g.prioridade <= 2 && (
                       <span
@@ -1496,17 +1500,10 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                               {x.qtd} {ATENCAO_CFG[x.tipo].label} · {formatBRL(x.valor)}
                             </Badge>
                           ))}
-                          {g.atencaoLista.length === 0 && (
-                            <span className="flex shrink-0 items-center gap-1">
-                              {g.mixStatus.map((m) => (
-                                <span
-                                  key={m.status}
-                                  title={`${m.label}: ${m.qtd}`}
-                                  className={`inline-block h-2 w-2 rounded-full ${m.dot}`}
-                                />
-                              ))}
-                            </span>
-                          )}
+                          {/* A fita responde ONDE o boleto está; o badge acima responde
+                              O QUE FAZER. São perguntas diferentes e convivem — antes era
+                              XOR e o cliente com pendência perdia o status inteiro. */}
+                          <TrilhoBoleto itens={g.boletos} hojeIso={hojeIso} />
                           {g.proximoVencimento && (
                             <span className="shrink-0 text-xs text-muted-foreground">
                               próx. {formatDateBR(g.proximoVencimento)}
@@ -1536,6 +1533,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                                 <span className="font-mono text-[11px] text-muted-foreground">
                                   {formatBRL(sp.total)}
                                 </span>
+                                <TrilhoBoleto itens={sp.boletos} hojeIso={hojeIso} />
                                 {sp.atencaoLista.map((x) => (
                                   <Badge
                                     key={x.tipo}
