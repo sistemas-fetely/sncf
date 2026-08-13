@@ -50,6 +50,39 @@ function parseDDMMAA(s: string): string | null {
   return `20${aa}-${mm}-${dd}`;
 }
 
+/** Sequencial do arquivo: 3 primeiros dígitos das últimas 9 posições de qualquer linha. */
+function sequencialArquivo(linhas: string[]): number | null {
+  for (const l of linhas) {
+    const m = /^(\d{3})/.exec(l.slice(-9));
+    if (m) return parseInt(m[1], 10);
+  }
+  return null;
+}
+
+/** ddmmaa → ISO. */
+function ddmmaaIso(s: string): string | null {
+  const d = s.replace(/\D/g, "");
+  if (d.length !== 6 || d === "000000") return null;
+  const ano = parseInt(d.slice(4, 6), 10);
+  return `${ano >= 70 ? 1900 + ano : 2000 + ano}-${d.slice(2, 4)}-${d.slice(0, 2)}`;
+}
+
+/** ddmmaaaa → ISO. Posições medidas em arquivo real: header 115–122. */
+function ddmmaaaaIso(s: string): string | null {
+  const d = s.replace(/\D/g, "");
+  if (d.length === 6) return ddmmaaIso(d);
+  if (d.length !== 8 || d === "00000000") return null;
+  return `${d.slice(4, 8)}-${d.slice(2, 4)}-${d.slice(0, 2)}`;
+}
+
+async function sha256Hex(texto: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texto));
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** Códigos que representam dinheiro entrando. */
+const CODIGOS_LIQUIDACAO = new Set(["06", "07", "08", "15", "16", "17"]);
+
 function parseValor13d2(s: string): number | null {
   if (!/^\d{1,13}$/.test(s)) return null;
   const padded = s.padStart(13, "0");
@@ -152,6 +185,7 @@ serve(async (req) => {
 
     const body = await req.json();
     const arquivoConteudo: string = body.arquivo_conteudo ?? "";
+    const arquivoNome: string | null = body?.arquivo_nome ?? null;
     if (!arquivoConteudo) {
       return new Response(JSON.stringify({ ok: false, erro: "arquivo_conteudo é obrigatório" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -186,6 +220,75 @@ serve(async (req) => {
         status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // ── identidade do arquivo + trava de reprocessamento ──────────────────
+    // Sem isto, reprocessar o mesmo retorno reaplica liquidação e baixa em
+    // silêncio. A única proteção que existia era o hash_unico da movimentação
+    // bancária — proteção de efeito colateral, não de intenção.
+    const nroSequencial = sequencialArquivo(linhasBrutas);
+    const hashConteudo = await sha256Hex(arquivoConteudo);
+    const headerLinha = linhasBrutas[0] ?? "";
+    const dataGeracao = ddmmaaaaIso(headerLinha.slice(94, 100));
+    const dataMovimento = ddmmaaaaIso(headerLinha.slice(114, 122));
+
+    let qtdLiquidacoes = 0;
+    let valorLiquidacoes = 0;
+    for (const d of detalhes) {
+      if (CODIGOS_LIQUIDACAO.has(d.ocorrencia)) {
+        qtdLiquidacoes++;
+        valorLiquidacoes += parseValor13d2(d.valorPagoRaw) ?? 0;
+      }
+    }
+
+    if (nroSequencial == null) {
+      return new Response(JSON.stringify({ ok: false, erro: "Sequencial do arquivo não encontrado — retorno não identificável" }), {
+        status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: arquivoExistente } = await sb
+      .from("safra_retorno_arquivo")
+      .select("id, hash_arquivo, arquivo_nome, processado_em")
+      .eq("nro_sequencial", nroSequencial)
+      .maybeSingle();
+
+    if (arquivoExistente && arquivoExistente.hash_arquivo === hashConteudo) {
+      return new Response(JSON.stringify({
+        ok: true, ja_processado: true, nro_sequencial: nroSequencial,
+        processado_em: arquivoExistente.processado_em,
+        erro: `Retorno ${nroSequencial} já foi processado em ${arquivoExistente.processado_em}. Nada foi reaplicado.`,
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (arquivoExistente && arquivoExistente.hash_arquivo !== hashConteudo) {
+      return new Response(JSON.stringify({
+        ok: false,
+        erro: `Sequencial ${nroSequencial} já existe com conteúdo DIFERENTE (arquivo "${arquivoExistente.arquivo_nome}"). Dois retornos distintos com o mesmo número — verificar com o banco antes de processar.`,
+      }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const { data: arquivoRow, error: errArq } = await sb
+      .from("safra_retorno_arquivo")
+      .insert({
+        nro_sequencial: nroSequencial,
+        data_geracao: dataGeracao,
+        data_movimento: dataMovimento,
+        arquivo_nome: arquivoNome ?? `retorno_${nroSequencial}.txt`,
+        hash_arquivo: hashConteudo,
+        qtd_registros: detalhes.length,
+        qtd_liquidacoes: qtdLiquidacoes,
+        valor_liquidacoes: Math.round(valorLiquidacoes * 100) / 100,
+        processado_em: new Date().toISOString(),
+        status: "processado",
+      })
+      .select("id")
+      .single();
+    if (errArq) {
+      return new Response(JSON.stringify({ ok: false, erro: `Falha ao registrar o arquivo: ${errArq.message}` }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const arquivoId = arquivoRow.id as string;
 
     // ── promoção da remessa: vínculo real via título (não via header) ──────
     const remessasTocadas = new Set<string>();
@@ -613,6 +716,40 @@ serve(async (req) => {
       }
     }
 
+    // ── rastro: uma linha por ocorrência, com o título resolvido ──────────
+    const rowsOc: Record<string, unknown>[] = [];
+    for (const d of detalhes) {
+      const { data: res } = await sb.rpc("fn_cnab_resolver_titulo", {
+        uso_empresa: null, nosso_numero: d.nossoNumero, seu_numero: d.seuNumero,
+      });
+      const r = (Array.isArray(res) ? res[0] : res) as { titulo_id: string | null; casado_por: string | null } | null;
+      rowsOc.push({
+        arquivo_id: arquivoId,
+        nro_sequencial: nroSequencial,
+        linha: d.numeroLinha,
+        codigo_ocorrencia: d.ocorrencia,
+        motivo_rejeicao: d.motivoRejeicao || null,
+        data_ocorrencia: dataMovimento,
+        nosso_numero: d.nossoNumero,
+        uso_empresa: null,
+        seu_numero: d.seuNumero || null,
+        titulo_id: r?.titulo_id ?? null,
+        casado_por: r?.casado_por ?? null,
+        sacado: null,
+        data_vencimento: parseDDMMAA(d.dataVencRaw),
+        valor_titulo: parseValor13d2(d.valorTituloRaw),
+        valor_pago: parseValor13d2(d.valorPagoRaw),
+        valor_juros: parseValor13d2(d.jurosMoraRaw),
+        data_credito: parseDDMMAA(d.dataCreditoRaw),
+      });
+    }
+    for (let i = 0; i < rowsOc.length; i += 200) {
+      const { error: errOc } = await sb
+        .from("safra_retorno_ocorrencia")
+        .upsert(rowsOc.slice(i, i + 200), { onConflict: "nro_sequencial,linha" });
+      if (errOc) erros.push({ linha: 0, nosso_numero: "", erro: `gravar ocorrências: ${errOc.message}` });
+    }
+
     // ── promoção do selo das remessas pelo vínculo real dos títulos ────────
     const remessasPromovidas: string[] = [];
     if (remessasTocadas.size > 0) {
@@ -648,6 +785,9 @@ serve(async (req) => {
         emails_enviados: 0,
         detalhes_rejeicao: detalhesRejeicao,
         remessas_promovidas: remessasPromovidas,
+        nro_sequencial: nroSequencial,
+        arquivo_id: arquivoId,
+        ocorrencias_gravadas: rowsOc.length,
         // novo relatório
         contadores,
         alertas,

@@ -65,6 +65,39 @@ export type Database = {
         }
         Relationships: []
       }
+      acrescimo_situacao_fiscal_regra: {
+        Row: {
+          base_calculo: string
+          criado_em: string
+          id: number
+          observacao: string | null
+          percentual: number
+          situacao_fiscal: string
+          vigencia_fim: string | null
+          vigencia_inicio: string
+        }
+        Insert: {
+          base_calculo?: string
+          criado_em?: string
+          id?: number
+          observacao?: string | null
+          percentual: number
+          situacao_fiscal: string
+          vigencia_fim?: string | null
+          vigencia_inicio: string
+        }
+        Update: {
+          base_calculo?: string
+          criado_em?: string
+          id?: number
+          observacao?: string | null
+          percentual?: number
+          situacao_fiscal?: string
+          vigencia_fim?: string | null
+          vigencia_inicio?: string
+        }
+        Relationships: []
+      }
       adiantamento_aplicacao: {
         Row: {
           adiantamento_id: string
@@ -14374,6 +14407,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ie_formato_uf: {
+        Row: {
+          observacao: string | null
+          tamanhos: number[]
+          uf: string
+        }
+        Insert: {
+          observacao?: string | null
+          tamanhos: number[]
+          uf: string
+        }
+        Update: {
+          observacao?: string | null
+          tamanhos?: number[]
+          uf?: string
+        }
+        Relationships: []
       }
       importacao_conferencia_fisica: {
         Row: {
@@ -53229,6 +53280,10 @@ export type Database = {
         Returns: Json
       }
       fix_lancamentos_origem_constraint: { Args: never; Returns: string }
+      fn_acrescimo_ie_pct: {
+        Args: { p_data?: string; p_parceiro_id: string }
+        Returns: number
+      }
       fn_add_dias_uteis: {
         Args: { p_data: string; p_dias: number }
         Returns: string
@@ -53527,6 +53582,7 @@ export type Database = {
         Args: { p_fim: string; p_ini: string }
         Returns: number
       }
+      fn_ie_valida: { Args: { p_ie: string; p_uf?: string }; Returns: boolean }
       fn_importar_cobertura_cep: {
         Args: { p_ceps: Json; p_tabela_id: string }
         Returns: Json
@@ -53800,6 +53856,10 @@ export type Database = {
       fn_sem_acento: { Args: { p_txt: string }; Returns: string }
       fn_simular_portao: {
         Args: { p_fonte?: string; p_rota: string; p_user_id: string }
+        Returns: string
+      }
+      fn_situacao_fiscal_parceiro: {
+        Args: { p_parceiro_id: string }
         Returns: string
       }
       fn_sugerir_cobranca_molde_pai: {
