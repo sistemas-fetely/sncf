@@ -716,6 +716,40 @@ serve(async (req) => {
       }
     }
 
+    // ── rastro: uma linha por ocorrência, com o título resolvido ──────────
+    const rowsOc: Record<string, unknown>[] = [];
+    for (const d of detalhes) {
+      const { data: res } = await sb.rpc("fn_cnab_resolver_titulo", {
+        uso_empresa: null, nosso_numero: d.nossoNumero, seu_numero: d.seuNumero,
+      });
+      const r = (Array.isArray(res) ? res[0] : res) as { titulo_id: string | null; casado_por: string | null } | null;
+      rowsOc.push({
+        arquivo_id: arquivoId,
+        nro_sequencial: nroSequencial,
+        linha: d.numeroLinha,
+        codigo_ocorrencia: d.ocorrencia,
+        motivo_rejeicao: d.motivoRejeicao || null,
+        data_ocorrencia: dataMovimento,
+        nosso_numero: d.nossoNumero,
+        uso_empresa: null,
+        seu_numero: d.seuNumero || null,
+        titulo_id: r?.titulo_id ?? null,
+        casado_por: r?.casado_por ?? null,
+        sacado: null,
+        data_vencimento: parseDDMMAA(d.dataVencRaw),
+        valor_titulo: parseValor13d2(d.valorTituloRaw),
+        valor_pago: parseValor13d2(d.valorPagoRaw),
+        valor_juros: parseValor13d2(d.jurosMoraRaw),
+        data_credito: parseDDMMAA(d.dataCreditoRaw),
+      });
+    }
+    for (let i = 0; i < rowsOc.length; i += 200) {
+      const { error: errOc } = await sb
+        .from("safra_retorno_ocorrencia")
+        .upsert(rowsOc.slice(i, i + 200), { onConflict: "nro_sequencial,linha" });
+      if (errOc) erros.push({ linha: 0, nosso_numero: "", erro: `gravar ocorrências: ${errOc.message}` });
+    }
+
     // ── promoção do selo das remessas pelo vínculo real dos títulos ────────
     const remessasPromovidas: string[] = [];
     if (remessasTocadas.size > 0) {
