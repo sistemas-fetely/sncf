@@ -500,6 +500,11 @@ export default function CobrancaDetalhe() {
     setIntervaloDias(intervaloUsar);
 
     const novos = propostaQ.data.titulos_propostos.map((t) => ({ ...t }));
+    // LINHA UNICA: se a regra exige portao e so ha uma parcela, ela nasce marcada.
+    // Com duas ou mais, a escolha continua do operador (composicao).
+    if (exigePortao && novos.length === 1) {
+      novos[0].eh_portao = true;
+    }
     setTitulos(aplicarPrimeiraDataECascata(novos, diasUsar, intervaloUsar));
 
     const somaProposta = novos.reduce((acc, t) => acc + Number(t.valor_bruto || 0), 0);
@@ -509,7 +514,7 @@ export default function CobrancaDetalhe() {
     if (creditoAplicado > 0.005 || jaPagoPedido > 0.005) setTitulos((prev) => redistribuirValoresIguais(prev, novoTotal));
     setParcelasIguais(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [propostaQ.data, pedidoQ.data?.valor_liquido, creditoAplicado, jaPagoPedido, paramDiasQ.isLoading, paramIntervaloQ.isLoading]);
+  }, [propostaQ.data, pedidoQ.data?.valor_liquido, creditoAplicado, jaPagoPedido, paramDiasQ.isLoading, paramIntervaloQ.isLoading, exigePortao]);
 
 
   // A proposta nasce pelo que FALTA cobrar, não pelo valor da nota. `montar_plano_pagamento`
