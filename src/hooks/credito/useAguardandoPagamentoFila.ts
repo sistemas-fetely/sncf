@@ -28,9 +28,9 @@ export function useAguardandoPagamentoFila(opts: Options = {}) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const mapped: PedidoAguardandoPagamento[] = (data || []).map((r: any) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const entradas = (r.titulos || []).filter((t: any) => t.eh_entrada);
+        const entradas = (r.provisoes || []).filter((p: any) => p.eh_portao);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const pendentes = entradas.filter((t: any) => t.status === "pendente");
+        const pendentes = entradas.filter((p: any) => p.status !== "pago" && !p.pago_em);
         const estagioMs = r.estagio_atualizado_em
           ? new Date(r.estagio_atualizado_em).getTime()
           : agora;
