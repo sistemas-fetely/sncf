@@ -499,7 +499,7 @@ export default function CobrancaDetalhe() {
     setDiasPrimeiroPagamento(diasUsar);
     setIntervaloDias(intervaloUsar);
 
-    const novos = propostaQ.data.titulos_propostos.map((t) => ({ ...t }));
+    const novos: LinhaPlano[] = propostaQ.data.titulos_propostos.map((t) => ({ ...t, eh_portao: false }));
     // LINHA UNICA: se a regra exige portao e so ha uma parcela, ela nasce marcada.
     // Com duas ou mais, a escolha continua do operador (composicao).
     if (exigePortao && novos.length === 1) {
