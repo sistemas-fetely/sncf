@@ -27,7 +27,7 @@ export function useDepartamentoUnidadeUsuario() {
 
       const [deptRes, uniRes] = await Promise.all([
         row.departamento_id
-          ? supabase.from("parametros").select("id, label").eq("id", row.departamento_id).single()
+          ? supabase.from("departamentos").select("id, nome").eq("id", row.departamento_id).maybeSingle()
           : Promise.resolve({ data: null, error: null } as never),
         row.unidade_id
           ? supabase.from("unidades").select("id, nome, codigo").eq("id", row.unidade_id).single()
@@ -35,7 +35,7 @@ export function useDepartamentoUnidadeUsuario() {
       ]);
 
       return {
-        departamento: deptRes.data ? { id: deptRes.data.id, nome: deptRes.data.label } : null,
+        departamento: deptRes.data ? { id: deptRes.data.id, nome: deptRes.data.nome } : null,
         unidade: uniRes.data
           ? { id: uniRes.data.id, nome: uniRes.data.nome, codigo: uniRes.data.codigo }
           : null,
