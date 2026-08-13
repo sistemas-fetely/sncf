@@ -719,7 +719,7 @@ if (itensSemProdutoBling.length > 0) {
       ? itens.map((it: any) => {
           const blingProdId = it.sku ? cacheMap[it.sku] : null;
           const qty = Number(it.quantidade);
-          const lineTotal = parseFloat((Number(it.valor_unitario) * qty * descontoFator).toFixed(2));
+          const lineTotal = parseFloat((Number(it.valor_unitario) * qty * ajusteFator).toFixed(2));
           // O codigo do item e o unico ancoradouro conferivel entre o pedido no Bling,
           // a etiqueta fisica e a lista de separacao. Sem ele a linha sai so com descricao
           // livre e o separador nao tem contra o que conferir (causa do PED-2122).
