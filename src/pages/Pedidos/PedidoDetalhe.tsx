@@ -1027,6 +1027,21 @@ export default function PedidoDetalhe() {
   });
   const adiantadoVivo = Number(adiantamentoPedido?.adiantado_vivo ?? 0);
 
+  // PORTAO-E-REGRA: a verdade do portão vem da view derivada, nunca de coluna cacheada.
+  const { data: portaoRegra } = useQuery({
+    queryKey: ["pedido-portao-regra", id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_pedido_portao_regra")
+        .select("exige_portao_regra")
+        .eq("pedido_id", id)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { exige_portao_regra: boolean | null } | null;
+    },
+  });
+
 
 
   const { data: splitsAtivos } = useQuery({
@@ -2542,7 +2557,7 @@ export default function PedidoDetalhe() {
                   pedido_id={pedido.id}
                   parceiro_id={pedido.parceiro_id}
                   estagio={estagio}
-                  exige_portao={!!(pedido as any).exige_portao}
+                  exige_portao={!!portaoRegra?.exige_portao_regra}
                   gera_titulo_receber={geraTituloReceber}
                 />
               )}
