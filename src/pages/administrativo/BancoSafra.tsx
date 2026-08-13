@@ -73,6 +73,8 @@ function diasDesde(iso: string | null | undefined): number | null {
 type TitulosBoleto = {
   id: string;
   numero_titulo: string | null;
+  /** Status do TÍTULO (aberto, devolvido, perda...) — distinto do boleto_status. */
+  status: string | null;
   data_vencimento_atual: string | null;
   valor_bruto: number | null;
   boleto_status: string | null;
@@ -113,6 +115,89 @@ const BOLETO_STATUS_DOT: Record<string, string> = {
   baixa_solicitada: "bg-orange-600",
   baixa_remessa_gerada: "bg-purple-500",
 };
+
+/**
+ * O que este boleto EXIGE do operador — não o que ele "é".
+ * Título devolvido ou em perda nunca exige emissão: a mercadoria voltou, o
+ * caminho é baixar o título, não mandar boleto ao banco.
+ */
+type Atencao = "emitir" | "reemitir" | "vencido" | "nenhuma";
+
+const TITULO_SEM_ACAO = new Set(["devolvido", "perda", "perda_parcial", "renegociado"]);
+
+function classificarAtencao(b: TitulosBoleto, hojeIso: string): Atencao {
+  if (b.status && TITULO_SEM_ACAO.has(b.status)) return "nenhuma";
+  const st = b.boleto_status ?? "pendente";
+  if (st === "pendente") return "emitir";
+  if (st === "rejeitado") return "reemitir";
+  if (st === "vencido") return "vencido";
+  if (st === "registrado" && b.data_vencimento_atual && b.data_vencimento_atual < hojeIso) return "vencido";
+  return "nenhuma";
+}
+
+const ATENCAO_CFG: Record<Exclude<Atencao, "nenhuma">, { label: string; cls: string; barra: string }> = {
+  emitir:   { label: "a emitir",   cls: "bg-amber-100 text-amber-900 hover:bg-amber-100",   barra: "bg-amber-500" },
+  reemitir: { label: "a reemitir", cls: "bg-orange-100 text-orange-900 hover:bg-orange-100", barra: "bg-orange-500" },
+  vencido:  { label: "vencido",    cls: "bg-red-100 text-red-800 hover:bg-red-100",          barra: "bg-red-500" },
+};
+
+/** Dias entre hoje e a data (negativo = já passou). */
+function diasAte(dataIso: string, hojeIso: string): number {
+  return Math.round(
+    (new Date(dataIso + "T00:00:00").getTime() - new Date(hojeIso + "T00:00:00").getTime()) / 86400000,
+  );
+}
+
+/**
+ * Subagrupa os boletos de um cliente por PEDIDO. Sem isso, dois pedidos do mesmo
+ * cliente aparecem intercalados por data de vencimento e um pedido inteiro sem
+ * boleto passa despercebido no meio de outro já registrado.
+ */
+function agruparPorPedido(boletos: TitulosBoleto[], hojeIso: string) {
+  const map = new Map<string, TitulosBoleto[]>();
+  for (const b of boletos) {
+    const k = b.pedido?.id_externo || "— sem pedido —";
+    const arr = map.get(k);
+    if (arr) arr.push(b);
+    else map.set(k, [b]);
+  }
+  const subs = Array.from(map.entries()).map(([pedido, lista]) => {
+    let total = 0;
+    let prioridade = 3;
+    let proximo: string | null = null;
+    const cont = new Map<Atencao, { qtd: number; valor: number }>();
+    for (const b of lista) {
+      const v = Number(b.valor_bruto || 0);
+      total += v;
+      const a = classificarAtencao(b, hojeIso);
+      if (a !== "nenhuma") {
+        const acc = cont.get(a) ?? { qtd: 0, valor: 0 };
+        acc.qtd++; acc.valor += v;
+        cont.set(a, acc);
+        const p = a === "vencido" ? 1 : b.data_vencimento_atual && diasAte(b.data_vencimento_atual, hojeIso) <= 7 ? 0 : 2;
+        if (p < prioridade) prioridade = p;
+      }
+      if (b.data_vencimento_atual && (!proximo || b.data_vencimento_atual < proximo)) {
+        proximo = b.data_vencimento_atual;
+      }
+    }
+    return {
+      pedido,
+      boletos: lista,
+      total,
+      prioridade,
+      proximo,
+      atencaoLista: (["emitir", "reemitir", "vencido"] as const)
+        .map((k) => ({ tipo: k, ...(cont.get(k) ?? { qtd: 0, valor: 0 }) }))
+        .filter((x) => x.qtd > 0),
+    };
+  });
+  subs.sort((a, b) => {
+    if (a.prioridade !== b.prioridade) return a.prioridade - b.prioridade;
+    return (a.proximo ?? "9999-12-31").localeCompare(b.proximo ?? "9999-12-31");
+  });
+  return subs;
+}
 
 function BotaoBaixarBoletoPdf({ boleto }: { boleto: any }) {
   const { toast } = useToast();
@@ -334,7 +419,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       // Anotada como `string` de propósito: alarga o literal e evita TS2589 no select aninhado.
       // O resultado segue tipado à mão via `as unknown as TitulosBoleto[]` abaixo.
       const SELECT_BOLETOS: string =
-        "id, numero_titulo, data_vencimento_atual, valor_bruto, boleto_status, boleto_enviado_em, prorrogacao_nova_data, prorrogacao_solicitada_em, numero_parcela, total_parcelas, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social)), pedido:pedidos(id_externo, faturado_em, condicao_solicitada)";
+        "id, numero_titulo, status, data_vencimento_atual, valor_bruto, boleto_status, boleto_enviado_em, prorrogacao_nova_data, prorrogacao_solicitada_em, numero_parcela, total_parcelas, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social)), pedido:pedidos(id_externo, faturado_em, condicao_solicitada)";
       const { data, error } = await supabase
         .from("titulo_a_receber")
         .select(SELECT_BOLETOS)
@@ -847,19 +932,26 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       let qtdVencido = 0;
       let proximoVencimento: string | null = null;
       const contagem = new Map<string, number>();
+      const atencao = new Map<Atencao, { qtd: number; valor: number }>();
+      let emitirMaisUrgente: string | null = null;
       /** Pedidos na ordem de vencimento (lista já vem ordenada asc). */
       const pedidos: string[] = [];
       for (const b of lista) {
         const v = Number(b.valor_bruto || 0);
         total += v;
-        const atrasado =
-          b.boleto_status === "vencido" ||
-          (b.boleto_status === "pendente" &&
-            !!b.data_vencimento_atual &&
-            b.data_vencimento_atual < hojeIso);
-        if (atrasado) {
+        const a = classificarAtencao(b, hojeIso);
+        if (a === "vencido") {
           qtdVencido++;
           totalVencido += v;
+        }
+        if (a !== "nenhuma") {
+          const acc = atencao.get(a) ?? { qtd: 0, valor: 0 };
+          acc.qtd++; acc.valor += v;
+          atencao.set(a, acc);
+          if ((a === "emitir" || a === "reemitir") && b.data_vencimento_atual &&
+              (!emitirMaisUrgente || b.data_vencimento_atual < emitirMaisUrgente)) {
+            emitirMaisUrgente = b.data_vencimento_atual;
+          }
         }
         if (
           b.data_vencimento_atual &&
@@ -878,6 +970,9 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         label: BOLETO_STATUS_CFG[status]?.label ?? status,
         dot: BOLETO_STATUS_DOT[status] ?? "bg-gray-400",
       }));
+      const atencaoLista = (["emitir", "reemitir", "vencido"] as const)
+        .map((k) => ({ tipo: k, ...(atencao.get(k) ?? { qtd: 0, valor: 0 }) }))
+        .filter((x) => x.qtd > 0);
       return {
         nome,
         boletos: lista,
@@ -887,10 +982,21 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         proximoVencimento,
         mixStatus,
         pedidos,
-        abrirPorPadrao: qtdVencido > 0,
+        atencaoLista,
+        prioridade: (() => {
+          const temEmitir = (atencao.get("emitir")?.qtd ?? 0) + (atencao.get("reemitir")?.qtd ?? 0) > 0;
+          const emitirApertado =
+            temEmitir && !!emitirMaisUrgente && diasAte(emitirMaisUrgente, hojeIso) <= 7;
+          if (emitirApertado) return 0;
+          if (qtdVencido > 0) return 1;
+          if (temEmitir) return 2;
+          return 3;
+        })(),
+        abrirPorPadrao: qtdVencido > 0 || (atencao.get("emitir")?.qtd ?? 0) + (atencao.get("reemitir")?.qtd ?? 0) > 0,
       };
     });
     grupos.sort((a, b) => {
+      if (a.prioridade !== b.prioridade) return a.prioridade - b.prioridade;
       if (b.totalVencido !== a.totalVencido) return b.totalVencido - a.totalVencido;
       const va = a.proximoVencimento ?? "9999-12-31";
       const vb = b.proximoVencimento ?? "9999-12-31";
@@ -1338,8 +1444,18 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                     key={g.nome}
                     open={aberto}
                     onOpenChange={(o) => setGruposAbertos((p) => ({ ...p, [g.nome]: o }))}
-                    className="rounded-md border"
+                    className={`relative overflow-hidden rounded-md border ${g.prioridade <= 2 ? "border-l-0" : ""}`}
                   >
+                    {g.prioridade <= 2 && (
+                      <span
+                        aria-hidden
+                        className={`absolute left-0 top-0 h-full w-1 ${
+                          g.atencaoLista.find((x) => x.tipo === "emitir" || x.tipo === "reemitir")
+                            ? ATENCAO_CFG.emitir.barra
+                            : ATENCAO_CFG.vencido.barra
+                        }`}
+                      />
+                    )}
                     <div className="flex items-center gap-2 px-3 py-2">
                       <CollapsibleTrigger asChild>
                         <button className="flex flex-1 items-center gap-3 text-left min-w-0">
@@ -1364,25 +1480,30 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                           <span className="shrink-0 font-mono text-xs text-muted-foreground">
                             {formatBRL(g.total)}
                           </span>
-                          {g.qtdVencido > 0 && (
-                            <Badge className="shrink-0 bg-red-100 text-red-800 hover:bg-red-100 text-[10px]">
-                              {g.qtdVencido} vencido · {formatBRL(g.totalVencido)}
+                          {g.atencaoLista.map((x) => (
+                            <Badge
+                              key={x.tipo}
+                              className={`shrink-0 text-[10px] font-semibold ${ATENCAO_CFG[x.tipo].cls}`}
+                            >
+                              {x.qtd} {ATENCAO_CFG[x.tipo].label} · {formatBRL(x.valor)}
                             </Badge>
+                          ))}
+                          {g.atencaoLista.length === 0 && (
+                            <span className="flex shrink-0 items-center gap-1">
+                              {g.mixStatus.map((m) => (
+                                <span
+                                  key={m.status}
+                                  title={`${m.label}: ${m.qtd}`}
+                                  className={`inline-block h-2 w-2 rounded-full ${m.dot}`}
+                                />
+                              ))}
+                            </span>
                           )}
                           {g.proximoVencimento && (
                             <span className="shrink-0 text-xs text-muted-foreground">
                               próx. {formatDateBR(g.proximoVencimento)}
                             </span>
                           )}
-                          <span className="flex shrink-0 items-center gap-1">
-                            {g.mixStatus.map((m) => (
-                              <span
-                                key={m.status}
-                                title={`${m.label}: ${m.qtd}`}
-                                className={`inline-block h-2 w-2 rounded-full ${m.dot}`}
-                              />
-                            ))}
-                          </span>
                         </button>
                       </CollapsibleTrigger>
                       <AcoesGrupoCliente
@@ -1393,7 +1514,34 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                       />
                     </div>
                     <CollapsibleContent>
-                      <div className="border-t px-2 pb-2">{renderTabela(g.boletos, true)}</div>
+                      <div className="border-t px-2 pb-2">
+                        {g.pedidos.length <= 1 ? (
+                          renderTabela(g.boletos, true)
+                        ) : (
+                          agruparPorPedido(g.boletos, hojeIso).map((sp) => (
+                            <div key={sp.pedido} className="mt-2 first:mt-1">
+                              <div className="flex items-center gap-2 px-1 py-1">
+                                <span className="font-mono text-[11px] font-medium">{sp.pedido}</span>
+                                <Badge variant="outline" className="text-[10px]">
+                                  {sp.boletos.length}
+                                </Badge>
+                                <span className="font-mono text-[11px] text-muted-foreground">
+                                  {formatBRL(sp.total)}
+                                </span>
+                                {sp.atencaoLista.map((x) => (
+                                  <Badge
+                                    key={x.tipo}
+                                    className={`text-[10px] font-semibold ${ATENCAO_CFG[x.tipo].cls}`}
+                                  >
+                                    {x.qtd} {ATENCAO_CFG[x.tipo].label}
+                                  </Badge>
+                                ))}
+                              </div>
+                              {renderTabela(sp.boletos, true)}
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </CollapsibleContent>
                   </Collapsible>
                 );
