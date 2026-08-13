@@ -85,8 +85,7 @@ export default function NovoUsuarioDialog({ open, onOpenChange }: NovoUsuarioDia
 
   const stepperItems = [
     { n: 1, label: "Dados" },
-    { n: 2, label: "Vínculo" },
-    { n: 3, label: "Grupos" },
+    { n: 2, label: "Grupos" },
   ] as const;
 
   return (
@@ -169,123 +168,13 @@ export default function NovoUsuarioDialog({ open, onOpenChange }: NovoUsuarioDia
           )}
 
           {step === 2 && (
-            <div className="space-y-5">
-              <RadioGroup
-                value={vinculoOpcao}
-                onValueChange={(v) => {
-                  setVinculoOpcao(v as VinculoOpcao);
-                  setColaboradorId("");
-                  setPular(false);
-                }}
-                className="flex gap-6"
-              >
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="externo" id="vt-ext" />
-                  <Label htmlFor="vt-ext" className="cursor-pointer">Sem vínculo (externo)</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="clt" id="vt-clt" />
-                  <Label htmlFor="vt-clt" className="cursor-pointer">CLT</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="pj" id="vt-pj" />
-                  <Label htmlFor="vt-pj" className="cursor-pointer">PJ</Label>
-                </div>
-              </RadioGroup>
-
-              {vinculoOpcao === "externo" && (
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="nu-tipo-ext">Tipo externo (opcional)</Label>
-                    <Input
-                      id="nu-tipo-ext"
-                      value={tipoExterno}
-                      onChange={(e) => setTipoExterno(e.target.value)}
-                      placeholder="Ex: consultor, contador, fundador"
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Usuário sem colaborador associado. Útil pra contadores,
-                    consultores e parceiros externos.
-                  </p>
-                </div>
-              )}
-
-              {(vinculoOpcao === "clt" || vinculoOpcao === "pj") && (
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <Label>Selecione o colaborador</Label>
-                    <Select
-                      value={colaboradorId}
-                      onValueChange={setColaboradorId}
-                      disabled={pular || loadingColabs}
-                    >
-                      <SelectTrigger>
-                        <SelectValue
-                          placeholder={
-                            loadingColabs
-                              ? "Carregando..."
-                              : colaboradores.length === 0
-                              ? "Nenhum colaborador disponível"
-                              : "Selecione..."
-                          }
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {colaboradores.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            <div className="flex items-center gap-2">
-                              <Avatar className="h-6 w-6">
-                                <AvatarFallback className="text-[10px]">
-                                  {iniciais(c.nome)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex flex-col text-left">
-                                <span className="text-sm">{c.nome}</span>
-                                <span className="text-[11px] text-muted-foreground">
-                                  {[c.email, c.cargo].filter(Boolean).join(" · ")}
-                                </span>
-                              </div>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {!loadingColabs && colaboradores.length === 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        Nenhum colaborador disponível para vincular.
-                        Todos já têm usuário.
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="nu-pular"
-                      checked={pular}
-                      onCheckedChange={(c) => {
-                        setPular(c === true);
-                        if (c === true) setColaboradorId("");
-                      }}
-                    />
-                    <Label htmlFor="nu-pular" className="cursor-pointer text-sm">
-                      Pular — vincular depois
-                    </Label>
-                  </div>
-
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Marcos jurídico: o vínculo é imutável após criação.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {step === 3 && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground leading-relaxed">
                 Selecione 1 ou mais grupos. Pode deixar vazio e adicionar
                 depois pela aba Grupos de Acesso.
+              </p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                O vínculo com a pessoa (CLT/PJ) é feito depois, pelo botão Vincular na lista de usuários.
               </p>
 
               {loadingGrupos ? (
@@ -344,16 +233,16 @@ export default function NovoUsuarioDialog({ open, onOpenChange }: NovoUsuarioDia
         <DialogFooter className="flex-row justify-between sm:justify-between gap-2">
           <Button
             variant="outline"
-            onClick={() => setStep((s) => (s > 1 ? ((s - 1) as 1 | 2 | 3) : s))}
+            onClick={() => setStep((s) => (s > 1 ? ((s - 1) as 1 | 2) : s))}
             disabled={step === 1 || criar.isPending}
           >
             Voltar
           </Button>
 
-          {step < 3 ? (
+          {step < 2 ? (
             <Button
-              onClick={() => setStep((s) => (s + 1) as 1 | 2 | 3)}
-              disabled={(step === 1 && !passo1Valido) || (step === 2 && !passo2Valido)}
+              onClick={() => setStep((s) => (s + 1) as 1 | 2)}
+              disabled={step === 1 && !passo1Valido}
             >
               Próximo
             </Button>
