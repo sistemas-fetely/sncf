@@ -24,6 +24,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { TrilhoBoleto } from "@/components/financeiro/TrilhoBoleto";
+import { resumirTrilho } from "@/lib/financeiro/marcos-boleto";
 import {
   Table,
   TableBody,
@@ -101,20 +103,11 @@ const BOLETO_STATUS_CFG: Record<string, { label: string; cls: string }> = {
   vencido: { label: "Vencido", cls: "bg-orange-100 text-orange-800" },
   baixa_solicitada: { label: "Baixa pendente", cls: "bg-orange-200 text-orange-900" },
   baixa_remessa_gerada: { label: "Baixa em remessa", cls: "bg-purple-100 text-purple-800" },
+  // Existe no CHECK do banco desde sempre e nunca esteve aqui: caía no fallback
+  // cinza sem rótulo. São os títulos devolvidos cuja baixa o Safra já confirmou.
+  baixado_banco: { label: "Baixado (Safra)", cls: "bg-slate-200 text-slate-700" },
 };
 
-/** Cor sólida para o ponto de status (as classes -100 do badge somem num círculo de 8px). */
-const BOLETO_STATUS_DOT: Record<string, string> = {
-  pendente: "bg-gray-400",
-  remessa_gerada: "bg-yellow-500",
-  registrado: "bg-blue-500",
-  pago_manual: "bg-emerald-500",
-  pago_banco: "bg-green-600",
-  rejeitado: "bg-red-500",
-  vencido: "bg-orange-500",
-  baixa_solicitada: "bg-orange-600",
-  baixa_remessa_gerada: "bg-purple-500",
-};
 
 /**
  * O que este boleto EXIGE do operador — não o que ele "é".
@@ -954,7 +947,6 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       let totalVencido = 0;
       let qtdVencido = 0;
       let proximoVencimento: string | null = null;
-      const contagem = new Map<string, number>();
       const atencao = new Map<Atencao, { qtd: number; valor: number }>();
       let emitirMaisUrgente: string | null = null;
       /** Pedidos na ordem de vencimento (lista já vem ordenada asc). */
@@ -984,15 +976,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         }
         const ped = b.pedido?.id_externo;
         if (ped && !pedidos.includes(ped)) pedidos.push(ped);
-        const st = b.boleto_status || "—";
-        contagem.set(st, (contagem.get(st) ?? 0) + 1);
       }
-      const mixStatus = Array.from(contagem.entries()).map(([status, qtd]) => ({
-        status,
-        qtd,
-        label: BOLETO_STATUS_CFG[status]?.label ?? status,
-        dot: BOLETO_STATUS_DOT[status] ?? "bg-gray-400",
-      }));
       const atencaoLista = (["emitir", "reemitir", "vencido"] as const)
         .map((k) => ({ tipo: k, ...(atencao.get(k) ?? { qtd: 0, valor: 0 }) }))
         .filter((x) => x.qtd > 0);
@@ -1003,7 +987,6 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         totalVencido,
         qtdVencido,
         proximoVencimento,
-        mixStatus,
         pedidos,
         atencaoLista,
         prioridade: (() => {
@@ -1464,12 +1447,16 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
             <div className="space-y-2">
               {gruposCliente.map((g) => {
                 const aberto = gruposAbertos[g.nome] ?? g.abrirPorPadrao;
+                /* Grupo inteiro encerrado (devolvido / baixado por perda) não exige nada
+                   de ninguém: continua visível para consulta, mas para de disputar
+                   atenção com o que ainda está vivo. */
+                const grupoEncerrado = resumirTrilho(g.boletos, hojeIso)?.encerrado ?? false;
                 return (
                   <Collapsible
                     key={g.nome}
                     open={aberto}
                     onOpenChange={(o) => setGruposAbertos((p) => ({ ...p, [g.nome]: o }))}
-                    className={`relative overflow-hidden rounded-md border ${g.prioridade <= 2 ? "border-l-0" : ""}`}
+                    className={`relative overflow-hidden rounded-md border ${g.prioridade <= 2 ? "border-l-0" : ""} ${grupoEncerrado ? "opacity-60" : ""}`}
                   >
                     {g.prioridade <= 2 && (
                       <span
@@ -1513,17 +1500,10 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                               {x.qtd} {ATENCAO_CFG[x.tipo].label} · {formatBRL(x.valor)}
                             </Badge>
                           ))}
-                          {g.atencaoLista.length === 0 && (
-                            <span className="flex shrink-0 items-center gap-1">
-                              {g.mixStatus.map((m) => (
-                                <span
-                                  key={m.status}
-                                  title={`${m.label}: ${m.qtd}`}
-                                  className={`inline-block h-2 w-2 rounded-full ${m.dot}`}
-                                />
-                              ))}
-                            </span>
-                          )}
+                          {/* A fita responde ONDE o boleto está; o badge acima responde
+                              O QUE FAZER. São perguntas diferentes e convivem — antes era
+                              XOR e o cliente com pendência perdia o status inteiro. */}
+                          <TrilhoBoleto itens={g.boletos} hojeIso={hojeIso} />
                           {g.proximoVencimento && (
                             <span className="shrink-0 text-xs text-muted-foreground">
                               próx. {formatDateBR(g.proximoVencimento)}
@@ -1553,6 +1533,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                                 <span className="font-mono text-[11px] text-muted-foreground">
                                   {formatBRL(sp.total)}
                                 </span>
+                                <TrilhoBoleto itens={sp.boletos} hojeIso={hojeIso} />
                                 {sp.atencaoLista.map((x) => (
                                   <Badge
                                     key={x.tipo}
