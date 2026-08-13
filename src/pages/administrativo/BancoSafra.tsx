@@ -1561,6 +1561,27 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                                     {x.qtd} {ATENCAO_CFG[x.tipo].label}
                                   </Badge>
                                 ))}
+                                {(() => {
+                                  const alvos = sp.boletos.filter(
+                                    (b) => sugestoes[b.id] && sugestoes[b.id] !== (edits[b.id]?.data ?? b.data_vencimento_atual ?? ""),
+                                  );
+                                  if (alvos.length === 0) return null;
+                                  return (
+                                    <button
+                                      type="button"
+                                      className="text-[11px] font-medium text-muted-foreground underline hover:text-foreground"
+                                      onClick={() =>
+                                        setEdits((p) => {
+                                          const n = { ...p };
+                                          for (const b of alvos) n[b.id] = { ...n[b.id], data: sugestoes[b.id] };
+                                          return n;
+                                        })
+                                      }
+                                    >
+                                      usar sugestões ({alvos.length})
+                                    </button>
+                                  );
+                                })()}
                               </div>
                               {renderTabela(sp.boletos, true)}
                             </div>
