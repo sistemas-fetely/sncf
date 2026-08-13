@@ -1652,8 +1652,15 @@ export default function PedidoDetalhe() {
                       const descontoSimples = Math.max(0, ajusteSimples);
                       const acrescimoSimples = Math.max(0, -ajusteSimples);
                       const temFrete       = frete > 0.01;
-                      const creditoHaver   = Number(titulosResumo?.creditoAplicado ?? 0);
-                      const fonteCredito   = titulosResumo?.fonteCredito ?? null;
+                      // CRÉDITO PARCIAL TAMBÉM É PAGAMENTO: crédito que não cobre o pedido
+                      // inteiro não vira título de haver, vira adiantamento vinculado. Ler só
+                      // `somaHaver` deixava o crédito invisível em todo pedido pré-NF.
+                      const creditoCliente = Math.max(
+                        Number(titulosResumo?.somaHaver ?? 0),
+                        Number(titulosResumo?.somaAdiantamento ?? 0),
+                      );
+                      const jaPagoDinheiro = Number(titulosResumo?.somaPagos ?? 0);
+                      const abatido        = Number(titulosResumo?.totalAbatido ?? 0);
                       return (
                         <div className="space-y-1.5">
                           <div className="flex justify-between text-sm">
@@ -1699,22 +1706,32 @@ export default function PedidoDetalhe() {
                             </div>
                           </div>
                           {/* HAVER-É-PAGAMENTO: o líquido não muda; o crédito é uma parcela paga. */}
-                          {creditoHaver > 0.005 && (
+                          {abatido > 0.005 && (
                             <>
-                              <div className="flex justify-between text-sm">
-                                <span className="text-emerald-700 dark:text-emerald-400">
-                                  {fonteCredito === "adiantamento_vinculado"
-                                    ? "Crédito do cliente (vinculado)"
-                                    : "Crédito aplicado (haver)"}
-                                </span>
-                                <span className="text-emerald-700 dark:text-emerald-400">
-                                  −{fmtBRL.format(creditoHaver)}
-                                </span>
-                              </div>
+                              {creditoCliente > 0.005 && (
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-emerald-700 dark:text-emerald-400">
+                                    Crédito do cliente
+                                  </span>
+                                  <span className="text-emerald-700 dark:text-emerald-400">
+                                    −{fmtBRL.format(creditoCliente)}
+                                  </span>
+                                </div>
+                              )}
+                              {jaPagoDinheiro > 0.005 && (
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-emerald-700 dark:text-emerald-400">
+                                    Já pago
+                                  </span>
+                                  <span className="text-emerald-700 dark:text-emerald-400">
+                                    −{fmtBRL.format(jaPagoDinheiro)}
+                                  </span>
+                                </div>
+                              )}
                               <div className="border-t border-border/60 pt-2">
                                 <div className="flex justify-between text-base font-semibold">
                                   <span>A cobrar</span>
-                                  <span>{fmtBRL.format(Math.max(0, liquido - creditoHaver))}</span>
+                                  <span>{fmtBRL.format(Math.max(0, liquido - abatido))}</span>
                                 </div>
                               </div>
                             </>
