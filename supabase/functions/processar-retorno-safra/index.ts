@@ -220,6 +220,75 @@ serve(async (req) => {
       });
     }
 
+    // ── identidade do arquivo + trava de reprocessamento ──────────────────
+    // Sem isto, reprocessar o mesmo retorno reaplica liquidação e baixa em
+    // silêncio. A única proteção que existia era o hash_unico da movimentação
+    // bancária — proteção de efeito colateral, não de intenção.
+    const nroSequencial = sequencialArquivo(linhasBrutas);
+    const hashConteudo = await sha256Hex(arquivoConteudo);
+    const headerLinha = linhasBrutas[0] ?? "";
+    const dataGeracao = ddmmaaaaIso(headerLinha.slice(94, 100));
+    const dataMovimento = ddmmaaaaIso(headerLinha.slice(114, 122));
+
+    let qtdLiquidacoes = 0;
+    let valorLiquidacoes = 0;
+    for (const d of detalhes) {
+      if (CODIGOS_LIQUIDACAO.has(d.ocorrencia)) {
+        qtdLiquidacoes++;
+        valorLiquidacoes += parseValor13d2(d.valorPagoRaw) ?? 0;
+      }
+    }
+
+    if (nroSequencial == null) {
+      return new Response(JSON.stringify({ ok: false, erro: "Sequencial do arquivo não encontrado — retorno não identificável" }), {
+        status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: arquivoExistente } = await sb
+      .from("safra_retorno_arquivo")
+      .select("id, hash_arquivo, arquivo_nome, processado_em")
+      .eq("nro_sequencial", nroSequencial)
+      .maybeSingle();
+
+    if (arquivoExistente && arquivoExistente.hash_arquivo === hashConteudo) {
+      return new Response(JSON.stringify({
+        ok: true, ja_processado: true, nro_sequencial: nroSequencial,
+        processado_em: arquivoExistente.processado_em,
+        erro: `Retorno ${nroSequencial} já foi processado em ${arquivoExistente.processado_em}. Nada foi reaplicado.`,
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (arquivoExistente && arquivoExistente.hash_arquivo !== hashConteudo) {
+      return new Response(JSON.stringify({
+        ok: false,
+        erro: `Sequencial ${nroSequencial} já existe com conteúdo DIFERENTE (arquivo "${arquivoExistente.arquivo_nome}"). Dois retornos distintos com o mesmo número — verificar com o banco antes de processar.`,
+      }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const { data: arquivoRow, error: errArq } = await sb
+      .from("safra_retorno_arquivo")
+      .insert({
+        nro_sequencial: nroSequencial,
+        data_geracao: dataGeracao,
+        data_movimento: dataMovimento,
+        arquivo_nome: arquivoNome ?? `retorno_${nroSequencial}.txt`,
+        hash_arquivo: hashConteudo,
+        qtd_registros: detalhes.length,
+        qtd_liquidacoes: qtdLiquidacoes,
+        valor_liquidacoes: Math.round(valorLiquidacoes * 100) / 100,
+        processado_em: new Date().toISOString(),
+        status: "processado",
+      })
+      .select("id")
+      .single();
+    if (errArq) {
+      return new Response(JSON.stringify({ ok: false, erro: `Falha ao registrar o arquivo: ${errArq.message}` }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const arquivoId = arquivoRow.id as string;
+
     // ── promoção da remessa: vínculo real via título (não via header) ──────
     const remessasTocadas = new Set<string>();
     const remessasComRejeicao = new Set<string>();
