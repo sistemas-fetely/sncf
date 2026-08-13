@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Lock, Check, Copy } from "lucide-react";
 import {
@@ -7,19 +7,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import {
   useCriarUsuarioV2,
-  useColaboradoresDisponiveis,
   useGruposParaSelecao,
-  type VinculoTipo,
   type CriarUsuarioV2Output,
 } from "@/hooks/useCriarUsuarioV2";
 
@@ -28,43 +21,21 @@ interface NovoUsuarioDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-type VinculoOpcao = "externo" | "clt" | "pj";
-
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function iniciais(nome: string) {
-  return nome
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((s) => s[0]?.toUpperCase() ?? "")
-    .join("");
-}
-
 export default function NovoUsuarioDialog({ open, onOpenChange }: NovoUsuarioDialogProps) {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2>(1);
 
   // Passo 1
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
 
   // Passo 2
-  const [vinculoOpcao, setVinculoOpcao] = useState<VinculoOpcao>("externo");
-  const [tipoExterno, setTipoExterno] = useState("");
-  const [colaboradorId, setColaboradorId] = useState("");
-  const [pular, setPular] = useState(false);
-
-  // Passo 3
   const [grupoIds, setGrupoIds] = useState<string[]>([]);
 
   // Resultado pós-criação (mostra painel com link de primeiro acesso)
   const [resultado, setResultado] = useState<CriarUsuarioV2Output | null>(null);
 
-  const colabTipo: "clt" | "pj" | null =
-    vinculoOpcao === "clt" ? "clt" : vinculoOpcao === "pj" ? "pj" : null;
-
-  const { data: colaboradores = [], isLoading: loadingColabs } =
-    useColaboradoresDisponiveis(colabTipo);
   const { data: grupos = [], isLoading: loadingGrupos } = useGruposParaSelecao();
   const criar = useCriarUsuarioV2();
 
@@ -72,10 +43,6 @@ export default function NovoUsuarioDialog({ open, onOpenChange }: NovoUsuarioDia
     setStep(1);
     setFullName("");
     setEmail("");
-    setVinculoOpcao("externo");
-    setTipoExterno("");
-    setColaboradorId("");
-    setPular(false);
     setGrupoIds([]);
     setResultado(null);
   };
@@ -87,12 +54,6 @@ export default function NovoUsuarioDialog({ open, onOpenChange }: NovoUsuarioDia
 
   const passo1Valido = fullName.trim().length >= 3 && EMAIL_RE.test(email.trim());
 
-  const passo2Valido = useMemo(() => {
-    if (vinculoOpcao === "externo") return true; // tipo_externo é opcional
-    if (pular) return true;
-    return colaboradorId.length > 0;
-  }, [vinculoOpcao, pular, colaboradorId]);
-
   const toggleGrupo = (id: string) => {
     setGrupoIds((prev) =>
       prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id]
@@ -100,28 +61,10 @@ export default function NovoUsuarioDialog({ open, onOpenChange }: NovoUsuarioDia
   };
 
   const submit = async () => {
-    let vinculo_tipo: VinculoTipo = null;
-    let colaborador_clt_id: string | null = null;
-    let contrato_pj_id: string | null = null;
-    let tipo_externo: string | null = null;
-
-    if (vinculoOpcao === "externo") {
-      vinculo_tipo = "externo";
-      tipo_externo = tipoExterno.trim() || null;
-    } else if (!pular && colaboradorId) {
-      vinculo_tipo = vinculoOpcao;
-      if (vinculoOpcao === "clt") colaborador_clt_id = colaboradorId;
-      else contrato_pj_id = colaboradorId;
-    }
-
     try {
       const out = await criar.mutateAsync({
         email: email.trim(),
         full_name: fullName.trim(),
-        vinculo_tipo,
-        colaborador_clt_id,
-        contrato_pj_id,
-        tipo_externo,
         grupo_ids: grupoIds,
       });
       setResultado(out);
@@ -142,8 +85,7 @@ export default function NovoUsuarioDialog({ open, onOpenChange }: NovoUsuarioDia
 
   const stepperItems = [
     { n: 1, label: "Dados" },
-    { n: 2, label: "Vínculo" },
-    { n: 3, label: "Grupos" },
+    { n: 2, label: "Grupos" },
   ] as const;
 
   return (
@@ -226,123 +168,13 @@ export default function NovoUsuarioDialog({ open, onOpenChange }: NovoUsuarioDia
           )}
 
           {step === 2 && (
-            <div className="space-y-5">
-              <RadioGroup
-                value={vinculoOpcao}
-                onValueChange={(v) => {
-                  setVinculoOpcao(v as VinculoOpcao);
-                  setColaboradorId("");
-                  setPular(false);
-                }}
-                className="flex gap-6"
-              >
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="externo" id="vt-ext" />
-                  <Label htmlFor="vt-ext" className="cursor-pointer">Sem vínculo (externo)</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="clt" id="vt-clt" />
-                  <Label htmlFor="vt-clt" className="cursor-pointer">CLT</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="pj" id="vt-pj" />
-                  <Label htmlFor="vt-pj" className="cursor-pointer">PJ</Label>
-                </div>
-              </RadioGroup>
-
-              {vinculoOpcao === "externo" && (
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="nu-tipo-ext">Tipo externo (opcional)</Label>
-                    <Input
-                      id="nu-tipo-ext"
-                      value={tipoExterno}
-                      onChange={(e) => setTipoExterno(e.target.value)}
-                      placeholder="Ex: consultor, contador, fundador"
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Usuário sem colaborador associado. Útil pra contadores,
-                    consultores e parceiros externos.
-                  </p>
-                </div>
-              )}
-
-              {(vinculoOpcao === "clt" || vinculoOpcao === "pj") && (
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <Label>Selecione o colaborador</Label>
-                    <Select
-                      value={colaboradorId}
-                      onValueChange={setColaboradorId}
-                      disabled={pular || loadingColabs}
-                    >
-                      <SelectTrigger>
-                        <SelectValue
-                          placeholder={
-                            loadingColabs
-                              ? "Carregando..."
-                              : colaboradores.length === 0
-                              ? "Nenhum colaborador disponível"
-                              : "Selecione..."
-                          }
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {colaboradores.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            <div className="flex items-center gap-2">
-                              <Avatar className="h-6 w-6">
-                                <AvatarFallback className="text-[10px]">
-                                  {iniciais(c.nome)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex flex-col text-left">
-                                <span className="text-sm">{c.nome}</span>
-                                <span className="text-[11px] text-muted-foreground">
-                                  {[c.email, c.cargo].filter(Boolean).join(" · ")}
-                                </span>
-                              </div>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {!loadingColabs && colaboradores.length === 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        Nenhum colaborador disponível para vincular.
-                        Todos já têm usuário.
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="nu-pular"
-                      checked={pular}
-                      onCheckedChange={(c) => {
-                        setPular(c === true);
-                        if (c === true) setColaboradorId("");
-                      }}
-                    />
-                    <Label htmlFor="nu-pular" className="cursor-pointer text-sm">
-                      Pular — vincular depois
-                    </Label>
-                  </div>
-
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Marcos jurídico: o vínculo é imutável após criação.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {step === 3 && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground leading-relaxed">
                 Selecione 1 ou mais grupos. Pode deixar vazio e adicionar
                 depois pela aba Grupos de Acesso.
+              </p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                O vínculo com a pessoa (CLT/PJ) é feito depois, pelo botão Vincular na lista de usuários.
               </p>
 
               {loadingGrupos ? (
@@ -401,16 +233,16 @@ export default function NovoUsuarioDialog({ open, onOpenChange }: NovoUsuarioDia
         <DialogFooter className="flex-row justify-between sm:justify-between gap-2">
           <Button
             variant="outline"
-            onClick={() => setStep((s) => (s > 1 ? ((s - 1) as 1 | 2 | 3) : s))}
+            onClick={() => setStep((s) => (s > 1 ? ((s - 1) as 1 | 2) : s))}
             disabled={step === 1 || criar.isPending}
           >
             Voltar
           </Button>
 
-          {step < 3 ? (
+          {step < 2 ? (
             <Button
-              onClick={() => setStep((s) => (s + 1) as 1 | 2 | 3)}
-              disabled={(step === 1 && !passo1Valido) || (step === 2 && !passo2Valido)}
+              onClick={() => setStep((s) => (s + 1) as 1 | 2)}
+              disabled={step === 1 && !passo1Valido}
             >
               Próximo
             </Button>
