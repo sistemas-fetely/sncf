@@ -50,6 +50,39 @@ function parseDDMMAA(s: string): string | null {
   return `20${aa}-${mm}-${dd}`;
 }
 
+/** Sequencial do arquivo: 3 primeiros dígitos das últimas 9 posições de qualquer linha. */
+function sequencialArquivo(linhas: string[]): number | null {
+  for (const l of linhas) {
+    const m = /^(\d{3})/.exec(l.slice(-9));
+    if (m) return parseInt(m[1], 10);
+  }
+  return null;
+}
+
+/** ddmmaa → ISO. */
+function ddmmaaIso(s: string): string | null {
+  const d = s.replace(/\D/g, "");
+  if (d.length !== 6 || d === "000000") return null;
+  const ano = parseInt(d.slice(4, 6), 10);
+  return `${ano >= 70 ? 1900 + ano : 2000 + ano}-${d.slice(2, 4)}-${d.slice(0, 2)}`;
+}
+
+/** ddmmaaaa → ISO. Posições medidas em arquivo real: header 115–122. */
+function ddmmaaaaIso(s: string): string | null {
+  const d = s.replace(/\D/g, "");
+  if (d.length === 6) return ddmmaaIso(d);
+  if (d.length !== 8 || d === "00000000") return null;
+  return `${d.slice(4, 8)}-${d.slice(2, 4)}-${d.slice(0, 2)}`;
+}
+
+async function sha256Hex(texto: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texto));
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** Códigos que representam dinheiro entrando. */
+const CODIGOS_LIQUIDACAO = new Set(["06", "07", "08", "15", "16", "17"]);
+
 function parseValor13d2(s: string): number | null {
   if (!/^\d{1,13}$/.test(s)) return null;
   const padded = s.padStart(13, "0");
