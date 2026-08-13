@@ -947,7 +947,6 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       let totalVencido = 0;
       let qtdVencido = 0;
       let proximoVencimento: string | null = null;
-      const contagem = new Map<string, number>();
       const atencao = new Map<Atencao, { qtd: number; valor: number }>();
       let emitirMaisUrgente: string | null = null;
       /** Pedidos na ordem de vencimento (lista já vem ordenada asc). */
@@ -977,15 +976,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         }
         const ped = b.pedido?.id_externo;
         if (ped && !pedidos.includes(ped)) pedidos.push(ped);
-        const st = b.boleto_status || "—";
-        contagem.set(st, (contagem.get(st) ?? 0) + 1);
       }
-      const mixStatus = Array.from(contagem.entries()).map(([status, qtd]) => ({
-        status,
-        qtd,
-        label: BOLETO_STATUS_CFG[status]?.label ?? status,
-        dot: BOLETO_STATUS_DOT[status] ?? "bg-gray-400",
-      }));
       const atencaoLista = (["emitir", "reemitir", "vencido"] as const)
         .map((k) => ({ tipo: k, ...(atencao.get(k) ?? { qtd: 0, valor: 0 }) }))
         .filter((x) => x.qtd > 0);
@@ -996,7 +987,6 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         totalVencido,
         qtdVencido,
         proximoVencimento,
-        mixStatus,
         pedidos,
         atencaoLista,
         prioridade: (() => {
