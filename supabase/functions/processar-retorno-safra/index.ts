@@ -785,6 +785,9 @@ serve(async (req) => {
         emails_enviados: 0,
         detalhes_rejeicao: detalhesRejeicao,
         remessas_promovidas: remessasPromovidas,
+        nro_sequencial: nroSequencial,
+        arquivo_id: arquivoId,
+        ocorrencias_gravadas: rowsOc.length,
         // novo relatório
         contadores,
         alertas,
