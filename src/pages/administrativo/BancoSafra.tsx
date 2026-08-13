@@ -639,8 +639,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     });
   };
 
-  // edição inline de boletos
-  const [edits, setEdits] = useState<Record<string, { data?: string; valor?: string }>>({});
+  // edição inline de boletos (state declarado acima, junto das sugestões)
   const [salvando, setSalvando] = useState<Record<string, boolean>>({});
   const temEdicao = (id: string) => !!(edits[id]?.data || edits[id]?.valor);
   const handleSalvar = async (b: TitulosBoleto) => {
