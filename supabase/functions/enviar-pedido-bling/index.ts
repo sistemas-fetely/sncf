@@ -683,9 +683,9 @@ if (itensSemProdutoBling.length > 0) {
       ? Math.max(0, remessaValor - valorFrete)
       : remessaValor;
 
-    // Soma real dos itens_json — denominador correto para o descontoFator.
+    // Soma real dos itens_json — denominador correto para o ajusteFator.
     // Usar pedido.valor_bruto era incorreto: quando o desconto master é aplicado
-    // só no total (não por linha), valor_bruto = valor_liquido e descontoFator = 1,
+    // só no total (não por linha), valor_bruto = valor_liquido e ajusteFator = 1,
     // mas a soma dos itens pode ser maior — causando diff enorme e preço negativo
     // no último item. A soma real dos itens é sempre o denominador certo.
     const somaItensJson = parseFloat(
@@ -694,16 +694,32 @@ if (itensSemProdutoBling.length > 0) {
       ).toFixed(2)
     );
 
-    const descontoFator =
-      somaItensJson > 0 && baseItens < somaItensJson
+    // AJUSTE-FATOR-SIMETRICO: o fator encolhe (desconto no total) e tambem amplia
+    // (acrescimo fiscal por situacao de IE; frete rateado em remessa filha). Antes ele
+    // travava em 1 quando a base era maior que a soma dos itens, e o guard de R$ 5,00
+    // derrubava o envio. O acrescimo e preco de mercadoria: rateia no unitario.
+    const ajusteFator =
+      somaItensJson > 0
         ? parseFloat((baseItens / somaItensJson).toFixed(6))
         : 1;
+
+    // Trava de sanidade: fator fora desta faixa nao e desconto nem acrescimo, e erro
+    // de origem (itens_json com preco errado, remessa com valor incoerente). FAIL-LOUD
+    // antes de mandar preco distorcido para a NF.
+    if (ajusteFator < 0.5 || ajusteFator > 1.5) {
+      return await falhaLimpando(
+        `Fator de ajuste fora da faixa aceitavel (${ajusteFator}): base dos itens ` +
+        `R$ ${baseItens.toFixed(2)} contra soma dos itens R$ ${somaItensJson.toFixed(2)}. ` +
+        `Corrija a origem dos precos antes de reenviar.`,
+        409,
+      );
+    }
 
     const rawItens = itens.length > 0
       ? itens.map((it: any) => {
           const blingProdId = it.sku ? cacheMap[it.sku] : null;
           const qty = Number(it.quantidade);
-          const lineTotal = parseFloat((Number(it.valor_unitario) * qty * descontoFator).toFixed(2));
+          const lineTotal = parseFloat((Number(it.valor_unitario) * qty * ajusteFator).toFixed(2));
           // O codigo do item e o unico ancoradouro conferivel entre o pedido no Bling,
           // a etiqueta fisica e a lista de separacao. Sem ele a linha sai so com descricao
           // livre e o separador nao tem contra o que conferir (causa do PED-2122).
