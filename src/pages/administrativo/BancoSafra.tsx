@@ -470,20 +470,44 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     [boletos],
   );
 
+  // edição inline de boletos (declarada aqui porque as sugestões dependem dela)
+  const [edits, setEdits] = useState<Record<string, { data?: string; valor?: string }>>({});
+
+  /**
+   * A parcela 1 é sugerida pela regra pura (faturamento + dia nominal, piso 7d).
+   * As demais seguem a data EFETIVA da parcela 1 — edição em curso na tela tem
+   * precedência sobre o salvo, para o operador ver a cascata antes de gravar.
+   */
+  const ancoraPorPedido = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const b of boletos) {
+      if ((b.numero_parcela ?? 1) !== 1) continue;
+      const ped = b.pedido?.id_externo;
+      if (!ped) continue;
+      const efetiva = edits[b.id]?.data ?? b.data_vencimento_atual ?? null;
+      if (efetiva) map[ped] = efetiva;
+    }
+    return map;
+  }, [boletos, edits]);
+
   /** Sugestão de vencimento por título pendente (só sugestão — nunca grava sozinha). */
   const sugestoes = useMemo(() => {
     const map: Record<string, string> = {};
     for (const b of pendentesEntrada) {
+      const parcela = b.numero_parcela ?? 1;
+      const ped = b.pedido?.id_externo;
+      const ancora = parcela > 1 && ped ? ancoraPorPedido[ped] : null;
       const s = sugerirVencimentoBoleto(
         b.pedido?.faturado_em,
         b.pedido?.condicao_solicitada,
-        b.numero_parcela,
+        parcela,
         b.total_parcelas,
+        ancora,
       );
       if (s) map[b.id] = s;
     }
     return map;
-  }, [pendentesEntrada]);
+  }, [pendentesEntrada, ancoraPorPedido]);
 
   /** Pendentes com sugestão diferente da data salva — universo do dialog em lote. */
   const pendentesComSugestao = useMemo(
