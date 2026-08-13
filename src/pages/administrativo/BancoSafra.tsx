@@ -116,6 +116,39 @@ const BOLETO_STATUS_DOT: Record<string, string> = {
   baixa_remessa_gerada: "bg-purple-500",
 };
 
+/**
+ * O que este boleto EXIGE do operador — não o que ele "é".
+ * Título devolvido ou em perda nunca exige emissão: a mercadoria voltou, o
+ * caminho é baixar o título, não mandar boleto ao banco.
+ */
+type Atencao = "emitir" | "reemitir" | "vencido" | "nenhuma";
+
+const TITULO_SEM_ACAO = new Set(["devolvido", "perda", "perda_parcial", "renegociado"]);
+
+function classificarAtencao(b: TitulosBoleto, hojeIso: string): Atencao {
+  if (b.status && TITULO_SEM_ACAO.has(b.status)) return "nenhuma";
+  const st = b.boleto_status ?? "pendente";
+  if (st === "pendente") return "emitir";
+  if (st === "rejeitado") return "reemitir";
+  if (st === "vencido") return "vencido";
+  if (st === "registrado" && b.data_vencimento_atual && b.data_vencimento_atual < hojeIso) return "vencido";
+  return "nenhuma";
+}
+
+const ATENCAO_CFG: Record<Exclude<Atencao, "nenhuma">, { label: string; cls: string; barra: string }> = {
+  emitir:   { label: "a emitir",   cls: "bg-amber-100 text-amber-900 hover:bg-amber-100",   barra: "bg-amber-500" },
+  reemitir: { label: "a reemitir", cls: "bg-orange-100 text-orange-900 hover:bg-orange-100", barra: "bg-orange-500" },
+  vencido:  { label: "vencido",    cls: "bg-red-100 text-red-800 hover:bg-red-100",          barra: "bg-red-500" },
+};
+
+/** Dias entre hoje e a data (negativo = já passou). */
+function diasAte(dataIso: string, hojeIso: string): number {
+  return Math.round(
+    (new Date(dataIso + "T00:00:00").getTime() - new Date(hojeIso + "T00:00:00").getTime()) / 86400000,
+  );
+}
+
+
 function BotaoBaixarBoletoPdf({ boleto }: { boleto: any }) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
