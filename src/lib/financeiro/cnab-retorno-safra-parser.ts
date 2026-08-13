@@ -4,7 +4,11 @@
  * Papel: REGISTRO DA RESPOSTA DO BANCO. Não dá baixa em título e não cria
  * movimentação bancária — a baixa é decisão humana e usa outro caminho.
  *
- * Layout medido em 12 arquivos reais (posições 1-based, registro tipo 1).
+ * Layout remedido byte a byte em 14 arquivos reais em 13/08/2026
+ * (posições 1-based, registro tipo 1). Correções dessa medição:
+ *  - data_movimento do header está em 115–122 (ddmmaaaa); a janela 109–116
+ *    trazia ddmmaa + 2 dígitos do campo seguinte e virava "ano 2608".
+ *  - nome do sacado começa em 341 (341–374); 301–334 devolvia lixo.
  */
 
 export interface RetornoSafraOcorrencia {
