@@ -493,6 +493,9 @@ export default function CobrancaDetalhe() {
   }, [propostaQ.data, pedidoQ.data?.valor_liquido, jaPagoPedido, paramDiasQ.isLoading, paramIntervaloQ.isLoading]);
 
 
+  // A proposta nasce pelo que FALTA cobrar, não pelo valor da nota. `montar_plano_pagamento`
+  // reconcilia com `novas + pagas + haver = líquido`, então o plano cheio seria recusado.
+  const creditoAplicado = Number(titulosResumoQ.data?.creditoAplicado ?? 0);
   const valorPedido = Number(pedidoQ.data?.valor_liquido ?? propostaQ.data?.valor_total ?? 0);
   const dataPedidoStr: string | undefined = pedidoQ.data?.data_pedido;
 
@@ -500,7 +503,7 @@ export default function CobrancaDetalhe() {
     () => titulos.reduce((acc, t) => acc + Number(t.valor_bruto || 0), 0),
     [titulos],
   );
-  const valorACobrar = Math.max(0, valorPedido - jaPagoPedido);
+  const valorACobrar = Math.max(0, valorPedido - creditoAplicado);
   const diff = totalEditado - valorACobrar;
   const pctDiff = valorACobrar > 0 ? Math.abs(diff) / valorACobrar : 0;
   const temDivergenciaLeve = Math.abs(diff) > 0.005 && pctDiff <= 0.01;
