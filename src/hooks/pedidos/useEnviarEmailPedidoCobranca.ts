@@ -53,13 +53,15 @@ export function useEnviarEmailPedidoCobranca() {
         }
 
         if (!link_pagamento) {
+          // PIX-E-DA-LINHA: a cobrança vive na provisão, não no portão.
           const { data: portao } = await (supabase as any)
-            .from("pedido_portao")
+            .from("provisao_recebimento")
             .select("link_pagamento, tipo_pagamento, pix_txid, pix_qr_url, pix_token")
             .eq("pedido_id", pedido_id)
-            .eq("status", "provisorio")
+            .eq("tipo_pagamento", "pix")
+            .is("pago_em", null)
             .not("link_pagamento", "is", null)
-            .order("created_at", { ascending: false })
+            .order("numero_parcela", { ascending: true })
             .limit(1)
             .maybeSingle();
           if (portao?.link_pagamento) {
@@ -138,11 +140,12 @@ export function useEnviarEmailPedidoCobranca() {
         // txid do portão: cai no extrato bancário, ajuda o cliente e a conciliação.
         if (!pix_txid || !pix_qr_url || !pix_token) {
           const { data: portaoTx } = await (supabase as any)
-            .from("pedido_portao")
+            .from("provisao_recebimento")
             .select("pix_txid, pix_qr_url, pix_token")
             .eq("pedido_id", pedido_id)
-            .eq("status", "provisorio")
-            .order("created_at", { ascending: false })
+            .eq("tipo_pagamento", "pix")
+            .is("pago_em", null)
+            .order("numero_parcela", { ascending: true })
             .limit(1)
             .maybeSingle();
           pix_txid = pix_txid ?? portaoTx?.pix_txid ?? null;
