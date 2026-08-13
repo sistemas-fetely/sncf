@@ -5,7 +5,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PixQrCodePortao } from "@/components/pedidos/PixQrCodePortao";
+import { PixQrCode } from "@/components/pedidos/PixQrCode";
 import { ConfirmarPortaoPagoDialog } from "@/components/pedidos/dialogs/ConfirmarPortaoPagoDialog";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -25,17 +25,12 @@ interface Provisao {
   condicao_pagamento: string | null;
   status: string | null;
   pago_em: string | null;
-}
-
-interface PortaoRow {
-  id: string;
-  provisao_id: string | null;
-  tipo_pagamento: string | null;
   link_pagamento: string | null;
   pix_txid: string | null;
-  valor: number | string | null;
-  status: string | null;
+  pix_token: string | null;
+  pix_qr_url: string | null;
 }
+
 
 function EstadoLinha({ p }: { p: Provisao }) {
   const pago = p.status === "pago" || !!p.pago_em;
@@ -58,7 +53,7 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
       const { data, error } = await (supabase as any)
         .from("provisao_recebimento")
         .select(
-          "id, pedido_id, numero_parcela, total_parcelas, valor, data_prevista, tipo_pagamento, eh_entrada, eh_portao, condicao_pagamento, status, pago_em",
+          "id, pedido_id, numero_parcela, total_parcelas, valor, data_prevista, tipo_pagamento, eh_entrada, eh_portao, condicao_pagamento, status, pago_em, link_pagamento, pix_txid, pix_token, pix_qr_url",
         )
         .eq("pedido_id", pedidoId)
         .order("numero_parcela", { ascending: true });
@@ -68,26 +63,6 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
   });
 
   const provisoes = provisoesQ.data ?? [];
-  const idsPortao = provisoes.filter((p) => p.eh_portao).map((p) => p.id);
-
-  const portoesQ = useQuery({
-    queryKey: ["portoes-por-provisao", pedidoId, idsPortao.join(",")],
-    enabled: idsPortao.length > 0,
-    queryFn: async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("pedido_portao")
-        .select("id, provisao_id, tipo_pagamento, link_pagamento, pix_txid, valor, status")
-        .in("provisao_id", idsPortao);
-      if (error) throw error;
-      const map = new Map<string, PortaoRow>();
-      ((data ?? []) as PortaoRow[]).forEach((r) => {
-        if (r.provisao_id) map.set(r.provisao_id, r);
-      });
-      return map;
-    },
-  });
-
   if (provisoesQ.isLoading) return <Skeleton className="h-32 w-full" />;
 
   if (provisoes.length === 0) {
@@ -105,7 +80,9 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
         <h4 className="text-sm font-medium text-foreground">Composição de pagamento</h4>
         <p className="text-xs text-muted-foreground mt-1">
           {linhasPortao.length === 0 ? (
-            "Nenhuma linha de portão — o pedido não depende de pagamento à vista para ser liberado."
+            provisoes.some((p) => p.tipo_pagamento === "pix")
+              ? "Sem portão — o pedido é liberado sem pagamento à vista, mas as linhas PIX abaixo têm cobrança própria."
+              : "Nenhuma linha de portão — o pedido não depende de pagamento à vista para ser liberado."
           ) : pendentesPortao.length === 0 ? (
             <>Todas as {linhasPortao.length} linha(s) de portão estão pagas ({fmtBRL.format(totalPortao)}).</>
           ) : (
@@ -145,54 +122,50 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
         </Table>
       </div>
 
-      {linhasPortao.map((p) => {
-        const portao = portoesQ.data?.get(p.id);
-        const pago = p.status === "pago" || !!p.pago_em;
-        return (
-          <div key={p.id} className="rounded-md border p-3 space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-sm">
-                <span className="font-medium">
-                  Portão · parcela {p.numero_parcela ?? "—"} · {fmtBRL.format(Number(p.valor ?? 0))}
-                </span>
-                <span className="text-xs text-muted-foreground ml-2 capitalize">
-                  {p.tipo_pagamento ?? "—"} · vence {fmtDate(p.data_prevista)}
-                </span>
+      {provisoes
+        .filter((p) => p.eh_portao || p.tipo_pagamento === "pix")
+        .map((p) => {
+          const pago = p.status === "pago" || !!p.pago_em;
+          return (
+            <div key={p.id} className="rounded-md border p-3 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm">
+                  <span className="font-medium">
+                    {p.eh_portao ? "Portão · " : ""}parcela {p.numero_parcela ?? "—"} ·{" "}
+                    {fmtBRL.format(Number(p.valor ?? 0))}
+                  </span>
+                  <span className="text-xs text-muted-foreground ml-2 capitalize">
+                    {p.tipo_pagamento ?? "—"} · vence {fmtDate(p.data_prevista)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <EstadoLinha p={p} />
+                  {!pago && (
+                    <ConfirmarPortaoPagoDialog
+                      pedido_id={p.pedido_id}
+                      provisao_id={p.id}
+                      valor={Number(p.valor ?? 0)}
+                      forma={p.tipo_pagamento}
+                      numero_parcela={p.numero_parcela}
+                      variante="discreta"
+                    />
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <EstadoLinha p={p} />
-                {!pago && (
-                  <ConfirmarPortaoPagoDialog
-                    pedido_id={p.pedido_id}
-                    provisao_id={p.id}
-                    valor={Number(p.valor ?? 0)}
-                    forma={p.tipo_pagamento}
-                    numero_parcela={p.numero_parcela}
-                    variante="discreta"
-                  />
-                )}
-              </div>
+
+              {p.tipo_pagamento === "pix" && !pago && (
+                <PixQrCode
+                  provisaoId={p.id}
+                  pedidoId={p.pedido_id}
+                  tipoPagamento={p.tipo_pagamento}
+                  linkPagamento={p.link_pagamento}
+                  pixTxid={p.pix_txid}
+                  valor={Number(p.valor ?? 0)}
+                />
+              )}
             </div>
-
-            {p.tipo_pagamento === "pix" && portao?.id && (
-              <PixQrCodePortao
-                portaoId={portao.id}
-                pedidoId={p.pedido_id}
-                tipoPagamento={p.tipo_pagamento}
-                linkPagamento={portao.link_pagamento}
-                pixTxid={portao.pix_txid}
-                valor={Number(p.valor ?? 0)}
-              />
-            )}
-
-            {p.tipo_pagamento === "pix" && !portao?.id && (
-              <p className="text-xs text-muted-foreground">
-                Cobrança PIX ainda não gerada para esta linha.
-              </p>
-            )}
-          </div>
-        );
-      })}
+          );
+        })}
     </div>
   );
 }
