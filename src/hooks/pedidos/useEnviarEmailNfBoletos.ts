@@ -33,7 +33,7 @@ export function useEnviarEmailNfBoletos() {
       const { data: titulosRaw, error: errT } = await (supabase as any)
         .from("titulo_a_receber")
         .select(
-          "id, numero_parcela, total_parcelas, data_vencimento_atual, valor_bruto, status, tipo_pagamento, boleto_status, linha_digitavel",
+          "id, numero_parcela, total_parcelas, data_vencimento_atual, valor_bruto, status, tipo_pagamento, boleto_status, linha_digitavel, pix_txid, pix_qr_url, pix_token, link_pagamento",
         )
         .eq("pedido_id", pedido_id)
         .order("numero_parcela", { ascending: true });
