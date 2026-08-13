@@ -21,18 +21,7 @@ interface NovoUsuarioDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-type VinculoOpcao = "externo" | "clt" | "pj";
-
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function iniciais(nome: string) {
-  return nome
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((s) => s[0]?.toUpperCase() ?? "")
-    .join("");
-}
 
 export default function NovoUsuarioDialog({ open, onOpenChange }: NovoUsuarioDialogProps) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
