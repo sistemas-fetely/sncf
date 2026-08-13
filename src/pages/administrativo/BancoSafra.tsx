@@ -145,6 +145,9 @@ const ATENCAO_CFG: Record<Exclude<Atencao, "nenhuma">, { label: string; cls: str
 function diasAte(dataIso: string, hojeIso: string): number {
   return Math.round(
     (new Date(dataIso + "T00:00:00").getTime() - new Date(hojeIso + "T00:00:00").getTime()) / 86400000,
+  );
+}
+
 /**
  * Subagrupa os boletos de um cliente por PEDIDO. Sem isso, dois pedidos do mesmo
  * cliente aparecem intercalados por data de vencimento e um pedido inteiro sem
