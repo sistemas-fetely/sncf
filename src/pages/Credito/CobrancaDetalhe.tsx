@@ -19,8 +19,8 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowLeft, Loader2, RefreshCcw, AlertTriangle, Copy, Check, Mail, Plus, Trash2 } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Loader2, RefreshCcw, AlertTriangle, Copy, Check, Mail, Plus, Trash2, Lock } from "lucide-react";
+
 import { usePropostaCobranca } from "@/hooks/credito/usePropostaCobranca";
 import { useMaterializarCobranca } from "@/hooks/credito/useMaterializarCobranca";
 import { useMaterializarComHaver } from "@/hooks/credito/useMaterializarComHaver";
@@ -118,6 +118,27 @@ function usePedidoMinimo(pedidoId: string | undefined) {
         .maybeSingle();
       if (error) throw error;
       return data;
+    },
+  });
+}
+
+function usePedidoPortaoRegra(pedidoId: string | undefined) {
+  return useQuery({
+    queryKey: ["pedido-portao-regra", pedidoId],
+    enabled: !!pedidoId,
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("vw_pedido_portao_regra")
+        .select("exige_portao_regra, porque, portao_minimo_pct")
+        .eq("pedido_id", pedidoId)
+        .maybeSingle();
+      if (error) throw error;
+      return data as {
+        exige_portao_regra: boolean | null;
+        porque: string | null;
+        portao_minimo_pct: number | null;
+      } | null;
     },
   });
 }
@@ -387,10 +408,10 @@ export default function CobrancaDetalhe() {
   const { pedidoId } = useParams<{ pedidoId: string }>();
   const navigate = useNavigate();
   const voltarPara = useVoltarParaOrigem("/recebimento/cobranca");
-  const qc = useQueryClient();
   const { toast } = useToast();
 
   const pedidoQ = usePedidoMinimo(pedidoId);
+  const portaoRegraQ = usePedidoPortaoRegra(pedidoId);
   const propostaQ = usePropostaCobranca(pedidoId);
   const materializar = useMaterializarCobranca();
   const materializarComHaver = useMaterializarComHaver();
@@ -399,8 +420,7 @@ export default function CobrancaDetalhe() {
 
   const { roles: authRoles } = useAuth();
   const isSuperAdmin = (authRoles ?? []).includes("super_admin");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const exigePortao = !!(pedidoQ.data as any)?.exige_portao;
+  const exigePortao = !!portaoRegraQ.data?.exige_portao_regra;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const haverCliente = useHaverDisponivelCliente((pedidoQ.data as any)?.parceiro_id);
   const haverSaldo = haverCliente?.saldo ?? 0;
@@ -478,7 +498,12 @@ export default function CobrancaDetalhe() {
     setDiasPrimeiroPagamento(diasUsar);
     setIntervaloDias(intervaloUsar);
 
-    const novos = propostaQ.data.titulos_propostos.map((t) => ({ ...t }));
+    const novos: LinhaPlano[] = propostaQ.data.titulos_propostos.map((t) => ({ ...t, eh_portao: false }));
+    // LINHA UNICA: se a regra exige portao e so ha uma parcela, ela nasce marcada.
+    // Com duas ou mais, a escolha continua do operador (composicao).
+    if (exigePortao && novos.length === 1) {
+      novos[0].eh_portao = true;
+    }
     setTitulos(aplicarPrimeiraDataECascata(novos, diasUsar, intervaloUsar));
 
     const somaProposta = novos.reduce((acc, t) => acc + Number(t.valor_bruto || 0), 0);
@@ -488,7 +513,7 @@ export default function CobrancaDetalhe() {
     if (creditoAplicado > 0.005 || jaPagoPedido > 0.005) setTitulos((prev) => redistribuirValoresIguais(prev, novoTotal));
     setParcelasIguais(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [propostaQ.data, pedidoQ.data?.valor_liquido, creditoAplicado, jaPagoPedido, paramDiasQ.isLoading, paramIntervaloQ.isLoading]);
+  }, [propostaQ.data, pedidoQ.data?.valor_liquido, creditoAplicado, jaPagoPedido, paramDiasQ.isLoading, paramIntervaloQ.isLoading, exigePortao]);
 
 
   // A proposta nasce pelo que FALTA cobrar, não pelo valor da nota. `montar_plano_pagamento`
@@ -637,21 +662,6 @@ export default function CobrancaDetalhe() {
   };
 
 
-  const handleTogglePortao = async (valor: boolean) => {
-    if (!pedidoId) return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any).rpc("definir_exige_portao", {
-      p_pedido_id: pedidoId,
-      p_valor: valor,
-    });
-    if (error) {
-      toast({ title: "Não foi possível alterar o portão", description: error.message, variant: "destructive" });
-      return;
-    }
-    qc.invalidateQueries({ queryKey: ["cobranca-pedido-minimo", pedidoId] });
-    toast({ title: valor ? "Portão ativado" : "Portão desativado" });
-  };
-
   const handleRecalcular = () => {
     setTitulos((prev) => {
       if (prev.length === 0) return prev;
@@ -751,7 +761,6 @@ export default function CobrancaDetalhe() {
     return [...analisesPedido].sort(cmp)[0];
   })();
   const obsCredito = analiseEscolhida?.parecer_final?.trim() || "—";
-  const creditoRecomendaPortao = !!analiseEscolhida?.exige_portao;
 
   const freteLabel = (() => {
     const tipo = (pedido.frete_tipo ?? "").toString().trim();
@@ -887,31 +896,26 @@ export default function CobrancaDetalhe() {
         </CardContent>
       </Card>
 
-      {/* Portão — primeiro pagamento à vista */}
-      <Card>
-        <CardContent className="py-4 space-y-2">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="font-semibold text-sm">Portão — primeiro pagamento à vista para liberar a NF</p>
-              {creditoRecomendaPortao && (
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Crédito recomendou portão para este pedido.
-                </p>
-              )}
+      {/* Portão — primeiro pagamento à vista: regra derivada da view, nunca toggle. */}
+      {exigePortao && (
+        <Card>
+          <CardContent className="py-4 space-y-2">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="font-semibold text-sm">Portão — primeiro pagamento à vista para liberar a NF</p>
+              </div>
+              <Badge variant="secondary" className="gap-1.5">
+                <Lock className="h-3 w-3" />
+                Obrigatório
+              </Badge>
             </div>
-            <Switch
-              checked={exigePortao}
-              onCheckedChange={handleTogglePortao}
-              disabled={!isSuperAdmin}
-            />
-          </div>
-          {exigePortao && (
             <p className="text-xs text-muted-foreground">
-              O primeiro título será o portão (libera a NF ao ser pago). Os demais ficam aguardando NF.
+              {portaoRegraQ.data?.porque ??
+                "O primeiro título será o portão (libera a NF ao ser pago). Os demais ficam aguardando NF."}
             </p>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Proposta editável */}
 
