@@ -412,6 +412,7 @@ export default function CobrancaDetalhe() {
   const { toast } = useToast();
 
   const pedidoQ = usePedidoMinimo(pedidoId);
+  const portaoRegraQ = usePedidoPortaoRegra(pedidoId);
   const propostaQ = usePropostaCobranca(pedidoId);
   const materializar = useMaterializarCobranca();
   const materializarComHaver = useMaterializarComHaver();
@@ -420,8 +421,7 @@ export default function CobrancaDetalhe() {
 
   const { roles: authRoles } = useAuth();
   const isSuperAdmin = (authRoles ?? []).includes("super_admin");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const exigePortao = !!(pedidoQ.data as any)?.exige_portao;
+  const exigePortao = !!portaoRegraQ.data?.exige_portao_regra;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const haverCliente = useHaverDisponivelCliente((pedidoQ.data as any)?.parceiro_id);
   const haverSaldo = haverCliente?.saldo ?? 0;
