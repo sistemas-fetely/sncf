@@ -24,29 +24,18 @@ interface NovoUsuarioDialogProps {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function NovoUsuarioDialog({ open, onOpenChange }: NovoUsuarioDialogProps) {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2>(1);
 
   // Passo 1
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
 
   // Passo 2
-  const [vinculoOpcao, setVinculoOpcao] = useState<VinculoOpcao>("externo");
-  const [tipoExterno, setTipoExterno] = useState("");
-  const [colaboradorId, setColaboradorId] = useState("");
-  const [pular, setPular] = useState(false);
-
-  // Passo 3
   const [grupoIds, setGrupoIds] = useState<string[]>([]);
 
   // Resultado pós-criação (mostra painel com link de primeiro acesso)
   const [resultado, setResultado] = useState<CriarUsuarioV2Output | null>(null);
 
-  const colabTipo: "clt" | "pj" | null =
-    vinculoOpcao === "clt" ? "clt" : vinculoOpcao === "pj" ? "pj" : null;
-
-  const { data: colaboradores = [], isLoading: loadingColabs } =
-    useColaboradoresDisponiveis(colabTipo);
   const { data: grupos = [], isLoading: loadingGrupos } = useGruposParaSelecao();
   const criar = useCriarUsuarioV2();
 
@@ -54,10 +43,6 @@ export default function NovoUsuarioDialog({ open, onOpenChange }: NovoUsuarioDia
     setStep(1);
     setFullName("");
     setEmail("");
-    setVinculoOpcao("externo");
-    setTipoExterno("");
-    setColaboradorId("");
-    setPular(false);
     setGrupoIds([]);
     setResultado(null);
   };
@@ -69,12 +54,6 @@ export default function NovoUsuarioDialog({ open, onOpenChange }: NovoUsuarioDia
 
   const passo1Valido = fullName.trim().length >= 3 && EMAIL_RE.test(email.trim());
 
-  const passo2Valido = useMemo(() => {
-    if (vinculoOpcao === "externo") return true; // tipo_externo é opcional
-    if (pular) return true;
-    return colaboradorId.length > 0;
-  }, [vinculoOpcao, pular, colaboradorId]);
-
   const toggleGrupo = (id: string) => {
     setGrupoIds((prev) =>
       prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id]
@@ -82,28 +61,10 @@ export default function NovoUsuarioDialog({ open, onOpenChange }: NovoUsuarioDia
   };
 
   const submit = async () => {
-    let vinculo_tipo: VinculoTipo = null;
-    let colaborador_clt_id: string | null = null;
-    let contrato_pj_id: string | null = null;
-    let tipo_externo: string | null = null;
-
-    if (vinculoOpcao === "externo") {
-      vinculo_tipo = "externo";
-      tipo_externo = tipoExterno.trim() || null;
-    } else if (!pular && colaboradorId) {
-      vinculo_tipo = vinculoOpcao;
-      if (vinculoOpcao === "clt") colaborador_clt_id = colaboradorId;
-      else contrato_pj_id = colaboradorId;
-    }
-
     try {
       const out = await criar.mutateAsync({
         email: email.trim(),
         full_name: fullName.trim(),
-        vinculo_tipo,
-        colaborador_clt_id,
-        contrato_pj_id,
-        tipo_externo,
         grupo_ids: grupoIds,
       });
       setResultado(out);
