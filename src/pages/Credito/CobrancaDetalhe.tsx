@@ -408,7 +408,6 @@ export default function CobrancaDetalhe() {
   const { pedidoId } = useParams<{ pedidoId: string }>();
   const navigate = useNavigate();
   const voltarPara = useVoltarParaOrigem("/recebimento/cobranca");
-  const qc = useQueryClient();
   const { toast } = useToast();
 
   const pedidoQ = usePedidoMinimo(pedidoId);
