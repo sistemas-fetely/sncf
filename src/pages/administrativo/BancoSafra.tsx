@@ -1444,8 +1444,18 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                     key={g.nome}
                     open={aberto}
                     onOpenChange={(o) => setGruposAbertos((p) => ({ ...p, [g.nome]: o }))}
-                    className="rounded-md border"
+                    className={`relative overflow-hidden rounded-md border ${g.prioridade <= 2 ? "border-l-0" : ""}`}
                   >
+                    {g.prioridade <= 2 && (
+                      <span
+                        aria-hidden
+                        className={`absolute left-0 top-0 h-full w-1 ${
+                          g.atencaoLista.find((x) => x.tipo === "emitir" || x.tipo === "reemitir")
+                            ? ATENCAO_CFG.emitir.barra
+                            : ATENCAO_CFG.vencido.barra
+                        }`}
+                      />
+                    )}
                     <div className="flex items-center gap-2 px-3 py-2">
                       <CollapsibleTrigger asChild>
                         <button className="flex flex-1 items-center gap-3 text-left min-w-0">
@@ -1470,25 +1480,30 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                           <span className="shrink-0 font-mono text-xs text-muted-foreground">
                             {formatBRL(g.total)}
                           </span>
-                          {g.qtdVencido > 0 && (
-                            <Badge className="shrink-0 bg-red-100 text-red-800 hover:bg-red-100 text-[10px]">
-                              {g.qtdVencido} vencido · {formatBRL(g.totalVencido)}
+                          {g.atencaoLista.map((x) => (
+                            <Badge
+                              key={x.tipo}
+                              className={`shrink-0 text-[10px] font-semibold ${ATENCAO_CFG[x.tipo].cls}`}
+                            >
+                              {x.qtd} {ATENCAO_CFG[x.tipo].label} · {formatBRL(x.valor)}
                             </Badge>
+                          ))}
+                          {g.atencaoLista.length === 0 && (
+                            <span className="flex shrink-0 items-center gap-1">
+                              {g.mixStatus.map((m) => (
+                                <span
+                                  key={m.status}
+                                  title={`${m.label}: ${m.qtd}`}
+                                  className={`inline-block h-2 w-2 rounded-full ${m.dot}`}
+                                />
+                              ))}
+                            </span>
                           )}
                           {g.proximoVencimento && (
                             <span className="shrink-0 text-xs text-muted-foreground">
                               próx. {formatDateBR(g.proximoVencimento)}
                             </span>
                           )}
-                          <span className="flex shrink-0 items-center gap-1">
-                            {g.mixStatus.map((m) => (
-                              <span
-                                key={m.status}
-                                title={`${m.label}: ${m.qtd}`}
-                                className={`inline-block h-2 w-2 rounded-full ${m.dot}`}
-                              />
-                            ))}
-                          </span>
                         </button>
                       </CollapsibleTrigger>
                       <AcoesGrupoCliente
@@ -1499,7 +1514,34 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                       />
                     </div>
                     <CollapsibleContent>
-                      <div className="border-t px-2 pb-2">{renderTabela(g.boletos, true)}</div>
+                      <div className="border-t px-2 pb-2">
+                        {g.pedidos.length <= 1 ? (
+                          renderTabela(g.boletos, true)
+                        ) : (
+                          agruparPorPedido(g.boletos, hojeIso).map((sp) => (
+                            <div key={sp.pedido} className="mt-2 first:mt-1">
+                              <div className="flex items-center gap-2 px-1 py-1">
+                                <span className="font-mono text-[11px] font-medium">{sp.pedido}</span>
+                                <Badge variant="outline" className="text-[10px]">
+                                  {sp.boletos.length}
+                                </Badge>
+                                <span className="font-mono text-[11px] text-muted-foreground">
+                                  {formatBRL(sp.total)}
+                                </span>
+                                {sp.atencaoLista.map((x) => (
+                                  <Badge
+                                    key={x.tipo}
+                                    className={`text-[10px] font-semibold ${ATENCAO_CFG[x.tipo].cls}`}
+                                  >
+                                    {x.qtd} {ATENCAO_CFG[x.tipo].label}
+                                  </Badge>
+                                ))}
+                              </div>
+                              {renderTabela(sp.boletos, true)}
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </CollapsibleContent>
                   </Collapsible>
                 );
