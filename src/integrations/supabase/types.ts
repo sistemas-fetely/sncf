@@ -36270,6 +36270,7 @@ export type Database = {
       }
       xpm_expedicao_evento: {
         Row: {
+          eh_reemissao: boolean
           evento_id: number
           evento_zenlog_id: number | null
           expedicao_codigo: string
@@ -36277,9 +36278,11 @@ export type Database = {
           id: string
           inicio: string | null
           quantidade: number | null
+          reemissao_de: string | null
           status: string | null
         }
         Insert: {
+          eh_reemissao?: boolean
           evento_id: number
           evento_zenlog_id?: number | null
           expedicao_codigo: string
@@ -36287,9 +36290,11 @@ export type Database = {
           id?: string
           inicio?: string | null
           quantidade?: number | null
+          reemissao_de?: string | null
           status?: string | null
         }
         Update: {
+          eh_reemissao?: boolean
           evento_id?: number
           evento_zenlog_id?: number | null
           expedicao_codigo?: string
@@ -36297,6 +36302,7 @@ export type Database = {
           id?: string
           inicio?: string | null
           quantidade?: number | null
+          reemissao_de?: string | null
           status?: string | null
         }
         Relationships: [
@@ -46346,14 +46352,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -47375,14 +47381,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -52658,6 +52664,15 @@ export type Database = {
           parados_aqui: number | null
           sequencia: number | null
           volumes_parados: number | null
+        }
+        Relationships: []
+      }
+      vw_xpm_reemissao_diaria: {
+        Row: {
+          dia: string | null
+          expedicoes_afetadas: number | null
+          fases_distintas: number | null
+          reemissoes: number | null
         }
         Relationships: []
       }

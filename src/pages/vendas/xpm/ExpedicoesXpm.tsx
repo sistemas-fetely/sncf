@@ -522,6 +522,9 @@ function LinhaExpandida({ exp, fases }: { exp: ExpedicaoXpm; fases: Map<number, 
         .from("xpm_expedicao_evento")
         .select("evento_id, status, inicio, quantidade")
         .eq("expedicao_codigo", exp.codigo)
+        // A XPM reemite fases antigas com evento_zenlog_id novo. A linha do
+        // tempo mostra so a primeira ocorrencia de cada fase.
+        .eq("eh_reemissao", false)
         .order("inicio");
       if (error) throw error;
       return (data ?? []) as EventoXpm[];
