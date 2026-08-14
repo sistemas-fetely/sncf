@@ -1347,6 +1347,19 @@ export default function CobrancaDetalhe() {
         bonusPixValor={Number((pedidoQ.data as any)?.bonus_pix_valor ?? 0)}
         condicaoAtual={proposta?.condicao_original ?? pedidoQ.data?.condicao_solicitada ?? null}
       />
+
+      {pedidoQ.data?.id && (pedidoQ.data as any)?.parceiro_id && (
+        <AplicarHaverPedidoDialog
+          open={aplicarHaverOpen}
+          onOpenChange={setAplicarHaverOpen}
+          pedidoId={pedidoQ.data.id}
+          idExterno={pedidoQ.data.id_externo ?? ""}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          valorLiquido={Number((pedidoQ.data as any)?.valor_liquido ?? 0)}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          parceiroId={(pedidoQ.data as any).parceiro_id}
+        />
+      )}
     </div>
   );
 }
