@@ -658,7 +658,10 @@ export default function CobrancaDetalhe() {
           link_pagamento: t.link_pagamento ?? null,
         })),
       },
-      { onSettled: () => setConfirmOpen(false) },
+      {
+        onSuccess: () => setPlanoEditado(false),
+        onSettled: () => setConfirmOpen(false),
+      },
     );
   };
 
