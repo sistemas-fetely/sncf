@@ -256,7 +256,11 @@ function ItemCard({
   const [showSpec, setShowSpec] = useState(!!item.especificacao_tecnica);
   const [urlInput, setUrlInput] = useState("");
 
-  const subtotal = Number(item.quantidade || 0) * Number(item.valor_estimado_unitario || 0);
+  const subtotal =
+    item.quantidade != null && item.valor_estimado_unitario != null
+      ? Number(item.quantidade) * Number(item.valor_estimado_unitario)
+      : null;
+  const subtotalIncompleto = subtotal == null || subtotal <= 0;
   const status = item.status;
   const statusCfg = status ? itemStatusConfig[status] : null;
   const isCancelado = status === "cancelado";
