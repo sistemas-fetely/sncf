@@ -9,7 +9,7 @@ import type {
   KpiFinanceiroGrupo,
   ParceiroMarco,
   SocioParceiro,
-  TituloAnaliseCredito,
+  TituloCredito,
 } from "@/types/credito";
 
 export function useAnaliseDetalhe(analiseId: string | undefined) {
@@ -137,7 +137,7 @@ export function useAnaliseDetalhe(analiseId: string | undefined) {
         kpisGrupo,
         analisesAnteriores: anteriores,
         marcos: (marcosData || []) as ParceiroMarco[],
-        titulos: (titulosData || []) as TituloAnaliseCredito[],
+        titulos: (titulosData || []) as TituloCredito[],
         scoresHistoricoCount: scoresHistoricoCount ?? 0,
       };
     },

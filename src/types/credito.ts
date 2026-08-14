@@ -233,7 +233,7 @@ export interface AnaliseDetalheCompleto {
   kpisGrupo: KpiFinanceiroGrupo | null;
   analisesAnteriores: AnaliseListItem[];
   marcos: ParceiroMarco[];
-  titulos: TituloAnaliseCredito[];
+  titulos: TituloCredito[];
 }
 
 export interface CriarAnalisePayload {
