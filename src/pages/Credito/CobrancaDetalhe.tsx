@@ -1073,6 +1073,12 @@ export default function CobrancaDetalhe() {
             </div>
           )}
 
+          {planoEditado && (
+            <p className="mb-2 text-xs text-amber-700 dark:text-amber-400">
+              Plano editado e ainda não materializado.
+            </p>
+          )}
+
           <div className="rounded-md border">
             <Table>
               <TableHeader>
