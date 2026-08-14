@@ -78,5 +78,7 @@ additional_redirect_urls = ["https://people-fetely.lovable.app/**"]
     verify_jwt = true
   [functions.empurrar-pedido-xpm]
     verify_jwt = true
+  [functions.empurrar-nf-xpm]
+    verify_jwt = true
 
 

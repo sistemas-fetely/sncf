@@ -1121,7 +1121,7 @@ export type Database = {
           encaminhado_analise_em: string | null
           encaminhado_decisao_em: string | null
           estagio_atual: string
-          exige_portao: boolean
+          exige_portao: boolean | null
           formas_aceitas: string[] | null
           id: string
           limite_concedido: number | null
@@ -1153,7 +1153,7 @@ export type Database = {
           encaminhado_analise_em?: string | null
           encaminhado_decisao_em?: string | null
           estagio_atual?: string
-          exige_portao?: boolean
+          exige_portao?: boolean | null
           formas_aceitas?: string[] | null
           id?: string
           limite_concedido?: number | null
@@ -1185,7 +1185,7 @@ export type Database = {
           encaminhado_analise_em?: string | null
           encaminhado_decisao_em?: string | null
           estagio_atual?: string
-          exige_portao?: boolean
+          exige_portao?: boolean | null
           formas_aceitas?: string[] | null
           id?: string
           limite_concedido?: number | null
