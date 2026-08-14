@@ -450,20 +450,8 @@ export default function CobrancaDetalhe() {
   const [parcelasIguais, setParcelasIguais] = useState<boolean>(false);
   const [diasPrimeiroPagamento, setDiasPrimeiroPagamento] = useState<number>(DIAS_PRIMEIRO_PAGAMENTO_FALLBACK);
   const [intervaloDias, setIntervaloDias] = useState<number>(INTERVALO_PARCELAS_FALLBACK);
-  const [valorHaverAplicar, setValorHaverAplicar] = useState<number>(0);
-  const baseCobravel = Math.max(
-    0,
-    Number((pedidoQ.data as any)?.valor_liquido ?? 0) - jaPagoPedido,
-  );
-  const maxHaver = Math.min(haverSaldo, baseCobravel);
-
-  const handleAplicarHaver = (v: number) => {
-    const aplicar = Math.max(0, Math.min(Number.isFinite(v) ? v : 0, maxHaver));
-    setValorHaverAplicar(Math.round(aplicar * 100) / 100);
-    const novoTotal = Math.max(0, baseCobravel - aplicar);
-    setValorTotalCobrar(Math.round(novoTotal * 100) / 100);
-    setTitulos((prev) => redistribuirValoresIguais(prev, novoTotal));
-  };
+  const [planoEditado, setPlanoEditado] = useState<boolean>(false);
+  const [aplicarHaverOpen, setAplicarHaverOpen] = useState<boolean>(false);
 
   const paramDiasQ = useParametros("dias_primeiro_pagamento");
   const paramIntervaloQ = useParametros("intervalo_entre_parcelas");
