@@ -6,7 +6,7 @@ import { BLING_BASE, ensureFreshToken, makeBlingClient, type BlingConfig } from 
 import { syncContatos } from "./sync-contatos.ts";
 import { syncProdutos } from "./sync-produtos.ts";
 import { syncEstoques } from "./sync-estoques.ts";
-import { syncContasReceber } from "./sync-contas-receber.ts";
+
 import { syncPedidos } from "./sync-pedidos.ts";
 import { syncNfe } from "./sync-nfe.ts";
 import { syncSituacoes } from "./sync-situacoes.ts";
