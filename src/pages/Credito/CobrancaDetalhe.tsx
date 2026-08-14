@@ -580,6 +580,7 @@ export default function CobrancaDetalhe() {
   };
 
   const handleAdicionarParcela = () => {
+    setPlanoEditado(true);
     setTitulos((prev) => {
       const ultima = prev[prev.length - 1];
       const novaData = ultima
