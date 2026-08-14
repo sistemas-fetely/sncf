@@ -474,9 +474,14 @@ export default function CobrancaDetalhe() {
     });
   };
 
-  // hidrata estado local quando a proposta chega
+  // hidrata estado local quando a proposta chega — UMA VEZ por pedido.
+  // Refetch da proposta (foco de janela, invalidação) não pode apagar a
+  // composição manual montada pelo operador.
+  const pedidoHidratadoRef = useRef<string | null>(null);
   useEffect(() => {
     if (!propostaQ.data?.titulos_propostos) return;
+    if (!pedidoId) return;
+    if (pedidoHidratadoRef.current === pedidoId) return;
     if (paramDiasQ.isLoading || paramIntervaloQ.isLoading) return;
 
     const vDias = Number(paramDiasQ.data?.[0]?.valor);
