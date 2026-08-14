@@ -141,8 +141,8 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
           .map((i) => ({
             id: i.id,
             descricao: i.descricao,
-            quantidade: Number(i.quantidade),
-            valor_estimado_unitario: Number(i.valor_estimado_unitario),
+            quantidade: i.quantidade == null ? null : Number(i.quantidade),
+            valor_estimado_unitario: i.valor_estimado_unitario == null ? null : Number(i.valor_estimado_unitario),
             urls: i.urls || [],
             especificacao_tecnica: i.especificacao_tecnica || "",
             ordem: i.ordem ?? 0,
