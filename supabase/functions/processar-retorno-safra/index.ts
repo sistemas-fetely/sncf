@@ -624,6 +624,49 @@ serve(async (req) => {
             const hojeIso = new Date().toISOString().slice(0, 10);
             const reativarBoleto = t.boleto_status === "vencido" && novaData >= hojeIso;
 
+            // ── GUARDA DE RETROAÇÃO ────────────────────────────────────────
+            // Retornos foram importados fora de ordem cronológica. Sem esta
+            // guarda, um arquivo antigo sobrescreve prova mais nova.
+            // A data confiável é a do ARQUIVO, nunca data_ocorrencia.
+            let maxProvaEm: string | null = null;
+            {
+              const { data: ocorrs } = await sb
+                .from("safra_retorno_ocorrencia")
+                .select("arquivo_id")
+                .eq("titulo_id", t.id)
+                .in("codigo_ocorrencia", ["02", "06", "14"])
+                .not("data_vencimento", "is", null) as any;
+              const arquivoIds = [
+                ...new Set(((ocorrs ?? []) as any[]).map((o) => o.arquivo_id).filter(Boolean)),
+              ];
+              if (arquivoIds.length > 0) {
+                const { data: arqs } = await sb
+                  .from("safra_retorno_arquivo")
+                  .select("id, data_movimento, data_geracao")
+                  .in("id", arquivoIds) as any;
+                for (const a of (arqs ?? []) as any[]) {
+                  const d: string | null = a.data_movimento ?? a.data_geracao ?? null;
+                  if (d && (!maxProvaEm || d > maxProvaEm)) maxProvaEm = d;
+                }
+              }
+            }
+
+            if (maxProvaEm && dataMovimento && maxProvaEm > dataMovimento) {
+              await sb.from("titulo_instrumento_log").insert({
+                titulo_id: t.id,
+                evento: "vencimento_retroativo_ignorado",
+                data_anterior: t.data_vencimento_atual,
+                data_nova: novaData,
+                detalhe: `Retorno de ${dataMovimento} ignorado: existe prova mais recente de ${maxProvaEm}. Ocorrência 14 não aplicada.`,
+                origem: "retorno_safra",
+              } as any);
+              alertas.push(
+                `Retorno retroativo ignorado — título ${linha.nossoNumero}: arquivo de ${dataMovimento} traz vencimento ${novaData}, mas já há prova de ${maxProvaEm}.`
+              );
+              continue;
+            }
+
+
             const updatePayload: Record<string, unknown> = {
               data_vencimento_atual:      novaData,
               linha_digitavel:            novaLinhaDigitavel,
