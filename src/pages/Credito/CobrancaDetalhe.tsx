@@ -542,6 +542,7 @@ export default function CobrancaDetalhe() {
   );
 
   const atualizarTitulo = (idx: number, patch: Partial<LinhaPlano>) => {
+    setPlanoEditado(true);
     setTitulos((prev) => prev.map((t, i) => (i === idx ? { ...t, ...patch } : t)));
   };
 
