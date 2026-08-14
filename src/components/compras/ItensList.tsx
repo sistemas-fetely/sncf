@@ -38,17 +38,18 @@ function InputMoedaBR({
   disabled,
   ariaInvalid,
 }: {
-  value: number;
-  onChange: (v: number) => void;
+  value: number | null;
+  onChange: (v: number | null) => void;
   disabled?: boolean;
   ariaInvalid?: boolean;
 }) {
-  const [display, setDisplay] = useState(() => (value > 0 ? formatMoedaBR(value) : ""));
+  const valorNumerico = value ?? 0;
+  const [display, setDisplay] = useState(() => (valorNumerico > 0 ? formatMoedaBR(valorNumerico) : ""));
   const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
-    if (!isFocused) setDisplay(value > 0 ? formatMoedaBR(value) : "");
-  }, [value, isFocused]);
+    if (!isFocused) setDisplay(valorNumerico > 0 ? formatMoedaBR(valorNumerico) : "");
+  }, [valorNumerico, isFocused]);
 
   return (
     <div className="relative">
@@ -65,11 +66,11 @@ function InputMoedaBR({
         }}
         onFocus={() => {
           setIsFocused(true);
-          if (value > 0) setDisplay(value.toFixed(2).replace(".", ","));
+          if (valorNumerico > 0) setDisplay(valorNumerico.toFixed(2).replace(".", ","));
         }}
         onBlur={() => {
           setIsFocused(false);
-          setDisplay(value > 0 ? formatMoedaBR(value) : "");
+          setDisplay(valorNumerico > 0 ? formatMoedaBR(valorNumerico) : "");
         }}
         disabled={disabled}
         placeholder="0,00"
