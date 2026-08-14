@@ -92,7 +92,8 @@ export function TitulosClienteAccordion({ titulos, emAbertoCard }: Props) {
     const pago = PAGOS.includes(t.status_gestao);
     const liq = liquidacao(t);
     const atraso = atrasoDias(t);
-    const prorrogado = t.data_vencimento_atual !== t.data_vencimento_original;
+    const reprogramado = t.data_vencimento_atual !== t.data_vencimento_original;
+    const tooltipReprogramado = reprogramadoTexto(t);
     const renegociado =
       t.titulo_renegociado_origem_id !== null || t.modalidade_renegociacao !== null;
     const mostraParcela = t.total_parcelas !== null && t.total_parcelas > 1;
@@ -133,14 +134,12 @@ export function TitulosClienteAccordion({ titulos, emAbertoCard }: Props) {
           )}
           <span className="text-xs">
             venc. {fmtDate(t.data_vencimento_atual)}
-            {prorrogado && (
+            {reprogramado && tooltipReprogramado && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="ml-1 cursor-help text-muted-foreground">↻</span>
                 </TooltipTrigger>
-                <TooltipContent>
-                  Prorrogado de {fmtDate(t.data_vencimento_original)}
-                </TooltipContent>
+                <TooltipContent>{tooltipReprogramado}</TooltipContent>
               </Tooltip>
             )}
           </span>
@@ -156,6 +155,13 @@ export function TitulosClienteAccordion({ titulos, emAbertoCard }: Props) {
                 <span className="text-destructive">+{atraso}d</span>
               ) : (
                 <span className="text-muted-foreground">em dia</span>
+              )}
+              {reprogramado && tooltipReprogramado && (
+                <span className="text-muted-foreground">
+                  {" "}
+                  (venc. reprogramado {fmtDate(t.data_vencimento_original)} →{" "}
+                  {fmtDate(t.data_vencimento_atual)})
+                </span>
               )}
             </span>
           )}
