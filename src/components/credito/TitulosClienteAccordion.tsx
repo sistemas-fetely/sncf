@@ -10,6 +10,7 @@ import { AlertTriangle, Receipt } from "lucide-react";
 import { Link } from "react-router-dom";
 import { BadgeStatusGestao } from "@/lib/financeiro/status-gestao";
 import { cn } from "@/lib/utils";
+import type { ReactNode } from "react";
 import type { TituloCredito } from "@/types/credito";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -26,10 +27,20 @@ const liquidacao = (t: TituloCredito): string | null =>
 
 function atrasoDias(t: TituloCredito): number {
   const liq = liquidacao(t);
-  if (!liq || !t.data_vencimento_original) return 0;
+  if (!liq || !t.data_vencimento_atual) return 0;
   return Math.floor(
-    (toDate(liq).getTime() - toDate(t.data_vencimento_original).getTime()) / 86400000,
+    (toDate(liq).getTime() - toDate(t.data_vencimento_atual).getTime()) / 86400000,
   );
+}
+
+function reprogramadoTexto(t: TituloCredito): string | null {
+  if (t.data_vencimento_atual === t.data_vencimento_original) return null;
+  const diff = Math.floor(
+    (toDate(t.data_vencimento_atual).getTime() - toDate(t.data_vencimento_original).getTime()) /
+      86400000,
+  );
+  const sinal = diff > 0 ? `+${diff}d` : `${diff}d`;
+  return `Vencimento reprogramado: ${fmtDate(t.data_vencimento_original)} → ${fmtDate(t.data_vencimento_atual)} (${sinal})`;
 }
 
 const soma = (arr: TituloCredito[]) =>
@@ -64,6 +75,9 @@ export function TitulosClienteAccordion({ titulos, emAbertoCard }: Props) {
   const somaAberto = soma(abertos);
   const maiorAtraso = pagos.reduce((acc, t) => Math.max(acc, atrasoDias(t)), 0);
   const temAtrasado = titulos.some((t) => t.status_gestao === "atrasado");
+  const pagosReprogramados = pagos.some(
+    (t) => t.data_vencimento_atual !== t.data_vencimento_original,
+  );
 
   let resumo = `${abertos.length} em aberto · ${fmtBRL.format(somaAberto)} · ${pagos.length} pagos`;
   if (maiorAtraso > 0) resumo += ` · maior atraso ${maiorAtraso}d`;
@@ -78,7 +92,8 @@ export function TitulosClienteAccordion({ titulos, emAbertoCard }: Props) {
     const pago = PAGOS.includes(t.status_gestao);
     const liq = liquidacao(t);
     const atraso = atrasoDias(t);
-    const prorrogado = t.data_vencimento_atual !== t.data_vencimento_original;
+    const reprogramado = t.data_vencimento_atual !== t.data_vencimento_original;
+    const tooltipReprogramado = reprogramadoTexto(t);
     const renegociado =
       t.titulo_renegociado_origem_id !== null || t.modalidade_renegociacao !== null;
     const mostraParcela = t.total_parcelas !== null && t.total_parcelas > 1;
@@ -119,14 +134,12 @@ export function TitulosClienteAccordion({ titulos, emAbertoCard }: Props) {
           )}
           <span className="text-xs">
             venc. {fmtDate(t.data_vencimento_atual)}
-            {prorrogado && (
+            {reprogramado && tooltipReprogramado && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="ml-1 cursor-help text-muted-foreground">↻</span>
                 </TooltipTrigger>
-                <TooltipContent>
-                  Prorrogado de {fmtDate(t.data_vencimento_original)}
-                </TooltipContent>
+                <TooltipContent>{tooltipReprogramado}</TooltipContent>
               </Tooltip>
             )}
           </span>
@@ -142,6 +155,13 @@ export function TitulosClienteAccordion({ titulos, emAbertoCard }: Props) {
                 <span className="text-destructive">+{atraso}d</span>
               ) : (
                 <span className="text-muted-foreground">em dia</span>
+              )}
+              {reprogramado && tooltipReprogramado && (
+                <span className="text-muted-foreground">
+                  {" "}
+                  (venc. reprogramado {fmtDate(t.data_vencimento_original)} →{" "}
+                  {fmtDate(t.data_vencimento_atual)})
+                </span>
               )}
             </span>
           )}
@@ -160,6 +180,7 @@ export function TitulosClienteAccordion({ titulos, emAbertoCard }: Props) {
     label: string,
     linhas: TituloCredito[],
     destaque = false,
+    note?: ReactNode,
   ) =>
     linhas.length > 0 ? (
       <div className="space-y-2">
@@ -176,6 +197,7 @@ export function TitulosClienteAccordion({ titulos, emAbertoCard }: Props) {
             {fmtBRL.format(soma(linhas))}
           </span>
         </div>
+        {note}
         <div className="space-y-1.5">{linhas.map(renderLinha)}</div>
       </div>
     ) : null;
@@ -199,7 +221,17 @@ export function TitulosClienteAccordion({ titulos, emAbertoCard }: Props) {
         </AccordionTrigger>
         <AccordionContent className="px-4 space-y-4">
           {renderSecao("Em aberto", abertos)}
-          {renderSecao("Pagos (últimos 12 meses)", pagos)}
+          {renderSecao(
+            "Pagos (últimos 12 meses)",
+            pagos,
+            false,
+            pagosReprogramados ? (
+              <p className="text-xs text-muted-foreground">
+                Atraso medido contra o vencimento vigente. O badge de status usa o
+                vencimento original — podem divergir em título reprogramado.
+              </p>
+            ) : undefined,
+          )}
           {renderSecao("Encerrados / cicatriz", cicatriz, true)}
 
           {divergencia && (
