@@ -227,8 +227,7 @@ export function TitulosClienteAccordion({ titulos, emAbertoCard }: Props) {
             false,
             pagosReprogramados ? (
               <p className="text-xs text-muted-foreground">
-                Atraso medido contra o vencimento vigente. O badge de status usa o
-                vencimento original — podem divergir em título reprogramado.
+                Atraso medido contra o vencimento vigente, igual ao badge de status.
               </p>
             ) : undefined,
           )}
