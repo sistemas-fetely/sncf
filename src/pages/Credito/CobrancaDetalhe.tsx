@@ -480,6 +480,7 @@ export default function CobrancaDetalhe() {
   // composição manual montada pelo operador.
   const pedidoHidratadoRef = useRef<string | null>(null);
   const lastCreditoAplicadoRef = useRef<number>(0);
+  const lastJaPagoPedidoRef = useRef<number>(0);
   useEffect(() => {
     if (!propostaQ.data?.titulos_propostos) return;
     if (!pedidoId) return;
@@ -510,6 +511,7 @@ export default function CobrancaDetalhe() {
     setParcelasIguais(false);
     setPlanoEditado(false);
     lastCreditoAplicadoRef.current = creditoAplicado;
+    lastJaPagoPedidoRef.current = jaPagoPedido;
     pedidoHidratadoRef.current = pedidoId;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propostaQ.data, pedidoId, pedidoQ.data?.valor_liquido, creditoAplicado, jaPagoPedido, paramDiasQ.isLoading, paramIntervaloQ.isLoading, exigePortao]);
@@ -520,12 +522,13 @@ export default function CobrancaDetalhe() {
   useEffect(() => {
     if (!pedidoId) return;
     if (pedidoHidratadoRef.current !== pedidoId) return;
-    if (lastCreditoAplicadoRef.current === creditoAplicado && lastCreditoAplicadoRef.current === jaPagoPedido) return;
+    if (lastCreditoAplicadoRef.current === creditoAplicado && lastJaPagoPedidoRef.current === jaPagoPedido) return;
 
     const novoTotal = Math.max(0, Number(pedidoQ.data?.valor_liquido ?? 0) - creditoAplicado);
     setValorTotalCobrar(Math.round(novoTotal * 100) / 100);
     setTitulos((prev) => redistribuirValoresIguais(prev, novoTotal));
     lastCreditoAplicadoRef.current = creditoAplicado;
+    lastJaPagoPedidoRef.current = jaPagoPedido;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [creditoAplicado, jaPagoPedido, pedidoId, pedidoQ.data?.valor_liquido]);
 
