@@ -1306,9 +1306,6 @@ export default function CobrancaDetalhe() {
                 {qtdPortao > 0 && (
                   <> O pedido só é liberado quando todas as linhas de portão estiverem pagas.</>
                 )}
-                {valorHaverAplicar > 0 && (
-                  <> {" "}Haver aplicado: <strong>{fmtBRL.format(valorHaverAplicar)}</strong>.</>
-                )}
               </>
             </DialogDescription>
           </DialogHeader>
