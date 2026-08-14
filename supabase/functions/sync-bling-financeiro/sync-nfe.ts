@@ -180,6 +180,11 @@ for (const nf of items) {
     if (vinculoNovo) {
       registro.vinculo_origem = 'bling';
       registro.vinculo_em = new Date().toISOString();
+      try {
+        const { data: ped } = await supabase
+          .from("pedidos").select("id_externo").eq("id", pedido_venda_id).maybeSingle();
+        if (ped?.id_externo) registro.vinculo_pedido_ref = String(ped.id_externo);
+      } catch (_) { /* ref é opcional — não quebra o sync */ }
     }
 
     if (existing) {
