@@ -1,5 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
