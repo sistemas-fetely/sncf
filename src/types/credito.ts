@@ -192,24 +192,29 @@ export interface SocioParceiro {
   fonte: string;
 }
 
-export interface TituloAnaliseCredito {
+export type StatusGestaoTitulo =
+  | "a_vencer" | "vence_hoje" | "atrasado" | "aguarda_liquidacao"
+  | "pago" | "pago_com_atraso" | "pago_judicial"
+  | "cancelado" | "devolvido" | "baixado_por_perda";
+
+export interface TituloCredito {
   id: string;
   numero_titulo: string;
-  numero_parcela: number;
-  total_parcelas: number;
-  pedido_id: string;
+  numero_parcela: number | null;
+  total_parcelas: number | null;
+  eh_entrada: boolean | null;
+  pedido_id: string | null;
   pedido_id_externo: string | null;
+  nf_id: string | null;
   nf_numero: string | null;
-  tipo_pagamento: string;
+  tipo_pagamento: string | null;
   valor_efetivo: number;
   data_vencimento_original: string;
   data_vencimento_atual: string;
   data_pagamento: string | null;
   data_pagamento_banco: string | null;
-  data_liquidacao_real: string | null;
-  status_gestao: string;
-  dias_atraso: number;
-  eh_inadimplencia: boolean;
+  status_gestao: StatusGestaoTitulo;
+  subestado_atraso: string | null;
   titulo_renegociado_origem_id: string | null;
   modalidade_renegociacao: number | null;
 }
@@ -228,7 +233,7 @@ export interface AnaliseDetalheCompleto {
   kpisGrupo: KpiFinanceiroGrupo | null;
   analisesAnteriores: AnaliseListItem[];
   marcos: ParceiroMarco[];
-  titulos: TituloAnaliseCredito[];
+  titulos: TituloCredito[];
 }
 
 export interface CriarAnalisePayload {

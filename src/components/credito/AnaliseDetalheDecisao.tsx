@@ -250,7 +250,10 @@ export function AnaliseDetalheDecisao({ analiseId }: Props) {
       </div>
 
       {/* Títulos do cliente — drill-down dos KPIs */}
-      <TitulosClienteAccordion titulos={titulos} />
+      <TitulosClienteAccordion
+        titulos={titulos}
+        emAbertoCard={kpisFinanceiros?.em_aberto ?? null}
+      />
 
       {/* Bureaus */}
       <ScoresAnexados scores={scores} analiseId={analiseId} />

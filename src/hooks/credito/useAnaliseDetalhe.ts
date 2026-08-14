@@ -9,7 +9,7 @@ import type {
   KpiFinanceiroGrupo,
   ParceiroMarco,
   SocioParceiro,
-  TituloAnaliseCredito,
+  TituloCredito,
 } from "@/types/credito";
 
 export function useAnaliseDetalhe(analiseId: string | undefined) {
@@ -113,7 +113,7 @@ export function useAnaliseDetalhe(analiseId: string | undefined) {
       const { data: titulosData } = await sb
         .from("vw_titulos_cobranca")
         .select(
-          "id, numero_titulo, numero_parcela, total_parcelas, pedido_id, pedido_id_externo, nf_numero, tipo_pagamento, valor_efetivo, data_vencimento_original, data_vencimento_atual, data_pagamento, data_pagamento_banco, data_liquidacao_real, status_gestao, dias_atraso, eh_inadimplencia, titulo_renegociado_origem_id, modalidade_renegociacao",
+          "id, numero_titulo, numero_parcela, total_parcelas, eh_entrada, pedido_id, pedido_id_externo, nf_id, nf_numero, tipo_pagamento, valor_efetivo, data_vencimento_original, data_vencimento_atual, data_pagamento, data_pagamento_banco, status_gestao, subestado_atraso, titulo_renegociado_origem_id, modalidade_renegociacao",
         )
         .eq("parceiro_id", parceiroId)
         .order("data_vencimento_atual", { ascending: true });
@@ -137,7 +137,7 @@ export function useAnaliseDetalhe(analiseId: string | undefined) {
         kpisGrupo,
         analisesAnteriores: anteriores,
         marcos: (marcosData || []) as ParceiroMarco[],
-        titulos: (titulosData || []) as TituloAnaliseCredito[],
+        titulos: (titulosData || []) as TituloCredito[],
         scoresHistoricoCount: scoresHistoricoCount ?? 0,
       };
     },
