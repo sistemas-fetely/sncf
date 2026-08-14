@@ -251,6 +251,19 @@ function fmtDataHora(v: string | null) {
   return d.toLocaleString("pt-BR");
 }
 
+const JANELA_POS_EMBARQUE_DIAS = 5;
+
+function dentroJanela(r: ExpedicaoXpm) {
+  const ref = r.t_expedido ?? r.data_expedicao;
+  if (!ref) return false;
+  const dias = (Date.now() - new Date(ref).getTime()) / 86_400_000;
+  return dias <= JANELA_POS_EMBARQUE_DIAS;
+}
+
+function recemExpedida(r: ExpedicaoXpm) {
+  return Number(r.estagio_seq) >= 6 && dentroJanela(r);
+}
+
 function desdeQuando(v: string | null) {
   if (!v) return "nunca sincronizado";
   const d = new Date(v);
@@ -652,7 +665,7 @@ export default function ExpedicoesXpm() {
   const qc = useQueryClient();
   const [canal, setCanal] = useState("todos");
   const [estagio, setEstagio] = useState("todos");
-  const [situacao, setSituacao] = useState("em_curso");
+  const [situacao, setSituacao] = useState("curso_5d");
   const [farolFiltro, setFarolFiltro] = useState<"risco" | "atencao" | null>(null);
   const [slaFiltro, setSlaFiltro] = useState("todos");
   const [busca, setBusca] = useState("");
@@ -669,6 +682,10 @@ export default function ExpedicoesXpm() {
       if (error) throw error;
       return (data ?? []) as ExpedicaoXpm[];
     },
+    // Painel operacional: fica aberto o dia inteiro. Sem isto, o rotulo de
+    // "sincronizado ha X" media a idade da ABA, nao a saude da integracao.
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
   });
 
 
@@ -714,8 +731,13 @@ export default function ExpedicoesXpm() {
       if (estagio !== "todos" && r.estagio_codigo !== estagio) return false;
       if (farolFiltro && r.farol !== farolFiltro) return false;
       if (slaFiltro !== "todos" && r.farol_sla !== slaFiltro) return false;
-      if (situacao === "em_curso" && !(Number(r.estagio_seq) < 6)) return false;
-      if (situacao === "expedidas" && !(Number(r.estagio_seq) >= 6)) return false;
+      // JANELA-POS-EMBARQUE: o momento de maior risco e logo depois do embarque,
+      // quando ainda da pra corrigir volume, transportadora ou NF divergente.
+      // Sumir com a expedicao nesse instante e o pior timing possivel.
+      const emCurso = Number(r.estagio_seq) < 6;
+      if (situacao === "em_curso" && !emCurso) return false;
+      if (situacao === "expedidas" && emCurso) return false;
+      if (situacao === "curso_5d" && !emCurso && !dentroJanela(r)) return false;
       if (!q) return true;
       return [
         r.codigo,
@@ -908,6 +930,7 @@ export default function ExpedicoesXpm() {
                   <SelectValue placeholder="Situação" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="curso_5d">Em curso + 5 dias</SelectItem>
                   <SelectItem value="em_curso">Só em curso</SelectItem>
                   <SelectItem value="todos">Todos (45 dias)</SelectItem>
                   <SelectItem value="expedidas">Só expedidas</SelectItem>
@@ -981,10 +1004,12 @@ export default function ExpedicoesXpm() {
                                 : r.tem_corte
                                   ? "bg-amber-500/5"
                                   : "";
+                        const recente = recemExpedida(r);
+
                         return (
                           <Fragment key={r.codigo}>
                             <TableRow
-                              className={`cursor-pointer ${fundo}`}
+                              className={`cursor-pointer ${fundo} ${recente ? "opacity-60" : ""}`}
                               onClick={() => setAberto(expandido ? null : r.codigo)}
                             >
                               <TableCell>
