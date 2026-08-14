@@ -388,7 +388,9 @@ function ItemCard({
         <div className="flex justify-end">
           <div className="text-right">
             <div className="text-xs text-muted-foreground">Subtotal</div>
-            <div className="text-sm font-semibold">{fmtBRL(subtotal)}</div>
+            <div className={cn("text-sm font-semibold", subtotalIncompleto && "text-muted-foreground")}>
+              {subtotalIncompleto ? "a definir" : fmtBRL(subtotal)}
+            </div>
           </div>
         </div>
 
