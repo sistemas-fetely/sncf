@@ -111,7 +111,7 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
         {
           descricao: "",
           quantidade: 1,
-          valor_estimado_unitario: 0,
+          valor_estimado_unitario: null,
           urls: [],
           especificacao_tecnica: "",
           ordem: 0,
