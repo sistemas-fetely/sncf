@@ -8,6 +8,7 @@ import { BadgesContextuais } from "./BadgesContextuais";
 import { PainelIaConsolidado } from "./PainelIaConsolidado";
 import { FormDecisaoCredito, type CamposDecisao } from "./FormDecisaoCredito";
 import { HistoricoClienteAccordion } from "./HistoricoClienteAccordion";
+import { TitulosClienteAccordion } from "./TitulosClienteAccordion";
 import { ScoresAnexados } from "./ScoresAnexados";
 import { BoxDevolucaoRecente } from "./BoxDevolucaoRecente";
 import { AvisoNaoFaturado } from "./AvisoNaoFaturado";
@@ -246,6 +247,9 @@ export function AnaliseDetalheDecisao({ analiseId }: Props) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Títulos do cliente — drill-down dos KPIs */}
+      <TitulosClienteAccordion titulos={titulos} />
 
       {/* Bureaus */}
       <ScoresAnexados scores={scores} analiseId={analiseId} />
