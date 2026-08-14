@@ -9,6 +9,7 @@ import type {
   KpiFinanceiroGrupo,
   ParceiroMarco,
   SocioParceiro,
+  TituloAnaliseCredito,
 } from "@/types/credito";
 
 export function useAnaliseDetalhe(analiseId: string | undefined) {
@@ -108,6 +109,15 @@ export function useAnaliseDetalhe(analiseId: string | undefined) {
         .order("criado_em", { ascending: false })
         .limit(50);
 
+      // Drill-down dos KPIs financeiros — mesma base da v_credito_resumo_financeiro
+      const { data: titulosData } = await sb
+        .from("vw_titulos_cobranca")
+        .select(
+          "id, numero_titulo, numero_parcela, total_parcelas, pedido_id, pedido_id_externo, nf_numero, tipo_pagamento, valor_efetivo, data_vencimento_original, data_vencimento_atual, data_pagamento, data_pagamento_banco, data_liquidacao_real, status_gestao, dias_atraso, eh_inadimplencia, titulo_renegociado_origem_id, modalidade_renegociacao",
+        )
+        .eq("parceiro_id", parceiroId)
+        .order("data_vencimento_atual", { ascending: true });
+
       // B-82: bureaus históricos
       const { count: scoresHistoricoCount } = await sb
         .from("analise_credito_scores")
@@ -127,6 +137,7 @@ export function useAnaliseDetalhe(analiseId: string | undefined) {
         kpisGrupo,
         analisesAnteriores: anteriores,
         marcos: (marcosData || []) as ParceiroMarco[],
+        titulos: (titulosData || []) as TituloAnaliseCredito[],
         scoresHistoricoCount: scoresHistoricoCount ?? 0,
       };
     },

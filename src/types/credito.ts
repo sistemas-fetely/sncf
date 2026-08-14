@@ -192,6 +192,28 @@ export interface SocioParceiro {
   fonte: string;
 }
 
+export interface TituloAnaliseCredito {
+  id: string;
+  numero_titulo: string;
+  numero_parcela: number;
+  total_parcelas: number;
+  pedido_id: string;
+  pedido_id_externo: string | null;
+  nf_numero: string | null;
+  tipo_pagamento: string;
+  valor_efetivo: number;
+  data_vencimento_original: string;
+  data_vencimento_atual: string;
+  data_pagamento: string | null;
+  data_pagamento_banco: string | null;
+  data_liquidacao_real: string | null;
+  status_gestao: string;
+  dias_atraso: number;
+  eh_inadimplencia: boolean;
+  titulo_renegociado_origem_id: string | null;
+  modalidade_renegociacao: number | null;
+}
+
 export interface AnaliseDetalheCompleto {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   analise: any;
@@ -206,6 +228,7 @@ export interface AnaliseDetalheCompleto {
   kpisGrupo: KpiFinanceiroGrupo | null;
   analisesAnteriores: AnaliseListItem[];
   marcos: ParceiroMarco[];
+  titulos: TituloAnaliseCredito[];
 }
 
 export interface CriarAnalisePayload {
