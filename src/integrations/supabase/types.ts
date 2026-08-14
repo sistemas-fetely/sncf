@@ -37240,21 +37240,6 @@ export type Database = {
           },
         ]
       }
-      zz_baseline_ref_bling_1408: {
-        Row: {
-          pedido_id_antes: string | null
-          ref: string | null
-        }
-        Insert: {
-          pedido_id_antes?: string | null
-          ref?: string | null
-        }
-        Update: {
-          pedido_id_antes?: string | null
-          ref?: string | null
-        }
-        Relationships: []
-      }
     }
     Views: {
       contas_pagar: {
@@ -55248,6 +55233,10 @@ export type Database = {
           p_data_referencia?: string
           p_valor_liquido: number
         }
+        Returns: Json
+      }
+      fn_pedido_coerencia_diag: {
+        Args: { p_itens: Json; p_valor_bruto: number }
         Returns: Json
       }
       fn_pedido_deve_esperar_pagamento: {
