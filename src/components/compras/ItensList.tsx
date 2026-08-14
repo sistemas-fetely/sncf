@@ -141,7 +141,7 @@ export function ItensList({ items, onChange, readOnly, showItemStatus, headerAct
       {
         descricao: "",
         quantidade: 1,
-        valor_estimado_unitario: 0,
+        valor_estimado_unitario: null,
         urls: [],
         especificacao_tecnica: "",
         ordem: visiveis.length,
