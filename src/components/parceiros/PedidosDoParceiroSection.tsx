@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { usePedidosFila } from "@/hooks/pedidos/usePedidosFila";
 import { useNfsDosPedidosParceiro } from "@/hooks/parceiros/useNfsDosPedidosParceiro";
+import { useDownloadNfPdf } from "@/hooks/nf/useDownloadNfPdf";
 import { cn } from "@/lib/utils";
 import { classeSituacao, rotuloSituacao } from "@/lib/pedidos/situacao-financeira";
 import { EstagioBadge } from "@/components/pedidos/BadgesPedido";
