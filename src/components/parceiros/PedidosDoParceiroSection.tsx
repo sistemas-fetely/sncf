@@ -38,6 +38,7 @@ export function PedidosDoParceiroSection({ parceiroId }: { parceiroId: string })
 
   const pedidos = data || [];
   const { data: nfsPorPedido } = useNfsDosPedidosParceiro(pedidos.map((p) => p.id));
+  const { baixar, baixando, nfEmDownload } = useDownloadNfPdf();
 
 
 
