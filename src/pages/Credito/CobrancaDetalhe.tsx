@@ -604,6 +604,7 @@ export default function CobrancaDetalhe() {
 
 
   const handleRemoverParcela = (idx: number) => {
+    setPlanoEditado(true);
     setTitulos((prev) => {
       if (prev.length <= 1) return prev;
       const nova = renumerar(prev.filter((_, i) => i !== idx));
