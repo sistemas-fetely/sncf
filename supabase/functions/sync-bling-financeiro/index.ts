@@ -1,5 +1,7 @@
 // Edge Function: sync-bling-financeiro
-// Router modular: OAuth + sync por entidade (contatos, produtos, contas_receber, pedidos, nfe).
+// Router modular: OAuth + sync por entidade (contatos, produtos, pedidos, nfe).
+// Financeiro NAO vem mais do Bling (13/08/2026): contas a receber sao 100% SNCF.
+// A entidade "contas_receber" segue aceita no contrato, mas e no-op (zeros).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { BLING_BASE, ensureFreshToken, makeBlingClient, type BlingConfig } from "../_shared/bling/bling-client.ts";
@@ -54,7 +56,8 @@ async function runEntity(
     else if (entidade === "contatos") result = await syncContatos(supabase, client, timeUp, cursor);
     else if (entidade === "produtos") result = await syncProdutos(supabase, client, timeUp, cursor);
     else if (entidade === "estoques") result = await syncEstoques(supabase, client, timeUp, cursor);
-    else if (entidade === "contas_receber") result = await syncContasReceber(supabase, client, timeUp, cursor, ultimaSync);
+    // no-op mantido só para não quebrar crons/clientes que pedem "contas_receber".
+    else if (entidade === "contas_receber") result = { criados: 0, atualizados: 0, erros: 0, ultimoErro: "", proximaPagina: 0 };
     else if (entidade === "pedidos") result = await syncPedidos(supabase, client, timeUp, cursor, ultimaSync);
     else if (entidade === "nfe") result = await syncNfe(supabase, client, timeUp, cursor);
   } finally {
