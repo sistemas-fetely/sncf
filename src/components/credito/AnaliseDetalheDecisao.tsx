@@ -93,6 +93,7 @@ export function AnaliseDetalheDecisao({ analiseId }: Props) {
     analisesAnteriores,
     marcos,
     transicoes,
+    titulos,
   } = data;
 
   const razao = parceiro?.razao_social || "Cliente sem razão";
