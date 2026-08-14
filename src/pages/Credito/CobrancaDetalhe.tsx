@@ -506,8 +506,10 @@ export default function CobrancaDetalhe() {
     setValorTotalCobrar(Math.round(novoTotal * 100) / 100);
     if (creditoAplicado > 0.005 || jaPagoPedido > 0.005) setTitulos((prev) => redistribuirValoresIguais(prev, novoTotal));
     setParcelasIguais(false);
+    setPlanoEditado(false);
+    pedidoHidratadoRef.current = pedidoId;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [propostaQ.data, pedidoQ.data?.valor_liquido, creditoAplicado, jaPagoPedido, paramDiasQ.isLoading, paramIntervaloQ.isLoading, exigePortao]);
+  }, [propostaQ.data, pedidoId, pedidoQ.data?.valor_liquido, creditoAplicado, jaPagoPedido, paramDiasQ.isLoading, paramIntervaloQ.isLoading, exigePortao]);
 
 
   // A proposta nasce pelo que FALTA cobrar, não pelo valor da nota. `montar_plano_pagamento`
