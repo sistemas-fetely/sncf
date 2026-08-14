@@ -5,9 +5,10 @@ function sleep(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
 async function resolveParceiroId(supabase: any, contato: any): Promise<string | null> { if (!contato?.id) return null; const blingId = String(contato.id); const { data: found } = await supabase .from("parceiros_comerciais").select("id").eq("bling_id", blingId).maybeSingle(); if (found) return found.id; if (!contato.nome) return null; const doc = (contato.numeroDocumento || "").replace(/\D/g, ""); const { data: novo, error: insErr } = await supabase.from("parceiros_comerciais").insert({ razao_social: contato.nome, tipo: "pj", tipo_pessoa: doc.length === 11 ? "PF" : "PJ", tipos: ["cliente"], origem: "bling", bling_id: blingId, cpf: doc.length === 11 ? doc : null, cnpj: doc.length === 14 ? doc : null, email: contato.email || null, telefone: contato.telefone || null, }).select("id").maybeSingle(); if (insErr) { console.error(`resolveParceiroId INSERT failed [bling_id=${blingId}]: ${insErr.message}`); return null; } return novo?.id ?? null; }
 
 // FONTE UNICA de resolucao: a regra vive no banco (fn_resolver_pedido_por_ref_bling).
-// numeroPedidoLoja sempre chega como {id_externo}/{sequencia da remessa} — ex.: PED-2121/01,
-// e PED-2114/01/01 para remessa de pedido filho de split. A RPC resolve pela ponte
-// pedido_remessa, com fallback exato e fallback sem sufixo, e ignora pedido cancelado.
+// numeroPedidoLoja pode conter o codigo canonico da remessa gravado em pedido_remessa.codigo_bling.
+// Remessas novas nascem no formato {id_externo}-R{NN} (ex.: PED-2121-R01); o formato /NN (ex.: PED-2121/01)
+// so existe no legado ja emitido. A RPC resolve pela ponte pedido_remessa, com fallback exato e fallback
+// sem sufixo, e ignora pedido cancelado.
 async function resolvePedidoId(supabase: any, ref: any): Promise<string | null> {
   if (ref === null || ref === undefined || ref === "") return null;
   const r = String(ref).trim();
