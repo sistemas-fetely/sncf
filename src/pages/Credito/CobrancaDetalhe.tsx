@@ -563,7 +563,7 @@ export default function CobrancaDetalhe() {
   };
 
   const handleDataChange = (idx: number, novaData: string) => {
-    setTitulos((prev) =>
+    setPlanoEditado(true);
       prev.map((t, i) =>
         i === idx
           ? { ...t, data_vencimento: novaData, condicao_pagamento: calcularCondicaoLabel(novaData, t.eh_entrada) }
