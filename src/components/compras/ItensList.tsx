@@ -338,13 +338,18 @@ function ItemCard({
                 type="number"
                 min={1}
                 step="1"
-                value={item.quantidade}
+                value={item.quantidade ?? ""}
                 onChange={(e) => {
-                  const v = parseInt(e.target.value, 10);
-                  onChange({ quantidade: Math.max(1, isNaN(v) ? 1 : v) });
+                  const raw = e.target.value;
+                  if (raw === "") {
+                    onChange({ quantidade: null });
+                    return;
+                  }
+                  const v = parseInt(raw, 10);
+                  onChange({ quantidade: isNaN(v) || v < 1 ? null : v });
                 }}
                 disabled={readOnly}
-                aria-invalid={!(item.quantidade > 0)}
+                aria-invalid={!(item.quantidade != null && item.quantidade > 0)}
               />
             )}
           </div>
