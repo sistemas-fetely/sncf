@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 export type NfArquivoPedido = {
   pedido_id: string;
   nf_id: string | null;
+  bling_id: string | null;
+  pode_baixar: boolean | null;
   numero: string | null;
   serie: string | null;
   pdf_url: string | null;
@@ -25,7 +27,7 @@ export function useNfsDosPedidosParceiro(pedidoIds: string[]) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("vw_pedido_nf_arquivo" as any)
-        .select("pedido_id, nf_id, numero, serie, pdf_url, xml_url, tem_pdf, tem_xml")
+        .select("pedido_id, nf_id, bling_id, pode_baixar, numero, serie, pdf_url, xml_url, tem_pdf, tem_xml")
         .in("pedido_id", ids);
       if (error) throw error;
       const mapa = new Map<string, NfArquivoPedido>();

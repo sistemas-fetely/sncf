@@ -19,7 +19,15 @@ function mensagemDeCorpo(texto: string, status: number): string {
 
 export function useDownloadNfPdf() {
   const mutation = useMutation({
-    mutationFn: async ({ nf_id, nome }: { nf_id: string; nome?: string }) => {
+    mutationFn: async ({
+      nf_id,
+      nome,
+      formato = "pdf",
+    }: {
+      nf_id: string;
+      nome?: string;
+      formato?: "pdf" | "xml";
+    }) => {
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -35,7 +43,7 @@ export function useDownloadNfPdf() {
           Authorization: `Bearer ${session.access_token}`,
           apikey: SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ nf_id }),
+        body: JSON.stringify({ nf_id, formato }),
       });
 
       // FAIL-LOUD: o corpo real do erro vira a mensagem do toast.
@@ -54,7 +62,7 @@ export function useDownloadNfPdf() {
       try {
         const a = document.createElement("a");
         a.href = url;
-        a.download = nome ? `${nome}.pdf` : `NF-${nf_id}.pdf`;
+        a.download = nome ? `${nome}.${formato}` : `NF-${nf_id}.${formato}`;
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -63,13 +71,20 @@ export function useDownloadNfPdf() {
       }
       return true;
     },
-    onError: (e: Error) => {
-      toast.error("Não foi possível baixar o PDF da NF", { description: e.message });
+    onError: (e: Error, vars) => {
+      const formato = vars?.formato ?? "pdf";
+      toast.error(
+        formato === "xml"
+          ? "Não foi possível baixar o XML da NF"
+          : "Não foi possível baixar o PDF da NF",
+        { description: e.message },
+      );
     },
   });
 
   return {
-    baixar: (args: { nf_id: string; nome?: string }) => mutation.mutate(args),
+    baixar: (args: { nf_id: string; nome?: string; formato?: "pdf" | "xml" }) =>
+      mutation.mutate(args),
     baixando: mutation.isPending,
     nfEmDownload: (mutation.variables as { nf_id: string } | undefined)?.nf_id ?? null,
   };
