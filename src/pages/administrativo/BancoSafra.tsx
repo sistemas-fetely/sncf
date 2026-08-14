@@ -641,23 +641,51 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     if (!edit) return;
     setSalvando((p) => ({ ...p, [b.id]: true }));
     try {
-      /* Tipado de propósito: `Record<string, any>` deixava nome de coluna errado
-         passar silencioso — e isto grava direto em titulo_a_receber. */
-      const update: Partial<Pick<
-        Database["public"]["Tables"]["titulo_a_receber"]["Update"],
-        "data_vencimento_atual" | "valor_bruto"
-      >> = {};
-      if (edit.data && edit.data !== b.data_vencimento_atual) update.data_vencimento_atual = edit.data;
+      const novaData =
+        edit.data && edit.data !== b.data_vencimento_atual ? edit.data : null;
+      let novoValor: number | null = null;
       if (edit.valor) {
         const v = parseFloat(edit.valor.replace(",", "."));
-        if (!isNaN(v) && v > 0 && v !== Number(b.valor_bruto)) update.valor_bruto = v;
+        if (!isNaN(v) && v > 0 && v !== Number(b.valor_bruto)) novoValor = v;
       }
-      if (Object.keys(update).length === 0) {
+      if (!novaData && novoValor === null) {
         setEdits((p) => { const n = { ...p }; delete n[b.id]; return n; });
         return;
       }
-      const { error } = await supabase.from("titulo_a_receber").update(update).eq("id", b.id);
-      if (error) throw error;
+
+      /* Vencimento passa pelo portão único: a RPC grava a data E a trilha
+         (ator_id = auth.uid()). UPDATE direto nesta coluna é proibido. */
+      if (novaData) {
+        const { data: resultado, error } = await supabase.rpc(
+          "ajustar_vencimento_boleto_pendente",
+          {
+            p_titulo_id: b.id,
+            p_nova_data: novaData,
+            p_motivo: "Ajuste manual na tela Banco Safra",
+          },
+        );
+        if (error) throw error;
+        const r = resultado as { ok: boolean; erro?: string } | null;
+        if (!r?.ok) {
+          toast({
+            title: "Vencimento não alterado",
+            description: r?.erro ?? "A RPC recusou o ajuste sem informar motivo.",
+            variant: "destructive",
+          });
+          void revalidarTitulos();
+          return; // mantém edits[b.id] para o operador corrigir
+        }
+      }
+
+      if (novoValor !== null) {
+        const update: Partial<Pick<
+          Database["public"]["Tables"]["titulo_a_receber"]["Update"],
+          "valor_bruto"
+        >> = { valor_bruto: novoValor };
+        const { error } = await supabase.from("titulo_a_receber").update(update).eq("id", b.id);
+        if (error) throw error;
+      }
+
       setEdits((p) => { const n = { ...p }; delete n[b.id]; return n; });
       toast({ title: "Boleto atualizado", description: `${b.numero_titulo} salvo com sucesso.` });
       void revalidarTitulos();
@@ -675,11 +703,17 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     try {
       for (const b of pendentesComSugestao) {
         try {
-          const { error } = await supabase
-            .from("titulo_a_receber")
-            .update({ data_vencimento_atual: sugestoes[b.id] })
-            .eq("id", b.id);
+          const { data: resultado, error } = await supabase.rpc(
+            "ajustar_vencimento_boleto_pendente",
+            {
+              p_titulo_id: b.id,
+              p_nova_data: sugestoes[b.id],
+              p_motivo: "Sugestão de vencimento aplicada em lote (NF + condição do pedido)",
+            },
+          );
           if (error) throw error;
+          const r = resultado as { ok: boolean; erro?: string } | null;
+          if (!r?.ok) throw new Error(r?.erro ?? "Ajuste recusado pela RPC.");
           salvos++;
         } catch (e) {
           throw new Error(
