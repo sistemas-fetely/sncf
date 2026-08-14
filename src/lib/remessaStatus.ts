@@ -36,8 +36,3 @@ export function remessaStatusMeta(status: string | null | undefined): RemessaSta
   );
 }
 
-/** Código curto da remessa: apenas o sufixo `/01`. */
-export function sufixoRemessa(sequencia: number | string | null | undefined): string {
-  const n = Number(sequencia ?? 0);
-  return `/${String(Number.isFinite(n) && n > 0 ? n : 1).padStart(2, "0")}`;
-}
