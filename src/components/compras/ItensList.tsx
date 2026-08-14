@@ -222,6 +222,11 @@ export function ItensList({ items, onChange, readOnly, showItemStatus, headerAct
                 <div className="text-xl font-semibold">{fmtBRL(totalOriginal)}</div>
               </>
             )}
+            {itensSemValor > 0 && (
+              <div className="text-xs text-muted-foreground">
+                {itensSemValor} {itensSemValor === 1 ? "item" : "itens"} sem valor
+              </div>
+            )}
           </div>
         </div>
       )}
