@@ -37,7 +37,7 @@ for (const nf of items) {
 
     const { data: existing } = await supabase
       .from("nfs_emitidas")
-      .select("id, valor_nota, pedido_venda_id, valor_frete, transportadora_nome, transportadora_cnpj, itens_json, numero_pedido_loja, bling_pedido_venda_numero, bling_pedido_venda_id, transporte_raw, serie")
+      .select("id, valor_nota, pedido_venda_id, valor_frete, transportadora_nome, transportadora_cnpj, itens_json, numero_pedido_loja, bling_pedido_venda_numero, bling_pedido_venda_id, transporte_raw, serie, pdf_url, xml_url")
       .eq("bling_id", blingId)
       .maybeSingle();
 
@@ -45,8 +45,10 @@ for (const nf of items) {
     const semFrete = !existing?.valor_frete || Number(existing.valor_frete) === 0;
     const semPedido = !existing?.pedido_venda_id; const semTransporte = !existing?.transporte_raw;
     const semSerie = !existing?.serie;
+    const semArquivo = !existing?.pdf_url || !existing?.xml_url;
 
-    // Busca detalhe apenas quando falta valor ou frete — evita rate limit do Bling.
+    // Busca detalhe apenas quando falta valor, frete, pedido, transporte, série
+    // ou arquivo (pdf_url/xml_url) — evita rate limit do Bling.
     // Pedido linkage tenta junto quando já estamos no detalhe, mas não aciona sozinho.
     let situacaoDetalhe: string | null = null;
     let numeroPedidoLojaRaw: string | null = null;
@@ -54,7 +56,7 @@ for (const nf of items) {
     let pedidoVendaBlingIdRaw: string | null = null;
     let serieDetalhe: string | null = null;
 
-    if (semValor || semFrete || semPedido || semTransporte || semSerie) {
+    if (semValor || semFrete || semPedido || semTransporte || semSerie || semArquivo) {
       try {
         await sleep(120); // respeita rate limit do Bling (~3 req/s)
         const det = await client.get(`/nfe/${nf.id}`);
@@ -165,8 +167,8 @@ for (const nf of items) {
       tipo_venda: nf._tipoVenda ?? existing?.tipo_venda ?? null,
       itens_json: nf._itens ?? existing?.itens_json ?? null,
       parceiro_id,
-      xml_url:             nf.xml     || null,
-      pdf_url:             nf.linkPDF || null,
+      xml_url:             nf.xml     ?? existing?.xml_url ?? null,
+      pdf_url:             nf.linkPDF ?? existing?.pdf_url ?? null,
       raw:                 nf,
       origem:              "bling",
       updated_at:          new Date().toISOString(),
@@ -178,6 +180,11 @@ for (const nf of items) {
     if (vinculoNovo) {
       registro.vinculo_origem = 'bling';
       registro.vinculo_em = new Date().toISOString();
+      try {
+        const { data: ped } = await supabase
+          .from("pedidos").select("id_externo").eq("id", pedido_venda_id).maybeSingle();
+        if (ped?.id_externo) registro.vinculo_pedido_ref = String(ped.id_externo);
+      } catch (_) { /* ref é opcional — não quebra o sync */ }
     }
 
     if (existing) {

@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
-import { Package } from "lucide-react";
+import { Package, FileText, Code } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -12,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { usePedidosFila } from "@/hooks/pedidos/usePedidosFila";
+import { useNfsDosPedidosParceiro } from "@/hooks/parceiros/useNfsDosPedidosParceiro";
 import { cn } from "@/lib/utils";
 import { classeSituacao, rotuloSituacao } from "@/lib/pedidos/situacao-financeira";
 import { EstagioBadge } from "@/components/pedidos/BadgesPedido";
@@ -35,6 +37,9 @@ export function PedidosDoParceiroSection({ parceiroId }: { parceiroId: string })
   });
 
   const pedidos = data || [];
+  const { data: nfsPorPedido } = useNfsDosPedidosParceiro(pedidos.map((p) => p.id));
+
+
 
   const entregues = pedidos.filter((p) => p.estagio === "entregue").length;
   const cancelados = pedidos.filter((p) => p.estagio === "cancelado").length;
@@ -80,6 +85,7 @@ export function PedidosDoParceiroSection({ parceiroId }: { parceiroId: string })
                   <TableHead>Valor</TableHead>
                   <TableHead>Estágio</TableHead>
                   <TableHead>Situação</TableHead>
+                  <TableHead className="w-[80px] text-right">NF</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -118,6 +124,44 @@ export function PedidosDoParceiroSection({ parceiroId }: { parceiroId: string })
                       ) : (
                         "—"
                       )}
+                    </TableCell>
+                    <TableCell className="text-right whitespace-nowrap">
+                      {(() => {
+                        const nf = nfsPorPedido?.get(p.id);
+                        if (!nf) return null;
+                        return (
+                          <>
+                            {nf.pdf_url && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                title={`NF ${nf.numero ?? ""} — baixar DANFE`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(nf.pdf_url!, "_blank", "noopener,noreferrer");
+                                }}
+                              >
+                                <FileText className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                            {nf.xml_url && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                title={`NF ${nf.numero ?? ""} — baixar XML`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(nf.xml_url!, "_blank", "noopener,noreferrer");
+                                }}
+                              >
+                                <Code className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </>
+                        );
+                      })()}
                     </TableCell>
                   </TableRow>
                 ))}
