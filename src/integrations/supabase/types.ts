@@ -24598,11 +24598,11 @@ export type Database = {
           id: string
           ordem: number
           pedido_id: string
-          quantidade: number
+          quantidade: number | null
           status: Database["public"]["Enums"]["pedido_compra_item_status_enum"]
           unidade_id: string | null
           urls: string[] | null
-          valor_estimado_unitario: number
+          valor_estimado_unitario: number | null
         }
         Insert: {
           cancelamento_motivo?: string | null
@@ -24612,11 +24612,11 @@ export type Database = {
           id?: string
           ordem?: number
           pedido_id: string
-          quantidade: number
+          quantidade?: number | null
           status?: Database["public"]["Enums"]["pedido_compra_item_status_enum"]
           unidade_id?: string | null
           urls?: string[] | null
-          valor_estimado_unitario: number
+          valor_estimado_unitario?: number | null
         }
         Update: {
           cancelamento_motivo?: string | null
@@ -24626,11 +24626,11 @@ export type Database = {
           id?: string
           ordem?: number
           pedido_id?: string
-          quantidade?: number
+          quantidade?: number | null
           status?: Database["public"]["Enums"]["pedido_compra_item_status_enum"]
           unidade_id?: string | null
           urls?: string[] | null
-          valor_estimado_unitario?: number
+          valor_estimado_unitario?: number | null
         }
         Relationships: [
           {
