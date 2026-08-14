@@ -1,5 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +38,7 @@ import { useParametros } from "@/hooks/useParametros";
 import { ComunicacaoPedidoPanel } from "@/components/pedidos/ComunicacaoPedidoPanel";
 // AlterarFormaPagamentoDialog aposentado — fluxo /pgXX substituído por reverter_para_cobranca.
 import { ReverterParaCobrancaDialog } from "@/components/pedidos/dialogs/ReverterParaCobrancaDialog";
+import { AplicarHaverPedidoDialog } from "@/components/credito/AplicarHaverPedidoDialog";
 import { EditarCondicaoPagamentoDialog } from "@/components/pedidos/dialogs/EditarCondicaoPagamentoDialog";
 import { usePedidoEdicaoCampo } from "@/hooks/pedidos/usePedidoEdicaoCampo";
 import { AjustarDescontoDialog } from "@/components/pedidos/dialogs/AjustarDescontoDialog";
@@ -425,7 +426,7 @@ export default function CobrancaDetalhe() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const haverCliente = useHaverDisponivelCliente((pedidoQ.data as any)?.parceiro_id);
   const haverSaldo = haverCliente?.saldo ?? 0;
-  const haverDisponivel = !exigePortao && haverSaldo > 0;
+  const haverDisponivel = haverSaldo > 0;
 
   // HAVER-É-PAGAMENTO: parte do pedido pode já estar quitada (haver, entrada
   // paga por qualquer meio, ou adiantamento vinculado). A base do parcelamento
@@ -450,20 +451,8 @@ export default function CobrancaDetalhe() {
   const [parcelasIguais, setParcelasIguais] = useState<boolean>(false);
   const [diasPrimeiroPagamento, setDiasPrimeiroPagamento] = useState<number>(DIAS_PRIMEIRO_PAGAMENTO_FALLBACK);
   const [intervaloDias, setIntervaloDias] = useState<number>(INTERVALO_PARCELAS_FALLBACK);
-  const [valorHaverAplicar, setValorHaverAplicar] = useState<number>(0);
-  const baseCobravel = Math.max(
-    0,
-    Number((pedidoQ.data as any)?.valor_liquido ?? 0) - jaPagoPedido,
-  );
-  const maxHaver = Math.min(haverSaldo, baseCobravel);
-
-  const handleAplicarHaver = (v: number) => {
-    const aplicar = Math.max(0, Math.min(Number.isFinite(v) ? v : 0, maxHaver));
-    setValorHaverAplicar(Math.round(aplicar * 100) / 100);
-    const novoTotal = Math.max(0, baseCobravel - aplicar);
-    setValorTotalCobrar(Math.round(novoTotal * 100) / 100);
-    setTitulos((prev) => redistribuirValoresIguais(prev, novoTotal));
-  };
+  const [planoEditado, setPlanoEditado] = useState<boolean>(false);
+  const [aplicarHaverOpen, setAplicarHaverOpen] = useState<boolean>(false);
 
   const paramDiasQ = useParametros("dias_primeiro_pagamento");
   const paramIntervaloQ = useParametros("intervalo_entre_parcelas");
@@ -486,9 +475,14 @@ export default function CobrancaDetalhe() {
     });
   };
 
-  // hidrata estado local quando a proposta chega
+  // hidrata estado local quando a proposta chega — UMA VEZ por pedido.
+  // Refetch da proposta (foco de janela, invalidação) não pode apagar a
+  // composição manual montada pelo operador.
+  const pedidoHidratadoRef = useRef<string | null>(null);
   useEffect(() => {
     if (!propostaQ.data?.titulos_propostos) return;
+    if (!pedidoId) return;
+    if (pedidoHidratadoRef.current === pedidoId) return;
     if (paramDiasQ.isLoading || paramIntervaloQ.isLoading) return;
 
     const vDias = Number(paramDiasQ.data?.[0]?.valor);
@@ -513,8 +507,10 @@ export default function CobrancaDetalhe() {
     setValorTotalCobrar(Math.round(novoTotal * 100) / 100);
     if (creditoAplicado > 0.005 || jaPagoPedido > 0.005) setTitulos((prev) => redistribuirValoresIguais(prev, novoTotal));
     setParcelasIguais(false);
+    setPlanoEditado(false);
+    pedidoHidratadoRef.current = pedidoId;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [propostaQ.data, pedidoQ.data?.valor_liquido, creditoAplicado, jaPagoPedido, paramDiasQ.isLoading, paramIntervaloQ.isLoading, exigePortao]);
+  }, [propostaQ.data, pedidoId, pedidoQ.data?.valor_liquido, creditoAplicado, jaPagoPedido, paramDiasQ.isLoading, paramIntervaloQ.isLoading, exigePortao]);
 
 
   // A proposta nasce pelo que FALTA cobrar, não pelo valor da nota. `montar_plano_pagamento`
@@ -547,6 +543,7 @@ export default function CobrancaDetalhe() {
   );
 
   const atualizarTitulo = (idx: number, patch: Partial<LinhaPlano>) => {
+    setPlanoEditado(true);
     setTitulos((prev) => prev.map((t, i) => (i === idx ? { ...t, ...patch } : t)));
   };
 
@@ -567,6 +564,7 @@ export default function CobrancaDetalhe() {
   };
 
   const handleDataChange = (idx: number, novaData: string) => {
+    setPlanoEditado(true);
     setTitulos((prev) =>
       prev.map((t, i) =>
         i === idx
@@ -583,6 +581,7 @@ export default function CobrancaDetalhe() {
   };
 
   const handleAdicionarParcela = () => {
+    setPlanoEditado(true);
     setTitulos((prev) => {
       const ultima = prev[prev.length - 1];
       const novaData = ultima
@@ -606,6 +605,7 @@ export default function CobrancaDetalhe() {
 
 
   const handleRemoverParcela = (idx: number) => {
+    setPlanoEditado(true);
     setTitulos((prev) => {
       if (prev.length <= 1) return prev;
       const nova = renumerar(prev.filter((_, i) => i !== idx));
@@ -659,7 +659,10 @@ export default function CobrancaDetalhe() {
           link_pagamento: t.link_pagamento ?? null,
         })),
       },
-      { onSettled: () => setConfirmOpen(false) },
+      {
+        onSuccess: () => setPlanoEditado(false),
+        onSettled: () => setConfirmOpen(false),
+      },
     );
   };
 
@@ -1018,26 +1021,20 @@ export default function CobrancaDetalhe() {
             </div>
             {haverDisponivel && (
               <div className="space-y-1 ml-auto rounded-md border bg-emerald-50/50 dark:bg-emerald-950/20 p-3">
-                <Label htmlFor="aplicar-haver" className="text-xs font-medium">
-                  Crédito do cliente (haver)
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  {fmtBRL.format(haverSaldo)} disponível
-                </p>
-                <Input
-                  id="aplicar-haver"
-                  type="number"
-                  step="0.01"
-                  min={0}
-                  max={maxHaver}
-                  value={valorHaverAplicar}
-                  onChange={(e) => handleAplicarHaver(Number(e.target.value))}
-                  placeholder="Aplicar"
-                  className="h-9 w-40"
-                />
+                <p className="text-xs font-medium">Crédito do cliente (haver)</p>
+                <p className="text-sm font-semibold">{fmtBRL.format(haverSaldo)}</p>
+                <p className="text-xs text-muted-foreground">disponível na conta do cliente</p>
                 <p className="text-[11px] text-muted-foreground">
-                  Líquido a cobrar: {fmtBRL.format(valorTotalCobrar)}
+                  Aplicar registra o crédito neste pedido.
                 </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8"
+                  onClick={() => setAplicarHaverOpen(true)}
+                >
+                  Aplicar crédito
+                </Button>
               </div>
             )}
           </div>
@@ -1071,6 +1068,12 @@ export default function CobrancaDetalhe() {
                 −{fmtBRL.format(creditoAplicado)}
               </span>
             </div>
+          )}
+
+          {planoEditado && (
+            <p className="mb-2 text-xs text-amber-700 dark:text-amber-400">
+              Plano editado e ainda não materializado.
+            </p>
           )}
 
           <div className="rounded-md border">
@@ -1306,9 +1309,6 @@ export default function CobrancaDetalhe() {
                 {qtdPortao > 0 && (
                   <> O pedido só é liberado quando todas as linhas de portão estiverem pagas.</>
                 )}
-                {valorHaverAplicar > 0 && (
-                  <> {" "}Haver aplicado: <strong>{fmtBRL.format(valorHaverAplicar)}</strong>.</>
-                )}
               </>
             </DialogDescription>
           </DialogHeader>
@@ -1347,6 +1347,19 @@ export default function CobrancaDetalhe() {
         bonusPixValor={Number((pedidoQ.data as any)?.bonus_pix_valor ?? 0)}
         condicaoAtual={proposta?.condicao_original ?? pedidoQ.data?.condicao_solicitada ?? null}
       />
+
+      {pedidoQ.data?.id && (pedidoQ.data as any)?.parceiro_id && (
+        <AplicarHaverPedidoDialog
+          open={aplicarHaverOpen}
+          onOpenChange={setAplicarHaverOpen}
+          pedidoId={pedidoQ.data.id}
+          idExterno={pedidoQ.data.id_externo ?? ""}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          valorLiquido={Number((pedidoQ.data as any)?.valor_liquido ?? 0)}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          parceiroId={(pedidoQ.data as any).parceiro_id}
+        />
+      )}
     </div>
   );
 }

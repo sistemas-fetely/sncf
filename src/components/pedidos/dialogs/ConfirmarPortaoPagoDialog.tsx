@@ -18,6 +18,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import {
   useConfirmarPagamentoLinha,
   type ProvaTipo,
@@ -72,6 +73,7 @@ export function ConfirmarPortaoPagoDialog({
   const [provaRef, setProvaRef] = useState<string>("");
   const [observacao, setObservacao] = useState<string>("");
 
+  const { toast } = useToast();
   const confirmar = useConfirmarPagamentoLinha();
 
   // Fallback: consumidores que só conhecem o pedido (fila / detalhe).
@@ -123,14 +125,28 @@ export function ConfirmarPortaoPagoDialog({
   const refFaltando = refObrigatoria && !provaRef.trim();
 
   const handleConfirmar = async () => {
-    if (!linha) return;
-    await confirmar.mutateAsync({
-      provisao_id: linha.id,
-      prova_tipo: provaTipo,
-      prova_ref: refObrigatoria ? provaRef : null,
-      data_pagamento: dataPagamento,
-      observacao,
-    });
+    if (!linha) {
+      toast({
+        title: "Não foi possível identificar a parcela",
+        description:
+          "Recarregue a tela e tente de novo. Se persistir, a linha do plano pode ter sido removida.",
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      await confirmar.mutateAsync({
+        provisao_id: linha.id,
+        prova_tipo: provaTipo,
+        prova_ref: refObrigatoria ? provaRef : null,
+        data_pagamento: dataPagamento,
+        observacao,
+      });
+    } catch {
+      // O toast de erro já sai de useConfirmarPagamentoLinha — não duplicar.
+      // Mantém o dialog aberto com os dados preenchidos.
+      return;
+    }
     setOpen(false);
     setObservacao("");
     setProvaRef("");
