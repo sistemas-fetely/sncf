@@ -382,8 +382,15 @@ serve(async (req) => {
 
 
     // Código e valor da remessa
-    const remessaCodigo = `${pedido.id_externo}/${String(remessa.sequencia).padStart(2, "0")}`;
+    const remessaCodigo = remessa?.codigo_bling as string | null;
+    if (!remessaCodigo || remessaCodigo.trim() === "") {
+      return await falhaLimpando(
+        `remessa ${remessa.id} sem codigo_bling — ponte com o Bling indefinida, envio abortado`,
+        500,
+      );
+    }
     const remessaValor = Number(remessa.valor_remessa ?? pedido.valor_liquido);
+
 
 
     // 2. Parceiro (cliente)

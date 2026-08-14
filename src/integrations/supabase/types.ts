@@ -22607,6 +22607,7 @@ export type Database = {
       pedido_remessa: {
         Row: {
           bling_pedido_id: string | null
+          codigo_bling: string | null
           criado_em: string
           criado_por: string | null
           data_entrega_prevista: string | null
@@ -22624,6 +22625,7 @@ export type Database = {
         }
         Insert: {
           bling_pedido_id?: string | null
+          codigo_bling?: string | null
           criado_em?: string
           criado_por?: string | null
           data_entrega_prevista?: string | null
@@ -22641,6 +22643,7 @@ export type Database = {
         }
         Update: {
           bling_pedido_id?: string | null
+          codigo_bling?: string | null
           criado_em?: string
           criado_por?: string | null
           data_entrega_prevista?: string | null
@@ -37237,6 +37240,21 @@ export type Database = {
           },
         ]
       }
+      zz_baseline_ref_bling_1408: {
+        Row: {
+          pedido_id_antes: string | null
+          ref: string | null
+        }
+        Insert: {
+          pedido_id_antes?: string | null
+          ref?: string | null
+        }
+        Update: {
+          pedido_id_antes?: string | null
+          ref?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       contas_pagar: {
@@ -51573,6 +51591,28 @@ export type Database = {
           vinculo_id: string | null
         }
         Relationships: []
+      }
+      vw_ref_bling_ambigua: {
+        Row: {
+          estagio_filho: string | null
+          pedido_filho_colidente: string | null
+          pedido_pai: string | null
+          ref_ambigua: string | null
+          risco: string | null
+          sequencia: number | null
+          status_remessa: string | null
+          valor_filho: number | null
+          valor_pai: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["estagio_filho"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       vw_remessa_safra_titulos: {
         Row: {
