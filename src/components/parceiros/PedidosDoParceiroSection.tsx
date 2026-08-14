@@ -125,6 +125,44 @@ export function PedidosDoParceiroSection({ parceiroId }: { parceiroId: string })
                         "—"
                       )}
                     </TableCell>
+                    <TableCell className="text-right whitespace-nowrap">
+                      {(() => {
+                        const nf = nfsPorPedido?.get(p.id);
+                        if (!nf) return null;
+                        return (
+                          <>
+                            {nf.pdf_url && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                title={`NF ${nf.numero ?? ""} — baixar DANFE`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(nf.pdf_url!, "_blank", "noopener,noreferrer");
+                                }}
+                              >
+                                <FileText className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                            {nf.xml_url && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                title={`NF ${nf.numero ?? ""} — baixar XML`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(nf.xml_url!, "_blank", "noopener,noreferrer");
+                                }}
+                              >
+                                <Code className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
