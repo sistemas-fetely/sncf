@@ -1136,6 +1136,9 @@ export type Database = {
           encaminhado_decisao_em: string | null
           estagio_atual: string
           exige_portao: boolean | null
+          exige_portao_em: string | null
+          exige_portao_motivo: string | null
+          exige_portao_por: string | null
           formas_aceitas: string[] | null
           id: string
           limite_concedido: number | null
@@ -1168,6 +1171,9 @@ export type Database = {
           encaminhado_decisao_em?: string | null
           estagio_atual?: string
           exige_portao?: boolean | null
+          exige_portao_em?: string | null
+          exige_portao_motivo?: string | null
+          exige_portao_por?: string | null
           formas_aceitas?: string[] | null
           id?: string
           limite_concedido?: number | null
@@ -1200,6 +1206,9 @@ export type Database = {
           encaminhado_decisao_em?: string | null
           estagio_atual?: string
           exige_portao?: boolean | null
+          exige_portao_em?: string | null
+          exige_portao_motivo?: string | null
+          exige_portao_por?: string | null
           formas_aceitas?: string[] | null
           id?: string
           limite_concedido?: number | null
@@ -55085,6 +55094,10 @@ export type Database = {
       }
       definir_origem_nf: {
         Args: { p_nf_id: number; p_origem: string }
+        Returns: Json
+      }
+      definir_portao_analise: {
+        Args: { p_motivo?: string; p_pedido_id: string; p_valor: boolean }
         Returns: Json
       }
       delegacao_ativa_entre: {
