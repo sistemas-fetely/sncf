@@ -37,6 +37,9 @@ export function PedidosDoParceiroSection({ parceiroId }: { parceiroId: string })
   });
 
   const pedidos = data || [];
+  const { data: nfsPorPedido } = useNfsDosPedidosParceiro(pedidos.map((p) => p.id));
+
+
 
   const entregues = pedidos.filter((p) => p.estagio === "entregue").length;
   const cancelados = pedidos.filter((p) => p.estagio === "cancelado").length;
