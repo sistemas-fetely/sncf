@@ -85,6 +85,7 @@ export function PedidosDoParceiroSection({ parceiroId }: { parceiroId: string })
                   <TableHead>Valor</TableHead>
                   <TableHead>Estágio</TableHead>
                   <TableHead>Situação</TableHead>
+                  <TableHead className="w-[80px] text-right">NF</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
