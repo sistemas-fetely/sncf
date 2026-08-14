@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
-import { Package } from "lucide-react";
+import { Package, FileText, Code } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -12,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { usePedidosFila } from "@/hooks/pedidos/usePedidosFila";
+import { useNfsDosPedidosParceiro } from "@/hooks/parceiros/useNfsDosPedidosParceiro";
 import { cn } from "@/lib/utils";
 import { classeSituacao, rotuloSituacao } from "@/lib/pedidos/situacao-financeira";
 import { EstagioBadge } from "@/components/pedidos/BadgesPedido";
