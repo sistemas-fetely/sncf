@@ -25,9 +25,11 @@ function formatMoedaBR(v: number): string {
   return v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function parseMoedaBR(raw: string): number {
+function parseMoedaBR(raw: string): number | null {
   const clean = raw.replace(/\./g, "").replace(",", ".").replace(/[^\d.]/g, "");
-  return parseFloat(clean) || 0;
+  if (!clean) return null;
+  const n = parseFloat(clean);
+  return Number.isFinite(n) ? n : null;
 }
 
 function InputMoedaBR({
