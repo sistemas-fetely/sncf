@@ -425,7 +425,7 @@ export default function CobrancaDetalhe() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const haverCliente = useHaverDisponivelCliente((pedidoQ.data as any)?.parceiro_id);
   const haverSaldo = haverCliente?.saldo ?? 0;
-  const haverDisponivel = !exigePortao && haverSaldo > 0;
+  const haverDisponivel = haverSaldo > 0;
 
   // HAVER-É-PAGAMENTO: parte do pedido pode já estar quitada (haver, entrada
   // paga por qualquer meio, ou adiantamento vinculado). A base do parcelamento
