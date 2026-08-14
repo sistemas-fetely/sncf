@@ -180,6 +180,7 @@ export function TitulosClienteAccordion({ titulos, emAbertoCard }: Props) {
     label: string,
     linhas: TituloCredito[],
     destaque = false,
+    note?: ReactNode,
   ) =>
     linhas.length > 0 ? (
       <div className="space-y-2">
@@ -196,6 +197,7 @@ export function TitulosClienteAccordion({ titulos, emAbertoCard }: Props) {
             {fmtBRL.format(soma(linhas))}
           </span>
         </div>
+        {note}
         <div className="space-y-1.5">{linhas.map(renderLinha)}</div>
       </div>
     ) : null;
@@ -219,7 +221,17 @@ export function TitulosClienteAccordion({ titulos, emAbertoCard }: Props) {
         </AccordionTrigger>
         <AccordionContent className="px-4 space-y-4">
           {renderSecao("Em aberto", abertos)}
-          {renderSecao("Pagos (últimos 12 meses)", pagos)}
+          {renderSecao(
+            "Pagos (últimos 12 meses)",
+            pagos,
+            false,
+            pagosReprogramados ? (
+              <p className="text-xs text-muted-foreground">
+                Atraso medido contra o vencimento vigente. O badge de status usa o
+                vencimento original — podem divergir em título reprogramado.
+              </p>
+            ) : undefined,
+          )}
           {renderSecao("Encerrados / cicatriz", cicatriz, true)}
 
           {divergencia && (
