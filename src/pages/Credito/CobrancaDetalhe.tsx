@@ -479,6 +479,8 @@ export default function CobrancaDetalhe() {
   // Refetch da proposta (foco de janela, invalidação) não pode apagar a
   // composição manual montada pelo operador.
   const pedidoHidratadoRef = useRef<string | null>(null);
+  const lastCreditoAplicadoRef = useRef<number>(0);
+  const lastJaPagoPedidoRef = useRef<number>(0);
   useEffect(() => {
     if (!propostaQ.data?.titulos_propostos) return;
     if (!pedidoId) return;
@@ -508,9 +510,27 @@ export default function CobrancaDetalhe() {
     if (creditoAplicado > 0.005 || jaPagoPedido > 0.005) setTitulos((prev) => redistribuirValoresIguais(prev, novoTotal));
     setParcelasIguais(false);
     setPlanoEditado(false);
+    lastCreditoAplicadoRef.current = creditoAplicado;
+    lastJaPagoPedidoRef.current = jaPagoPedido;
     pedidoHidratadoRef.current = pedidoId;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propostaQ.data, pedidoId, pedidoQ.data?.valor_liquido, creditoAplicado, jaPagoPedido, paramDiasQ.isLoading, paramIntervaloQ.isLoading, exigePortao]);
+
+  // Aplicação de crédito/haver após a hidratação: reage apenas ao saldo
+  // gravado, sem reconstruir as linhas a partir da proposta. Só redistribui
+  // valores, preservando forma, vencimento e portão escolhidos pelo operador.
+  useEffect(() => {
+    if (!pedidoId) return;
+    if (pedidoHidratadoRef.current !== pedidoId) return;
+    if (lastCreditoAplicadoRef.current === creditoAplicado && lastJaPagoPedidoRef.current === jaPagoPedido) return;
+
+    const novoTotal = Math.max(0, Number(pedidoQ.data?.valor_liquido ?? 0) - creditoAplicado);
+    setValorTotalCobrar(Math.round(novoTotal * 100) / 100);
+    setTitulos((prev) => redistribuirValoresIguais(prev, novoTotal));
+    lastCreditoAplicadoRef.current = creditoAplicado;
+    lastJaPagoPedidoRef.current = jaPagoPedido;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [creditoAplicado, jaPagoPedido, pedidoId, pedidoQ.data?.valor_liquido]);
 
 
   // A proposta nasce pelo que FALTA cobrar, não pelo valor da nota. `montar_plano_pagamento`
