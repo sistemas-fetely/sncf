@@ -377,10 +377,10 @@ function ItemCard({
           <div>
             <Label>Valor unitário *</Label>
             <InputMoedaBR
-              value={item.valor_estimado_unitario || 0}
+              value={item.valor_estimado_unitario}
               onChange={(v) => onChange({ valor_estimado_unitario: v })}
               disabled={readOnly}
-              ariaInvalid={!(item.valor_estimado_unitario > 0)}
+              ariaInvalid={!(item.valor_estimado_unitario != null && item.valor_estimado_unitario > 0)}
             />
           </div>
         </div>
