@@ -25,9 +25,11 @@ function formatMoedaBR(v: number): string {
   return v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function parseMoedaBR(raw: string): number {
+function parseMoedaBR(raw: string): number | null {
   const clean = raw.replace(/\./g, "").replace(",", ".").replace(/[^\d.]/g, "");
-  return parseFloat(clean) || 0;
+  if (!clean) return null;
+  const n = parseFloat(clean);
+  return Number.isFinite(n) ? n : null;
 }
 
 function InputMoedaBR({
@@ -36,17 +38,18 @@ function InputMoedaBR({
   disabled,
   ariaInvalid,
 }: {
-  value: number;
-  onChange: (v: number) => void;
+  value: number | null;
+  onChange: (v: number | null) => void;
   disabled?: boolean;
   ariaInvalid?: boolean;
 }) {
-  const [display, setDisplay] = useState(() => (value > 0 ? formatMoedaBR(value) : ""));
+  const valorNumerico = value ?? 0;
+  const [display, setDisplay] = useState(() => (valorNumerico > 0 ? formatMoedaBR(valorNumerico) : ""));
   const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
-    if (!isFocused) setDisplay(value > 0 ? formatMoedaBR(value) : "");
-  }, [value, isFocused]);
+    if (!isFocused) setDisplay(valorNumerico > 0 ? formatMoedaBR(valorNumerico) : "");
+  }, [valorNumerico, isFocused]);
 
   return (
     <div className="relative">
@@ -63,11 +66,11 @@ function InputMoedaBR({
         }}
         onFocus={() => {
           setIsFocused(true);
-          if (value > 0) setDisplay(value.toFixed(2).replace(".", ","));
+          if (valorNumerico > 0) setDisplay(valorNumerico.toFixed(2).replace(".", ","));
         }}
         onBlur={() => {
           setIsFocused(false);
-          setDisplay(value > 0 ? formatMoedaBR(value) : "");
+          setDisplay(valorNumerico > 0 ? formatMoedaBR(valorNumerico) : "");
         }}
         disabled={disabled}
         placeholder="0,00"
@@ -113,13 +116,15 @@ export function ItensList({ items, onChange, readOnly, showItemStatus, headerAct
 
   const visiveis = items.filter((i) => i._action !== "delete");
   const temCancelados = visiveis.some((i) => i.status === "cancelado");
-  const totalOriginal = visiveis.reduce(
-    (s, i) => s + Number(i.quantidade || 0) * Number(i.valor_estimado_unitario || 0),
-    0,
-  );
+  const totalOriginal = visiveis
+    .filter((i) => i.quantidade != null && i.valor_estimado_unitario != null)
+    .reduce((s, i) => s + Number(i.quantidade) * Number(i.valor_estimado_unitario), 0);
   const totalEfetivo = visiveis
-    .filter((i) => i.status !== "cancelado")
-    .reduce((s, i) => s + Number(i.quantidade || 0) * Number(i.valor_estimado_unitario || 0), 0);
+    .filter((i) => i.status !== "cancelado" && i.quantidade != null && i.valor_estimado_unitario != null)
+    .reduce((s, i) => s + Number(i.quantidade) * Number(i.valor_estimado_unitario), 0);
+  const itensSemValor = visiveis.filter(
+    (i) => i.quantidade == null || i.valor_estimado_unitario == null,
+  ).length;
 
   const updateAt = (idx: number, patch: Partial<ItemEdit>) => {
     const visIdx = items.indexOf(visiveis[idx]);
@@ -136,7 +141,7 @@ export function ItensList({ items, onChange, readOnly, showItemStatus, headerAct
       {
         descricao: "",
         quantidade: 1,
-        valor_estimado_unitario: 0,
+        valor_estimado_unitario: null,
         urls: [],
         especificacao_tecnica: "",
         ordem: visiveis.length,
@@ -217,6 +222,11 @@ export function ItensList({ items, onChange, readOnly, showItemStatus, headerAct
                 <div className="text-xl font-semibold">{fmtBRL(totalOriginal)}</div>
               </>
             )}
+            {itensSemValor > 0 && (
+              <div className="text-xs text-muted-foreground">
+                {itensSemValor} {itensSemValor === 1 ? "item" : "itens"} sem valor
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -246,7 +256,11 @@ function ItemCard({
   const [showSpec, setShowSpec] = useState(!!item.especificacao_tecnica);
   const [urlInput, setUrlInput] = useState("");
 
-  const subtotal = Number(item.quantidade || 0) * Number(item.valor_estimado_unitario || 0);
+  const subtotal =
+    item.quantidade != null && item.valor_estimado_unitario != null
+      ? Number(item.quantidade) * Number(item.valor_estimado_unitario)
+      : null;
+  const subtotalIncompleto = subtotal == null || subtotal <= 0;
   const status = item.status;
   const statusCfg = status ? itemStatusConfig[status] : null;
   const isCancelado = status === "cancelado";
@@ -324,13 +338,18 @@ function ItemCard({
                 type="number"
                 min={1}
                 step="1"
-                value={item.quantidade}
+                value={item.quantidade ?? ""}
                 onChange={(e) => {
-                  const v = parseInt(e.target.value, 10);
-                  onChange({ quantidade: Math.max(1, isNaN(v) ? 1 : v) });
+                  const raw = e.target.value;
+                  if (raw === "") {
+                    onChange({ quantidade: null });
+                    return;
+                  }
+                  const v = parseInt(raw, 10);
+                  onChange({ quantidade: isNaN(v) || v < 1 ? null : v });
                 }}
                 disabled={readOnly}
-                aria-invalid={!(item.quantidade > 0)}
+                aria-invalid={!(item.quantidade != null && item.quantidade > 0)}
               />
             )}
           </div>
@@ -358,10 +377,10 @@ function ItemCard({
           <div>
             <Label>Valor unitário *</Label>
             <InputMoedaBR
-              value={item.valor_estimado_unitario || 0}
+              value={item.valor_estimado_unitario}
               onChange={(v) => onChange({ valor_estimado_unitario: v })}
               disabled={readOnly}
-              ariaInvalid={!(item.valor_estimado_unitario > 0)}
+              ariaInvalid={!(item.valor_estimado_unitario != null && item.valor_estimado_unitario > 0)}
             />
           </div>
         </div>
@@ -369,7 +388,9 @@ function ItemCard({
         <div className="flex justify-end">
           <div className="text-right">
             <div className="text-xs text-muted-foreground">Subtotal</div>
-            <div className="text-sm font-semibold">{fmtBRL(subtotal)}</div>
+            <div className={cn("text-sm font-semibold", subtotalIncompleto && "text-muted-foreground")}>
+              {subtotalIncompleto ? "a definir" : fmtBRL(subtotal)}
+            </div>
           </div>
         </div>
 

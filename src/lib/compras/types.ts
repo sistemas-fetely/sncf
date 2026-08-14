@@ -44,8 +44,8 @@ export interface NovoItem {
 export interface ItemEdit {
   id?: string;
   descricao: string;
-  quantidade: number;
-  valor_estimado_unitario: number;
+  quantidade: number | null;
+  valor_estimado_unitario: number | null;
   urls: string[];
   especificacao_tecnica: string;
   ordem: number;
