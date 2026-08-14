@@ -18,6 +18,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import {
   useConfirmarPagamentoLinha,
   type ProvaTipo,
@@ -72,6 +73,7 @@ export function ConfirmarPortaoPagoDialog({
   const [provaRef, setProvaRef] = useState<string>("");
   const [observacao, setObservacao] = useState<string>("");
 
+  const { toast } = useToast();
   const confirmar = useConfirmarPagamentoLinha();
 
   // Fallback: consumidores que só conhecem o pedido (fila / detalhe).
