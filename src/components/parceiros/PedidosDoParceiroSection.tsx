@@ -128,37 +128,44 @@ export function PedidosDoParceiroSection({ parceiroId }: { parceiroId: string })
                     <TableCell className="text-right whitespace-nowrap">
                       {(() => {
                         const nf = nfsPorPedido?.get(p.id);
-                        if (!nf) return null;
+                        if (!nf?.nf_id || !nf.pode_baixar) return null;
+                        const emDownload = baixando && nfEmDownload === nf.nf_id;
                         return (
                           <>
-                            {nf.pdf_url && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                title={`NF ${nf.numero ?? ""} — baixar DANFE`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  window.open(nf.pdf_url!, "_blank", "noopener,noreferrer");
-                                }}
-                              >
-                                <FileText className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
-                            {nf.xml_url && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                title={`NF ${nf.numero ?? ""} — baixar XML`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  window.open(nf.xml_url!, "_blank", "noopener,noreferrer");
-                                }}
-                              >
-                                <Code className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              disabled={emDownload}
+                              title={`NF ${nf.numero ?? ""} — baixar DANFE`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                baixar({
+                                  nf_id: nf.nf_id!,
+                                  nome: `NF-${nf.numero ?? nf.nf_id}`,
+                                  formato: "pdf",
+                                });
+                              }}
+                            >
+                              <FileText className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              disabled={emDownload}
+                              title={`NF ${nf.numero ?? ""} — baixar XML`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                baixar({
+                                  nf_id: nf.nf_id!,
+                                  nome: `NF-${nf.numero ?? nf.nf_id}`,
+                                  formato: "xml",
+                                });
+                              }}
+                            >
+                              <Code className="h-3.5 w-3.5" />
+                            </Button>
                           </>
                         );
                       })()}
