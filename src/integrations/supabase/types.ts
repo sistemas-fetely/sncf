@@ -313,6 +313,13 @@ export type Database = {
             foreignKeyName: "adiantamento_aplicacao_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "adiantamento_aplicacao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -840,6 +847,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "adiantamento_cliente_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "adiantamento_cliente_pedido_id_fkey"
@@ -1439,6 +1453,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "analises_credito_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "analises_credito_pedido_id_fkey"
@@ -3833,6 +3854,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_envios_log_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "bling_envios_log_pedido_id_fkey"
@@ -6521,6 +6549,13 @@ export type Database = {
             foreignKeyName: "concessao_ocorrencia_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -6726,6 +6761,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_pedido_origem_id_fkey"
+            columns: ["pedido_origem_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "concessao_ocorrencia_pedido_origem_id_fkey"
@@ -9644,6 +9686,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "documentos_venda_ref_pedido_id_fkey"
+            columns: ["ref_pedido_id"]
+            isOneToOne: true
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "documentos_venda_ref_pedido_id_fkey"
@@ -13781,6 +13830,13 @@ export type Database = {
             foreignKeyName: "haver_aplicacao_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haver_aplicacao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -14048,6 +14104,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "haver_cliente_origem_pedido_id_fkey"
+            columns: ["origem_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "haver_cliente_origem_pedido_id_fkey"
@@ -16782,6 +16845,13 @@ export type Database = {
             foreignKeyName: "movimentacao_estoque_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -18130,6 +18200,13 @@ export type Database = {
             foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
             columns: ["pedido_venda_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
+            columns: ["pedido_venda_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -18956,6 +19033,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_venda_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_venda_pedido_id_fkey"
@@ -21080,6 +21164,13 @@ export type Database = {
             foreignKeyName: "pedido_email_log_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_email_log_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -21449,6 +21540,13 @@ export type Database = {
             foreignKeyName: "pedido_eventos_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_eventos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -21705,6 +21803,13 @@ export type Database = {
             foreignKeyName: "pedido_itens_origem_pedido_id_fkey"
             columns: ["origem_pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_itens_origem_pedido_id_fkey"
+            columns: ["origem_pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -21910,6 +22015,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_itens_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pedido_itens_pedido_id_fkey"
@@ -22169,6 +22281,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_link_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pedido_link_pagamento_pedido_id_fkey"
@@ -22496,6 +22615,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_portao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pedido_portao_pedido_id_fkey"
@@ -22832,6 +22958,13 @@ export type Database = {
             foreignKeyName: "pedido_remessa_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_remessa_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -23148,6 +23281,13 @@ export type Database = {
             foreignKeyName: "pedido_tarefas_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_tarefas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -23395,6 +23535,13 @@ export type Database = {
             foreignKeyName: "pedido_transicoes_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_transicoes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -23462,6 +23609,9 @@ export type Database = {
           cancelado_motivo_codigo: string | null
           cancelado_por: string | null
           cliente_nome_snapshot: string | null
+          coerencia_diag: Json | null
+          coerencia_status: string | null
+          coerencia_verificada_em: string | null
           condicao_solicitada: string
           consolidado_em_pedido_id: string | null
           contexto_anotacoes: string | null
@@ -23558,6 +23708,9 @@ export type Database = {
           cancelado_motivo_codigo?: string | null
           cancelado_por?: string | null
           cliente_nome_snapshot?: string | null
+          coerencia_diag?: Json | null
+          coerencia_status?: string | null
+          coerencia_verificada_em?: string | null
           condicao_solicitada: string
           consolidado_em_pedido_id?: string | null
           contexto_anotacoes?: string | null
@@ -23654,6 +23807,9 @@ export type Database = {
           cancelado_motivo_codigo?: string | null
           cancelado_por?: string | null
           cliente_nome_snapshot?: string | null
+          coerencia_diag?: Json | null
+          coerencia_status?: string | null
+          coerencia_verificada_em?: string | null
           condicao_solicitada?: string
           consolidado_em_pedido_id?: string | null
           contexto_anotacoes?: string | null
@@ -23899,6 +24055,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedidos_consolidado_em_pedido_id_fkey"
+            columns: ["consolidado_em_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pedidos_consolidado_em_pedido_id_fkey"
@@ -24191,6 +24354,13 @@ export type Database = {
             foreignKeyName: "pedidos_pedido_origem_id_fkey"
             columns: ["pedido_origem_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_pedido_origem_id_fkey"
+            columns: ["pedido_origem_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -24403,6 +24573,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedidos_split_de_pedido_id_fkey"
+            columns: ["split_de_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pedidos_split_de_pedido_id_fkey"
@@ -26912,6 +27089,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "provisao_recebimento_pedido_id_fkey"
@@ -32744,6 +32928,13 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -33778,6 +33969,13 @@ export type Database = {
             foreignKeyName: "transp_fretes_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -34313,6 +34511,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "transp_rastreio_nf_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "transp_rastreio_nf_pedido_id_fkey"
@@ -36199,6 +36404,13 @@ export type Database = {
             foreignKeyName: "xpm_envios_log_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "xpm_envios_log_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -37019,6 +37231,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "xpm_nf_fila_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "xpm_nf_fila_pedido_id_fkey"
@@ -38650,6 +38869,13 @@ export type Database = {
             foreignKeyName: "adiantamento_cliente_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "adiantamento_cliente_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -39512,6 +39738,13 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -40145,6 +40378,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "titulo_a_receber_pedido_id_fkey"
@@ -41436,6 +41676,13 @@ export type Database = {
             foreignKeyName: "pedido_eventos_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_eventos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -41879,6 +42126,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "transp_rastreio_nf_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "transp_rastreio_nf_pedido_id_fkey"
@@ -42870,6 +43124,13 @@ export type Database = {
             foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
             columns: ["pedido_venda_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
+            columns: ["pedido_venda_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -43290,6 +43551,13 @@ export type Database = {
             foreignKeyName: "analises_credito_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analises_credito_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -43589,6 +43857,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_portao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pedido_portao_pedido_id_fkey"
@@ -44045,6 +44320,13 @@ export type Database = {
             foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -44250,6 +44532,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_pedido_id_fkey"
+            columns: ["pedido_id_legado"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "transp_fretes_pedido_id_fkey"
@@ -44525,6 +44814,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
@@ -45957,6 +46253,13 @@ export type Database = {
             foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
             columns: ["pedido_venda_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
+            columns: ["pedido_venda_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -46679,6 +46982,13 @@ export type Database = {
             foreignKeyName: "pedidos_split_de_pedido_id_fkey"
             columns: ["pai_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_split_de_pedido_id_fkey"
+            columns: ["pai_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -47221,6 +47531,13 @@ export type Database = {
             foreignKeyName: "adiantamento_cliente_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "adiantamento_cliente_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -47454,6 +47771,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedidos_split_de_pedido_id_fkey"
+            columns: ["pai_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pedidos_split_de_pedido_id_fkey"
@@ -47765,6 +48089,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedidos_split_de_pedido_id_fkey"
+            columns: ["split_de_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pedidos_split_de_pedido_id_fkey"
@@ -48195,6 +48526,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_itens_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pedido_itens_pedido_id_fkey"
@@ -48652,6 +48990,13 @@ export type Database = {
             foreignKeyName: "pedido_link_pagamento_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_link_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -48952,6 +49297,13 @@ export type Database = {
             foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -49176,6 +49528,13 @@ export type Database = {
             foreignKeyName: "pedidos_consolidado_em_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_consolidado_em_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -49381,6 +49740,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedidos_split_de_pedido_id_fkey"
+            columns: ["origem_split_de_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pedidos_split_de_pedido_id_fkey"
@@ -49645,6 +50011,117 @@ export type Database = {
           status_label: string | null
           tempo_na_fase: number | null
           valor_liquido: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["estagio"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "pedidos_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "pedidos_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conta_corrente_cliente"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "pedidos_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_estimado_parceiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "pedidos_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "pedidos_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_nome"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "pedidos_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+        ]
+      }
+      vw_pedidos_incoerentes: {
+        Row: {
+          cliente: string | null
+          coerencia_status: string | null
+          coerencia_verificada_em: string | null
+          data_pedido: string | null
+          diferenca: number | null
+          estagio: string | null
+          id: string | null
+          id_externo: string | null
+          motivo: string | null
+          n_itens: number | null
+          parceiro_id: string | null
+          soma_itens: number | null
+          tem_nf: boolean | null
+          tem_titulo: boolean | null
+          valor_bruto_pedido: number | null
+        }
+        Insert: {
+          cliente?: never
+          coerencia_status?: string | null
+          coerencia_verificada_em?: string | null
+          data_pedido?: string | null
+          diferenca?: never
+          estagio?: string | null
+          id?: string | null
+          id_externo?: string | null
+          motivo?: never
+          n_itens?: never
+          parceiro_id?: string | null
+          soma_itens?: never
+          tem_nf?: never
+          tem_titulo?: never
+          valor_bruto_pedido?: never
+        }
+        Update: {
+          cliente?: never
+          coerencia_status?: string | null
+          coerencia_verificada_em?: string | null
+          data_pedido?: string | null
+          diferenca?: never
+          estagio?: string | null
+          id?: string | null
+          id_externo?: string | null
+          motivo?: never
+          n_itens?: never
+          parceiro_id?: string | null
+          soma_itens?: never
+          tem_nf?: never
+          tem_titulo?: never
+          valor_bruto_pedido?: never
         }
         Relationships: [
           {
@@ -50218,6 +50695,13 @@ export type Database = {
             foreignKeyName: "provisao_recebimento_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -50471,6 +50955,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "provisao_recebimento_pedido_id_fkey"
@@ -50734,6 +51225,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "titulo_a_receber_pedido_id_fkey"
@@ -51230,6 +51728,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "titulo_a_receber_pedido_id_fkey"
@@ -52008,6 +52513,13 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["pedido_id"]
           },
@@ -52241,6 +52753,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "titulo_a_receber_pedido_id_fkey"
@@ -52931,6 +53450,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pedidos_farol"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "titulo_a_receber_pedido_id_fkey"
