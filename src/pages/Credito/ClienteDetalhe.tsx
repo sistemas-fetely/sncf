@@ -14,7 +14,6 @@ import { TimelineClienteVisual } from "@/components/credito/TimelineClienteVisua
 import { ErguerBandeiraVermelhaDialog } from "@/components/credito/dialogs/ErguerBandeiraVermelhaDialog";
 import { BaixarBandeiraVermelhaDialog } from "@/components/credito/dialogs/BaixarBandeiraVermelhaDialog";
 import { GerenciarHaverDialog } from "@/components/credito/GerenciarHaverDialog";
-import { AvisoResiduoBling } from "@/components/credito/AvisoResiduoBling";
 import { AvisoNaoFaturado } from "@/components/credito/AvisoNaoFaturado";
 import type { TituloB2B } from "@/hooks/credito/useClienteDetalhe";
 import { apelidoParceiro } from "@/lib/parceiros/nome";
@@ -176,7 +175,6 @@ export default function ClienteDetalhe() {
                 <Linha label="Maior compra" value={fmtBRL.format(kpisFinanceiros.maior_compra)} />
                 <Linha label="Última compra" value={fmtDate(kpisFinanceiros.ultima_compra_em)} />
                 <Linha label="Atraso médio" value={`${kpisFinanceiros.atraso_medio_dias || 0} dias`} />
-                <AvisoResiduoBling kpis={kpisFinanceiros} />
               </>
             ) : (
               <p className="text-sm text-muted-foreground">Cliente novo. Sem histórico financeiro ainda.</p>

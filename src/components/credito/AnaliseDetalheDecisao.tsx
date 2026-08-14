@@ -10,7 +10,6 @@ import { FormDecisaoCredito, type CamposDecisao } from "./FormDecisaoCredito";
 import { HistoricoClienteAccordion } from "./HistoricoClienteAccordion";
 import { ScoresAnexados } from "./ScoresAnexados";
 import { BoxDevolucaoRecente } from "./BoxDevolucaoRecente";
-import { AvisoResiduoBling } from "./AvisoResiduoBling";
 import { AvisoNaoFaturado } from "./AvisoNaoFaturado";
 import { AprovarDialog } from "./dialogs/AprovarDialog";
 import { ReprovarDialog } from "./dialogs/ReprovarDialog";
@@ -180,7 +179,6 @@ export function AnaliseDetalheDecisao({ analiseId }: Props) {
                   label="Atraso médio"
                   value={`${kpisFinanceiros.atraso_medio_dias || 0}d`}
                 />
-                <AvisoResiduoBling kpis={kpisFinanceiros} />
               </>
             ) : (
               <p className="text-sm text-muted-foreground italic">

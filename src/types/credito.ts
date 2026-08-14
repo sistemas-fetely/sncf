@@ -149,10 +149,6 @@ export interface KpiFinanceiro {
   vencidos: number;
   a_vencer: number;
   atraso_medio_dias: number;
-  em_aberto_bling_sem_titulo?: number;
-  vencidos_bling_sem_titulo?: number;
-  qtd_bling_sem_titulo?: number;
-  pago_legado_bling?: number;
   em_aberto_sem_nf?: number;
   qtd_sem_nf?: number;
 }
