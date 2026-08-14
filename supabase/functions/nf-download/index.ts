@@ -8,6 +8,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import {
   resolverLinkPdfFresco,
   baixarPdfValidado,
+  validarXmlNf,
   NfAnexoError,
 } from "../_shared/bling/nf-anexo.ts";
 
@@ -46,16 +47,73 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     nfId = typeof body?.nf_id === "string" ? body.nf_id.trim() : "";
     if (!nfId) return err(400, "nf_id obrigatório.");
+    const formato: "pdf" | "xml" = body?.formato === "xml" ? "xml" : "pdf";
 
-    console.log("[nf-download] início", { nf_id: nfId, user_id: userData.user.id });
+    console.log("[nf-download] início", { nf_id: nfId, formato, user_id: userData.user.id });
 
     const { data: nf, error: nfErr } = await supabase
       .from("nfs_emitidas")
-      .select("id, bling_id, numero, serie, pdf_url, xml_url")
+      .select("id, bling_id, numero, serie, pdf_url, xml_url, chave_acesso")
       .eq("id", nfId)
       .maybeSingle();
     if (nfErr) return err(500, `Falha ao carregar a NF: ${nfErr.message}`, { nf_id: nfId });
     if (!nf) return err(404, `NF ${nfId} não encontrada em nfs_emitidas.`, { nf_id: nfId });
+
+    if (formato === "xml") {
+      let xmlTexto: string;
+      let origemLink: string;
+      let backfill: boolean;
+      try {
+        const resolvidoXml = await resolverLinkPdfFresco(supabase, null, nf as any);
+        origemLink = resolvidoXml.origem;
+        backfill = resolvidoXml.backfill;
+        const xmlVal = resolvidoXml.xml;
+        if (!xmlVal) {
+          return err(502, `O Bling não retornou XML para a NF ${nf.numero ?? nfId}.`, {
+            nf_id: nfId,
+          });
+        }
+        if (xmlVal.startsWith("http")) {
+          const xmlResp = await fetch(xmlVal);
+          if (!xmlResp.ok) {
+            throw new NfAnexoError(
+              502,
+              `Falha ao baixar XML da NF ${nf.numero ?? nfId}: HTTP ${xmlResp.status}`,
+              { nf_id: nfId },
+            );
+          }
+          xmlTexto = validarXmlNf(await xmlResp.text(), { nf_id: nfId });
+        } else {
+          xmlTexto = validarXmlNf(xmlVal, { nf_id: nfId });
+        }
+      } catch (e) {
+        if (e instanceof NfAnexoError) return err(e.status, e.message, e.extra);
+        throw e;
+      }
+
+      const nomeXml = nf.chave_acesso
+        ? `NFe-${nf.chave_acesso}.xml`
+        : `NF-${nf.numero ?? nfId}${nf.serie ? `-${nf.serie}` : ""}.xml`;
+      const xmlBytes = new TextEncoder().encode(xmlTexto);
+      console.log("[nf-download] sucesso", {
+        nf_id: nfId,
+        formato,
+        numero: nf.numero,
+        origem_link: origemLink,
+        bytes: xmlBytes.byteLength,
+        backfill,
+        arquivo: nomeXml,
+      });
+
+      return new Response(xmlBytes, {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/octet-stream",
+          "Content-Disposition": `attachment; filename="${nomeXml}"`,
+        },
+      });
+    }
 
     let resolvido;
     let bytes: Uint8Array;
@@ -70,6 +128,7 @@ serve(async (req) => {
     const nome = `NF-${nf.numero ?? nfId}${nf.serie ? `-${nf.serie}` : ""}.pdf`;
     console.log("[nf-download] sucesso", {
       nf_id: nfId,
+      formato,
       numero: nf.numero,
       origem_link: resolvido.origem,
       bytes: bytes.byteLength,
