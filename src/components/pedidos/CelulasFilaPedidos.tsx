@@ -57,24 +57,55 @@ export function LinhaNfFila({ info }: { info: EntregaLinhaInfo | undefined }) {
   );
 }
 
+const ESTAGIOS_PREVISAO = new Set([
+  "recebido",
+  "em_analise_credito",
+  "credito_aprovado",
+  "cobranca",
+  "aguardando_pagamento",
+  "aguardando_estoque",
+  "pre_separacao",
+  "em_separacao",
+  "pre_faturamento",
+]);
+
 /** Linha de cima: quem entrega, conforme a modalidade de transporte. */
 function LinhaQuemEntrega({ info }: { info: EntregaLinhaInfo }) {
   const origem = info.transporte_origem;
   const nome = info.transportadora_nome;
+  const prevista = info.estagio && ESTAGIOS_PREVISAO.has(info.estagio);
+  const sufixo = prevista ? " (prevista)" : "";
 
   if (origem === "cliente_retira_ou_propria") {
-    return <p className="text-[11px] text-foreground">Cliente retira</p>;
+    const texto = "Cliente retira" + sufixo;
+    return (
+      <p className="text-[11px] text-foreground truncate" title={texto}>
+        {texto}
+      </p>
+    );
   }
   if (origem === "transportadora_via_frete") {
-    return <p className="text-[11px] text-foreground">{nome || "Transportadora"}</p>;
+    const texto = (nome || "Transportadora") + sufixo;
+    return (
+      <p className={cn("text-[11px] truncate", prevista ? "text-muted-foreground" : "text-foreground")} title={texto}>
+        {texto}
+      </p>
+    );
   }
   if (origem === "transportadora") {
-    if (info.prazo_transportadora) {
-      return <p className="text-[11px] text-foreground">{nome || "Transportadora"}</p>;
-    }
-    return <p className="text-[11px] text-muted-foreground">{(nome || "Transportadora") + " (prevista)"}</p>;
+    const texto = (nome || "Transportadora") + sufixo;
+    return (
+      <p className={cn("text-[11px] truncate", prevista ? "text-muted-foreground" : "text-foreground")} title={texto}>
+        {texto}
+      </p>
+    );
   }
-  return <p className="text-[11px] text-muted-foreground/60 italic">Transportadora não definida</p>;
+  const texto = "Transportadora não definida" + sufixo;
+  return (
+    <p className={cn("text-[11px] italic truncate", prevista ? "text-muted-foreground" : "text-muted-foreground/60")} title={texto}>
+      {texto}
+    </p>
+  );
 }
 
 /** Linha de baixo: ESCADA DE PROCEDÊNCIA — apenas um degrau, o mais alto. */

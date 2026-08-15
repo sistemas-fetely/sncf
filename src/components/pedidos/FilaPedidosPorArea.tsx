@@ -518,11 +518,11 @@ export function FilaPedidosPorArea({
           <TableHeader>
             <TableRow>
               <TableHead className="w-[56px]">Risco</TableHead>
-              <TableHead>Pedido</TableHead>
+              <TableHead className="w-[280px]">Pedido</TableHead>
               <TableHead className="w-[130px]">Valor</TableHead>
               <TableHead className="w-[150px]">Pagamento</TableHead>
               <TableHead className="w-[150px]">Estágio</TableHead>
-              <TableHead className="w-[170px]">Entrega</TableHead>
+              <TableHead>Entrega</TableHead>
               <TableHead className="w-[70px]">Na fase</TableHead>
               <TableHead className="w-[56px] text-right text-[11px] font-normal text-muted-foreground">Ações</TableHead>
 
@@ -563,23 +563,7 @@ export function FilaPedidosPorArea({
                     />
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
-                    {p.parceiro_id ? (
-                      <button
-                        type="button"
-                        className="font-medium text-sm text-left hover:underline"
-                        onClick={() => navigate(`/parceiros/${p.parceiro_id}`, { state: { from: "/pedidos" } })}
-                      >
-                        {p.parceiro_razao}
-                      </button>
-                    ) : (
-                      <p className="font-medium text-sm">{p.parceiro_razao}</p>
-                    )}
-                    {p.parceiro_id && apelidoMap?.[p.parceiro_id] && (
-                      <p className="text-xs text-muted-foreground truncate">
-                        {apelidoMap[p.parceiro_id]}
-                      </p>
-                    )}
-                    <p className="text-[11px] text-muted-foreground font-mono flex items-center gap-1">
+                    <p className="text-sm font-mono font-medium text-foreground flex items-center gap-1">
                       {p.id_externo}
                       {(() => {
                         const motivos = risco?.risco_motivos ?? [];
@@ -601,7 +585,29 @@ export function FilaPedidosPorArea({
                         }
                         return null;
                       })()}
-                      {p.parceiro_cnpj ? ` · ${p.parceiro_cnpj}` : ""}
+                    </p>
+                    {p.parceiro_id ? (
+                      <button
+                        type="button"
+                        className="text-sm font-normal text-left hover:underline truncate block w-full"
+                        title={p.parceiro_razao}
+                        onClick={() => navigate(`/parceiros/${p.parceiro_id}`, { state: { from: "/pedidos" } })}
+                      >
+                        {p.parceiro_razao}
+                      </button>
+                    ) : (
+                      <p className="text-sm font-normal truncate" title={p.parceiro_razao}>{p.parceiro_razao}</p>
+                    )}
+                    <p
+                      className="text-[11px] text-muted-foreground truncate"
+                      title={[
+                        p.parceiro_id && apelidoMap?.[p.parceiro_id] ? apelidoMap[p.parceiro_id] : null,
+                        p.parceiro_cnpj,
+                      ].filter(Boolean).join(" · ")}
+                    >
+                      {p.parceiro_id && apelidoMap?.[p.parceiro_id] ? apelidoMap[p.parceiro_id] : null}
+                      {p.parceiro_id && apelidoMap?.[p.parceiro_id] && p.parceiro_cnpj ? " · " : null}
+                      {p.parceiro_cnpj}
                     </p>
                     <MarcacaoBadge marcacao={p.marcacao} />
                   </TableCell>
