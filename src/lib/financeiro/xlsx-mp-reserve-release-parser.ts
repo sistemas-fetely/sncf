@@ -61,10 +61,12 @@ export function parseXlsxMpReserveRelease(buf: ArrayBuffer): MpReserveReleasePar
   const iIdOp      = idx("id da operacao");
   const iDescricao = idx("descricao");
   const iCredito   = idx("valor liquido creditado");
+  const iDebito    = idx("valor liquido debitado");
   const iMeio      = idx("meio de pagamento");
   const iCodRef    = idx("codigo de referencia");
   const iSaldo     = idx("saldo");
   const iTipoReg   = idx("tipo de registro");
+  const iContaDest = idx("conta de destino da retirada");
 
   const liberacoes: MpLiberacao[] = [];
 
@@ -75,17 +77,25 @@ export function parseXlsxMpReserveRelease(buf: ArrayBuffer): MpReserveReleasePar
     const tipoReg = norm(row[iTipoReg]);
     if (!tipoReg.includes("libera")) continue;
 
+    const descricaoBruta = String(row[iDescricao] ?? "");
+    // Perna de reserva é par neutro (crédito + débito do mesmo valor): não é dinheiro.
+    if (norm(descricaoBruta).startsWith("reserva")) continue;
+
     const credito = toNum(row[iCredito]);
-    if (credito <= 0) continue;
+    const debito = toNum(row[iDebito]);
+    const valor = credito - debito;
+    if (valor === 0) continue;
 
     liberacoes.push({
       data_liberacao:   toISO(row[iDataLib]),
       id_operacao:      String(row[iIdOp] ?? ""),
-      descricao:        String(row[iDescricao] ?? ""),
-      valor_liquido:    credito,
+      descricao:        descricaoBruta,
+      valor_liquido:    valor,
       meio_pagamento:   String(row[iMeio] ?? ""),
       codigo_referencia: String(row[iCodRef] ?? ""),
       saldo_apos:       toNum(row[iSaldo]),
+      descricao_mp:     descricaoBruta,
+      conta_destino:    String(row[iContaDest] ?? ""),
       origem:           "mp_reserve_release",
     });
   }
