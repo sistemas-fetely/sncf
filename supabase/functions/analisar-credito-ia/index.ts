@@ -375,12 +375,159 @@ Gere a análise estruturada em JSON conforme instruído no system prompt.`;
   }
 });
 
+interface FatosCredito {
+  vencidos: number;
+  a_vencer: number;
+  em_aberto: number;
+  pago: number;
+  atraso_medio: number;
+  vencidos_grupo: number;
+  valor_bruto: number;
+  valor_liquido: number;
+  valor_frete: number;
+  acrescimo_ie_valor: number;
+  titulos_atrasados: number;
+  valores_payload: number[];
+}
+
+const PERFIS_VALIDOS = [
+  "novo_entrada",
+  "novo_qualificado",
+  "recorrente_bom_pagador",
+  "premium",
+];
+const DECISOES_VALIDAS = [
+  "aprovar",
+  "aprovar_com_ressalva",
+  "reprovar",
+  "devolver_analise",
+  "devolver_entrada",
+];
+
+const RE_DIVIDA = /vencid|inadimpl|em atraso|débito|debito|divida|dívida/;
+const RE_MOEDA = /r\$\s*([\d.]*\d(?:,\d{1,2})?)/g;
+
+function parseMoedaBr(bruto: string): number {
+  const limpo = bruto.replace(/\./g, "").replace(",", ".");
+  const n = Number(limpo);
+  return Number.isFinite(n) ? n : NaN;
+}
+
+function extrairMoedas(texto: string): number[] {
+  const out: number[] = [];
+  RE_MOEDA.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = RE_MOEDA.exec(texto)) !== null) {
+    const v = parseMoedaBr(m[1]);
+    if (Number.isFinite(v)) out.push(v);
+  }
+  return out;
+}
+
+function fmtBr(v: number): string {
+  return v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function validarSaidaIA(
+  analiseIA: any,
+  fatos: FatosCredito
+): { contradicoes: string[]; cifras_orfas: number[] } {
+  const contradicoes: string[] = [];
+  const cifras_orfas: number[] = [];
+
+  const partes = [
+    analiseIA?.resumo,
+    analiseIA?.justificativa,
+    analiseIA?.sugestao?.parecer_final,
+    analiseIA?.sugestao?.ressalva,
+    ...(Array.isArray(analiseIA?.pontos_atencao) ? analiseIA.pontos_atencao : []),
+  ].filter((p: any) => typeof p === "string" && p.length > 0);
+  const alvo = partes.join(" \n ").toLowerCase();
+
+  // R1 — vencido inexistente
+  if (RE_DIVIDA.test(alvo) && fatos.vencidos === 0 && fatos.titulos_atrasados === 0) {
+    contradicoes.push(
+      "Texto afirma dívida vencida, mas o cliente tem R$ 0 vencidos e nenhum título atrasado."
+    );
+  }
+
+  // R2 — valor de vencido errado
+  const reDividaGlobal = new RegExp(RE_DIVIDA.source, "g");
+  let d: RegExpExecArray | null;
+  const citados: number[] = [];
+  while ((d = reDividaGlobal.exec(alvo)) !== null) {
+    const ini = Math.max(0, d.index - 60);
+    const fim = Math.min(alvo.length, d.index + d[0].length + 60);
+    for (const v of extrairMoedas(alvo.slice(ini, fim))) {
+      if (!citados.some((c) => Math.abs(c - v) <= 0.01)) citados.push(v);
+    }
+  }
+  for (const v of citados) {
+    if (Math.abs(v - fatos.vencidos) > 0.01) {
+      let msg = `Valor citado como dívida (R$ ${fmtBr(v)}) não corresponde ao vencido real (R$ ${fmtBr(fatos.vencidos)}).`;
+      if (fatos.pago > 0 && Math.abs(v - fatos.pago) <= 0.01) {
+        msg += " — esse valor é o total JÁ PAGO pelo cliente.";
+      }
+      contradicoes.push(msg);
+    }
+  }
+
+  // R3 — falsa inconsistência de valores
+  const falsaInconsistencia =
+    /(líquido|liquido)[\s\S]{0,40}(bruto)/.test(alvo) || /inconsist/.test(alvo);
+  if (
+    falsaInconsistencia &&
+    Math.abs(
+      fatos.valor_liquido - fatos.valor_bruto - (fatos.valor_frete + fatos.acrescimo_ie_valor)
+    ) <= 0.01
+  ) {
+    contradicoes.push(
+      "Texto aponta inconsistência entre líquido e bruto, mas a diferença é exatamente frete + acréscimo."
+    );
+  }
+
+  // R4 — cifras órfãs
+  const conhecidos = fatos.valores_payload;
+  const bate = (v: number) => {
+    if (conhecidos.some((c) => Math.abs(c - v) <= 0.01)) return true;
+    for (let i = 0; i < conhecidos.length; i++) {
+      for (let j = i + 1; j < conhecidos.length; j++) {
+        if (Math.abs(conhecidos[i] + conhecidos[j] - v) <= 0.01) return true;
+      }
+    }
+    return false;
+  };
+  for (const v of extrairMoedas(alvo)) {
+    if (v === 0) continue;
+    if (!bate(v) && !cifras_orfas.some((o) => Math.abs(o - v) <= 0.01)) cifras_orfas.push(v);
+  }
+
+  // Validações estruturais básicas
+  const perfil = analiseIA?.sugestao?.perfil_aplicado;
+  if (perfil === "bandeira_vermelha") {
+    contradicoes.push("perfil_aplicado = bandeira_vermelha não é permitido para a IA.");
+  } else if (!PERFIS_VALIDOS.includes(perfil)) {
+    contradicoes.push(`perfil_aplicado inválido: "${perfil}".`);
+  }
+  if (!DECISOES_VALIDAS.includes(analiseIA?.decisao_sugerida)) {
+    contradicoes.push(`decisao_sugerida inválida: "${analiseIA?.decisao_sugerida}".`);
+  }
+  const conf = Number(analiseIA?.confianca);
+  if (!Number.isFinite(conf) || conf < 0 || conf > 100) {
+    contradicoes.push(`confianca fora da faixa 0-100: "${analiseIA?.confianca}".`);
+  }
+
+  return { contradicoes, cifras_orfas };
+}
+
 async function processarRespostaIA(
   aiData: any,
   analise_id: string,
   supabase: any,
   corsHeaders: Record<string, string>,
-  modeloUsado: string
+  modeloUsado: string,
+  fatos: FatosCredito,
+  fallbackInfo: { primario: string; status: number; erro: string; em: string } | null
 ): Promise<Response> {
   let raw = aiData?.choices?.[0]?.message?.content ?? "";
   let jsonStr = String(raw).trim();
@@ -401,11 +548,39 @@ async function processarRespostaIA(
     );
   }
 
+  // Validação determinística — SISTEMA SUGERE / HUMANO DECIDE: nunca descarta, só carimba.
+  const confiancaOriginal = Number(analiseIA?.confianca ?? 0);
+  const { contradicoes, cifras_orfas } = validarSaidaIA(analiseIA, fatos);
+
+  if (contradicoes.length > 0) {
+    console.warn("Validação IA encontrou contradições:", analise_id, contradicoes);
+    analiseIA.confianca = Math.min(Number(analiseIA.confianca ?? 0) || 0, 40);
+    if (!Array.isArray(analiseIA.pontos_atencao)) analiseIA.pontos_atencao = [];
+    analiseIA.pontos_atencao.unshift(
+      "⚠ VERIFICAÇÃO AUTOMÁTICA: esta análise contradiz os dados do sistema. Confira antes de decidir."
+    );
+  } else if (cifras_orfas.length > 0) {
+    console.warn("Validação IA encontrou cifras órfãs:", analise_id, cifras_orfas);
+    analiseIA.confianca = Math.min(Number(analiseIA.confianca ?? 0) || 0, 70);
+  }
+
+  const iaJson: Record<string, unknown> = {
+    ...analiseIA,
+    _modelo: modeloUsado,
+    _validacao: {
+      contradicoes,
+      cifras_orfas,
+      confianca_original: confiancaOriginal,
+      validado_em: new Date().toISOString(),
+    },
+  };
+  if (fallbackInfo) iaJson._fallback = fallbackInfo;
+
   // Grava em analises_credito
   const { error: updErr } = await supabase
     .from("analises_credito")
     .update({
-      analise_ia_json: { ...analiseIA, _modelo: modeloUsado },
+      analise_ia_json: iaJson,
       analise_ia_resumo: analiseIA.resumo,
       analise_ia_confianca: analiseIA.confianca,
       analise_ia_processada_em: new Date().toISOString(),
@@ -424,7 +599,7 @@ async function processarRespostaIA(
     JSON.stringify({
       analise_id,
       modelo: modeloUsado,
-      analise_ia: analiseIA,
+      analise_ia: iaJson,
     }),
     { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
   );
