@@ -8,6 +8,10 @@ export interface LiberacaoExpedicao {
   rotulo: string;
   tom: "ok" | "alerta";
   motivo: string | null;
+  nivel_prova: string | null;
+  prova_rotulo: string | null;
+  prova_tom: "ok" | "alerta" | "perigo" | null;
+  prova_frase: string | null;
 }
 
 /**
@@ -24,7 +28,9 @@ export function useLiberacaoExpedicaoLote(pedidoIds: string[]) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("vw_pedido_liberacao_expedicao")
-        .select("pedido_id, liberado, codigo, rotulo, tom, motivo")
+        .select(
+          "pedido_id, liberado, codigo, rotulo, tom, motivo, nivel_prova, prova_rotulo, prova_tom, prova_frase"
+        )
         .in("pedido_id", ids);
       if (error) throw error;
       const m = new Map<string, LiberacaoExpedicao>();
@@ -36,3 +42,4 @@ export function useLiberacaoExpedicaoLote(pedidoIds: string[]) {
     },
   });
 }
+
