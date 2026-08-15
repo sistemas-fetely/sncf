@@ -854,19 +854,75 @@ function BadgeEntradaPaga({ p }: { p: PedidoFilaItem }) {
   );
 }
 
-function CelulaPagamento({ p, prova }: { p: PedidoFilaItem; prova?: ProvaPagamento }) {
-  const situacao = p.situacao_financeira;
-  const rotulo = p.situacao_rotulo;
-  const ref = p.pagamento_ref;
-  const refNota = ref === "pai" ? " · informação do pedido pai" : "";
-  const valorPago = Number(p.valor_pago || 0);
-  const valorAberto = Number(p.valor_aberto || 0);
-  const valorVencido = Number(p.valor_vencido || 0);
-  const diasAtraso = Number(p.dias_atraso_max || 0);
-  const badgeAdiantado = <BadgeEntradaPaga p={p} />;
+/** Compara sem acento e sem caixa — "Cartão" casa com "cartao". */
+function normalizarTexto(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
 
-  // O valor líquido vive na coluna Valor; aqui ficam só os selos de pagamento.
-  const valorLine = null;
+const MEIOS_PAGAMENTO = ["boleto", "cart", "pix", "haver"] as const;
+
+/** Só exibição: encurta a condição, sem tocar no dado. */
+function condicaoExibida(condicao: string): string {
+  return (condicao || "")
+    .replace(/\s*sem\s+juros\s*/gi, " ")
+    .replace(/\s+\(/g, " · ")
+    .replace(/\)\s*$/, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function LinhaCondicaoPagamento({ p }: { p: PedidoFilaItem }) {
+  const condicao = p.condicao_solicitada || "";
+  const forma = p.forma_solicitada || "";
+  const cond = normalizarTexto(condicao);
+  const frm = normalizarTexto(forma);
+
+  const meioNaCondicao = MEIOS_PAGAMENTO.find((m) => cond.includes(m));
+  const meioNaForma = MEIOS_PAGAMENTO.find((m) => frm.includes(m));
+
+  const condTexto = condicaoExibida(condicao);
+  if (!condTexto && !forma) return null;
+
+  // Condição já contém a forma → só a condição.
+  if (frm && cond.includes(frm)) {
+    return <p className="text-[11px] text-muted-foreground truncate">{condTexto}</p>;
+  }
+
+  // Condição menciona um meio diferente do cadastro → destaque na forma.
+  const divergente = !!meioNaCondicao && !!meioNaForma && meioNaCondicao !== meioNaForma;
+
+  return (
+    <p
+      className="text-[11px] text-muted-foreground truncate"
+      title={
+        divergente
+          ? "A condição diz um meio de pagamento e o cadastro diz outro."
+          : undefined
+      }
+    >
+      {condTexto}
+      {forma ? (
+        <>
+          {" · "}
+          <span className={cn(divergente && "text-destructive")}>{forma}</span>
+        </>
+      ) : null}
+    </p>
+  );
+}
+
+function CelulaPagamento({
+  p,
+  prova,
+  liberacao,
+}: {
+  p: PedidoFilaItem;
+  prova?: ProvaPagamento;
+  liberacao?: LiberacaoExpedicao;
+}) {
   const provaLine = prova ? (
     <TooltipProvider>
       <Tooltip>
@@ -890,176 +946,42 @@ function CelulaPagamento({ p, prova }: { p: PedidoFilaItem; prova?: ProvaPagamen
       </Tooltip>
     </TooltipProvider>
   ) : null;
-  const condLine = (
-    <>
-      <p className="text-[11px] text-muted-foreground">
-        {p.condicao_solicitada} · {p.forma_solicitada}
-      </p>
-      {provaLine}
-    </>
-  );
 
-  if (situacao === "vencido") {
-    return (
-      <>
-        <div className="flex flex-wrap items-baseline gap-1.5">
-          {valorLine}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="inline-block">
-                  <Badge variant="destructive" className="text-[10px] py-0 px-1.5">
-                    {rotulo || `Vencido ${diasAtraso}d`}
-                  </Badge>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs">
-                  {fmtBRL.format(valorVencido)} vencido{refNota}
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          {badgeAdiantado}
-        </div>
-        {condLine}
-      </>
-    );
-  }
+  const liberacaoLine = liberacao ? (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <p
+            className={cn(
+              "text-[11px] font-medium truncate",
+              liberacao.tom === "alerta" ? "text-warning" : "text-muted-foreground",
+            )}
+          >
+            {liberacao.rotulo}
+          </p>
+        </TooltipTrigger>
+        <TooltipContent>
+          <div className="max-w-[320px] space-y-1">
+            {liberacao.motivo && <p className="text-xs">{liberacao.motivo}</p>}
+            {p.situacao_rotulo && (
+              <p className="text-xs opacity-80">{p.situacao_rotulo}</p>
+            )}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  ) : null;
 
-  if (situacao === "quitado") {
-    return (
-      <>
-        <div className="flex flex-wrap items-baseline gap-1.5">
-          {valorLine}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="inline-block">
-                  {/* Rótulo do banco ignorado de propósito: ele repete o valor exibido ao lado. */}
-                  <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border-0 text-[10px] py-0 px-1.5">
-                    Quitado
-                  </Badge>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs">Pagamento quitado{refNota}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          {badgeAdiantado}
-        </div>
-        {condLine}
-      </>
-    );
-  }
-
-  if (situacao === "parcial_pago") {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div>
-              <div className="flex flex-wrap items-baseline gap-1.5">
-                {valorLine}
-                <span className="inline-block">
-                  <Badge className="bg-sky-100 text-sky-900 hover:bg-sky-100 border-0 text-[10px] py-0 px-1.5">
-                    {rotulo || "Parcial pago"}
-                  </Badge>
-                </span>
-                {badgeAdiantado}
-              </div>
-              {condLine}
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p className="text-xs">
-              {fmtBRL.format(valorPago)} pago · {fmtBRL.format(valorAberto)} em aberto{refNota}
-            </p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
-
-  // sem_recebivel = problema real (nada previsto, nada pago, nada na família).
-  if (situacao === "sem_recebivel") {
-    return (
-      <>
-        <div className="flex flex-wrap items-baseline gap-1.5">
-          {valorLine}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="inline-block">
-                  <Badge className={cn(classeSituacao(situacao), "text-[10px] py-0 px-1.5")}>
-                    Sem recebível
-                  </Badge>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs">
-                  {rotuloSituacao(situacao, p.lastro_porque, rotulo)} · falta faturar:{" "}
-                  {fmtBRL.format(p.valor_liquido)}
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          {badgeAdiantado}
-        </div>
-        {condLine}
-      </>
-    );
-  }
-
-  // Estados informativos — NÃO são alerta: natureza sem cobrança, plano previsto,
-  // pré-pago por haver e recebível que vive na mãe do split. Texto vem do banco.
-  if (
-    situacao === "sem_cobranca" ||
-    situacao === "previsto" ||
-    situacao === "coberto_haver" ||
-    situacao === "recebivel_familia" ||
-    situacao === "anulado"
-  ) {
-    const texto = rotuloSituacao(situacao, rotulo, p.lastro_porque);
-    const curto = metaSituacao(situacao)?.label ?? texto;
-    return (
-      <>
-        <div className="flex flex-wrap items-baseline gap-1.5">
-          {valorLine}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="inline-block">
-                  <Badge className={cn(classeSituacao(situacao), "text-[10px] py-0 px-1.5")}>
-                    {curto}
-                  </Badge>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs max-w-[280px]">{texto}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          {badgeAdiantado}
-        </div>
-        {condLine}
-      </>
-    );
-  }
-
-
-  // em_aberto ou sem linha na view: valor limpo, só o badge de entrada paga.
   return (
-    <>
-      <div className="flex flex-wrap items-baseline gap-1.5">
-        {valorLine}
-        {badgeAdiantado}
-      </div>
-      {condLine}
-    </>
+    <div className="min-w-0">
+      {liberacaoLine}
+      {provaLine}
+      <LinhaCondicaoPagamento p={p} />
+      <BadgeEntradaPaga p={p} />
+    </div>
   );
 }
+
 
 
 /** Farol de risco — bolinha colorida + tooltip com faixa, score e motivos. */
