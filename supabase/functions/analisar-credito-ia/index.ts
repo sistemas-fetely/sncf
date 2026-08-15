@@ -45,6 +45,12 @@ DECISÃO SUGERIDA pode ser:
 - devolver_analise: faltou anexo, contexto incompleto
 - devolver_entrada: dado errado no payload (CNPJ não bate, valor inconsistente)
 
+REGRAS DE NÚMEROS (invioláveis):
+- Você NUNCA calcula, estima ou infere um valor em reais. Todo R$ que você escrever tem que aparecer literalmente no payload que recebeu.
+- Se quiser somar dois valores do payload, escreva a conta em vez do resultado: "os R$ X em aberto mais os R$ Y deste pedido".
+- "Vencido" e "inadimplência" só podem ser afirmados se o campo \`Vencidos\` for maior que zero OU se existir título com status \`atrasado\` na lista. O campo \`Pago histórico\` é dinheiro que o cliente JÁ PAGOU — nunca o cite como dívida.
+- Se o payload não tem o número que você precisa, diga que o dado não está disponível. Não preencha a lacuna.
+
 OUTPUT: JSON válido, sem markdown, sem texto fora do JSON.
 
 REGRA: validade_ate é calculada pelo banco automaticamente (now() + 90 dias na aprovação). Sempre retorne null nesse campo.
@@ -133,7 +139,7 @@ Deno.serve(async (req) => {
         criado_em, analise_anterior_id,
         pedido:pedidos(id, id_externo, data_pedido, valor_bruto, valor_liquido, desconto_pct,
           valor_frete, acrescimo_ie_valor, acrescimo_ie_pct, desconto_celebra_valor, bonus_pix_valor,
-          condicao_solicitada, forma_solicitada, vendedor, origem, itens_json),
+          condicao_solicitada, forma_solicitada, vendedor, origem, itens_json, faturado_em),
         parceiro:parceiros_comerciais(id, cnpj, razao_social, nome_fantasia, cep, logradouro,
           cidade, uf, telefone, email, cadastro_incompleto, bandeira_vermelha,
           bandeira_vermelha_motivo, bandeira_vermelha_em, grupo_economico_id, nivel_programa,
@@ -207,6 +213,7 @@ Deno.serve(async (req) => {
       .from("vw_titulos_cobranca")
       .select("numero_titulo, numero_parcela, total_parcelas, pedido_id_externo, valor_efetivo, data_vencimento_atual, data_pagamento, data_pagamento_banco, status_gestao")
       .eq("parceiro_id", parceiroId)
+      .not("status_gestao", "in", '("cancelado")')
       .order("data_vencimento_atual", { ascending: false })
       .limit(40);
 
@@ -217,14 +224,16 @@ Deno.serve(async (req) => {
     const valorLiquido = num(analise.pedido?.valor_liquido);
     const valorFrete = num(analise.pedido?.valor_frete);
     const acrescimoIe = num(analise.pedido?.acrescimo_ie_valor);
-    const descontoPct = num(analise.pedido?.desconto_pct);
-    const descontoRS = descontoPct > 0 ? (valorBruto * descontoPct) / 100 : 0;
+    const descontoValor = num(analise.pedido?.desconto_celebra_valor);
+    const somaConferida = valorBruto + valorFrete - descontoValor + acrescimoIe;
+    const fecha = Math.abs(somaConferida - valorLiquido) <= 0.01;
 
     const blocoTitulos = listaTitulos.length > 0
       ? listaTitulos
           .map((t: any) => {
             const liq = t.data_pagamento_banco || t.data_pagamento;
-            return `- ${t.numero_titulo} ${t.numero_parcela ?? "?"}/${t.total_parcelas ?? "?"} · pedido ${t.pedido_id_externo ?? "—"} · R$ ${num(t.valor_efetivo)} · vence ${t.data_vencimento_atual} · ${t.status_gestao}${liq ? ` · quitado em ${liq}` : ""}`;
+            const pago = String(t.status_gestao || "").startsWith("pago");
+            return `- ${t.numero_titulo} · parcela ${t.numero_parcela ?? "?"}/${t.total_parcelas ?? "?"} · pedido ${t.pedido_id_externo ?? "—"} · R$ ${num(t.valor_efetivo)} · vence ${t.data_vencimento_atual} · ${t.status_gestao}${pago && liq ? ` · liquidado em ${liq}` : ""}`;
           })
           .join("\n")
       : "Cliente sem títulos emitidos.";
@@ -233,47 +242,42 @@ Deno.serve(async (req) => {
       (t: any) => t.status_gestao === "atrasado"
     ).length;
 
-    const fatos = {
-      vencidos: num(kpis?.vencidos),
-      a_vencer: num(kpis?.a_vencer),
-      em_aberto: num(kpis?.em_aberto),
-      pago: num(kpis?.pago),
-      atraso_medio: num(kpis?.atraso_medio_dias),
-      vencidos_grupo: num(kpisGrupo?.vencidos),
-      valor_bruto: valorBruto,
-      valor_liquido: valorLiquido,
-      valor_frete: valorFrete,
-      acrescimo_ie_valor: acrescimoIe,
-      titulos_atrasados: titulosAtrasados,
-      valores_payload: [
-        valorBruto,
-        valorLiquido,
-        valorFrete,
-        acrescimoIe,
-        descontoRS,
-        num(kpis?.vencidos),
-        num(kpis?.a_vencer),
-        num(kpis?.em_aberto),
-        num(kpis?.pago),
-        num(kpis?.maior_compra),
-        num(kpisGrupo?.em_aberto),
-        num(kpisGrupo?.vencidos),
-        ...listaTitulos.map((t: any) => num(t.valor_efetivo)),
+    const contexto: ContextoCredito = {
+      valorBruto,
+      valorFrete,
+      valorLiquido,
+      descontoValor,
+      acrescimoValor: acrescimoIe,
+      kpis: {
+        em_aberto: num(kpis?.em_aberto),
+        pago: num(kpis?.pago),
+        vencidos: num(kpis?.vencidos),
+        a_vencer: num(kpis?.a_vencer),
+        maior_compra: num(kpis?.maior_compra),
+        atraso_medio_dias: num(kpis?.atraso_medio_dias),
+      },
+      kpisGrupo: {
+        em_aberto: num(kpisGrupo?.em_aberto),
+        vencidos: num(kpisGrupo?.vencidos),
+      },
+      titulosValores: listaTitulos.map((t: any) => num(t.valor_efetivo)),
+      temTituloAtrasado: titulosAtrasados > 0,
+      valoresExtra: [
         ...(scores || []).map((s: any) => num(s.total_dividas)),
         ...(anteriores || []).map((a: any) => num(a.limite_concedido)),
-      ].filter((v: number) => v > 0),
+      ],
     };
 
     // Monta user prompt com contexto completo
     const userPrompt = `Analise esta análise de crédito.
 
 PEDIDO:
-- Mercadoria (valor bruto): R$ ${valorBruto}
-- Desconto aplicado: ${descontoPct > 0 ? `R$ ${descontoRS.toFixed(2)} (${descontoPct}%)` : "nenhum"}
-- Frete (pago pelo cliente): R$ ${valorFrete}
-- Acréscimo sem inscrição estadual: R$ ${acrescimoIe}
-- TOTAL A PAGAR (valor líquido): R$ ${valorLiquido}
-- Confira: mercadoria − desconto + frete + acréscimo = total. Líquido MAIOR que bruto é normal quando há frete ou acréscimo — NÃO é inconsistência.
+- Valor bruto dos itens: R$ ${valorBruto}
+- Frete: R$ ${valorFrete}
+- Desconto: R$ ${descontoValor}
+- Acréscimo (sem inscrição estadual): R$ ${acrescimoIe}
+- Valor líquido (o que o cliente paga): R$ ${valorLiquido}
+- Conferência de valores: bruto + frete - desconto + acréscimo = R$ ${somaConferida.toFixed(2)} ${fecha ? "— FECHA com o líquido" : "— NÃO FECHA com o líquido, sinalize isso"}
 - Condição solicitada: ${analise.pedido?.condicao_solicitada}
 - Forma solicitada: ${analise.pedido?.forma_solicitada}
 - Vendedor: ${analise.pedido?.vendedor || "—"}
@@ -314,9 +318,9 @@ ${kpisGrupo ? `
 - Total em aberto do grupo (vencido + a vencer): R$ ${num(kpisGrupo.em_aberto)}
 - Atraso médio do grupo nos pagamentos já feitos: ${Math.round(num(kpisGrupo.atraso_medio_dias))} dias` : "Sem grupo econômico detectado"}
 
-TÍTULOS DO CLIENTE (fonte única da verdade sobre dívida — use estas linhas, não infira):
+TÍTULOS DO CLIENTE (lastro dos KPIs acima — NÃO existe nenhum outro título além destes):
 ${blocoTitulos}
-Legenda dos status: a_vencer/vence_hoje = em aberto no prazo · atrasado = DÍVIDA VENCIDA · aguarda_liquidacao = pago sem confirmação bancária · pago/pago_com_atraso/pago_judicial = QUITADO, não é dívida · baixado_por_perda = prejuízo assumido · devolvido/cancelado = sem efeito financeiro.
+Legenda: \`a_vencer\` e \`vence_hoje\` = em aberto, no prazo, NÃO é dívida vencida. \`atrasado\` = vencido e não pago. \`pago\` e \`pago_com_atraso\` = já quitado, NÃO é dívida. \`baixado_por_perda\` = calote assumido. Um título quitado nunca é débito vencido.
 
 SCORES BUREAU ANEXADOS (extraídos por IA dos PDFs):
 ${(scores || []).length > 0 ? JSON.stringify(scores) : "Nenhum bureau anexado nesta análise"}
@@ -374,11 +378,11 @@ Gere a análise estruturada em JSON conforme instruído no system prompt.`;
         );
       }
       const fbData = await fallbackResp.json();
-      return await processarRespostaIA(fbData, analise_id, supabase, corsHeaders, "gemini-pro-fallback", fatos, fallbackInfo);
+      return await processarRespostaIA(fbData, analise_id, supabase, corsHeaders, "gemini-pro-fallback", contexto, fallbackInfo);
     }
 
     const aiData = await aiResp.json();
-    return await processarRespostaIA(aiData, analise_id, supabase, corsHeaders, "claude-sonnet-4-5", fatos, null);
+    return await processarRespostaIA(aiData, analise_id, supabase, corsHeaders, "claude-sonnet-4-5", contexto, null);
   } catch (e) {
     console.error("analisar-credito-ia error:", e);
     return new Response(
@@ -388,19 +392,24 @@ Gere a análise estruturada em JSON conforme instruído no system prompt.`;
   }
 });
 
-interface FatosCredito {
-  vencidos: number;
-  a_vencer: number;
-  em_aberto: number;
-  pago: number;
-  atraso_medio: number;
-  vencidos_grupo: number;
-  valor_bruto: number;
-  valor_liquido: number;
-  valor_frete: number;
-  acrescimo_ie_valor: number;
-  titulos_atrasados: number;
-  valores_payload: number[];
+interface ContextoCredito {
+  valorBruto: number;
+  valorFrete: number;
+  valorLiquido: number;
+  descontoValor: number;
+  acrescimoValor: number;
+  kpis: {
+    em_aberto: number;
+    pago: number;
+    vencidos: number;
+    a_vencer: number;
+    maior_compra: number;
+    atraso_medio_dias: number;
+  };
+  kpisGrupo: { em_aberto: number; vencidos: number };
+  titulosValores: number[];
+  temTituloAtrasado: boolean;
+  valoresExtra: number[];
 }
 
 const PERFIS_VALIDOS = [
@@ -462,85 +471,98 @@ function normalizarPontos(bruto: unknown): PontoAtencaoNorm[] {
 
 function validarSaidaIA(
   analiseIA: any,
-  fatos: FatosCredito
-): { contradicoes: string[]; cifras_orfas: number[]; pontos_sem_tipo: number } {
-  const contradicoes: string[] = [];
-  const cifras_orfas: number[] = [];
+  contexto: ContextoCredito
+): { alertas: string[]; cifras_sem_lastro: number[] } {
+  const alertas: string[] = [];
+  const cifras_sem_lastro: number[] = [];
 
   const pontos = normalizarPontos(analiseIA?.pontos_atencao);
-  const pontos_sem_tipo = pontos.filter((p) => !p.tipo).length;
-
   const partes = [
     analiseIA?.resumo,
     analiseIA?.justificativa,
+    ...pontos.map((p) => p.texto),
     analiseIA?.sugestao?.parecer_final,
     analiseIA?.sugestao?.ressalva,
-    ...pontos.map((p) => p.texto),
   ].filter((p: any) => typeof p === "string" && p.length > 0);
-  const alvo = partes.join(" \n ").toLowerCase();
+  const textoIA = partes.join(" \n ");
 
-  // T1/T2 — checagem no campo tipado
-  for (const p of pontos) {
-    if (p.tipo !== "divida_interna_vencida") continue;
-    if (fatos.vencidos === 0 && fatos.titulos_atrasados === 0) {
-      contradicoes.push(
-        `Ponto marcado como dívida interna vencida, mas o cliente tem R$ 0 vencidos e nenhum título atrasado: "${p.texto}"`
-      );
-    }
-    if (typeof p.valor === "number" && Math.abs(p.valor - fatos.vencidos) > 0.01) {
-      let msg = `Valor apontado como dívida interna vencida (R$ ${fmtBr(p.valor)}) não corresponde ao vencido real (R$ ${fmtBr(fatos.vencidos)}).`;
-      if (fatos.pago > 0 && Math.abs(p.valor - fatos.pago) <= 0.01) {
-        msg += " — esse valor é o total JÁ PAGO pelo cliente.";
-      }
-      contradicoes.push(msg);
-    }
-  }
-
-  // R3 — falsa inconsistência de valores
-  const falsaInconsistencia = /(líquido|liquido)[\s\S]{0,40}bruto/.test(alvo);
+  // A1 — afirma dívida vencida sem lastro
   if (
-    falsaInconsistencia &&
-    Math.abs(
-      fatos.valor_liquido - fatos.valor_bruto - (fatos.valor_frete + fatos.acrescimo_ie_valor)
-    ) <= 0.01
+    contexto.kpis.vencidos <= 0 &&
+    contexto.temTituloAtrasado === false &&
+    /vencid|inadimpl[êe]nc|em atraso|d[ée]bito em aberto|calote|n[ãa]o honrou/i.test(textoIA)
   ) {
-    contradicoes.push(
-      "Texto aponta inconsistência entre líquido e bruto, mas a diferença é exatamente frete + acréscimo."
+    alertas.push(
+      "A IA afirma dívida vencida, mas o cliente tem R$ 0 vencidos e nenhum título atrasado."
     );
   }
 
-  // R4 — cifras órfãs
-  const conhecidos = fatos.valores_payload;
-  const bate = (v: number) => {
-    if (conhecidos.some((c) => Math.abs(c - v) <= 0.01)) return true;
-    for (let i = 0; i < conhecidos.length; i++) {
-      for (let j = i + 1; j < conhecidos.length; j++) {
-        if (Math.abs(conhecidos[i] + conhecidos[j] - v) <= 0.01) return true;
-      }
-    }
-    return false;
-  };
-  for (const v of extrairMoedas(alvo)) {
-    if (v === 0) continue;
-    if (!bate(v) && !cifras_orfas.some((o) => Math.abs(o - v) <= 0.01)) cifras_orfas.push(v);
+  // A2 — trata como cliente novo apesar de histórico pago
+  if (
+    contexto.kpis.pago > 0 &&
+    /sem hist[óo]rico|cliente novo|primeira compra|nenhum hist[óo]rico/i.test(textoIA)
+  ) {
+    alertas.push(
+      `A IA trata como cliente novo, mas há R$ ${fmtBr(contexto.kpis.pago)} já pagos no histórico.`
+    );
   }
 
-  // Validações estruturais básicas
+  // A3 — falsa inconsistência de valores
+  const somaConferida =
+    contexto.valorBruto + contexto.valorFrete - contexto.descontoValor + contexto.acrescimoValor;
+  const fecha = Math.abs(somaConferida - contexto.valorLiquido) <= 0.01;
+  if (
+    analiseIA?.decisao_sugerida === "devolver_entrada" &&
+    /inconsist|l[íi]quido[\s\S]{0,40}bruto/i.test(textoIA) &&
+    fecha
+  ) {
+    alertas.push(
+      "A IA alega inconsistência de valores, mas bruto + frete - desconto + acréscimo fecha com o líquido."
+    );
+  }
+
+  // A4 — campos estruturais fora do contrato
   const perfil = analiseIA?.sugestao?.perfil_aplicado;
-  if (perfil === "bandeira_vermelha") {
-    contradicoes.push("perfil_aplicado = bandeira_vermelha não é permitido para a IA.");
-  } else if (!PERFIS_VALIDOS.includes(perfil)) {
-    contradicoes.push(`perfil_aplicado inválido: "${perfil}".`);
+  if (!PERFIS_VALIDOS.includes(perfil)) {
+    alertas.push(`perfil_aplicado inválido: "${perfil}".`);
   }
   if (!DECISOES_VALIDAS.includes(analiseIA?.decisao_sugerida)) {
-    contradicoes.push(`decisao_sugerida inválida: "${analiseIA?.decisao_sugerida}".`);
+    alertas.push(`decisao_sugerida inválida: "${analiseIA?.decisao_sugerida}".`);
   }
   const conf = Number(analiseIA?.confianca);
   if (!Number.isFinite(conf) || conf < 0 || conf > 100) {
-    contradicoes.push(`confianca fora da faixa 0-100: "${analiseIA?.confianca}".`);
+    alertas.push(`confianca fora da faixa 0-100: "${analiseIA?.confianca}".`);
   }
 
-  return { contradicoes, cifras_orfas, pontos_sem_tipo };
+  // B — cifra sem lastro (informativo)
+  const limite = Number(analiseIA?.sugestao?.limite_concedido);
+  const conhecidos = [
+    contexto.valorBruto,
+    contexto.valorFrete,
+    contexto.valorLiquido,
+    contexto.descontoValor,
+    contexto.acrescimoValor,
+    contexto.kpis.em_aberto,
+    contexto.kpis.pago,
+    contexto.kpis.vencidos,
+    contexto.kpis.a_vencer,
+    contexto.kpis.maior_compra,
+    contexto.kpis.atraso_medio_dias,
+    contexto.kpisGrupo.em_aberto,
+    contexto.kpisGrupo.vencidos,
+    ...contexto.titulosValores,
+    ...contexto.valoresExtra,
+    ...(Number.isFinite(limite) ? [limite] : []),
+  ].filter((v) => Number.isFinite(v));
+
+  for (const v of extrairMoedas(textoIA.toLowerCase())) {
+    if (v === 0) continue;
+    if (conhecidos.some((c) => Math.abs(c - v) <= 0.01)) continue;
+    if (cifras_sem_lastro.some((o) => Math.abs(o - v) <= 0.01)) continue;
+    cifras_sem_lastro.push(v);
+  }
+
+  return { alertas, cifras_sem_lastro };
 }
 
 async function processarRespostaIA(
@@ -549,7 +571,7 @@ async function processarRespostaIA(
   supabase: any,
   corsHeaders: Record<string, string>,
   modeloUsado: string,
-  fatos: FatosCredito,
+  contexto: ContextoCredito,
   fallbackInfo: { primario: string; status: number; erro: string; em: string } | null
 ): Promise<Response> {
   let raw = aiData?.choices?.[0]?.message?.content ?? "";
@@ -571,34 +593,33 @@ async function processarRespostaIA(
     );
   }
 
-  // Validação determinística — SISTEMA SUGERE / HUMANO DECIDE: nunca descarta, só carimba.
-  const confiancaOriginal = Number(analiseIA?.confianca ?? 0);
-  const { contradicoes, cifras_orfas, pontos_sem_tipo } = validarSaidaIA(analiseIA, fatos);
+  // Validação determinística — SISTEMA SUGERE / HUMANO DECIDE: nunca reescreve o texto, só carimba.
+  const confiancaOriginal = Number(analiseIA?.confianca ?? 0) || 0;
+  const { alertas, cifras_sem_lastro } = validarSaidaIA(analiseIA, contexto);
 
-  if (contradicoes.length > 0) {
-    console.warn("Validação IA encontrou contradições:", analise_id, contradicoes);
-    analiseIA.confianca = Math.min(Number(analiseIA.confianca ?? 0) || 0, 40);
-    if (!Array.isArray(analiseIA.pontos_atencao)) analiseIA.pontos_atencao = [];
-    analiseIA.pontos_atencao.unshift({
-      texto:
-        "⚠ VERIFICAÇÃO AUTOMÁTICA: esta análise contradiz os dados do sistema. Confira antes de decidir.",
-      tipo: "outro",
-      valor: null,
-    });
-  } else if (cifras_orfas.length > 0) {
-    console.warn("Validação IA encontrou cifras órfãs:", analise_id, cifras_orfas);
-    analiseIA.confianca = Math.min(Number(analiseIA.confianca ?? 0) || 0, 70);
+  let confiancaAjustada = confiancaOriginal;
+  if (alertas.length > 0) {
+    for (const a of alertas) {
+      console.warn(`[validacao-ia] analise ${analise_id}: ${a}`);
+    }
+    confiancaAjustada = Math.min(confiancaOriginal, 40);
+  } else if (cifras_sem_lastro.length > 0) {
+    console.warn(
+      `[validacao-ia] analise ${analise_id}: ${cifras_sem_lastro.length} cifra(s) sem lastro:`,
+      cifras_sem_lastro
+    );
+    confiancaAjustada = Math.min(confiancaOriginal, 70);
   }
+  analiseIA.confianca = confiancaAjustada;
 
   const iaJson: Record<string, unknown> = {
     ...analiseIA,
     _modelo: modeloUsado,
     _validacao: {
-      contradicoes,
-      cifras_orfas,
-      pontos_sem_tipo,
+      alertas,
+      cifras_sem_lastro,
       confianca_original: confiancaOriginal,
-      validado_em: new Date().toISOString(),
+      confianca_ajustada: confiancaAjustada,
     },
   };
   if (fallbackInfo) iaJson._fallback = fallbackInfo;
@@ -609,7 +630,7 @@ async function processarRespostaIA(
     .update({
       analise_ia_json: iaJson,
       analise_ia_resumo: analiseIA.resumo,
-      analise_ia_confianca: analiseIA.confianca,
+      analise_ia_confianca: confiancaAjustada,
       analise_ia_processada_em: new Date().toISOString(),
     })
     .eq("id", analise_id);

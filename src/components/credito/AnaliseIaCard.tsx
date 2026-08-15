@@ -92,19 +92,20 @@ export function AnaliseIaCard({
 
         {jaTemAnalise && (
           <div className="space-y-4">
-            {(iaJson?._validacao?.contradicoes?.length ?? 0) > 0 && (
+            {(iaJson?._validacao?.alertas?.length ?? 0) > 0 && (
               <div className="rounded-md border border-destructive bg-destructive/5 p-3 space-y-2">
                 <div className="flex items-center gap-2 text-destructive font-medium text-sm">
                   <AlertTriangle className="h-4 w-4 shrink-0" />
-                  Verificação automática encontrou contradição
+                  Conferência automática encontrou contradições
                 </div>
                 <ul className="text-sm text-destructive list-disc list-inside space-y-1">
-                  {iaJson!._validacao!.contradicoes.map((c, i) => (
+                  {iaJson!._validacao!.alertas.map((c, i) => (
                     <li key={i}>{c}</li>
                   ))}
                 </ul>
                 <p className="text-xs text-destructive/80">
-                  Confiança rebaixada de {iaJson?._validacao?.confianca_original}% para {iaConfianca}%.
+                  Confiança rebaixada de {iaJson?._validacao?.confianca_original}% para{" "}
+                  {iaJson?._validacao?.confianca_ajustada}% pela conferência.
                 </p>
               </div>
             )}
@@ -163,6 +164,9 @@ export function AnaliseIaCard({
 
             <p className="text-xs text-muted-foreground">
               Processado em {new Date(iaProcessadaEm!).toLocaleString("pt-BR")}
+              {(iaJson?._validacao?.alertas?.length ?? 0) === 0 &&
+                (iaJson?._validacao?.cifras_sem_lastro?.length ?? 0) > 0 &&
+                ` · ${iaJson!._validacao!.cifras_sem_lastro.length} valor(es) citado(s) sem correspondência no payload.`}
               {iaJson?._modelo && ` · Modelo: ${iaJson._modelo}`}
               {iaJson?._fallback &&
                 ` · fallback: ${iaJson._fallback.primario} falhou (${iaJson._fallback.status})`}
