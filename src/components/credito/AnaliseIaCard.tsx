@@ -164,6 +164,9 @@ export function AnaliseIaCard({
 
             <p className="text-xs text-muted-foreground">
               Processado em {new Date(iaProcessadaEm!).toLocaleString("pt-BR")}
+              {(iaJson?._validacao?.alertas?.length ?? 0) === 0 &&
+                (iaJson?._validacao?.cifras_sem_lastro?.length ?? 0) > 0 &&
+                ` · ${iaJson!._validacao!.cifras_sem_lastro.length} valor(es) citado(s) sem correspondência no payload.`}
               {iaJson?._modelo && ` · Modelo: ${iaJson._modelo}`}
               {iaJson?._fallback &&
                 ` · fallback: ${iaJson._fallback.primario} falhou (${iaJson._fallback.status})`}
