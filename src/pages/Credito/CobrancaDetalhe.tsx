@@ -1096,6 +1096,38 @@ export default function CobrancaDetalhe() {
             </p>
           )}
 
+          {/* Regra do portão explicada ANTES do clique */}
+          {exigePortao && (
+            <div
+              className={
+                "mb-3 flex items-start gap-2 rounded-md border px-3 py-2 text-sm " +
+                (coberturaPortaoOk
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200"
+                  : "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200")
+              }
+            >
+              {coberturaPortaoOk ? (
+                <Check className="mt-0.5 h-4 w-4 shrink-0" />
+              ) : (
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              )}
+              <div>
+                {coberturaPortaoOk ? (
+                  <span>Cobertura suficiente para liberar.</span>
+                ) : (
+                  <span>
+                    Faltam <strong>{fmtBRL.format(faltaPortaoRS)}</strong> para liberar este pedido — marque
+                    mais parcelas como pagamento antecipado.
+                  </span>
+                )}
+                <span className="block text-xs opacity-80">
+                  Antecipado hoje: {fmtBRL.format(totalPortao)} ({pctPortao.toFixed(0)}% do plano) · mínimo
+                  exigido: {portaoMinimoPct.toFixed(0)}%
+                </span>
+              </div>
+            </div>
+          )}
+
           <div className="rounded-md border">
             <Table>
               <TableHeader>
