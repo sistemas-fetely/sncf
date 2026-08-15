@@ -62,8 +62,7 @@ function deveSinalizarAtraso(atualizadoEm: string | null): boolean {
 
 function IndicadorSincronizacao({ transportadoraId }: { transportadoraId: string }) {
   const { data, isLoading } = useUltimaSincronizacao(transportadoraId);
-  const h = horasDesde(data?.atualizado_em ?? null);
-  const atrasado = h !== null && h > 6;
+  const atrasado = deveSinalizarAtraso(data?.atualizado_em ?? null);
   const semRegistro = !isLoading && !data?.atualizado_em;
 
   if (isLoading) {
