@@ -49,10 +49,9 @@ REGRAS OBRIGATÓRIAS:
                    são SEMPRE tipo="credito" — e ainda assim com valor_frete POSITIVO.
    - "debito"    = débito ou ajuste que AUMENTA o valor da fatura.
    - "devolucao" = frete de devolução cobrado.
-6. NÃO invente linhas. Se um campo não aparece no PDF, use null (exceto tipo, que é sempre preenchido).
-
-6. NÃO duplique linhas nem repita o header como lançamento.
-7. Responda APENAS o JSON puro, sem markdown, sem \`\`\`, sem explicação.`;
+7. NÃO invente linhas. Se um campo não aparece no PDF, use null (exceto tipo, que é sempre preenchido).
+8. NÃO duplique linhas nem repita o header como lançamento.
+9. Responda APENAS o JSON puro, sem markdown, sem \`\`\`, sem explicação.`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
