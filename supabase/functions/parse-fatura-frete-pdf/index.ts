@@ -106,6 +106,44 @@ Deno.serve(async (req) => {
     for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
     const base64 = btoa(binary);
 
+    // Client service-role (upload do PDF + RPC)
+    const admin = createClient(supabaseUrl, serviceKey);
+
+    // ---- GUARDAR O PDF antes de qualquer leitura pela IA ----
+    const nomeOriginal = (file.name || "fatura.pdf").replace(/\.pdf$/i, "");
+    const nomeSanitizado = nomeOriginal
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9._-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 80) || "fatura";
+    const agora = new Date();
+    const ano = String(agora.getUTCFullYear());
+    const timestamp = agora.toISOString().replace(/[:.]/g, "-");
+
+    let pdfStoragePath: string | null =
+      `${transportadoraId}/${ano}/${timestamp}_${nomeSanitizado}.pdf`;
+    let pdfArmazenado = false;
+    let pdfErro: string | null = null;
+
+    {
+      const { error: upErr } = await admin.storage
+        .from("faturas-frete")
+        .upload(pdfStoragePath, arrayBuffer, {
+          contentType: "application/pdf",
+          upsert: true,
+        });
+      if (upErr) {
+        console.error("[parse-fatura-frete-pdf] upload_pdf_falhou:", upErr.message);
+        pdfErro = upErr.message;
+        pdfStoragePath = null;
+      } else {
+        pdfArmazenado = true;
+      }
+    }
+
+
+
     // Lovable AI Gateway
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
