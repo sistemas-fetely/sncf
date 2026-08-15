@@ -15063,6 +15063,51 @@ export type Database = {
         }
         Relationships: []
       }
+      historico_tarefas: {
+        Row: {
+          acao: string
+          criado_em: string
+          de: Json | null
+          id: string
+          para: Json | null
+          tarefa_id: string
+          user_id: string | null
+        }
+        Insert: {
+          acao: string
+          criado_em?: string
+          de?: Json | null
+          id?: string
+          para?: Json | null
+          tarefa_id: string
+          user_id?: string | null
+        }
+        Update: {
+          acao?: string
+          criado_em?: string
+          de?: Json | null
+          id?: string
+          para?: Json | null
+          tarefa_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_tarefas_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_tarefas_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       holerites: {
         Row: {
           adicional_noturno: number | null
@@ -20066,6 +20111,107 @@ export type Database = {
             columns: ["contrato_id"]
             isOneToOne: false
             referencedRelation: "contratos_pj"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notificacoes: {
+        Row: {
+          corpo: string | null
+          criado_em: string
+          criado_por: string | null
+          dia_ref: string | null
+          entidade_id: string | null
+          entidade_tipo: string | null
+          id: string
+          lida: boolean
+          lida_em: string | null
+          modulo: string
+          tipo: string
+          titulo: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          corpo?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          dia_ref?: string | null
+          entidade_id?: string | null
+          entidade_tipo?: string | null
+          id?: string
+          lida?: boolean
+          lida_em?: string | null
+          modulo?: string
+          tipo: string
+          titulo: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          corpo?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          dia_ref?: string | null
+          entidade_id?: string | null
+          entidade_tipo?: string | null
+          id?: string
+          lida?: boolean
+          lida_em?: string | null
+          modulo?: string
+          tipo?: string
+          titulo?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacoes_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notificacoes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notificacoes_preferencias: {
+        Row: {
+          atualizado_em: string
+          criado_em: string
+          email: boolean
+          in_app: boolean
+          tipo: string
+          user_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          criado_em?: string
+          email?: boolean
+          in_app?: boolean
+          tipo: string
+          user_id: string
+        }
+        Update: {
+          atualizado_em?: string
+          criado_em?: string
+          email?: boolean
+          in_app?: boolean
+          tipo?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacoes_preferencias_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
         ]
@@ -28639,6 +28785,120 @@ export type Database = {
         }
         Relationships: []
       }
+      radar_destinatarios: {
+        Row: {
+          criado_em: string
+          evento_id: string
+          id: string
+          papel: string
+          user_id: string
+          visto: boolean
+          visto_em: string | null
+        }
+        Insert: {
+          criado_em?: string
+          evento_id: string
+          id?: string
+          papel?: string
+          user_id: string
+          visto?: boolean
+          visto_em?: string | null
+        }
+        Update: {
+          criado_em?: string
+          evento_id?: string
+          id?: string
+          papel?: string
+          user_id?: string
+          visto?: boolean
+          visto_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "radar_destinatarios_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "radar_eventos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "radar_destinatarios_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "v_radar_usuario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "radar_destinatarios_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      radar_eventos: {
+        Row: {
+          acao_label: string | null
+          acao_url: string | null
+          atualizado_em: string
+          criado_em: string
+          criado_por: string | null
+          descricao: string | null
+          entidade_ids: Json | null
+          expira_em: string | null
+          id: string
+          modulo: string
+          prioridade: string
+          quantidade: number
+          status: string
+          tipo_evento: string
+          titulo: string
+        }
+        Insert: {
+          acao_label?: string | null
+          acao_url?: string | null
+          atualizado_em?: string
+          criado_em?: string
+          criado_por?: string | null
+          descricao?: string | null
+          entidade_ids?: Json | null
+          expira_em?: string | null
+          id?: string
+          modulo: string
+          prioridade?: string
+          quantidade?: number
+          status?: string
+          tipo_evento: string
+          titulo: string
+        }
+        Update: {
+          acao_label?: string | null
+          acao_url?: string | null
+          atualizado_em?: string
+          criado_em?: string
+          criado_por?: string | null
+          descricao?: string | null
+          entidade_ids?: Json | null
+          expira_em?: string | null
+          id?: string
+          modulo?: string
+          prioridade?: string
+          quantidade?: number
+          status?: string
+          tipo_evento?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "radar_eventos_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rastreio_status_dim: {
         Row: {
           ativo: boolean
@@ -33413,6 +33673,582 @@ export type Database = {
         }
         Relationships: []
       }
+      tarefas: {
+        Row: {
+          acao_url: string | null
+          aprovacao_comentario: string | null
+          aprovacao_em: string | null
+          aprovacao_por: string | null
+          aprovacao_status: string | null
+          atualizado_em: string
+          criado_em: string
+          criado_por: string | null
+          data_conclusao: string | null
+          data_inicio: string | null
+          data_limite: string | null
+          departamento_destino_id: string | null
+          descricao: string | null
+          entidade_origem_id: string | null
+          estimativa_horas: number | null
+          hora_limite: string | null
+          id: string
+          modulo_origem: string | null
+          ocorrencia_data: string | null
+          ordem: number
+          parent_id: string | null
+          prioridade: string
+          projeto_id: string | null
+          recorrencia_id: string | null
+          responsavel_id: string | null
+          secao_id: string | null
+          status: string
+          tipo_origem: string
+          tipo_tarefa: string
+          titulo: string
+          visibilidade: string
+        }
+        Insert: {
+          acao_url?: string | null
+          aprovacao_comentario?: string | null
+          aprovacao_em?: string | null
+          aprovacao_por?: string | null
+          aprovacao_status?: string | null
+          atualizado_em?: string
+          criado_em?: string
+          criado_por?: string | null
+          data_conclusao?: string | null
+          data_inicio?: string | null
+          data_limite?: string | null
+          departamento_destino_id?: string | null
+          descricao?: string | null
+          entidade_origem_id?: string | null
+          estimativa_horas?: number | null
+          hora_limite?: string | null
+          id?: string
+          modulo_origem?: string | null
+          ocorrencia_data?: string | null
+          ordem?: number
+          parent_id?: string | null
+          prioridade?: string
+          projeto_id?: string | null
+          recorrencia_id?: string | null
+          responsavel_id?: string | null
+          secao_id?: string | null
+          status?: string
+          tipo_origem?: string
+          tipo_tarefa?: string
+          titulo: string
+          visibilidade?: string
+        }
+        Update: {
+          acao_url?: string | null
+          aprovacao_comentario?: string | null
+          aprovacao_em?: string | null
+          aprovacao_por?: string | null
+          aprovacao_status?: string | null
+          atualizado_em?: string
+          criado_em?: string
+          criado_por?: string | null
+          data_conclusao?: string | null
+          data_inicio?: string | null
+          data_limite?: string | null
+          departamento_destino_id?: string | null
+          descricao?: string | null
+          entidade_origem_id?: string | null
+          estimativa_horas?: number | null
+          hora_limite?: string | null
+          id?: string
+          modulo_origem?: string | null
+          ocorrencia_data?: string | null
+          ordem?: number
+          parent_id?: string | null
+          prioridade?: string
+          projeto_id?: string | null
+          recorrencia_id?: string | null
+          responsavel_id?: string | null
+          secao_id?: string | null
+          status?: string
+          tipo_origem?: string
+          tipo_tarefa?: string
+          titulo?: string
+          visibilidade?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_aprovacao_por_fkey"
+            columns: ["aprovacao_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_departamento_destino_id_fkey"
+            columns: ["departamento_destino_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas_projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_recorrencia_id_fkey"
+            columns: ["recorrencia_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas_recorrencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_secao_id_fkey"
+            columns: ["secao_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas_secoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarefas_anexos: {
+        Row: {
+          criado_em: string
+          enviado_por: string | null
+          id: string
+          mime_type: string | null
+          nome_arquivo: string
+          storage_path: string
+          tamanho_bytes: number | null
+          tarefa_id: string
+        }
+        Insert: {
+          criado_em?: string
+          enviado_por?: string | null
+          id?: string
+          mime_type?: string | null
+          nome_arquivo: string
+          storage_path: string
+          tamanho_bytes?: number | null
+          tarefa_id: string
+        }
+        Update: {
+          criado_em?: string
+          enviado_por?: string | null
+          id?: string
+          mime_type?: string | null
+          nome_arquivo?: string
+          storage_path?: string
+          tamanho_bytes?: number | null
+          tarefa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_anexos_enviado_por_fkey"
+            columns: ["enviado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_anexos_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarefas_apontamentos: {
+        Row: {
+          atualizado_em: string
+          criado_em: string
+          data: string
+          descricao: string | null
+          horas: number
+          id: string
+          tarefa_id: string
+          user_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          criado_em?: string
+          data?: string
+          descricao?: string | null
+          horas: number
+          id?: string
+          tarefa_id: string
+          user_id?: string
+        }
+        Update: {
+          atualizado_em?: string
+          criado_em?: string
+          data?: string
+          descricao?: string | null
+          horas?: number
+          id?: string
+          tarefa_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_apontamentos_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_apontamentos_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarefas_campos: {
+        Row: {
+          ativo: boolean
+          criado_em: string
+          criado_por: string | null
+          departamento_id: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          opcoes: Json
+          tipo: string
+        }
+        Insert: {
+          ativo?: boolean
+          criado_em?: string
+          criado_por?: string | null
+          departamento_id?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          opcoes?: Json
+          tipo: string
+        }
+        Update: {
+          ativo?: boolean
+          criado_em?: string
+          criado_por?: string | null
+          departamento_id?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          opcoes?: Json
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_campos_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_campos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarefas_campos_projeto: {
+        Row: {
+          campo_id: string
+          criado_em: string
+          criado_por: string | null
+          mostrar_no_card: boolean
+          obrigatorio: boolean
+          ordem: number
+          projeto_id: string
+        }
+        Insert: {
+          campo_id: string
+          criado_em?: string
+          criado_por?: string | null
+          mostrar_no_card?: boolean
+          obrigatorio?: boolean
+          ordem?: number
+          projeto_id: string
+        }
+        Update: {
+          campo_id?: string
+          criado_em?: string
+          criado_por?: string | null
+          mostrar_no_card?: boolean
+          obrigatorio?: boolean
+          ordem?: number
+          projeto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_campos_projeto_campo_id_fkey"
+            columns: ["campo_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas_campos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_campos_projeto_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_campos_projeto_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas_projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarefas_campos_valores: {
+        Row: {
+          atualizado_em: string
+          atualizado_por: string | null
+          campo_id: string
+          tarefa_id: string
+          valor: Json
+        }
+        Insert: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          campo_id: string
+          tarefa_id: string
+          valor?: Json
+        }
+        Update: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          campo_id?: string
+          tarefa_id?: string
+          valor?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_campos_valores_atualizado_por_fkey"
+            columns: ["atualizado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_campos_valores_campo_id_fkey"
+            columns: ["campo_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas_campos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_campos_valores_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarefas_capacidade: {
+        Row: {
+          atualizado_em: string
+          atualizado_por: string | null
+          horas_semana: number
+          user_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          horas_semana?: number
+          user_id: string
+        }
+        Update: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          horas_semana?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_capacidade_atualizado_por_fkey"
+            columns: ["atualizado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_capacidade_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarefas_comentarios: {
+        Row: {
+          atualizado_em: string
+          conteudo: string
+          criado_em: string
+          editado: boolean
+          id: string
+          mencionados: string[]
+          tarefa_id: string
+          user_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          conteudo: string
+          criado_em?: string
+          editado?: boolean
+          id?: string
+          mencionados?: string[]
+          tarefa_id: string
+          user_id: string
+        }
+        Update: {
+          atualizado_em?: string
+          conteudo?: string
+          criado_em?: string
+          editado?: boolean
+          id?: string
+          mencionados?: string[]
+          tarefa_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_comentarios_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_comentarios_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarefas_dependencias: {
+        Row: {
+          criado_em: string
+          criado_por: string | null
+          depende_de_id: string
+          id: string
+          tarefa_id: string
+        }
+        Insert: {
+          criado_em?: string
+          criado_por?: string | null
+          depende_de_id: string
+          id?: string
+          tarefa_id: string
+        }
+        Update: {
+          criado_em?: string
+          criado_por?: string | null
+          depende_de_id?: string
+          id?: string
+          tarefa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_dependencias_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_dependencias_depende_de_id_fkey"
+            columns: ["depende_de_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_dependencias_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarefas_etiquetas: {
+        Row: {
+          cor: string
+          criado_em: string
+          criado_por: string | null
+          departamento_id: string | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          cor?: string
+          criado_em?: string
+          criado_por?: string | null
+          departamento_id?: string | null
+          id?: string
+          nome: string
+        }
+        Update: {
+          cor?: string
+          criado_em?: string
+          criado_por?: string | null
+          departamento_id?: string | null
+          id?: string
+          nome?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_etiquetas_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_etiquetas_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tarefas_filas: {
         Row: {
           ativo: boolean
@@ -33475,6 +34311,564 @@ export type Database = {
           },
         ]
       }
+      tarefas_papeis: {
+        Row: {
+          criado_em: string
+          criado_por: string | null
+          papel: string
+          tarefa_id: string
+          user_id: string
+        }
+        Insert: {
+          criado_em?: string
+          criado_por?: string | null
+          papel: string
+          tarefa_id: string
+          user_id: string
+        }
+        Update: {
+          criado_em?: string
+          criado_por?: string | null
+          papel?: string
+          tarefa_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_papeis_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_papeis_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_papeis_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarefas_projeto_status: {
+        Row: {
+          criado_em: string
+          criado_por: string | null
+          id: string
+          projeto_id: string
+          resumo: string | null
+          saude: string
+        }
+        Insert: {
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          projeto_id: string
+          resumo?: string | null
+          saude: string
+        }
+        Update: {
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          projeto_id?: string
+          resumo?: string | null
+          saude?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_projeto_status_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_projeto_status_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas_projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarefas_projetos: {
+        Row: {
+          atualizado_em: string
+          cor: string
+          criado_em: string
+          criado_por: string | null
+          data_fim_prevista: string | null
+          data_inicio: string | null
+          departamento_id: string | null
+          descricao: string | null
+          icone: string | null
+          id: string
+          nome: string
+          responsavel_id: string | null
+          saude: string
+          saude_atualizada_em: string | null
+          saude_atualizada_por: string | null
+          status: string
+          visibilidade: string
+        }
+        Insert: {
+          atualizado_em?: string
+          cor?: string
+          criado_em?: string
+          criado_por?: string | null
+          data_fim_prevista?: string | null
+          data_inicio?: string | null
+          departamento_id?: string | null
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          nome: string
+          responsavel_id?: string | null
+          saude?: string
+          saude_atualizada_em?: string | null
+          saude_atualizada_por?: string | null
+          status?: string
+          visibilidade?: string
+        }
+        Update: {
+          atualizado_em?: string
+          cor?: string
+          criado_em?: string
+          criado_por?: string | null
+          data_fim_prevista?: string | null
+          data_inicio?: string | null
+          departamento_id?: string | null
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          nome?: string
+          responsavel_id?: string | null
+          saude?: string
+          saude_atualizada_em?: string | null
+          saude_atualizada_por?: string | null
+          status?: string
+          visibilidade?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_projetos_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_projetos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_projetos_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_projetos_saude_atualizada_por_fkey"
+            columns: ["saude_atualizada_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarefas_recorrencias: {
+        Row: {
+          antecedencia_dias: number
+          ativo: boolean
+          atualizado_em: string
+          criado_em: string
+          criado_por: string | null
+          departamento_destino_id: string | null
+          descricao: string | null
+          dia_mes: number | null
+          dias_semana: number[] | null
+          estimativa_horas: number | null
+          fim_em: string | null
+          frequencia: string
+          id: string
+          inicio_em: string
+          intervalo: number
+          mes: number | null
+          prioridade: string
+          projeto_id: string | null
+          proxima_geracao: string | null
+          responsavel_id: string | null
+          secao_id: string | null
+          titulo: string
+          visibilidade: string
+        }
+        Insert: {
+          antecedencia_dias?: number
+          ativo?: boolean
+          atualizado_em?: string
+          criado_em?: string
+          criado_por?: string | null
+          departamento_destino_id?: string | null
+          descricao?: string | null
+          dia_mes?: number | null
+          dias_semana?: number[] | null
+          estimativa_horas?: number | null
+          fim_em?: string | null
+          frequencia: string
+          id?: string
+          inicio_em?: string
+          intervalo?: number
+          mes?: number | null
+          prioridade?: string
+          projeto_id?: string | null
+          proxima_geracao?: string | null
+          responsavel_id?: string | null
+          secao_id?: string | null
+          titulo: string
+          visibilidade?: string
+        }
+        Update: {
+          antecedencia_dias?: number
+          ativo?: boolean
+          atualizado_em?: string
+          criado_em?: string
+          criado_por?: string | null
+          departamento_destino_id?: string | null
+          descricao?: string | null
+          dia_mes?: number | null
+          dias_semana?: number[] | null
+          estimativa_horas?: number | null
+          fim_em?: string | null
+          frequencia?: string
+          id?: string
+          inicio_em?: string
+          intervalo?: number
+          mes?: number | null
+          prioridade?: string
+          projeto_id?: string | null
+          proxima_geracao?: string | null
+          responsavel_id?: string | null
+          secao_id?: string | null
+          titulo?: string
+          visibilidade?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_recorrencias_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_recorrencias_departamento_destino_id_fkey"
+            columns: ["departamento_destino_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_recorrencias_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas_projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_recorrencias_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_recorrencias_secao_id_fkey"
+            columns: ["secao_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas_secoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarefas_regras: {
+        Row: {
+          acoes: Json
+          ativo: boolean
+          criado_em: string
+          criado_por: string | null
+          execucoes: number
+          gatilho: Json
+          id: string
+          nome: string
+          projeto_id: string | null
+          ultima_execucao_em: string | null
+        }
+        Insert: {
+          acoes?: Json
+          ativo?: boolean
+          criado_em?: string
+          criado_por?: string | null
+          execucoes?: number
+          gatilho: Json
+          id?: string
+          nome: string
+          projeto_id?: string | null
+          ultima_execucao_em?: string | null
+        }
+        Update: {
+          acoes?: Json
+          ativo?: boolean
+          criado_em?: string
+          criado_por?: string | null
+          execucoes?: number
+          gatilho?: Json
+          id?: string
+          nome?: string
+          projeto_id?: string | null
+          ultima_execucao_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_regras_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_regras_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas_projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarefas_secoes: {
+        Row: {
+          cor: string | null
+          criado_em: string
+          id: string
+          nome: string
+          ordem: number
+          projeto_id: string
+        }
+        Insert: {
+          cor?: string | null
+          criado_em?: string
+          id?: string
+          nome: string
+          ordem?: number
+          projeto_id: string
+        }
+        Update: {
+          cor?: string | null
+          criado_em?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          projeto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_secoes_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas_projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarefas_tarefa_etiquetas: {
+        Row: {
+          etiqueta_id: string
+          tarefa_id: string
+        }
+        Insert: {
+          etiqueta_id: string
+          tarefa_id: string
+        }
+        Update: {
+          etiqueta_id?: string
+          tarefa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_tarefa_etiquetas_etiqueta_id_fkey"
+            columns: ["etiqueta_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas_etiquetas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_tarefa_etiquetas_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarefas_template_itens: {
+        Row: {
+          criado_em: string
+          descricao: string | null
+          dias_offset: number
+          estimativa_horas: number | null
+          id: string
+          ordem: number
+          parent_item_id: string | null
+          prioridade: string
+          responsavel_id: string | null
+          secao_nome: string | null
+          template_id: string
+          titulo: string
+        }
+        Insert: {
+          criado_em?: string
+          descricao?: string | null
+          dias_offset?: number
+          estimativa_horas?: number | null
+          id?: string
+          ordem?: number
+          parent_item_id?: string | null
+          prioridade?: string
+          responsavel_id?: string | null
+          secao_nome?: string | null
+          template_id: string
+          titulo: string
+        }
+        Update: {
+          criado_em?: string
+          descricao?: string | null
+          dias_offset?: number
+          estimativa_horas?: number | null
+          id?: string
+          ordem?: number
+          parent_item_id?: string | null
+          prioridade?: string
+          responsavel_id?: string | null
+          secao_nome?: string | null
+          template_id?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_template_itens_parent_item_id_fkey"
+            columns: ["parent_item_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas_template_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_template_itens_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_template_itens_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarefas_templates: {
+        Row: {
+          ativo: boolean
+          criado_em: string
+          criado_por: string | null
+          departamento_id: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          tipo: string
+        }
+        Insert: {
+          ativo?: boolean
+          criado_em?: string
+          criado_por?: string | null
+          departamento_id?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          tipo?: string
+        }
+        Update: {
+          ativo?: boolean
+          criado_em?: string
+          criado_por?: string | null
+          departamento_id?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_templates_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_templates_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarefas_timer: {
+        Row: {
+          iniciado_em: string
+          tarefa_id: string
+          user_id: string
+        }
+        Insert: {
+          iniciado_em?: string
+          tarefa_id: string
+          user_id?: string
+        }
+        Update: {
+          iniciado_em?: string
+          tarefa_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_timer_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_timer_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tarefas_tipos_processo: {
         Row: {
           ativo: boolean
@@ -33515,6 +34909,47 @@ export type Database = {
             columns: ["departamento_id"]
             isOneToOne: false
             referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarefas_visoes: {
+        Row: {
+          compartilhada: boolean
+          criado_em: string
+          escopo: string
+          filtros: Json
+          id: string
+          nome: string
+          padrao: boolean
+          user_id: string
+        }
+        Insert: {
+          compartilhada?: boolean
+          criado_em?: string
+          escopo: string
+          filtros?: Json
+          id?: string
+          nome: string
+          padrao?: boolean
+          user_id?: string
+        }
+        Update: {
+          compartilhada?: boolean
+          criado_em?: string
+          escopo?: string
+          filtros?: Json
+          id?: string
+          nome?: string
+          padrao?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_visoes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
         ]
@@ -40604,6 +42039,34 @@ export type Database = {
           tipo_vinculo: string | null
         }
         Relationships: []
+      }
+      v_radar_usuario: {
+        Row: {
+          acao_label: string | null
+          acao_url: string | null
+          criado_em: string | null
+          descricao: string | null
+          entidade_ids: Json | null
+          id: string | null
+          modulo: string | null
+          papel: string | null
+          prioridade: string | null
+          quantidade: number | null
+          status: string | null
+          tipo_evento: string | null
+          titulo: string | null
+          user_id: string | null
+          visto: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "radar_destinatarios_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vw_adiantamento_sem_nf: {
         Row: {
@@ -49865,14 +51328,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -50985,14 +52448,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -57219,7 +58682,6 @@ export type Database = {
       }
     }
     Functions: {
-      __tmp_apply_install_sql: { Args: { p_sql: string }; Returns: undefined }
       _meio_pagamento_nascida_paga: { Args: never; Returns: string }
       abater_conta_corrente: {
         Args: { p_mov_id: string; p_user_id?: string }
@@ -57310,6 +58772,16 @@ export type Database = {
       aplicar_regras_categorizacao_stage: {
         Args: { p_stage_id: string }
         Returns: Json
+      }
+      aplicar_template: {
+        Args: {
+          _data_inicio?: string
+          _nome_projeto?: string
+          _projeto_existente?: string
+          _responsavel_padrao?: string
+          _template_id: string
+        }
+        Returns: string
       }
       aplicar_template_cargo: {
         Args: {
@@ -58992,6 +60464,7 @@ export type Database = {
         Args: { p_conta_id: string }
         Returns: Json
       }
+      gerar_notificacoes_prazo: { Args: never; Returns: number }
       gerar_parcelas_contrato_inicial: {
         Args: { p_contrato_id: string }
         Returns: undefined
@@ -59021,6 +60494,7 @@ export type Database = {
       }
       gerar_proximas_parcelas_pasta: { Args: never; Returns: number }
       gerar_snapshot_auditoria: { Args: { p_user_id?: string }; Returns: Json }
+      gerar_tarefas_recorrentes: { Args: never; Returns: number }
       get_convite_by_token: { Args: { _token: string }; Returns: Json }
       get_folha_competencia: {
         Args: { p_competencia: string }
@@ -59082,6 +60556,10 @@ export type Database = {
       get_user_roles: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"][]
+      }
+      get_users_by_roles: {
+        Args: { _roles: Database["public"]["Enums"]["app_role"][] }
+        Returns: string[]
       }
       get_vault_secret: { Args: { p_name: string }; Returns: string }
       has_module_permission: {
@@ -59427,6 +60905,24 @@ export type Database = {
         Args: { p_tipo_ofx: string; p_valor: number }
         Returns: string
       }
+      notif_suprimido: { Args: never; Returns: boolean }
+      notif_url_tarefa: { Args: { _tarefa_id: string }; Returns: string }
+      notificacoes_marcar_lidas: { Args: { _ids?: string[] }; Returns: number }
+      notificar: {
+        Args: {
+          _corpo?: string
+          _criado_por?: string
+          _dia_ref?: string
+          _entidade_id?: string
+          _entidade_tipo?: string
+          _modulo?: string
+          _tipo: string
+          _titulo: string
+          _url?: string
+          _user_id: string
+        }
+        Returns: string
+      }
       obter_destinatario_pagamento: {
         Args: { p_cpr_id: string }
         Returns: Json
@@ -59505,6 +61001,36 @@ export type Database = {
           motivos: string[]
           nivel: string
         }[]
+      }
+      radar_existe_ativo: {
+        Args: { _entidade_id: string; _modulo: string; _tipo_evento: string }
+        Returns: boolean
+      }
+      radar_push: {
+        Args: {
+          _acao_label?: string
+          _acao_url?: string
+          _descricao?: string
+          _destinatarios: string[]
+          _entidade_ids?: Json
+          _expira_em?: string
+          _modulo: string
+          _papeis: string[]
+          _prioridade?: string
+          _quantidade?: number
+          _tipo_evento: string
+          _titulo: string
+        }
+        Returns: string
+      }
+      radar_resolver: { Args: { _evento_id: string }; Returns: undefined }
+      radar_resolver_entidade: {
+        Args: { _entidade_id: string; _modulo: string; _tipo_evento: string }
+        Returns: undefined
+      }
+      radar_resolver_tipo: {
+        Args: { _modulo: string; _tipo_evento: string }
+        Returns: undefined
       }
       reabrir_analise_pedido:
         | { Args: { p_motivo?: string; p_pedido_id: string }; Returns: Json }
@@ -60128,10 +61654,75 @@ export type Database = {
           valor_atual: number
         }[]
       }
+      tarefa_decidir_aprovacao: {
+        Args: { _comentario?: string; _decisao: string; _tarefa_id: string }
+        Returns: undefined
+      }
+      tarefas_anexo_path_visivel: { Args: { _name: string }; Returns: boolean }
+      tarefas_carga_detalhe: {
+        Args: { _fim: string; _inicio: string; _user_id: string }
+        Returns: {
+          data_limite: string
+          estimativa_horas: number
+          hora_limite: string
+          id: string
+          prioridade: string
+          projeto_id: string
+          status: string
+          tipo_tarefa: string
+          titulo: string
+        }[]
+      }
+      tarefas_carga_pessoas_visiveis: {
+        Args: never
+        Returns: {
+          user_id: string
+        }[]
+      }
+      tarefas_carga_semanal: {
+        Args: { _inicio: string; _semanas?: number }
+        Returns: {
+          departamento_id: string
+          horas: number
+          horas_semana: number
+          nome: string
+          sem_estimativa: number
+          semana_inicio: string
+          user_id: string
+        }[]
+      }
+      tarefas_eh_gestor_de: {
+        Args: { _gestor: string; _pessoa: string }
+        Returns: boolean
+      }
       tarefas_is_admin: { Args: { _user_id: string }; Returns: boolean }
       tarefas_lidera: {
         Args: { _gestor_uid: string; _liderado_uid: string }
         Returns: boolean
+      }
+      tarefas_pode_gerenciar_projeto: {
+        Args: { _projeto_id: string }
+        Returns: boolean
+      }
+      tarefas_pode_ver_tarefa: {
+        Args: { _tarefa_id: string }
+        Returns: boolean
+      }
+      tarefas_rec_proxima: {
+        Args: {
+          _de: string
+          _dia_mes: number
+          _dias_semana: number[]
+          _frequencia: string
+          _inicio: string
+          _intervalo: number
+          _mes: number
+        }
+        Returns: string
+      }
+      tarefas_regras_aplicar: {
+        Args: { _contexto?: Json; _tarefa_id: string; _tipo: string }
+        Returns: undefined
       }
       tem_consentimento_ativo: {
         Args: { _tipo: string; _user_id: string }
