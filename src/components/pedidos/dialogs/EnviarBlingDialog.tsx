@@ -7,13 +7,12 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { Send, Loader2, AlertTriangle, RefreshCw, Package } from "lucide-react";
 import { useEnviarBling } from "@/hooks/pedidos/useEnviarBling";
 import { useSyncContato } from "@/hooks/parceiros/useSyncContato";
 import { useProvaPagamento } from "@/hooks/pedidos/useProvaPagamento";
 import { ProvaPagamentoAlerta } from "@/components/pedidos/ProvaPagamentoAlerta";
+import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
@@ -35,12 +34,13 @@ export function EnviarBlingDialog({
 }: Props) {
 
   const [open, setOpen] = useState(false);
-  const [assumeRisco, setAssumeRisco] = useState(false);
   const enviar = useEnviarBling();
   const sync = useSyncContato();
   const navigate = useNavigate();
 
   const { data: prova, isLoading: checkingProva } = useProvaPagamento(pedido_id, open);
+  const { permitido: podeLiberarSemProva } = usePermissaoAcao("acao.liberar_sem_prova");
+  const travadoSemProva = !!prova && !prova.libera_despacho && !podeLiberarSemProva;
 
   const { data: parceiroStatus, isLoading: checkingBling, refetch: recheckBling } = useQuery({
     queryKey: ["parceiro-bling-check", parceiro_id],
@@ -105,7 +105,6 @@ export function EnviarBlingDialog({
       open={open}
       onOpenChange={(v) => {
         if (enviar.isPending) return;
-        setAssumeRisco(false);
         setOpen(v);
       }}
     >
@@ -185,16 +184,17 @@ export function EnviarBlingDialog({
           <div className="space-y-3">
             {prova && <ProvaPagamentoAlerta prova={prova} />}
             {prova && !prova.libera_despacho && (
-              <div className="flex items-start gap-2">
-                <Checkbox
-                  id="assume-risco"
-                  checked={assumeRisco}
-                  onCheckedChange={(v) => setAssumeRisco(v === true)}
-                />
-                <Label htmlFor="assume-risco" className="text-xs cursor-pointer leading-snug">
-                  Estou despachando sem confirmação bancária e assumo essa decisão.
-                </Label>
-              </div>
+              podeLiberarSemProva ? (
+                <p className="text-xs text-muted-foreground leading-snug">
+                  Você tem permissão para liberar sem confirmação bancária. A liberação
+                  fica registrada com seu nome.
+                </p>
+              ) : (
+                <p className="text-xs text-destructive leading-snug">
+                  Este pedido não tem confirmação bancária do pagamento. Peça a liberação
+                  a quem tem a permissão.
+                </p>
+              )
             )}
             <div className="space-y-2 text-sm text-muted-foreground">
               <p>
@@ -220,7 +220,7 @@ export function EnviarBlingDialog({
           {temBlingId && !temRemessaAtiva && (
             <Button
               onClick={handleEnviar}
-              disabled={enviar.isPending || (!!prova && !prova.libera_despacho && !assumeRisco)}
+              disabled={enviar.isPending || travadoSemProva}
               className="gap-1.5"
             >
               {enviar.isPending ? (

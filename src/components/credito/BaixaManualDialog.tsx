@@ -24,15 +24,20 @@ export interface BaixaManualTitulo {
 
 export function BaixaManualDialog({
   titulo,
+  tipoPagamento,
   onClose,
 }: {
   titulo: BaixaManualTitulo;
+  /** tipo_pagamento do título — o campo de NSU só aparece para cartão. */
+  tipoPagamento?: string | null;
   onClose: () => void;
 }) {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [dataPag, setDataPag] = useState(() => new Date().toISOString().slice(0, 10));
+  const [autorizacao, setAutorizacao] = useState("");
   const [loading, setLoading] = useState(false);
+  const ehCartao = (tipoPagamento ?? "").startsWith("cartao");
   const boletoVivo = titulo.boleto_status === "registrado";
   const [solicitarBaixa, setSolicitarBaixa] = useState(boletoVivo);
 
@@ -42,6 +47,8 @@ export function BaixaManualDialog({
       const { error: rpcErr } = await (supabase as any).rpc("marcar_titulo_pago", {
         p_titulo_id: titulo.id,
         p_data_pagamento: dataPag + "T12:00:00" + ".000Z",
+        p_observacao: null,
+        p_autorizacao_cartao: autorizacao.trim() || null,
       });
       if (rpcErr) throw rpcErr;
 
@@ -98,6 +105,22 @@ export function BaixaManualDialog({
               onChange={(e) => setDataPag(e.target.value)}
             />
           </div>
+
+          {ehCartao && (
+            <div className="space-y-2">
+              <Label htmlFor="autorizacao-cartao">Código de autorização (NSU)</Label>
+              <Input
+                id="autorizacao-cartao"
+                value={autorizacao}
+                onChange={(e) => setAutorizacao(e.target.value)}
+                placeholder="123456"
+              />
+              <p className="text-xs text-muted-foreground">
+                Sem o NSU o pagamento fica como declarado por pessoa e o pedido trava no
+                envio ao Bling.
+              </p>
+            </div>
+          )}
 
           {boletoVivo && (
             <>
