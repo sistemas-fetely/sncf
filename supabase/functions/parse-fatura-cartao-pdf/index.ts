@@ -106,6 +106,10 @@ Deno.serve(async (req) => {
 
     // Converter PDF pra base64
     const arrayBuffer = await file.arrayBuffer();
+    console.log("parse-fatura-cartao-pdf: pdf recebido", {
+      bytes: arrayBuffer.byteLength,
+      temChave: !!lovableApiKey,
+    });
     const MAX_BYTES = 15 * 1024 * 1024;
     if (arrayBuffer.byteLength > MAX_BYTES) {
       return new Response(
@@ -134,12 +138,10 @@ Deno.serve(async (req) => {
       },
     ];
 
-    // O 503 do gateway ("upstream_error") é transitório e derrubava a importação
-    // inteira. Tenta o modelo pro, com backoff, e cai para o flash se persistir.
+    // Flash vem primeiro para testar timeout: se passar, era tempo; se falhar igual, é chave ou gateway.
     const tentativas: { model: string }[] = [
-      { model: "google/gemini-2.5-pro" },
-      { model: "google/gemini-2.5-pro" },
       { model: "google/gemini-2.5-flash" },
+      { model: "google/gemini-2.5-pro" },
     ];
 
     let aiResponse: Response | null = null;
@@ -174,7 +176,11 @@ Deno.serve(async (req) => {
       const errText = await resp.text();
       ultimoStatus = resp.status;
       ultimoErro = `modelo ${model} respondeu ${resp.status}: ${errText.slice(0, 500)}`;
-      console.error("AI Gateway error:", ultimoErro);
+      console.error("AI Gateway error:", {
+        model,
+        status: resp.status,
+        body: errText.slice(0, 300),
+      });
 
       // 429/402/401 não melhoram com retry de modelo
       if (resp.status === 429) {
