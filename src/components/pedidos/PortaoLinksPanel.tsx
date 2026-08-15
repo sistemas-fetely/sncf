@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PixQrCode } from "@/components/pedidos/PixQrCode";
 import { ConfirmarPortaoPagoDialog } from "@/components/pedidos/dialogs/ConfirmarPortaoPagoDialog";
+import { ConfirmarCartaoCapturadoDialog } from "@/components/pedidos/dialogs/ConfirmarCartaoCapturadoDialog";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (s?: string | null) =>
