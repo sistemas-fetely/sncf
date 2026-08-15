@@ -589,10 +589,18 @@ export function FilaPedidosPorArea({
                         const critico = motivos.some((m) => m.codigo === "urgencia_critica_declarada");
                         const alto = motivos.some((m) => m.codigo === "urgencia_alta_declarada");
                         if (critico) {
-                          return <Flame className="h-3.5 w-3.5 text-destructive" aria-label="Urgência crítica declarada" title="Urgência crítica declarada" />;
+                          return (
+                            <span title="Urgência crítica declarada" aria-label="Urgência crítica declarada">
+                              <Flame className="h-3.5 w-3.5 text-destructive" />
+                            </span>
+                          );
                         }
                         if (alto) {
-                          return <Flame className="h-3.5 w-3.5 text-warning" aria-label="Urgência alta declarada" title="Urgência alta declarada" />;
+                          return (
+                            <span title="Urgência alta declarada" aria-label="Urgência alta declarada">
+                              <Flame className="h-3.5 w-3.5 text-warning" />
+                            </span>
+                          );
                         }
                         return null;
                       })()}
