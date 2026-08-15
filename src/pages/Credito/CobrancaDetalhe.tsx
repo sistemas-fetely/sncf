@@ -736,8 +736,9 @@ export default function CobrancaDetalhe() {
     );
   }
 
-  // Pedido já saiu de 'cobranca' — modo edição de links
-  if (pedidoQ.data.estagio !== "cobranca") {
+  // TRAVA: estágio fora de 'cobranca' OU plano já materializado → modo links.
+  // Nunca mostrar proposta editável para pedido que já tem plano (evita plano duplicado).
+  if (pedidoQ.data.estagio !== "cobranca" || (planoExistenteQ.data ?? 0) > 0) {
     return <GerenciarLinksPagamento pedido={pedidoQ.data} />;
   }
 
