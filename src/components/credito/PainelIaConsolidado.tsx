@@ -124,7 +124,7 @@ export function PainelIaConsolidado({
               {iaJson.pontos_atencao.map((p, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm">
                   <AlertTriangle className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
-                  <span>{p}</span>
+                  <span>{typeof p === "string" ? p : p.texto}</span>
                 </li>
               ))}
             </ul>

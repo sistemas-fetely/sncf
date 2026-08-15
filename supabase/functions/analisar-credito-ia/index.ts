@@ -540,7 +540,7 @@ function validarSaidaIA(
     contradicoes.push(`confianca fora da faixa 0-100: "${analiseIA?.confianca}".`);
   }
 
-  return { contradicoes, cifras_orfas };
+  return { contradicoes, cifras_orfas, pontos_sem_tipo };
 }
 
 async function processarRespostaIA(
@@ -573,15 +573,18 @@ async function processarRespostaIA(
 
   // Validação determinística — SISTEMA SUGERE / HUMANO DECIDE: nunca descarta, só carimba.
   const confiancaOriginal = Number(analiseIA?.confianca ?? 0);
-  const { contradicoes, cifras_orfas } = validarSaidaIA(analiseIA, fatos);
+  const { contradicoes, cifras_orfas, pontos_sem_tipo } = validarSaidaIA(analiseIA, fatos);
 
   if (contradicoes.length > 0) {
     console.warn("Validação IA encontrou contradições:", analise_id, contradicoes);
     analiseIA.confianca = Math.min(Number(analiseIA.confianca ?? 0) || 0, 40);
     if (!Array.isArray(analiseIA.pontos_atencao)) analiseIA.pontos_atencao = [];
-    analiseIA.pontos_atencao.unshift(
-      "⚠ VERIFICAÇÃO AUTOMÁTICA: esta análise contradiz os dados do sistema. Confira antes de decidir."
-    );
+    analiseIA.pontos_atencao.unshift({
+      texto:
+        "⚠ VERIFICAÇÃO AUTOMÁTICA: esta análise contradiz os dados do sistema. Confira antes de decidir.",
+      tipo: "outro",
+      valor: null,
+    });
   } else if (cifras_orfas.length > 0) {
     console.warn("Validação IA encontrou cifras órfãs:", analise_id, cifras_orfas);
     analiseIA.confianca = Math.min(Number(analiseIA.confianca ?? 0) || 0, 70);
@@ -593,6 +596,7 @@ async function processarRespostaIA(
     _validacao: {
       contradicoes,
       cifras_orfas,
+      pontos_sem_tipo,
       confianca_original: confiancaOriginal,
       validado_em: new Date().toISOString(),
     },

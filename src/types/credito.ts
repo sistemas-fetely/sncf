@@ -65,7 +65,7 @@ export interface SugestaoIA {
 
 export interface AnaliseIaJson {
   resumo: string;
-  pontos_atencao: string[];
+  pontos_atencao: (string | { texto: string; tipo?: string | null; valor?: number | null })[];
   sugestao: SugestaoIA;
   decisao_sugerida: DecisaoSugeridaIA;
   justificativa: string;
@@ -74,6 +74,7 @@ export interface AnaliseIaJson {
   _validacao?: {
     contradicoes: string[];
     cifras_orfas: number[];
+    pontos_sem_tipo?: number;
     confianca_original?: number;
     validado_em?: string;
   } | null;

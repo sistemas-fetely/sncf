@@ -136,7 +136,7 @@ export function AnaliseIaCard({
                 </p>
                 <ul className="text-sm space-y-1 list-disc list-inside">
                   {iaJson.pontos_atencao.map((p, i) => (
-                    <li key={i}>{p}</li>
+                    <li key={i}>{typeof p === "string" ? p : p.texto}</li>
                   ))}
                 </ul>
               </div>
