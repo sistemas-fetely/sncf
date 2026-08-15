@@ -189,12 +189,78 @@ Deno.serve(async (req) => {
       return dias < 90;
     });
 
+    // 8) Títulos do cliente — fonte única da verdade sobre dívida
+    const { data: titulos } = await (supabase as any)
+      .from("vw_titulos_cobranca")
+      .select("numero_titulo, numero_parcela, total_parcelas, pedido_id_externo, valor_efetivo, data_vencimento_atual, data_pagamento, data_pagamento_banco, status_gestao")
+      .eq("parceiro_id", parceiroId)
+      .order("data_vencimento_atual", { ascending: false })
+      .limit(40);
+
+    const listaTitulos = (titulos || []) as any[];
+
+    const num = (v: any) => Number(v ?? 0) || 0;
+    const valorBruto = num(analise.pedido?.valor_bruto);
+    const valorLiquido = num(analise.pedido?.valor_liquido);
+    const valorFrete = num(analise.pedido?.valor_frete);
+    const acrescimoIe = num(analise.pedido?.acrescimo_ie_valor);
+    const descontoPct = num(analise.pedido?.desconto_pct);
+    const descontoRS = descontoPct > 0 ? (valorBruto * descontoPct) / 100 : 0;
+
+    const blocoTitulos = listaTitulos.length > 0
+      ? listaTitulos
+          .map((t: any) => {
+            const liq = t.data_pagamento_banco || t.data_pagamento;
+            return `- ${t.numero_titulo} ${t.numero_parcela ?? "?"}/${t.total_parcelas ?? "?"} · pedido ${t.pedido_id_externo ?? "—"} · R$ ${num(t.valor_efetivo)} · vence ${t.data_vencimento_atual} · ${t.status_gestao}${liq ? ` · quitado em ${liq}` : ""}`;
+          })
+          .join("\n")
+      : "Cliente sem títulos emitidos.";
+
+    const titulosAtrasados = listaTitulos.filter(
+      (t: any) => t.status_gestao === "atrasado"
+    ).length;
+
+    const fatos = {
+      vencidos: num(kpis?.vencidos),
+      a_vencer: num(kpis?.a_vencer),
+      em_aberto: num(kpis?.em_aberto),
+      pago: num(kpis?.pago),
+      atraso_medio: num(kpis?.atraso_medio_dias),
+      vencidos_grupo: num(kpisGrupo?.vencidos),
+      valor_bruto: valorBruto,
+      valor_liquido: valorLiquido,
+      valor_frete: valorFrete,
+      acrescimo_ie_valor: acrescimoIe,
+      titulos_atrasados: titulosAtrasados,
+      valores_payload: [
+        valorBruto,
+        valorLiquido,
+        valorFrete,
+        acrescimoIe,
+        descontoRS,
+        num(kpis?.vencidos),
+        num(kpis?.a_vencer),
+        num(kpis?.em_aberto),
+        num(kpis?.pago),
+        num(kpis?.maior_compra),
+        num(kpisGrupo?.em_aberto),
+        num(kpisGrupo?.vencidos),
+        ...listaTitulos.map((t: any) => num(t.valor_efetivo)),
+        ...(scores || []).map((s: any) => num(s.total_dividas)),
+        ...(anteriores || []).map((a: any) => num(a.limite_concedido)),
+      ].filter((v: number) => v > 0),
+    };
+
     // Monta user prompt com contexto completo
     const userPrompt = `Analise esta análise de crédito.
 
 PEDIDO:
-- Valor bruto: R$ ${analise.pedido?.valor_bruto}
-- Valor líquido: R$ ${analise.pedido?.valor_liquido} (desconto ${analise.pedido?.desconto_pct || 0}%)
+- Mercadoria (valor bruto): R$ ${valorBruto}
+- Desconto aplicado: ${descontoPct > 0 ? `R$ ${descontoRS.toFixed(2)} (${descontoPct}%)` : "nenhum"}
+- Frete (pago pelo cliente): R$ ${valorFrete}
+- Acréscimo sem inscrição estadual: R$ ${acrescimoIe}
+- TOTAL A PAGAR (valor líquido): R$ ${valorLiquido}
+- Confira: mercadoria − desconto + frete + acréscimo = total. Líquido MAIOR que bruto é normal quando há frete ou acréscimo — NÃO é inconsistência.
 - Condição solicitada: ${analise.pedido?.condicao_solicitada}
 - Forma solicitada: ${analise.pedido?.forma_solicitada}
 - Vendedor: ${analise.pedido?.vendedor || "—"}
@@ -218,21 +284,26 @@ ESTADO ATUAL DO CLIENTE:
 
 KPIs FINANCEIROS DO CLIENTE:
 ${kpis ? `
-- Em aberto: R$ ${kpis.em_aberto}
-- Pago histórico: R$ ${kpis.pago}
-- Vencidos: R$ ${kpis.vencidos}
-- À vencer: R$ ${kpis.a_vencer}
-- Maior compra: R$ ${kpis.maior_compra}
+- DÍVIDA VENCIDA HOJE (em atraso, não pago): R$ ${num(kpis.vencidos)}
+- A vencer (em aberto, ainda dentro do prazo): R$ ${num(kpis.a_vencer)}
+- Total em aberto (vencido + a vencer): R$ ${num(kpis.em_aberto)}
+- JÁ PAGO E QUITADO no histórico (isto NÃO é dívida): R$ ${num(kpis.pago)}
+- Maior compra já feita: R$ ${num(kpis.maior_compra)}
 - Última compra em: ${kpis.ultima_compra_em || "—"}
-- Atraso médio: ${Math.round(kpis.atraso_medio_dias || 0)} dias` : "Sem dados financeiros (cliente novo)"}
+- Atraso médio nos pagamentos já feitos: ${Math.round(num(kpis.atraso_medio_dias))} dias
+ATENÇÃO: se DÍVIDA VENCIDA HOJE for R$ 0, o cliente NÃO tem débito vencido. Não descreva valores já pagos como dívida.` : "Sem dados financeiros (cliente novo)"}
 
 GRUPO ECONÔMICO:
 ${kpisGrupo ? `
 - Nome: ${kpisGrupo.grupo_nome}
 - Parceiros no grupo: ${kpisGrupo.qtd_parceiros}
-- Em aberto grupo: R$ ${kpisGrupo.em_aberto}
-- Vencidos grupo: R$ ${kpisGrupo.vencidos}
-- Atraso médio grupo: ${Math.round(kpisGrupo.atraso_medio_dias || 0)} dias` : "Sem grupo econômico detectado"}
+- DÍVIDA VENCIDA HOJE do grupo (em atraso, não pago): R$ ${num(kpisGrupo.vencidos)}
+- Total em aberto do grupo (vencido + a vencer): R$ ${num(kpisGrupo.em_aberto)}
+- Atraso médio do grupo nos pagamentos já feitos: ${Math.round(num(kpisGrupo.atraso_medio_dias))} dias` : "Sem grupo econômico detectado"}
+
+TÍTULOS DO CLIENTE (fonte única da verdade sobre dívida — use estas linhas, não infira):
+${blocoTitulos}
+Legenda dos status: a_vencer/vence_hoje = em aberto no prazo · atrasado = DÍVIDA VENCIDA · aguarda_liquidacao = pago sem confirmação bancária · pago/pago_com_atraso/pago_judicial = QUITADO, não é dívida · baixado_por_perda = prejuízo assumido · devolvido/cancelado = sem efeito financeiro.
 
 SCORES BUREAU ANEXADOS (extraídos por IA dos PDFs):
 ${(scores || []).length > 0 ? JSON.stringify(scores) : "Nenhum bureau anexado nesta análise"}
