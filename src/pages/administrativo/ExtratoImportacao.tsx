@@ -333,6 +333,8 @@ export default function ExtratoImportacao() {
       let semPar = 0;
       let periodoInicio: string | null = null;
       let periodoFim: string | null = null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let respRetorno: any = null;
 
       if (fonte === "ofx") {
         const text = await file.text();
