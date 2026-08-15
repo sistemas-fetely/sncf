@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PixQrCode } from "@/components/pedidos/PixQrCode";
 import { ConfirmarPortaoPagoDialog } from "@/components/pedidos/dialogs/ConfirmarPortaoPagoDialog";
+import { ConfirmarCartaoCapturadoDialog } from "@/components/pedidos/dialogs/ConfirmarCartaoCapturadoDialog";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (s?: string | null) =>
@@ -74,6 +75,12 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
   const totalPortao = linhasPortao.reduce((a, p) => a + Number(p.valor ?? 0), 0);
   const faltandoPortao = pendentesPortao.reduce((a, p) => a + Number(p.valor ?? 0), 0);
 
+  // Cartão em 3x é UMA autorização: as parcelas seguintes são repasses da operadora.
+  const cartaoAbertas = provisoes.filter(
+    (p) => p.tipo_pagamento === "cartao" && p.status !== "pago" && !p.pago_em,
+  );
+  const cartaoAbertoValor = cartaoAbertas.reduce((a, p) => a + Number(p.valor ?? 0), 0);
+
   return (
     <div className="space-y-4">
       <div>
@@ -93,6 +100,22 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
           )}
         </p>
       </div>
+
+      {cartaoAbertas.length > 0 && (
+        <div className="flex items-center justify-between gap-3 rounded-md border p-3">
+          <p className="text-xs text-muted-foreground">
+            {cartaoAbertas.length} parcela(s) de cartão em aberto · {fmtBRL.format(cartaoAbertoValor)} —
+            uma captura fecha todas de uma vez.
+          </p>
+          <ConfirmarCartaoCapturadoDialog
+            pedidoId={pedidoId}
+            parcelasAbertas={cartaoAbertas.length}
+            valorAberto={cartaoAbertoValor}
+          />
+        </div>
+      )}
+
+
 
       <div className="border rounded-md overflow-hidden">
         <Table>
