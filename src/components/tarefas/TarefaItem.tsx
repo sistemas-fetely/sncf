@@ -42,6 +42,7 @@ export function TarefaItem({ tarefa, atrasada = false }: Props) {
   const reagendar = useReagendarTarefa();
   const { data: projetos } = useProjetos();
   const [calendarioAberto, setCalendarioAberto] = useState(false);
+  const [painelAberto, setPainelAberto] = useState(false);
 
   const projeto = projetos?.find((p) => p.id === tarefa.projeto_id);
   const concluida = tarefa.status === "concluida";
@@ -63,6 +64,9 @@ export function TarefaItem({ tarefa, atrasada = false }: Props) {
         }
         aria-label={concluida ? "Reabrir tarefa" : "Concluir tarefa"}
       />
+
+      <TarefaDetalhePainel tarefaId={tarefa.id} aberto={painelAberto} onOpenChange={setPainelAberto} />
+
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
