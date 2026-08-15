@@ -314,6 +314,7 @@ ${(anteriores || []).length > 0 ? JSON.stringify(anteriores) : "Cliente novo na 
 Gere a análise estruturada em JSON conforme instruído no system prompt.`;
 
     // Chama Claude Sonnet via Lovable AI Gateway
+    const MODELO_PRIMARIO = "anthropic/claude-sonnet-4-5";
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -321,7 +322,7 @@ Gere a análise estruturada em JSON conforme instruído no system prompt.`;
         "Authorization": `Bearer ${LOVABLE_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "anthropic/claude-sonnet-4-20250514",
+        model: MODELO_PRIMARIO,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userPrompt },
@@ -332,6 +333,12 @@ Gere a análise estruturada em JSON conforme instruído no system prompt.`;
     if (!aiResp.ok) {
       const errorText = await aiResp.text().catch(() => "");
       console.error("Claude error:", aiResp.status, errorText);
+      const fallbackInfo = {
+        primario: MODELO_PRIMARIO,
+        status: aiResp.status,
+        erro: String(errorText).slice(0, 300),
+        em: new Date().toISOString(),
+      };
       // Fallback: tenta Gemini Pro se Claude não tá disponível
       const fallbackResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -354,11 +361,11 @@ Gere a análise estruturada em JSON conforme instruído no system prompt.`;
         );
       }
       const fbData = await fallbackResp.json();
-      return await processarRespostaIA(fbData, analise_id, supabase, corsHeaders, "gemini-pro-fallback");
+      return await processarRespostaIA(fbData, analise_id, supabase, corsHeaders, "gemini-pro-fallback", fatos, fallbackInfo);
     }
 
     const aiData = await aiResp.json();
-    return await processarRespostaIA(aiData, analise_id, supabase, corsHeaders, "claude-sonnet-4");
+    return await processarRespostaIA(aiData, analise_id, supabase, corsHeaders, "claude-sonnet-4-5", fatos, null);
   } catch (e) {
     console.error("analisar-credito-ia error:", e);
     return new Response(
