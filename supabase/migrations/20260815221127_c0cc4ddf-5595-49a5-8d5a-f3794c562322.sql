@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.__tmp_apply_install_sql(text) TO sandbox_exec;
