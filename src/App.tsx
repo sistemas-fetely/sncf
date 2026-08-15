@@ -91,8 +91,10 @@ const TIAtivos = lazy(() => import("@/pages/ti/TIAtivos"));
 const TesteEmailTemplate = lazy(() => import("@/pages/ti/TesteEmailTemplate"));
 const DocumentacaoDetalhe = lazy(() => import("@/pages/ti/DocumentacaoDetalhe"));
 const DocumentacaoForm = lazy(() => import("@/pages/ti/DocumentacaoForm"));
-const MinhasTarefas = lazy(() => import("@/pages/MinhasTarefas"));
-const TarefasDoTime = lazy(() => import("@/pages/TarefasDoTime"));
+const TarefasLayout = lazy(() => import("@/layouts/TarefasLayout"));
+const TarefasHoje = lazy(() => import("@/pages/tarefas/TarefasHoje"));
+const MinhasTarefasNovo = lazy(() => import("@/pages/tarefas/MinhasTarefasNovo"));
+
 const Processos = lazy(() => import("@/pages/Processos"));
 const ProcessoDetalhe = lazy(() => import("@/pages/ProcessoDetalhe"));
 const ProcessoEditor = lazy(() => import("@/pages/ProcessoEditor"));
