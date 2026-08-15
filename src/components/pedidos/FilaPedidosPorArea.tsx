@@ -7,7 +7,7 @@ import { usePedidosFila } from "@/hooks/pedidos/usePedidosFila";
 import { usePedidoRisco, usePedidoRiscoFaixas, RISCO_COR_TOKEN } from "@/hooks/pedidos/usePedidoRisco";
 import type { PedidoRisco } from "@/hooks/pedidos/usePedidoRisco";
 import { usePedidosEntregaLote } from "@/hooks/pedidos/usePedidoEntrega";
-import { EntregaLinhaResumo, ESTAGIOS_COM_RESUMO_ENTREGA } from "@/components/pedidos/EntregaLinhaResumo";
+import { CelulaEntregaFila, LinhaNfFila } from "@/components/pedidos/CelulasFilaPedidos";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -361,14 +361,8 @@ export function FilaPedidosPorArea({
     },
   });
 
-  // Resumo de saída (data de entrega, transportadora, NF) para pedidos já expedidos
-  const pedidoIdsSaida = useMemo(
-    () =>
-      (linhas || [])
-        .filter((p) => (ESTAGIOS_COM_RESUMO_ENTREGA as readonly string[]).includes(p.estagio))
-        .map((p) => p.id),
-    [linhas]
-  );
+  // Coluna Entrega: vale para TODAS as linhas da fila (não só as expedidas).
+  const pedidoIdsSaida = useMemo(() => (linhas || []).map((p) => p.id), [linhas]);
   const {
     data: entregaMap,
     isError: entregaErro,
@@ -525,8 +519,10 @@ export function FilaPedidosPorArea({
             <TableRow>
               <TableHead className="w-[56px]">Risco</TableHead>
               <TableHead>Pedido</TableHead>
-              <TableHead className="w-[180px]">Valor</TableHead>
-              <TableHead>Estágio</TableHead>
+              <TableHead className="w-[130px]">Valor</TableHead>
+              <TableHead className="w-[150px]">Pagamento</TableHead>
+              <TableHead className="w-[150px]">Estágio</TableHead>
+              <TableHead className="w-[170px]">Entrega</TableHead>
               <TableHead className="w-[70px]">Idade</TableHead>
               <TableHead className="w-[56px] text-right text-[11px] font-normal text-muted-foreground">Ações</TableHead>
 
@@ -535,14 +531,14 @@ export function FilaPedidosPorArea({
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   Carregando…
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && (!linhas || linhas.length === 0) && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   Nenhum pedido neste filtro.
                 </TableCell>
               </TableRow>
@@ -607,9 +603,16 @@ export function FilaPedidosPorArea({
                       })()}
                       {p.parceiro_cnpj ? ` · ${p.parceiro_cnpj}` : ""}
                     </p>
+                    <MarcacaoBadge marcacao={p.marcacao} />
                   </TableCell>
                   <TableCell>
-                    <ValorComPagamento p={p} />
+                    <p className="font-semibold">{fmtBRL.format(p.valor_liquido)}</p>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <LinhaNfFila info={entregaMap?.get(p.id)} />
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <CelulaPagamento p={p} />
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap items-center gap-1.5">
@@ -660,19 +663,20 @@ export function FilaPedidosPorArea({
                           </>
                         );
                       })()}
-                      <MarcacaoBadge marcacao={p.marcacao} />
                       {p.proxima_acao && (
                         <span className="text-[11px] text-muted-foreground">· {p.proxima_acao}</span>
                       )}
                     </div>
-                    {(ESTAGIOS_COM_RESUMO_ENTREGA as readonly string[]).includes(p.estagio) &&
-                      (entregaErro ? (
-                        <p className="mt-1 text-[11px] text-destructive">
-                          Erro ao carregar entrega/NF: {(entregaErrorObj as Error)?.message || "falha desconhecida"}
-                        </p>
-                      ) : (
-                        <EntregaLinhaResumo info={entregaMap?.get(p.id)} />
-                      ))}
+                  </TableCell>
+
+                  <TableCell>
+                    {entregaErro ? (
+                      <p className="text-[11px] text-destructive">
+                        Erro ao carregar entrega/NF: {(entregaErrorObj as Error)?.message || "falha desconhecida"}
+                      </p>
+                    ) : (
+                      <CelulaEntregaFila info={entregaMap?.get(p.id)} />
+                    )}
                   </TableCell>
 
                   <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
@@ -822,7 +826,7 @@ function BadgeEntradaPaga({ p }: { p: PedidoFilaItem }) {
   );
 }
 
-function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
+function CelulaPagamento({ p }: { p: PedidoFilaItem }) {
   const situacao = p.situacao_financeira;
   const rotulo = p.situacao_rotulo;
   const ref = p.pagamento_ref;
@@ -833,7 +837,8 @@ function ValorComPagamento({ p }: { p: PedidoFilaItem }) {
   const diasAtraso = Number(p.dias_atraso_max || 0);
   const badgeAdiantado = <BadgeEntradaPaga p={p} />;
 
-  const valorLine = <p className="font-semibold">{fmtBRL.format(p.valor_liquido)}</p>;
+  // O valor líquido vive na coluna Valor; aqui ficam só os selos de pagamento.
+  const valorLine = null;
   const condLine = (
     <p className="text-[11px] text-muted-foreground">
       {p.condicao_solicitada} · {p.forma_solicitada}
