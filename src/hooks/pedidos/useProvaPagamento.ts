@@ -48,3 +48,35 @@ export function useProvaPagamento(pedidoId: string | undefined, enabled = true) 
     },
   });
 }
+
+/**
+ * Versão em lote: uma query só para a fila inteira (nunca uma por linha).
+ */
+export function useProvaPagamentoLote(pedidoIds: string[]) {
+  const ids = [...pedidoIds].sort();
+  return useQuery({
+    queryKey: ["prova-pagamento-lote", ids],
+    enabled: ids.length > 0,
+    staleTime: 30 * 1000,
+    queryFn: async (): Promise<Map<string, ProvaPagamento>> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("vw_pedido_prova_pagamento")
+        .select("*")
+        .in("pedido_id", ids);
+      if (error) throw error;
+      const m = new Map<string, ProvaPagamento>();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (data ?? []).forEach((r: any) => {
+        m.set(r.pedido_id, {
+          ...r,
+          valor_liquido: Number(r.valor_liquido ?? 0),
+          valor_recebido: Number(r.valor_recebido ?? 0),
+          valor_sem_prova: Number(r.valor_sem_prova ?? 0),
+          lancamentos: Number(r.lancamentos ?? 0),
+        } as ProvaPagamento);
+      });
+      return m;
+    },
+  });
+}

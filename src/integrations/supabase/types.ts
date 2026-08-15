@@ -57695,6 +57695,7 @@ export type Database = {
       }
       marcar_titulo_pago: {
         Args: {
+          p_autorizacao_cartao?: string
           p_data_pagamento?: string
           p_observacao?: string
           p_titulo_id: string
