@@ -826,12 +826,12 @@ export default function ExtratoImportacao() {
             descricao = `MP DEVOLUCAO ${meio}`.trim();
             tipoMeio = "outro";
           } else {
+            const meioNorm = l.meio_pagamento
+              .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
             descricao = `MP PAGAMENTO ${meio}`.trim();
-            tipoMeio = desc.includes("saldo disponivel")
+            tipoMeio = meioNorm.includes("saldo disponivel")
               ? "outro"
-              : (l.meio_pagamento.toLowerCase().includes("pix") ||
-                 l.meio_pagamento.toLowerCase().includes("transferencia bancaria") ||
-                 l.meio_pagamento.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes("transferencia bancaria"))
+              : (meioNorm.includes("pix") || meioNorm.includes("transferencia bancaria"))
                 ? "pix"
                 : "cartao";
           }
