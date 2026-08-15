@@ -415,6 +415,7 @@ export default function CobrancaDetalhe() {
   const pedidoQ = usePedidoMinimo(pedidoId);
   const portaoRegraQ = usePedidoPortaoRegra(pedidoId);
   const propostaQ = usePropostaCobranca(pedidoId);
+  const planoExistenteQ = usePlanoExistente(pedidoId);
   const materializar = useMaterializarCobranca();
   const materializarComHaver = useMaterializarComHaver();
   const criarPortao = useCriarPortaoProvisorio();
