@@ -1374,6 +1374,7 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
             valor_atual: baixando.valor_efetivo,
             boleto_status: baixando.boleto_status,
           }}
+          tipoPagamento={baixando.tipo_pagamento}
           onClose={() => {
             setBaixando(null);
             qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });

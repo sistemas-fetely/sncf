@@ -597,7 +597,11 @@ export default function ContasReceberSops() {
       </Card>
 
       {tituloBaixa && (
-        <BaixaManualDialog titulo={tituloBaixa} onClose={() => setTituloBaixa(null)} />
+        <BaixaManualDialog
+          titulo={tituloBaixa}
+          tipoPagamento={tituloBaixa.tipo_pagamento}
+          onClose={() => setTituloBaixa(null)}
+        />
       )}
     </div>
   );

@@ -7,6 +7,7 @@ import { usePedidosFila } from "@/hooks/pedidos/usePedidosFila";
 import { usePedidoRisco, usePedidoRiscoFaixas, RISCO_COR_TOKEN } from "@/hooks/pedidos/usePedidoRisco";
 import type { PedidoRisco } from "@/hooks/pedidos/usePedidoRisco";
 import { usePedidosEntregaLote } from "@/hooks/pedidos/usePedidoEntrega";
+import { useProvaPagamentoLote, type ProvaPagamento } from "@/hooks/pedidos/useProvaPagamento";
 import { CelulaEntregaFila, LinhaNfFila } from "@/components/pedidos/CelulasFilaPedidos";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -369,6 +370,8 @@ export function FilaPedidosPorArea({
     error: entregaErrorObj,
   } = usePedidosEntregaLote(pedidoIdsSaida);
 
+  const { data: provaMap } = useProvaPagamentoLote(pedidoIdsSaida);
+
 
 
   const { data: msgPendentes } = useQuery({
@@ -618,7 +621,7 @@ export function FilaPedidosPorArea({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <CelulaPagamento p={p} />
+                    <CelulaPagamento p={p} prova={provaMap?.get(p.id)} />
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap items-center gap-1.5">
@@ -851,7 +854,7 @@ function BadgeEntradaPaga({ p }: { p: PedidoFilaItem }) {
   );
 }
 
-function CelulaPagamento({ p }: { p: PedidoFilaItem }) {
+function CelulaPagamento({ p, prova }: { p: PedidoFilaItem; prova?: ProvaPagamento }) {
   const situacao = p.situacao_financeira;
   const rotulo = p.situacao_rotulo;
   const ref = p.pagamento_ref;
@@ -864,10 +867,36 @@ function CelulaPagamento({ p }: { p: PedidoFilaItem }) {
 
   // O valor líquido vive na coluna Valor; aqui ficam só os selos de pagamento.
   const valorLine = null;
+  const provaLine = prova ? (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <p
+            className={cn(
+              "text-[11px]",
+              prova.prova_tom === "perigo"
+                ? "text-destructive"
+                : prova.prova_tom === "alerta"
+                  ? "text-warning"
+                  : "text-muted-foreground",
+            )}
+          >
+            {prova.prova_rotulo}
+          </p>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p className="text-xs max-w-[280px]">{prova.prova_frase}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  ) : null;
   const condLine = (
-    <p className="text-[11px] text-muted-foreground">
-      {p.condicao_solicitada} · {p.forma_solicitada}
-    </p>
+    <>
+      <p className="text-[11px] text-muted-foreground">
+        {p.condicao_solicitada} · {p.forma_solicitada}
+      </p>
+      {provaLine}
+    </>
   );
 
   if (situacao === "vencido") {
