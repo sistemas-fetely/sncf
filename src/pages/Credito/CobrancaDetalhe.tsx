@@ -555,6 +555,14 @@ export default function CobrancaDetalhe() {
   );
   const pctPortao = totalEditado > 0 ? (totalPortao / totalEditado) * 100 : 0;
 
+  // Regra do portão vinda da view — mostrada ANTES do clique. O banco continua sendo
+  // a autoridade final; isto é só para o operador não bater na parede.
+  const portaoMinimoPct = Number(portaoRegraQ.data?.portao_minimo_pct ?? 0);
+  const portaoMinimoRS = (Math.max(0, portaoMinimoPct) / 100) * totalEditado;
+  const faltaPortaoRS = Math.max(0, portaoMinimoRS - totalPortao);
+  const coberturaPortaoOk =
+    !exigePortao || (totalPortao > 0.005 && faltaPortaoRS <= 0.005);
+
 
 
   const temValorInvalido = titulos.some((t) => Number(t.valor_bruto) <= 0);
