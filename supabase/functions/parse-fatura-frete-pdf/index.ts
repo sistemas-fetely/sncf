@@ -40,10 +40,17 @@ REGRAS OBRIGATÓRIAS:
    - Braspress: use o AWB.
 2. Todas as datas em YYYY-MM-DD.
 3. Todos os valores como número (sem "R$", sem separador de milhar, ponto como decimal).
-4. Linhas de crédito / débito / reversão / devolução:
-   - tipo = "credito" | "debito" | "devolucao"
-   - valor_frete = valor exatamente como no PDF (positivo se o PDF mostra positivo, negativo se mostra negativo).
-5. NÃO invente linhas. Se um campo não aparece no PDF, use null (exceto tipo, que é sempre preenchido).
+4. SINAL: NUNCA use valores negativos. "valor_frete" é SEMPRE o valor ABSOLUTO exatamente
+   como aparece no PDF, sem sinal. Quem aplica o sinal é o sistema, a partir do "tipo".
+5. O campo "tipo" é OBRIGATÓRIO em toda linha e é ele que classifica o lançamento:
+   - "frete"     = prestação de serviço de transporte (linha normal de cobrança).
+   - "credito"   = crédito, estorno ou reversão (reduz a fatura). Linhas cuja descrição
+                   contenha "CREDITO REVERSAO", "CRÉDITO REVERSÃO", "ESTORNO" ou "CRÉDITO"
+                   são SEMPRE tipo="credito" — e ainda assim com valor_frete POSITIVO.
+   - "debito"    = débito ou ajuste que AUMENTA o valor da fatura.
+   - "devolucao" = frete de devolução cobrado.
+6. NÃO invente linhas. Se um campo não aparece no PDF, use null (exceto tipo, que é sempre preenchido).
+
 6. NÃO duplique linhas nem repita o header como lançamento.
 7. Responda APENAS o JSON puro, sem markdown, sem \`\`\`, sem explicação.`;
 
