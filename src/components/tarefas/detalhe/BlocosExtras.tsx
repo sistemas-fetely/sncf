@@ -1,0 +1,366 @@
+import { useState } from "react";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { ChevronDown, Download, Pause, Play, Plus, Trash2, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useAuth } from "@/contexts/AuthContext";
+import { usePessoasSistema } from "@/hooks/tarefas/useTarefasCatalogos";
+import type { TarefaDetalhe } from "@/hooks/tarefas/useTarefaDetalhe";
+import {
+  abrirAnexo, useAnexos, useApontamentos, useBuscarTarefas, useComentarios, useDependencias,
+  useHistoricoTarefa, useMutarAnexos, useMutarApontamentos, useMutarComentarios,
+  useMutarDependencias, useMutarTimer, useTimerAtivo,
+} from "@/hooks/tarefas/useTarefaDetalheExtras";
+import { Secao, STATUS_ROTULO, useNomePessoa } from "./comuns";
+
+function dataHora(iso: string) {
+  return format(new Date(iso), "dd/MM/yyyy HH:mm", { locale: ptBR });
+}
+
+/* ------------------------------------------------------- dependências ----- */
+
+export function BlocoDependencias({ tarefa }: { tarefa: TarefaDetalhe }) {
+  const { data } = useDependencias(tarefa.id);
+  const { adicionar, remover } = useMutarDependencias(tarefa.id);
+  const [termo, setTermo] = useState("");
+  const [sentido, setSentido] = useState<"bloqueada_por" | "bloqueia">("bloqueada_por");
+  const { data: achadas } = useBuscarTarefas(termo, tarefa.id);
+
+  const Lista = ({ titulo, linhas }: { titulo: string; linhas: { id: string; titulo: string; status: string }[] }) => (
+    <div className="space-y-1">
+      <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{titulo}</span>
+      {linhas.length === 0 && <p className="text-xs text-muted-foreground">nenhuma</p>}
+      {linhas.map((l) => (
+        <div key={l.id} className="flex items-center gap-2 rounded border border-border/60 px-2 py-1 text-sm">
+          <Badge variant="outline" className="text-[10px]">{STATUS_ROTULO[l.status] ?? l.status}</Badge>
+          <span className="min-w-0 flex-1 truncate">{l.titulo}</span>
+          <button type="button" aria-label="Remover dependência" onClick={() => remover.mutate(l.id)}>
+            <X className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+
+  return (
+    <Secao titulo="Dependências">
+      <Lista titulo="Bloqueada por" linhas={data?.bloqueadaPor ?? []} />
+      <Lista titulo="Bloqueia" linhas={data?.bloqueia ?? []} />
+
+      <div className="space-y-2 pt-1">
+        <div className="flex gap-2">
+          <Button
+            size="sm" variant={sentido === "bloqueada_por" ? "secondary" : "outline"}
+            onClick={() => setSentido("bloqueada_por")}
+          >
+            É bloqueada por
+          </Button>
+          <Button
+            size="sm" variant={sentido === "bloqueia" ? "secondary" : "outline"}
+            onClick={() => setSentido("bloqueia")}
+          >
+            Bloqueia
+          </Button>
+        </div>
+        <Input
+          className="h-8 text-sm" placeholder="Buscar tarefa pelo título (2+ letras)"
+          value={termo} onChange={(e) => setTermo(e.target.value)}
+        />
+        {(achadas ?? []).map((t) => (
+          <button
+            key={t.id} type="button"
+            className="flex w-full items-center gap-2 rounded border border-border/60 px-2 py-1 text-left text-sm hover:bg-accent/40"
+            onClick={() =>
+              adicionar.mutate({ outraId: t.id, sentido }, { onSuccess: () => setTermo("") })
+            }
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span className="truncate">{t.titulo}</span>
+          </button>
+        ))}
+      </div>
+    </Secao>
+  );
+}
+
+/* -------------------------------------------------------------- tempo ----- */
+
+export function BlocoTempo({ tarefa }: { tarefa: TarefaDetalhe }) {
+  const { data: apontamentos } = useApontamentos(tarefa.id);
+  const { criar, apagar } = useMutarApontamentos(tarefa.id);
+  const { data: timer } = useTimerAtivo();
+  const { iniciar, parar } = useMutarTimer(tarefa.id);
+  const nome = useNomePessoa();
+  const { user } = useAuth();
+
+  const hoje = new Date();
+  const hojeISO = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
+  const [data, setData] = useState(hojeISO);
+  const [horas, setHoras] = useState("");
+  const [descricao, setDescricao] = useState("");
+
+  const realizado = (apontamentos ?? []).reduce((s, a) => s + Number(a.horas), 0);
+  const rodandoAqui = timer?.tarefa_id === tarefa.id;
+
+  return (
+    <Secao
+      titulo="Tempo"
+      acao={
+        rodandoAqui ? (
+          <Button size="sm" variant="outline" onClick={() => parar.mutate(timer!.iniciado_em)}>
+            <Pause className="mr-1 h-3.5 w-3.5" /> Parar
+          </Button>
+        ) : (
+          <Button size="sm" variant="outline" onClick={() => iniciar.mutate()}>
+            <Play className="mr-1 h-3.5 w-3.5" /> Iniciar
+          </Button>
+        )
+      }
+    >
+      <p className="text-sm text-muted-foreground">
+        Estimado {tarefa.estimativa_horas ?? 0}h · Realizado {realizado.toFixed(2)}h
+        {timer && !rodandoAqui && " · cronômetro rodando em outra tarefa"}
+        {rodandoAqui && ` · rodando desde ${dataHora(timer!.iniciado_em)}`}
+      </p>
+
+      <div className="space-y-1">
+        {(apontamentos ?? []).map((a) => (
+          <div key={a.id} className="flex items-center gap-2 rounded border border-border/60 px-2 py-1 text-sm">
+            <span className="w-20 shrink-0 text-muted-foreground">
+              {format(parseISO(a.data), "dd/MM/yy")}
+            </span>
+            <span className="w-14 shrink-0">{Number(a.horas).toFixed(2)}h</span>
+            <span className="min-w-0 flex-1 truncate">{a.descricao ?? "—"}</span>
+            <span className="shrink-0 text-xs text-muted-foreground">{nome(a.user_id)}</span>
+            {a.user_id === user?.id && (
+              <button type="button" aria-label="Apagar apontamento" onClick={() => apagar.mutate(a.id)}>
+                <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
+            )}
+          </div>
+        ))}
+        {(apontamentos ?? []).length === 0 && <p className="text-xs text-muted-foreground">Sem apontamentos.</p>}
+      </div>
+
+      <form
+        className="flex flex-wrap items-center gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          criar.mutate(
+            { data, horas: Number(horas), descricao },
+            { onSuccess: () => { setHoras(""); setDescricao(""); } },
+          );
+        }}
+      >
+        <Input type="date" className="h-8 w-36 text-sm" value={data} onChange={(e) => setData(e.target.value)} />
+        <Input
+          type="number" step="0.25" min="0" placeholder="horas" className="h-8 w-24 text-sm"
+          value={horas} onChange={(e) => setHoras(e.target.value)}
+        />
+        <Input
+          className="h-8 flex-1 text-sm" placeholder="descrição (opcional)"
+          value={descricao} onChange={(e) => setDescricao(e.target.value)}
+        />
+        <Button type="submit" size="sm" variant="outline" disabled={!Number(horas) || criar.isPending}>
+          Apontar
+        </Button>
+      </form>
+    </Secao>
+  );
+}
+
+/* ------------------------------------------------------------- anexos ----- */
+
+export function BlocoAnexos({ tarefa }: { tarefa: TarefaDetalhe }) {
+  const { data: anexos } = useAnexos(tarefa.id);
+  const { enviar, apagar } = useMutarAnexos(tarefa.id);
+
+  return (
+    <Secao titulo="Anexos">
+      <div className="space-y-1">
+        {(anexos ?? []).map((a) => (
+          <div key={a.id} className="flex items-center gap-2 rounded border border-border/60 px-2 py-1 text-sm">
+            <span className="min-w-0 flex-1 truncate">{a.nome_arquivo}</span>
+            <span className="shrink-0 text-xs text-muted-foreground">
+              {a.tamanho_bytes ? `${Math.round(a.tamanho_bytes / 1024)} KB` : ""}
+            </span>
+            <button type="button" aria-label="Baixar anexo" onClick={() => void abrirAnexo(a.storage_path)}>
+              <Download className="h-3.5 w-3.5 text-muted-foreground" />
+            </button>
+            <button type="button" aria-label="Apagar anexo" onClick={() => apagar.mutate(a)}>
+              <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+            </button>
+          </div>
+        ))}
+        {(anexos ?? []).length === 0 && <p className="text-xs text-muted-foreground">Sem anexos.</p>}
+      </div>
+      <Input
+        type="file" className="h-8 text-sm" disabled={enviar.isPending}
+        onChange={(e) => {
+          const arquivo = e.target.files?.[0];
+          if (arquivo) enviar.mutate(arquivo, { onSuccess: () => { e.target.value = ""; } });
+        }}
+      />
+    </Secao>
+  );
+}
+
+/* -------------------------------------------------------- comentários ----- */
+
+/** extrai ids das pessoas citadas com @Nome */
+function extrairMencionados(texto: string, pessoas: { id: string; nome: string }[]): string[] {
+  const chave = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const alvo = chave(texto);
+  return pessoas.filter((p) => alvo.includes("@" + chave(p.nome).split(" ")[0])).map((p) => p.id);
+}
+
+export function BlocoComentarios({ tarefa }: { tarefa: TarefaDetalhe }) {
+  const { data: comentarios } = useComentarios(tarefa.id);
+  const { criar, editar, apagar } = useMutarComentarios(tarefa.id);
+  const { data: pessoas } = usePessoasSistema();
+  const nome = useNomePessoa();
+  const { user } = useAuth();
+  const [texto, setTexto] = useState("");
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [textoEdicao, setTextoEdicao] = useState("");
+
+  return (
+    <Secao titulo="Comentários">
+      <div className="space-y-2">
+        {(comentarios ?? []).map((c) => (
+          <div key={c.id} className="rounded border border-border/60 px-2 py-1.5">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">{nome(c.user_id)}</span>
+              <span>{dataHora(c.criado_em)}</span>
+              {c.editado && <span>(editado)</span>}
+              {c.user_id === user?.id && (
+                <span className="ml-auto flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setEditandoId(c.id); setTextoEdicao(c.conteudo); }}
+                  >
+                    editar
+                  </button>
+                  <button type="button" onClick={() => apagar.mutate(c.id)}>apagar</button>
+                </span>
+              )}
+            </div>
+            {editandoId === c.id ? (
+              <div className="mt-1 space-y-1">
+                <Textarea rows={2} value={textoEdicao} onChange={(e) => setTextoEdicao(e.target.value)} />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      editar.mutate({ id: c.id, conteudo: textoEdicao }, { onSuccess: () => setEditandoId(null) })
+                    }
+                  >
+                    Salvar
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setEditandoId(null)}>Cancelar</Button>
+                </div>
+              </div>
+            ) : (
+              <p className="whitespace-pre-wrap text-sm">{c.conteudo}</p>
+            )}
+          </div>
+        ))}
+        {(comentarios ?? []).length === 0 && <p className="text-xs text-muted-foreground">Nenhum comentário.</p>}
+      </div>
+
+      <div className="space-y-1">
+        <Textarea
+          rows={2} placeholder="Comentar… use @ para mencionar" value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+        />
+        <Button
+          size="sm" disabled={!texto.trim() || criar.isPending}
+          onClick={() =>
+            criar.mutate(
+              { conteudo: texto, mencionados: extrairMencionados(texto, pessoas ?? []) },
+              { onSuccess: () => setTexto("") },
+            )
+          }
+        >
+          Comentar
+        </Button>
+      </div>
+    </Secao>
+  );
+}
+
+/* ----------------------------------------------------------- histórico ---- */
+
+const ACAO_ROTULO: Record<string, string> = {
+  criada: "Tarefa criada",
+  criacao: "Tarefa criada",
+  status: "Status alterado",
+  status_alterado: "Status alterado",
+  prioridade: "Prioridade alterada",
+  responsavel: "Responsável alterado",
+  responsavel_alterado: "Responsável alterado",
+  data_limite: "Data limite alterada",
+  projeto: "Projeto alterado",
+  comentario: "Comentário adicionado",
+  anexo: "Anexo adicionado",
+  concluida: "Tarefa concluída",
+  reaberta: "Tarefa reaberta",
+  aprovacao: "Decisão de aprovação",
+  atualizada: "Tarefa atualizada",
+};
+
+function legivel(valor: unknown, nome: (id: string | null) => string): string {
+  if (valor == null) return "—";
+  if (typeof valor === "boolean") return valor ? "sim" : "não";
+  if (typeof valor === "number") return String(valor);
+  if (typeof valor === "string") {
+    if (STATUS_ROTULO[valor]) return STATUS_ROTULO[valor];
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(valor)) return nome(valor);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(valor)) return format(parseISO(valor), "dd/MM/yyyy");
+    return valor;
+  }
+  if (typeof valor === "object") {
+    return Object.entries(valor as Record<string, unknown>)
+      .map(([k, v]) => `${k.replace(/_/g, " ")}: ${legivel(v, nome)}`)
+      .join(" · ");
+  }
+  return String(valor);
+}
+
+export function BlocoHistorico({ tarefa }: { tarefa: TarefaDetalhe }) {
+  const [aberto, setAberto] = useState(false);
+  const { data: linhas } = useHistoricoTarefa(tarefa.id, aberto);
+  const nome = useNomePessoa();
+
+  return (
+    <Collapsible open={aberto} onOpenChange={setAberto}>
+      <section className="space-y-2 border-t border-border pt-4">
+        <CollapsibleTrigger className="flex w-full items-center justify-between text-sm font-semibold">
+          Histórico
+          <ChevronDown className={aberto ? "h-4 w-4 rotate-180 transition" : "h-4 w-4 transition"} />
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-1">
+          {(linhas ?? []).map((h) => (
+            <div key={h.id} className="rounded border border-border/60 px-2 py-1 text-xs">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-medium">{ACAO_ROTULO[h.acao] ?? h.acao.replace(/_/g, " ")}</span>
+                <span className="text-muted-foreground">{dataHora(h.criado_em)}</span>
+                <span className="text-muted-foreground">por {nome(h.user_id)}</span>
+              </div>
+              {(h.de != null || h.para != null) && (
+                <p className="text-muted-foreground">
+                  de {legivel(h.de, nome)} para {legivel(h.para, nome)}
+                </p>
+              )}
+            </div>
+          ))}
+          {(linhas ?? []).length === 0 && <p className="text-xs text-muted-foreground">Sem registros.</p>}
+        </CollapsibleContent>
+      </section>
+    </Collapsible>
+  );
+}

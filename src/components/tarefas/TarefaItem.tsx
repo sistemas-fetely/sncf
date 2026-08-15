@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils";
 import type { Tarefa, TarefaPrioridade } from "@/hooks/tarefas/useTarefas";
 import { useAlterarStatusTarefa, useReagendarTarefa } from "@/hooks/tarefas/useTarefaMutations";
 import { useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
+import { TarefaDetalhePainel } from "@/components/tarefas/detalhe/TarefaDetalhePainel";
+
 
 const PRIORIDADE_CLASSE: Record<TarefaPrioridade, string> = {
   urgente: "border-destructive/40 bg-destructive/10 text-destructive",
@@ -42,6 +44,7 @@ export function TarefaItem({ tarefa, atrasada = false }: Props) {
   const reagendar = useReagendarTarefa();
   const { data: projetos } = useProjetos();
   const [calendarioAberto, setCalendarioAberto] = useState(false);
+  const [painelAberto, setPainelAberto] = useState(false);
 
   const projeto = projetos?.find((p) => p.id === tarefa.projeto_id);
   const concluida = tarefa.status === "concluida";
@@ -64,7 +67,22 @@ export function TarefaItem({ tarefa, atrasada = false }: Props) {
         aria-label={concluida ? "Reabrir tarefa" : "Concluir tarefa"}
       />
 
-      <div className="min-w-0 flex-1">
+      <TarefaDetalhePainel tarefaId={tarefa.id} aberto={painelAberto} onOpenChange={setPainelAberto} />
+
+
+      {/* só o corpo abre o painel — checkbox e menu seguem independentes */}
+      <div
+        className="min-w-0 flex-1 cursor-pointer"
+        role="button"
+        tabIndex={0}
+        onClick={() => setPainelAberto(true)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setPainelAberto(true);
+          }
+        }}
+      >
         <div className="flex flex-wrap items-center gap-2">
           <span className={cn("text-sm font-medium", concluida && "line-through text-muted-foreground")}>
             {tarefa.titulo}

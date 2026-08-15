@@ -20023,36 +20023,6 @@ export type Database = {
         }
         Relationships: []
       }
-      nivel_prova_escala: {
-        Row: {
-          ativo: boolean
-          codigo: string
-          descricao: string | null
-          ordem: number
-          prova_de_caixa: boolean
-          rotulo: string
-          rotulo_curto: string
-        }
-        Insert: {
-          ativo?: boolean
-          codigo: string
-          descricao?: string | null
-          ordem: number
-          prova_de_caixa?: boolean
-          rotulo: string
-          rotulo_curto: string
-        }
-        Update: {
-          ativo?: boolean
-          codigo?: string
-          descricao?: string | null
-          ordem?: number
-          prova_de_caixa?: boolean
-          rotulo?: string
-          rotulo_curto?: string
-        }
-        Relationships: []
-      }
       notas_fiscais_pj: {
         Row: {
           arquivo_url: string | null
@@ -28263,60 +28233,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
-          },
-        ]
-      }
-      prova_exigida_por_fase: {
-        Row: {
-          acao: string
-          ativo: boolean
-          created_at: string
-          estagio: string
-          id: string
-          meio: string | null
-          nivel_prova_minimo: string
-          observacao: string | null
-          prazo_dias: number
-          updated_at: string
-        }
-        Insert: {
-          acao?: string
-          ativo?: boolean
-          created_at?: string
-          estagio: string
-          id?: string
-          meio?: string | null
-          nivel_prova_minimo: string
-          observacao?: string | null
-          prazo_dias?: number
-          updated_at?: string
-        }
-        Update: {
-          acao?: string
-          ativo?: boolean
-          created_at?: string
-          estagio?: string
-          id?: string
-          meio?: string | null
-          nivel_prova_minimo?: string
-          observacao?: string | null
-          prazo_dias?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "prova_exigida_por_fase_estagio_fkey"
-            columns: ["estagio"]
-            isOneToOne: false
-            referencedRelation: "pedido_estagio"
-            referencedColumns: ["codigo"]
-          },
-          {
-            foreignKeyName: "prova_exigida_por_fase_nivel_prova_minimo_fkey"
-            columns: ["nivel_prova_minimo"]
-            isOneToOne: false
-            referencedRelation: "nivel_prova_escala"
-            referencedColumns: ["codigo"]
           },
         ]
       }
