@@ -40,6 +40,26 @@ function horasDesde(iso: string | null): number | null {
   return (Date.now() - d.getTime()) / (1000 * 60 * 60);
 }
 
+function horaSaoPaulo(): number {
+  const parts = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    hour: "numeric",
+    hour12: false,
+  }).formatToParts(new Date());
+  const h = parts.find((p) => p.type === "hour")?.value;
+  return h ? parseInt(h, 10) : 0;
+}
+
+function deveSinalizarAtraso(atualizadoEm: string | null): boolean {
+  // O cron de sincronização da Braspress roda apenas entre 9h e 22h59.
+  // Fora dessa janela (especialmente a madrugada) o intervalo maior é normal,
+  // então não devemos pintar o indicador de alerta.
+  const horaLocal = horaSaoPaulo();
+  if (horaLocal < 9 || horaLocal > 22) return false;
+  const h = horasDesde(atualizadoEm);
+  return h !== null && h > 3;
+}
+
 function IndicadorSincronizacao({ transportadoraId }: { transportadoraId: string }) {
   const { data, isLoading } = useUltimaSincronizacao(transportadoraId);
   const h = horasDesde(data?.atualizado_em ?? null);
