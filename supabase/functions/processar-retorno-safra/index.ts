@@ -40,6 +40,7 @@ function parseLinha(linha: string, numeroLinha: number): LinhaRetorno | null {
     valorPagoRaw:   linha.substring(253, 266).trim(),
     jurosMoraRaw:   linha.substring(266, 279).trim(),
     dataCreditoRaw: linha.substring(295, 301).trim(),
+    sacado:         linha.substring(340, 374).trim(),
   };
 }
 
