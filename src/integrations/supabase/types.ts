@@ -46433,6 +46433,7 @@ export type Database = {
           cte_emissao: string | null
           cte_numero: string | null
           cte_serie: string | null
+          custo_diverge_api: boolean | null
           custo_pendente: boolean | null
           data_entrega: string | null
           destinatario: string | null
@@ -46441,6 +46442,7 @@ export type Database = {
           frete_id: string | null
           frete_peso: number | null
           frete_total: number | null
+          frete_total_origem: string | null
           gris: number | null
           importado_arquivo: string | null
           itr: number | null
@@ -47587,14 +47589,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -49214,14 +49216,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]

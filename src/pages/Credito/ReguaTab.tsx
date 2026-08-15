@@ -33,7 +33,7 @@ import {
 } from "@/hooks/credito/useBoletoVencimentoConferencia";
 import { EnviarPacoteDialog } from "@/components/credito/EnviarPacoteDialog";
 
-type Vista = "fila" | "pausados";
+type Vista = "fila" | "pausados" | "atraso";
 
 const CANAL_LABEL: Record<string, string> = {
   email: "E-mail",
@@ -133,12 +133,16 @@ function LinhaCompacta({
   const mesa = (titulo as any)._mesa as LinhaMesa | undefined;
   const vencimento = mesa?.vencimento ?? titulo.data_vencimento_atual ?? null;
   const atraso = titulo.dias_atraso ?? 0;
+  const vencido = atraso > 0;
   return (
     <button
       type="button"
       onClick={onToggle}
       aria-expanded={aberto}
-      className="w-full flex items-center gap-2 rounded-md border bg-card/60 px-2.5 py-1.5 text-left hover:bg-accent/50 transition-colors"
+      className={cn(
+        "w-full flex items-center gap-2 rounded-md border bg-card/60 px-2.5 py-1.5 text-left hover:bg-accent/50 transition-colors",
+        vencido && "border-l-4 border-l-destructive",
+      )}
     >
       <ChevronRight className={cn("h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform", aberto && "rotate-90")} />
       <span className="text-xs font-medium truncate min-w-0 flex-1">{razao}</span>
@@ -146,9 +150,19 @@ function LinhaCompacta({
         {titulo.numero_titulo}
       </span>
       <TooltipProvider>
-        {contatadoEm ? (
+        {vencido ? (
           <Selo
-            texto={`em dia · contato ${fmtDataMesa(contatadoEm)}`}
+            texto={`vencido há ${atraso}d${contatadoEm ? ` · contatado ${fmtDataMesa(contatadoEm)}` : ""}`}
+            tom="vermelho"
+            tooltip={
+              contatadoEm
+                ? "Título vencido. A etapa da régua já foi cumprida — o que está em dia é a régua, não o título."
+                : "Título vencido."
+            }
+          />
+        ) : contatadoEm ? (
+          <Selo
+            texto={`régua em dia · contato ${fmtDataMesa(contatadoEm)}`}
             tom="verde"
             tooltip="Etapa da régua já cumprida — nada a fazer neste título hoje."
           />
@@ -160,8 +174,8 @@ function LinhaCompacta({
           />
         )}
       </TooltipProvider>
-      <Badge variant="outline" className="text-[10px] shrink-0">
-        {atraso === 0 ? "hoje" : atraso > 0 ? `há ${atraso}d` : `D${atraso}`}
+      <Badge variant={vencido ? "destructive" : "outline"} className="text-[10px] shrink-0">
+        {atraso === 0 ? "hoje" : vencido ? `há ${atraso}d` : `D${atraso}`}
       </Badge>
       <span className="text-xs font-semibold tabular-nums shrink-0 w-24 text-right">
         {formatBRL(titulo.valor_efetivo)}
@@ -392,8 +406,14 @@ export default function ReguaTab() {
   const somaFila = useMemo(() => somaValor(fila), [fila]);
   const somaPausados = useMemo(() => somaValor(pausados), [pausados]);
 
-  const lista = vista === "fila" ? fila : pausados;
-  const loading = vista === "fila" ? loadingFila : loadingPausados;
+  const lista =
+    vista === "fila" ? fila : vista === "pausados" ? pausados : emAtraso;
+  const loading =
+    vista === "fila" ? loadingFila : vista === "pausados" ? loadingPausados : false;
+  const vencidosNaLista = useMemo(
+    () => lista.filter((t) => (t.dias_atraso ?? 0) > 0),
+    [lista],
+  );
 
   /** Próxima ação já vencida = trabalho atrasado da régua. */
   const acaoAtrasada = (t: TituloCobranca) => {
@@ -419,6 +439,9 @@ export default function ReguaTab() {
    *  - aguardando: ainda não chegou etapa nenhuma → linha compacta neutra
    */
   const baldes = useMemo(() => {
+    if (vista === "atraso") {
+      return { comAcao: [], jaContatado: [], aguardando: [] };
+    }
     const comAcao: { t: TituloCobranca; etapa: ReguaEtapa }[] = [];
     const jaContatado: { t: TituloCobranca; em: string | null }[] = [];
     const aguardando: TituloCobranca[] = [];
@@ -430,7 +453,7 @@ export default function ReguaTab() {
       else aguardando.push(t);
     }
     return { comAcao, jaContatado, aguardando };
-  }, [lista, etapas]);
+  }, [lista, etapas, vista]);
 
   // Agrupa só os com ação, por descrição da etapa aplicável.
   const grupos = useMemo(() => {
@@ -479,8 +502,8 @@ export default function ReguaTab() {
             label="Em atraso total"
             valor={totalAtraso}
             total={somaAtraso}
-            ativo={false}
-            onClick={() => { /* somente informativo */ }}
+            ativo={vista === "atraso"}
+            onClick={() => setVista("atraso")}
             tone="danger"
           />
         </div>
@@ -513,7 +536,11 @@ export default function ReguaTab() {
 
       {!loading && lista.length === 0 && (
         <div className="rounded-md border p-8 text-center text-sm text-muted-foreground">
-          {vista === "fila" ? "Fila do dia vazia — nada para cobrar hoje." : "Nenhum título com régua pausada."}
+          {vista === "fila"
+            ? "Fila do dia vazia — nada para cobrar hoje."
+            : vista === "pausados"
+              ? "Nenhum título com régua pausada."
+              : "Nenhum título em atraso."}
         </div>
       )}
 
@@ -560,10 +587,66 @@ export default function ReguaTab() {
       ))}
 
       {!loading && vista === "fila" && baldes.comAcao.length === 0 && lista.length > 0 && (
-        <div className="rounded-md border border-success/30 bg-success/5 px-3 py-4 text-center text-sm text-muted-foreground">
-          Nenhuma ação de régua pendente hoje. Os {lista.length} títulos abaixo estão em dia
-          ou ainda não chegaram na data.
+        <div
+          className={cn(
+            "rounded-md border px-3 py-4 text-center text-sm",
+            vencidosNaLista.length > 0
+              ? "border-destructive/40 bg-destructive/5"
+              : "border-success/30 bg-success/5 text-muted-foreground",
+          )}
+        >
+          <p className="font-medium">Nenhuma ação de régua pendente hoje.</p>
+          {vencidosNaLista.length > 0 ? (
+            <p className="text-destructive font-semibold inline-flex items-center gap-1 mt-1">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {vencidosNaLista.length} título(s) vencido(s) na lista abaixo · {formatBRL(somaValor(vencidosNaLista))}
+              {" — já contatados, aguardando pagamento."}
+            </p>
+          ) : (
+            <p className="mt-1">
+              Os {lista.length} títulos abaixo estão dentro do prazo ou ainda não chegaram na data.
+            </p>
+          )}
         </div>
+      )}
+
+      {!loading && vista === "atraso" && lista.length > 0 && (
+        <section className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Em atraso — visão informativa</h3>
+            <span className="text-xs text-muted-foreground">
+              {lista.length} título(s) · {formatBRL(somaLista(lista))}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Lista completa de títulos inadimplentes, independente de elegibilidade de régua. Ações da régua ficam na aba Fila de hoje.
+          </p>
+          <div className="space-y-1">
+            {lista.map((t) => (
+              <div key={t.id} className="space-y-1">
+                <LinhaCompacta
+                  titulo={t}
+                  contatadoEm={null}
+                  aberto={expandidos.has(t.id)}
+                  onToggle={() => alternar(t.id)}
+                />
+                {expandidos.has(t.id) && (
+                  <CardTitulo
+                    titulo={t}
+                    etapa={null}
+                    conferencia={conferencias?.get(t.id)}
+                    onAcao={() => setAcaoDialog({ titulo: t, etapa: null, modo: "enviada" })}
+                    onPular={() => setAcaoDialog({ titulo: t, etapa: null, modo: "pulada" })}
+                    onPausar={() => setPausarDialog({ titulo: t, etapa: null })}
+                    onRenegociar={() => setRenegociarDialog({ titulo: t, etapa: null })}
+                    onEnviarPacote={(l) => setPacote(l)}
+                    onReenviar={() => {}}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
       )}
 
       {!loading && vista === "fila" && baldes.jaContatado.length > 0 && (
