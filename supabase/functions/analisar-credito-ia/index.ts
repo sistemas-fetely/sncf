@@ -471,85 +471,98 @@ function normalizarPontos(bruto: unknown): PontoAtencaoNorm[] {
 
 function validarSaidaIA(
   analiseIA: any,
-  fatos: FatosCredito
-): { contradicoes: string[]; cifras_orfas: number[]; pontos_sem_tipo: number } {
-  const contradicoes: string[] = [];
-  const cifras_orfas: number[] = [];
+  contexto: ContextoCredito
+): { alertas: string[]; cifras_sem_lastro: number[] } {
+  const alertas: string[] = [];
+  const cifras_sem_lastro: number[] = [];
 
   const pontos = normalizarPontos(analiseIA?.pontos_atencao);
-  const pontos_sem_tipo = pontos.filter((p) => !p.tipo).length;
-
   const partes = [
     analiseIA?.resumo,
     analiseIA?.justificativa,
+    ...pontos.map((p) => p.texto),
     analiseIA?.sugestao?.parecer_final,
     analiseIA?.sugestao?.ressalva,
-    ...pontos.map((p) => p.texto),
   ].filter((p: any) => typeof p === "string" && p.length > 0);
-  const alvo = partes.join(" \n ").toLowerCase();
+  const textoIA = partes.join(" \n ");
 
-  // T1/T2 — checagem no campo tipado
-  for (const p of pontos) {
-    if (p.tipo !== "divida_interna_vencida") continue;
-    if (fatos.vencidos === 0 && fatos.titulos_atrasados === 0) {
-      contradicoes.push(
-        `Ponto marcado como dívida interna vencida, mas o cliente tem R$ 0 vencidos e nenhum título atrasado: "${p.texto}"`
-      );
-    }
-    if (typeof p.valor === "number" && Math.abs(p.valor - fatos.vencidos) > 0.01) {
-      let msg = `Valor apontado como dívida interna vencida (R$ ${fmtBr(p.valor)}) não corresponde ao vencido real (R$ ${fmtBr(fatos.vencidos)}).`;
-      if (fatos.pago > 0 && Math.abs(p.valor - fatos.pago) <= 0.01) {
-        msg += " — esse valor é o total JÁ PAGO pelo cliente.";
-      }
-      contradicoes.push(msg);
-    }
-  }
-
-  // R3 — falsa inconsistência de valores
-  const falsaInconsistencia = /(líquido|liquido)[\s\S]{0,40}bruto/.test(alvo);
+  // A1 — afirma dívida vencida sem lastro
   if (
-    falsaInconsistencia &&
-    Math.abs(
-      fatos.valor_liquido - fatos.valor_bruto - (fatos.valor_frete + fatos.acrescimo_ie_valor)
-    ) <= 0.01
+    contexto.kpis.vencidos <= 0 &&
+    contexto.temTituloAtrasado === false &&
+    /vencid|inadimpl[êe]nc|em atraso|d[ée]bito em aberto|calote|n[ãa]o honrou/i.test(textoIA)
   ) {
-    contradicoes.push(
-      "Texto aponta inconsistência entre líquido e bruto, mas a diferença é exatamente frete + acréscimo."
+    alertas.push(
+      "A IA afirma dívida vencida, mas o cliente tem R$ 0 vencidos e nenhum título atrasado."
     );
   }
 
-  // R4 — cifras órfãs
-  const conhecidos = fatos.valores_payload;
-  const bate = (v: number) => {
-    if (conhecidos.some((c) => Math.abs(c - v) <= 0.01)) return true;
-    for (let i = 0; i < conhecidos.length; i++) {
-      for (let j = i + 1; j < conhecidos.length; j++) {
-        if (Math.abs(conhecidos[i] + conhecidos[j] - v) <= 0.01) return true;
-      }
-    }
-    return false;
-  };
-  for (const v of extrairMoedas(alvo)) {
-    if (v === 0) continue;
-    if (!bate(v) && !cifras_orfas.some((o) => Math.abs(o - v) <= 0.01)) cifras_orfas.push(v);
+  // A2 — trata como cliente novo apesar de histórico pago
+  if (
+    contexto.kpis.pago > 0 &&
+    /sem hist[óo]rico|cliente novo|primeira compra|nenhum hist[óo]rico/i.test(textoIA)
+  ) {
+    alertas.push(
+      `A IA trata como cliente novo, mas há R$ ${fmtBr(contexto.kpis.pago)} já pagos no histórico.`
+    );
   }
 
-  // Validações estruturais básicas
+  // A3 — falsa inconsistência de valores
+  const somaConferida =
+    contexto.valorBruto + contexto.valorFrete - contexto.descontoValor + contexto.acrescimoValor;
+  const fecha = Math.abs(somaConferida - contexto.valorLiquido) <= 0.01;
+  if (
+    analiseIA?.decisao_sugerida === "devolver_entrada" &&
+    /inconsist|l[íi]quido[\s\S]{0,40}bruto/i.test(textoIA) &&
+    fecha
+  ) {
+    alertas.push(
+      "A IA alega inconsistência de valores, mas bruto + frete - desconto + acréscimo fecha com o líquido."
+    );
+  }
+
+  // A4 — campos estruturais fora do contrato
   const perfil = analiseIA?.sugestao?.perfil_aplicado;
-  if (perfil === "bandeira_vermelha") {
-    contradicoes.push("perfil_aplicado = bandeira_vermelha não é permitido para a IA.");
-  } else if (!PERFIS_VALIDOS.includes(perfil)) {
-    contradicoes.push(`perfil_aplicado inválido: "${perfil}".`);
+  if (!PERFIS_VALIDOS.includes(perfil)) {
+    alertas.push(`perfil_aplicado inválido: "${perfil}".`);
   }
   if (!DECISOES_VALIDAS.includes(analiseIA?.decisao_sugerida)) {
-    contradicoes.push(`decisao_sugerida inválida: "${analiseIA?.decisao_sugerida}".`);
+    alertas.push(`decisao_sugerida inválida: "${analiseIA?.decisao_sugerida}".`);
   }
   const conf = Number(analiseIA?.confianca);
   if (!Number.isFinite(conf) || conf < 0 || conf > 100) {
-    contradicoes.push(`confianca fora da faixa 0-100: "${analiseIA?.confianca}".`);
+    alertas.push(`confianca fora da faixa 0-100: "${analiseIA?.confianca}".`);
   }
 
-  return { contradicoes, cifras_orfas, pontos_sem_tipo };
+  // B — cifra sem lastro (informativo)
+  const limite = Number(analiseIA?.sugestao?.limite_concedido);
+  const conhecidos = [
+    contexto.valorBruto,
+    contexto.valorFrete,
+    contexto.valorLiquido,
+    contexto.descontoValor,
+    contexto.acrescimoValor,
+    contexto.kpis.em_aberto,
+    contexto.kpis.pago,
+    contexto.kpis.vencidos,
+    contexto.kpis.a_vencer,
+    contexto.kpis.maior_compra,
+    contexto.kpis.atraso_medio_dias,
+    contexto.kpisGrupo.em_aberto,
+    contexto.kpisGrupo.vencidos,
+    ...contexto.titulosValores,
+    ...contexto.valoresExtra,
+    ...(Number.isFinite(limite) ? [limite] : []),
+  ].filter((v) => Number.isFinite(v));
+
+  for (const v of extrairMoedas(textoIA.toLowerCase())) {
+    if (v === 0) continue;
+    if (conhecidos.some((c) => Math.abs(c - v) <= 0.01)) continue;
+    if (cifras_sem_lastro.some((o) => Math.abs(o - v) <= 0.01)) continue;
+    cifras_sem_lastro.push(v);
+  }
+
+  return { alertas, cifras_sem_lastro };
 }
 
 async function processarRespostaIA(
