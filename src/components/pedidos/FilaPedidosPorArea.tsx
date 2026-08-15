@@ -8,6 +8,7 @@ import { usePedidoRisco, usePedidoRiscoFaixas, RISCO_COR_TOKEN } from "@/hooks/p
 import type { PedidoRisco } from "@/hooks/pedidos/usePedidoRisco";
 import { usePedidosEntregaLote } from "@/hooks/pedidos/usePedidoEntrega";
 import { useProvaPagamentoLote, type ProvaPagamento } from "@/hooks/pedidos/useProvaPagamento";
+import { useLiberacaoExpedicaoLote, type LiberacaoExpedicao } from "@/hooks/pedidos/useLiberacaoExpedicao";
 import { CelulaEntregaFila, LinhaNfFila } from "@/components/pedidos/CelulasFilaPedidos";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -371,6 +372,7 @@ export function FilaPedidosPorArea({
   } = usePedidosEntregaLote(pedidoIdsSaida);
 
   const { data: provaMap } = useProvaPagamentoLote(pedidoIdsSaida);
+  const { data: liberacaoMap } = useLiberacaoExpedicaoLote(pedidoIdsSaida);
 
 
 
@@ -621,7 +623,7 @@ export function FilaPedidosPorArea({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <CelulaPagamento p={p} prova={provaMap?.get(p.id)} />
+                    <CelulaPagamento p={p} prova={provaMap?.get(p.id)} liberacao={liberacaoMap?.get(p.id)} />
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap items-center gap-1.5">
