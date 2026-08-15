@@ -29,11 +29,11 @@ interface ItemTarefas {
 const itensAtivos: ItemTarefas[] = [
   { title: "Hoje", url: "/tarefas/hoje", icon: Sun },
   { title: "Minhas Tarefas", url: "/tarefas/minhas", icon: ListChecks },
+  { title: "Projetos", url: "/tarefas/projetos", icon: LayoutGrid },
 ];
 
 const itensEmBreve: ItemTarefas[] = [
   { title: "Meu Time", icon: UsersRound },
-  { title: "Projetos", icon: LayoutGrid },
   { title: "Calendário", icon: CalendarDays },
   { title: "Carga", icon: Gauge },
   { title: "Recorrências", icon: Repeat },
