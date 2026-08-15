@@ -632,7 +632,7 @@ async function processarRespostaIA(
 
   // Validação determinística — SISTEMA SUGERE / HUMANO DECIDE: nunca reescreve o texto, só carimba.
   const confiancaOriginal = Number(analiseIA?.confianca ?? 0) || 0;
-  const { alertas, cifras_sem_lastro } = validarSaidaIA(analiseIA, contexto);
+  const { alertas, cifras_sem_lastro, pontos_sem_tipo } = validarSaidaIA(analiseIA, contexto);
 
   let confiancaAjustada = confiancaOriginal;
   if (alertas.length > 0) {
@@ -646,6 +646,11 @@ async function processarRespostaIA(
       cifras_sem_lastro
     );
     confiancaAjustada = Math.min(confiancaOriginal, 70);
+  } else if (pontos_sem_tipo > 0) {
+    console.warn(
+      `[validacao-ia] analise ${analise_id}: ${pontos_sem_tipo} ponto(s) de atenção sem tipo.`
+    );
+    confiancaAjustada = Math.min(confiancaOriginal, 70);
   }
   analiseIA.confianca = confiancaAjustada;
 
@@ -655,6 +660,7 @@ async function processarRespostaIA(
     _validacao: {
       alertas,
       cifras_sem_lastro,
+      pontos_sem_tipo,
       confianca_original: confiancaOriginal,
       confianca_ajustada: confiancaAjustada,
     },
