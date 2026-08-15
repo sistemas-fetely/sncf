@@ -1057,12 +1057,42 @@ function FarolRisco({
 }
 
 /** Coluna de ações: uma ação primária por estágio + resto no menu "⋯". */
-function AcoesLinha({ p, temMsg }: { p: PedidoFilaItem; temMsg: boolean }) {
+function AcoesLinha({ p, temMsg, risco }: { p: PedidoFilaItem; temMsg: boolean; risco: PedidoRisco | undefined }) {
   const navigate = useNavigate();
+  const { hasAnyRole } = useAuth();
+  const { mutate: atualizarUrgencia, isPending } = useAtualizarUrgencia();
   const [cadastroOpen, setCadastroOpen] = useState(false);
   const [exportarOpen, setExportarOpen] = useState(false);
   const [splitOpen, setSplitOpen] = useState(false);
   const [marcacaoOpen, setMarcacaoOpen] = useState(false);
+  const [urgenciaOpen, setUrgenciaOpen] = useState(false);
+
+  const motivos = risco?.risco_motivos ?? [];
+  const urgenciaInicial: UrgenciaDeclarada = motivos.some((m) => m.codigo === "urgencia_critica_declarada")
+    ? "critica"
+    : motivos.some((m) => m.codigo === "urgencia_alta_declarada")
+    ? "alta"
+    : "normal";
+
+  const [urgencia, setUrgencia] = useState<UrgenciaDeclarada>(urgenciaInicial);
+  const [observacao, setObservacao] = useState("");
+
+  const abrirUrgencia = () => {
+    setUrgencia(urgenciaInicial);
+    setObservacao("");
+    setUrgenciaOpen(true);
+  };
+
+  const obsObrigatoria = (urgencia === "alta" || urgencia === "critica") && !observacao.trim();
+
+  const salvarUrgencia = () => {
+    atualizarUrgencia(
+      { pedidoId: p.id, urgencia, observacao: observacao.trim() || null },
+      { onSuccess: () => setUrgenciaOpen(false) },
+    );
+  };
+
+  const podeDeclararUrgencia = hasAnyRole(["super_admin", "financeiro", "coordenacao_op_fin"]);
 
   return (
     <div className="flex justify-end items-center gap-0.5">
@@ -1107,7 +1137,6 @@ function AcoesLinha({ p, temMsg }: { p: PedidoFilaItem; temMsg: boolean }) {
         />
       )}
 
-
       {/* Secundárias */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -1130,6 +1159,12 @@ function AcoesLinha({ p, temMsg }: { p: PedidoFilaItem; temMsg: boolean }) {
             <Tag className="h-4 w-4 mr-2" />
             Marcação
           </DropdownMenuItem>
+          {podeDeclararUrgencia && (
+            <DropdownMenuItem onSelect={abrirUrgencia}>
+              <Flame className="h-4 w-4 mr-2" />
+              Declarar urgência
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onSelect={() => setCadastroOpen(true)}>
             <FileSpreadsheet className="h-4 w-4 mr-2" />
             Cadastro
@@ -1160,6 +1195,56 @@ function AcoesLinha({ p, temMsg }: { p: PedidoFilaItem; temMsg: boolean }) {
         onOpenChange={setMarcacaoOpen}
       />
 
+      {/* Diálogo de urgência controlado pelo menu — mesmo padrão do diálogo de marcação. */}
+      <Dialog open={urgenciaOpen} onOpenChange={setUrgenciaOpen}>
+        <DialogContent className="sm:max-w-md" onClick={(e) => e.stopPropagation()}>
+          <DialogHeader>
+            <DialogTitle className="text-base flex items-center gap-2">
+              <Flame className="h-4 w-4" />
+              Declarar urgência
+            </DialogTitle>
+            <DialogDescription>Pedido {p.id_externo}</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
+            <RadioGroup
+              value={urgencia}
+              onValueChange={(v) => setUrgencia(v as UrgenciaDeclarada)}
+              className="space-y-2"
+            >
+              {(["normal", "alta", "critica"] as UrgenciaDeclarada[]).map((u) => (
+                <div key={u} className="flex items-center space-x-2">
+                  <RadioGroupItem value={u} id={`urgencia-${u}`} />
+                  <Label htmlFor={`urgencia-${u}`}>{URGENCIA_LABELS[u]}</Label>
+                </div>
+              ))}
+            </RadioGroup>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="observacao-urgencia">Observação</Label>
+              <Textarea
+                id="observacao-urgencia"
+                placeholder="Por que esse pedido é urgente?"
+                value={observacao}
+                onChange={(e) => setObservacao(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+              />
+              {obsObrigatoria && (
+                <p className="text-xs text-destructive">Urgência acima de normal exige justificativa.</p>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="flex-row justify-between sm:justify-between gap-2">
+            <Button variant="outline" size="sm" onClick={() => setUrgenciaOpen(false)} disabled={isPending}>
+              Cancelar
+            </Button>
+            <Button size="sm" disabled={isPending || obsObrigatoria} onClick={salvarUrgencia}>
+              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Diálogos ficam fora do menu — o conteúdo do menu desmonta ao fechar. */}
       <TabelaCadastroDialog
