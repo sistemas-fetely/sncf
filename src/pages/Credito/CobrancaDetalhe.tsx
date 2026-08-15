@@ -123,6 +123,24 @@ function usePedidoMinimo(pedidoId: string | undefined) {
   });
 }
 
+/** Plano já materializado? Conta linhas vivas de provisao_recebimento do pedido. */
+function usePlanoExistente(pedidoId: string | undefined) {
+  return useQuery({
+    queryKey: ["cobranca-plano-existente", pedidoId],
+    enabled: !!pedidoId,
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { count, error } = await (supabase as any)
+        .from("provisao_recebimento")
+        .select("id", { count: "exact", head: true })
+        .eq("pedido_id", pedidoId)
+        .neq("status", "cancelada");
+      if (error) throw error;
+      return Number(count ?? 0);
+    },
+  });
+}
+
 function usePedidoPortaoRegra(pedidoId: string | undefined) {
   return useQuery({
     queryKey: ["pedido-portao-regra", pedidoId],
