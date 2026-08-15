@@ -680,7 +680,7 @@ export function FilaPedidosPorArea({
                   </TableCell>
 
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    <AcoesLinha p={p} temMsg={pedidosComMsg.has(p.id)} />
+                    <AcoesLinha p={p} temMsg={pedidosComMsg.has(p.id)} risco={risco} />
                   </TableCell>
 
                 </TableRow>
