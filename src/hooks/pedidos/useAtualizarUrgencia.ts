@@ -31,6 +31,7 @@ export function useAtualizarUrgencia() {
       qc.invalidateQueries({ queryKey: ["pedido-priorizado", vars.pedidoId] });
       qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedidoId] });
       qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
+      qc.invalidateQueries({ queryKey: ["pedido-risco"] });
     },
     onError: (err: unknown) => {
       const msg = err instanceof Error ? err.message : "Erro ao salvar urgência";
