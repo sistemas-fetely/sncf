@@ -63,7 +63,22 @@ export type Database = {
           user_id?: string | null
           user_nome?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "acesso_dados_log_alvo_user_id_fkey"
+            columns: ["alvo_user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acesso_dados_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       acrescimo_situacao_fiscal_regra: {
         Row: {
@@ -1062,6 +1077,13 @@ export type Database = {
             referencedColumns: ["analise_id"]
           },
           {
+            foreignKeyName: "analise_credito_scores_anexado_por_fkey"
+            columns: ["anexado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "analise_credito_scores_parceiro_id_fkey"
             columns: ["parceiro_id"]
             isOneToOne: false
@@ -1167,6 +1189,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_fila_analises_credito"
             referencedColumns: ["analise_id"]
+          },
+          {
+            foreignKeyName: "analise_credito_transicoes_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1297,6 +1326,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_fila_analises_credito"
             referencedColumns: ["analise_id"]
+          },
+          {
+            foreignKeyName: "analises_credito_decidido_por_fkey"
+            columns: ["decidido_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analises_credito_exige_portao_por_fkey"
+            columns: ["exige_portao_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "analises_credito_parceiro_id_fkey"
@@ -1662,7 +1705,15 @@ export type Database = {
           user_id?: string | null
           user_nome?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       auditoria_achado: {
         Row: {
@@ -1748,6 +1799,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "auditoria_achado_dono_user_id_fkey"
+            columns: ["dono_user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "auditoria_achado_entidade_fkey"
             columns: ["entidade"]
             isOneToOne: false
@@ -1788,6 +1846,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "auditoria_situacao_dim"
             referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_tratado_por_fkey"
+            columns: ["tratado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1845,6 +1910,13 @@ export type Database = {
             columns: ["execucao_id"]
             isOneToOne: false
             referencedRelation: "auditoria_execucao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_evento_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
         ]
@@ -2012,6 +2084,13 @@ export type Database = {
           terminado_em?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "auditoria_execucao_disparado_por_fkey"
+            columns: ["disparado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "auditoria_execucao_regra_slug_fkey"
             columns: ["regra_slug"]
@@ -2237,6 +2316,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "auditoria_regra_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "auditoria_regra_entidade_fkey"
             columns: ["entidade"]
@@ -3664,6 +3750,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "bling_contatos_log_acionado_por_fkey"
+            columns: ["acionado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bling_contatos_log_parceiro_id_fkey"
             columns: ["parceiro_id"]
             isOneToOne: false
@@ -3755,6 +3848,13 @@ export type Database = {
           tentativa_em?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "bling_envios_log_enviado_por_fkey"
+            columns: ["enviado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "bling_envios_log_pedido_id_fkey"
             columns: ["pedido_id"]
@@ -4227,6 +4327,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "boleto_stage_ancorado_por_fkey"
+            columns: ["ancorado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "boleto_stage_contas_pagar_receber_id_fkey"
             columns: ["contas_pagar_receber_id"]
             isOneToOne: false
@@ -4295,6 +4402,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pj_pagamentos"
             referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "boleto_stage_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "boleto_stage_ged_documento_id_fkey"
@@ -4638,6 +4752,13 @@ export type Database = {
             columns: ["cargo_id"]
             isOneToOne: false
             referencedRelation: "cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cargo_template_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
         ]
@@ -5598,6 +5719,13 @@ export type Database = {
             referencedRelation: "unidades"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "colaboradores_clt_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
         ]
       }
       colecao_regra_nome: {
@@ -5659,6 +5787,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "comentarios_pedido_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comentarios_pedido_excluido_por_fkey"
+            columns: ["excluido_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "comentarios_pedido_pedido_id_fkey"
             columns: ["pedido_id"]
@@ -5767,10 +5909,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "compras_registradas_comprador_id_fkey"
+            columns: ["comprador_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "compras_registradas_conta_id_fkey"
             columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compras_registradas_excluida_por_fkey"
+            columns: ["excluida_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
           {
@@ -5929,6 +6085,13 @@ export type Database = {
             referencedRelation: "compras_registradas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "compras_registradas_anexos_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
         ]
       }
       compras_registradas_audit_log: {
@@ -5962,6 +6125,13 @@ export type Database = {
             columns: ["compra_registrada_id"]
             isOneToOne: false
             referencedRelation: "compras_registradas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compras_registradas_audit_log_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
         ]
@@ -6130,6 +6300,13 @@ export type Database = {
             columns: ["conta_bancaria_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compromissos_parcelados_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
           {
@@ -6338,6 +6515,13 @@ export type Database = {
             columns: ["conta_bancaria_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compromissos_recorrentes_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
           {
@@ -7067,7 +7251,15 @@ export type Database = {
           user_agent?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "consentimentos_lgpd_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       consignado_venda_reportada: {
         Row: {
@@ -7396,6 +7588,13 @@ export type Database = {
             referencedRelation: "vw_pj_pagamentos"
             referencedColumns: ["cpr_id"]
           },
+          {
+            foreignKeyName: "contas_pagar_documentos_uploaded_por_fkey"
+            columns: ["uploaded_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
         ]
       }
       contas_pagar_historico: {
@@ -7496,6 +7695,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pj_pagamentos"
             referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_historico_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -7916,6 +8122,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "contas_pagar_receber_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "contas_pagar_receber_canal_venda_id_fkey"
             columns: ["canal_venda_id"]
             isOneToOne: false
@@ -7972,6 +8185,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "contas_pagar_receber_conciliado_por_fkey"
+            columns: ["conciliado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "contas_pagar_receber_despesa_id_fkey"
             columns: ["despesa_id"]
             isOneToOne: false
@@ -7983,6 +8210,20 @@ export type Database = {
             columns: ["despesa_id"]
             isOneToOne: false
             referencedRelation: "vw_despesas_v2"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_editado_por_fkey"
+            columns: ["editado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_enviado_pagamento_por_fkey"
+            columns: ["enviado_pagamento_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
           {
@@ -8133,6 +8374,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "contas_pagar_receber_pago_por_fkey"
+            columns: ["pago_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
             columns: ["parceiro_id"]
             isOneToOne: false
@@ -8207,6 +8455,13 @@ export type Database = {
             columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_reembolsa_user_id_fkey"
+            columns: ["reembolsa_user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
           {
@@ -8684,6 +8939,13 @@ export type Database = {
             referencedRelation: "unidades"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "contratos_pj_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
         ]
       }
       convites_cadastro: {
@@ -8806,6 +9068,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "convites_cadastro_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "convites_cadastro_departamento_id_fkey"
             columns: ["departamento_id"]
             isOneToOne: false
@@ -8817,6 +9086,13 @@ export type Database = {
             columns: ["grupo_acesso_id"]
             isOneToOne: false
             referencedRelation: "grupos_acesso"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "convites_cadastro_lembretes_suspenso_por_fkey"
+            columns: ["lembretes_suspenso_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
           {
@@ -9170,7 +9446,29 @@ export type Database = {
           observacao?: string | null
           substituto_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "delegacoes_gestao_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delegacoes_gestao_gestor_original_id_fkey"
+            columns: ["gestor_original_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delegacoes_gestao_substituto_id_fkey"
+            columns: ["substituto_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       departamentos: {
         Row: {
@@ -10677,7 +10975,15 @@ export type Database = {
           linhas?: number | null
           recurso?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "export_log_exportado_por_fkey"
+            columns: ["exportado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       extras_catalogo: {
         Row: {
@@ -10716,7 +11022,15 @@ export type Database = {
           nome?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "extras_catalogo_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       extrato_fontes: {
         Row: {
@@ -10924,7 +11238,29 @@ export type Database = {
           updated_at?: string
           versao?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fala_fetely_conhecimento_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fala_fetely_conhecimento_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fala_fetely_conhecimento_sugerido_por_fkey"
+            columns: ["sugerido_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fala_fetely_conversas: {
         Row: {
@@ -10957,7 +11293,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fala_fetely_conversas_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fala_fetely_feedback: {
         Row: {
@@ -10996,6 +11340,13 @@ export type Database = {
             columns: ["mensagem_id"]
             isOneToOne: false
             referencedRelation: "fala_fetely_mensagens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fala_fetely_feedback_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
         ]
@@ -11037,7 +11388,15 @@ export type Database = {
           tamanho_bytes?: number | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fala_fetely_importacoes_pdf_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fala_fetely_memoria: {
         Row: {
@@ -11101,6 +11460,13 @@ export type Database = {
             columns: ["mensagem_origem_id"]
             isOneToOne: false
             referencedRelation: "fala_fetely_mensagens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fala_fetely_memoria_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
         ]
@@ -11205,6 +11571,20 @@ export type Database = {
             columns: ["mensagem_id"]
             isOneToOne: false
             referencedRelation: "fala_fetely_mensagens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fala_fetely_sugestoes_conhecimento_revisado_por_fkey"
+            columns: ["revisado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fala_fetely_sugestoes_conhecimento_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
         ]
@@ -11805,6 +12185,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pj_pagamentos"
             referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "faturas_cartao_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -12983,6 +13370,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "ged_documento_vinculos_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ged_documento_vinculos_documento_id_fkey"
             columns: ["documento_id"]
             isOneToOne: false
@@ -13077,6 +13471,13 @@ export type Database = {
           vinculacao_proposta?: Json | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ged_documentos_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ged_documentos_nfs_stage_id_fkey"
             columns: ["nfs_stage_id"]
@@ -13280,6 +13681,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ged_pastas_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ged_pastas_parceiro_id_fkey"
             columns: ["parceiro_id"]
             isOneToOne: false
@@ -13349,6 +13757,13 @@ export type Database = {
             referencedRelation: "vw_pastas_kpis"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ged_pastas_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
         ]
       }
       grupo_acesso_permissoes: {
@@ -13392,6 +13807,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "grupo_acesso_permissoes_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "grupo_acesso_permissoes_grupo_acesso_id_fkey"
             columns: ["grupo_acesso_id"]
@@ -13445,10 +13867,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "grupo_acesso_usuarios_adicionado_por_fkey"
+            columns: ["adicionado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "grupo_acesso_usuarios_grupo_acesso_id_fkey"
             columns: ["grupo_acesso_id"]
             isOneToOne: false
             referencedRelation: "grupos_acesso"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grupo_acesso_usuarios_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
         ]
@@ -13496,7 +13932,15 @@ export type Database = {
           tipo_colaborador?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "grupos_acesso_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       grupos_economicos: {
         Row: {
@@ -13584,6 +14028,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_recebivel_por_conta"
             referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "grupos_economicos_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "grupos_economicos_fundido_em_grupo_id_fkey"
@@ -13690,6 +14141,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_exposicao_por_grupo"
             referencedColumns: ["grupo_id"]
+          },
+          {
+            foreignKeyName: "grupos_parceiros_log_mudou_por_fkey"
+            columns: ["mudou_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "grupos_parceiros_log_parceiro_id_fkey"
@@ -16156,6 +16614,13 @@ export type Database = {
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "itau_importacoes_stage_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
         ]
       }
       itau_pagamentos_stage: {
@@ -16517,6 +16982,20 @@ export type Database = {
           valor_inicial?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "linhas_investimento_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "linhas_investimento_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "linhas_investimento_tema_id_fkey"
             columns: ["tema_id"]
@@ -17671,7 +18150,15 @@ export type Database = {
           atualizado_em?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "mural_preferencias_usuario_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mural_publicacoes: {
         Row: {
@@ -17752,7 +18239,22 @@ export type Database = {
           titulo?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "mural_publicacoes_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mural_publicacoes_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       naturezas_investimento: {
         Row: {
@@ -17868,7 +18370,15 @@ export type Database = {
           titulo?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "navegacao_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       navegacao_rota_nao_declarada: {
         Row: {
@@ -17978,6 +18488,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "nf_pj_classificacoes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "nf_pj_classificacoes_nota_fiscal_id_fkey"
             columns: ["nota_fiscal_id"]
             isOneToOne: false
@@ -18021,6 +18538,13 @@ export type Database = {
           tipo_evento?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "nf_pj_log_fiscal_ator_user_id_fkey"
+            columns: ["ator_user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "nf_pj_log_fiscal_nota_fiscal_id_fkey"
             columns: ["nota_fiscal_id"]
@@ -18757,6 +19281,13 @@ export type Database = {
             referencedColumns: ["cpr_id"]
           },
           {
+            foreignKeyName: "nfs_stage_criada_por_fkey"
+            columns: ["criada_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "nfs_stage_parceiro_id_fkey"
             columns: ["parceiro_id"]
             isOneToOne: false
@@ -18855,6 +19386,13 @@ export type Database = {
           valor?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "nfs_stage_documentos_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "nfs_stage_documentos_ged_documento_id_fkey"
             columns: ["ged_documento_id"]
@@ -19284,6 +19822,13 @@ export type Database = {
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
+          {
+            foreignKeyName: "nfs_stage_venda_resolvido_por_fkey"
+            columns: ["resolvido_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
         ]
       }
       nivel_prova_dim: {
@@ -19445,7 +19990,15 @@ export type Database = {
           titulo?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notificacoes_rh_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ofertas_candidato: {
         Row: {
@@ -19502,6 +20055,13 @@ export type Database = {
             columns: ["candidato_id"]
             isOneToOne: false
             referencedRelation: "candidatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ofertas_candidato_enviado_por_fkey"
+            columns: ["enviado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
           {
@@ -19870,6 +20430,13 @@ export type Database = {
             columns: ["convite_id"]
             isOneToOne: false
             referencedRelation: "convites_cadastro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_checklists_coordenador_user_id_fkey"
+            columns: ["coordenador_user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
         ]
@@ -20382,7 +20949,15 @@ export type Database = {
           id?: string
           valor?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "parametros_remessa_safra_atualizado_por_fkey"
+            columns: ["atualizado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       parceiro_eventos_externos: {
         Row: {
@@ -20505,6 +21080,13 @@ export type Database = {
           valor_novo?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "parceiro_marcos_operador_id_fkey"
+            columns: ["operador_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "parceiro_marcos_parceiro_id_fkey"
             columns: ["parceiro_id"]
@@ -20731,6 +21313,13 @@ export type Database = {
             columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parceiros_comerciais_bandeira_vermelha_por_fkey"
+            columns: ["bandeira_vermelha_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
           {
@@ -21027,6 +21616,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "pasta_contratos_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pasta_contratos_linha_investimento_id_fkey"
             columns: ["linha_investimento_id"]
             isOneToOne: false
@@ -21123,6 +21719,13 @@ export type Database = {
             columns: ["contrato_id"]
             isOneToOne: false
             referencedRelation: "pasta_contratos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pasta_historico_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
           {
@@ -21237,6 +21840,13 @@ export type Database = {
           titulo_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "pedido_email_log_enviado_por_fkey"
+            columns: ["enviado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pedido_email_log_pedido_id_fkey"
             columns: ["pedido_id"]
@@ -21620,6 +22230,13 @@ export type Database = {
           tipo_evento?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "pedido_eventos_operador_id_fkey"
+            columns: ["operador_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pedido_eventos_pedido_id_fkey"
             columns: ["pedido_id"]
@@ -23081,6 +23698,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "pedido_remessa_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pedido_remessa_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
@@ -23411,6 +24035,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "pedido_tarefas_concluida_por_fkey"
+            columns: ["concluida_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_tarefas_criada_por_fkey"
+            columns: ["criada_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pedido_tarefas_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
@@ -23671,6 +24309,13 @@ export type Database = {
           pedido_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "pedido_transicoes_ator_fkey"
+            columns: ["ator"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pedido_transicoes_pedido_id_fkey"
             columns: ["pedido_id"]
@@ -24197,11 +24842,25 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "pedidos_bling_enviado_por_fkey"
+            columns: ["bling_enviado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pedidos_cancelado_motivo_codigo_fkey"
             columns: ["cancelado_motivo_codigo"]
             isOneToOne: false
             referencedRelation: "pedido_motivo_cancelamento"
             referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "pedidos_cancelado_por_fkey"
+            columns: ["cancelado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pedidos_consolidado_em_pedido_id_fkey"
@@ -24426,6 +25085,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedidos_estagio_atualizado_por_fkey"
+            columns: ["estagio_atualizado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
@@ -25109,6 +25775,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "pedidos_compra_cancelado_por_fkey"
+            columns: ["cancelado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pedidos_compra_centro_custo_id_fkey"
             columns: ["centro_custo_id"]
             isOneToOne: false
@@ -25128,6 +25801,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_dimensionamento_areas"
             referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "pedidos_compra_comprador_id_fkey"
+            columns: ["comprador_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pedidos_compra_departamento_id_fkey"
@@ -25200,6 +25880,20 @@ export type Database = {
             referencedColumns: ["conta_id"]
           },
           {
+            foreignKeyName: "pedidos_compra_recebido_por_fkey"
+            columns: ["recebido_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_compra_solicitante_id_fkey"
+            columns: ["solicitante_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pedidos_compra_unidade_id_fkey"
             columns: ["unidade_id"]
             isOneToOne: false
@@ -25250,6 +25944,13 @@ export type Database = {
             referencedRelation: "pedidos_compra"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pedidos_compra_anexos_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
         ]
       }
       pedidos_compra_eventos: {
@@ -25283,6 +25984,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "pedidos_compra"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_compra_eventos_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
         ]
@@ -26192,6 +26900,13 @@ export type Database = {
             referencedColumns: ["centro_custo_id"]
           },
           {
+            foreignKeyName: "posicoes_planejadas_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "posicoes_planejadas_departamento_id_fkey"
             columns: ["departamento_id"]
             isOneToOne: false
@@ -26420,6 +27135,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "processos_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "processos_importacao_pdf_id_fkey"
             columns: ["importacao_pdf_id"]
             isOneToOne: false
@@ -26432,6 +27154,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "perfis"
             referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "processos_owner_user_id_fkey"
+            columns: ["owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "processos_template_sncf_id_fkey"
@@ -26485,7 +27214,15 @@ export type Database = {
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "processos_importacoes_pdf_importado_por_fkey"
+            columns: ["importado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       processos_ligacoes: {
         Row: {
@@ -26519,6 +27256,13 @@ export type Database = {
           tipo_ligacao?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "processos_ligacoes_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "processos_ligacoes_processo_destino_id_fkey"
             columns: ["processo_destino_id"]
@@ -26583,6 +27327,13 @@ export type Database = {
             referencedRelation: "processos_unificados"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "processos_log_consultas_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
         ]
       }
       processos_sugestoes: {
@@ -26627,6 +27378,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "processos_sugestoes_avaliado_por_fkey"
+            columns: ["avaliado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "processos_sugestoes_processo_id_fkey"
             columns: ["processo_id"]
             isOneToOne: false
@@ -26638,6 +27396,13 @@ export type Database = {
             columns: ["processo_id"]
             isOneToOne: false
             referencedRelation: "processos_unificados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processos_sugestoes_sugerido_por_fkey"
+            columns: ["sugerido_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
         ]
@@ -26918,6 +27683,13 @@ export type Database = {
             referencedRelation: "processos_unificados"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "processos_versoes_publicado_por_fkey"
+            columns: ["publicado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
         ]
       }
       produtos: {
@@ -27091,6 +27863,13 @@ export type Database = {
             referencedRelation: "parametros"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
         ]
       }
       programa_niveis_beneficios: {
@@ -27139,7 +27918,15 @@ export type Database = {
           prazo_padrao_dias?: number
           slug?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "programa_niveis_beneficios_atualizado_por_fkey"
+            columns: ["atualizado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       prova_exigida_por_fase: {
         Row: {
@@ -28561,6 +29348,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "reembolso_solicitacoes_fechado_por_fkey"
+            columns: ["fechado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "reembolso_solicitacoes_vinculo_id_fkey"
             columns: ["vinculo_id"]
             isOneToOne: false
@@ -28893,6 +29687,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_dimensionamento_areas"
             referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "regras_categorizacao_criada_por_fkey"
+            columns: ["criada_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "regras_categorizacao_fornecedor_id_fkey"
@@ -29331,7 +30132,15 @@ export type Database = {
           qtd_contas?: number
           qtd_documentos?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "remessas_contador_enviada_por_fkey"
+            columns: ["enviada_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       remessas_contador_itens: {
         Row: {
@@ -29484,7 +30293,15 @@ export type Database = {
           tipo?: string
           valor_total?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "remessas_safra_gerado_por_fkey"
+            columns: ["gerado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       responsabilidades_catalogo: {
         Row: {
@@ -30844,7 +31661,22 @@ export type Database = {
           user_agent?: string | null
           viewport_width?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sistema_reportes_atribuido_a_fkey"
+            columns: ["atribuido_a"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sistema_reportes_reportado_por_fkey"
+            columns: ["reportado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       skills_catalogo: {
         Row: {
@@ -31038,6 +31870,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "sncf_documentacao_autor_user_id_fkey"
+            columns: ["autor_user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sncf_documentacao_editado_por_fkey"
+            columns: ["editado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sncf_documentacao_genero_fk"
             columns: ["genero_codigo"]
             isOneToOne: false
@@ -31100,6 +31946,13 @@ export type Database = {
             columns: ["documento_id"]
             isOneToOne: false
             referencedRelation: "sncf_documentacao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sncf_documentacao_versoes_editado_por_fkey"
+            columns: ["editado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
         ]
@@ -31408,7 +32261,15 @@ export type Database = {
           slug?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sncf_processos_categorias_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sncf_produtos: {
         Row: {
@@ -31840,6 +32701,13 @@ export type Database = {
             referencedRelation: "sncf_processos_categorias"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "sncf_template_extensoes_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
         ]
       }
       sncf_template_extensoes_tarefas: {
@@ -32063,10 +32931,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "sncf_user_systems_concedido_por_fkey"
+            columns: ["concedido_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sncf_user_systems_sistema_id_fkey"
             columns: ["sistema_id"]
             isOneToOne: false
             referencedRelation: "sncf_sistemas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sncf_user_systems_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
         ]
@@ -32564,10 +33446,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "testes_tecnicos_avaliado_por_fkey"
+            columns: ["avaliado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "testes_tecnicos_candidato_id_fkey"
             columns: ["candidato_id"]
             isOneToOne: false
             referencedRelation: "candidatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "testes_tecnicos_enviado_por_fkey"
+            columns: ["enviado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
           {
@@ -32676,7 +33572,15 @@ export type Database = {
           valor_compra?: number | null
           valor_estimado_em?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ti_ativos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ti_ativos_historico: {
         Row: {
@@ -32736,6 +33640,13 @@ export type Database = {
             columns: ["ativo_id"]
             isOneToOne: false
             referencedRelation: "ti_ativos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ti_ativos_historico_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
         ]
@@ -33094,6 +34005,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pj_pagamentos"
             referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "titulo_a_receber_forma_pagamento_id_fkey"
@@ -35590,6 +36508,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "user_atribuicoes_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "user_atribuicoes_perfil_id_fkey"
             columns: ["perfil_id"]
             isOneToOne: false
@@ -35601,6 +36526,13 @@ export type Database = {
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_atribuicoes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
         ]
@@ -35624,7 +36556,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_preferencias_navegacao_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -35660,7 +36600,15 @@ export type Database = {
           user_id?: string
           valido_ate?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       usuario_paginas_favoritas: {
         Row: {
@@ -35693,7 +36641,15 @@ export type Database = {
           titulo?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "usuario_paginas_favoritas_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       usuario_paginas_recentes: {
         Row: {
@@ -35723,7 +36679,15 @@ export type Database = {
           titulo?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "usuario_paginas_recentes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vagas: {
         Row: {
@@ -35899,6 +36863,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "vinculo_beneficios_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "vinculo_beneficios_vinculo_id_fkey"
             columns: ["vinculo_id"]
             isOneToOne: false
@@ -36003,6 +36974,13 @@ export type Database = {
           vinculo_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "vinculo_extras_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "vinculo_extras_extra_id_fkey"
             columns: ["extra_id"]
@@ -36411,6 +37389,13 @@ export type Database = {
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vinculos_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
         ]
@@ -38159,6 +39144,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "contas_pagar_receber_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "contas_pagar_receber_canal_venda_id_fkey"
             columns: ["canal_venda_id"]
             isOneToOne: false
@@ -38198,6 +39190,34 @@ export type Database = {
             columns: ["compromisso_recorrente_id"]
             isOneToOne: false
             referencedRelation: "compromissos_recorrentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_conciliado_por_fkey"
+            columns: ["conciliado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_editado_por_fkey"
+            columns: ["editado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_enviado_pagamento_por_fkey"
+            columns: ["enviado_pagamento_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
           {
@@ -38324,6 +39344,13 @@ export type Database = {
             columns: ["pago_em_conta_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_pago_por_fkey"
+            columns: ["pago_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
           {
@@ -38471,6 +39498,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "contas_pagar_receber_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "contas_pagar_receber_canal_venda_id_fkey"
             columns: ["canal_venda_id"]
             isOneToOne: false
@@ -38510,6 +39544,34 @@ export type Database = {
             columns: ["compromisso_recorrente_id"]
             isOneToOne: false
             referencedRelation: "compromissos_recorrentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_conciliado_por_fkey"
+            columns: ["conciliado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_editado_por_fkey"
+            columns: ["editado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_enviado_pagamento_por_fkey"
+            columns: ["enviado_pagamento_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
           {
@@ -38639,6 +39701,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "contas_pagar_receber_pago_por_fkey"
+            columns: ["pago_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
             columns: ["parceiro_id"]
             isOneToOne: false
@@ -38728,7 +39797,15 @@ export type Database = {
           justificativa: string | null
           quantidade_alvos: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "acesso_dados_log_user_id_fkey"
+            columns: ["ator_user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mv_dre_fato: {
         Row: {
@@ -38879,6 +39956,13 @@ export type Database = {
             referencedColumns: ["codigo"]
           },
           {
+            foreignKeyName: "processos_owner_user_id_fkey"
+            columns: ["owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "processos_template_sncf_id_fkey"
             columns: ["template_sncf_id"]
             isOneToOne: false
@@ -38924,7 +40008,15 @@ export type Database = {
           tipo_acao?: string | null
           user_id_revogado?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_user_id_fkey"
+            columns: ["ator_user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tarefas_emissao_nf_pendentes: {
         Row: {
@@ -39000,6 +40092,13 @@ export type Database = {
           valor_novo: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "parceiro_marcos_operador_id_fkey"
+            columns: ["operador_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "parceiro_marcos_parceiro_id_fkey"
             columns: ["parceiro_id"]
@@ -39256,6 +40355,21 @@ export type Database = {
             referencedColumns: ["conta_id"]
           },
         ]
+      }
+      v_pessoas_sistema: {
+        Row: {
+          avatar_url: string | null
+          cargo: string | null
+          departamento_id: string | null
+          departamento_nome: string | null
+          email: string | null
+          id: string | null
+          nome: string | null
+          origem: string | null
+          status: string | null
+          tipo_vinculo: string | null
+        }
+        Relationships: []
       }
       vw_adiantamento_sem_nf: {
         Row: {
@@ -39710,6 +40824,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "auditoria_achado_dono_user_id_fkey"
+            columns: ["dono_user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "auditoria_achado_entidade_fkey"
             columns: ["entidade"]
             isOneToOne: false
@@ -39736,6 +40857,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "auditoria_situacao_dim"
             referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_tratado_por_fkey"
+            columns: ["tratado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "auditoria_regra_modulo_slug_fkey"
@@ -41670,6 +42798,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "contas_pagar_receber_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "contas_pagar_receber_cartao_id_fkey"
             columns: ["cartao_id"]
             isOneToOne: false
@@ -41696,6 +42831,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_dimensionamento_areas"
             referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "contas_pagar_receber_forma_pagamento_id_fkey"
@@ -45974,6 +47116,13 @@ export type Database = {
             referencedRelation: "vw_pastas_kpis"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ged_pastas_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
         ]
       }
       vw_gestao_b2c: {
@@ -46516,6 +47665,13 @@ export type Database = {
           valor_pago: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "linhas_investimento_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "linhas_investimento_tema_id_fkey"
             columns: ["tema_id"]
@@ -47785,6 +48941,13 @@ export type Database = {
             referencedColumns: ["cpr_id"]
           },
           {
+            foreignKeyName: "nfs_stage_criada_por_fkey"
+            columns: ["criada_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "nfs_stage_parceiro_id_fkey"
             columns: ["parceiro_id"]
             isOneToOne: false
@@ -48370,14 +49533,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -48477,6 +49640,13 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "vw_pastas_kpis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ged_pastas_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
           },
         ]
@@ -49462,14 +50632,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -55009,7 +56179,15 @@ export type Database = {
           total_declaracoes: number | null
           ultima_declaracao: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pedido_eventos_operador_id_fkey"
+            columns: ["operador_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vw_validacao_cartao: {
         Row: {
@@ -57456,6 +58634,10 @@ export type Database = {
         Returns: Database["public"]["Enums"]["app_role"][]
       }
       get_vault_secret: { Args: { p_name: string }; Returns: string }
+      has_module_permission: {
+        Args: { _acao: string; _modulo: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -57522,6 +58704,8 @@ export type Database = {
         Returns: Json
       }
       iniciar_compra_pedido: { Args: { p_pedido_id: string }; Returns: Json }
+      is_controladoria: { Args: { _user_id: string }; Returns: boolean }
+      is_rh: { Args: { _user_id: string }; Returns: boolean }
       lancar_invoice_importacao: {
         Args: {
           p_confirmar?: boolean
@@ -58289,6 +59473,7 @@ export type Database = {
         Returns: Json
       }
       revogar_acessos_ex_colaboradores: { Args: never; Returns: number }
+      rh_pode_ver_sensivel: { Args: { _user_id: string }; Returns: boolean }
       rotear_documento_para_boleto: {
         Args: { p_ged_documento_id: string }
         Returns: Json
@@ -58492,6 +59677,11 @@ export type Database = {
           titulo_id: string
           valor_atual: number
         }[]
+      }
+      tarefas_is_admin: { Args: { _user_id: string }; Returns: boolean }
+      tarefas_lidera: {
+        Args: { _gestor_uid: string; _liderado_uid: string }
+        Returns: boolean
       }
       tem_consentimento_ativo: {
         Args: { _tipo: string; _user_id: string }
