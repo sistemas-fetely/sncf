@@ -20,6 +20,11 @@ Deno.serve(async (req) => {
   try {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const historico = body?.historico === true;
+    // TETO-POR-EXECUCAO: sem isto, `historico` tenta as 100+ fotos de uma vez,
+    // estoura o tempo e MORRE ANTES DE LOGAR — o job trabalhava em silencio ha
+    // 5 dias. Com teto, cada execucao termina, loga, e o atraso drena em noites.
+    const maxFotos: number = Number(body?.max_fotos ?? 8);
+
 
     const { data: cfgRow, error: eCfg } = await sb
       .from("integracoes_config").select("config").eq("sistema", "zenlog_prd").single();
