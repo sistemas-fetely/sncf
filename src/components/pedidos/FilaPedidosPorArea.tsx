@@ -523,7 +523,7 @@ export function FilaPedidosPorArea({
               <TableHead className="w-[150px]">Pagamento</TableHead>
               <TableHead className="w-[150px]">Estágio</TableHead>
               <TableHead className="w-[170px]">Entrega</TableHead>
-              <TableHead className="w-[70px]">Idade</TableHead>
+              <TableHead className="w-[70px]">Na fase</TableHead>
               <TableHead className="w-[56px] text-right text-[11px] font-normal text-muted-foreground">Ações</TableHead>
 
             </TableRow>
