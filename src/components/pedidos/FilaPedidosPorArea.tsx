@@ -582,8 +582,20 @@ export function FilaPedidosPorArea({
                         {apelidoMap[p.parceiro_id]}
                       </p>
                     )}
-                    <p className="text-[11px] text-muted-foreground font-mono">
+                    <p className="text-[11px] text-muted-foreground font-mono flex items-center gap-1">
                       {p.id_externo}
+                      {(() => {
+                        const motivos = risco?.risco_motivos ?? [];
+                        const critico = motivos.some((m) => m.codigo === "urgencia_critica_declarada");
+                        const alto = motivos.some((m) => m.codigo === "urgencia_alta_declarada");
+                        if (critico) {
+                          return <Flame className="h-3.5 w-3.5 text-destructive" aria-label="Urgência crítica declarada" title="Urgência crítica declarada" />;
+                        }
+                        if (alto) {
+                          return <Flame className="h-3.5 w-3.5 text-warning" aria-label="Urgência alta declarada" title="Urgência alta declarada" />;
+                        }
+                        return null;
+                      })()}
                       {p.parceiro_cnpj ? ` · ${p.parceiro_cnpj}` : ""}
                     </p>
                   </TableCell>
