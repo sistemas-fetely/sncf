@@ -224,14 +224,16 @@ Deno.serve(async (req) => {
     const valorLiquido = num(analise.pedido?.valor_liquido);
     const valorFrete = num(analise.pedido?.valor_frete);
     const acrescimoIe = num(analise.pedido?.acrescimo_ie_valor);
-    const descontoPct = num(analise.pedido?.desconto_pct);
-    const descontoRS = descontoPct > 0 ? (valorBruto * descontoPct) / 100 : 0;
+    const descontoValor = num(analise.pedido?.desconto_celebra_valor);
+    const somaConferida = valorBruto + valorFrete - descontoValor + acrescimoIe;
+    const fecha = Math.abs(somaConferida - valorLiquido) <= 0.01;
 
     const blocoTitulos = listaTitulos.length > 0
       ? listaTitulos
           .map((t: any) => {
             const liq = t.data_pagamento_banco || t.data_pagamento;
-            return `- ${t.numero_titulo} ${t.numero_parcela ?? "?"}/${t.total_parcelas ?? "?"} · pedido ${t.pedido_id_externo ?? "—"} · R$ ${num(t.valor_efetivo)} · vence ${t.data_vencimento_atual} · ${t.status_gestao}${liq ? ` · quitado em ${liq}` : ""}`;
+            const pago = String(t.status_gestao || "").startsWith("pago");
+            return `- ${t.numero_titulo} · parcela ${t.numero_parcela ?? "?"}/${t.total_parcelas ?? "?"} · pedido ${t.pedido_id_externo ?? "—"} · R$ ${num(t.valor_efetivo)} · vence ${t.data_vencimento_atual} · ${t.status_gestao}${pago && liq ? ` · liquidado em ${liq}` : ""}`;
           })
           .join("\n")
       : "Cliente sem títulos emitidos.";
@@ -240,47 +242,42 @@ Deno.serve(async (req) => {
       (t: any) => t.status_gestao === "atrasado"
     ).length;
 
-    const fatos = {
-      vencidos: num(kpis?.vencidos),
-      a_vencer: num(kpis?.a_vencer),
-      em_aberto: num(kpis?.em_aberto),
-      pago: num(kpis?.pago),
-      atraso_medio: num(kpis?.atraso_medio_dias),
-      vencidos_grupo: num(kpisGrupo?.vencidos),
-      valor_bruto: valorBruto,
-      valor_liquido: valorLiquido,
-      valor_frete: valorFrete,
-      acrescimo_ie_valor: acrescimoIe,
-      titulos_atrasados: titulosAtrasados,
-      valores_payload: [
-        valorBruto,
-        valorLiquido,
-        valorFrete,
-        acrescimoIe,
-        descontoRS,
-        num(kpis?.vencidos),
-        num(kpis?.a_vencer),
-        num(kpis?.em_aberto),
-        num(kpis?.pago),
-        num(kpis?.maior_compra),
-        num(kpisGrupo?.em_aberto),
-        num(kpisGrupo?.vencidos),
-        ...listaTitulos.map((t: any) => num(t.valor_efetivo)),
+    const contexto: ContextoCredito = {
+      valorBruto,
+      valorFrete,
+      valorLiquido,
+      descontoValor,
+      acrescimoValor: acrescimoIe,
+      kpis: {
+        em_aberto: num(kpis?.em_aberto),
+        pago: num(kpis?.pago),
+        vencidos: num(kpis?.vencidos),
+        a_vencer: num(kpis?.a_vencer),
+        maior_compra: num(kpis?.maior_compra),
+        atraso_medio_dias: num(kpis?.atraso_medio_dias),
+      },
+      kpisGrupo: {
+        em_aberto: num(kpisGrupo?.em_aberto),
+        vencidos: num(kpisGrupo?.vencidos),
+      },
+      titulosValores: listaTitulos.map((t: any) => num(t.valor_efetivo)),
+      temTituloAtrasado: titulosAtrasados > 0,
+      valoresExtra: [
         ...(scores || []).map((s: any) => num(s.total_dividas)),
         ...(anteriores || []).map((a: any) => num(a.limite_concedido)),
-      ].filter((v: number) => v > 0),
+      ],
     };
 
     // Monta user prompt com contexto completo
     const userPrompt = `Analise esta análise de crédito.
 
 PEDIDO:
-- Mercadoria (valor bruto): R$ ${valorBruto}
-- Desconto aplicado: ${descontoPct > 0 ? `R$ ${descontoRS.toFixed(2)} (${descontoPct}%)` : "nenhum"}
-- Frete (pago pelo cliente): R$ ${valorFrete}
-- Acréscimo sem inscrição estadual: R$ ${acrescimoIe}
-- TOTAL A PAGAR (valor líquido): R$ ${valorLiquido}
-- Confira: mercadoria − desconto + frete + acréscimo = total. Líquido MAIOR que bruto é normal quando há frete ou acréscimo — NÃO é inconsistência.
+- Valor bruto dos itens: R$ ${valorBruto}
+- Frete: R$ ${valorFrete}
+- Desconto: R$ ${descontoValor}
+- Acréscimo (sem inscrição estadual): R$ ${acrescimoIe}
+- Valor líquido (o que o cliente paga): R$ ${valorLiquido}
+- Conferência de valores: bruto + frete - desconto + acréscimo = R$ ${somaConferida.toFixed(2)} ${fecha ? "— FECHA com o líquido" : "— NÃO FECHA com o líquido, sinalize isso"}
 - Condição solicitada: ${analise.pedido?.condicao_solicitada}
 - Forma solicitada: ${analise.pedido?.forma_solicitada}
 - Vendedor: ${analise.pedido?.vendedor || "—"}
