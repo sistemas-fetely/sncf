@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
         criado_em, analise_anterior_id,
         pedido:pedidos(id, id_externo, data_pedido, valor_bruto, valor_liquido, desconto_pct,
           valor_frete, acrescimo_ie_valor, acrescimo_ie_pct, desconto_celebra_valor, bonus_pix_valor,
-          condicao_solicitada, forma_solicitada, vendedor, origem, itens_json),
+          condicao_solicitada, forma_solicitada, vendedor, origem, itens_json, faturado_em),
         parceiro:parceiros_comerciais(id, cnpj, razao_social, nome_fantasia, cep, logradouro,
           cidade, uf, telefone, email, cadastro_incompleto, bandeira_vermelha,
           bandeira_vermelha_motivo, bandeira_vermelha_em, grupo_economico_id, nivel_programa,
@@ -213,6 +213,7 @@ Deno.serve(async (req) => {
       .from("vw_titulos_cobranca")
       .select("numero_titulo, numero_parcela, total_parcelas, pedido_id_externo, valor_efetivo, data_vencimento_atual, data_pagamento, data_pagamento_banco, status_gestao")
       .eq("parceiro_id", parceiroId)
+      .not("status_gestao", "in", '("cancelado")')
       .order("data_vencimento_atual", { ascending: false })
       .limit(40);
 
