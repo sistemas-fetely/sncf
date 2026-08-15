@@ -40,12 +40,18 @@ REGRAS OBRIGATÓRIAS:
    - Braspress: use o AWB.
 2. Todas as datas em YYYY-MM-DD.
 3. Todos os valores como número (sem "R$", sem separador de milhar, ponto como decimal).
-4. Linhas de crédito / débito / reversão / devolução:
-   - tipo = "credito" | "debito" | "devolucao"
-   - valor_frete = valor exatamente como no PDF (positivo se o PDF mostra positivo, negativo se mostra negativo).
-5. NÃO invente linhas. Se um campo não aparece no PDF, use null (exceto tipo, que é sempre preenchido).
-6. NÃO duplique linhas nem repita o header como lançamento.
-7. Responda APENAS o JSON puro, sem markdown, sem \`\`\`, sem explicação.`;
+4. SINAL: NUNCA use valores negativos. "valor_frete" é SEMPRE o valor ABSOLUTO exatamente
+   como aparece no PDF, sem sinal. Quem aplica o sinal é o sistema, a partir do "tipo".
+5. O campo "tipo" é OBRIGATÓRIO em toda linha e é ele que classifica o lançamento:
+   - "frete"     = prestação de serviço de transporte (linha normal de cobrança).
+   - "credito"   = crédito, estorno ou reversão (reduz a fatura). Linhas cuja descrição
+                   contenha "CREDITO REVERSAO", "CRÉDITO REVERSÃO", "ESTORNO" ou "CRÉDITO"
+                   são SEMPRE tipo="credito" — e ainda assim com valor_frete POSITIVO.
+   - "debito"    = débito ou ajuste que AUMENTA o valor da fatura.
+   - "devolucao" = frete de devolução cobrado.
+7. NÃO invente linhas. Se um campo não aparece no PDF, use null (exceto tipo, que é sempre preenchido).
+8. NÃO duplique linhas nem repita o header como lançamento.
+9. Responda APENAS o JSON puro, sem markdown, sem \`\`\`, sem explicação.`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -100,6 +106,44 @@ Deno.serve(async (req) => {
     for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
     const base64 = btoa(binary);
 
+    // Client service-role (upload do PDF + RPC)
+    const admin = createClient(supabaseUrl, serviceKey);
+
+    // ---- GUARDAR O PDF antes de qualquer leitura pela IA ----
+    const nomeOriginal = (file.name || "fatura.pdf").replace(/\.pdf$/i, "");
+    const nomeSanitizado = nomeOriginal
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9._-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 80) || "fatura";
+    const agora = new Date();
+    const ano = String(agora.getUTCFullYear());
+    const timestamp = agora.toISOString().replace(/[:.]/g, "-");
+
+    let pdfStoragePath: string | null =
+      `${transportadoraId}/${ano}/${timestamp}_${nomeSanitizado}.pdf`;
+    let pdfArmazenado = false;
+    let pdfErro: string | null = null;
+
+    {
+      const { error: upErr } = await admin.storage
+        .from("faturas-frete")
+        .upload(pdfStoragePath, arrayBuffer, {
+          contentType: "application/pdf",
+          upsert: true,
+        });
+      if (upErr) {
+        console.error("[parse-fatura-frete-pdf] upload_pdf_falhou:", upErr.message);
+        pdfErro = upErr.message;
+        pdfStoragePath = null;
+      } else {
+        pdfArmazenado = true;
+      }
+    }
+
+
+
     // Lovable AI Gateway
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -153,7 +197,6 @@ Deno.serve(async (req) => {
     }
 
     // Persistir via RPC (service-role para bypass de RLS controlado pela função)
-    const admin = createClient(supabaseUrl, serviceKey);
     const { data: rpcData, error: rpcError } = await admin.rpc("fn_importar_fatura_frete", {
       p_transportadora_id: transportadoraId,
       p_payload: parsed,
@@ -162,15 +205,73 @@ Deno.serve(async (req) => {
     if (rpcError) {
       console.error("RPC fn_importar_fatura_frete error:", rpcError);
       return new Response(
-        JSON.stringify({ error: rpcError.message, payload: parsed }),
+        JSON.stringify({
+          error: rpcError.message,
+          payload: parsed,
+          pdf_armazenado: pdfArmazenado,
+          pdf_storage_path: pdfStoragePath,
+          pdf_erro: pdfErro,
+        }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    return new Response(JSON.stringify({ ok: true, result: rpcData, payload: parsed }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // ---- Renomear para o caminho definitivo (com nº da fatura) e amarrar à fatura ----
+    const resultado = (Array.isArray(rpcData) ? rpcData[0] : rpcData) as
+      | Record<string, unknown>
+      | null;
+    const faturaId = resultado && typeof resultado === "object"
+      ? (resultado["fatura_id"] as string | undefined) ?? undefined
+      : undefined;
+
+    if (pdfArmazenado && pdfStoragePath) {
+      const numeroFatura = String(parsed?.numero_fatura ?? "").replace(/[^a-zA-Z0-9._-]+/g, "-");
+      if (numeroFatura) {
+        const destino = `${transportadoraId}/${ano}/${numeroFatura}_${nomeSanitizado}.pdf`;
+        if (destino !== pdfStoragePath) {
+          const { error: mvErr } = await admin.storage
+            .from("faturas-frete")
+            .move(pdfStoragePath, destino);
+          if (mvErr) {
+            console.error("[parse-fatura-frete-pdf] move_pdf_falhou:", mvErr.message);
+          } else {
+            pdfStoragePath = destino;
+          }
+        }
+      }
+
+      if (faturaId) {
+        const { error: updErr } = await admin
+          .from("faturas_frete")
+          .update({ pdf_storage_path: pdfStoragePath })
+          .eq("id", faturaId);
+        if (updErr) {
+          console.error("[parse-fatura-frete-pdf] vincular_pdf_falhou:", updErr.message);
+          pdfErro = updErr.message;
+          pdfArmazenado = false;
+        }
+      } else {
+        console.error(
+          "[parse-fatura-frete-pdf] fatura_id_ausente_no_retorno_rpc: PDF salvo em",
+          pdfStoragePath,
+          "mas não vinculado",
+        );
+        pdfErro = "fatura_id ausente no retorno da RPC; PDF não vinculado à fatura";
+        pdfArmazenado = false;
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        result: rpcData,
+        payload: parsed,
+        pdf_armazenado: pdfArmazenado,
+        pdf_storage_path: pdfStoragePath,
+        ...(pdfArmazenado ? {} : { pdf_erro: pdfErro }),
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (e) {
     console.error("Erro fatal:", e);
     return new Response(
