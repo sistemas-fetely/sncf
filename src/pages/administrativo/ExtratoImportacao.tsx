@@ -987,17 +987,22 @@ export default function ExtratoImportacao() {
         .eq("id", impId);
 
       if (fonte === "retorno_safra") {
-        const msgRetorno =
-          `${PARSER_ROTULO.retorno_safra} — ${file.name}: sequencial ${respRetorno?.nro_sequencial} · ` +
-          `${respRetorno?.ocorrencias_gravadas} ocorrência(s) registradas · ` +
-          `${respRetorno?.confirmados} confirmado(s) · ${respRetorno?.liquidados} liquidado(s) · ` +
-          `${respRetorno?.rejeitados} rejeitado(s)` +
-          (respRetorno?.ja_processado ? " — arquivo já processado, nada foi reaplicado" : "");
-        const qtdErros = Array.isArray(respRetorno?.erros) ? respRetorno.erros.length : 0;
-        if (qtdErros > 0) {
-          toast.error(`${msgRetorno} · ${qtdErros} erro(s) na resolução de títulos`);
+        if (respRetorno?.ja_processado) {
+          toast.info(
+            `${PARSER_ROTULO.retorno_safra} — ${file.name}: sequencial ${respRetorno.nro_sequencial} já processado em ${respRetorno.processado_em}. Nada foi reaplicado.`
+          );
         } else {
-          toast.success(msgRetorno);
+          const msgRetorno =
+            `${PARSER_ROTULO.retorno_safra} — ${file.name}: sequencial ${respRetorno?.nro_sequencial} · ` +
+            `${respRetorno?.ocorrencias_gravadas} ocorrência(s) registradas · ` +
+            `${respRetorno?.confirmados} confirmado(s) · ${respRetorno?.liquidados} liquidado(s) · ` +
+            `${respRetorno?.rejeitados} rejeitado(s)`;
+          const qtdErros = Array.isArray(respRetorno?.erros) ? respRetorno.erros.length : 0;
+          if (qtdErros > 0) {
+            toast.error(`${msgRetorno} · ${qtdErros} erro(s) na resolução de títulos`);
+          } else {
+            toast.success(msgRetorno);
+          }
         }
       } else if (fonte === "safra_instrucoes_2via") {
         toast.success(
