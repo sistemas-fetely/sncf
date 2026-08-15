@@ -52956,6 +52956,7 @@ export type Database = {
           exige_portao: boolean | null
           liberado: boolean | null
           motivo: string | null
+          nada_a_cobrar: boolean | null
           nivel_prova: string | null
           pedido_id: string | null
           portao_pago: boolean | null
@@ -61696,10 +61697,6 @@ export type Database = {
         Returns: boolean
       }
       tarefas_is_admin: { Args: { _user_id: string }; Returns: boolean }
-      tarefas_lidera: {
-        Args: { _gestor_uid: string; _liderado_uid: string }
-        Returns: boolean
-      }
       tarefas_pode_gerenciar_projeto: {
         Args: { _projeto_id: string }
         Returns: boolean
