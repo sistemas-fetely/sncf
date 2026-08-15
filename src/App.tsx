@@ -91,8 +91,10 @@ const TIAtivos = lazy(() => import("@/pages/ti/TIAtivos"));
 const TesteEmailTemplate = lazy(() => import("@/pages/ti/TesteEmailTemplate"));
 const DocumentacaoDetalhe = lazy(() => import("@/pages/ti/DocumentacaoDetalhe"));
 const DocumentacaoForm = lazy(() => import("@/pages/ti/DocumentacaoForm"));
-const MinhasTarefas = lazy(() => import("@/pages/MinhasTarefas"));
-const TarefasDoTime = lazy(() => import("@/pages/TarefasDoTime"));
+const TarefasLayout = lazy(() => import("@/layouts/TarefasLayout"));
+const TarefasHoje = lazy(() => import("@/pages/tarefas/TarefasHoje"));
+const MinhasTarefasNovo = lazy(() => import("@/pages/tarefas/MinhasTarefasNovo"));
+
 const Processos = lazy(() => import("@/pages/Processos"));
 const ProcessoDetalhe = lazy(() => import("@/pages/ProcessoDetalhe"));
 const ProcessoEditor = lazy(() => import("@/pages/ProcessoEditor"));
@@ -395,8 +397,12 @@ const App = () => (
               {/* SNCF — Portal + transversais — App Simples, CasaLayout direto */}
               {/* Doutrina CASA-2: SNCFLayout removido — rotas ficam direto no CasaLayout */}
               <Route path="/sncf" element={<PortalSNCF />} />
-              <Route path="/tarefas" element={<MinhasTarefas />} />
-              <Route path="/tarefas/time" element={<TarefasDoTime />} />
+              <Route path="/tarefas" element={<Navigate to="/tarefas/hoje" replace />} />
+              <Route element={<TarefasLayout />}>
+                <Route path="/tarefas/hoje" element={<TarefasHoje />} />
+                <Route path="/tarefas/minhas" element={<MinhasTarefasNovo />} />
+              </Route>
+
               <Route path="/fala-fetely" element={<FalaFetely />} />
               <Route path="/fala-fetely/conhecimento" element={<FalaFetelyConhecimento />} />
               <Route path="/fala-fetely/memorias" element={<MinhasMemorias />} />
