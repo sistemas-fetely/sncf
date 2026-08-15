@@ -22,6 +22,7 @@ interface LinhaRetorno {
   descontoRaw: string;     // pos 241-253 (13 dígitos, 2 decimais)
   valorPagoRaw: string;    // pos 254-266 (13 dígitos, 2 decimais)
   jurosMoraRaw: string;    // pos 267-279 (13 dígitos, 2 decimais)
+  sacado: string;          // pos 341-374
 }
 
 function parseLinha(linha: string, numeroLinha: number): LinhaRetorno | null {

@@ -990,9 +990,9 @@ export default function ExtratoImportacao() {
           // fn_cnab_resolver_titulo já sabe a ordem certa: prefixo do uuid,
           // depois nosso número — nunca por seu número.
           const { data: res, error: errRes } = await sb.rpc("fn_cnab_resolver_titulo", {
-            uso_empresa: o.uso_empresa,
-            nosso_numero: o.nosso_numero,
-            seu_numero: o.seu_numero,
+            p_uso_empresa: o.uso_empresa,
+            p_nosso_numero: o.nosso_numero,
+            p_seu_numero: o.seu_numero,
           });
           if (errRes) throw errRes;
           const r = (Array.isArray(res) ? res[0] : res) as
