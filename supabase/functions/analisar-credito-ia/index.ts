@@ -119,6 +119,7 @@ Deno.serve(async (req) => {
         id, estagio_atual, status_final, perfil_aplicado, limite_concedido, prazo_max_dias,
         criado_em, analise_anterior_id,
         pedido:pedidos(id, id_externo, data_pedido, valor_bruto, valor_liquido, desconto_pct,
+          valor_frete, acrescimo_ie_valor, acrescimo_ie_pct, desconto_celebra_valor, bonus_pix_valor,
           condicao_solicitada, forma_solicitada, vendedor, origem, itens_json),
         parceiro:parceiros_comerciais(id, cnpj, razao_social, nome_fantasia, cep, logradouro,
           cidade, uf, telefone, email, cadastro_incompleto, bandeira_vermelha,
@@ -188,12 +189,78 @@ Deno.serve(async (req) => {
       return dias < 90;
     });
 
+    // 8) Títulos do cliente — fonte única da verdade sobre dívida
+    const { data: titulos } = await (supabase as any)
+      .from("vw_titulos_cobranca")
+      .select("numero_titulo, numero_parcela, total_parcelas, pedido_id_externo, valor_efetivo, data_vencimento_atual, data_pagamento, data_pagamento_banco, status_gestao")
+      .eq("parceiro_id", parceiroId)
+      .order("data_vencimento_atual", { ascending: false })
+      .limit(40);
+
+    const listaTitulos = (titulos || []) as any[];
+
+    const num = (v: any) => Number(v ?? 0) || 0;
+    const valorBruto = num(analise.pedido?.valor_bruto);
+    const valorLiquido = num(analise.pedido?.valor_liquido);
+    const valorFrete = num(analise.pedido?.valor_frete);
+    const acrescimoIe = num(analise.pedido?.acrescimo_ie_valor);
+    const descontoPct = num(analise.pedido?.desconto_pct);
+    const descontoRS = descontoPct > 0 ? (valorBruto * descontoPct) / 100 : 0;
+
+    const blocoTitulos = listaTitulos.length > 0
+      ? listaTitulos
+          .map((t: any) => {
+            const liq = t.data_pagamento_banco || t.data_pagamento;
+            return `- ${t.numero_titulo} ${t.numero_parcela ?? "?"}/${t.total_parcelas ?? "?"} · pedido ${t.pedido_id_externo ?? "—"} · R$ ${num(t.valor_efetivo)} · vence ${t.data_vencimento_atual} · ${t.status_gestao}${liq ? ` · quitado em ${liq}` : ""}`;
+          })
+          .join("\n")
+      : "Cliente sem títulos emitidos.";
+
+    const titulosAtrasados = listaTitulos.filter(
+      (t: any) => t.status_gestao === "atrasado"
+    ).length;
+
+    const fatos = {
+      vencidos: num(kpis?.vencidos),
+      a_vencer: num(kpis?.a_vencer),
+      em_aberto: num(kpis?.em_aberto),
+      pago: num(kpis?.pago),
+      atraso_medio: num(kpis?.atraso_medio_dias),
+      vencidos_grupo: num(kpisGrupo?.vencidos),
+      valor_bruto: valorBruto,
+      valor_liquido: valorLiquido,
+      valor_frete: valorFrete,
+      acrescimo_ie_valor: acrescimoIe,
+      titulos_atrasados: titulosAtrasados,
+      valores_payload: [
+        valorBruto,
+        valorLiquido,
+        valorFrete,
+        acrescimoIe,
+        descontoRS,
+        num(kpis?.vencidos),
+        num(kpis?.a_vencer),
+        num(kpis?.em_aberto),
+        num(kpis?.pago),
+        num(kpis?.maior_compra),
+        num(kpisGrupo?.em_aberto),
+        num(kpisGrupo?.vencidos),
+        ...listaTitulos.map((t: any) => num(t.valor_efetivo)),
+        ...(scores || []).map((s: any) => num(s.total_dividas)),
+        ...(anteriores || []).map((a: any) => num(a.limite_concedido)),
+      ].filter((v: number) => v > 0),
+    };
+
     // Monta user prompt com contexto completo
     const userPrompt = `Analise esta análise de crédito.
 
 PEDIDO:
-- Valor bruto: R$ ${analise.pedido?.valor_bruto}
-- Valor líquido: R$ ${analise.pedido?.valor_liquido} (desconto ${analise.pedido?.desconto_pct || 0}%)
+- Mercadoria (valor bruto): R$ ${valorBruto}
+- Desconto aplicado: ${descontoPct > 0 ? `R$ ${descontoRS.toFixed(2)} (${descontoPct}%)` : "nenhum"}
+- Frete (pago pelo cliente): R$ ${valorFrete}
+- Acréscimo sem inscrição estadual: R$ ${acrescimoIe}
+- TOTAL A PAGAR (valor líquido): R$ ${valorLiquido}
+- Confira: mercadoria − desconto + frete + acréscimo = total. Líquido MAIOR que bruto é normal quando há frete ou acréscimo — NÃO é inconsistência.
 - Condição solicitada: ${analise.pedido?.condicao_solicitada}
 - Forma solicitada: ${analise.pedido?.forma_solicitada}
 - Vendedor: ${analise.pedido?.vendedor || "—"}
@@ -217,21 +284,26 @@ ESTADO ATUAL DO CLIENTE:
 
 KPIs FINANCEIROS DO CLIENTE:
 ${kpis ? `
-- Em aberto: R$ ${kpis.em_aberto}
-- Pago histórico: R$ ${kpis.pago}
-- Vencidos: R$ ${kpis.vencidos}
-- À vencer: R$ ${kpis.a_vencer}
-- Maior compra: R$ ${kpis.maior_compra}
+- DÍVIDA VENCIDA HOJE (em atraso, não pago): R$ ${num(kpis.vencidos)}
+- A vencer (em aberto, ainda dentro do prazo): R$ ${num(kpis.a_vencer)}
+- Total em aberto (vencido + a vencer): R$ ${num(kpis.em_aberto)}
+- JÁ PAGO E QUITADO no histórico (isto NÃO é dívida): R$ ${num(kpis.pago)}
+- Maior compra já feita: R$ ${num(kpis.maior_compra)}
 - Última compra em: ${kpis.ultima_compra_em || "—"}
-- Atraso médio: ${Math.round(kpis.atraso_medio_dias || 0)} dias` : "Sem dados financeiros (cliente novo)"}
+- Atraso médio nos pagamentos já feitos: ${Math.round(num(kpis.atraso_medio_dias))} dias
+ATENÇÃO: se DÍVIDA VENCIDA HOJE for R$ 0, o cliente NÃO tem débito vencido. Não descreva valores já pagos como dívida.` : "Sem dados financeiros (cliente novo)"}
 
 GRUPO ECONÔMICO:
 ${kpisGrupo ? `
 - Nome: ${kpisGrupo.grupo_nome}
 - Parceiros no grupo: ${kpisGrupo.qtd_parceiros}
-- Em aberto grupo: R$ ${kpisGrupo.em_aberto}
-- Vencidos grupo: R$ ${kpisGrupo.vencidos}
-- Atraso médio grupo: ${Math.round(kpisGrupo.atraso_medio_dias || 0)} dias` : "Sem grupo econômico detectado"}
+- DÍVIDA VENCIDA HOJE do grupo (em atraso, não pago): R$ ${num(kpisGrupo.vencidos)}
+- Total em aberto do grupo (vencido + a vencer): R$ ${num(kpisGrupo.em_aberto)}
+- Atraso médio do grupo nos pagamentos já feitos: ${Math.round(num(kpisGrupo.atraso_medio_dias))} dias` : "Sem grupo econômico detectado"}
+
+TÍTULOS DO CLIENTE (fonte única da verdade sobre dívida — use estas linhas, não infira):
+${blocoTitulos}
+Legenda dos status: a_vencer/vence_hoje = em aberto no prazo · atrasado = DÍVIDA VENCIDA · aguarda_liquidacao = pago sem confirmação bancária · pago/pago_com_atraso/pago_judicial = QUITADO, não é dívida · baixado_por_perda = prejuízo assumido · devolvido/cancelado = sem efeito financeiro.
 
 SCORES BUREAU ANEXADOS (extraídos por IA dos PDFs):
 ${(scores || []).length > 0 ? JSON.stringify(scores) : "Nenhum bureau anexado nesta análise"}
@@ -242,6 +314,7 @@ ${(anteriores || []).length > 0 ? JSON.stringify(anteriores) : "Cliente novo na 
 Gere a análise estruturada em JSON conforme instruído no system prompt.`;
 
     // Chama Claude Sonnet via Lovable AI Gateway
+    const MODELO_PRIMARIO = "anthropic/claude-sonnet-4-5";
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -249,7 +322,7 @@ Gere a análise estruturada em JSON conforme instruído no system prompt.`;
         "Authorization": `Bearer ${LOVABLE_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "anthropic/claude-sonnet-4-20250514",
+        model: MODELO_PRIMARIO,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userPrompt },
@@ -260,6 +333,12 @@ Gere a análise estruturada em JSON conforme instruído no system prompt.`;
     if (!aiResp.ok) {
       const errorText = await aiResp.text().catch(() => "");
       console.error("Claude error:", aiResp.status, errorText);
+      const fallbackInfo = {
+        primario: MODELO_PRIMARIO,
+        status: aiResp.status,
+        erro: String(errorText).slice(0, 300),
+        em: new Date().toISOString(),
+      };
       // Fallback: tenta Gemini Pro se Claude não tá disponível
       const fallbackResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -282,11 +361,11 @@ Gere a análise estruturada em JSON conforme instruído no system prompt.`;
         );
       }
       const fbData = await fallbackResp.json();
-      return await processarRespostaIA(fbData, analise_id, supabase, corsHeaders, "gemini-pro-fallback");
+      return await processarRespostaIA(fbData, analise_id, supabase, corsHeaders, "gemini-pro-fallback", fatos, fallbackInfo);
     }
 
     const aiData = await aiResp.json();
-    return await processarRespostaIA(aiData, analise_id, supabase, corsHeaders, "claude-sonnet-4");
+    return await processarRespostaIA(aiData, analise_id, supabase, corsHeaders, "claude-sonnet-4-5", fatos, null);
   } catch (e) {
     console.error("analisar-credito-ia error:", e);
     return new Response(
@@ -296,12 +375,159 @@ Gere a análise estruturada em JSON conforme instruído no system prompt.`;
   }
 });
 
+interface FatosCredito {
+  vencidos: number;
+  a_vencer: number;
+  em_aberto: number;
+  pago: number;
+  atraso_medio: number;
+  vencidos_grupo: number;
+  valor_bruto: number;
+  valor_liquido: number;
+  valor_frete: number;
+  acrescimo_ie_valor: number;
+  titulos_atrasados: number;
+  valores_payload: number[];
+}
+
+const PERFIS_VALIDOS = [
+  "novo_entrada",
+  "novo_qualificado",
+  "recorrente_bom_pagador",
+  "premium",
+];
+const DECISOES_VALIDAS = [
+  "aprovar",
+  "aprovar_com_ressalva",
+  "reprovar",
+  "devolver_analise",
+  "devolver_entrada",
+];
+
+const RE_DIVIDA = /vencid|inadimpl|em atraso|débito|debito|divida|dívida/;
+const RE_MOEDA = /r\$\s*([\d.]*\d(?:,\d{1,2})?)/g;
+
+function parseMoedaBr(bruto: string): number {
+  const limpo = bruto.replace(/\./g, "").replace(",", ".");
+  const n = Number(limpo);
+  return Number.isFinite(n) ? n : NaN;
+}
+
+function extrairMoedas(texto: string): number[] {
+  const out: number[] = [];
+  RE_MOEDA.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = RE_MOEDA.exec(texto)) !== null) {
+    const v = parseMoedaBr(m[1]);
+    if (Number.isFinite(v)) out.push(v);
+  }
+  return out;
+}
+
+function fmtBr(v: number): string {
+  return v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function validarSaidaIA(
+  analiseIA: any,
+  fatos: FatosCredito
+): { contradicoes: string[]; cifras_orfas: number[] } {
+  const contradicoes: string[] = [];
+  const cifras_orfas: number[] = [];
+
+  const partes = [
+    analiseIA?.resumo,
+    analiseIA?.justificativa,
+    analiseIA?.sugestao?.parecer_final,
+    analiseIA?.sugestao?.ressalva,
+    ...(Array.isArray(analiseIA?.pontos_atencao) ? analiseIA.pontos_atencao : []),
+  ].filter((p: any) => typeof p === "string" && p.length > 0);
+  const alvo = partes.join(" \n ").toLowerCase();
+
+  // R1 — vencido inexistente
+  if (RE_DIVIDA.test(alvo) && fatos.vencidos === 0 && fatos.titulos_atrasados === 0) {
+    contradicoes.push(
+      "Texto afirma dívida vencida, mas o cliente tem R$ 0 vencidos e nenhum título atrasado."
+    );
+  }
+
+  // R2 — valor de vencido errado
+  const reDividaGlobal = new RegExp(RE_DIVIDA.source, "g");
+  let d: RegExpExecArray | null;
+  const citados: number[] = [];
+  while ((d = reDividaGlobal.exec(alvo)) !== null) {
+    const ini = Math.max(0, d.index - 60);
+    const fim = Math.min(alvo.length, d.index + d[0].length + 60);
+    for (const v of extrairMoedas(alvo.slice(ini, fim))) {
+      if (!citados.some((c) => Math.abs(c - v) <= 0.01)) citados.push(v);
+    }
+  }
+  for (const v of citados) {
+    if (Math.abs(v - fatos.vencidos) > 0.01) {
+      let msg = `Valor citado como dívida (R$ ${fmtBr(v)}) não corresponde ao vencido real (R$ ${fmtBr(fatos.vencidos)}).`;
+      if (fatos.pago > 0 && Math.abs(v - fatos.pago) <= 0.01) {
+        msg += " — esse valor é o total JÁ PAGO pelo cliente.";
+      }
+      contradicoes.push(msg);
+    }
+  }
+
+  // R3 — falsa inconsistência de valores
+  const falsaInconsistencia =
+    /(líquido|liquido)[\s\S]{0,40}(bruto)/.test(alvo) || /inconsist/.test(alvo);
+  if (
+    falsaInconsistencia &&
+    Math.abs(
+      fatos.valor_liquido - fatos.valor_bruto - (fatos.valor_frete + fatos.acrescimo_ie_valor)
+    ) <= 0.01
+  ) {
+    contradicoes.push(
+      "Texto aponta inconsistência entre líquido e bruto, mas a diferença é exatamente frete + acréscimo."
+    );
+  }
+
+  // R4 — cifras órfãs
+  const conhecidos = fatos.valores_payload;
+  const bate = (v: number) => {
+    if (conhecidos.some((c) => Math.abs(c - v) <= 0.01)) return true;
+    for (let i = 0; i < conhecidos.length; i++) {
+      for (let j = i + 1; j < conhecidos.length; j++) {
+        if (Math.abs(conhecidos[i] + conhecidos[j] - v) <= 0.01) return true;
+      }
+    }
+    return false;
+  };
+  for (const v of extrairMoedas(alvo)) {
+    if (v === 0) continue;
+    if (!bate(v) && !cifras_orfas.some((o) => Math.abs(o - v) <= 0.01)) cifras_orfas.push(v);
+  }
+
+  // Validações estruturais básicas
+  const perfil = analiseIA?.sugestao?.perfil_aplicado;
+  if (perfil === "bandeira_vermelha") {
+    contradicoes.push("perfil_aplicado = bandeira_vermelha não é permitido para a IA.");
+  } else if (!PERFIS_VALIDOS.includes(perfil)) {
+    contradicoes.push(`perfil_aplicado inválido: "${perfil}".`);
+  }
+  if (!DECISOES_VALIDAS.includes(analiseIA?.decisao_sugerida)) {
+    contradicoes.push(`decisao_sugerida inválida: "${analiseIA?.decisao_sugerida}".`);
+  }
+  const conf = Number(analiseIA?.confianca);
+  if (!Number.isFinite(conf) || conf < 0 || conf > 100) {
+    contradicoes.push(`confianca fora da faixa 0-100: "${analiseIA?.confianca}".`);
+  }
+
+  return { contradicoes, cifras_orfas };
+}
+
 async function processarRespostaIA(
   aiData: any,
   analise_id: string,
   supabase: any,
   corsHeaders: Record<string, string>,
-  modeloUsado: string
+  modeloUsado: string,
+  fatos: FatosCredito,
+  fallbackInfo: { primario: string; status: number; erro: string; em: string } | null
 ): Promise<Response> {
   let raw = aiData?.choices?.[0]?.message?.content ?? "";
   let jsonStr = String(raw).trim();
@@ -322,11 +548,39 @@ async function processarRespostaIA(
     );
   }
 
+  // Validação determinística — SISTEMA SUGERE / HUMANO DECIDE: nunca descarta, só carimba.
+  const confiancaOriginal = Number(analiseIA?.confianca ?? 0);
+  const { contradicoes, cifras_orfas } = validarSaidaIA(analiseIA, fatos);
+
+  if (contradicoes.length > 0) {
+    console.warn("Validação IA encontrou contradições:", analise_id, contradicoes);
+    analiseIA.confianca = Math.min(Number(analiseIA.confianca ?? 0) || 0, 40);
+    if (!Array.isArray(analiseIA.pontos_atencao)) analiseIA.pontos_atencao = [];
+    analiseIA.pontos_atencao.unshift(
+      "⚠ VERIFICAÇÃO AUTOMÁTICA: esta análise contradiz os dados do sistema. Confira antes de decidir."
+    );
+  } else if (cifras_orfas.length > 0) {
+    console.warn("Validação IA encontrou cifras órfãs:", analise_id, cifras_orfas);
+    analiseIA.confianca = Math.min(Number(analiseIA.confianca ?? 0) || 0, 70);
+  }
+
+  const iaJson: Record<string, unknown> = {
+    ...analiseIA,
+    _modelo: modeloUsado,
+    _validacao: {
+      contradicoes,
+      cifras_orfas,
+      confianca_original: confiancaOriginal,
+      validado_em: new Date().toISOString(),
+    },
+  };
+  if (fallbackInfo) iaJson._fallback = fallbackInfo;
+
   // Grava em analises_credito
   const { error: updErr } = await supabase
     .from("analises_credito")
     .update({
-      analise_ia_json: { ...analiseIA, _modelo: modeloUsado },
+      analise_ia_json: iaJson,
       analise_ia_resumo: analiseIA.resumo,
       analise_ia_confianca: analiseIA.confianca,
       analise_ia_processada_em: new Date().toISOString(),
@@ -345,7 +599,7 @@ async function processarRespostaIA(
     JSON.stringify({
       analise_id,
       modelo: modeloUsado,
-      analise_ia: analiseIA,
+      analise_ia: iaJson,
     }),
     { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
   );

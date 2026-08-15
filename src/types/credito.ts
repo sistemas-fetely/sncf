@@ -71,6 +71,18 @@ export interface AnaliseIaJson {
   justificativa: string;
   confianca: number;
   _modelo?: string;
+  _validacao?: {
+    contradicoes: string[];
+    cifras_orfas: number[];
+    confianca_original?: number;
+    validado_em?: string;
+  } | null;
+  _fallback?: {
+    primario?: string;
+    status?: number;
+    erro?: string;
+    em?: string;
+  } | null;
 }
 
 export interface AnaliseListItem {
