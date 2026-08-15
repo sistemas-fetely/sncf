@@ -30800,6 +30800,42 @@ export type Database = {
         }
         Relationships: []
       }
+      sncf_doc_genero: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          descricao: string | null
+          icone: string | null
+          ordem: number
+          pergunta_que_responde: string
+          rotulo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          descricao?: string | null
+          icone?: string | null
+          ordem?: number
+          pergunta_que_responde: string
+          rotulo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          descricao?: string | null
+          icone?: string | null
+          ordem?: number
+          pergunta_que_responde?: string
+          rotulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sncf_documentacao: {
         Row: {
           ativo: boolean
@@ -30815,9 +30851,11 @@ export type Database = {
           fonte: string | null
           fonte_url: string | null
           fonte_versao: string | null
+          genero_codigo: string | null
           id: string
           modulo_id: string | null
           ordem: number
+          rota_ancora: string | null
           slug: string
           sync_fala_fetely: boolean | null
           tags: string[] | null
@@ -30841,9 +30879,11 @@ export type Database = {
           fonte?: string | null
           fonte_url?: string | null
           fonte_versao?: string | null
+          genero_codigo?: string | null
           id?: string
           modulo_id?: string | null
           ordem?: number
+          rota_ancora?: string | null
           slug: string
           sync_fala_fetely?: boolean | null
           tags?: string[] | null
@@ -30867,9 +30907,11 @@ export type Database = {
           fonte?: string | null
           fonte_url?: string | null
           fonte_versao?: string | null
+          genero_codigo?: string | null
           id?: string
           modulo_id?: string | null
           ordem?: number
+          rota_ancora?: string | null
           slug?: string
           sync_fala_fetely?: boolean | null
           tags?: string[] | null
@@ -30881,11 +30923,25 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "sncf_documentacao_genero_fk"
+            columns: ["genero_codigo"]
+            isOneToOne: false
+            referencedRelation: "sncf_doc_genero"
+            referencedColumns: ["codigo"]
+          },
+          {
             foreignKeyName: "sncf_documentacao_modulo_id_fkey"
             columns: ["modulo_id"]
             isOneToOne: false
             referencedRelation: "sncf_modulo"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sncf_documentacao_rota_ancora_fk"
+            columns: ["rota_ancora"]
+            isOneToOne: false
+            referencedRelation: "sncf_navegacao"
+            referencedColumns: ["rota"]
           },
         ]
       }
@@ -30990,6 +31046,81 @@ export type Database = {
             columns: ["tela_slug_default"]
             isOneToOne: false
             referencedRelation: "vw_permissao_diagnostico"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
+      sncf_glossario: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          criado_por: string | null
+          criado_por_nome: string | null
+          definicao_curta: string
+          definicao_longa: string | null
+          doutrina_slug: string | null
+          exemplo: string | null
+          id: string
+          nao_confundir_com: string[]
+          onde_aparece: string[]
+          sinonimos: string[]
+          slug: string
+          status: string
+          substituido_por: string | null
+          termo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          criado_por?: string | null
+          criado_por_nome?: string | null
+          definicao_curta: string
+          definicao_longa?: string | null
+          doutrina_slug?: string | null
+          exemplo?: string | null
+          id?: string
+          nao_confundir_com?: string[]
+          onde_aparece?: string[]
+          sinonimos?: string[]
+          slug: string
+          status?: string
+          substituido_por?: string | null
+          termo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          criado_por?: string | null
+          criado_por_nome?: string | null
+          definicao_curta?: string
+          definicao_longa?: string | null
+          doutrina_slug?: string | null
+          exemplo?: string | null
+          id?: string
+          nao_confundir_com?: string[]
+          onde_aparece?: string[]
+          sinonimos?: string[]
+          slug?: string
+          status?: string
+          substituido_por?: string | null
+          termo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "glossario_substituto_existe"
+            columns: ["substituido_por"]
+            isOneToOne: false
+            referencedRelation: "sncf_glossario"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "sncf_glossario_doutrina_slug_fkey"
+            columns: ["doutrina_slug"]
+            isOneToOne: false
+            referencedRelation: "sncf_documentacao"
             referencedColumns: ["slug"]
           },
         ]
