@@ -33,8 +33,18 @@ interface Provisao {
 }
 
 
+const estaPago = (p: Provisao) => p.status === "pago" || !!p.pago_em;
+
+/**
+ * CARTAO-E-CAPTURA-UNICA: parcela de cartão NÃO se confirma sozinha.
+ * As parcelas 2..N são datas de repasse da adquirente, não pagamentos do cliente —
+ * uma autorização fecha a família inteira, e a prova é o NSU.
+ * Só linha não-cartão ganha o botão individual.
+ */
+const podeConfirmarSozinha = (p: Provisao) => !estaPago(p) && p.tipo_pagamento !== "cartao";
+
 function EstadoLinha({ p }: { p: Provisao }) {
-  const pago = p.status === "pago" || !!p.pago_em;
+  const pago = estaPago(p);
   if (pago) {
     return (
       <Badge className="text-[10px] bg-emerald-600 hover:bg-emerald-600">
@@ -146,9 +156,10 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
       </div>
 
       {provisoes
-        .filter((p) => p.eh_portao || p.tipo_pagamento === "pix")
+        .filter((p) => p.eh_portao || p.tipo_pagamento === "pix" || podeConfirmarSozinha(p))
         .map((p) => {
-          const pago = p.status === "pago" || !!p.pago_em;
+          const pago = estaPago(p);
+          const ehCartao = p.tipo_pagamento === "cartao";
           return (
             <div key={p.id} className="rounded-md border p-3 space-y-3">
               <div className="flex items-center justify-between gap-3">
@@ -163,16 +174,21 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <EstadoLinha p={p} />
-                  {!pago && (
-                    <ConfirmarPortaoPagoDialog
-                      pedido_id={p.pedido_id}
-                      provisao_id={p.id}
-                      valor={Number(p.valor ?? 0)}
-                      forma={p.tipo_pagamento}
-                      numero_parcela={p.numero_parcela}
-                      variante="discreta"
-                    />
-                  )}
+                  {!pago &&
+                    (ehCartao ? (
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        Fecha pela captura (NSU)
+                      </span>
+                    ) : (
+                      <ConfirmarPortaoPagoDialog
+                        pedido_id={p.pedido_id}
+                        provisao_id={p.id}
+                        valor={Number(p.valor ?? 0)}
+                        forma={p.tipo_pagamento}
+                        numero_parcela={p.numero_parcela}
+                        variante="discreta"
+                      />
+                    ))}
                 </div>
               </div>
 
