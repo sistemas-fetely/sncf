@@ -92,6 +92,23 @@ export function AnaliseIaCard({
 
         {jaTemAnalise && (
           <div className="space-y-4">
+            {(iaJson?._validacao?.contradicoes?.length ?? 0) > 0 && (
+              <div className="rounded-md border border-destructive bg-destructive/5 p-3 space-y-2">
+                <div className="flex items-center gap-2 text-destructive font-medium text-sm">
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  Verificação automática encontrou contradição
+                </div>
+                <ul className="text-sm text-destructive list-disc list-inside space-y-1">
+                  {iaJson!._validacao!.contradicoes.map((c, i) => (
+                    <li key={i}>{c}</li>
+                  ))}
+                </ul>
+                <p className="text-xs text-destructive/80">
+                  Confiança rebaixada de {iaJson?._validacao?.confianca_original}% para {iaConfianca}%.
+                </p>
+              </div>
+            )}
+
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline" className={corConfianca}>
                 Confiança: {iaConfianca}%
