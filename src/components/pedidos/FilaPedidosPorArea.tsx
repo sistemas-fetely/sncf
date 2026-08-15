@@ -514,16 +514,16 @@ export function FilaPedidosPorArea({
       )}
 
       <div ref={tableWrapperRef} className="rounded-md border border-border overflow-hidden">
-        <Table>
+        <Table className="table-fixed">
           <TableHeader>
             <TableRow>
               <TableHead className="w-[56px]">Risco</TableHead>
-              <TableHead className="w-[280px]">Pedido</TableHead>
-              <TableHead className="w-[130px]">Valor</TableHead>
-              <TableHead className="w-[150px]">Pagamento</TableHead>
+              <TableHead className="w-[240px]">Pedido</TableHead>
+              <TableHead className="w-[150px]">Valor</TableHead>
+              <TableHead className="w-[160px]">Pagamento</TableHead>
               <TableHead className="w-[150px]">Estágio</TableHead>
-              <TableHead>Entrega</TableHead>
-              <TableHead className="w-[70px]">Na fase</TableHead>
+              <TableHead className="w-[220px]">Entrega</TableHead>
+              <TableHead className="w-[80px]">Na fase</TableHead>
               <TableHead className="w-[56px] text-right text-[11px] font-normal text-muted-foreground">Ações</TableHead>
 
             </TableRow>
@@ -563,22 +563,22 @@ export function FilaPedidosPorArea({
                     />
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
-                    <p className="text-sm font-mono font-medium text-foreground flex items-center gap-1">
-                      {p.id_externo}
+                    <p className="text-sm font-mono font-medium text-foreground flex items-center gap-1 min-w-0">
+                      <span className="truncate" title={p.id_externo}>{p.id_externo}</span>
                       {(() => {
                         const motivos = risco?.risco_motivos ?? [];
                         const critico = motivos.some((m) => m.codigo === "urgencia_critica_declarada");
                         const alto = motivos.some((m) => m.codigo === "urgencia_alta_declarada");
                         if (critico) {
                           return (
-                            <span title="Urgência crítica declarada" aria-label="Urgência crítica declarada">
+                            <span title="Urgência crítica declarada" aria-label="Urgência crítica declarada" className="shrink-0">
                               <Flame className="h-3.5 w-3.5 text-destructive" />
                             </span>
                           );
                         }
                         if (alto) {
                           return (
-                            <span title="Urgência alta declarada" aria-label="Urgência alta declarada">
+                            <span title="Urgência alta declarada" aria-label="Urgência alta declarada" className="shrink-0">
                               <Flame className="h-3.5 w-3.5 text-warning" />
                             </span>
                           );
@@ -589,17 +589,17 @@ export function FilaPedidosPorArea({
                     {p.parceiro_id ? (
                       <button
                         type="button"
-                        className="text-sm font-normal text-left hover:underline truncate block w-full"
+                        className="text-sm font-normal text-left hover:underline truncate block w-full min-w-0"
                         title={p.parceiro_razao}
                         onClick={() => navigate(`/parceiros/${p.parceiro_id}`, { state: { from: "/pedidos" } })}
                       >
                         {p.parceiro_razao}
                       </button>
                     ) : (
-                      <p className="text-sm font-normal truncate" title={p.parceiro_razao}>{p.parceiro_razao}</p>
+                      <p className="text-sm font-normal truncate block w-full min-w-0" title={p.parceiro_razao}>{p.parceiro_razao}</p>
                     )}
                     <p
-                      className="text-[11px] text-muted-foreground truncate"
+                      className="text-[11px] text-muted-foreground truncate block w-full min-w-0"
                       title={[
                         p.parceiro_id && apelidoMap?.[p.parceiro_id] ? apelidoMap[p.parceiro_id] : null,
                         p.parceiro_cnpj,

@@ -155,7 +155,7 @@ export function CelulaEntregaFila({ info }: { info: EntregaLinhaInfo | undefined
     return <p className="text-[11px] text-muted-foreground/60 italic">Transportadora não definida</p>;
   }
   return (
-    <div className="space-y-0.5">
+    <div className="space-y-0.5 min-w-0">
       <LinhaQuemEntrega info={info} />
       <LinhaDataProcedencia info={info} />
       {info.entrega_ocorrencia_texto && (
