@@ -101,6 +101,22 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
         </p>
       </div>
 
+      {cartaoAbertas.length > 0 && (
+        <div className="flex items-center justify-between gap-3 rounded-md border p-3">
+          <p className="text-xs text-muted-foreground">
+            {cartaoAbertas.length} parcela(s) de cartão em aberto · {fmtBRL.format(cartaoAbertoValor)} —
+            uma captura fecha todas de uma vez.
+          </p>
+          <ConfirmarCartaoCapturadoDialog
+            pedidoId={pedidoId}
+            parcelasAbertas={cartaoAbertas.length}
+            valorAberto={cartaoAbertoValor}
+          />
+        </div>
+      )}
+
+
+
       <div className="border rounded-md overflow-hidden">
         <Table>
           <TableHeader>
