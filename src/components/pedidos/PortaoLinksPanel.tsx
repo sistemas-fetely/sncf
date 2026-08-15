@@ -75,6 +75,12 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
   const totalPortao = linhasPortao.reduce((a, p) => a + Number(p.valor ?? 0), 0);
   const faltandoPortao = pendentesPortao.reduce((a, p) => a + Number(p.valor ?? 0), 0);
 
+  // Cartão em 3x é UMA autorização: as parcelas seguintes são repasses da operadora.
+  const cartaoAbertas = provisoes.filter(
+    (p) => p.tipo_pagamento === "cartao" && p.status !== "pago" && !p.pago_em,
+  );
+  const cartaoAbertoValor = cartaoAbertas.reduce((a, p) => a + Number(p.valor ?? 0), 0);
+
   return (
     <div className="space-y-4">
       <div>
