@@ -81,14 +81,12 @@ additional_redirect_urls = ["https://people-fetely.lovable.app/**"]
   [functions.empurrar-nf-xpm]
     verify_jwt = true
 
-
-  # TEMPORARIO - fatia 1 do teste cego Braspress. Voltar para true na fatia 2.
   [functions.braspress-cotacao]
-    verify_jwt = false
+    verify_jwt = true
 
-  # TEMPORARIO - frente Braspress. Voltar para true junto com braspress-cotacao.
   [functions.braspress-tracking]
-    verify_jwt = false
+    verify_jwt = true
+
 
   [functions.braspress-rastreio-sync]
     verify_jwt = true
