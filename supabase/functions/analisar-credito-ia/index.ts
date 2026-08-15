@@ -392,19 +392,24 @@ Gere a análise estruturada em JSON conforme instruído no system prompt.`;
   }
 });
 
-interface FatosCredito {
-  vencidos: number;
-  a_vencer: number;
-  em_aberto: number;
-  pago: number;
-  atraso_medio: number;
-  vencidos_grupo: number;
-  valor_bruto: number;
-  valor_liquido: number;
-  valor_frete: number;
-  acrescimo_ie_valor: number;
-  titulos_atrasados: number;
-  valores_payload: number[];
+interface ContextoCredito {
+  valorBruto: number;
+  valorFrete: number;
+  valorLiquido: number;
+  descontoValor: number;
+  acrescimoValor: number;
+  kpis: {
+    em_aberto: number;
+    pago: number;
+    vencidos: number;
+    a_vencer: number;
+    maior_compra: number;
+    atraso_medio_dias: number;
+  };
+  kpisGrupo: { em_aberto: number; vencidos: number };
+  titulosValores: number[];
+  temTituloAtrasado: boolean;
+  valoresExtra: number[];
 }
 
 const PERFIS_VALIDOS = [
