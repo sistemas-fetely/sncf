@@ -808,6 +808,14 @@ export default function CobrancaDetalhe() {
         subtitle="Edite a proposta de títulos antes de materializar."
       />
 
+      {/* Faixa de estado: já materializei ou não? */}
+      <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm">
+        <Info className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <span className="font-medium">
+          Ainda não materializado — o que está abaixo é uma proposta editável.
+        </span>
+      </div>
+
       <CobrancaStepper fase={titulos.some((t) => t.link_pagamento) ? 2 : 1} />
 
       {/* Resumo */}
@@ -815,111 +823,124 @@ export default function CobrancaDetalhe() {
         <CardHeader>
           <CardTitle className="text-base">Resumo do pedido</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div className="md:col-span-2">
+        <CardContent className="space-y-5 text-sm">
+          {/* ZONA 1 — DINHEIRO */}
+          <div className="flex flex-wrap items-end gap-x-8 gap-y-3 rounded-md border bg-muted/30 p-3">
+            <div>
+              <p className="text-muted-foreground text-xs">Valor total</p>
+              <p className="font-medium">{fmtBRL.format(valorPedido)}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Desconto</p>
+              <p className="font-medium">
+                {descontoRS > 0
+                  ? `${descontoPct.toFixed(descontoPct >= 10 ? 0 : 1)}% · ${fmtBRL.format(descontoRS)}`
+                  : "—"}
+              </p>
+            </div>
+            {jaPagoPedido > 0.005 && (
+              <div>
+                <p className="text-muted-foreground text-xs">
+                  {jaAdiantado > 0.005 ? "Crédito do cliente aplicado" : "Já pago"}
+                </p>
+                <p className="font-medium text-emerald-700">−{fmtBRL.format(jaPagoPedido)}</p>
+              </div>
+            )}
+            <div className="ml-auto text-right">
+              <p className="text-muted-foreground text-xs">A cobrar</p>
+              <p className="text-2xl font-semibold leading-tight">
+                {fmtBRL.format(Math.max(0, valorPedido - jaPagoPedido))}
+              </p>
+            </div>
+          </div>
+
+          {/* ZONA 2 — CONDIÇÃO */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div>
+              <p className="text-muted-foreground text-xs">Condição original</p>
+              <p className="font-medium">{proposta.condicao_original}</p>
+            </div>
+            {pedido.condicao_solicitada &&
+              pedido.condicao_solicitada !== proposta.condicao_original && (
+              <div>
+                <p className="text-muted-foreground text-xs">Condição nova</p>
+                <p className="font-medium text-amber-600">{pedido.condicao_solicitada}</p>
+              </div>
+            )}
+            <div>
+              <p className="text-muted-foreground text-xs">Tem entrada?</p>
+              <p className="font-medium">{proposta.tem_entrada ? "Sim" : "Não"}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Frete</p>
+              <p className="font-medium">{freteLabel}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Qtd de itens</p>
+              <p className="font-medium">{qtdItens}</p>
+            </div>
+          </div>
+
+          {/* ZONA 3 — CLIENTE (recolhida) */}
+          <div className="rounded-md border p-3">
             <p className="text-muted-foreground text-xs mb-1">Cliente</p>
             {pedido.parceiro?.razao_social && (
               <LinhaInfo label="Razão social" value={pedido.parceiro.razao_social} copiavel={pedido.parceiro.razao_social} />
             )}
-            {pedido.parceiro?.nome_fantasia && pedido.parceiro.nome_fantasia !== pedido.parceiro.razao_social && (
-              <LinhaInfo label="Nome fantasia" value={pedido.parceiro.nome_fantasia} copiavel={pedido.parceiro.nome_fantasia} />
-            )}
             {pedido.parceiro?.cnpj && (
               <LinhaInfo label="CNPJ" value={formatCNPJ(pedido.parceiro.cnpj)} copiavel={pedido.parceiro.cnpj} />
             )}
-            {pedido.parceiro?.cpf && (
+            {!pedido.parceiro?.cnpj && pedido.parceiro?.cpf && (
               <LinhaInfo label="CPF" value={pedido.parceiro.cpf} copiavel={pedido.parceiro.cpf} />
             )}
-            {pedido.parceiro?.email && (
-              <LinhaInfo label="E-mail" value={pedido.parceiro.email} copiavel={pedido.parceiro.email} />
-            )}
-            {pedido.parceiro?.telefone && (
-              <LinhaInfo label="Telefone" value={pedido.parceiro.telefone} copiavel={pedido.parceiro.telefone} />
-            )}
-            {pedido.parceiro?.cep && (
-              <LinhaInfo label="CEP" value={pedido.parceiro.cep} copiavel={pedido.parceiro.cep} />
-            )}
-            {(pedido.parceiro?.logradouro || pedido.parceiro?.numero) && (
-              <LinhaInfo
-                label="Logradouro"
-                value={[pedido.parceiro?.logradouro, pedido.parceiro?.numero, pedido.parceiro?.endereco_complemento].filter(Boolean).join(", ")}
-                copiavel={[pedido.parceiro?.logradouro, pedido.parceiro?.numero, pedido.parceiro?.endereco_complemento].filter(Boolean).join(", ")}
-              />
-            )}
-            {pedido.parceiro?.bairro && (
-              <LinhaInfo label="Bairro" value={pedido.parceiro.bairro} copiavel={pedido.parceiro.bairro} />
-            )}
-            {pedido.parceiro?.cidade && (
-              <LinhaInfo label="Cidade" value={pedido.parceiro.cidade} copiavel={pedido.parceiro.cidade} />
-            )}
-            {pedido.parceiro?.uf && (
-              <LinhaInfo label="UF" value={pedido.parceiro.uf} copiavel={pedido.parceiro.uf} />
-            )}
+            <Collapsible>
+              <CollapsibleTrigger className="mt-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                <ChevronDown className="h-3.5 w-3.5" />
+                Ver dados cadastrais
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-1">
+                {pedido.parceiro?.nome_fantasia && pedido.parceiro.nome_fantasia !== pedido.parceiro.razao_social && (
+                  <LinhaInfo label="Nome fantasia" value={pedido.parceiro.nome_fantasia} copiavel={pedido.parceiro.nome_fantasia} />
+                )}
+                {pedido.parceiro?.cnpj && pedido.parceiro?.cpf && (
+                  <LinhaInfo label="CPF" value={pedido.parceiro.cpf} copiavel={pedido.parceiro.cpf} />
+                )}
+                {pedido.parceiro?.email && (
+                  <LinhaInfo label="E-mail" value={pedido.parceiro.email} copiavel={pedido.parceiro.email} />
+                )}
+                {pedido.parceiro?.telefone && (
+                  <LinhaInfo label="Telefone" value={pedido.parceiro.telefone} copiavel={pedido.parceiro.telefone} />
+                )}
+                {pedido.parceiro?.cep && (
+                  <LinhaInfo label="CEP" value={pedido.parceiro.cep} copiavel={pedido.parceiro.cep} />
+                )}
+                {(pedido.parceiro?.logradouro || pedido.parceiro?.numero) && (
+                  <LinhaInfo
+                    label="Logradouro"
+                    value={[pedido.parceiro?.logradouro, pedido.parceiro?.numero, pedido.parceiro?.endereco_complemento].filter(Boolean).join(", ")}
+                    copiavel={[pedido.parceiro?.logradouro, pedido.parceiro?.numero, pedido.parceiro?.endereco_complemento].filter(Boolean).join(", ")}
+                  />
+                )}
+                {pedido.parceiro?.bairro && (
+                  <LinhaInfo label="Bairro" value={pedido.parceiro.bairro} copiavel={pedido.parceiro.bairro} />
+                )}
+                {pedido.parceiro?.cidade && (
+                  <LinhaInfo label="Cidade" value={pedido.parceiro.cidade} copiavel={pedido.parceiro.cidade} />
+                )}
+                {pedido.parceiro?.uf && (
+                  <LinhaInfo label="UF" value={pedido.parceiro.uf} copiavel={pedido.parceiro.uf} />
+                )}
+              </CollapsibleContent>
+            </Collapsible>
           </div>
-          <div>
-            <p className="text-muted-foreground text-xs">Valor bruto</p>
-            <p className="font-medium">{fmtBRL.format(valorBrutoCalc)}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground text-xs">Desconto</p>
-            <p className="font-medium">
-              {descontoRS > 0
-                ? `${descontoPct.toFixed(descontoPct >= 10 ? 0 : 1)}% · ${fmtBRL.format(descontoRS)}`
-                : "—"}
-            </p>
-          </div>
-          <div>
-            <p className="text-muted-foreground text-xs">Valor total</p>
-            <p className="font-medium">{fmtBRL.format(valorPedido)}</p>
-          </div>
-          {jaPagoPedido > 0.005 && (
-            <div>
-              <p className="text-muted-foreground text-xs">
-                {jaAdiantado > 0.005 ? "Crédito do cliente aplicado" : "Já pago"}
-              </p>
-              <p className="font-medium text-emerald-700">
-                −{fmtBRL.format(jaPagoPedido)}
-              </p>
-            </div>
-          )}
-          {jaPagoPedido > 0.005 && (
-            <div>
-              <p className="text-muted-foreground text-xs">A cobrar</p>
-              <p className="font-medium">
-                {fmtBRL.format(Math.max(0, valorPedido - jaPagoPedido))}
-              </p>
-            </div>
-          )}
-          <div>
-            <p className="text-muted-foreground text-xs">Frete</p>
-            <p className="font-medium">{freteLabel}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground text-xs">Qtd de itens</p>
-            <p className="font-medium">{qtdItens}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground text-xs">Condição original</p>
 
-            <p className="font-medium">{proposta.condicao_original}</p>
-          </div>
-          {pedido.condicao_solicitada &&
-            pedido.condicao_solicitada !== proposta.condicao_original && (
-            <div>
-              <p className="text-muted-foreground text-xs">Condição nova</p>
-              <p className="font-medium text-amber-600">{pedido.condicao_solicitada}</p>
-            </div>
-          )}
           <div>
-            <p className="text-muted-foreground text-xs">Tem entrada?</p>
-            <p className="font-medium">{proposta.tem_entrada ? "Sim" : "Não"}</p>
-          </div>
-          <div className="md:col-span-4">
             <p className="text-muted-foreground text-xs">Obs crédito</p>
             <p className="font-medium text-xs whitespace-pre-wrap text-foreground/80">{obsCredito}</p>
           </div>
         </CardContent>
       </Card>
+
 
       {/* Portão — primeiro pagamento à vista: regra derivada da view, nunca toggle. */}
       {exigePortao && (
