@@ -77,10 +77,9 @@ function LinhaQuemEntrega({ info }: { info: EntregaLinhaInfo }) {
   const sufixo = prevista ? " (prevista)" : "";
 
   if (origem === "cliente_retira_ou_propria") {
-    const texto = "Cliente retira" + sufixo;
     return (
-      <p className="text-[11px] text-foreground truncate" title={texto}>
-        {texto}
+      <p className="text-[11px] text-foreground truncate" title="Cliente retira">
+        Cliente retira
       </p>
     );
   }
@@ -100,10 +99,9 @@ function LinhaQuemEntrega({ info }: { info: EntregaLinhaInfo }) {
       </p>
     );
   }
-  const texto = "Transportadora não definida" + sufixo;
   return (
-    <p className={cn("text-[11px] italic truncate", prevista ? "text-muted-foreground" : "text-muted-foreground/60")} title={texto}>
-      {texto}
+    <p className="text-[11px] italic text-muted-foreground/60 truncate" title="Transportadora não definida">
+      Transportadora não definida
     </p>
   );
 }
