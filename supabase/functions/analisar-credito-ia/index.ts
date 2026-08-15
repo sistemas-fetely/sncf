@@ -546,7 +546,9 @@ function validarSaidaIA(
 
   // A4 — campos estruturais fora do contrato
   const perfil = analiseIA?.sugestao?.perfil_aplicado;
-  if (!PERFIS_VALIDOS.includes(perfil)) {
+  if (perfil === "bandeira_vermelha") {
+    alertas.push("perfil_aplicado = bandeira_vermelha não é permitido para a IA.");
+  } else if (!PERFIS_VALIDOS.includes(perfil)) {
     alertas.push(`perfil_aplicado inválido: "${perfil}".`);
   }
   if (!DECISOES_VALIDAS.includes(analiseIA?.decisao_sugerida)) {
