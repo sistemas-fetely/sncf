@@ -472,7 +472,7 @@ function normalizarPontos(bruto: unknown): PontoAtencaoNorm[] {
 function validarSaidaIA(
   analiseIA: any,
   contexto: ContextoCredito
-): { alertas: string[]; cifras_sem_lastro: number[] } {
+): { alertas: string[]; cifras_sem_lastro: number[]; pontos_sem_tipo: number } {
   const alertas: string[] = [];
   const cifras_sem_lastro: number[] = [];
 
@@ -486,15 +486,38 @@ function validarSaidaIA(
   ].filter((p: any) => typeof p === "string" && p.length > 0);
   const textoIA = partes.join(" \n ");
 
-  // A1 — afirma dívida vencida sem lastro
-  if (
-    contexto.kpis.vencidos <= 0 &&
-    contexto.temTituloAtrasado === false &&
-    /vencid|inadimpl[êe]nc|em atraso|d[ée]bito em aberto|calote|n[ãa]o honrou/i.test(textoIA)
-  ) {
-    alertas.push(
-      "A IA afirma dívida vencida, mas o cliente tem R$ 0 vencidos e nenhum título atrasado."
-    );
+  // A1 — checagem TIPADA (primária): pontos marcados como dívida interna vencida.
+  const semVencido = contexto.kpis.vencidos <= 0 && contexto.temTituloAtrasado === false;
+  for (const p of pontos) {
+    if (p.tipo !== "divida_interna_vencida") continue;
+    if (semVencido) {
+      alertas.push(
+        `Ponto marcado como dívida interna vencida, mas o cliente tem R$ 0 vencidos e nenhum título atrasado: "${p.texto}"`
+      );
+    }
+    if (typeof p.valor === "number" && Math.abs(p.valor - contexto.kpis.vencidos) > 0.01) {
+      let msg = `Valor apontado como dívida interna vencida (R$ ${fmtBr(p.valor)}) não corresponde ao vencido real (R$ ${fmtBr(contexto.kpis.vencidos)}).`;
+      if (contexto.kpis.pago > 0 && Math.abs(p.valor - contexto.kpis.pago) <= 0.01) {
+        msg += ` — esse valor é o total JÁ PAGO pelo cliente.`;
+      }
+      alertas.push(msg);
+    }
+  }
+
+  // A1b — rede de segurança por texto: só quando o modelo ignorou o contrato de tipos.
+  if (pontos.length > 0 && pontos.every((p) => !p.tipo) && semVencido) {
+    const RE_ACUSA =
+      /(possui|possuem|tem|têm|há|existe|existem|registra|apresenta|acumula)[^.]{0,60}(vencid|inadimpl|d[ée]bito|calote)/i;
+    const RE_NEGA = /(sem |nenhum|não |nao |zero|inexist|quitad|nada |livre|limpo|a vencer)/i;
+    const RE_EXTERNO = /(serasa|bureau|bvg|score|protesto|pefin|refin|consulta externa)/i;
+    const acusa = textoIA
+      .split(/[.;!?\n]/)
+      .some((f) => RE_ACUSA.test(f) && !RE_NEGA.test(f) && !RE_EXTERNO.test(f));
+    if (acusa) {
+      alertas.push(
+        "A IA afirma dívida vencida no texto, mas o cliente tem R$ 0 vencidos e nenhum título atrasado."
+      );
+    }
   }
 
   // A2 — trata como cliente novo apesar de histórico pago
@@ -523,7 +546,9 @@ function validarSaidaIA(
 
   // A4 — campos estruturais fora do contrato
   const perfil = analiseIA?.sugestao?.perfil_aplicado;
-  if (!PERFIS_VALIDOS.includes(perfil)) {
+  if (perfil === "bandeira_vermelha") {
+    alertas.push("perfil_aplicado = bandeira_vermelha não é permitido para a IA.");
+  } else if (!PERFIS_VALIDOS.includes(perfil)) {
     alertas.push(`perfil_aplicado inválido: "${perfil}".`);
   }
   if (!DECISOES_VALIDAS.includes(analiseIA?.decisao_sugerida)) {
@@ -555,14 +580,26 @@ function validarSaidaIA(
     ...(Number.isFinite(limite) ? [limite] : []),
   ].filter((v) => Number.isFinite(v));
 
+  const somaDeParesBate = (v: number): boolean => {
+    for (let i = 0; i < conhecidos.length; i++) {
+      for (let j = i + 1; j < conhecidos.length; j++) {
+        if (Math.abs(conhecidos[i] + conhecidos[j] - v) <= 0.01) return true;
+      }
+    }
+    return false;
+  };
+
   for (const v of extrairMoedas(textoIA.toLowerCase())) {
     if (v === 0) continue;
     if (conhecidos.some((c) => Math.abs(c - v) <= 0.01)) continue;
+    if (somaDeParesBate(v)) continue;
     if (cifras_sem_lastro.some((o) => Math.abs(o - v) <= 0.01)) continue;
     cifras_sem_lastro.push(v);
   }
 
-  return { alertas, cifras_sem_lastro };
+  const pontos_sem_tipo = pontos.filter((p) => !p.tipo).length;
+
+  return { alertas, cifras_sem_lastro, pontos_sem_tipo };
 }
 
 async function processarRespostaIA(
@@ -595,7 +632,7 @@ async function processarRespostaIA(
 
   // Validação determinística — SISTEMA SUGERE / HUMANO DECIDE: nunca reescreve o texto, só carimba.
   const confiancaOriginal = Number(analiseIA?.confianca ?? 0) || 0;
-  const { alertas, cifras_sem_lastro } = validarSaidaIA(analiseIA, contexto);
+  const { alertas, cifras_sem_lastro, pontos_sem_tipo } = validarSaidaIA(analiseIA, contexto);
 
   let confiancaAjustada = confiancaOriginal;
   if (alertas.length > 0) {
@@ -609,6 +646,11 @@ async function processarRespostaIA(
       cifras_sem_lastro
     );
     confiancaAjustada = Math.min(confiancaOriginal, 70);
+  } else if (pontos_sem_tipo > 0) {
+    console.warn(
+      `[validacao-ia] analise ${analise_id}: ${pontos_sem_tipo} ponto(s) de atenção sem tipo.`
+    );
+    confiancaAjustada = Math.min(confiancaOriginal, 70);
   }
   analiseIA.confianca = confiancaAjustada;
 
@@ -618,6 +660,7 @@ async function processarRespostaIA(
     _validacao: {
       alertas,
       cifras_sem_lastro,
+      pontos_sem_tipo,
       confianca_original: confiancaOriginal,
       confianca_ajustada: confiancaAjustada,
     },
