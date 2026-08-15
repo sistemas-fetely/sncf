@@ -19,7 +19,8 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowLeft, Loader2, RefreshCcw, AlertTriangle, Copy, Check, Mail, Plus, Trash2, Lock } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ArrowLeft, Loader2, RefreshCcw, AlertTriangle, Copy, Check, Mail, Plus, Trash2, Lock, Info, ChevronDown } from "lucide-react";
 
 import { usePropostaCobranca } from "@/hooks/credito/usePropostaCobranca";
 import { useMaterializarCobranca } from "@/hooks/credito/useMaterializarCobranca";
