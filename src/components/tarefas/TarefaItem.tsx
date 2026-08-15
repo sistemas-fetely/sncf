@@ -70,7 +70,19 @@ export function TarefaItem({ tarefa, atrasada = false }: Props) {
       <TarefaDetalhePainel tarefaId={tarefa.id} aberto={painelAberto} onOpenChange={setPainelAberto} />
 
 
-      <div className="min-w-0 flex-1">
+      {/* só o corpo abre o painel — checkbox e menu seguem independentes */}
+      <div
+        className="min-w-0 flex-1 cursor-pointer"
+        role="button"
+        tabIndex={0}
+        onClick={() => setPainelAberto(true)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setPainelAberto(true);
+          }
+        }}
+      >
         <div className="flex flex-wrap items-center gap-2">
           <span className={cn("text-sm font-medium", concluida && "line-through text-muted-foreground")}>
             {tarefa.titulo}
