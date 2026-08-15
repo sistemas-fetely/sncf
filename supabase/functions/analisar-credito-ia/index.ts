@@ -630,7 +630,7 @@ async function processarRespostaIA(
     .update({
       analise_ia_json: iaJson,
       analise_ia_resumo: analiseIA.resumo,
-      analise_ia_confianca: analiseIA.confianca,
+      analise_ia_confianca: confiancaAjustada,
       analise_ia_processada_em: new Date().toISOString(),
     })
     .eq("id", analise_id);
