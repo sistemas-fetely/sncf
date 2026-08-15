@@ -156,9 +156,10 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
       </div>
 
       {provisoes
-        .filter((p) => p.eh_portao || p.tipo_pagamento === "pix")
+        .filter((p) => p.eh_portao || p.tipo_pagamento === "pix" || podeConfirmarSozinha(p))
         .map((p) => {
-          const pago = p.status === "pago" || !!p.pago_em;
+          const pago = estaPago(p);
+          const ehCartao = p.tipo_pagamento === "cartao";
           return (
             <div key={p.id} className="rounded-md border p-3 space-y-3">
               <div className="flex items-center justify-between gap-3">
@@ -173,16 +174,21 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <EstadoLinha p={p} />
-                  {!pago && (
-                    <ConfirmarPortaoPagoDialog
-                      pedido_id={p.pedido_id}
-                      provisao_id={p.id}
-                      valor={Number(p.valor ?? 0)}
-                      forma={p.tipo_pagamento}
-                      numero_parcela={p.numero_parcela}
-                      variante="discreta"
-                    />
-                  )}
+                  {!pago &&
+                    (ehCartao ? (
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        Fecha pela captura (NSU)
+                      </span>
+                    ) : (
+                      <ConfirmarPortaoPagoDialog
+                        pedido_id={p.pedido_id}
+                        provisao_id={p.id}
+                        valor={Number(p.valor ?? 0)}
+                        forma={p.tipo_pagamento}
+                        numero_parcela={p.numero_parcela}
+                        variante="discreta"
+                      />
+                    ))}
                 </div>
               </div>
 
