@@ -20,6 +20,11 @@ Deno.serve(async (req) => {
   try {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const historico = body?.historico === true;
+    // TETO-POR-EXECUCAO: sem isto, `historico` tenta as 100+ fotos de uma vez,
+    // estoura o tempo e MORRE ANTES DE LOGAR — o job trabalhava em silencio ha
+    // 5 dias. Com teto, cada execucao termina, loga, e o atraso drena em noites.
+    const maxFotos: number = Number(body?.max_fotos ?? 8);
+
 
     const { data: cfgRow, error: eCfg } = await sb
       .from("integracoes_config").select("config").eq("sistema", "zenlog_prd").single();
@@ -61,20 +66,35 @@ Deno.serve(async (req) => {
       .reverse();
     if (todos.length === 0) throw new Error("nenhum horario de posicao retornado");
 
+    // Le a lista de FOTOS (1 linha por foto), nao as 41k+ linhas de posicao:
+    // o cliente trunca em 1000 e o sync reimportava foto que ja tinha.
     const { data: jaTem, error: eJa } = await sb
-      .from("xpm_estoque_posicao")
-      .select("data_hora_posicao")
+      .from("vw_xpm_estoque_fotos")
+      .select("data_hora_posicao, parcial")
       .order("data_hora_posicao", { ascending: false });
     if (eJa) throw new Error(`ler posicoes existentes: ${eJa.message}`);
+
+    const chave = (v: string) => new Date(v).toISOString().slice(0, 19);
     const existentes = new Set(
-      (jaTem ?? []).map((r: Record<string, any>) =>
-        new Date(r.data_hora_posicao).toISOString().slice(0, 19),
-      ),
+      (jaTem ?? []).map((r: Record<string, any>) => chave(r.data_hora_posicao)),
+    );
+    // Foto parcial e reimportada: a XPM as vezes devolve o retrato incompleto
+    // (12/08 veio com 37 de 633 SKUs) e o saldo fica furado ate ela ser refeita.
+    const parciais = new Set(
+      (jaTem ?? []).filter((r: Record<string, any>) => r.parcial === true)
+        .map((r: Record<string, any>) => chave(r.data_hora_posicao)),
     );
 
+    // PRESENTE ANTES DO PASSADO: a foto mais recente entra sempre em primeiro
+    // lugar. Antes, presente e historico dividiam a mesma fila e o backfill de
+    // junho atrasava o saldo de ontem — que e o que trava pedido na tela.
+    const pendentes = todos.filter(
+      (h) => !existentes.has(chave(h)) || parciais.has(chave(h)),
+    );
     const alvo = historico
-      ? todos.filter((h) => !existentes.has(new Date(h).toISOString().slice(0, 19)))
+      ? [todos[0], ...pendentes.filter((h) => h !== todos[0])].slice(0, maxFotos)
       : [todos[0]];
+
 
     for (const horario of alvo) {
       let skip = 0;
@@ -139,7 +159,15 @@ Deno.serve(async (req) => {
       status: "sucesso",
       registros_atualizados: linhas,
       duracao_ms: Date.now() - t0,
-      detalhes: { historico, posicoes_processadas: posicoes, posicoes_disponiveis: todos.length },
+      detalhes: {
+        historico,
+        posicoes_processadas: posicoes,
+        posicoes_disponiveis: todos.length,
+        foto_mais_recente: todos[0] ?? null,
+        pendentes_restantes: Math.max(pendentes.length - posicoes, 0),
+        teto_por_execucao: maxFotos,
+      },
+
     });
 
     return new Response(JSON.stringify({ ok: true, posicoes, linhas }), {
