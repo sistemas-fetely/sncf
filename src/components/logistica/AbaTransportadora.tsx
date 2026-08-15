@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { nomeExibicao } from "@/lib/parceiros/nome";
+import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Building2, Upload, Truck } from "lucide-react";
+import { Building2, Truck, Cloud, CloudAlert, CloudOff, Loader2 } from "lucide-react";
 import { FretesEntregas } from "./FretesEntregas";
 import { FretesEntregasB2C } from "./FretesEntregasB2C";
 import { FaturasConciliacao } from "./FaturasConciliacao";
@@ -10,9 +11,9 @@ import { TabelaPreco } from "./TabelaPreco";
 import { GestaoTabelasPreco } from "./GestaoTabelasPreco";
 import { ConteudoTabelaPreco } from "./ConteudoTabelaPreco";
 import { ImportarRastreioDialog } from "./ImportarRastreioDialog";
-import { ImportarBraspressDialog } from "./ImportarBraspressDialog";
 import { OcorrenciasDepara } from "./OcorrenciasDepara";
 import { PainelLogistica } from "./PainelLogistica";
+import { useUltimaSincronizacao } from "@/hooks/logistica/useUltimaSincronizacao";
 import type { TransportadoraLogistica } from "@/hooks/logistica/useTransportadorasLogistica";
 
 function fmtCnpj(cnpj: string | null): string {
@@ -22,15 +23,83 @@ function fmtCnpj(cnpj: string | null): string {
   return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
 }
 
+function formatarDataHora(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(d);
+}
+
+function horasDesde(iso: string | null): number | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return (Date.now() - d.getTime()) / (1000 * 60 * 60);
+}
+
+function IndicadorSincronizacao({ transportadoraId }: { transportadoraId: string }) {
+  const { data, isLoading } = useUltimaSincronizacao(transportadoraId);
+  const h = horasDesde(data?.atualizado_em ?? null);
+  const atrasado = h !== null && h > 6;
+  const semRegistro = !isLoading && !data?.atualizado_em;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 rounded-md px-3 py-2 bg-muted/30 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span>Carregando sincronização…</span>
+      </div>
+    );
+  }
+
+  if (semRegistro) {
+    return (
+      <div className="flex items-center gap-2 rounded-md px-3 py-2 bg-warning/10 text-sm text-warning">
+        <CloudOff className="h-4 w-4" />
+        <div className="leading-tight">
+          <div className="font-medium">Sem sincronização registrada</div>
+          <div className="text-xs opacity-90">atualiza automaticamente a cada 2 horas</div>
+        </div>
+      </div>
+    );
+  }
+
+  const linhaPrincipal = atrasado
+    ? `Sincronização atrasada · última leitura ${formatarDataHora(data.atualizado_em)}`
+    : `Sincronizado pela API · última leitura ${formatarDataHora(data.atualizado_em)}`;
+
+  const origemApi = data?.origem_dado === "api";
+
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-2 rounded-md px-3 py-2 text-sm",
+        atrasado ? "bg-warning/10 text-warning" : "bg-muted/30 text-success"
+      )}
+    >
+      {atrasado ? <CloudAlert className="h-4 w-4" /> : <Cloud className="h-4 w-4" />}
+      <div className="leading-tight">
+        <div className="font-medium">{linhaPrincipal}</div>
+        <div className="text-xs opacity-90">
+          {origemApi ? "sincronizado pela API · " : ""}atualiza automaticamente a cada 2 horas
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function AbaTransportadora({ transportadora }: { transportadora: TransportadoraLogistica }) {
   const nome = nomeExibicao(transportadora.razao_social, transportadora.nome_fantasia);
-  const nomeUpper = (transportadora.razao_social || "").toUpperCase() + " " + (transportadora.nome_fantasia || "").toUpperCase();
+  const nomeUpper =
+    (transportadora.razao_social || "").toUpperCase() + " " + (transportadora.nome_fantasia || "").toUpperCase();
   const ehBraspress = nomeUpper.includes("BRASPRESS");
   const ehCorreios = nomeUpper.includes("CORREIOS") || nomeUpper.includes("EMPRESA BRASILEIRA DE CORREIOS");
   const ehFrenet = nomeUpper.includes("FRENET");
   const carrierB2C: "Correios" | "Frenet" | null = ehCorreios ? "Correios" : ehFrenet ? "Frenet" : null;
   const [abrirRastreio, setAbrirRastreio] = useState(false);
-  const [abrirBraspress, setAbrirBraspress] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -48,9 +117,7 @@ export function AbaTransportadora({ transportadora }: { transportadora: Transpor
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {ehBraspress ? (
-            <Button onClick={() => setAbrirBraspress(true)} className="gap-2">
-              <Upload className="h-4 w-4" /> Importar encomendas (frete + rastreio)
-            </Button>
+            <IndicadorSincronizacao transportadoraId={transportadora.id} />
           ) : (
             <Button variant="outline" onClick={() => setAbrirRastreio(true)} className="gap-2">
               <Truck className="h-4 w-4" /> Importar rastreio (NF)
@@ -102,14 +169,6 @@ export function AbaTransportadora({ transportadora }: { transportadora: Transpor
         <ImportarRastreioDialog
           open={abrirRastreio}
           onOpenChange={setAbrirRastreio}
-          transportadoraId={transportadora.id}
-          transportadoraNome={nome}
-        />
-      )}
-      {abrirBraspress && (
-        <ImportarBraspressDialog
-          open={abrirBraspress}
-          onOpenChange={setAbrirBraspress}
           transportadoraId={transportadora.id}
           transportadoraNome={nome}
         />
