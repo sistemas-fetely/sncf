@@ -1039,6 +1039,12 @@ export default function ExtratoImportacao() {
           `${PARSER_ROTULO.safrapay_ajustes} — ${file.name}: ${linhasLidas} ajuste(s) · ${enriquecidas} enriquecidos` +
             (semPar > 0 ? ` · ${semPar} sem par no extrato` : "")
         );
+      } else if (fonte === "mp_settlement") {
+        toast.success(
+          `${PARSER_ROTULO.mp_settlement} — ${file.name}: ${linhasLidas} transação(ões) lidas · ${enriquecidas} enriquecidas` +
+            (semPar > 0 ? ` · ${semPar} sem par no extrato` : "") +
+            " — o Settlement não cria movimentação."
+        );
       } else {
 
         toast.success(
