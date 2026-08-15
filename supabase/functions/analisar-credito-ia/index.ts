@@ -580,14 +580,26 @@ function validarSaidaIA(
     ...(Number.isFinite(limite) ? [limite] : []),
   ].filter((v) => Number.isFinite(v));
 
+  const somaDeParesBate = (v: number): boolean => {
+    for (let i = 0; i < conhecidos.length; i++) {
+      for (let j = i + 1; j < conhecidos.length; j++) {
+        if (Math.abs(conhecidos[i] + conhecidos[j] - v) <= 0.01) return true;
+      }
+    }
+    return false;
+  };
+
   for (const v of extrairMoedas(textoIA.toLowerCase())) {
     if (v === 0) continue;
     if (conhecidos.some((c) => Math.abs(c - v) <= 0.01)) continue;
+    if (somaDeParesBate(v)) continue;
     if (cifras_sem_lastro.some((o) => Math.abs(o - v) <= 0.01)) continue;
     cifras_sem_lastro.push(v);
   }
 
-  return { alertas, cifras_sem_lastro };
+  const pontos_sem_tipo = pontos.filter((p) => !p.tipo).length;
+
+  return { alertas, cifras_sem_lastro, pontos_sem_tipo };
 }
 
 async function processarRespostaIA(
