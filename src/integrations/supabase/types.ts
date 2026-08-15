@@ -50985,14 +50985,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -57219,6 +57219,7 @@ export type Database = {
       }
     }
     Functions: {
+      __tmp_apply_install_sql: { Args: { p_sql: string }; Returns: undefined }
       _meio_pagamento_nascida_paga: { Args: never; Returns: string }
       abater_conta_corrente: {
         Args: { p_mov_id: string; p_user_id?: string }
