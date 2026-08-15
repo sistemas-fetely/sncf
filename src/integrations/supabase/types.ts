@@ -460,6 +460,7 @@ export type Database = {
           parceiro_id: string
           pedido_id: string
           portao_id: string | null
+          provisao_id: string | null
           recebido_em: string | null
           safrapay_nsu: string | null
           saldo: number
@@ -482,6 +483,7 @@ export type Database = {
           parceiro_id: string
           pedido_id: string
           portao_id?: string | null
+          provisao_id?: string | null
           recebido_em?: string | null
           safrapay_nsu?: string | null
           saldo: number
@@ -504,6 +506,7 @@ export type Database = {
           parceiro_id?: string
           pedido_id?: string
           portao_id?: string | null
+          provisao_id?: string | null
           recebido_em?: string | null
           safrapay_nsu?: string | null
           saldo?: number
@@ -938,6 +941,34 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_oportunidades_comercial"
             referencedColumns: ["portao_id"]
+          },
+          {
+            foreignKeyName: "adiantamento_cliente_provisao_id_fkey"
+            columns: ["provisao_id"]
+            isOneToOne: false
+            referencedRelation: "provisao_recebimento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "adiantamento_cliente_provisao_id_fkey"
+            columns: ["provisao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pix_candidato_conciliacao"
+            referencedColumns: ["provisao_id"]
+          },
+          {
+            foreignKeyName: "adiantamento_cliente_provisao_id_fkey"
+            columns: ["provisao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_provisao_caixa"
+            referencedColumns: ["provisao_id"]
+          },
+          {
+            foreignKeyName: "adiantamento_cliente_provisao_id_fkey"
+            columns: ["provisao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_provisao_descoberta"
+            referencedColumns: ["id"]
           },
         ]
       }
