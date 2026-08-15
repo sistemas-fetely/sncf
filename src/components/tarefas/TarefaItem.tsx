@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils";
 import type { Tarefa, TarefaPrioridade } from "@/hooks/tarefas/useTarefas";
 import { useAlterarStatusTarefa, useReagendarTarefa } from "@/hooks/tarefas/useTarefaMutations";
 import { useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
+import { TarefaDetalhePainel } from "@/components/tarefas/detalhe/TarefaDetalhePainel";
+
 
 const PRIORIDADE_CLASSE: Record<TarefaPrioridade, string> = {
   urgente: "border-destructive/40 bg-destructive/10 text-destructive",
