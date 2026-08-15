@@ -1069,7 +1069,7 @@ export default function CobrancaDetalhe() {
                 {" "}· este pedido exige portão
                 {totalPortao <= 0.005
                   ? " — marque ao menos uma linha como portão"
-                  : ` (cobertura de ${pctPortao.toFixed(0)}% do plano; o mínimo é validado no banco ao confirmar)`}
+                  : ` (cobertura de ${pctPortao.toFixed(0)}% do plano; mínimo exigido ${portaoMinimoPct.toFixed(0)}%)`}
               </>
             )}
             {jaPagoPedido > 0.005 && (
