@@ -67,16 +67,22 @@ function calcularDelta(campos: CamposDecisao, ia: SugestaoIA | null) {
   return Object.keys(delta).length > 0 ? delta : null;
 }
 
-export function AprovarDialog({ analise_id, campos, sugestaoIA, comRessalva = false }: Props) {
+export function AprovarDialog({ analise_id, pedido_id, campos, sugestaoIA, comRessalva = false }: Props) {
   const [open, setOpen] = useState(false);
   const [motivo, setMotivo] = useState(campos.ressalva);
+  const [portao, setPortao] = useState<PortaoEscolha>("regra");
+  const [motivoPortao, setMotivoPortao] = useState("");
   const navigate = useNavigate();
   const transicionar = useTransicionarAnalise();
+  const definirPortao = useDefinirPortaoAnalise();
+  const { toast } = useToast();
 
   const ressalvaValida = !comRessalva || motivo.trim().length >= 10;
+  const portaoValor = PORTAO_VALOR[portao];
+  const motivoPortaoValido = portaoValor === null || motivoPortao.trim().length >= 10;
 
   const handleConfirm = async () => {
-    if (!ressalvaValida) return;
+    if (!ressalvaValida || !motivoPortaoValido) return;
     const delta = calcularDelta(campos, sugestaoIA);
     await transicionar.mutateAsync({
       analise_id,
@@ -91,9 +97,27 @@ export function AprovarDialog({ analise_id, campos, sugestaoIA, comRessalva = fa
       validade_ate: campos.validade_ate || undefined,
       delta_ia: delta,
     });
+
+    if (portaoValor !== null) {
+      try {
+        await definirPortao.mutateAsync({
+          pedido_id,
+          valor: portaoValor,
+          motivo: motivoPortao.trim(),
+        });
+      } catch {
+        toast({
+          title: "Análise aprovada, mas a regra de liberação não foi salva. Tente de novo pelo pedido.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setOpen(false);
     navigate("/credito");
   };
+
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
