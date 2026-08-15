@@ -164,6 +164,8 @@ export function AnaliseIaCard({
             <p className="text-xs text-muted-foreground">
               Processado em {new Date(iaProcessadaEm!).toLocaleString("pt-BR")}
               {iaJson?._modelo && ` · Modelo: ${iaJson._modelo}`}
+              {iaJson?._fallback &&
+                ` · fallback: ${iaJson._fallback.primario} falhou (${iaJson._fallback.status})`}
             </p>
           </div>
         )}
