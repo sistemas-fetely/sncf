@@ -3,7 +3,7 @@ import { nomeExibicao } from "@/lib/parceiros/nome";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Building2, Truck, Cloud, CloudAlert, CloudOff, Loader2 } from "lucide-react";
+import { Building2, Truck, Cloud, AlertTriangle, CloudOff, Loader2 } from "lucide-react";
 import { FretesEntregas } from "./FretesEntregas";
 import { FretesEntregasB2C } from "./FretesEntregasB2C";
 import { FaturasConciliacao } from "./FaturasConciliacao";
