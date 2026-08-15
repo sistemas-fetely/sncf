@@ -971,12 +971,18 @@ export default function ExtratoImportacao() {
         .eq("id", impId);
 
       if (fonte === "retorno_safra") {
-        toast.success(
-          `${PARSER_ROTULO.retorno_safra} — ${file.name}: arquivo ${linhasLidas} registro(s) lidos · ${novas} ocorrência(s) gravadas` +
-            (semPar > 0 ? ` · ${semPar} órfã(s) sem título` : "") +
-            (duplicadas > 0 ? " · arquivo já conhecido, atualizado" : "") +
-            " — nenhuma baixa de título e nenhuma movimentação criada."
-        );
+        const msgRetorno =
+          `${PARSER_ROTULO.retorno_safra} — ${file.name}: sequencial ${respRetorno?.nro_sequencial} · ` +
+          `${respRetorno?.ocorrencias_gravadas} ocorrência(s) registradas · ` +
+          `${respRetorno?.confirmados} confirmado(s) · ${respRetorno?.liquidados} liquidado(s) · ` +
+          `${respRetorno?.rejeitados} rejeitado(s)` +
+          (respRetorno?.ja_processado ? " — arquivo já processado, nada foi reaplicado" : "");
+        const qtdErros = Array.isArray(respRetorno?.erros) ? respRetorno.erros.length : 0;
+        if (qtdErros > 0) {
+          toast.error(`${msgRetorno} · ${qtdErros} erro(s) na resolução de títulos`);
+        } else {
+          toast.success(msgRetorno);
+        }
       } else if (fonte === "safra_instrucoes_2via") {
         toast.success(
           `${PARSER_ROTULO.safra_instrucoes_2via} — ${file.name}: ${novas} boleto(s) na conferência da carteira — nenhuma movimentação ou baixa gerada.`
