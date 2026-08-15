@@ -621,7 +621,7 @@ export function FilaPedidosPorArea({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <CelulaPagamento p={p} prova={provaMap?.get(p.id)} liberacao={liberacaoMap?.get(p.id)} />
+                    <CelulaPagamento p={p} liberacao={liberacaoMap?.get(p.id)} />
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap items-center gap-1.5">
