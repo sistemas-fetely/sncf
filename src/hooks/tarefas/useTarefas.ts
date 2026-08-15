@@ -28,8 +28,8 @@ export interface Tarefa {
 export const STATUS_ABERTOS: TarefaStatus[] = ["pendente", "em_andamento", "em_revisao"];
 
 const CAMPOS =
-  "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id," +
-  "data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,acao_url,ordem,criado_em";
+  "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id,data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,acao_url,ordem,criado_em" as const;
+
 
 function hojeISO(): string {
   const d = new Date();
