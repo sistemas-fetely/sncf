@@ -282,15 +282,18 @@ export function AnaliseDetalheDecisao({ analiseId }: Props) {
             <ReprovarDialog analise_id={analise.id} campos={campos} />
             <AprovarDialog
               analise_id={analise.id}
+              pedido_id={analise.pedido_id}
               campos={campos}
               sugestaoIA={sugestaoIA}
               comRessalva
             />
             <AprovarDialog
               analise_id={analise.id}
+              pedido_id={analise.pedido_id}
               campos={campos}
               sugestaoIA={sugestaoIA}
             />
+
           </div>
         </div>
       </div>
