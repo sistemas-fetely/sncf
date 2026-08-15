@@ -96,6 +96,8 @@ const TarefasHoje = lazy(() => import("@/pages/tarefas/TarefasHoje"));
 const MinhasTarefasNovo = lazy(() => import("@/pages/tarefas/MinhasTarefasNovo"));
 const ProjetosGrid = lazy(() => import("@/pages/tarefas/ProjetosGrid"));
 const ProjetoDetalhe = lazy(() => import("@/pages/tarefas/ProjetoDetalhe"));
+const CalendarioTarefas = lazy(() => import("@/pages/tarefas/CalendarioTarefas"));
+const CargaTrabalho = lazy(() => import("@/pages/tarefas/CargaTrabalho"));
 
 const Processos = lazy(() => import("@/pages/Processos"));
 const ProcessoDetalhe = lazy(() => import("@/pages/ProcessoDetalhe"));
@@ -405,6 +407,8 @@ const App = () => (
                 <Route path="/tarefas/minhas" element={<MinhasTarefasNovo />} />
                 <Route path="/tarefas/projetos" element={<ProjetosGrid />} />
                 <Route path="/tarefas/projetos/:id" element={<ProjetoDetalhe />} />
+                <Route path="/tarefas/calendario" element={<CalendarioTarefas />} />
+                <Route path="/tarefas/carga" element={<CargaTrabalho />} />
               </Route>
 
               <Route path="/fala-fetely" element={<FalaFetely />} />

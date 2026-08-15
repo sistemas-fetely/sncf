@@ -30,12 +30,12 @@ const itensAtivos: ItemTarefas[] = [
   { title: "Hoje", url: "/tarefas/hoje", icon: Sun },
   { title: "Minhas Tarefas", url: "/tarefas/minhas", icon: ListChecks },
   { title: "Projetos", url: "/tarefas/projetos", icon: LayoutGrid },
+  { title: "Calendário", url: "/tarefas/calendario", icon: CalendarDays },
+  { title: "Carga", url: "/tarefas/carga", icon: Gauge },
 ];
 
 const itensEmBreve: ItemTarefas[] = [
   { title: "Meu Time", icon: UsersRound },
-  { title: "Calendário", icon: CalendarDays },
-  { title: "Carga", icon: Gauge },
   { title: "Recorrências", icon: Repeat },
   { title: "Templates", icon: CheckCheck },
 ];

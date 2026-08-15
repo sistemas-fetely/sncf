@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth,
-  parseISO, startOfMonth, startOfWeek,
+startOfMonth, startOfWeek,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
