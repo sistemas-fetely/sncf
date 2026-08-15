@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { usePedidosFila } from "@/hooks/pedidos/usePedidosFila";
 import { usePedidoRisco, usePedidoRiscoFaixas, RISCO_COR_TOKEN } from "@/hooks/pedidos/usePedidoRisco";
+import type { PedidoRisco } from "@/hooks/pedidos/usePedidoRisco";
 import { usePedidosEntregaLote } from "@/hooks/pedidos/usePedidoEntrega";
 import { EntregaLinhaResumo, ESTAGIOS_COM_RESUMO_ENTREGA } from "@/components/pedidos/EntregaLinhaResumo";
 import {
