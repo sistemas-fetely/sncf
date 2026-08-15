@@ -7,7 +7,6 @@ import { usePedidosFila } from "@/hooks/pedidos/usePedidosFila";
 import { usePedidoRisco, usePedidoRiscoFaixas, RISCO_COR_TOKEN } from "@/hooks/pedidos/usePedidoRisco";
 import type { PedidoRisco } from "@/hooks/pedidos/usePedidoRisco";
 import { usePedidosEntregaLote } from "@/hooks/pedidos/usePedidoEntrega";
-import { useProvaPagamentoLote, type ProvaPagamento } from "@/hooks/pedidos/useProvaPagamento";
 import { useLiberacaoExpedicaoLote, type LiberacaoExpedicao } from "@/hooks/pedidos/useLiberacaoExpedicao";
 import { CelulaEntregaFila, LinhaNfFila } from "@/components/pedidos/CelulasFilaPedidos";
 import {
@@ -371,7 +370,6 @@ export function FilaPedidosPorArea({
     error: entregaErrorObj,
   } = usePedidosEntregaLote(pedidoIdsSaida);
 
-  const { data: provaMap } = useProvaPagamentoLote(pedidoIdsSaida);
   const { data: liberacaoMap } = useLiberacaoExpedicaoLote(pedidoIdsSaida);
 
 
@@ -623,7 +621,7 @@ export function FilaPedidosPorArea({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <CelulaPagamento p={p} prova={provaMap?.get(p.id)} liberacao={liberacaoMap?.get(p.id)} />
+                    <CelulaPagamento p={p} liberacao={liberacaoMap?.get(p.id)} />
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap items-center gap-1.5">
@@ -918,36 +916,31 @@ function LinhaCondicaoPagamento({ p }: { p: PedidoFilaItem }) {
 
 function CelulaPagamento({
   p,
-  prova,
   liberacao,
 }: {
   p: PedidoFilaItem;
-  prova?: ProvaPagamento;
   liberacao?: LiberacaoExpedicao;
 }) {
-  const provaLine = prova ? (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <p
-            className={cn(
-              "text-[11px]",
-              prova.prova_tom === "perigo"
-                ? "text-destructive"
-                : prova.prova_tom === "alerta"
-                  ? "text-warning"
-                  : "text-muted-foreground",
-            )}
-          >
-            {prova.prova_rotulo}
-          </p>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p className="text-xs max-w-[280px]">{prova.prova_frase}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  ) : null;
+  const provaLine =
+    liberacao?.prova_tom === "alerta" || liberacao?.prova_tom === "perigo" ? (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <p
+              className={cn(
+                "text-[11px]",
+                liberacao.prova_tom === "perigo" ? "text-destructive" : "text-warning"
+              )}
+            >
+              {liberacao.prova_rotulo}
+            </p>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="text-xs max-w-[280px]">{liberacao.prova_frase}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    ) : null;
 
   const liberacaoLine = liberacao ? (
     <TooltipProvider>
@@ -956,7 +949,7 @@ function CelulaPagamento({
           <p
             className={cn(
               "text-[11px] font-medium truncate",
-              liberacao.tom === "alerta" ? "text-warning" : "text-muted-foreground",
+              liberacao.tom === "ok" ? "text-success" : "text-warning"
             )}
           >
             {liberacao.rotulo}
@@ -965,6 +958,9 @@ function CelulaPagamento({
         <TooltipContent>
           <div className="max-w-[320px] space-y-1">
             {liberacao.motivo && <p className="text-xs">{liberacao.motivo}</p>}
+            {liberacao.prova_frase && (
+              <p className="text-xs opacity-80">{liberacao.prova_frase}</p>
+            )}
             {p.situacao_rotulo && (
               <p className="text-xs opacity-80">{p.situacao_rotulo}</p>
             )}
@@ -979,10 +975,10 @@ function CelulaPagamento({
       {liberacaoLine}
       {provaLine}
       <LinhaCondicaoPagamento p={p} />
-      <BadgeEntradaPaga p={p} />
     </div>
   );
 }
+
 
 
 

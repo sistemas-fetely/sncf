@@ -51493,8 +51493,12 @@ export type Database = {
           exige_portao: boolean | null
           liberado: boolean | null
           motivo: string | null
+          nivel_prova: string | null
           pedido_id: string | null
           portao_pago: boolean | null
+          prova_frase: string | null
+          prova_rotulo: string | null
+          prova_tom: string | null
           rotulo: string | null
           tom: string | null
         }
