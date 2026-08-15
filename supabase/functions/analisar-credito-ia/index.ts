@@ -119,6 +119,7 @@ Deno.serve(async (req) => {
         id, estagio_atual, status_final, perfil_aplicado, limite_concedido, prazo_max_dias,
         criado_em, analise_anterior_id,
         pedido:pedidos(id, id_externo, data_pedido, valor_bruto, valor_liquido, desconto_pct,
+          valor_frete, acrescimo_ie_valor, acrescimo_ie_pct, desconto_celebra_valor, bonus_pix_valor,
           condicao_solicitada, forma_solicitada, vendedor, origem, itens_json),
         parceiro:parceiros_comerciais(id, cnpj, razao_social, nome_fantasia, cep, logradouro,
           cidade, uf, telefone, email, cadastro_incompleto, bandeira_vermelha,
