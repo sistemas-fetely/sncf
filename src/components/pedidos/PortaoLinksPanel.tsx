@@ -33,8 +33,18 @@ interface Provisao {
 }
 
 
+const estaPago = (p: Provisao) => p.status === "pago" || !!p.pago_em;
+
+/**
+ * CARTAO-E-CAPTURA-UNICA: parcela de cartão NÃO se confirma sozinha.
+ * As parcelas 2..N são datas de repasse da adquirente, não pagamentos do cliente —
+ * uma autorização fecha a família inteira, e a prova é o NSU.
+ * Só linha não-cartão ganha o botão individual.
+ */
+const podeConfirmarSozinha = (p: Provisao) => !estaPago(p) && p.tipo_pagamento !== "cartao";
+
 function EstadoLinha({ p }: { p: Provisao }) {
-  const pago = p.status === "pago" || !!p.pago_em;
+  const pago = estaPago(p);
   if (pago) {
     return (
       <Badge className="text-[10px] bg-emerald-600 hover:bg-emerald-600">
