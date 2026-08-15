@@ -43,7 +43,9 @@ import {
   EstagioBadge, FormatoIdade,
 } from "./BadgesPedido";
 import { MarcacaoPedido, MarcacaoBadge } from "./MarcacaoPedido";
-import type { AreaPedido, EstagioPedido, PedidoFilaItem } from "@/types/pedido";
+import { useAtualizarUrgencia } from "@/hooks/pedidos/useAtualizarUrgencia";
+import { useAuth } from "@/contexts/AuthContext";
+import { URGENCIA_LABELS, type UrgenciaDeclarada, type AreaPedido, type EstagioPedido, type PedidoFilaItem } from "@/types/pedido";
 
 
 type OrdenacaoFila = "cronologico" | "risco" | "entrada_paga";
