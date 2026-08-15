@@ -943,13 +943,29 @@ export default function ExtratoImportacao() {
           "processar-retorno-safra",
           { body: { arquivo_conteudo: textoCsv, arquivo_nome: file.name } }
         );
-        if (errEdge) throw errEdge;
+        if (errEdge) {
+          let detalhe = errEdge.message;
+          const ctx = (errEdge as { context?: Response }).context;
+          if (ctx && typeof ctx.json === "function") {
+            try {
+              const corpo = await ctx.json();
+              if (corpo?.erro) detalhe = corpo.erro;
+            } catch { /* corpo não-JSON: fica a mensagem original */ }
+          }
+          throw new Error(detalhe);
+        }
         if (resp?.ok === false) throw new Error(resp.erro ?? "Falha ao processar o retorno.");
 
         respRetorno = resp;
-        linhasLidas = resp?.ocorrencias_gravadas ?? 0;
-        novas = resp?.ocorrencias_gravadas ?? 0;
-        duplicadas = resp?.ja_processado ? (resp?.ocorrencias_gravadas ?? 0) : 0;
+        if (resp?.ja_processado) {
+          linhasLidas = 0;
+          novas = 0;
+          duplicadas = 0;
+        } else {
+          linhasLidas = resp?.ocorrencias_gravadas ?? 0;
+          novas = resp?.ocorrencias_gravadas ?? 0;
+          duplicadas = 0;
+        }
 
         qc.invalidateQueries({ queryKey: ["safra-retorno-pendente"] });
         qc.invalidateQueries({ queryKey: ["safra-retorno-arquivos"] });
@@ -971,17 +987,22 @@ export default function ExtratoImportacao() {
         .eq("id", impId);
 
       if (fonte === "retorno_safra") {
-        const msgRetorno =
-          `${PARSER_ROTULO.retorno_safra} — ${file.name}: sequencial ${respRetorno?.nro_sequencial} · ` +
-          `${respRetorno?.ocorrencias_gravadas} ocorrência(s) registradas · ` +
-          `${respRetorno?.confirmados} confirmado(s) · ${respRetorno?.liquidados} liquidado(s) · ` +
-          `${respRetorno?.rejeitados} rejeitado(s)` +
-          (respRetorno?.ja_processado ? " — arquivo já processado, nada foi reaplicado" : "");
-        const qtdErros = Array.isArray(respRetorno?.erros) ? respRetorno.erros.length : 0;
-        if (qtdErros > 0) {
-          toast.error(`${msgRetorno} · ${qtdErros} erro(s) na resolução de títulos`);
+        if (respRetorno?.ja_processado) {
+          toast.info(
+            `${PARSER_ROTULO.retorno_safra} — ${file.name}: sequencial ${respRetorno.nro_sequencial} já processado em ${respRetorno.processado_em}. Nada foi reaplicado.`
+          );
         } else {
-          toast.success(msgRetorno);
+          const msgRetorno =
+            `${PARSER_ROTULO.retorno_safra} — ${file.name}: sequencial ${respRetorno?.nro_sequencial} · ` +
+            `${respRetorno?.ocorrencias_gravadas} ocorrência(s) registradas · ` +
+            `${respRetorno?.confirmados} confirmado(s) · ${respRetorno?.liquidados} liquidado(s) · ` +
+            `${respRetorno?.rejeitados} rejeitado(s)`;
+          const qtdErros = Array.isArray(respRetorno?.erros) ? respRetorno.erros.length : 0;
+          if (qtdErros > 0) {
+            toast.error(`${msgRetorno} · ${qtdErros} erro(s) na resolução de títulos`);
+          } else {
+            toast.success(msgRetorno);
+          }
         }
       } else if (fonte === "safra_instrucoes_2via") {
         toast.success(
