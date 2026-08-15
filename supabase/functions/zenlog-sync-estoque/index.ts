@@ -66,20 +66,35 @@ Deno.serve(async (req) => {
       .reverse();
     if (todos.length === 0) throw new Error("nenhum horario de posicao retornado");
 
+    // Le a lista de FOTOS (1 linha por foto), nao as 41k+ linhas de posicao:
+    // o cliente trunca em 1000 e o sync reimportava foto que ja tinha.
     const { data: jaTem, error: eJa } = await sb
-      .from("xpm_estoque_posicao")
-      .select("data_hora_posicao")
+      .from("vw_xpm_estoque_fotos")
+      .select("data_hora_posicao, parcial")
       .order("data_hora_posicao", { ascending: false });
     if (eJa) throw new Error(`ler posicoes existentes: ${eJa.message}`);
+
+    const chave = (v: string) => new Date(v).toISOString().slice(0, 19);
     const existentes = new Set(
-      (jaTem ?? []).map((r: Record<string, any>) =>
-        new Date(r.data_hora_posicao).toISOString().slice(0, 19),
-      ),
+      (jaTem ?? []).map((r: Record<string, any>) => chave(r.data_hora_posicao)),
+    );
+    // Foto parcial e reimportada: a XPM as vezes devolve o retrato incompleto
+    // (12/08 veio com 37 de 633 SKUs) e o saldo fica furado ate ela ser refeita.
+    const parciais = new Set(
+      (jaTem ?? []).filter((r: Record<string, any>) => r.parcial === true)
+        .map((r: Record<string, any>) => chave(r.data_hora_posicao)),
     );
 
+    // PRESENTE ANTES DO PASSADO: a foto mais recente entra sempre em primeiro
+    // lugar. Antes, presente e historico dividiam a mesma fila e o backfill de
+    // junho atrasava o saldo de ontem — que e o que trava pedido na tela.
+    const pendentes = todos.filter(
+      (h) => !existentes.has(chave(h)) || parciais.has(chave(h)),
+    );
     const alvo = historico
-      ? todos.filter((h) => !existentes.has(new Date(h).toISOString().slice(0, 19)))
+      ? [todos[0], ...pendentes.filter((h) => h !== todos[0])].slice(0, maxFotos)
       : [todos[0]];
+
 
     for (const horario of alvo) {
       let skip = 0;
