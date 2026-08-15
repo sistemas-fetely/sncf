@@ -72,11 +72,10 @@ export interface AnaliseIaJson {
   confianca: number;
   _modelo?: string;
   _validacao?: {
-    contradicoes: string[];
-    cifras_orfas: number[];
-    pontos_sem_tipo?: number;
-    confianca_original?: number;
-    validado_em?: string;
+    alertas: string[];
+    cifras_sem_lastro: number[];
+    confianca_original: number;
+    confianca_ajustada: number;
   } | null;
   _fallback?: {
     primario?: string;
