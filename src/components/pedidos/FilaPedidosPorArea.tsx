@@ -523,7 +523,7 @@ export function FilaPedidosPorArea({
               <TableHead className="w-[150px]">Pagamento</TableHead>
               <TableHead className="w-[150px]">Estágio</TableHead>
               <TableHead className="w-[170px]">Entrega</TableHead>
-              <TableHead className="w-[70px]">Idade</TableHead>
+              <TableHead className="w-[70px]">Na fase</TableHead>
               <TableHead className="w-[56px] text-right text-[11px] font-normal text-muted-foreground">Ações</TableHead>
 
             </TableRow>
@@ -679,8 +679,27 @@ export function FilaPedidosPorArea({
                     )}
                   </TableCell>
 
-                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                    <FormatoIdade minutos={p.idade_minutos} />
+                  <TableCell
+                    className="text-sm whitespace-nowrap"
+                    title="Dias no estágio atual · idade total do pedido desde o recebimento"
+                  >
+                    {(() => {
+                      const slaEstourado = (risco?.risco_motivos ?? []).some(
+                        (m) => m.codigo === "sla_interno_estourado"
+                      );
+                      const diasNaFase = risco?.dias_na_fase;
+                      const totalDias = Math.floor((p.idade_minutos ?? 0) / 1440);
+                      return (
+                        <div>
+                          <p className={cn(slaEstourado && "text-destructive font-medium")}>
+                            {diasNaFase != null ? `${Math.floor(diasNaFase)}d` : "—"}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            pedido {totalDias === 0 ? "<1d" : `${totalDias}d`}
+                          </p>
+                        </div>
+                      );
+                    })()}
                   </TableCell>
 
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
