@@ -10,6 +10,7 @@ import { useFretesTransportadora } from "@/hooks/logistica/useFretesTransportado
 import { CardFrete } from "./CardFrete";
 import { TabelaFretes } from "./TabelaFretes";
 import { ImportarFretesDialog } from "./ImportarFretesDialog";
+import { FretesEntregasBraspress } from "./FretesEntregasBraspress";
 import { cn } from "@/lib/utils";
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -23,6 +24,25 @@ interface Props {
 }
 
 export function FretesEntregas({ transportadoraId, transportadoraNome, hideImport }: Props) {
+  const ehBraspress = (transportadoraNome ?? "").toUpperCase().includes("BRASPRESS");
+  if (ehBraspress) {
+    return (
+      <FretesEntregasBraspress
+        transportadoraId={transportadoraId}
+        transportadoraNome={transportadoraNome}
+      />
+    );
+  }
+  return (
+    <FretesEntregasPadrao
+      transportadoraId={transportadoraId}
+      transportadoraNome={transportadoraNome}
+      hideImport={hideImport}
+    />
+  );
+}
+
+function FretesEntregasPadrao({ transportadoraId, transportadoraNome, hideImport }: Props) {
   const { data: fretes = [], isLoading } = useFretesTransportadora(transportadoraId);
   const [importando, setImportando] = useState(false);
   const [filtro, setFiltro] = useState<Filtro>("todos");
