@@ -318,9 +318,9 @@ ${kpisGrupo ? `
 - Total em aberto do grupo (vencido + a vencer): R$ ${num(kpisGrupo.em_aberto)}
 - Atraso médio do grupo nos pagamentos já feitos: ${Math.round(num(kpisGrupo.atraso_medio_dias))} dias` : "Sem grupo econômico detectado"}
 
-TÍTULOS DO CLIENTE (fonte única da verdade sobre dívida — use estas linhas, não infira):
+TÍTULOS DO CLIENTE (lastro dos KPIs acima — NÃO existe nenhum outro título além destes):
 ${blocoTitulos}
-Legenda dos status: a_vencer/vence_hoje = em aberto no prazo · atrasado = DÍVIDA VENCIDA · aguarda_liquidacao = pago sem confirmação bancária · pago/pago_com_atraso/pago_judicial = QUITADO, não é dívida · baixado_por_perda = prejuízo assumido · devolvido/cancelado = sem efeito financeiro.
+Legenda: \`a_vencer\` e \`vence_hoje\` = em aberto, no prazo, NÃO é dívida vencida. \`atrasado\` = vencido e não pago. \`pago\` e \`pago_com_atraso\` = já quitado, NÃO é dívida. \`baixado_por_perda\` = calote assumido. Um título quitado nunca é débito vencido.
 
 SCORES BUREAU ANEXADOS (extraídos por IA dos PDFs):
 ${(scores || []).length > 0 ? JSON.stringify(scores) : "Nenhum bureau anexado nesta análise"}
@@ -378,11 +378,11 @@ Gere a análise estruturada em JSON conforme instruído no system prompt.`;
         );
       }
       const fbData = await fallbackResp.json();
-      return await processarRespostaIA(fbData, analise_id, supabase, corsHeaders, "gemini-pro-fallback", fatos, fallbackInfo);
+      return await processarRespostaIA(fbData, analise_id, supabase, corsHeaders, "gemini-pro-fallback", contexto, fallbackInfo);
     }
 
     const aiData = await aiResp.json();
-    return await processarRespostaIA(aiData, analise_id, supabase, corsHeaders, "claude-sonnet-4-5", fatos, null);
+    return await processarRespostaIA(aiData, analise_id, supabase, corsHeaders, "claude-sonnet-4-5", contexto, null);
   } catch (e) {
     console.error("analisar-credito-ia error:", e);
     return new Response(
