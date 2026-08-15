@@ -16,6 +16,8 @@ import { Search, Info, Loader2 } from "lucide-react";
 import { formatCNPJ } from "@/lib/cnpj";
 import { formatBRL } from "@/lib/format-currency";
 import { useConfirmarPagamentoPortao } from "@/hooks/pedidos/useConfirmarPagamentoPortao";
+import { useCartaoAbertoPorPedido } from "@/hooks/credito/useCartaoAbertoPorPedido";
+import { ConfirmarCartaoCapturadoDialog } from "@/components/pedidos/dialogs/ConfirmarCartaoCapturadoDialog";
 
 const fmtDate = (iso: string) =>
   iso ? new Date(iso + "T00:00:00").toLocaleDateString("pt-BR") : "—";
@@ -30,6 +32,12 @@ export default function PrimeiroPagamentoTab() {
   const [observacao, setObservacao] = useState<string>("");
 
   const confirmar = useConfirmarPagamentoPortao();
+
+  // CARTAO-E-CAPTURA-UNICA: cartão não fecha por confirmação manual — o banco recusa
+  // (confirmar_portao_pago levanta exceção). A fila oferece a captura por NSU no lugar.
+  const { data: cartaoAberto } = useCartaoAbertoPorPedido(
+    (data ?? []).filter((p) => p.tipo_pagamento === "cartao").map((p) => p.pedido_id),
+  );
 
   async function handleConfirmar() {
     if (!confirmando) return;
@@ -59,6 +67,7 @@ export default function PrimeiroPagamentoTab() {
         <Info className="h-4 w-4" />
         <AlertDescription>
           Confirme o pagamento quando o cliente quitar o portão. O pedido então avança para pré-faturamento com os títulos definitivos.
+          Portão em <strong>cartão</strong> tem caminho próprio: uma autorização cobre a venda inteira, então ele fecha pela captura (NSU) e não por confirmação manual.
         </AlertDescription>
       </Alert>
 
@@ -122,12 +131,21 @@ export default function PrimeiroPagamentoTab() {
                   {p.dias_aguardando} dia{p.dias_aguardando !== 1 ? "s" : ""}
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button
-                    size="sm"
-                    onClick={() => abrirDialog(p.pedido_id, `${p.id_externo} · ${p.parceiro_nome}`)}
-                  >
-                    Confirmar pagamento
-                  </Button>
+                  {p.tipo_pagamento === "cartao" ? (
+                    <ConfirmarCartaoCapturadoDialog
+                      pedidoId={p.pedido_id}
+                      parcelasAbertas={cartaoAberto?.[p.pedido_id]?.parcelas ?? 1}
+                      valorAberto={cartaoAberto?.[p.pedido_id]?.valor ?? p.valor}
+                      triggerLabel="Confirmar captura"
+                    />
+                  ) : (
+                    <Button
+                      size="sm"
+                      onClick={() => abrirDialog(p.pedido_id, `${p.id_externo} · ${p.parceiro_nome}`)}
+                    >
+                      Confirmar pagamento
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
