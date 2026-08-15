@@ -32,12 +32,12 @@ const itensAtivos: ItemTarefas[] = [
   { title: "Projetos", url: "/tarefas/projetos", icon: LayoutGrid },
   { title: "Calendário", url: "/tarefas/calendario", icon: CalendarDays },
   { title: "Carga", url: "/tarefas/carga", icon: Gauge },
+  { title: "Recorrências", url: "/tarefas/recorrencias", icon: Repeat },
+  { title: "Templates", url: "/tarefas/templates", icon: CheckCheck },
 ];
 
 const itensEmBreve: ItemTarefas[] = [
   { title: "Meu Time", icon: UsersRound },
-  { title: "Recorrências", icon: Repeat },
-  { title: "Templates", icon: CheckCheck },
 ];
 
 export function TarefasSidebar() {
