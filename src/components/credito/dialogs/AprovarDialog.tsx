@@ -181,6 +181,50 @@ export function AprovarDialog({ analise_id, pedido_id, campos, sugestaoIA, comRe
               </p>
             </div>
           )}
+
+          <div className="space-y-2 pt-2 border-t">
+            <Label>Liberação da mercadoria</Label>
+            <RadioGroup
+              value={portao}
+              onValueChange={(v) => setPortao(v as PortaoEscolha)}
+              className="gap-2"
+            >
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="regra" id="portao-regra" />
+                <Label htmlFor="portao-regra" className="font-normal">
+                  Seguir a regra da forma de pagamento
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="exigir" id="portao-exigir" />
+                <Label htmlFor="portao-exigir" className="font-normal">
+                  Exigir pagamento antes de liberar
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="liberar" id="portao-liberar" />
+                <Label htmlFor="portao-liberar" className="font-normal">
+                  Liberar sem esperar o pagamento
+                </Label>
+              </div>
+            </RadioGroup>
+            <p className="text-xs text-muted-foreground">{PORTAO_EXPLICACAO[portao]}</p>
+
+            {portaoValor !== null && (
+              <div className="space-y-2 pt-1">
+                <Label>Motivo</Label>
+                <Textarea
+                  rows={3}
+                  value={motivoPortao}
+                  onChange={(e) => setMotivoPortao(e.target.value)}
+                  placeholder="Ex: Cliente com histórico limpo há 2 anos, libera sem esperar captura."
+                />
+                <p className="text-xs text-muted-foreground">
+                  {motivoPortao.trim().length}/10 caracteres
+                </p>
+              </div>
+            )}
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
@@ -188,11 +232,19 @@ export function AprovarDialog({ analise_id, pedido_id, campos, sugestaoIA, comRe
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={!ressalvaValida || transicionar.isPending}
+            disabled={
+              !ressalvaValida ||
+              !motivoPortaoValido ||
+              transicionar.isPending ||
+              definirPortao.isPending
+            }
             className={comRessalva ? "" : "bg-green-600 hover:bg-green-700"}
           >
-            {transicionar.isPending ? "Aprovando..." : "Confirmar aprovação"}
+            {transicionar.isPending || definirPortao.isPending
+              ? "Aprovando..."
+              : "Confirmar aprovação"}
           </Button>
+
         </DialogFooter>
       </DialogContent>
     </Dialog>
