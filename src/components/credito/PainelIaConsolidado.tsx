@@ -91,6 +91,24 @@ export function PainelIaConsolidado({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {(iaJson._validacao?.alertas?.length ?? 0) > 0 && (
+          <div className="rounded-md border border-destructive bg-destructive/5 p-3 space-y-2">
+            <div className="flex items-center gap-2 text-destructive font-medium text-sm">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              Conferência automática encontrou contradições
+            </div>
+            <ul className="text-sm text-destructive list-disc list-inside space-y-1">
+              {iaJson._validacao!.alertas.map((a, i) => (
+                <li key={i}>{a}</li>
+              ))}
+            </ul>
+            <p className="text-xs text-destructive/80">
+              Confiança rebaixada de {iaJson._validacao?.confianca_original}% para{" "}
+              {iaJson._validacao?.confianca_ajustada}% pela conferência.
+            </p>
+          </div>
+        )}
+
         <div className="space-y-1.5">
           <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">Confiança da IA</span>
@@ -151,6 +169,9 @@ export function PainelIaConsolidado({
         <p className="text-xs text-muted-foreground pt-1 border-t">
           Processado em {new Date(iaProcessadaEm).toLocaleString("pt-BR")}
           {iaJson._modelo && ` · Modelo: ${iaJson._modelo}`}
+          {(iaJson._validacao?.alertas?.length ?? 0) === 0 &&
+            (iaJson._validacao?.cifras_sem_lastro?.length ?? 0) > 0 &&
+            ` · ${iaJson._validacao!.cifras_sem_lastro.length} valor(es) citado(s) sem correspondência no payload.`}
         </p>
       </CardContent>
     </Card>
