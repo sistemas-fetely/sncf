@@ -370,7 +370,6 @@ export function FilaPedidosPorArea({
     error: entregaErrorObj,
   } = usePedidosEntregaLote(pedidoIdsSaida);
 
-  const { data: provaMap } = useProvaPagamentoLote(pedidoIdsSaida);
   const { data: liberacaoMap } = useLiberacaoExpedicaoLote(pedidoIdsSaida);
 
 
