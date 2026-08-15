@@ -28,11 +28,6 @@ function parseDataBr(valor: unknown): string | null {
   return `${yyyy}-${mm}-${dd}T${hh ?? "00"}:${mi ?? "00"}:${ss ?? "00"}-03:00`;
 }
 
-/** Somente a data (yyyy-MM-dd) para colunas de data. */
-function parseDataBrSomenteData(valor: unknown): string | null {
-  const iso = parseDataBr(valor);
-  return iso ? iso.slice(0, 10) : null;
-}
 
 function semZerosEsquerda(valor: unknown): string | null {
   const txt = String(valor ?? "").trim();
@@ -253,8 +248,8 @@ Deno.serve(async (req) => {
           registro.cidade_destino = escolhido?.cidade ?? null;
           registro.uf_destino = escolhido?.uf ?? null;
           registro.status = escolhido?.status ?? null;
-          registro.data_entrega = parseDataBrSomenteData(escolhido?.dataEntrega);
-          registro.previsao_entrega = parseDataBrSomenteData(escolhido?.previsaoEntrega);
+          registro.data_entrega = parseDataBr(escolhido?.dataEntrega);
+          registro.previsao_entrega = parseDataBr(escolhido?.previsaoEntrega);
           registro.valor_nf = escolhido?.valorMercantil ?? null;
           registro.valor_cte = escolhido?.totalFrete ?? null;
           registro.tipo_frete = escolhido?.tipoFrete ?? null;
