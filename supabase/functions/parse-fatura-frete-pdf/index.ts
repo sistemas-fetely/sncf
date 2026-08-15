@@ -197,7 +197,6 @@ Deno.serve(async (req) => {
     }
 
     // Persistir via RPC (service-role para bypass de RLS controlado pela função)
-    const admin = createClient(supabaseUrl, serviceKey);
     const { data: rpcData, error: rpcError } = await admin.rpc("fn_importar_fatura_frete", {
       p_transportadora_id: transportadoraId,
       p_payload: parsed,
@@ -206,15 +205,73 @@ Deno.serve(async (req) => {
     if (rpcError) {
       console.error("RPC fn_importar_fatura_frete error:", rpcError);
       return new Response(
-        JSON.stringify({ error: rpcError.message, payload: parsed }),
+        JSON.stringify({
+          error: rpcError.message,
+          payload: parsed,
+          pdf_armazenado: pdfArmazenado,
+          pdf_storage_path: pdfStoragePath,
+          pdf_erro: pdfErro,
+        }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    return new Response(JSON.stringify({ ok: true, result: rpcData, payload: parsed }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // ---- Renomear para o caminho definitivo (com nº da fatura) e amarrar à fatura ----
+    const resultado = (Array.isArray(rpcData) ? rpcData[0] : rpcData) as
+      | Record<string, unknown>
+      | null;
+    const faturaId = resultado && typeof resultado === "object"
+      ? (resultado["fatura_id"] as string | undefined) ?? undefined
+      : undefined;
+
+    if (pdfArmazenado && pdfStoragePath) {
+      const numeroFatura = String(parsed?.numero_fatura ?? "").replace(/[^a-zA-Z0-9._-]+/g, "-");
+      if (numeroFatura) {
+        const destino = `${transportadoraId}/${ano}/${numeroFatura}_${nomeSanitizado}.pdf`;
+        if (destino !== pdfStoragePath) {
+          const { error: mvErr } = await admin.storage
+            .from("faturas-frete")
+            .move(pdfStoragePath, destino);
+          if (mvErr) {
+            console.error("[parse-fatura-frete-pdf] move_pdf_falhou:", mvErr.message);
+          } else {
+            pdfStoragePath = destino;
+          }
+        }
+      }
+
+      if (faturaId) {
+        const { error: updErr } = await admin
+          .from("faturas_frete")
+          .update({ pdf_storage_path: pdfStoragePath })
+          .eq("id", faturaId);
+        if (updErr) {
+          console.error("[parse-fatura-frete-pdf] vincular_pdf_falhou:", updErr.message);
+          pdfErro = updErr.message;
+          pdfArmazenado = false;
+        }
+      } else {
+        console.error(
+          "[parse-fatura-frete-pdf] fatura_id_ausente_no_retorno_rpc: PDF salvo em",
+          pdfStoragePath,
+          "mas não vinculado",
+        );
+        pdfErro = "fatura_id ausente no retorno da RPC; PDF não vinculado à fatura";
+        pdfArmazenado = false;
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        result: rpcData,
+        payload: parsed,
+        pdf_armazenado: pdfArmazenado,
+        pdf_storage_path: pdfStoragePath,
+        ...(pdfArmazenado ? {} : { pdf_erro: pdfErro }),
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (e) {
     console.error("Erro fatal:", e);
     return new Response(
