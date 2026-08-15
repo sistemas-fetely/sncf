@@ -571,7 +571,7 @@ async function processarRespostaIA(
   supabase: any,
   corsHeaders: Record<string, string>,
   modeloUsado: string,
-  fatos: FatosCredito,
+  contexto: ContextoCredito,
   fallbackInfo: { primario: string; status: number; erro: string; em: string } | null
 ): Promise<Response> {
   let raw = aiData?.choices?.[0]?.message?.content ?? "";
