@@ -1306,7 +1306,12 @@ export default function CobrancaDetalhe() {
             </Button>
             <Button
               onClick={handleAceitar}
-              disabled={!podeMaterializar || montarPlano.isPending}
+              disabled={!podeMaterializar || montarPlano.isPending || !coberturaPortaoOk}
+              title={
+                !coberturaPortaoOk
+                  ? `Faltam ${fmtBRL.format(faltaPortaoRS)} marcados como pagamento antecipado para atingir o mínimo de ${portaoMinimoPct.toFixed(0)}% exigido neste pedido.`
+                  : undefined
+              }
             >
               {montarPlano.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
               Aceitar e montar plano
