@@ -472,7 +472,7 @@ function normalizarPontos(bruto: unknown): PontoAtencaoNorm[] {
 function validarSaidaIA(
   analiseIA: any,
   contexto: ContextoCredito
-): { alertas: string[]; cifras_sem_lastro: number[] } {
+): { alertas: string[]; cifras_sem_lastro: number[]; pontos_sem_tipo: number } {
   const alertas: string[] = [];
   const cifras_sem_lastro: number[] = [];
 
@@ -486,15 +486,38 @@ function validarSaidaIA(
   ].filter((p: any) => typeof p === "string" && p.length > 0);
   const textoIA = partes.join(" \n ");
 
-  // A1 — afirma dívida vencida sem lastro
-  if (
-    contexto.kpis.vencidos <= 0 &&
-    contexto.temTituloAtrasado === false &&
-    /vencid|inadimpl[êe]nc|em atraso|d[ée]bito em aberto|calote|n[ãa]o honrou/i.test(textoIA)
-  ) {
-    alertas.push(
-      "A IA afirma dívida vencida, mas o cliente tem R$ 0 vencidos e nenhum título atrasado."
-    );
+  // A1 — checagem TIPADA (primária): pontos marcados como dívida interna vencida.
+  const semVencido = contexto.kpis.vencidos <= 0 && contexto.temTituloAtrasado === false;
+  for (const p of pontos) {
+    if (p.tipo !== "divida_interna_vencida") continue;
+    if (semVencido) {
+      alertas.push(
+        `Ponto marcado como dívida interna vencida, mas o cliente tem R$ 0 vencidos e nenhum título atrasado: "${p.texto}"`
+      );
+    }
+    if (typeof p.valor === "number" && Math.abs(p.valor - contexto.kpis.vencidos) > 0.01) {
+      let msg = `Valor apontado como dívida interna vencida (R$ ${fmtBr(p.valor)}) não corresponde ao vencido real (R$ ${fmtBr(contexto.kpis.vencidos)}).`;
+      if (contexto.kpis.pago > 0 && Math.abs(p.valor - contexto.kpis.pago) <= 0.01) {
+        msg += ` — esse valor é o total JÁ PAGO pelo cliente.`;
+      }
+      alertas.push(msg);
+    }
+  }
+
+  // A1b — rede de segurança por texto: só quando o modelo ignorou o contrato de tipos.
+  if (pontos.length > 0 && pontos.every((p) => !p.tipo) && semVencido) {
+    const RE_ACUSA =
+      /(possui|possuem|tem|têm|há|existe|existem|registra|apresenta|acumula)[^.]{0,60}(vencid|inadimpl|d[ée]bito|calote)/i;
+    const RE_NEGA = /(sem |nenhum|não |nao |zero|inexist|quitad|nada |livre|limpo|a vencer)/i;
+    const RE_EXTERNO = /(serasa|bureau|bvg|score|protesto|pefin|refin|consulta externa)/i;
+    const acusa = textoIA
+      .split(/[.;!?\n]/)
+      .some((f) => RE_ACUSA.test(f) && !RE_NEGA.test(f) && !RE_EXTERNO.test(f));
+    if (acusa) {
+      alertas.push(
+        "A IA afirma dívida vencida no texto, mas o cliente tem R$ 0 vencidos e nenhum título atrasado."
+      );
+    }
   }
 
   // A2 — trata como cliente novo apesar de histórico pago
