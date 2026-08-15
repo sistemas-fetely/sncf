@@ -99,7 +99,7 @@ function IndicadorSincronizacao({ transportadoraId }: { transportadoraId: string
         atrasado ? "bg-warning/10 text-warning" : "bg-muted/30 text-success"
       )}
     >
-      {atrasado ? <CloudAlert className="h-4 w-4" /> : <Cloud className="h-4 w-4" />}
+      {atrasado ? <AlertTriangle className="h-4 w-4" /> : <Cloud className="h-4 w-4" />}
       <div className="leading-tight">
         <div className="font-medium">{linhaPrincipal}</div>
         <div className="text-xs opacity-90">
