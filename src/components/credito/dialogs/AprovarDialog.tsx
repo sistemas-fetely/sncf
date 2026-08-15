@@ -11,18 +11,38 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import { useTransicionarAnalise } from "@/hooks/credito/useTransicionarAnalise";
+import { useDefinirPortaoAnalise } from "@/hooks/credito/useDefinirPortaoAnalise";
+import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import type { CamposDecisao } from "../FormDecisaoCredito";
 import type { SugestaoIA } from "@/types/credito";
 
 interface Props {
   analise_id: string;
+  pedido_id: string;
   campos: CamposDecisao;
   sugestaoIA: SugestaoIA | null;
   comRessalva?: boolean;
 }
+
+type PortaoEscolha = "regra" | "exigir" | "liberar";
+
+const PORTAO_VALOR: Record<PortaoEscolha, boolean | null> = {
+  regra: null,
+  exigir: true,
+  liberar: false,
+};
+
+const PORTAO_EXPLICACAO: Record<PortaoEscolha, string> = {
+  regra: "O pedido segue o comportamento normal da forma de pagamento escolhida.",
+  exigir: "A mercadoria só sai depois que o pagamento for confirmado.",
+  liberar:
+    "A mercadoria sai sem esperar o pagamento. O cliente será cobrado depois.",
+};
+
 
 function calcularDelta(campos: CamposDecisao, ia: SugestaoIA | null) {
   if (!ia) return null;
