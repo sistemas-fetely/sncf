@@ -417,7 +417,7 @@ const DECISOES_VALIDAS = [
   "devolver_entrada",
 ];
 
-const RE_DIVIDA = /vencid|inadimpl|em atraso|débito|debito|divida|dívida/;
+const RE_MOEDA_UNUSED_PLACEHOLDER = undefined;
 const RE_MOEDA = /r\$\s*([\d.]*\d(?:,\d{1,2})?)/g;
 
 function parseMoedaBr(bruto: string): number {
@@ -441,44 +441,55 @@ function fmtBr(v: number): string {
   return v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+interface PontoAtencaoNorm {
+  texto: string;
+  tipo: string | null;
+  valor: number | null;
+}
+
+function normalizarPontos(bruto: unknown): PontoAtencaoNorm[] {
+  if (!Array.isArray(bruto)) return [];
+  return bruto.map((item: any) => {
+    if (typeof item === "string") return { texto: item, tipo: null, valor: null };
+    const valor = Number(item?.valor);
+    return {
+      texto: typeof item?.texto === "string" ? item.texto : "",
+      tipo: typeof item?.tipo === "string" && item.tipo.length > 0 ? item.tipo : null,
+      valor: Number.isFinite(valor) ? valor : null,
+    };
+  });
+}
+
 function validarSaidaIA(
   analiseIA: any,
   fatos: FatosCredito
-): { contradicoes: string[]; cifras_orfas: number[] } {
+): { contradicoes: string[]; cifras_orfas: number[]; pontos_sem_tipo: number } {
   const contradicoes: string[] = [];
   const cifras_orfas: number[] = [];
+
+  const pontos = normalizarPontos(analiseIA?.pontos_atencao);
+  const pontos_sem_tipo = pontos.filter((p) => !p.tipo).length;
 
   const partes = [
     analiseIA?.resumo,
     analiseIA?.justificativa,
     analiseIA?.sugestao?.parecer_final,
     analiseIA?.sugestao?.ressalva,
-    ...(Array.isArray(analiseIA?.pontos_atencao) ? analiseIA.pontos_atencao : []),
+    ...pontos.map((p) => p.texto),
   ].filter((p: any) => typeof p === "string" && p.length > 0);
   const alvo = partes.join(" \n ").toLowerCase();
 
-  // R1 — vencido inexistente
-  if (RE_DIVIDA.test(alvo) && fatos.vencidos === 0 && fatos.titulos_atrasados === 0) {
-    contradicoes.push(
-      "Texto afirma dívida vencida, mas o cliente tem R$ 0 vencidos e nenhum título atrasado."
-    );
-  }
-
-  // R2 — valor de vencido errado
-  const reDividaGlobal = new RegExp(RE_DIVIDA.source, "g");
-  let d: RegExpExecArray | null;
-  const citados: number[] = [];
-  while ((d = reDividaGlobal.exec(alvo)) !== null) {
-    const ini = Math.max(0, d.index - 60);
-    const fim = Math.min(alvo.length, d.index + d[0].length + 60);
-    for (const v of extrairMoedas(alvo.slice(ini, fim))) {
-      if (!citados.some((c) => Math.abs(c - v) <= 0.01)) citados.push(v);
+  // T1/T2 — checagem no campo tipado
+  for (const p of pontos) {
+    if (p.tipo !== "divida_interna_vencida") continue;
+    if (fatos.vencidos === 0 && fatos.titulos_atrasados === 0) {
+      contradicoes.push(
+        `Ponto marcado como dívida interna vencida, mas o cliente tem R$ 0 vencidos e nenhum título atrasado: "${p.texto}"`
+      );
     }
-  }
-  for (const v of citados) {
-    if (Math.abs(v - fatos.vencidos) > 0.01) {
-      let msg = `Valor citado como dívida (R$ ${fmtBr(v)}) não corresponde ao vencido real (R$ ${fmtBr(fatos.vencidos)}).`;
-      if (fatos.pago > 0 && Math.abs(v - fatos.pago) <= 0.01) {
+    if (typeof p.valor === "number" && Math.abs(p.valor - fatos.vencidos) > 0.01) {
+      let msg = `Valor apontado como dívida interna vencida (R$ ${fmtBr(p.valor)}) não corresponde ao vencido real (R$ ${fmtBr(fatos.vencidos)}).`;
+      if (fatos.pago > 0 && Math.abs(p.valor - fatos.pago) <= 0.01) {
         msg += " — esse valor é o total JÁ PAGO pelo cliente.";
       }
       contradicoes.push(msg);
@@ -486,8 +497,7 @@ function validarSaidaIA(
   }
 
   // R3 — falsa inconsistência de valores
-  const falsaInconsistencia =
-    /(líquido|liquido)[\s\S]{0,40}(bruto)/.test(alvo) || /inconsist/.test(alvo);
+  const falsaInconsistencia = /(líquido|liquido)[\s\S]{0,40}bruto/.test(alvo);
   if (
     falsaInconsistencia &&
     Math.abs(
