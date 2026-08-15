@@ -696,7 +696,7 @@ export default function CobrancaDetalhe() {
   };
 
   // Loading
-  if (pedidoQ.isLoading || propostaQ.isLoading) {
+  if (pedidoQ.isLoading || propostaQ.isLoading || planoExistenteQ.isLoading) {
     return (
       <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 space-y-4">
         <Skeleton className="h-20 w-full" />
