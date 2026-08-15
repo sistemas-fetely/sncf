@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, RotateCw, Loader2, AlertCircle } from "lucide-react";
+import { Sparkles, RotateCw, Loader2, AlertCircle, AlertTriangle } from "lucide-react";
 import { useGerarAnaliseIA } from "@/hooks/credito/useGerarAnaliseIA";
 import type { AnaliseIaJson } from "@/types/credito";
 
