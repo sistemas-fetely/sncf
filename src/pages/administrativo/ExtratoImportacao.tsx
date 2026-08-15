@@ -943,13 +943,29 @@ export default function ExtratoImportacao() {
           "processar-retorno-safra",
           { body: { arquivo_conteudo: textoCsv, arquivo_nome: file.name } }
         );
-        if (errEdge) throw errEdge;
+        if (errEdge) {
+          let detalhe = errEdge.message;
+          const ctx = (errEdge as { context?: Response }).context;
+          if (ctx && typeof ctx.json === "function") {
+            try {
+              const corpo = await ctx.json();
+              if (corpo?.erro) detalhe = corpo.erro;
+            } catch { /* corpo não-JSON: fica a mensagem original */ }
+          }
+          throw new Error(detalhe);
+        }
         if (resp?.ok === false) throw new Error(resp.erro ?? "Falha ao processar o retorno.");
 
         respRetorno = resp;
-        linhasLidas = resp?.ocorrencias_gravadas ?? 0;
-        novas = resp?.ocorrencias_gravadas ?? 0;
-        duplicadas = resp?.ja_processado ? (resp?.ocorrencias_gravadas ?? 0) : 0;
+        if (resp?.ja_processado) {
+          linhasLidas = 0;
+          novas = 0;
+          duplicadas = 0;
+        } else {
+          linhasLidas = resp?.ocorrencias_gravadas ?? 0;
+          novas = resp?.ocorrencias_gravadas ?? 0;
+          duplicadas = 0;
+        }
 
         qc.invalidateQueries({ queryKey: ["safra-retorno-pendente"] });
         qc.invalidateQueries({ queryKey: ["safra-retorno-arquivos"] });
