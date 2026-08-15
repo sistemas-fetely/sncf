@@ -593,34 +593,33 @@ async function processarRespostaIA(
     );
   }
 
-  // Validação determinística — SISTEMA SUGERE / HUMANO DECIDE: nunca descarta, só carimba.
-  const confiancaOriginal = Number(analiseIA?.confianca ?? 0);
-  const { contradicoes, cifras_orfas, pontos_sem_tipo } = validarSaidaIA(analiseIA, fatos);
+  // Validação determinística — SISTEMA SUGERE / HUMANO DECIDE: nunca reescreve o texto, só carimba.
+  const confiancaOriginal = Number(analiseIA?.confianca ?? 0) || 0;
+  const { alertas, cifras_sem_lastro } = validarSaidaIA(analiseIA, contexto);
 
-  if (contradicoes.length > 0) {
-    console.warn("Validação IA encontrou contradições:", analise_id, contradicoes);
-    analiseIA.confianca = Math.min(Number(analiseIA.confianca ?? 0) || 0, 40);
-    if (!Array.isArray(analiseIA.pontos_atencao)) analiseIA.pontos_atencao = [];
-    analiseIA.pontos_atencao.unshift({
-      texto:
-        "⚠ VERIFICAÇÃO AUTOMÁTICA: esta análise contradiz os dados do sistema. Confira antes de decidir.",
-      tipo: "outro",
-      valor: null,
-    });
-  } else if (cifras_orfas.length > 0) {
-    console.warn("Validação IA encontrou cifras órfãs:", analise_id, cifras_orfas);
-    analiseIA.confianca = Math.min(Number(analiseIA.confianca ?? 0) || 0, 70);
+  let confiancaAjustada = confiancaOriginal;
+  if (alertas.length > 0) {
+    for (const a of alertas) {
+      console.warn(`[validacao-ia] analise ${analise_id}: ${a}`);
+    }
+    confiancaAjustada = Math.min(confiancaOriginal, 40);
+  } else if (cifras_sem_lastro.length > 0) {
+    console.warn(
+      `[validacao-ia] analise ${analise_id}: ${cifras_sem_lastro.length} cifra(s) sem lastro:`,
+      cifras_sem_lastro
+    );
+    confiancaAjustada = Math.min(confiancaOriginal, 70);
   }
+  analiseIA.confianca = confiancaAjustada;
 
   const iaJson: Record<string, unknown> = {
     ...analiseIA,
     _modelo: modeloUsado,
     _validacao: {
-      contradicoes,
-      cifras_orfas,
-      pontos_sem_tipo,
+      alertas,
+      cifras_sem_lastro,
       confianca_original: confiancaOriginal,
-      validado_em: new Date().toISOString(),
+      confianca_ajustada: confiancaAjustada,
     },
   };
   if (fallbackInfo) iaJson._fallback = fallbackInfo;
