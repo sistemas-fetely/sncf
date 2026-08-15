@@ -518,11 +518,11 @@ export function FilaPedidosPorArea({
           <TableHeader>
             <TableRow>
               <TableHead className="w-[56px]">Risco</TableHead>
-              <TableHead>Pedido</TableHead>
+              <TableHead className="w-[280px]">Pedido</TableHead>
               <TableHead className="w-[130px]">Valor</TableHead>
               <TableHead className="w-[150px]">Pagamento</TableHead>
               <TableHead className="w-[150px]">Estágio</TableHead>
-              <TableHead className="w-[170px]">Entrega</TableHead>
+              <TableHead>Entrega</TableHead>
               <TableHead className="w-[70px]">Na fase</TableHead>
               <TableHead className="w-[56px] text-right text-[11px] font-normal text-muted-foreground">Ações</TableHead>
 
