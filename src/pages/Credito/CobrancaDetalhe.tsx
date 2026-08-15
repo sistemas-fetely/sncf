@@ -19,7 +19,8 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowLeft, Loader2, RefreshCcw, AlertTriangle, Copy, Check, Mail, Plus, Trash2, Lock } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ArrowLeft, Loader2, RefreshCcw, AlertTriangle, Copy, Check, Mail, Plus, Trash2, Lock, Info, ChevronDown } from "lucide-react";
 
 import { usePropostaCobranca } from "@/hooks/credito/usePropostaCobranca";
 import { useMaterializarCobranca } from "@/hooks/credito/useMaterializarCobranca";
@@ -119,6 +120,24 @@ function usePedidoMinimo(pedidoId: string | undefined) {
         .maybeSingle();
       if (error) throw error;
       return data;
+    },
+  });
+}
+
+/** Plano já materializado? Conta linhas vivas de provisao_recebimento do pedido. */
+function usePlanoExistente(pedidoId: string | undefined) {
+  return useQuery({
+    queryKey: ["cobranca-plano-existente", pedidoId],
+    enabled: !!pedidoId,
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { count, error } = await (supabase as any)
+        .from("provisao_recebimento")
+        .select("id", { count: "exact", head: true })
+        .eq("pedido_id", pedidoId)
+        .neq("status", "cancelada");
+      if (error) throw error;
+      return Number(count ?? 0);
     },
   });
 }
@@ -307,6 +326,15 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
         subtitle="Link de pagamento único do pedido e vencimentos dos títulos em aberto."
       />
 
+      {/* Faixa de estado: já materializei ou não? */}
+      <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
+        <Check className="h-4 w-4 shrink-0" />
+        <span className="font-medium">
+          Plano materializado · {titulosQ.data?.length ?? 0} parcela
+          {(titulosQ.data?.length ?? 0) === 1 ? "" : "s"} · aguardando pagamento
+        </span>
+      </div>
+
       <CobrancaStepper fase={fasePagamento} />
 
       <Card>
@@ -415,6 +443,7 @@ export default function CobrancaDetalhe() {
   const pedidoQ = usePedidoMinimo(pedidoId);
   const portaoRegraQ = usePedidoPortaoRegra(pedidoId);
   const propostaQ = usePropostaCobranca(pedidoId);
+  const planoExistenteQ = usePlanoExistente(pedidoId);
   const materializar = useMaterializarCobranca();
   const materializarComHaver = useMaterializarComHaver();
   const criarPortao = useCriarPortaoProvisorio();
@@ -554,6 +583,14 @@ export default function CobrancaDetalhe() {
     0,
   );
   const pctPortao = totalEditado > 0 ? (totalPortao / totalEditado) * 100 : 0;
+
+  // Regra do portão vinda da view — mostrada ANTES do clique. O banco continua sendo
+  // a autoridade final; isto é só para o operador não bater na parede.
+  const portaoMinimoPct = Number(portaoRegraQ.data?.portao_minimo_pct ?? 0);
+  const portaoMinimoRS = (Math.max(0, portaoMinimoPct) / 100) * totalEditado;
+  const faltaPortaoRS = Math.max(0, portaoMinimoRS - totalPortao);
+  const coberturaPortaoOk =
+    !exigePortao || (totalPortao > 0.005 && faltaPortaoRS <= 0.005);
 
 
 
@@ -696,7 +733,7 @@ export default function CobrancaDetalhe() {
   };
 
   // Loading
-  if (pedidoQ.isLoading || propostaQ.isLoading) {
+  if (pedidoQ.isLoading || propostaQ.isLoading || planoExistenteQ.isLoading) {
     return (
       <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 space-y-4">
         <Skeleton className="h-20 w-full" />
@@ -736,8 +773,9 @@ export default function CobrancaDetalhe() {
     );
   }
 
-  // Pedido já saiu de 'cobranca' — modo edição de links
-  if (pedidoQ.data.estagio !== "cobranca") {
+  // TRAVA: estágio fora de 'cobranca' OU plano já materializado → modo links.
+  // Nunca mostrar proposta editável para pedido que já tem plano (evita plano duplicado).
+  if (pedidoQ.data.estagio !== "cobranca" || (planoExistenteQ.data ?? 0) > 0) {
     return <GerenciarLinksPagamento pedido={pedidoQ.data} />;
   }
 
@@ -808,6 +846,14 @@ export default function CobrancaDetalhe() {
         subtitle="Edite a proposta de títulos antes de materializar."
       />
 
+      {/* Faixa de estado: já materializei ou não? */}
+      <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm">
+        <Info className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <span className="font-medium">
+          Ainda não materializado — o que está abaixo é uma proposta editável.
+        </span>
+      </div>
+
       <CobrancaStepper fase={titulos.some((t) => t.link_pagamento) ? 2 : 1} />
 
       {/* Resumo */}
@@ -815,111 +861,124 @@ export default function CobrancaDetalhe() {
         <CardHeader>
           <CardTitle className="text-base">Resumo do pedido</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div className="md:col-span-2">
+        <CardContent className="space-y-5 text-sm">
+          {/* ZONA 1 — DINHEIRO */}
+          <div className="flex flex-wrap items-end gap-x-8 gap-y-3 rounded-md border bg-muted/30 p-3">
+            <div>
+              <p className="text-muted-foreground text-xs">Valor total</p>
+              <p className="font-medium">{fmtBRL.format(valorPedido)}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Desconto</p>
+              <p className="font-medium">
+                {descontoRS > 0
+                  ? `${descontoPct.toFixed(descontoPct >= 10 ? 0 : 1)}% · ${fmtBRL.format(descontoRS)}`
+                  : "—"}
+              </p>
+            </div>
+            {jaPagoPedido > 0.005 && (
+              <div>
+                <p className="text-muted-foreground text-xs">
+                  {jaAdiantado > 0.005 ? "Crédito do cliente aplicado" : "Já pago"}
+                </p>
+                <p className="font-medium text-emerald-700">−{fmtBRL.format(jaPagoPedido)}</p>
+              </div>
+            )}
+            <div className="ml-auto text-right">
+              <p className="text-muted-foreground text-xs">A cobrar</p>
+              <p className="text-2xl font-semibold leading-tight">
+                {fmtBRL.format(Math.max(0, valorPedido - jaPagoPedido))}
+              </p>
+            </div>
+          </div>
+
+          {/* ZONA 2 — CONDIÇÃO */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div>
+              <p className="text-muted-foreground text-xs">Condição original</p>
+              <p className="font-medium">{proposta.condicao_original}</p>
+            </div>
+            {pedido.condicao_solicitada &&
+              pedido.condicao_solicitada !== proposta.condicao_original && (
+              <div>
+                <p className="text-muted-foreground text-xs">Condição nova</p>
+                <p className="font-medium text-amber-600">{pedido.condicao_solicitada}</p>
+              </div>
+            )}
+            <div>
+              <p className="text-muted-foreground text-xs">Tem entrada?</p>
+              <p className="font-medium">{proposta.tem_entrada ? "Sim" : "Não"}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Frete</p>
+              <p className="font-medium">{freteLabel}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Qtd de itens</p>
+              <p className="font-medium">{qtdItens}</p>
+            </div>
+          </div>
+
+          {/* ZONA 3 — CLIENTE (recolhida) */}
+          <div className="rounded-md border p-3">
             <p className="text-muted-foreground text-xs mb-1">Cliente</p>
             {pedido.parceiro?.razao_social && (
               <LinhaInfo label="Razão social" value={pedido.parceiro.razao_social} copiavel={pedido.parceiro.razao_social} />
             )}
-            {pedido.parceiro?.nome_fantasia && pedido.parceiro.nome_fantasia !== pedido.parceiro.razao_social && (
-              <LinhaInfo label="Nome fantasia" value={pedido.parceiro.nome_fantasia} copiavel={pedido.parceiro.nome_fantasia} />
-            )}
             {pedido.parceiro?.cnpj && (
               <LinhaInfo label="CNPJ" value={formatCNPJ(pedido.parceiro.cnpj)} copiavel={pedido.parceiro.cnpj} />
             )}
-            {pedido.parceiro?.cpf && (
+            {!pedido.parceiro?.cnpj && pedido.parceiro?.cpf && (
               <LinhaInfo label="CPF" value={pedido.parceiro.cpf} copiavel={pedido.parceiro.cpf} />
             )}
-            {pedido.parceiro?.email && (
-              <LinhaInfo label="E-mail" value={pedido.parceiro.email} copiavel={pedido.parceiro.email} />
-            )}
-            {pedido.parceiro?.telefone && (
-              <LinhaInfo label="Telefone" value={pedido.parceiro.telefone} copiavel={pedido.parceiro.telefone} />
-            )}
-            {pedido.parceiro?.cep && (
-              <LinhaInfo label="CEP" value={pedido.parceiro.cep} copiavel={pedido.parceiro.cep} />
-            )}
-            {(pedido.parceiro?.logradouro || pedido.parceiro?.numero) && (
-              <LinhaInfo
-                label="Logradouro"
-                value={[pedido.parceiro?.logradouro, pedido.parceiro?.numero, pedido.parceiro?.endereco_complemento].filter(Boolean).join(", ")}
-                copiavel={[pedido.parceiro?.logradouro, pedido.parceiro?.numero, pedido.parceiro?.endereco_complemento].filter(Boolean).join(", ")}
-              />
-            )}
-            {pedido.parceiro?.bairro && (
-              <LinhaInfo label="Bairro" value={pedido.parceiro.bairro} copiavel={pedido.parceiro.bairro} />
-            )}
-            {pedido.parceiro?.cidade && (
-              <LinhaInfo label="Cidade" value={pedido.parceiro.cidade} copiavel={pedido.parceiro.cidade} />
-            )}
-            {pedido.parceiro?.uf && (
-              <LinhaInfo label="UF" value={pedido.parceiro.uf} copiavel={pedido.parceiro.uf} />
-            )}
+            <Collapsible>
+              <CollapsibleTrigger className="mt-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                <ChevronDown className="h-3.5 w-3.5" />
+                Ver dados cadastrais
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-1">
+                {pedido.parceiro?.nome_fantasia && pedido.parceiro.nome_fantasia !== pedido.parceiro.razao_social && (
+                  <LinhaInfo label="Nome fantasia" value={pedido.parceiro.nome_fantasia} copiavel={pedido.parceiro.nome_fantasia} />
+                )}
+                {pedido.parceiro?.cnpj && pedido.parceiro?.cpf && (
+                  <LinhaInfo label="CPF" value={pedido.parceiro.cpf} copiavel={pedido.parceiro.cpf} />
+                )}
+                {pedido.parceiro?.email && (
+                  <LinhaInfo label="E-mail" value={pedido.parceiro.email} copiavel={pedido.parceiro.email} />
+                )}
+                {pedido.parceiro?.telefone && (
+                  <LinhaInfo label="Telefone" value={pedido.parceiro.telefone} copiavel={pedido.parceiro.telefone} />
+                )}
+                {pedido.parceiro?.cep && (
+                  <LinhaInfo label="CEP" value={pedido.parceiro.cep} copiavel={pedido.parceiro.cep} />
+                )}
+                {(pedido.parceiro?.logradouro || pedido.parceiro?.numero) && (
+                  <LinhaInfo
+                    label="Logradouro"
+                    value={[pedido.parceiro?.logradouro, pedido.parceiro?.numero, pedido.parceiro?.endereco_complemento].filter(Boolean).join(", ")}
+                    copiavel={[pedido.parceiro?.logradouro, pedido.parceiro?.numero, pedido.parceiro?.endereco_complemento].filter(Boolean).join(", ")}
+                  />
+                )}
+                {pedido.parceiro?.bairro && (
+                  <LinhaInfo label="Bairro" value={pedido.parceiro.bairro} copiavel={pedido.parceiro.bairro} />
+                )}
+                {pedido.parceiro?.cidade && (
+                  <LinhaInfo label="Cidade" value={pedido.parceiro.cidade} copiavel={pedido.parceiro.cidade} />
+                )}
+                {pedido.parceiro?.uf && (
+                  <LinhaInfo label="UF" value={pedido.parceiro.uf} copiavel={pedido.parceiro.uf} />
+                )}
+              </CollapsibleContent>
+            </Collapsible>
           </div>
-          <div>
-            <p className="text-muted-foreground text-xs">Valor bruto</p>
-            <p className="font-medium">{fmtBRL.format(valorBrutoCalc)}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground text-xs">Desconto</p>
-            <p className="font-medium">
-              {descontoRS > 0
-                ? `${descontoPct.toFixed(descontoPct >= 10 ? 0 : 1)}% · ${fmtBRL.format(descontoRS)}`
-                : "—"}
-            </p>
-          </div>
-          <div>
-            <p className="text-muted-foreground text-xs">Valor total</p>
-            <p className="font-medium">{fmtBRL.format(valorPedido)}</p>
-          </div>
-          {jaPagoPedido > 0.005 && (
-            <div>
-              <p className="text-muted-foreground text-xs">
-                {jaAdiantado > 0.005 ? "Crédito do cliente aplicado" : "Já pago"}
-              </p>
-              <p className="font-medium text-emerald-700">
-                −{fmtBRL.format(jaPagoPedido)}
-              </p>
-            </div>
-          )}
-          {jaPagoPedido > 0.005 && (
-            <div>
-              <p className="text-muted-foreground text-xs">A cobrar</p>
-              <p className="font-medium">
-                {fmtBRL.format(Math.max(0, valorPedido - jaPagoPedido))}
-              </p>
-            </div>
-          )}
-          <div>
-            <p className="text-muted-foreground text-xs">Frete</p>
-            <p className="font-medium">{freteLabel}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground text-xs">Qtd de itens</p>
-            <p className="font-medium">{qtdItens}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground text-xs">Condição original</p>
 
-            <p className="font-medium">{proposta.condicao_original}</p>
-          </div>
-          {pedido.condicao_solicitada &&
-            pedido.condicao_solicitada !== proposta.condicao_original && (
-            <div>
-              <p className="text-muted-foreground text-xs">Condição nova</p>
-              <p className="font-medium text-amber-600">{pedido.condicao_solicitada}</p>
-            </div>
-          )}
           <div>
-            <p className="text-muted-foreground text-xs">Tem entrada?</p>
-            <p className="font-medium">{proposta.tem_entrada ? "Sim" : "Não"}</p>
-          </div>
-          <div className="md:col-span-4">
             <p className="text-muted-foreground text-xs">Obs crédito</p>
             <p className="font-medium text-xs whitespace-pre-wrap text-foreground/80">{obsCredito}</p>
           </div>
         </CardContent>
       </Card>
+
 
       {/* Portão — primeiro pagamento à vista: regra derivada da view, nunca toggle. */}
       {exigePortao && (
@@ -1069,7 +1128,7 @@ export default function CobrancaDetalhe() {
                 {" "}· este pedido exige portão
                 {totalPortao <= 0.005
                   ? " — marque ao menos uma linha como portão"
-                  : ` (cobertura de ${pctPortao.toFixed(0)}% do plano; o mínimo é validado no banco ao confirmar)`}
+                  : ` (cobertura de ${pctPortao.toFixed(0)}% do plano; mínimo exigido ${portaoMinimoPct.toFixed(0)}%)`}
               </>
             )}
             {jaPagoPedido > 0.005 && (
@@ -1094,6 +1153,38 @@ export default function CobrancaDetalhe() {
             <p className="mb-2 text-xs text-amber-700 dark:text-amber-400">
               Plano editado e ainda não materializado.
             </p>
+          )}
+
+          {/* Regra do portão explicada ANTES do clique */}
+          {exigePortao && (
+            <div
+              className={
+                "mb-3 flex items-start gap-2 rounded-md border px-3 py-2 text-sm " +
+                (coberturaPortaoOk
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200"
+                  : "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200")
+              }
+            >
+              {coberturaPortaoOk ? (
+                <Check className="mt-0.5 h-4 w-4 shrink-0" />
+              ) : (
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              )}
+              <div>
+                {coberturaPortaoOk ? (
+                  <span>Cobertura suficiente para liberar.</span>
+                ) : (
+                  <span>
+                    Faltam <strong>{fmtBRL.format(faltaPortaoRS)}</strong> para liberar este pedido — marque
+                    mais parcelas como pagamento antecipado.
+                  </span>
+                )}
+                <span className="block text-xs opacity-80">
+                  Antecipado hoje: {fmtBRL.format(totalPortao)} ({pctPortao.toFixed(0)}% do plano) · mínimo
+                  exigido: {portaoMinimoPct.toFixed(0)}%
+                </span>
+              </div>
+            </div>
           )}
 
           <div className="rounded-md border">
@@ -1306,7 +1397,12 @@ export default function CobrancaDetalhe() {
             </Button>
             <Button
               onClick={handleAceitar}
-              disabled={!podeMaterializar || montarPlano.isPending}
+              disabled={!podeMaterializar || montarPlano.isPending || !coberturaPortaoOk}
+              title={
+                !coberturaPortaoOk
+                  ? `Faltam ${fmtBRL.format(faltaPortaoRS)} marcados como pagamento antecipado para atingir o mínimo de ${portaoMinimoPct.toFixed(0)}% exigido neste pedido.`
+                  : undefined
+              }
             >
               {montarPlano.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
               Aceitar e montar plano
