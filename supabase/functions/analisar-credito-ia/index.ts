@@ -417,7 +417,7 @@ const DECISOES_VALIDAS = [
   "devolver_entrada",
 ];
 
-const RE_MOEDA_UNUSED_PLACEHOLDER = undefined;
+
 const RE_MOEDA = /r\$\s*([\d.]*\d(?:,\d{1,2})?)/g;
 
 function parseMoedaBr(bruto: string): number {
