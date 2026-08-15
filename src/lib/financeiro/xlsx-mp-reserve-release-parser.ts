@@ -1,9 +1,15 @@
 /**
  * Parser XLSX Mercado Pago — Reserve and Release.
  * É o "OFX do MP" — extrato corrido com saldo.
- * TIPO DE REGISTRO: "Liberações" (crédito) | "Retiradas" (débito = Withdraw já processado pelo P2)
- * Para a conciliação, importar só as "Liberações" como créditos da conta MP.
- * As "Retiradas" são ignoradas aqui — já entram via xlsx-mp-withdraw-parser.
+ * Tudo que é dinheiro vem com TIPO DE REGISTRO = "Liberações".
+ * O que separa entrada de saída NÃO é o tipo de registro: é a coluna
+ * VALOR LÍQUIDO DEBITADO (saque, devolução) contra VALOR LÍQUIDO CREDITADO
+ * (pagamento). Por isso o valor de cada linha sai assinado (credito - debito).
+ * Linhas de DESCRIÇÃO começando com "Reserva" são par neutro (o mesmo valor
+ * aparece creditado numa linha e debitado noutra) — trânsito interno do MP,
+ * não é dinheiro, não entra.
+ * Linhas de "Saldo inicial disponível" e "Total" são cabeçalho/rodapé e ficam
+ * de fora pelo filtro de "Liberações".
  */
 
 import * as XLSX from "xlsx";
@@ -12,12 +18,15 @@ export interface MpLiberacao {
   data_liberacao: string;     // ISO
   id_operacao: string;
   descricao: string;
-  valor_liquido: number;      // sempre positivo (crédito)
+  valor_liquido: number;      // assinado: crédito positivo, débito negativo
   meio_pagamento: string;
   codigo_referencia: string;  // token Shopify
   saldo_apos: number;
+  descricao_mp: string;       // conteúdo bruto da coluna DESCRIÇÃO
+  conta_destino: string;      // CONTA DE DESTINO DA RETIRADA
   origem: "mp_reserve_release";
 }
+
 
 export interface MpReserveReleaseParsed {
   liberacoes: MpLiberacao[];
@@ -52,10 +61,12 @@ export function parseXlsxMpReserveRelease(buf: ArrayBuffer): MpReserveReleasePar
   const iIdOp      = idx("id da operacao");
   const iDescricao = idx("descricao");
   const iCredito   = idx("valor liquido creditado");
+  const iDebito    = idx("valor liquido debitado");
   const iMeio      = idx("meio de pagamento");
   const iCodRef    = idx("codigo de referencia");
   const iSaldo     = idx("saldo");
   const iTipoReg   = idx("tipo de registro");
+  const iContaDest = idx("conta de destino da retirada");
 
   const liberacoes: MpLiberacao[] = [];
 
@@ -66,17 +77,25 @@ export function parseXlsxMpReserveRelease(buf: ArrayBuffer): MpReserveReleasePar
     const tipoReg = norm(row[iTipoReg]);
     if (!tipoReg.includes("libera")) continue;
 
+    const descricaoBruta = String(row[iDescricao] ?? "");
+    // Perna de reserva é par neutro (crédito + débito do mesmo valor): não é dinheiro.
+    if (norm(descricaoBruta).startsWith("reserva")) continue;
+
     const credito = toNum(row[iCredito]);
-    if (credito <= 0) continue;
+    const debito = toNum(row[iDebito]);
+    const valor = credito - debito;
+    if (valor === 0) continue;
 
     liberacoes.push({
       data_liberacao:   toISO(row[iDataLib]),
       id_operacao:      String(row[iIdOp] ?? ""),
-      descricao:        String(row[iDescricao] ?? ""),
-      valor_liquido:    credito,
+      descricao:        descricaoBruta,
+      valor_liquido:    valor,
       meio_pagamento:   String(row[iMeio] ?? ""),
       codigo_referencia: String(row[iCodRef] ?? ""),
       saldo_apos:       toNum(row[iSaldo]),
+      descricao_mp:     descricaoBruta,
+      conta_destino:    String(row[iContaDest] ?? ""),
       origem:           "mp_reserve_release",
     });
   }

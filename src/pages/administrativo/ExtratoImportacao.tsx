@@ -757,16 +757,9 @@ export default function ExtratoImportacao() {
         periodoInicio = datas[0] || null;
         periodoFim = datas[datas.length - 1] || null;
 
+        // Settlement é ENRIQUECIMENTO, não extrato: não cria movimentação.
         for (const t of parsed.transacoes) {
           if (!t.id_transacao_mp) continue;
-          const hash = await gerarHashMov(conta, t.data_liberacao || t.data_aprovacao, t.valor_liquido, `mp_settlement|${t.id_transacao_mp}`);
-
-          const { data: exist } = await sb
-            .from("movimentacoes_bancarias")
-            .select("id")
-            .eq("hash_unico", hash)
-            .maybeSingle();
-          if (exist) { duplicadas++; continue; }
 
           const tipoMeio = t.tipo_meio_pagamento.toLowerCase().includes("bancaria") ? "pix" : "cartao";
 
@@ -782,24 +775,8 @@ export default function ExtratoImportacao() {
             p_classe: null,
           });
           if (errEnr) throw errEnr;
-          if (alvoId) { enriquecidas++; continue; }
-
-
-          const { error: errIns } = await sb.from("movimentacoes_bancarias").insert({
-            conta_bancaria_id: conta,
-            data_transacao: t.data_liberacao || t.data_aprovacao,
-            descricao: `MP ${t.meio_pagamento.toUpperCase()} ${t.parcelas > 1 ? `${t.parcelas}x` : "AVISTA"}`,
-            valor: t.valor_liquido,
-            tipo: "credito",
-            id_transacao_banco: t.id_transacao_mp,
-            hash_unico: hash,
-            origem: "mp_settlement",
-            tipo_meio: tipoMeio,
-            referencia_pedido: t.codigo_referencia || null,
-            fonte_importacao_id: impId,
-          });
-          if (errIns) throw errIns;
-          novas++;
+          if (alvoId) enriquecidas++;
+          else semPar++;
         }
 
       } else if (fonte === "mp_release") {
@@ -812,6 +789,17 @@ export default function ExtratoImportacao() {
         periodoInicio = datas[0] || null;
         periodoFim = datas[datas.length - 1] || null;
 
+        // CNPJ próprio vem da dimensão (unidade ativa) — sem hardcode.
+        const { data: unidade, error: errUnid } = await sb
+          .from("unidades")
+          .select("cnpj")
+          .eq("ativa", true)
+          .not("cnpj", "is", null)
+          .limit(1)
+          .maybeSingle();
+        if (errUnid) throw errUnid;
+        const cnpjProprio = (unidade?.cnpj ?? "").replace(/\D/g, "") || null;
+
         for (const l of parsed.liberacoes) {
           if (!l.id_operacao) continue;
           const hash = await gerarHashMov(conta, l.data_liberacao, l.valor_liquido, `mp_rr|${l.id_operacao}`);
@@ -823,19 +811,47 @@ export default function ExtratoImportacao() {
             .maybeSingle();
           if (exist) { duplicadas++; continue; }
 
-          const tipoMeio = l.meio_pagamento.toLowerCase().includes("pix") ? "pix" : "cartao";
+          const desc = l.descricao_mp
+            .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+          const ehSaque = desc.startsWith("saque");
+          const ehDevolucao = desc.startsWith("devolucao");
+          const meio = l.meio_pagamento.toUpperCase();
+
+          let descricao: string;
+          let tipoMeio: string;
+          if (ehSaque) {
+            descricao = `MP SAQUE PARA CONTA ${l.conta_destino}`.trim();
+            tipoMeio = "transferencia";
+          } else if (ehDevolucao) {
+            descricao = `MP DEVOLUCAO ${meio}`.trim();
+            tipoMeio = "outro";
+          } else {
+            const meioNorm = l.meio_pagamento
+              .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+            descricao = `MP PAGAMENTO ${meio}`.trim();
+            tipoMeio = meioNorm.includes("saldo disponivel")
+              ? "outro"
+              : (meioNorm.includes("pix") || meioNorm.includes("transferencia bancaria"))
+                ? "pix"
+                : "cartao";
+          }
+          const ehPagamento = !ehSaque && !ehDevolucao;
 
           const { error: errIns } = await sb.from("movimentacoes_bancarias").insert({
             conta_bancaria_id: conta,
             data_transacao: l.data_liberacao,
-            descricao: `MP ${l.descricao.toUpperCase()} ${l.meio_pagamento.toUpperCase()}`,
+            descricao,
             valor: l.valor_liquido,
-            tipo: "credito",
+            tipo: l.valor_liquido < 0 ? "debito" : "credito",
             id_transacao_banco: l.id_operacao,
             hash_unico: hash,
             origem: "mp_release",
             tipo_meio: tipoMeio,
             referencia_pedido: l.codigo_referencia || null,
+            classe: ehPagamento ? "recebivel_b2c" : null,
+            classe_definida_por: ehPagamento ? "regra_p1" : null,
+            contraparte_nome: ehSaque ? "FETELY COMERCIO IMPORTACAO E EXPORTACAO LTDA" : null,
+            contraparte_documento: ehSaque ? cnpjProprio : null,
             fonte_importacao_id: impId,
           });
           if (errIns) throw errIns;
@@ -1022,6 +1038,12 @@ export default function ExtratoImportacao() {
         toast.success(
           `${PARSER_ROTULO.safrapay_ajustes} — ${file.name}: ${linhasLidas} ajuste(s) · ${enriquecidas} enriquecidos` +
             (semPar > 0 ? ` · ${semPar} sem par no extrato` : "")
+        );
+      } else if (fonte === "mp_settlement") {
+        toast.success(
+          `${PARSER_ROTULO.mp_settlement} — ${file.name}: ${linhasLidas} transação(ões) lidas · ${enriquecidas} enriquecidas` +
+            (semPar > 0 ? ` · ${semPar} sem par no extrato` : "") +
+            " — o Settlement não cria movimentação."
         );
       } else {
 
