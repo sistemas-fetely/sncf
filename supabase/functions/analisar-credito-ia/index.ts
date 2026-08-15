@@ -52,7 +52,9 @@ REGRA: validade_ate é calculada pelo banco automaticamente (now() + 90 dias na 
 ESTRUTURA OBRIGATÓRIA:
 {
   "resumo": "3-5 linhas em prosa humana resumindo o caso",
-  "pontos_atencao": ["item curto 1", "item curto 2"],
+  "pontos_atencao": [
+    { "texto": "item curto", "tipo": "<um dos tipos abaixo>", "valor": number | null }
+  ],
   "sugestao": {
     "perfil_aplicado": "novo_entrada"|"novo_qualificado"|"recorrente_bom_pagador"|"premium",
     "limite_concedido": number,
@@ -65,7 +67,18 @@ ESTRUTURA OBRIGATÓRIA:
   "decisao_sugerida": "aprovar"|"aprovar_com_ressalva"|"reprovar"|"devolver_analise"|"devolver_entrada",
   "justificativa": "1-2 parágrafos citando fontes específicas",
   "confianca": int  // 0-100
-}`;
+}
+
+TIPOS DE PONTO DE ATENÇÃO (obrigatório escolher um):
+- divida_interna_vencida: cliente deve à Fetely e está vencido HOJE. Só use se a linha "DÍVIDA VENCIDA HOJE" for maior que zero ou se houver título com status "atrasado". "valor" = o valor vencido.
+- historico_atraso: cliente pagou com atraso no passado, mas está quitado. Não é dívida. "valor" = null ou o valor do título.
+- exposicao_credito: soma em aberto, limite, concentração. "valor" = o montante.
+- bureau: qualquer coisa vinda de Serasa/BVG — inclusive dívida EXTERNA. Dívida no bureau NUNCA é divida_interna_vencida. "valor" = o valor do bureau.
+- valor_pedido: algo sobre os valores deste pedido. "valor" = o valor citado.
+- cadastro: dado faltante ou inconsistente no cadastro. "valor" = null.
+- outro: o que não couber acima.
+
+REGRA DURA: não classifique como divida_interna_vencida nada que venha do bureau, nem valor já pago, nem atraso histórico já quitado. O sistema confere isso automaticamente e rebaixa a análise quando não bate.`;
 
 interface AnalisarRequest {
   analise_id: string;
