@@ -159,7 +159,15 @@ Deno.serve(async (req) => {
       status: "sucesso",
       registros_atualizados: linhas,
       duracao_ms: Date.now() - t0,
-      detalhes: { historico, posicoes_processadas: posicoes, posicoes_disponiveis: todos.length },
+      detalhes: {
+        historico,
+        posicoes_processadas: posicoes,
+        posicoes_disponiveis: todos.length,
+        foto_mais_recente: todos[0] ?? null,
+        pendentes_restantes: Math.max(pendentes.length - posicoes, 0),
+        teto_por_execucao: maxFotos,
+      },
+
     });
 
     return new Response(JSON.stringify({ ok: true, posicoes, linhas }), {
