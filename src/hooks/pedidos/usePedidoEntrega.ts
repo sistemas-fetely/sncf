@@ -58,6 +58,7 @@ export function usePedidoEntrega(pedidoId: string | undefined, estagio: string |
 
 export interface EntregaLinhaInfo {
   estagio: string | null;
+  transporte_origem: string | null;
   entregue_em: string | null;
   entregue_metodo: string | null;
   transportadora_nome: string | null;
@@ -97,7 +98,7 @@ export function usePedidosEntregaLote(pedidoIds: string[]) {
         sb
           .from("vw_pedido_entrega")
           .select(
-            "pedido_id, estagio, entregue_em, entregue_metodo, transportadora_nome, transportadora_razao, data_entrega_transportadora, data_entrega_prevista, prazo_transportadora, entrega_ocorrencia_texto, entrega_ocorrencia_codigo, entrega_ocorrencia_classe, entrega_ocorrencia_problema",
+            "pedido_id, estagio, transporte_origem, entregue_em, entregue_metodo, transportadora_nome, transportadora_razao, data_entrega_transportadora, data_entrega_prevista, prazo_transportadora, entrega_ocorrencia_texto, entrega_ocorrencia_codigo, entrega_ocorrencia_classe, entrega_ocorrencia_problema",
           )
           .in("pedido_id", ids),
         sb
@@ -162,6 +163,7 @@ export function usePedidosEntregaLote(pedidoIds: string[]) {
       const put = (pid: string, patch: Partial<EntregaLinhaInfo>) => {
         const base: EntregaLinhaInfo = m.get(pid) ?? {
           estagio: null,
+          transporte_origem: null,
           entregue_em: null,
           entregue_metodo: null,
           transportadora_nome: null,
@@ -189,6 +191,7 @@ export function usePedidosEntregaLote(pedidoIds: string[]) {
         if (!r.pedido_id) continue;
         put(r.pedido_id, {
           estagio: r.estagio ?? null,
+          transporte_origem: r.transporte_origem ?? null,
           entregue_em: r.entregue_em ?? null,
           entregue_metodo: r.entregue_metodo ?? null,
           transportadora_nome: r.transportadora_nome ?? r.transportadora_razao ?? null,
