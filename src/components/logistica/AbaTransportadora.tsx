@@ -3,7 +3,7 @@ import { nomeExibicao } from "@/lib/parceiros/nome";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Building2, Truck, Cloud, CloudAlert, CloudOff, Loader2 } from "lucide-react";
+import { Building2, Truck, Cloud, AlertTriangle, CloudOff, Loader2 } from "lucide-react";
 import { FretesEntregas } from "./FretesEntregas";
 import { FretesEntregasB2C } from "./FretesEntregasB2C";
 import { FaturasConciliacao } from "./FaturasConciliacao";
@@ -40,10 +40,29 @@ function horasDesde(iso: string | null): number | null {
   return (Date.now() - d.getTime()) / (1000 * 60 * 60);
 }
 
+function horaSaoPaulo(): number {
+  const parts = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    hour: "numeric",
+    hour12: false,
+  }).formatToParts(new Date());
+  const h = parts.find((p) => p.type === "hour")?.value;
+  return h ? parseInt(h, 10) : 0;
+}
+
+function deveSinalizarAtraso(atualizadoEm: string | null): boolean {
+  // O cron de sincronização da Braspress roda apenas entre 9h e 22h59.
+  // Fora dessa janela (especialmente a madrugada) o intervalo maior é normal,
+  // então não devemos pintar o indicador de alerta.
+  const horaLocal = horaSaoPaulo();
+  if (horaLocal < 9 || horaLocal > 22) return false;
+  const h = horasDesde(atualizadoEm);
+  return h !== null && h > 3;
+}
+
 function IndicadorSincronizacao({ transportadoraId }: { transportadoraId: string }) {
   const { data, isLoading } = useUltimaSincronizacao(transportadoraId);
-  const h = horasDesde(data?.atualizado_em ?? null);
-  const atrasado = h !== null && h > 6;
+  const atrasado = deveSinalizarAtraso(data?.atualizado_em ?? null);
   const semRegistro = !isLoading && !data?.atualizado_em;
 
   if (isLoading) {
@@ -80,7 +99,7 @@ function IndicadorSincronizacao({ transportadoraId }: { transportadoraId: string
         atrasado ? "bg-warning/10 text-warning" : "bg-muted/30 text-success"
       )}
     >
-      {atrasado ? <CloudAlert className="h-4 w-4" /> : <Cloud className="h-4 w-4" />}
+      {atrasado ? <AlertTriangle className="h-4 w-4" /> : <Cloud className="h-4 w-4" />}
       <div className="leading-tight">
         <div className="font-medium">{linhaPrincipal}</div>
         <div className="text-xs opacity-90">
