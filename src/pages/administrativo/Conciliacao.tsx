@@ -379,10 +379,10 @@ export default function Conciliacao() {
 
   function corNivel(nivel: number | undefined | null): string {
     if (!nivel) return "";
-    if (nivel === 1) return "border-l-4 border-l-emerald-500 bg-success/10";
-    if (nivel === 2) return "border-l-4 border-l-yellow-400 bg-warning/10";
-    if (nivel === 3) return "border-l-4 border-l-orange-400 bg-warning/10";
-    return "border-l-4 border-l-red-400 bg-destructive/10";
+    if (nivel === 1) return "border-l-4 border-l-success/40 bg-success/10";
+    if (nivel === 2) return "border-l-4 border-l-warning/40 bg-warning/10";
+    if (nivel === 3) return "border-l-4 border-l-warning/40 bg-warning/10";
+    return "border-l-4 border-l-destructive/40 bg-destructive/10";
   }
 
   return (
@@ -649,7 +649,7 @@ export default function Conciliacao() {
                     key={item.planilha_id}
                     className={`rounded-lg border bg-card p-3 transition-colors ${
                       item.tipo === "parcialmente_conciliado"
-                        ? "border-l-4 border-l-blue-500 bg-info/10"
+                        ? "border-l-4 border-l-info/40 bg-info/10"
                         : corNivel(item.mov_sugerida?.nivel)
                     }`}
                   >
@@ -860,7 +860,7 @@ export default function Conciliacao() {
                 Aguardando OFX ({aguardandoOfx.length})
               </p>
               {aguardandoOfx.map((item) => (
-                <div key={item.planilha_id} className="border rounded-md p-3 flex items-center justify-between gap-4 border-l-4 border-l-amber-400 bg-warning/10">
+                <div key={item.planilha_id} className="border rounded-md p-3 flex items-center justify-between gap-4 border-l-4 border-l-warning/40 bg-warning/10">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{item.nome_favorecido ?? "—"}</p>
                     <p className="text-xs text-muted-foreground">
@@ -908,7 +908,7 @@ export default function Conciliacao() {
                 OFX sem planilha ({ofxOrfao.length})
               </p>
               {ofxOrfao.map((item) => (
-                <div key={item.ofx_id} className="border rounded-md p-3 flex items-center justify-between gap-4 border-l-4 border-l-slate-300">
+                <div key={item.ofx_id} className="border rounded-md p-3 flex items-center justify-between gap-4 border-l-4 border-l-border/40">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{item.descricao}</p>
                     <p className="text-xs text-muted-foreground">

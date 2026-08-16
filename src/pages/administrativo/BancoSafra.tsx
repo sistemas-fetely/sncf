@@ -1079,7 +1079,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
           return (
             <TableRow
               key={b.id}
-              className={pendentePassado ? "bg-destructive/10 border-l-2 border-l-red-400" : ""}
+              className={pendentePassado ? "bg-destructive/10 border-l-2 border-l-destructive/40" : ""}
             >
               <TableCell className={vencido || pendentePassado ? "text-destructive font-medium" : ""}>
                 {pendentePassado && (
@@ -1353,7 +1353,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                   l.tom === "vermelho"
                     ? "border-l-destructive"
                     : l.tom === "ambar"
-                      ? "border-l-amber-500"
+                      ? "border-l-warning/40"
                       : "border-l-transparent";
                 return (
                   <li

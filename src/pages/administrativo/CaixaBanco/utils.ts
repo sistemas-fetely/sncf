@@ -102,5 +102,5 @@ export function getQualidadeCategoria(m: {
 }
 
 export function corClass(cor: "verde" | "vermelho"): string {
-  return cor === "verde" ? "text-emerald-600" : "text-red-500";
+  return cor === "verde" ? "text-success" : "text-destructive";
 }

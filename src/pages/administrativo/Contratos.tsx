@@ -1236,7 +1236,7 @@ function NovoContratoDialog({
                     key={p.id}
                     onClick={() => setParceiroId(p.id)}
                     className={`px-3 py-2.5 cursor-pointer text-sm hover:bg-muted/50 ${
-                      parceiroId === p.id ? "bg-success/10 border-l-2 border-l-emerald-500" : ""
+                      parceiroId === p.id ? "bg-success/10 border-l-2 border-l-success/40" : ""
                     }`}
                   >
                     <p className="font-medium">{p.razao_social}</p>
@@ -1336,7 +1336,7 @@ function NovoContratoDialog({
                       onClick={() => setPastaGedId(p.id)}
                       className={`px-3 py-2.5 cursor-pointer text-sm hover:bg-muted/50 flex items-center justify-between ${
                         pastaGedId === p.id
-                          ? "bg-success/10 border-l-2 border-l-emerald-500"
+                          ? "bg-success/10 border-l-2 border-l-success/40"
                           : ""
                       }`}
                     >
