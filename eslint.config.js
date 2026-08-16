@@ -59,7 +59,7 @@ export default tseslint.config(
         },
         {
           selector:
-            "JSXAttribute[name.name='className'] Literal[value=/(^|\\s)(container|max-w-(4xl|5xl|6xl|7xl))(\\s|$)/]",
+            "JSXAttribute[name.name='className'] Literal[value=/(^|\\s)(container|max-w-(4xl|5xl|6xl|7xl)|max-w-\\[1[0-9]{3}px\\])(\\s|$)/]",
           message:
             "SISTEMA VISUAL §7: pagina nao declara largura propria. Use <PageShell variant='dados'|'leitura'|'foco'>.",
         },
