@@ -181,7 +181,7 @@ export function SNCFSidebar() {
     return (
       <SidebarGroup>
         {!collapsed && (
-          <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-semibold mb-1 px-4">
+          <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4">
             {label}
           </SidebarGroupLabel>
         )}
@@ -255,7 +255,7 @@ export function SNCFSidebar() {
           </div>
           {!collapsed && (
             <div className="flex flex-col">
-              <span className="text-sm font-bold tracking-tight" style={{ color: SNCF_COLOR }}>Fetély.</span>
+              <span className="text-sm font-medium tracking-tight" style={{ color: SNCF_COLOR }}>Fetély.</span>
               <span className="text-[11px] text-sidebar-muted">#celebreoqueimporta</span>
             </div>
           )}
@@ -306,7 +306,7 @@ export function SNCFSidebar() {
             <div className="mx-4 border-t border-sidebar-border/40" />
             <SidebarGroup>
               {!collapsed && (
-                <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-semibold mb-1 px-4">
+                <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4">
                   Sistemas Fetely
                 </SidebarGroupLabel>
               )}
@@ -339,7 +339,7 @@ export function SNCFSidebar() {
             <div className="mx-4 border-t border-sidebar-border/40" />
             <SidebarGroup>
               {!collapsed && (
-                <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-semibold mb-1 px-4">
+                <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4">
                   Sistemas externos
                 </SidebarGroupLabel>
               )}
@@ -379,7 +379,7 @@ export function SNCFSidebar() {
           <div className="space-y-2">
             <div className="flex items-center gap-3 rounded-xl bg-sidebar-accent/60 p-3">
               <div
-                className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white shadow-sm"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-medium text-white shadow-sm"
                 style={{ backgroundColor: SNCF_COLOR }}
               >
                 {initials}

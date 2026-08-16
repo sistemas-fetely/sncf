@@ -85,7 +85,7 @@ export function AdminSidebar() {
   const renderGroup = (label: string, items: MenuItem[]) => (
     <SidebarGroup>
       {!collapsed && (
-        <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-semibold mb-1 px-4">
+        <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4">
           {label}
         </SidebarGroupLabel>
       )}
@@ -107,7 +107,7 @@ export function AdminSidebar() {
           </div>
           {!collapsed && (
             <div className="flex flex-col">
-              <span className="text-sm font-bold tracking-tight" style={{ color: ADMIN_COLOR }}>
+              <span className="text-sm font-medium tracking-tight" style={{ color: ADMIN_COLOR }}>
                 ADM SNCF
               </span>
               <span className="text-[11px] text-sidebar-muted">Configurações globais</span>

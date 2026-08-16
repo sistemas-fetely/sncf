@@ -330,7 +330,7 @@ export function ParametrosExtratoFontes() {
         <div className="space-y-6">
           {porBanco.map(([banco, itens]) => (
             <div key={banco} className="space-y-2">
-              <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              <h4 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
                 {banco}
               </h4>
               <div className="space-y-2">

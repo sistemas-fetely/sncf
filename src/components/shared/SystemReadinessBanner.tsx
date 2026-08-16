@@ -35,7 +35,7 @@ export function SystemReadinessBanner({ somenteCriticos = false, className }: Pr
               "flex items-start gap-3 rounded-lg border p-3 text-sm",
               isCritico
                 ? "border-destructive/40 bg-destructive/10 text-destructive"
-                : "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-200"
+                : "border-warning/40 bg-warning/10 text-warning"
             )}
           >
             <Icon className="h-4 w-4 mt-0.5 flex-shrink-0" />

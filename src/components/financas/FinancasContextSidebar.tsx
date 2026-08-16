@@ -54,7 +54,7 @@ export function FinancasContextSidebar() {
 
         {isError && (
           <div className="px-3 py-4 group-data-[collapsible=icon]:hidden">
-            <div className="flex items-start gap-2 text-xs text-amber-700">
+            <div className="flex items-start gap-2 text-xs text-warning">
               <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
               <div>
                 <p className="font-medium">Menu indisponível</p>

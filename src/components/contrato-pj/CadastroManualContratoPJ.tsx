@@ -134,7 +134,7 @@ export function CadastroManualContratoPJ() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
             <ShieldAlert className="h-5 w-5 text-warning" />
             Cadastro manual · Contrato PJ
           </h1>

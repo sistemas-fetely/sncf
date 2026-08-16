@@ -185,7 +185,7 @@ export function GruposAcessoTab() {
 
       {transversais.length > 0 && (
         <div className="space-y-3">
-          <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <Shield className="h-4 w-4" />
             Papéis transversais · sem unidade, sem nível
           </div>
@@ -197,7 +197,7 @@ export function GruposAcessoTab() {
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <h3 className="font-semibold">{perfil.nome}</h3>
+                        <h3 className="font-medium">{perfil.nome}</h3>
                         {perfil.descricao && (
                           <p className="text-xs text-muted-foreground mt-0.5">{perfil.descricao}</p>
                         )}
@@ -257,7 +257,7 @@ export function GruposAcessoTab() {
 
       {areas.length > 0 && (
         <div className="space-y-3">
-          <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <MapPin className="h-4 w-4" />
             Áreas · sempre com unidade e nível
           </div>
@@ -276,7 +276,7 @@ export function GruposAcessoTab() {
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <h3 className="font-semibold">{perfil.nome}</h3>
+                        <h3 className="font-medium">{perfil.nome}</h3>
                         {perfil.descricao && (
                           <p className="text-xs text-muted-foreground mt-0.5">{perfil.descricao}</p>
                         )}

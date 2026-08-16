@@ -356,7 +356,7 @@ export default function ClienteDetalhe() {
 
       {/* Timeline */}
       <TimelineClienteVisual marcos={marcos} />
-    </div>
+    </PageShell>
   );
 }
 
@@ -389,6 +389,6 @@ function Linha({
       <span className={destaque ? "font-medium text-destructive" : "font-medium"}>
         {value ?? "—"}
       </span>
-    </PageShell>
+    </div>
   );
 }

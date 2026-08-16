@@ -229,7 +229,7 @@ export default function ParametrosExtrasSection() {
                         {APLICA_LABEL[e.aplica_a] || e.aplica_a}
                       </Badge>
                       {e.ativo ? (
-                        <Badge variant="secondary" className="text-[10px] bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">Ativo</Badge>
+                        <Badge variant="secondary" className="text-[10px] bg-success/10 text-success">Ativo</Badge>
                       ) : (
                         <Badge variant="secondary" className="text-[10px]">Inativo</Badge>
                       )}

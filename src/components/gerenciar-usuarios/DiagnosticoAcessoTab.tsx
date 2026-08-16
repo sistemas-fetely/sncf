@@ -200,7 +200,7 @@ function MatrizConcessao() {
                           <TableRow key={`pilar-${l.pilar}`} className="bg-muted/50">
                             <TableCell
                               colSpan={grupos.length + 1}
-                              className="text-xs font-semibold uppercase tracking-wide"
+                              className="text-xs font-medium uppercase tracking-wide"
                             >
                               {l.pilar}
                             </TableCell>
@@ -214,7 +214,7 @@ function MatrizConcessao() {
                           {grupos.map((g) => (
                             <TableCell key={g.id} className="text-center">
                               {l.grupos.has(g.id) ? (
-                                <span className="text-success font-bold">✓</span>
+                                <span className="text-success font-medium">✓</span>
                               ) : (
                                 <span className="text-muted-foreground/40">·</span>
                               )}
@@ -323,7 +323,7 @@ export default function DiagnosticoAcessoTab() {
                       ativo && "ring-2 ring-primary",
                     )}
                   >
-                    <p className="text-2xl font-bold">{count}</p>
+                    <p className="text-2xl font-medium">{count}</p>
                     <div className="mt-1">
                       <DiagBadge diag={diag} />
                     </div>

@@ -161,7 +161,7 @@ export function HistoricoCustosChart({ tipo, entityId }: HistoricoCustosChartPro
                   </TableRow>
                 ))}
                 {/* Total row */}
-                <TableRow className="bg-muted/50 font-semibold text-xs">
+                <TableRow className="bg-muted/50 font-medium text-xs">
                   <TableCell className="py-2">TOTAL</TableCell>
                   <TableCell className="py-2 text-right">{fmt(totals.acBruto)}</TableCell>
                   {tipo === "clt" && <TableCell className="py-2 text-right">{fmt(totals.acLiquido)}</TableCell>}

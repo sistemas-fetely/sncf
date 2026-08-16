@@ -150,7 +150,7 @@ export default function PainelAuditoriaTab({
           <CardContent className="flex items-start gap-3 p-4">
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
             <div className="space-y-1">
-              <p className="text-sm font-semibold text-destructive">
+              <p className="text-sm font-medium text-destructive">
                 {paradas.length} regra(s) parada(s) ou com erro
               </p>
               <p className="text-xs text-muted-foreground">

@@ -460,7 +460,7 @@ export default function ImportarPlanilhaSheet({ open, onOpenChange, onCriado }: 
             <>
               <Card className="card-shadow">
                 <CardContent className="space-y-4 py-4">
-                  <div className="flex items-center gap-2 text-sm font-semibold">
+                  <div className="flex items-center gap-2 text-sm font-medium">
                     <FileSpreadsheet className="h-4 w-4" />
                     {nomeArquivo}
                   </div>
@@ -528,7 +528,7 @@ export default function ImportarPlanilhaSheet({ open, onOpenChange, onCriado }: 
                     <span className="text-muted-foreground">
                       <strong className="tabular-nums">{ignoradas}</strong> ignorada(s) em branco
                     </span>
-                    <span className="ml-auto font-semibold tabular-nums">
+                    <span className="ml-auto font-medium tabular-nums">
                       Total pronto: {formatarBRL(totalProntas)}
                     </span>
                   </div>

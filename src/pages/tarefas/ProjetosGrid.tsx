@@ -21,7 +21,7 @@ export default function ProjetosGrid() {
     <div className="mx-auto w-full max-w-6xl space-y-6 p-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">Projetos</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Projetos</h1>
           <p className="text-sm text-muted-foreground">
             Onde o trabalho ganha seção, responsável e prazo.
           </p>
@@ -55,7 +55,7 @@ export default function ProjetosGrid() {
                       style={{ backgroundColor: p.cor }}
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold">{p.nome}</p>
+                      <p className="truncate font-medium">{p.nome}</p>
                       <p className="truncate text-xs text-muted-foreground">
                         {p.responsavel_id ? nomePessoa(p.responsavel_id) : "Sem responsável"}
                       </p>

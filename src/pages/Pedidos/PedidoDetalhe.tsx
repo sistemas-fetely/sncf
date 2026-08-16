@@ -109,7 +109,6 @@ import { ProvaPagamentoAlerta } from "@/components/pedidos/ProvaPagamentoAlerta"
 
 
 
-import { PageShell } from "@/components/layout/PageShell";
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (s: string | null | undefined) => s ? new Date(s + (s.length === 10 ? "T00:00:00" : "")).toLocaleDateString("pt-BR") : "—";
 const fmtDateTime = (s: string | null | undefined) => s ? new Date(s).toLocaleString("pt-BR") : "—";
@@ -128,7 +127,7 @@ const STATUS_CORES: Record<StatusTitulo, string> = {
 
 function Linha({ label, value, destaque }: { label: string; value?: string | number | null; destaque?: boolean }) {
   return (
-    <PageShell className="flex justify-between gap-3 text-sm border-b border-border/40 last:border-0">
+    <div className="flex justify-between gap-3 text-sm border-b border-border/40 last:border-0">
       <span className="text-muted-foreground shrink-0">{label}</span>
       <span className={cn("text-right", destaque && "font-medium")}>{value ?? "—"}</span>
     </div>
@@ -2668,7 +2667,7 @@ export default function PedidoDetalhe() {
           parceiroId={pedido.parceiro_id}
         />
       )}
-    </PageShell>
+    </div>
   );
 }
 

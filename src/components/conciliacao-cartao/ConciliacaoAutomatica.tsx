@@ -23,8 +23,8 @@ const num = (v: unknown) => Number(v ?? 0);
 const pct = (v: unknown) => (v == null ? "—" : `${num(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`);
 
 const TOM_CLASSE: Record<string, string> = {
-  verde: "border-emerald-300 bg-emerald-50/60",
-  ambar: "border-amber-300 bg-amber-50/60",
+  verde: "border-success/40 bg-success/10",
+  ambar: "border-warning/40 bg-warning/10",
   vermelho: "border-destructive/40 bg-destructive/5",
   neutro: "",
 };
@@ -54,7 +54,7 @@ function GrupoSituacao({
           ) : (
             <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
           )}
-          <span className="text-sm font-semibold">{meta.rotulo}</span>
+          <span className="text-sm font-medium">{meta.rotulo}</span>
           <Badge variant="outline">{linhas.length}</Badge>
           <span className="ml-auto text-sm font-medium">{formatBRL(soma)}</span>
         </CollapsibleTrigger>

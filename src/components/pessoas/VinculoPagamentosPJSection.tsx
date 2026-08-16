@@ -81,15 +81,15 @@ export default function VinculoPagamentosPJSection({ vinculoId }: Props) {
             <div className="grid grid-cols-3 gap-4">
               <div className="rounded-md border p-3">
                 <div className="text-xs text-muted-foreground">Total em títulos</div>
-                <div className="text-xl font-semibold">{fmtBRL(totalTitulos)}</div>
+                <div className="text-xl font-medium">{fmtBRL(totalTitulos)}</div>
               </div>
               <div className="rounded-md border p-3">
                 <div className="text-xs text-muted-foreground">Total pago</div>
-                <div className="text-xl font-semibold">{fmtBRL(totalPago)}</div>
+                <div className="text-xl font-medium">{fmtBRL(totalPago)}</div>
               </div>
               <div className="rounded-md border p-3">
                 <div className="text-xs text-muted-foreground">Em aberto</div>
-                <div className="text-xl font-semibold">{fmtBRL(emAberto)}</div>
+                <div className="text-xl font-medium">{fmtBRL(emAberto)}</div>
               </div>
             </div>
 

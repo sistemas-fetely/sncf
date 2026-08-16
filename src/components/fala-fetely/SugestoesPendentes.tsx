@@ -91,7 +91,7 @@ export function SugestoesPendentes({ sugestoes, onAprovar, onAtualizar }: Sugest
             </div>
 
             {s.titulo_sugerido && (
-              <p className="text-sm font-semibold">{s.titulo_sugerido}</p>
+              <p className="text-sm font-medium">{s.titulo_sugerido}</p>
             )}
 
             {s.pergunta_original && (
@@ -108,8 +108,8 @@ export function SugestoesPendentes({ sugestoes, onAprovar, onAtualizar }: Sugest
               </div>
             )}
 
-            <div className="bg-emerald-50 border-l-4 border-l-[#1A4A3A] p-3 rounded-lg">
-              <p className="text-[10px] uppercase tracking-wide text-emerald-800 mb-1 font-semibold">Correção sugerida</p>
+            <div className="bg-success/10 border-l-4 border-l-[#1A4A3A] p-3 rounded-lg">
+              <p className="text-[10px] uppercase tracking-wide text-success mb-1 font-medium">Correção sugerida</p>
               <p className="text-sm whitespace-pre-wrap">{s.correcao_sugerida}</p>
             </div>
 

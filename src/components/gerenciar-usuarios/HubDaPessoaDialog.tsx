@@ -351,7 +351,7 @@ export function HubDaPessoaDialog({
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <p className="text-sm font-semibold leading-tight">
+                          <p className="text-sm font-medium leading-tight">
                             {p.nome}
                           </p>
                           {perfisDeTemplate.has(p.id) && (
@@ -415,7 +415,7 @@ export function HubDaPessoaDialog({
                           onClick={() => toggleArea(p.id)}
                         >
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <p className="text-sm font-semibold leading-tight">
+                            <p className="text-sm font-medium leading-tight">
                               {p.nome}
                             </p>
                             {perfisDeTemplate.has(p.id) && (
@@ -490,7 +490,7 @@ export function HubDaPessoaDialog({
                             </div>
 
                             {est?.marcado && est.unidades.size === 0 && (
-                              <div className="flex items-center gap-1.5 text-[11px] text-amber-600">
+                              <div className="flex items-center gap-1.5 text-[11px] text-warning">
                                 <AlertCircle className="h-3 w-3" />
                                 Escolha ao menos uma unidade
                               </div>

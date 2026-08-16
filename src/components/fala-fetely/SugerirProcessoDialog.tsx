@@ -108,7 +108,7 @@ export function SugerirProcessoDialog({ open, onOpenChange }: Props) {
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Lightbulb className="h-5 w-5 text-amber-500" />
+            <Lightbulb className="h-5 w-5 text-warning" />
             Sugerir melhoria de processo
           </DialogTitle>
           <DialogDescription>

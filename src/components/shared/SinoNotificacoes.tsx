@@ -177,7 +177,7 @@ export function SinoNotificacoes() {
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="end">
         <div className="flex items-center justify-between border-b px-4 py-3">
-          <h4 className="text-sm font-semibold">Notificações</h4>
+          <h4 className="text-sm font-medium">Notificações</h4>
           {naoLidas.length > 0 && (
             <Button
               variant="ghost"
@@ -203,7 +203,7 @@ export function SinoNotificacoes() {
                   !n.lida && "bg-primary/5"
                 )}
               >
-                <p className={cn("text-sm", !n.lida && "font-semibold")}>{n.titulo}</p>
+                <p className={cn("text-sm", !n.lida && "font-medium")}>{n.titulo}</p>
                 {n.texto && (
                   <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{n.texto}</p>
                 )}

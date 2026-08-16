@@ -87,7 +87,7 @@ export default function ParceiroDetalhe() {
 
       {/* Header */}
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold">{parceiro.razao_social}</h1>
+        <h1 className="text-2xl font-medium">{parceiro.razao_social}</h1>
         {parceiro.nome_fantasia && (
           <p className="text-sm text-muted-foreground">{parceiro.nome_fantasia}</p>
         )}
@@ -103,7 +103,7 @@ export default function ParceiroDetalhe() {
           </Badge>
         )}
         {parceiro.cadastro_incompleto && (
-          <Badge variant="outline" className="gap-1 border-amber-500 text-amber-700">
+          <Badge variant="outline" className="gap-1 border-warning/40 text-warning">
             <AlertCircle className="h-3 w-3" />
             Cadastro incompleto
           </Badge>
@@ -122,15 +122,15 @@ export default function ParceiroDetalhe() {
       {parceiro.cadastro_incompleto && parceiro.cnpj && parceiro.cnpj.length === 14 && (() => {
         const cnpjValido = validateCNPJ(parceiro.cnpj);
         return (
-          <Card className={`border-l-4 ${cnpjValido ? "border-l-amber-500 bg-amber-50/40" : "border-l-destructive bg-destructive/5"}`}>
+          <Card className={`border-l-4 ${cnpjValido ? "border-l-warning/40 bg-warning/10" : "border-l-destructive bg-destructive/5"}`}>
             <CardContent className="py-3 flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-start gap-2 flex-1 min-w-0">
-                <AlertCircle className={`h-4 w-4 shrink-0 mt-0.5 ${cnpjValido ? "text-amber-600" : "text-destructive"}`} />
+                <AlertCircle className={`h-4 w-4 shrink-0 mt-0.5 ${cnpjValido ? "text-warning" : "text-destructive"}`} />
                 <div className="min-w-0">
                   {cnpjValido ? (
                     <>
-                      <p className="text-sm font-medium text-amber-900">Cadastro incompleto</p>
-                      <p className="text-xs text-amber-800">
+                      <p className="text-sm font-medium text-warning">Cadastro incompleto</p>
+                      <p className="text-xs text-warning">
                         Faltam dados de razão social, endereço, e/ou sócios. Enriqueça via BrasilAPI pra completar automaticamente.
                       </p>
                     </>
@@ -174,7 +174,7 @@ export default function ParceiroDetalhe() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-xs text-muted-foreground uppercase tracking-wide">Pedidos totais</p>
-            <p className="text-2xl font-bold mt-1">{total_pedidos}</p>
+            <p className="text-2xl font-medium mt-1">{total_pedidos}</p>
             {pedidos_excluidos > 0 && (
               <p className="text-[11px] text-muted-foreground mt-0.5">
                 {pedidos_excluidos} cancelado(s)/recuperação não contam
@@ -185,14 +185,14 @@ export default function ParceiroDetalhe() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-xs text-muted-foreground uppercase tracking-wide">Em aberto</p>
-            <p className="text-2xl font-bold mt-1">{pedidos_em_aberto}</p>
+            <p className="text-2xl font-medium mt-1">{pedidos_em_aberto}</p>
             <p className="text-[11px] text-muted-foreground mt-0.5">nao terminais</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <p className="text-xs text-muted-foreground uppercase tracking-wide">Valor total</p>
-            <p className="text-2xl font-bold mt-1">{fmtBRL.format(valor_total)}</p>
+            <p className="text-2xl font-medium mt-1">{fmtBRL.format(valor_total)}</p>
             {valor_cancelado > 0 && (
               <p className="text-[11px] text-muted-foreground mt-0.5">
                 exclui {fmtBRL.format(valor_cancelado)} cancelado/recuperação
@@ -203,12 +203,12 @@ export default function ParceiroDetalhe() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-xs text-muted-foreground uppercase tracking-wide">Financeiro</p>
-            <p className="text-2xl font-bold mt-1">{fmtBRL.format(titulos_aberto_valor)}</p>
+            <p className="text-2xl font-medium mt-1">{fmtBRL.format(titulos_aberto_valor)}</p>
             <p className="text-[11px] text-muted-foreground mt-0.5">
               {titulos_aberto_qtd} título(s) em aberto
             </p>
             {credito_disponivel > 0 && (
-              <p className="text-[11px] text-emerald-600 mt-1 font-medium">
+              <p className="text-[11px] text-success mt-1 font-medium">
                 + {fmtBRL.format(credito_disponivel)} em crédito disponível
               </p>
             )}
@@ -359,7 +359,7 @@ export default function ParceiroDetalhe() {
             <div className="flex flex-wrap gap-4">
               <div className="flex items-center gap-1.5 text-sm">
                 {rf.opcao_pelo_simples ? (
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  <CheckCircle2 className="h-4 w-4 text-success" />
                 ) : (
                   <XCircle className="h-4 w-4 text-muted-foreground" />
                 )}
@@ -367,7 +367,7 @@ export default function ParceiroDetalhe() {
               </div>
               <div className="flex items-center gap-1.5 text-sm">
                 {rf.opcao_pelo_mei ? (
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  <CheckCircle2 className="h-4 w-4 text-success" />
                 ) : (
                   <XCircle className="h-4 w-4 text-muted-foreground" />
                 )}
@@ -404,7 +404,7 @@ export default function ParceiroDetalhe() {
                     </div>
                   </div>
                   {s.participacao_pct != null && (
-                    <div className="text-sm font-semibold shrink-0">
+                    <div className="text-sm font-medium shrink-0">
                       {Number(s.participacao_pct).toFixed(2)}%
                     </div>
                   )}

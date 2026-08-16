@@ -35,11 +35,11 @@ interface ManutencoesSectionProps {
 }
 
 const tipoVariant: Record<string, { label: string; className: string }> = {
-  preventiva: { label: "Preventiva", className: "bg-emerald-100 text-emerald-700 border-0" },
-  corretiva: { label: "Corretiva", className: "bg-red-100 text-red-700 border-0" },
-  upgrade: { label: "Upgrade", className: "bg-blue-100 text-blue-700 border-0" },
-  garantia: { label: "Garantia", className: "bg-purple-100 text-purple-700 border-0" },
-  formatacao: { label: "Formatação", className: "bg-gray-100 text-gray-700 border-0" },
+  preventiva: { label: "Preventiva", className: "bg-success/10 text-success border-0" },
+  corretiva: { label: "Corretiva", className: "bg-destructive/10 text-destructive border-0" },
+  upgrade: { label: "Upgrade", className: "bg-info/10 text-info border-0" },
+  garantia: { label: "Garantia", className: "bg-info/10 text-info border-0" },
+  formatacao: { label: "Formatação", className: "bg-muted/10 text-muted-foreground border-0" },
 };
 
 const formatBRL = (n: number | null) =>
@@ -193,7 +193,7 @@ export default function ManutencoesSection({ ativoId, ativoStatus, onStatusChang
       ) : (
         <div className="space-y-2">
           {manutencoes.map((m) => {
-            const variant = tipoVariant[m.tipo_manutencao || ""] || { label: m.tipo_manutencao || "—", className: "bg-gray-100 text-gray-700 border-0" };
+            const variant = tipoVariant[m.tipo_manutencao || ""] || { label: m.tipo_manutencao || "—", className: "bg-muted/10 text-muted-foreground border-0" };
             const emAndamento = !m.data_fim;
             return (
               <div key={m.id} className="border rounded-lg p-3 space-y-2 bg-card">
@@ -201,7 +201,7 @@ export default function ManutencoesSection({ ativoId, ativoStatus, onStatusChang
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge variant="outline" className={variant.className}>{variant.label}</Badge>
                     {emAndamento && (
-                      <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-0">Em andamento</Badge>
+                      <Badge variant="outline" className="bg-warning/10 text-warning border-0">Em andamento</Badge>
                     )}
                   </div>
                   {emAndamento && (

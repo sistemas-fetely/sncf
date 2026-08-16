@@ -23,23 +23,23 @@ export type EstagioMeta = {
 export const ESTAGIO_META: Record<string, EstagioMeta> = {
   completa: {
     label: "completa",
-    className: "bg-emerald-600 hover:bg-emerald-600 text-white border-transparent",
+    className: "bg-success hover:bg-success text-white border-transparent",
   },
   aguardando_pagamento: {
     label: "aguarda pgto",
-    className: "bg-amber-100 text-amber-800 border-amber-400",
+    className: "bg-warning/10 text-warning border-warning/40",
   },
   parcialmente_pago: {
     label: "parcial",
-    className: "bg-blue-50 text-blue-700 border-blue-400",
+    className: "bg-info/10 text-info border-info/40",
   },
   em_conta_corrente: {
     label: "conta corrente",
-    className: "bg-slate-100 text-slate-700 border-slate-300",
+    className: "bg-muted/10 text-muted-foreground border-border/40",
   },
   sem_documento: {
     label: "sem documento",
-    className: "bg-orange-100 text-orange-800 border-orange-400",
+    className: "bg-warning/10 text-warning border-warning/40",
   },
   a_classificar: {
     label: "a classificar",

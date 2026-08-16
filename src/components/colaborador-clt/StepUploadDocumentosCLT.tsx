@@ -135,7 +135,7 @@ export function StepUploadDocumentos({ tipo, folderKey, uploadedFiles, onFilesCh
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold mb-2">Upload de Documentos</h3>
+        <h3 className="text-lg font-medium mb-2">Upload de Documentos</h3>
         <p className="text-sm text-muted-foreground mb-4">
           Envie os documentos disponíveis. Todos os campos são opcionais — documentos faltantes podem ser adicionados depois no detalhe do colaborador.
         </p>
@@ -150,7 +150,7 @@ export function StepUploadDocumentos({ tipo, folderKey, uploadedFiles, onFilesCh
           const isUploading = uploading === doc.key;
 
           return (
-            <Card key={doc.key} className={uploaded ? "border-emerald-300 bg-emerald-50/50" : ""}>
+            <Card key={doc.key} className={uploaded ? "border-success/40 bg-success/10" : ""}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -162,7 +162,7 @@ export function StepUploadDocumentos({ tipo, folderKey, uploadedFiles, onFilesCh
                       />
                     )}
                     {uploaded ? (
-                      <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+                      <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
                     ) : (
                       <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
                     )}

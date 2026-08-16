@@ -23,7 +23,7 @@ const TODOS = "__todos__";
 const COR_PRIORIDADE: Record<TarefaPrioridade, string> = {
   urgente: "border-l-destructive bg-destructive/10 text-destructive",
   alta: "border-l-warning bg-warning/10 text-warning",
-  media: "border-l-amber-500 bg-amber-500/10 text-amber-600",
+  media: "border-l-warning/40 bg-warning text-warning",
   baixa: "border-l-border bg-muted text-muted-foreground",
 };
 
@@ -76,7 +76,7 @@ export default function CalendarioTarefas() {
     <div className="mx-auto w-full max-w-6xl space-y-5 p-4 sm:p-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">Calendário</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Calendário</h1>
           <p className="text-sm text-muted-foreground">
             Prazos no mês. Arraste uma tarefa para outro dia para reagendar.
           </p>
@@ -93,7 +93,7 @@ export default function CalendarioTarefas() {
       </header>
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-lg font-semibold capitalize">
+        <span className="text-lg font-medium capitalize">
           {format(mes, "MMMM 'de' yyyy", { locale: ptBR })}
         </span>
         <div className="ml-auto flex flex-wrap gap-2">
@@ -139,7 +139,7 @@ export default function CalendarioTarefas() {
           ) : (
             diasComTarefa.map((d) => (
               <div key={iso(d)} className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   {format(d, "EEE, dd 'de' MMM", { locale: ptBR })}
                 </p>
                 {(porDia[iso(d)] ?? []).map((t) => (
@@ -162,7 +162,7 @@ export default function CalendarioTarefas() {
         <div className="overflow-hidden rounded-xl border border-border">
           <div className="grid grid-cols-7 border-b border-border bg-muted/50">
             {["dom", "seg", "ter", "qua", "qui", "sex", "sáb"].map((d) => (
-              <div key={d} className="px-2 py-1.5 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <div key={d} className="px-2 py-1.5 text-center text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                 {d}
               </div>
             ))}

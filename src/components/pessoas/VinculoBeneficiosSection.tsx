@@ -210,7 +210,7 @@ export default function VinculoBeneficiosSection({ vinculoId }: { vinculoId: str
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-t-2 font-semibold">
+                <tr className="border-t-2 font-medium">
                   <td className="py-2 px-2">Total ativos</td>
                   <td className="py-2 px-2 text-right tabular-nums">{fmtBRL(totalAtivos)}</td>
                   <td colSpan={4}></td>

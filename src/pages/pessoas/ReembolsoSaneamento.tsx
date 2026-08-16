@@ -201,7 +201,7 @@ export default function ReembolsoSaneamento() {
       <div className="p-6 space-y-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
               <Receipt className="h-6 w-6" />
               Saneamento de cadastro para reembolso
             </h1>
@@ -533,7 +533,7 @@ function Resumo({
       <span className="text-xs text-muted-foreground">{rotulo}</span>
       <span
         className={cn(
-          "text-xl font-bold tabular-nums",
+          "text-xl font-medium tabular-nums",
           destaque && "text-success",
           alerta && "text-warning",
         )}

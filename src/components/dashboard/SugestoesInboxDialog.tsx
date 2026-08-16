@@ -121,7 +121,7 @@ export function SugestoesInboxDialog({ open, onOpenChange, sugestoes }: Props) {
                       <Lightbulb className="h-4 w-4 text-warning mt-0.5 shrink-0" />
                       <div className="flex-1 min-w-0">
                         {s.titulo_sugerido && (
-                          <p className="text-sm font-semibold">{s.titulo_sugerido}</p>
+                          <p className="text-sm font-medium">{s.titulo_sugerido}</p>
                         )}
                         <p className="text-sm text-muted-foreground whitespace-pre-line">
                           {s.descricao.length > 240 ? s.descricao.slice(0, 240) + "…" : s.descricao}

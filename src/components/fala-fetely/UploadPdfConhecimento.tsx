@@ -261,7 +261,7 @@ export function UploadPdfConhecimento({ open, onOpenChange, onConhecimentosCriad
               <div
                 className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                   arrastando
-                    ? "border-[#1A4A3A] bg-emerald-50"
+                    ? "border-[#1A4A3A] bg-success/10"
                     : "border-muted hover:border-[#1A4A3A]/50"
                 }`}
                 onDragEnter={(e) => {
@@ -290,8 +290,8 @@ export function UploadPdfConhecimento({ open, onOpenChange, onConhecimentosCriad
               </div>
 
               {arquivo && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-emerald-600" />
+                <div className="bg-success/10 border border-success/40 rounded-lg p-3 flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-success" />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">{arquivo.name}</p>
                     <p className="text-xs text-muted-foreground">

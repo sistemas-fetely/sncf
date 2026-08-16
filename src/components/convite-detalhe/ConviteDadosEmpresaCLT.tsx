@@ -41,7 +41,7 @@ export function ConviteDadosEmpresaCLT({ dados, editing, updateField }: Props) {
         {/* Provisionamento */}
         {dados._convite_dados_contratacao && (
           <div className="mt-6 pt-4 border-t space-y-3">
-            <h4 className="text-sm font-semibold text-muted-foreground">Provisionamento (definido na contratação)</h4>
+            <h4 className="text-sm font-medium text-muted-foreground">Provisionamento (definido na contratação)</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <p className="text-xs text-muted-foreground">Email Corporativo</p>

@@ -38,7 +38,7 @@ function LinhaExecucao({ e }: { e: ExecucaoAuto }) {
         <span className="text-xs text-muted-foreground">
           {num(e.candidatos)} candidatos
         </span>
-        <span className="text-xs text-emerald-700 font-medium">
+        <span className="text-xs text-success font-medium">
           {num(e.conciliados)} conciliados
         </span>
         {recusados > 0 && (
@@ -83,7 +83,7 @@ function LinhaExecucao({ e }: { e: ExecucaoAuto }) {
                           Recusado{d.erro ? `: ${d.erro}` : ""}
                         </span>
                       ) : (
-                        <span className="text-emerald-700">Conciliado</span>
+                        <span className="text-success">Conciliado</span>
                       )}
                     </td>
                   </tr>

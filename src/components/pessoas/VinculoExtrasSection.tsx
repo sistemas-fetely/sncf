@@ -252,7 +252,7 @@ export default function VinculoExtrasSection({ vinculoId }: { vinculoId: string 
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-t-2 font-semibold">
+                <tr className="border-t-2 font-medium">
                   <td className="py-2 px-2">Extras recorrentes/mês</td>
                   <td></td>
                   <td className="py-2 px-2 text-right tabular-nums">{fmtBRL(totalRecorrentes)}</td>

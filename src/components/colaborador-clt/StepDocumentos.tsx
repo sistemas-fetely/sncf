@@ -12,7 +12,7 @@ export function StepDocumentos() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold mb-4">PIS/PASEP e CTPS</h3>
+        <h3 className="text-lg font-medium mb-4">PIS/PASEP e CTPS</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <Label htmlFor="pis_pasep">PIS/PASEP</Label>
@@ -39,7 +39,7 @@ export function StepDocumentos() {
       </div>
 
       <div>
-        <h3 className="text-lg font-semibold mb-4">Título de Eleitor</h3>
+        <h3 className="text-lg font-medium mb-4">Título de Eleitor</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <Label htmlFor="titulo_eleitor">Número do Título</Label>
@@ -57,7 +57,7 @@ export function StepDocumentos() {
       </div>
 
       <div>
-        <h3 className="text-lg font-semibold mb-4">CNH</h3>
+        <h3 className="text-lg font-medium mb-4">CNH</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <Label htmlFor="cnh_numero">Número da CNH</Label>
@@ -80,7 +80,7 @@ export function StepDocumentos() {
       </div>
 
       <div>
-        <h3 className="text-lg font-semibold mb-4">Certificado de Reservista</h3>
+        <h3 className="text-lg font-medium mb-4">Certificado de Reservista</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="certificado_reservista">Número do Certificado</Label>

@@ -411,7 +411,7 @@ export default function Processos() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   );
 }
 
@@ -449,6 +449,6 @@ function FiltroSelect({
           ))}
         </SelectContent>
       </Select>
-    </PageShell>
+    </div>
   );
 }

@@ -29,7 +29,7 @@ export default function Recorrencias() {
     <div className="mx-auto w-full max-w-5xl space-y-5 p-4 sm:p-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">Recorrências</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Recorrências</h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
             Cada ciclo gera uma <strong>tarefa nova</strong> — a regra nunca empurra a data da
             mesma tarefa. É assim que dá para saber que o fechamento de março foi concluído em

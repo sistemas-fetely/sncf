@@ -28,7 +28,7 @@ function Moldura({ children }: { children: React.ReactNode }) {
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
           <h1
-            className="text-4xl font-bold tracking-tight"
+            className="text-4xl font-medium tracking-tight"
             style={{ color: "#1a3d2b", fontFamily: "Georgia, serif" }}
           >
             Fetély.
@@ -82,7 +82,7 @@ export default function PagarPix() {
     return (
       <Moldura>
         <div className="space-y-3 text-center">
-          <h2 className="text-xl font-semibold" style={{ color: "#1a3d2b" }}>
+          <h2 className="text-xl font-medium" style={{ color: "#1a3d2b" }}>
             Link inválido
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -97,7 +97,7 @@ export default function PagarPix() {
     return (
       <Moldura>
         <div className="space-y-3 text-center">
-          <h2 className="text-xl font-semibold" style={{ color: "#1a3d2b" }}>
+          <h2 className="text-xl font-medium" style={{ color: "#1a3d2b" }}>
             Este pagamento já foi encerrado
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -129,7 +129,7 @@ export default function PagarPix() {
             Pagamento via PIX
           </p>
           {valor != null && (
-            <p className="text-3xl font-bold" style={{ color: "#1a3d2b" }}>
+            <p className="text-3xl font-medium" style={{ color: "#1a3d2b" }}>
               {fmtBRL.format(valor)}
             </p>
           )}

@@ -106,9 +106,9 @@ export default function NovoUsuarioDialog({ open, onOpenChange }: NovoUsuarioDia
                 <div className="flex flex-col items-center">
                   <div
                     className={cn(
-                      "h-8 w-8 rounded-full border-2 flex items-center justify-center text-xs font-semibold transition-colors",
+                      "h-8 w-8 rounded-full border-2 flex items-center justify-center text-xs font-medium transition-colors",
                       atual && "bg-primary text-primary-foreground border-primary",
-                      completo && "bg-emerald-500 text-white border-emerald-500",
+                      completo && "bg-success text-white border-success/40",
                       !atual && !completo && "bg-background text-muted-foreground border-muted"
                     )}
                   >
@@ -127,7 +127,7 @@ export default function NovoUsuarioDialog({ open, onOpenChange }: NovoUsuarioDia
                   <div
                     className={cn(
                       "h-0.5 w-12 mt-4 transition-colors",
-                      step > item.n ? "bg-emerald-500" : "bg-muted"
+                      step > item.n ? "bg-success" : "bg-muted"
                     )}
                   />
                 )}
@@ -263,7 +263,7 @@ export default function NovoUsuarioDialog({ open, onOpenChange }: NovoUsuarioDia
         {resultado && (
           <div className="py-2 space-y-4">
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-emerald-500 text-white flex items-center justify-center">
+              <div className="h-8 w-8 rounded-full bg-success text-white flex items-center justify-center">
                 <Check className="h-4 w-4" />
               </div>
               <div>

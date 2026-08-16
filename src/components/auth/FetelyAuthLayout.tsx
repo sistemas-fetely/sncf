@@ -17,7 +17,7 @@ export function FetelyAuthLayout({ children, title, subtitle }: Props) {
         {/* Logo Fetely */}
         <div className="text-center">
           <h1
-            className="text-5xl font-bold tracking-tight"
+            className="text-5xl font-medium tracking-tight"
             style={{ color: "#1a3d2b", fontFamily: "Georgia, serif" }}
           >
             Fetély.
@@ -29,7 +29,7 @@ export function FetelyAuthLayout({ children, title, subtitle }: Props) {
 
         {/* Cabeçalho da tela */}
         <div className="text-center space-y-2">
-          <h2 className="text-2xl font-semibold" style={{ color: "#1a3d2b" }}>
+          <h2 className="text-2xl font-medium" style={{ color: "#1a3d2b" }}>
             {title}
           </h2>
           {subtitle && (

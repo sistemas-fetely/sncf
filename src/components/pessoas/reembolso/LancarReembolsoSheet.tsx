@@ -383,7 +383,7 @@ export default function LancarReembolsoSheet({ open, onOpenChange, onCriado }: P
                 <Card key={item.uid} className="card-shadow">
                   <CardContent className="space-y-3 py-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold">Item {idx + 1}</span>
+                      <span className="text-sm font-medium">Item {idx + 1}</span>
                       {itens.length > 1 && (
                         <Button
                           size="sm"
@@ -700,7 +700,7 @@ export default function LancarReembolsoSheet({ open, onOpenChange, onCriado }: P
           <div className="flex items-center justify-between border-t pt-4">
             <div className="text-sm">
               <span className="text-muted-foreground">Total dos itens </span>
-              <span className="font-semibold tabular-nums">{formatarBRL(total)}</span>
+              <span className="font-medium tabular-nums">{formatarBRL(total)}</span>
               <Badge variant="outline" className="ml-2">
                 {itens.length} item{itens.length === 1 ? "" : "s"}
               </Badge>

@@ -156,7 +156,7 @@ export default function AcaoAchadoBloco({
     <section className="space-y-3 rounded-md border p-3">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h4 className="text-xs font-semibold uppercase text-muted-foreground">Ação</h4>
+          <h4 className="text-xs font-medium uppercase text-muted-foreground">Ação</h4>
           <p className="text-xs text-muted-foreground">
             O sistema simula; você decide. Nada é gravado antes da confirmação.
           </p>
@@ -187,7 +187,7 @@ export default function AcaoAchadoBloco({
 
       {recusado && (
         <div className="space-y-1 rounded-md border border-warning/40 bg-warning/10 p-3">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-warning-foreground">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-warning-foreground">
             <AlertTriangle className="h-3.5 w-3.5" />
             O banco recusou a ação
           </div>
@@ -204,7 +204,7 @@ export default function AcaoAchadoBloco({
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1">
-              <h5 className="text-xs font-semibold uppercase text-muted-foreground">
+              <h5 className="text-xs font-medium uppercase text-muted-foreground">
                 Lido hoje
               </h5>
               <Linhas pares={contexto} />
@@ -216,7 +216,7 @@ export default function AcaoAchadoBloco({
               )}
             </div>
             <div className="space-y-1">
-              <h5 className="text-xs font-semibold uppercase text-muted-foreground">
+              <h5 className="text-xs font-medium uppercase text-muted-foreground">
                 Seria gravado
               </h5>
               <Linhas pares={gravaria} />
@@ -238,7 +238,7 @@ export default function AcaoAchadoBloco({
 
       {gravado && (
         <div className="space-y-1 rounded-md border border-success/30 bg-success/10 p-3">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-success">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-success">
             <CheckCircle2 className="h-3.5 w-3.5" />
             Gravado
           </div>

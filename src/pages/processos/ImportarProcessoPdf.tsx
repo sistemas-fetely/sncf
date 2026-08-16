@@ -91,8 +91,8 @@ export default function ImportarProcessoPdf() {
         </div>
 
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-purple-500" />
+          <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-info" />
             Múltiplos processos identificados
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -111,7 +111,7 @@ export default function ImportarProcessoPdf() {
                 <div className="flex items-start gap-3">
                   <FileText className="h-5 w-5 text-primary mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold leading-tight">
+                    <h3 className="font-medium leading-tight">
                       {p.nome || `Processo ${idx + 1}`}
                     </h3>
                     {p.descricao && (

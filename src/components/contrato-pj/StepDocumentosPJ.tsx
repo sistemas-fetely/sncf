@@ -18,7 +18,7 @@ export function StepDocumentosPJ() {
     <div className="space-y-6">
       {/* Status do Contrato */}
       <div>
-        <h3 className="text-lg font-semibold mb-4">Contrato de Trabalho</h3>
+        <h3 className="text-lg font-medium mb-4">Contrato de Trabalho</h3>
         <div className="border rounded-lg p-4 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -60,7 +60,7 @@ export function StepDocumentosPJ() {
 
       {/* Título de Eleitor */}
       <div>
-        <h3 className="text-lg font-semibold mb-4">Título de Eleitor</h3>
+        <h3 className="text-lg font-medium mb-4">Título de Eleitor</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <Label htmlFor="titulo_eleitor">Número do Título</Label>
@@ -79,7 +79,7 @@ export function StepDocumentosPJ() {
 
       {/* CNH */}
       <div>
-        <h3 className="text-lg font-semibold mb-4">CNH</h3>
+        <h3 className="text-lg font-medium mb-4">CNH</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <Label htmlFor="cnh_numero">Número da CNH</Label>
@@ -103,7 +103,7 @@ export function StepDocumentosPJ() {
 
       {/* Certificado de Reservista */}
       <div>
-        <h3 className="text-lg font-semibold mb-4">Certificado de Reservista</h3>
+        <h3 className="text-lg font-medium mb-4">Certificado de Reservista</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="certificado_reservista">Número do Certificado</Label>

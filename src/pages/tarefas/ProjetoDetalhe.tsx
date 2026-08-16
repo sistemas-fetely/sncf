@@ -43,7 +43,7 @@ export default function ProjetoDetalhe() {
           style={{ backgroundColor: projeto?.cor ?? "hsl(var(--muted))" }}
         />
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-2xl font-bold tracking-tight">
+          <h1 className="truncate text-2xl font-medium tracking-tight">
             {isLoading ? "Carregando…" : projeto?.nome}
           </h1>
           <p className="truncate text-sm text-muted-foreground">

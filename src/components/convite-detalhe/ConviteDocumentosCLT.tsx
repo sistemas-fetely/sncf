@@ -24,7 +24,7 @@ export function ConviteDocumentosCLT({ dados, editing, updateField }: Props) {
         <CardHeader><CardTitle className="text-lg">Documentos</CardTitle></CardHeader>
         <CardContent className="space-y-6">
           <div>
-            <h4 className="text-sm font-semibold text-muted-foreground mb-3">PIS/PASEP e CTPS</h4>
+            <h4 className="text-sm font-medium text-muted-foreground mb-3">PIS/PASEP e CTPS</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Field label="PIS/PASEP" value={dados.pis_pasep} />
               <Field label="CTPS Número" value={dados.ctps_numero} />
@@ -33,7 +33,7 @@ export function ConviteDocumentosCLT({ dados, editing, updateField }: Props) {
             </div>
           </div>
           <div>
-            <h4 className="text-sm font-semibold text-muted-foreground mb-3">Título de Eleitor</h4>
+            <h4 className="text-sm font-medium text-muted-foreground mb-3">Título de Eleitor</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Field label="Número do Título" value={dados.titulo_eleitor} />
               <Field label="Zona Eleitoral" value={dados.zona_eleitoral} />
@@ -41,7 +41,7 @@ export function ConviteDocumentosCLT({ dados, editing, updateField }: Props) {
             </div>
           </div>
           <div>
-            <h4 className="text-sm font-semibold text-muted-foreground mb-3">CNH</h4>
+            <h4 className="text-sm font-medium text-muted-foreground mb-3">CNH</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Field label="Número da CNH" value={dados.cnh_numero} />
               <Field label="Categoria" value={dados.cnh_categoria} />
@@ -49,7 +49,7 @@ export function ConviteDocumentosCLT({ dados, editing, updateField }: Props) {
             </div>
           </div>
           <div>
-            <h4 className="text-sm font-semibold text-muted-foreground mb-3">Certificado de Reservista</h4>
+            <h4 className="text-sm font-medium text-muted-foreground mb-3">Certificado de Reservista</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Field label="Número do Certificado" value={dados.certificado_reservista} />
             </div>
@@ -64,7 +64,7 @@ export function ConviteDocumentosCLT({ dados, editing, updateField }: Props) {
       <CardHeader><CardTitle className="text-lg">Documentos</CardTitle></CardHeader>
       <CardContent className="space-y-6">
         <div>
-          <h4 className="text-sm font-semibold text-muted-foreground mb-3">PIS/PASEP e CTPS</h4>
+          <h4 className="text-sm font-medium text-muted-foreground mb-3">PIS/PASEP e CTPS</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <Label className="text-xs text-muted-foreground">PIS/PASEP</Label>
@@ -89,7 +89,7 @@ export function ConviteDocumentosCLT({ dados, editing, updateField }: Props) {
         </div>
 
         <div>
-          <h4 className="text-sm font-semibold text-muted-foreground mb-3">Título de Eleitor</h4>
+          <h4 className="text-sm font-medium text-muted-foreground mb-3">Título de Eleitor</h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Label className="text-xs text-muted-foreground">Número do Título</Label>
@@ -107,7 +107,7 @@ export function ConviteDocumentosCLT({ dados, editing, updateField }: Props) {
         </div>
 
         <div>
-          <h4 className="text-sm font-semibold text-muted-foreground mb-3">CNH</h4>
+          <h4 className="text-sm font-medium text-muted-foreground mb-3">CNH</h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Label className="text-xs text-muted-foreground">Número da CNH</Label>
@@ -130,7 +130,7 @@ export function ConviteDocumentosCLT({ dados, editing, updateField }: Props) {
         </div>
 
         <div>
-          <h4 className="text-sm font-semibold text-muted-foreground mb-3">Certificado de Reservista</h4>
+          <h4 className="text-sm font-medium text-muted-foreground mb-3">Certificado de Reservista</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label className="text-xs text-muted-foreground">Número do Certificado</Label>

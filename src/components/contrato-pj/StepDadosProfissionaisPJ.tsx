@@ -35,7 +35,7 @@ export function StepDadosProfissionaisPJ() {
     <div className="space-y-6">
       <div>
         <div className="mb-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2">🏢 Dados corporativos</h3>
+          <h3 className="text-lg font-medium flex items-center gap-2">🏢 Dados corporativos</h3>
           <p className="text-xs text-muted-foreground mt-1">
             O <strong>email corporativo</strong> será usado para acesso ao sistema e comunicações oficiais.
           </p>
@@ -72,7 +72,7 @@ export function StepDadosProfissionaisPJ() {
         </div>
       </div>
 
-      <h3 className="text-lg font-semibold mb-4">Dados do Contrato</h3>
+      <h3 className="text-lg font-medium mb-4">Dados do Contrato</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div>
           <Label>Cargo / Tipo de Serviço *</Label>

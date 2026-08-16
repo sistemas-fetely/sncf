@@ -158,7 +158,7 @@ export default function AchadoDrawer({
 
             <div className="mt-4 space-y-5">
               <section className="space-y-1">
-                <h4 className="text-xs font-semibold uppercase text-muted-foreground">Evidência</h4>
+                <h4 className="text-xs font-medium uppercase text-muted-foreground">Evidência</h4>
                 <p className="text-sm">{achado.detalhe ?? "—"}</p>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                   <span>Parceiro: {achado.parceiro ?? "—"}</span>
@@ -186,7 +186,7 @@ export default function AchadoDrawer({
               </section>
 
               <section className="space-y-2">
-                <h4 className="text-xs font-semibold uppercase text-muted-foreground">Contexto</h4>
+                <h4 className="text-xs font-medium uppercase text-muted-foreground">Contexto</h4>
                 <Contexto contexto={achado.contexto} />
               </section>
 
@@ -195,7 +195,7 @@ export default function AchadoDrawer({
 
 
               <section className="space-y-2 rounded-md border p-3">
-                <h4 className="text-xs font-semibold uppercase text-muted-foreground">
+                <h4 className="text-xs font-medium uppercase text-muted-foreground">
                   Tratamento
                 </h4>
                 <div className="space-y-1.5">
@@ -255,7 +255,7 @@ export default function AchadoDrawer({
               </section>
 
               <section className="space-y-2">
-                <h4 className="text-xs font-semibold uppercase text-muted-foreground">Histórico</h4>
+                <h4 className="text-xs font-medium uppercase text-muted-foreground">Histórico</h4>
                 {eventos.isLoading ? (
                   <Skeleton className="h-16 w-full" />
                 ) : eventos.isError ? (

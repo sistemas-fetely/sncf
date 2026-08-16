@@ -126,7 +126,7 @@ function MenuGroup({ label, items, collapsed, userRoles = [] }: MenuGroupProps) 
   return (
     <SidebarGroup>
       {!collapsed && (
-        <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-semibold mb-1 px-4">
+        <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4">
           {label}
         </SidebarGroupLabel>
       )}
@@ -183,7 +183,7 @@ export function AppSidebar() {
           </div>
           {!collapsed && (
             <div className="flex flex-col">
-              <span className="text-sm font-bold tracking-tight" style={{ color: "#1A4A3A" }}>People Fetely</span>
+              <span className="text-sm font-medium tracking-tight" style={{ color: "#1A4A3A" }}>People Fetely</span>
               <span className="text-[11px] text-sidebar-muted">Gestão de Pessoas</span>
             </div>
           )}
