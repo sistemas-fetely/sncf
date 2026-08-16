@@ -190,6 +190,8 @@ export interface PipelineItem {
   qtd_risco_vermelho?: number | null;
   qtd_risco_amarelo?: number | null;
   valor_risco_vermelho?: number | null;
+  tipo_sla: string | null;
+  sla_dias: number | null;
 }
 
 

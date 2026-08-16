@@ -69,10 +69,15 @@ const ESTAGIOS_PREVISAO = new Set([
   "pre_faturamento",
 ]);
 
+/** Info da linha, com o apelido cadastral da transportadora (não está no tipo global). */
+type EntregaLinhaInfoComApelido = EntregaLinhaInfo & {
+  transportadora_apelido?: string | null;
+};
+
 /** Linha de cima: quem entrega, conforme a modalidade de transporte. */
-function LinhaQuemEntrega({ info }: { info: EntregaLinhaInfo }) {
+function LinhaQuemEntrega({ info }: { info: EntregaLinhaInfoComApelido }) {
   const origem = info.transporte_origem;
-  const nome = info.transportadora_nome;
+  const nome = info.transportadora_apelido || info.transportadora_nome;
   const prevista = info.estagio && ESTAGIOS_PREVISAO.has(info.estagio);
   const sufixo = prevista ? " (prevista)" : "";
 
