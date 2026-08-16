@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageShell } from "@/components/layout/PageShell";
 import { useOrganograma } from "@/hooks/useOrganograma";
 import { OrgToolbar } from "@/components/organograma/OrgToolbar";
 import { OrgVisualView } from "@/components/organograma/OrgVisualView";
