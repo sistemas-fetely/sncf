@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
 
 
+import { PageShell } from "@/components/layout/PageShell";
 const saudacao = () => {
   const h = new Date().getHours();
   if (h < 6) return "Boa madrugada";
@@ -96,7 +97,7 @@ export default function CasaHome() {
   const primeiroNome = profile?.full_name?.split(" ")[0] ?? "";
 
   return (
-    <div className="max-w-6xl mx-auto px-4 md:px-6 py-8 md:py-12 animate-casa-fade-in">
+    <PageShell className="animate-casa-fade-in">
       {/* Saudação */}
       <div className="mb-10 md:mb-14">
         <p className="text-[10px] uppercase tracking-[3px] text-muted-foreground mb-2">
@@ -197,6 +198,6 @@ export default function CasaHome() {
           Fala Fetely em destaque. Em construção — vai chegar logo.
         </p>
       </div>
-    </div>
+    </PageShell>
   );
 }

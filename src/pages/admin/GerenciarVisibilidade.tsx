@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
+import { PageShell } from "@/components/layout/PageShell";
 interface RotaNavAdmin {
   rota: string;
   chave: string;
@@ -81,7 +82,7 @@ export default function GerenciarVisibilidade() {
 
   return (
     <TooltipProvider>
-      <div className="container max-w-4xl py-8 space-y-6">
+      <PageShell variant="leitura">
         <div className="space-y-2">
           <h1 className="text-2xl font-medium tracking-tight">Visibilidade de Telas</h1>
           <p className="text-sm text-muted-foreground">
@@ -165,7 +166,7 @@ export default function GerenciarVisibilidade() {
             </CardContent>
           </Card>
         ))}
-      </div>
+      </PageShell>
     </TooltipProvider>
   );
 }

@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
+import { PageShell } from "@/components/layout/PageShell";
 export default function ImportarProcessoPdf() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -83,7 +84,7 @@ export default function ImportarProcessoPdf() {
   // Múltiplos → lista pra escolher
   if (multiplos && multiplos.length > 0) {
     return (
-      <div className="container mx-auto py-6 space-y-5 max-w-3xl">
+      <PageShell variant="leitura">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={handleCancel} className="gap-1.5">
             <ArrowLeft className="h-3.5 w-3.5" /> Voltar
@@ -132,7 +133,7 @@ export default function ImportarProcessoPdf() {
             Ao escolher um, os outros são salvos como sugestões pra você importar depois.
           </p>
         </div>
-      </div>
+      </PageShell>
     );
   }
 

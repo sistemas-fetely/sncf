@@ -13,6 +13,7 @@ import { CamposProjeto } from "@/components/tarefas/projetos/CamposProjeto";
 import { SalvarProjetoComoTemplateDialog } from "@/components/tarefas/templates/SalvarProjetoComoTemplateDialog";
 import { SAUDE_CLASSE, SAUDE_ROTULO, useProjeto } from "@/hooks/tarefas/useProjetosTarefas";
 
+import { PageShell } from "@/components/layout/PageShell";
 export default function ProjetoDetalhe() {
   const { id } = useParams<{ id: string }>();
   const { data: projeto, isLoading, error } = useProjeto(id ?? null);
@@ -22,7 +23,7 @@ export default function ProjetoDetalhe() {
   if (!id) return null;
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-5 p-6">
+    <PageShell>
       <div>
         <Button variant="ghost" size="sm" asChild>
           <Link to="/tarefas/projetos">
@@ -89,6 +90,6 @@ export default function ProjetoDetalhe() {
         aberto={salvarTemplate}
         onOpenChange={setSalvarTemplate}
       />
-    </div>
+    </PageShell>
   );
 }

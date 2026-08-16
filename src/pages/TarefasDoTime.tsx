@@ -25,6 +25,7 @@ import { BadgePredictor } from "@/components/tarefas/BadgePredictor";
 import { TarefaDetalheDrawer, type TarefaDrawer } from "@/components/tarefas/TarefaDetalheDrawer";
 import { formatError } from "@/lib/format-error";
 
+import { PageShell } from "@/components/layout/PageShell";
 interface Subordinado {
   id: string; // profile.id ou colaborador.id
   user_id: string | null;
@@ -255,7 +256,7 @@ export default function TarefasDoTime() {
 
   if (!podeAcessar) {
     return (
-      <div className="container mx-auto py-12">
+      <PageShell>
         <Card>
           <CardContent className="p-8 text-center">
             <ShieldAlert className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
@@ -265,12 +266,12 @@ export default function TarefasDoTime() {
             </p>
           </CardContent>
         </Card>
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <PageShell>
       {/* Header */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
@@ -557,6 +558,6 @@ export default function TarefasDoTime() {
         onAtualizada={() => void carregar()}
         readonly
       />
-    </div>
+    </PageShell>
   );
 }

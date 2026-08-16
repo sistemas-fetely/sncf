@@ -18,6 +18,7 @@ import {
 } from "@/hooks/tarefas/useTarefasCalendario";
 import type { Tarefa, TarefaPrioridade } from "@/hooks/tarefas/useTarefas";
 
+import { PageShell } from "@/components/layout/PageShell";
 const TODOS = "__todos__";
 
 const COR_PRIORIDADE: Record<TarefaPrioridade, string> = {
@@ -73,7 +74,7 @@ export default function CalendarioTarefas() {
   const diasComTarefa = dias.filter((d) => isSameMonth(d, mes) && (porDia[iso(d)]?.length ?? 0) > 0);
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-5 p-4 sm:p-6">
+    <PageShell>
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="space-y-1">
           <h1 className="text-2xl font-medium tracking-tight">Calendário</h1>
@@ -228,6 +229,6 @@ export default function CalendarioTarefas() {
         aberto={!!tarefaAberta}
         onOpenChange={(v) => !v && setTarefaAberta(null)}
       />
-    </div>
+    </PageShell>
   );
 }

@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AplicarTemplateDialog } from "@/components/tarefas/templates/AplicarTemplateDialog";
 import { TemplateItensEditor } from "@/components/tarefas/templates/TemplateItensEditor";
+import { PageShell } from "@/components/layout/PageShell";
 import {
   useExcluirTemplate, useSalvarTemplate, useTemplates, type Template,
 } from "@/hooks/tarefas/useTemplates";
@@ -27,7 +28,7 @@ export default function Templates() {
   const [itensDe, setItensDe] = useState<Template | null>(null);
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-5 p-4 sm:p-6">
+    <PageShell>
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="space-y-1">
           <h1 className="text-2xl font-medium tracking-tight">Templates</h1>
@@ -166,6 +167,6 @@ export default function Templates() {
         aberto={!!aplicando}
         onOpenChange={(v) => !v && setAplicando(null)}
       />
-    </div>
+    </PageShell>
   );
 }

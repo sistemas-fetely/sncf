@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { useNomePessoa } from "@/components/tarefas/detalhe/comuns";
 import { RecorrenciaDialog } from "@/components/tarefas/recorrencias/RecorrenciaDialog";
 import { dataBR, textoRecorrencia } from "@/lib/tarefas/recorrenciaTexto";
+import { PageShell } from "@/components/layout/PageShell";
 import {
   useAlternarRecorrencia, useExcluirRecorrencia, useGerarRecorrentesAgora, useRecorrencias,
   type Recorrencia,
@@ -26,7 +27,7 @@ export default function Recorrencias() {
   const abrirEdicao = (r: Recorrencia) => { setEditando(r); setAberto(true); };
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-5 p-4 sm:p-6">
+    <PageShell>
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="space-y-1">
           <h1 className="text-2xl font-medium tracking-tight">Recorrências</h1>
@@ -101,6 +102,6 @@ export default function Recorrencias() {
       )}
 
       <RecorrenciaDialog aberto={aberto} onOpenChange={setAberto} regra={editando} />
-    </div>
+    </PageShell>
   );
 }

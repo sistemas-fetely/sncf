@@ -5,6 +5,7 @@ import { TimelineNotas } from "@/components/minhas-notas/TimelineNotas";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+import { PageShell } from "@/components/layout/PageShell";
 export default function MinhasNotas() {
   const { data: contrato, isLoading: loadingContrato } = useMeuContratoPJ();
   const { data: notas, isLoading: loadingNotas } = useMinhasNotas();
@@ -13,16 +14,16 @@ export default function MinhasNotas() {
 
   if (loadingContrato) {
     return (
-      <div className="p-6 max-w-4xl mx-auto space-y-4">
+      <PageShell variant="leitura">
         <Skeleton className="h-32 w-full" />
         <Skeleton className="h-96 w-full" />
-      </div>
+      </PageShell>
     );
   }
 
   if (!contrato) {
     return (
-      <div className="p-6 max-w-4xl mx-auto space-y-4">
+      <PageShell variant="leitura">
         <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
           <FileText className="h-6 w-6" />
           Minhas Notas Fiscais
@@ -33,12 +34,12 @@ export default function MinhasNotas() {
             fale com o RH.
           </AlertDescription>
         </Alert>
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <PageShell variant="leitura">
       <div>
         <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
           <FileText className="h-6 w-6" />
@@ -75,6 +76,6 @@ export default function MinhasNotas() {
           <TimelineNotas notas={notas || []} ano={anoAtual} />
         )}
       </div>
-    </div>
+    </PageShell>
   );
 }

@@ -44,6 +44,7 @@ import { usePedidosAComprar, type ComprarTab } from "@/hooks/compras/usePedidosA
 import { useIniciarCompraPedido } from "@/hooks/compras/useIniciarCompraPedido";
 import type { PedidoCompraFull } from "@/lib/compras/types";
 
+import { PageShell } from "@/components/layout/PageShell";
 const fmtBRL = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
 const fmtDate = (d?: string | null) =>
@@ -174,7 +175,7 @@ export default function ComprasAComprar() {
 
   if (!podeVer) {
     return (
-      <div className="container mx-auto p-6">
+      <PageShell>
         <Card>
           <CardContent className="p-12 text-center">
             <Truck className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
@@ -187,7 +188,7 @@ export default function ComprasAComprar() {
             </Button>
           </CardContent>
         </Card>
-      </div>
+      </PageShell>
     );
   }
 
@@ -203,7 +204,7 @@ export default function ComprasAComprar() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <PageShell>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -391,7 +392,7 @@ export default function ComprasAComprar() {
         pedido={pedidoParaRegistrar}
         onFinalizadoENova={handleFinalizadoENova}
       />
-    </div>
+    </PageShell>
   );
 }
 
