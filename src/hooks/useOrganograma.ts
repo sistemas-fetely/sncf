@@ -145,7 +145,7 @@ export function useOrganograma() {
   return useQuery({
     queryKey: ["organograma"],
     queryFn: async () => {
-      const [posRes, vincRes] = await Promise.all([
+      const [posRes, vincRes, tipoRes] = await Promise.all([
         supabase.rpc("get_organograma_tree"),
         supabase
           .from("vinculos")
@@ -154,11 +154,10 @@ export function useOrganograma() {
             email_corporativo, telefone_corporativo, departamento_id,
             pessoa:pessoas!inner ( id, nome_completo, foto_url, telefone, email_pessoal ),
             cargo:cargos ( nome ),
-            tipo:tipos_vinculo!inner ( codigo, nome, aparece_organograma ),
             departamento:departamentos ( nome )
           `)
-          .eq("status", "ativo")
-          .eq("tipo.aparece_organograma", true),
+          .eq("status", "ativo"),
+        supabase.from("tipos_vinculo").select("codigo, aparece_organograma"),
       ]);
 
       if (posRes.error) throw posRes.error;
