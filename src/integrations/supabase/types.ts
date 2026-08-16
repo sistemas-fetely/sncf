@@ -35284,6 +35284,48 @@ export type Database = {
         }
         Relationships: []
       }
+      tipos_vinculo: {
+        Row: {
+          aparece_organograma: boolean
+          ativo: boolean
+          codigo: string
+          created_at: string
+          descricao: string | null
+          entra_folha: boolean
+          entra_headcount: boolean
+          nome: string
+          ordem: number
+          permite_reembolso: boolean
+          updated_at: string
+        }
+        Insert: {
+          aparece_organograma?: boolean
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          descricao?: string | null
+          entra_folha?: boolean
+          entra_headcount?: boolean
+          nome: string
+          ordem?: number
+          permite_reembolso?: boolean
+          updated_at?: string
+        }
+        Update: {
+          aparece_organograma?: boolean
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          descricao?: string | null
+          entra_folha?: boolean
+          entra_headcount?: boolean
+          nome?: string
+          ordem?: number
+          permite_reembolso?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       titulo_a_receber: {
         Row: {
           analise_credito_id: string | null
@@ -39013,6 +39055,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_reembolso_saneamento"
             referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vinculos_tipo_vinculo_fkey"
+            columns: ["tipo_vinculo"]
+            isOneToOne: false
+            referencedRelation: "tipos_vinculo"
+            referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "vinculos_unidade_id_fkey"
@@ -42934,6 +42983,13 @@ export type Database = {
             referencedRelation: "vw_vinculo_custo_total"
             referencedColumns: ["vinculo_id"]
           },
+          {
+            foreignKeyName: "vinculos_tipo_vinculo_fkey"
+            columns: ["tipo_vinculo"]
+            isOneToOne: false
+            referencedRelation: "tipos_vinculo"
+            referencedColumns: ["codigo"]
+          },
         ]
       }
       vw_bling_cadastro_divergencia: {
@@ -44850,7 +44906,15 @@ export type Database = {
           valor_transporte: number | null
           vinculo_id: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "vinculos_tipo_vinculo_fkey"
+            columns: ["tipo_vinculo"]
+            isOneToOne: false
+            referencedRelation: "tipos_vinculo"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       vw_dash_pedidos_cards: {
         Row: {
@@ -50556,6 +50620,13 @@ export type Database = {
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "vinculos_tipo_vinculo_fkey"
+            columns: ["tipo_vinculo"]
+            isOneToOne: false
+            referencedRelation: "tipos_vinculo"
+            referencedColumns: ["codigo"]
+          },
         ]
       }
       vw_nfs_stage_completude: {
@@ -51160,6 +51231,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_reembolso_saneamento"
             referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vinculos_tipo_vinculo_fkey"
+            columns: ["tipo_vinculo"]
+            isOneToOne: false
+            referencedRelation: "tipos_vinculo"
+            referencedColumns: ["codigo"]
           },
         ]
       }
@@ -56367,7 +56445,15 @@ export type Database = {
           tipo_vinculo: string | null
           vinculo_id: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "vinculos_tipo_vinculo_fkey"
+            columns: ["tipo_vinculo"]
+            isOneToOne: false
+            referencedRelation: "tipos_vinculo"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       vw_ref_bling_ambigua: {
         Row: {
