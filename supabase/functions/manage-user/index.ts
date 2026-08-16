@@ -564,6 +564,277 @@ Deno.serve(async (req) => {
       });
     }
 
+    // =====================================================================
+    // create_user_from_vinculo — modelo NOVO (pessoas/vinculos).
+    // Aceita os 4 tipos_vinculo (CLT, PJ, PRESTADOR, SOCIO).
+    // Degradação suave: configuração incompleta (sem cargo/departamento)
+    // gera AVISO, nunca impede a criação do acesso.
+    // =====================================================================
+    if (action === "create_user_from_vinculo") {
+      const { vinculo_id, enviar_email } = body;
+      const avisos: string[] = [];
+      const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
+
+      if (!vinculo_id) {
+        return new Response(JSON.stringify({ error: "vinculo_id é obrigatório" }), {
+          status: 400,
+          headers: jsonHeaders,
+        });
+      }
+
+      // 2. Ler vínculo + pessoa (FK explícita: pessoas tem mais de um caminho)
+      const { data: vinculo, error: errVinculo } = await adminClient
+        .from("vinculos")
+        .select(
+          "id, pessoa_id, tipo_vinculo, status, cargo_id, departamento_id, unidade_id, email_corporativo, usuario_id, pessoa:pessoas!vinculos_pessoa_id_fkey ( nome_completo, foto_url )",
+        )
+        .eq("id", vinculo_id)
+        .maybeSingle();
+
+      if (errVinculo) {
+        console.error("[create_user_from_vinculo] Erro ao ler vínculo:", errVinculo);
+        return new Response(JSON.stringify({ error: errVinculo.message }), {
+          status: 400,
+          headers: jsonHeaders,
+        });
+      }
+      if (!vinculo) {
+        return new Response(JSON.stringify({ error: "Vínculo não encontrado." }), {
+          status: 404,
+          headers: jsonHeaders,
+        });
+      }
+
+      const v = vinculo as any;
+      const pessoa = Array.isArray(v.pessoa) ? v.pessoa[0] : v.pessoa;
+      const fullName = pessoa?.nome_completo || "Colaborador";
+
+      if (v.status !== "ativo") {
+        return new Response(JSON.stringify({
+          error: `Vínculo não está ativo (status atual: ${v.status ?? "desconhecido"}). Ative o vínculo antes de criar o acesso.`,
+        }), { status: 400, headers: jsonHeaders });
+      }
+
+      // 3. Guardas
+      if (v.usuario_id) {
+        return new Response(JSON.stringify({ error: "Esta pessoa já tem acesso." }), {
+          status: 409,
+          headers: jsonHeaders,
+        });
+      }
+
+      const emailCorp: string | null = v.email_corporativo
+        ? String(v.email_corporativo).trim().toLowerCase()
+        : null;
+
+      if (!emailCorp) {
+        return new Response(JSON.stringify({
+          error: "Vínculo sem e-mail corporativo. Informe o e-mail corporativo na ficha antes de criar o acesso.",
+        }), { status: 400, headers: jsonHeaders });
+      }
+
+      // e-mail já usado em auth.users?
+      let emailEmUso: { id: string } | null = null;
+      try {
+        const { data: lista } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
+        const achado = lista?.users?.find((u: any) => u.email?.toLowerCase() === emailCorp);
+        emailEmUso = achado ? { id: achado.id } : null;
+      } catch (e) {
+        console.error("[create_user_from_vinculo] Erro ao listar usuários:", e);
+      }
+
+      if (emailEmUso) {
+        let quem = "outro usuário";
+        const { data: outro } = await adminClient
+          .from("vinculos")
+          .select("pessoa:pessoas!vinculos_pessoa_id_fkey ( nome_completo )")
+          .eq("usuario_id", emailEmUso.id)
+          .limit(1);
+        const outroPessoa = (outro as any[] | null)?.[0]?.pessoa;
+        const nomeOutro = Array.isArray(outroPessoa) ? outroPessoa[0]?.nome_completo : outroPessoa?.nome_completo;
+        if (nomeOutro) quem = nomeOutro;
+        return new Response(JSON.stringify({
+          error: `O e-mail ${emailCorp} já está em uso por ${quem}.`,
+        }), { status: 409, headers: jsonHeaders });
+      }
+
+      // 4. Validar domínio corporativo (domínios vivem em `parametros`)
+      const { data: validacao, error: errValidacao } = await adminClient.rpc("validar_email_corporativo", {
+        _email: emailCorp,
+      });
+      if (errValidacao) {
+        console.error("[create_user_from_vinculo] Erro em validar_email_corporativo:", errValidacao);
+        return new Response(JSON.stringify({ error: errValidacao.message }), {
+          status: 400,
+          headers: jsonHeaders,
+        });
+      }
+      if (!(validacao as any)?.valido) {
+        return new Response(JSON.stringify({
+          error: `E-mail corporativo inválido: ${(validacao as any)?.motivo || "domínio não permitido"}.`,
+        }), { status: 400, headers: jsonHeaders });
+      }
+
+      // 5. Sem restrição por tipo_vinculo — CLT, PJ, PRESTADOR e SOCIO passam.
+      console.log(`[create_user_from_vinculo] Start. vinculo_id=${vinculo_id}, tipo_vinculo=${v.tipo_vinculo}, cargo=${v.cargo_id || "null"}, depto=${v.departamento_id || "null"}, unidade=${v.unidade_id || "null"}`);
+
+      // 6. Criar auth user com senha temporária aleatória
+      const tempBytes = new Uint8Array(24);
+      crypto.getRandomValues(tempBytes);
+      const senhaTemporaria = Array.from(tempBytes, (b) => b.toString(16).padStart(2, "0")).join("") + "!Aa1";
+
+      const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
+        email: emailCorp,
+        password: senhaTemporaria,
+        email_confirm: true,
+        user_metadata: { full_name: fullName },
+      });
+
+      if (createError || !newUser?.user) {
+        return new Response(JSON.stringify({ error: createError?.message || "Falha ao criar o usuário" }), {
+          status: 400,
+          headers: jsonHeaders,
+        });
+      }
+
+      const novoUserId = newUser.user.id;
+
+      // 7. Profile
+      const { error: errProfile } = await adminClient.from("profiles").upsert({
+        user_id: novoUserId,
+        full_name: fullName,
+        avatar_url: pessoa?.foto_url ?? null,
+        approved: true,
+        tipo_usuario: "COLABORADOR",
+      }, { onConflict: "user_id" });
+      if (errProfile) {
+        console.error("[create_user_from_vinculo] Erro ao gravar profile:", errProfile);
+        avisos.push("Perfil de usuário gravado parcialmente: " + errProfile.message);
+      }
+
+      // 8. Ligar o vínculo — se falhar, apaga o auth user (não deixa órfão)
+      const { error: errLink } = await adminClient
+        .from("vinculos")
+        .update({ usuario_id: novoUserId })
+        .eq("id", vinculo_id);
+
+      if (errLink) {
+        console.error("[create_user_from_vinculo] Falha ao ligar vínculo, revertendo usuário:", errLink);
+        await adminClient.from("profiles").delete().eq("user_id", novoUserId);
+        await adminClient.auth.admin.deleteUser(novoUserId);
+        return new Response(JSON.stringify({
+          error: `Não foi possível ligar o acesso ao vínculo: ${errLink.message}`,
+        }), { status: 400, headers: jsonHeaders });
+      }
+
+      // 9. Papel base
+      const { error: errRole } = await adminClient.from("user_roles").upsert(
+        { user_id: novoUserId, role: "colaborador" },
+        { onConflict: "user_id,role" },
+      );
+      if (errRole) {
+        console.error("[create_user_from_vinculo] Erro ao inserir papel base:", errRole);
+        avisos.push("Papel base 'colaborador' não pôde ser atribuído: " + errRole.message);
+      }
+
+      // 10. Perfis via template do cargo — degradação suave
+      if (!v.cargo_id) {
+        avisos.push("Vínculo sem cargo: nenhum perfil aplicado.");
+      } else {
+        let templateId: string | null = null;
+        try {
+          const { data: templRpc, error: errTempl } = await adminClient.rpc("template_sugerido_para_cargo", {
+            _cargo_id: v.cargo_id,
+          });
+          if (errTempl) {
+            console.error("[create_user_from_vinculo] Erro ao sugerir template:", errTempl);
+          } else {
+            templateId = (templRpc as string | null) ?? null;
+          }
+        } catch (e) {
+          console.error("[create_user_from_vinculo] Exception ao sugerir template:", e);
+        }
+
+        if (!templateId) {
+          avisos.push("Cargo sem template de perfis mapeado: nenhum perfil aplicado.");
+        } else {
+          if (!v.departamento_id) {
+            avisos.push("Vínculo sem departamento: nenhum perfil de área aplicado.");
+          }
+          try {
+            const { error: errTemplateApply } = await adminClient.rpc("aplicar_template_cargo_v3", {
+              _user_id: novoUserId,
+              _template_id: templateId,
+              _departamento_id: v.departamento_id || null,
+              _unidade_id: v.unidade_id || null,
+              _atribuidor: callerId || null,
+            });
+            if (errTemplateApply) {
+              console.error("[create_user_from_vinculo] Falha ao aplicar template (usuário mantido):", errTemplateApply);
+              avisos.push("Perfis não aplicados: " + errTemplateApply.message);
+            }
+          } catch (e) {
+            console.error("[create_user_from_vinculo] Exception ao aplicar template (usuário mantido):", e);
+            avisos.push("Perfis não aplicados: " + ((e as Error)?.message || "erro desconhecido"));
+          }
+        }
+      }
+
+      // 12. Link de primeiro acesso + e-mail de boas-vindas (nunca derruba a criação)
+      let linkPrimeiroAcesso: string | null = null;
+      try {
+        const { data: linkData, error: linkErr } = await adminClient.auth.admin.generateLink({
+          type: "recovery",
+          email: emailCorp,
+        });
+        if (linkErr) {
+          console.error("[create_user_from_vinculo] Erro ao gerar link de recuperação:", linkErr);
+          avisos.push("Link de primeiro acesso não foi gerado.");
+        } else {
+          linkPrimeiroAcesso = linkData?.properties?.action_link ?? null;
+        }
+      } catch (e) {
+        console.error("[create_user_from_vinculo] Exception ao gerar link:", e);
+        avisos.push("Link de primeiro acesso não foi gerado.");
+      }
+
+      if (enviar_email !== false) {
+        try {
+          const r = await invokeSendTransactionalEmail(supabaseUrl, anonKey, authHeader, {
+            templateName: "boas-vindas-portal",
+            recipientEmail: emailCorp,
+            idempotencyKey: `boas-vindas-${novoUserId}-${Date.now()}`,
+            templateData: {
+              nome: fullName,
+              email_corporativo: emailCorp,
+              link: linkPrimeiroAcesso || Deno.env.get("SITE_URL") || "https://sncf.lovable.app",
+            },
+          });
+          if (!r.ok) {
+            console.error("[create_user_from_vinculo] Falha em send-transactional-email:", r.status, r.body);
+            avisos.push("E-mail de boas-vindas não foi enviado. Use o link de primeiro acesso.");
+          }
+        } catch (e) {
+          console.error("[create_user_from_vinculo] Erro ao enviar e-mail de boas-vindas:", e);
+          avisos.push("E-mail de boas-vindas não foi enviado. Use o link de primeiro acesso.");
+        }
+      }
+
+      console.log(`[create_user_from_vinculo] Success. user_id=${novoUserId}, avisos=${avisos.length}`);
+
+      return new Response(JSON.stringify({
+        success: true,
+        user_id: novoUserId,
+        vinculo_id,
+        email: emailCorp,
+        tipo_vinculo: v.tipo_vinculo,
+        link_primeiro_acesso: linkPrimeiroAcesso,
+        avisos,
+      }), { headers: jsonHeaders });
+    }
+
+
+
     if (action === "toggle_ban") {
       const { user_id, ban } = body;
       if (!user_id) {
