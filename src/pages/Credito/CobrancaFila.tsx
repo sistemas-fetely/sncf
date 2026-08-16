@@ -735,9 +735,9 @@ function CancelarRemessaDialog({
           <DialogTitle>Cancelar remessa {remessa?.arquivo_nome}</DialogTitle>
         </DialogHeader>
 
-        <Alert className="border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900">
-          <AlertTriangle className="h-4 w-4 text-amber-700 dark:text-amber-300" />
-          <AlertDescription className="text-amber-900 dark:text-amber-100">
+        <Alert className="border-warning/40 bg-warning/10">
+          <AlertTriangle className="h-4 w-4 text-warning" />
+          <AlertDescription className="text-warning">
             A remessa não será apagada — o número sequencial é a prova perante o Safra. Ela ficará
             marcada como cancelada e os títulos voltam ao estado anterior.
           </AlertDescription>
