@@ -104,6 +104,14 @@ interface PedidoListaRow {
   fase_xpm: number | null;
 }
 
+interface SaldoPedidoLinha {
+  pedido_id: number;
+  fase_calculada: string | null;
+  saldo_a_receber: number | null;
+  divergencia_status: string | null;
+}
+
+
 interface ResolucaoRow {
   codigo: string;
   status: "ok" | "nao_mapeado" | "mapeado_inativo" | "qtd_invalida" | "ambiguo";
