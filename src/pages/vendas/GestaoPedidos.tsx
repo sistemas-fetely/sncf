@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Badge } from "@/components/ui/badge";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageTitle } from "@/components/layout/PageTitle";
+import { Selo, type EstadoSelo } from "@/components/ui/selo";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -39,27 +41,27 @@ const fmtPct = (v: any) => {
   return `${Number(v).toFixed(1).replace(".", ",")}%`;
 };
 
-const ESTAGIO_COR: Record<string, string> = {
-  recebido: "bg-slate-100 text-slate-700",
-  em_analise_credito: "bg-amber-100 text-amber-800",
-  cobranca: "bg-orange-100 text-orange-800",
-  aguardando_pagamento: "bg-yellow-100 text-yellow-800",
-  pre_separacao: "bg-blue-100 text-blue-800",
-  pre_faturamento: "bg-amber-100 text-amber-800",
-  aguardando_estoque: "bg-purple-100 text-purple-800",
-  em_separacao: "bg-indigo-100 text-indigo-800",
-  faturado: "bg-emerald-100 text-emerald-800",
-  em_transporte: "bg-cyan-100 text-cyan-800",
-  entregue: "bg-green-100 text-green-800",
-  cancelado: "bg-red-100 text-red-800",
-  recuperacao_venda: "bg-pink-100 text-pink-800",
+const ESTAGIO_ESTADO: Record<string, EstadoSelo> = {
+  recebido: "muted",
+  em_analise_credito: "warning",
+  cobranca: "warning",
+  aguardando_pagamento: "warning",
+  aguardando_estoque: "warning",
+  pre_separacao: "muted",
+  pre_faturamento: "muted",
+  em_separacao: "muted",
+  faturado: "info",
+  em_transporte: "info",
+  entregue: "success",
+  cancelado: "destructive",
+  recuperacao_venda: "destructive",
 };
 
-const ENTRADA_COR: Record<string, string> = {
-  nao_exige: "bg-slate-100 text-slate-700",
-  exige_pendente: "bg-red-100 text-red-800",
-  definida: "bg-yellow-100 text-yellow-800",
-  paga: "bg-green-100 text-green-800",
+const ENTRADA_ESTADO: Record<string, EstadoSelo> = {
+  nao_exige: "muted",
+  exige_pendente: "destructive",
+  definida: "warning",
+  paga: "success",
 };
 
 const ENTRADA_LABEL: Record<string, string> = {
@@ -71,14 +73,14 @@ const ENTRADA_LABEL: Record<string, string> = {
 
 type EstagioB2C = "recebido" | "pago" | "em_separacao" | "expedido" | "em_transito" | "entregue" | "cancelado";
 
-const B2C_ESTAGIO_COR: Record<EstagioB2C, string> = {
-  recebido:     "bg-slate-100 text-slate-700",
-  pago:         "bg-amber-100 text-amber-800",
-  em_separacao: "bg-indigo-100 text-indigo-800",
-  expedido:     "bg-purple-100 text-purple-800",
-  em_transito:  "bg-cyan-100 text-cyan-800",
-  entregue:     "bg-green-100 text-green-800",
-  cancelado:    "bg-red-100 text-red-800",
+const B2C_ESTAGIO_ESTADO: Record<EstagioB2C, EstadoSelo> = {
+  recebido: "muted",
+  pago: "success",
+  em_separacao: "muted",
+  expedido: "info",
+  em_transito: "info",
+  entregue: "success",
+  cancelado: "destructive",
 };
 
 const B2C_ESTAGIO_LABEL: Record<EstagioB2C, string> = {
@@ -411,9 +413,9 @@ function AbaB2B() {
                     <div className="text-muted-foreground">{r.parceiro_cnpj ?? ""}</div>
                   </td>
                   <td className="px-2 py-1.5 align-top">
-                    <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] ${ESTAGIO_COR[r.estagio] ?? "bg-slate-100"}`}>
+                    <Selo estado={ESTAGIO_ESTADO[r.estagio] ?? "muted"}>
                       {ESTAGIO_LABELS[r.estagio as EstagioPedido] ?? r.estagio ?? "-"}
-                    </span>
+                    </Selo>
                   </td>
                   <td className="px-2 py-1.5 align-top" onClick={(e) => e.stopPropagation()}>
                     <TooltipProvider delayDuration={150}>
@@ -421,15 +423,12 @@ function AbaB2B() {
                         {getSaudeChecks(r, emailLogMap.get(r.id) ?? new Set()).map((check) => (
                           <Tooltip key={check.key}>
                             <TooltipTrigger asChild>
-                              <span
-                                className={`inline-flex items-center justify-center w-4 h-4 rounded text-[9px] font-bold cursor-help ${
-                                  check.ok
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-red-100 text-red-700"
-                                }`}
+                              <Selo
+                                estado={check.ok ? "success" : "destructive"}
+                                className="cursor-help"
                               >
                                 {check.label}
-                              </span>
+                              </Selo>
                             </TooltipTrigger>
                             <TooltipContent>{check.tooltip}</TooltipContent>
                           </Tooltip>
@@ -445,9 +444,9 @@ function AbaB2B() {
                   </td>
                   <td className="px-2 py-1.5 align-top">
                     {r.entrada_status ? (
-                      <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] ${ENTRADA_COR[r.entrada_status] ?? "bg-slate-100"}`}>
+                      <Selo estado={ENTRADA_ESTADO[r.entrada_status] ?? "muted"}>
                         {ENTRADA_LABEL[r.entrada_status] ?? r.entrada_status}
-                      </span>
+                      </Selo>
                     ) : "-"}
                   </td>
                   <td className="px-2 py-1.5 align-top">
@@ -469,13 +468,13 @@ function AbaB2B() {
                   <td className="px-2 py-1.5 align-top">
                     {r.nf_tem ? (r.nf_numero ?? "-") : "-"}
                     {nfPendente && (
-                      <span className="ml-1 inline-block px-1.5 py-0.5 rounded text-[10px] bg-red-100 text-red-800">Pendente</span>
+                      <Selo estado="destructive" className="ml-1">Pendente</Selo>
                     )}
                   </td>
                   <td className="px-2 py-1.5 align-top">
                     <div>{brl(r.frete_cobrado)}</div>
                     {r.frete_tipo && (
-                      <span className="inline-block px-1.5 py-0.5 rounded text-[10px] bg-slate-100 text-slate-700">{r.frete_tipo}</span>
+                      <span className="text-[11px] text-muted-foreground">{r.frete_tipo}</span>
                     )}
                   </td>
                   <td className="px-2 py-1.5 align-top">
@@ -492,7 +491,7 @@ function AbaB2B() {
                         <div>{brl(r.frete_realizado)}</div>
                         {realPct && <div className="text-muted-foreground">{realPct}</div>}
                         {r.frete_desvio != null && Number(r.frete_desvio) > 0 && (
-                          <div className="text-red-600">+{brl(r.frete_desvio)}</div>
+                          <div className="text-destructive">+{brl(r.frete_desvio)}</div>
                         )}
                       </>
                     ) : "-"}
@@ -511,7 +510,7 @@ function AbaB2B() {
                   <td className="px-2 py-1.5 align-top">{fmtData(r.previsao_entrega)}</td>
                   <td className="px-2 py-1.5 align-top">
                     {r.data_entrega_real ? (
-                      <span className="text-green-600">{fmtData(r.data_entrega_real)}</span>
+                      <span className="text-success">{fmtData(r.data_entrega_real)}</span>
                     ) : "-"}
                   </td>
                   <td className="px-2 py-1.5 align-top">
@@ -519,7 +518,7 @@ function AbaB2B() {
                       <>
                         <div className="font-mono text-[10px]">{r.rastreio_codigo}</div>
                         {r.rastreio_entregue && (
-                          <span className="inline-block px-1.5 py-0.5 rounded text-[10px] bg-green-100 text-green-800">Entregue</span>
+                          <Selo estado="success">Entregue</Selo>
                         )}
                       </>
                     ) : "-"}
@@ -616,13 +615,13 @@ function AbaB2C() {
     else { setSortKey(k); setSortDir("asc"); }
   };
 
-  const corRastreio = (classe: string | null) => {
+  const estadoRastreio = (classe: string | null): EstadoSelo => {
     switch (classe) {
-      case "entregue": return "bg-green-100 text-green-800";
-      case "em_transito": return "bg-cyan-100 text-cyan-800";
-      case "coletado": return "bg-blue-100 text-blue-800";
-      case "atencao": return "bg-red-100 text-red-800";
-      default: return "bg-slate-100 text-slate-700";
+      case "entregue": return "success";
+      case "em_transito": return "info";
+      case "coletado": return "info";
+      case "atencao": return "destructive";
+      default: return "muted";
     }
   };
 
@@ -676,7 +675,7 @@ function AbaB2C() {
             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
               estagioFiltro === e
                 ? "bg-primary text-primary-foreground"
-                : `${B2C_ESTAGIO_COR[e]} hover:opacity-80`
+                : "bg-muted text-muted-foreground hover:bg-muted/70"
             }`}
           >
             {B2C_ESTAGIO_LABEL[e]} ({contagemEstagios[e]})
@@ -717,19 +716,19 @@ function AbaB2C() {
             ) : (
               filtradas.map((r) => {
                 const estagio = r.estagio_derivado as EstagioB2C;
-                const corEstagio = B2C_ESTAGIO_COR[estagio] ?? "bg-slate-100 text-slate-700";
+                const estadoEstagio = B2C_ESTAGIO_ESTADO[estagio] ?? "muted";
                 const labelEstagio = B2C_ESTAGIO_LABEL[estagio] ?? r.estagio_derivado;
                 return (
                   <tr key={r.shopify_id} className="border-b hover:bg-muted/30">
                     <td className="px-3 py-2 font-medium">{r.order_name}</td>
                     <td className="px-3 py-2">
-                      <Badge className={`${corEstagio} border-0`}>{labelEstagio}</Badge>
+                      <Selo estado={estadoEstagio}>{labelEstagio}</Selo>
                     </td>
                     <td className="px-3 py-2">
                       {r.alerta === "pago_sem_wns" ? (
-                        <span title="Pago sem WNS" className="text-yellow-600">⚠</span>
+                        <span title="Pago sem WNS" className="text-warning">⚠</span>
                       ) : r.alerta === "expedido_sem_rastreio" ? (
-                        <span title="Expedido sem rastreio" className="text-orange-600">📦</span>
+                        <span title="Expedido sem rastreio" className="text-warning">📦</span>
                       ) : null}
                     </td>
                     <td className="px-3 py-2">{brl(r.total)}</td>
@@ -766,7 +765,7 @@ function AbaB2C() {
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap">
                       {r.rastreio_entregue ? (
-                        <Badge className="bg-green-600 hover:bg-green-600 text-white border-0">Entregue</Badge>
+                        <Selo estado="success">Entregue</Selo>
                       ) : r.rastreio_status ? (
                         <span className="text-xs">{r.rastreio_status}</span>
                       ) : (
@@ -792,10 +791,8 @@ export default function GestaoPedidos() {
   const [aba, setAba] = useState<"b2b" | "b2c">("b2b");
 
   return (
-    <div className="p-4 space-y-4">
-      <div className="flex items-center gap-3">
-        <h1 className="text-xl font-semibold">Gestão de Pedidos</h1>
-      </div>
+    <PageShell>
+      <PageTitle titulo="Gestão de Pedidos" estado={aba === "b2b" ? "canal B2B" : "canal B2C"} />
 
       {/* tab switcher */}
       <div className="flex gap-1 border-b">
@@ -815,6 +812,6 @@ export default function GestaoPedidos() {
       </div>
 
       {aba === "b2b" ? <AbaB2B /> : <AbaB2C />}
-    </div>
+    </PageShell>
   );
 }
