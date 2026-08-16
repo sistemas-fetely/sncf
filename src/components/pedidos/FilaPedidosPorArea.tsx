@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { Selo } from "@/components/ui/selo";
 import { usePedidosFila } from "@/hooks/pedidos/usePedidosFila";
 import { usePedidoRisco, usePedidoRiscoFaixas, RISCO_COR_TOKEN } from "@/hooks/pedidos/usePedidoRisco";
 import { usePedidoRelogio } from "@/hooks/pedidos/usePedidoRelogio";
@@ -105,6 +106,7 @@ export function FilaPedidosPorArea({
   const [marcacaoFilter, setMarcacaoFilter] = useState<string>("todas");
   const [formaPgtoFilter, setFormaPgtoFilter] = useState<string>("todas");
   const [situacaoFilter, setSituacaoFilter] = useState<string>("todas");
+  const [liberacaoFilter, setLiberacaoFilter] = useState<string>("todas");
   const [ordenacao, setOrdenacao] = useState<OrdenacaoFila>("risco");
   const [pagina, setPagina] = useState(1);
   const [pageSizeOpt, setPageSizeOpt] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
@@ -135,7 +137,8 @@ export function FilaPedidosPorArea({
 
   useEffect(() => {
     setPagina(1);
-  }, [buscaDebounced, estagioFilter, marcacaoFilter, formaPgtoFilter, situacaoFilter, ordenacao, estagios, area]);
+  }, [buscaDebounced, estagioFilter, marcacaoFilter, formaPgtoFilter, situacaoFilter, liberacaoFilter, ordenacao, estagios, area]);
+
 
   const usarEstagiosMultiplos = !!(estagios && estagios.length > 0);
 
@@ -274,16 +277,7 @@ export function FilaPedidosPorArea({
 
   const buscaGlobalAtiva = !!buscaDebounced.trim() && !estagioEspecificoSelecionado;
 
-  const resumoBuscaGlobal = useMemo(() => {
-    if (!buscaGlobalAtiva) return null;
-    let entregues = 0, cancelados = 0, recuperacao = 0;
-    (linhas || []).forEach((p) => {
-      if (p.estagio === "entregue") entregues++;
-      else if (p.estagio === "cancelado") cancelados++;
-      else if (p.estagio === "recuperacao_venda") recuperacao++;
-    });
-    return { entregues, cancelados, recuperacao, total: linhas?.length ?? 0 };
-  }, [buscaGlobalAtiva, linhas]);
+
 
 
 
@@ -374,6 +368,31 @@ export function FilaPedidosPorArea({
 
   const { data: liberacaoMap } = useLiberacaoExpedicaoLote(pedidoIdsSaida);
 
+  // Liberação: filtro aplicado depois que o mapa existe (hook acima depende dos ids).
+  const linhasFiltradas = useMemo(() => {
+    if (liberacaoFilter === "todas") return linhas;
+    return linhas.filter((p) => {
+      const lib = liberacaoMap?.get(p.id);
+      if (!lib) return false;
+      return liberacaoFilter === "liberado" ? lib.liberado : !lib.liberado;
+    });
+  }, [linhas, liberacaoMap, liberacaoFilter]);
+
+  const resumoBuscaGlobal = useMemo(() => {
+    if (!buscaGlobalAtiva) return null;
+    let entregues = 0, cancelados = 0, recuperacao = 0;
+    linhasFiltradas.forEach((p) => {
+      if (p.estagio === "entregue") entregues++;
+      else if (p.estagio === "cancelado") cancelados++;
+      else if (p.estagio === "recuperacao_venda") recuperacao++;
+    });
+    return { entregues, cancelados, recuperacao, total: linhasFiltradas.length };
+  }, [buscaGlobalAtiva, linhasFiltradas]);
+
+
+
+
+
 
 
   const { data: msgPendentes } = useQuery({
@@ -401,10 +420,10 @@ export function FilaPedidosPorArea({
   });
   const pedidosComMsg = msgPendentes ?? new Set<string>();
 
-  const totalLinhas = linhas?.length ?? 0;
+  const totalLinhas = linhasFiltradas.length;
   const totalPaginas = Math.max(1, Math.ceil(totalLinhas / pageSize));
   const paginaAtual = Math.min(pagina, totalPaginas);
-  const pageItems = (linhas || []).slice(
+  const pageItems = linhasFiltradas.slice(
     (paginaAtual - 1) * pageSize,
     paginaAtual * pageSize,
   );
@@ -466,6 +485,16 @@ export function FilaPedidosPorArea({
             <SelectItem value="sem_recebivel">Sem recebível</SelectItem>
             <SelectItem value="anulado">Anulado</SelectItem>
             <SelectItem value="com_entrada_paga">Com entrada paga</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={liberacaoFilter} onValueChange={setLiberacaoFilter}>
+          <SelectTrigger className="w-full sm:w-44">
+            <SelectValue placeholder="Liberação" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Liberação: Todas</SelectItem>
+            <SelectItem value="liberado">Só liberáveis</SelectItem>
+            <SelectItem value="bloqueado">Falta pagamento</SelectItem>
           </SelectContent>
         </Select>
         <Select value={marcacaoFilter} onValueChange={setMarcacaoFilter}>
@@ -956,14 +985,9 @@ function CelulaPagamento({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <p
-            className={cn(
-              "text-[11px] font-medium truncate",
-              liberacao.tom === "ok" ? "text-success" : "text-warning"
-            )}
-          >
+          <Selo estado={liberacao.tom === "ok" ? "success" : "warning"}>
             {liberacao.rotulo}
-          </p>
+          </Selo>
         </TooltipTrigger>
         <TooltipContent>
           <div className="max-w-[320px] space-y-1">
