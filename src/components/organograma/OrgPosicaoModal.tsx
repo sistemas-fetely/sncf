@@ -9,6 +9,7 @@ import { useCreatePosicao, useDeletePosicao, materializarSeVirtual } from "@/hoo
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { formatError } from "@/lib/format-error";
 import { useCargos } from "@/hooks/useCargos";
 import { useEstruturaOrganizacional } from "@/hooks/useEstruturaOrganizacional";
 import { SelectDepartamentoHierarquico } from "@/components/shared/SelectDepartamentoHierarquico";
@@ -146,7 +147,7 @@ export function OrgPosicaoModal({ open, onClose, editNode, allNodes }: Props) {
       toast.success("Posição atualizada com sucesso");
       onClose();
     } catch (e) {
-      toast.error(`Erro ao atualizar: ${e instanceof Error ? e.message : String(e)}`);
+      toast.error(`Erro ao atualizar: ${formatError(e)}`);
     } finally {
       setSalvando(false);
     }
