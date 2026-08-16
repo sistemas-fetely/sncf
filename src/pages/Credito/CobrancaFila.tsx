@@ -1159,7 +1159,7 @@ function PedidosCobrancaTab() {
               >
                 <TableCell>
                   <div className="flex flex-col gap-1">
-                    <span className="font-mono text-xs font-semibold text-primary">
+                    <span className="font-mono text-xs font-medium text-primary">
                       {p.id_externo}
                     </span>
                     <BadgeLinkFila linha={linksFila?.[p.pedido_id]} />
