@@ -43,7 +43,7 @@ function useItensSino(userId: string | undefined) {
   return useQuery({
     queryKey: [...CHAVE, userId ?? "anon"],
     enabled: !!userId,
-    refetchInterval: 60_000,
+    refetchInterval: 300_000,
     queryFn: async (): Promise<ItemSino[]> => {
       const [rh, geral] = await Promise.all([
         supabase
