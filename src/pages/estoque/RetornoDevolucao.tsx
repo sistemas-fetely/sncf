@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
+import { PageShell } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FilterInput } from "@/components/ui/filter-input";

@@ -1,5 +1,6 @@
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
+import { PageShell } from "@/components/layout/PageShell";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function RecebimentoLayout() {

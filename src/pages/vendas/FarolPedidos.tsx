@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { PageShell } from "@/components/layout/PageShell";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

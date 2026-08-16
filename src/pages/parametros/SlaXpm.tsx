@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { PageShell } from "@/components/layout/PageShell";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";

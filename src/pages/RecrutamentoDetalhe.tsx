@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { PageShell } from "@/components/layout/PageShell";
 import { useUrlAssinada } from "@/lib/storage/arquivoPrivado";
 import { publicUrl, PUBLIC_APP_URL } from "@/lib/urls";
 import { useParams, useNavigate } from "react-router-dom";
