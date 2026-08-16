@@ -20,17 +20,17 @@ export function CasaPageHeader({
   return (
     <header
       className={cn(
-        "flex items-start justify-between gap-4 flex-wrap mb-6",
+        "flex items-start justify-between gap-4 flex-wrap mb-4",
         className
       )}
     >
-      <div className="space-y-2 min-w-0">
+      <div className="space-y-1.5 min-w-0">
         <CasaBreadcrumb items={breadcrumb} />
-        <h1 className="font-serif text-3xl md:text-4xl tracking-tight text-foreground leading-tight">
+        <h1 className="font-display text-[27px] font-normal tracking-tight text-foreground leading-tight">
           {title}
         </h1>
         {subtitle && (
-          <p className="text-sm italic text-muted-foreground">{subtitle}</p>
+          <p className="text-xs text-muted-foreground">{subtitle}</p>
         )}
       </div>
       {actions && <div className="flex items-center gap-2 flex-shrink-0">{actions}</div>}
