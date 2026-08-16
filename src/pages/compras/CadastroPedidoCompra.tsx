@@ -51,6 +51,14 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { rotuloFaseCalculada } from "@/components/compras/SaldoPedidoTab";
+
 import { cn } from "@/lib/utils";
 
 // ============================================================================
