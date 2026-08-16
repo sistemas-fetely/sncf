@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { usePedidosFila } from "@/hooks/pedidos/usePedidosFila";
 import { usePedidoRisco, usePedidoRiscoFaixas, RISCO_COR_TOKEN } from "@/hooks/pedidos/usePedidoRisco";
+import { usePedidoRelogio } from "@/hooks/pedidos/usePedidoRelogio";
 import type { PedidoRisco } from "@/hooks/pedidos/usePedidoRisco";
 import { usePedidosEntregaLote } from "@/hooks/pedidos/usePedidoEntrega";
 import { useLiberacaoExpedicaoLote, type LiberacaoExpedicao } from "@/hooks/pedidos/useLiberacaoExpedicao";
@@ -44,7 +45,7 @@ import { BotaoSplitPedido } from "@/components/pedidos/BotaoSplitPedido";
 import {
   EstagioBadge, FormatoIdade,
 } from "./BadgesPedido";
-import { MarcacaoPedido, MarcacaoBadge } from "./MarcacaoPedido";
+import { MarcacaoPedido } from "./MarcacaoPedido";
 import { useAtualizarUrgencia } from "@/hooks/pedidos/useAtualizarUrgencia";
 import { useAuth } from "@/contexts/AuthContext";
 import { URGENCIA_LABELS, type UrgenciaDeclarada, type AreaPedido, type EstagioPedido, type PedidoFilaItem } from "@/types/pedido";
@@ -158,6 +159,7 @@ export function FilaPedidosPorArea({
 
   // Farol de risco — fonte única: vw_pedido_risco + dimensão pedido_risco_faixa.
   const { data: riscoMap } = usePedidoRisco();
+  const { data: relogioMap } = usePedidoRelogio();
   const { data: faixas } = usePedidoRiscoFaixas();
 
   const termoBusca = buscaDebounced.trim();
@@ -526,7 +528,7 @@ export function FilaPedidosPorArea({
               <TableHead className="w-[160px]">Pagamento</TableHead>
               <TableHead className="w-[150px]">Estágio</TableHead>
               <TableHead className="w-[220px]">Entrega</TableHead>
-              <TableHead className="w-[80px]">Na fase</TableHead>
+              <TableHead className="w-[96px]">Na fase</TableHead>
               <TableHead className="w-[56px] text-right text-[11px] font-normal text-muted-foreground">Ações</TableHead>
 
             </TableRow>
@@ -592,27 +594,29 @@ export function FilaPedidosPorArea({
                     {p.parceiro_id ? (
                       <button
                         type="button"
-                        className="text-sm font-normal text-left hover:underline truncate block w-full min-w-0"
+                        className="text-sm font-normal text-muted-foreground text-left hover:underline truncate block w-full min-w-0"
                         title={p.parceiro_razao}
                         onClick={() => navigate(`/parceiros/${p.parceiro_id}`, { state: { from: "/pedidos" } })}
                       >
                         {p.parceiro_razao}
                       </button>
                     ) : (
-                      <p className="text-sm font-normal truncate block w-full min-w-0" title={p.parceiro_razao}>{p.parceiro_razao}</p>
+                      <p className="text-sm font-normal text-muted-foreground truncate block w-full min-w-0" title={p.parceiro_razao}>{p.parceiro_razao}</p>
                     )}
                     <p
                       className="text-[11px] text-muted-foreground truncate block w-full min-w-0"
                       title={[
                         p.parceiro_id && apelidoMap?.[p.parceiro_id] ? apelidoMap[p.parceiro_id] : null,
                         p.parceiro_cnpj,
+                        p.marcacao,
                       ].filter(Boolean).join(" · ")}
                     >
-                      {p.parceiro_id && apelidoMap?.[p.parceiro_id] ? apelidoMap[p.parceiro_id] : null}
-                      {p.parceiro_id && apelidoMap?.[p.parceiro_id] && p.parceiro_cnpj ? " · " : null}
-                      {p.parceiro_cnpj}
+                      {[
+                        p.parceiro_id && apelidoMap?.[p.parceiro_id] ? apelidoMap[p.parceiro_id] : null,
+                        p.parceiro_cnpj,
+                        p.marcacao,
+                      ].filter(Boolean).join(" · ")}
                     </p>
-                    <MarcacaoBadge marcacao={p.marcacao} />
                   </TableCell>
                   <TableCell>
                     <p className="font-medium">{fmtBRL.format(p.valor_liquido)}</p>
@@ -698,6 +702,7 @@ export function FilaPedidosPorArea({
                       );
                       const diasNaFase = risco?.dias_na_fase;
                       const totalDias = Math.floor((p.idade_minutos ?? 0) / 1440);
+                      const relogio = relogioMap?.get(p.id);
                       return (
                         <div>
                           <p className={cn(slaEstourado && "text-destructive font-medium")}>
@@ -706,6 +711,11 @@ export function FilaPedidosPorArea({
                           <p className="text-[11px] text-muted-foreground">
                             pedido {totalDias === 0 ? "<1d" : `${totalDias}d`}
                           </p>
+                          {relogio && relogio.dias_espera > 0 && (
+                            <p className="text-[11px] text-muted-foreground">
+                              {relogio.dias_nossos}d nossos
+                            </p>
+                          )}
                         </div>
                       );
                     })()}

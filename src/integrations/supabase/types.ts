@@ -41933,6 +41933,15 @@ export type Database = {
           },
         ]
       }
+      v_pedido_relogio: {
+        Row: {
+          dias_espera: number | null
+          dias_nossos: number | null
+          dias_total: number | null
+          pedido_id: string | null
+        }
+        Relationships: []
+      }
       v_pedidos_fila: {
         Row: {
           analise_credito_id: string | null
@@ -42040,7 +42049,9 @@ export type Database = {
           qtd_risco_amarelo: number | null
           qtd_risco_vermelho: number | null
           qtd_sla_estourado: number | null
+          sla_dias: number | null
           soma_valor: number | null
+          tipo_sla: string | null
           valor_risco_vermelho: number | null
         }
         Relationships: [
@@ -52552,14 +52563,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -60762,6 +60773,7 @@ export type Database = {
       iniciar_compra_pedido: { Args: { p_pedido_id: string }; Returns: Json }
       is_controladoria: { Args: { _user_id: string }; Returns: boolean }
       is_rh: { Args: { _user_id: string }; Returns: boolean }
+      is_socio: { Args: { _user_id: string }; Returns: boolean }
       lancar_invoice_importacao: {
         Args: {
           p_confirmar?: boolean
@@ -61094,6 +61106,7 @@ export type Database = {
           total_processados: number
         }[]
       }
+      pode_ver_pessoa: { Args: { _pessoa_id: string }; Returns: boolean }
       preview_devolucao_pedido: { Args: { p_pedido_id: string }; Returns: Json }
       preview_template_cargo: {
         Args: {
@@ -62053,6 +62066,7 @@ export type Database = {
         | "triagem"
         | "coordenacao_op_fin"
         | "auditor"
+        | "socio"
       compra_anexo_tipo_enum:
         | "nf"
         | "recibo"
@@ -62247,6 +62261,7 @@ export const Constants = {
         "triagem",
         "coordenacao_op_fin",
         "auditor",
+        "socio",
       ],
       compra_anexo_tipo_enum: [
         "nf",
