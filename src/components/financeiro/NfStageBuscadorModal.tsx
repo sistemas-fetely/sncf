@@ -157,7 +157,7 @@ export function NfStageBuscadorModal({
                       onSelecionar(nf.id);
                     }}
                     className={`w-full text-left p-3 border rounded-md hover:bg-muted/50 transition-colors ${
-                      valorMatch ? "border-emerald-300 bg-emerald-50/50" : ""
+                      valorMatch ? "border-success/40 bg-success/10" : ""
                     }`}
                   >
                     <div className="flex items-center gap-2 flex-wrap">
@@ -166,7 +166,7 @@ export function NfStageBuscadorModal({
                       </Badge>
                       <span className="text-sm font-medium">{nf.fornecedor_razao_social}</span>
                       {valorMatch && (
-                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 text-[10px]">
+                        <Badge className="bg-success/10 text-success hover:bg-success/10 text-[10px]">
                           Valor bate
                         </Badge>
                       )}

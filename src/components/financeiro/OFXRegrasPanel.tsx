@@ -169,7 +169,7 @@ export function OFXRegrasPanel() {
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-base font-semibold flex items-center gap-2">
+          <h3 className="text-base font-medium flex items-center gap-2">
             <Zap className="h-4 w-4 text-primary" />
             Regras Automáticas OFX
           </h3>
@@ -199,7 +199,7 @@ export function OFXRegrasPanel() {
                   <span className="font-medium text-sm">{r.nome}</span>
                   <Badge variant="outline" className="text-[10px] font-mono">{r.pattern}</Badge>
                   {r.acao === "ignorar" && (
-                    <Badge variant="outline" className="text-[10px] text-zinc-500">Ignorar</Badge>
+                    <Badge variant="outline" className="text-[10px] text-muted-foreground">Ignorar</Badge>
                   )}
                   {!r.ativo && <Badge variant="secondary" className="text-[10px]">Inativa</Badge>}
                 </div>

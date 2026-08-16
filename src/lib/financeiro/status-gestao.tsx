@@ -20,13 +20,13 @@ export const STATUS_GESTAO_LABEL: Record<string, string> = {
 };
 
 const STATUS_GESTAO_COR: Record<string, string> = {
-  a_vencer: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
-  vence_hoje: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
-  atrasado: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
-  aguarda_liquidacao: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
-  pago: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
-  pago_com_atraso: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
-  pago_judicial: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
+  a_vencer: "bg-info/10 text-info",
+  vence_hoje: "bg-warning/10 text-warning",
+  atrasado: "bg-destructive/10 text-destructive",
+  aguarda_liquidacao: "bg-warning/10 text-warning",
+  pago: "bg-success/10 text-success",
+  pago_com_atraso: "bg-success/10 text-success",
+  pago_judicial: "bg-success/10 text-success",
   cancelado: "bg-muted text-muted-foreground",
   devolvido: "bg-muted text-muted-foreground",
   baixado_por_perda: "bg-muted text-muted-foreground",

@@ -39,7 +39,7 @@ export function getVinculoOrigemIcon(
   if (o === "cartao" || o.includes("cart")) {
     return {
       Icon: CreditCard,
-      cor: "text-violet-600",
+      cor: "text-info",
       label: "Cartão",
       tooltip: "Vinculado a lançamento de cartão de crédito",
     };
@@ -53,7 +53,7 @@ export function getVinculoOrigemIcon(
     else if (o === "nf_pj_interno") detalhe = "NF de prestador PJ";
     return {
       Icon: FileText,
-      cor: "text-blue-600",
+      cor: "text-info",
       label: "NF",
       tooltip: `Vinculado a ${detalhe}`,
     };
@@ -63,7 +63,7 @@ export function getVinculoOrigemIcon(
   if (o === "ofx" || o === "ofx_avulso" || o.includes("ofx")) {
     return {
       Icon: Banknote,
-      cor: "text-amber-600",
+      cor: "text-warning",
       label: "OFX",
       tooltip:
         o === "ofx_avulso"
@@ -76,7 +76,7 @@ export function getVinculoOrigemIcon(
   if (o === "recorrente") {
     return {
       Icon: Repeat,
-      cor: "text-indigo-600",
+      cor: "text-info",
       label: "Recorrente",
       tooltip: "Gerado por compromisso recorrente",
     };
@@ -86,7 +86,7 @@ export function getVinculoOrigemIcon(
   if (o === "parcelado") {
     return {
       Icon: Layers,
-      cor: "text-purple-600",
+      cor: "text-info",
       label: "Parcelado",
       tooltip: "Parcela de compromisso parcelado",
     };
@@ -96,7 +96,7 @@ export function getVinculoOrigemIcon(
   if (o === "consolidada") {
     return {
       Icon: CreditCard,
-      cor: "text-violet-700",
+      cor: "text-info",
       label: "Consolidada",
       tooltip: "Conta consolidada de fatura de cartão",
     };
@@ -106,7 +106,7 @@ export function getVinculoOrigemIcon(
   if (o === "bling") {
     return {
       Icon: Link2,
-      cor: "text-cyan-600",
+      cor: "text-info",
       label: "Bling",
       tooltip: "Sincronizado com Bling",
     };

@@ -139,13 +139,13 @@ export default function MarcarEnviadasDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+            <CheckCircle2 className="h-5 w-5 text-success" />
             Marcar como enviadas
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-sm">
+          <div className="rounded-lg bg-success/10 border border-success/40 px-3 py-2 text-sm">
             <strong>{contasIds.length}</strong> conta(s) selecionadas — total{" "}
             <strong>{formatBRL(totalValor)}</strong>
           </div>
@@ -243,7 +243,7 @@ export default function MarcarEnviadasDialog({
               contasIds.length === 0 ||
               !descricao.trim()
             }
-            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            className="bg-success hover:bg-success text-white"
           >
             {mutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Confirmar envio

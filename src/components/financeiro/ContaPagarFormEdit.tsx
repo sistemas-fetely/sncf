@@ -441,13 +441,13 @@ export function ContaPagarFormEdit({
   return (
     <div className="space-y-4">
       {isReadOnly && (
-        <div className="p-3 rounded-md bg-zinc-100 text-zinc-600 text-xs">
+        <div className="p-3 rounded-md bg-muted/10 text-muted-foreground text-xs">
           Conta com status <strong>{conta.status}</strong> — leitura apenas.
         </div>
       )}
 
       {enviadoAguardando && (
-        <div className="p-3 rounded-md border border-amber-300 bg-amber-50 text-amber-900 text-xs space-y-1">
+        <div className="p-3 rounded-md border border-warning/40 bg-warning/10 text-warning text-xs space-y-1">
           <p className="font-medium">📧 Email de pagamento já enviado</p>
           <p>
             Campos críticos (categoria, centro de custo, meio de pagamento, vencimento, conta origem)
@@ -487,8 +487,8 @@ export function ContaPagarFormEdit({
 
       {/* Seletor de parceiro — só aparece se conta é órfã (sem parceiro vinculado) */}
       {!conta.parceiro_id && !isReadOnly && (
-        <div className="rounded-md border border-dashed border-amber-300 bg-amber-50/40 p-3 space-y-2">
-          <p className="text-[11px] text-amber-900 leading-snug">
+        <div className="rounded-md border border-dashed border-warning/40 bg-warning/10 p-3 space-y-2">
+          <p className="text-[11px] text-warning leading-snug">
             <strong>Sem parceiro vinculado.</strong> Selecione abaixo para
             classificar a despesa. Os padrões do parceiro (categoria, centro de
             custo, forma de pagamento) serão aplicados automaticamente.
@@ -515,7 +515,7 @@ export function ContaPagarFormEdit({
             </SelectContent>
           </Select>
           {parceiroIdAtribuir && (
-            <p className="text-[11px] text-emerald-700 leading-snug">
+            <p className="text-[11px] text-success leading-snug">
               ✓ Parceiro pronto pra ser vinculado. Confirme em Salvar.
             </p>
           )}
@@ -524,15 +524,15 @@ export function ContaPagarFormEdit({
 
       {/* Botão Buscar do Parceiro — doutrina "Parceiro é Verdade" */}
       {conta.parceiro_id && !isReadOnly && (
-        <div className="rounded-md border border-dashed border-purple-300 bg-purple-50/40 p-2.5 flex items-center justify-between gap-3">
-          <p className="text-[11px] text-purple-800 leading-snug flex-1">
+        <div className="rounded-md border border-dashed border-info/40 bg-info/10 p-2.5 flex items-center justify-between gap-3">
+          <p className="text-[11px] text-info leading-snug flex-1">
             <strong>Parceiro é verdade.</strong> Buscar Categoria, Centro de custo e Forma de pagamento do cadastro.
           </p>
           <Button
             type="button"
             size="sm"
             variant="outline"
-            className="h-7 px-2 border-purple-300 text-purple-700 hover:bg-purple-100 shrink-0"
+            className="h-7 px-2 border-info/40 text-info hover:bg-info/10 shrink-0"
             onClick={aplicarPadroesParceiro}
             disabled={salvando}
           >
@@ -559,20 +559,20 @@ export function ContaPagarFormEdit({
           && !sugestaoAplicada
           && topSugestao.score >= 60
           && !isReadOnly && (
-            <div className="mt-2 rounded-md border border-blue-200 bg-blue-50/60 p-2.5">
+            <div className="mt-2 rounded-md border border-info/40 bg-info/10 p-2.5">
               <div className="flex items-start gap-2">
-                <Sparkles className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+                <Sparkles className="h-4 w-4 text-info mt-0.5 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-medium text-blue-900">
+                  <div className="text-xs font-medium text-info">
                     ✨ Sugestão IA: {topSugestao.categoria_codigo} {topSugestao.categoria_nome}
                   </div>
-                  <div className="text-[11px] text-blue-700 mt-0.5">
+                  <div className="text-[11px] text-info mt-0.5">
                     {topSugestao.motivo} · baseado em {topSugestao.amostra_count}{" "}
                     {topSugestao.amostra_count === 1 ? "lançamento" : "lançamentos"} similar
                     {topSugestao.amostra_count === 1 ? "" : "es"}
                   </div>
                   {topSugestao.amostra_descricao && (
-                    <div className="text-[11px] text-blue-600/80 mt-0.5 italic truncate">
+                    <div className="text-[11px] text-info mt-0.5 italic truncate">
                       ex: "{topSugestao.amostra_descricao}"
                     </div>
                   )}
@@ -581,7 +581,7 @@ export function ContaPagarFormEdit({
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="h-7 px-2 border-blue-300 text-blue-700 hover:bg-blue-100 shrink-0"
+                  className="h-7 px-2 border-info/40 text-info hover:bg-info/10 shrink-0"
                   onClick={() => {
                     setContaId(topSugestao.plano_contas_id);
                     setSugestaoAplicada(true);
@@ -659,14 +659,14 @@ export function ContaPagarFormEdit({
         className={cn(
           "space-y-1 rounded-md transition-all",
           highlightCampo === "pago_em_conta_id" &&
-            "ring-2 ring-rose-400 ring-offset-2 p-2 -m-2 bg-rose-50/40",
+            "ring-2 ring-destructive ring-offset-2 p-2 -m-2 bg-destructive/10",
         )}
       >
         <Label className="flex items-center gap-2">
           Pago em conta (banco)
           {(highlightCampo === "pago_em_conta_id" ||
             (obrigatorioPorFamilia("pago_em_conta") && pagoEmContaId === "__none__")) && (
-            <span className="text-[10px] font-medium text-rose-600">
+            <span className="text-[10px] font-medium text-destructive">
               ← preencha pra continuar
             </span>
           )}
@@ -679,7 +679,7 @@ export function ContaPagarFormEdit({
           <SelectTrigger
             className={cn(
               highlightCampo === "pago_em_conta_id" &&
-                "border-rose-400 focus:ring-rose-400",
+                "border-destructive/40 focus:ring-destructive",
             )}
           >
             <SelectValue placeholder="Definir..." />
@@ -707,7 +707,7 @@ export function ContaPagarFormEdit({
       </div>
 
       {/* NF aplicável (toggle + motivo) */}
-      <div className="space-y-2 rounded-md border border-zinc-200 px-3 py-2.5">
+      <div className="space-y-2 rounded-md border border-border/40 px-3 py-2.5">
         <div className="flex items-center justify-between gap-3">
           <div className="space-y-0.5">
             <Label htmlFor="cp-edit-nf-aplicavel" className="text-sm">
@@ -727,7 +727,7 @@ export function ContaPagarFormEdit({
         {!nfAplicavel && (
           <div className="space-y-1">
             <Label htmlFor="cp-edit-nf-motivo" className="text-xs">
-              Motivo <span className="text-rose-600">*</span>
+              Motivo <span className="text-destructive">*</span>
             </Label>
             <Input
               id="cp-edit-nf-motivo"
@@ -792,13 +792,13 @@ export function ContaPagarFormEdit({
           </p>
         </div>
       ) : (
-        <div className="flex items-center justify-between rounded-md border border-dashed border-zinc-200 px-3 py-2">
+        <div className="flex items-center justify-between rounded-md border border-dashed border-border/40 px-3 py-2">
           <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
             <span>Chave de acesso da NF</span>
             {nfChave ? (
-              <span className="text-emerald-600 font-medium">✓ preenchida</span>
+              <span className="text-success font-medium">✓ preenchida</span>
             ) : (
-              <span className="text-zinc-400">— vazia</span>
+              <span className="text-muted-foreground">— vazia</span>
             )}
           </div>
           <Button

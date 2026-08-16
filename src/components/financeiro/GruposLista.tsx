@@ -139,7 +139,7 @@ export function GruposLista() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{kpis.totalAtivos}</div>
+            <div className="text-2xl font-medium">{kpis.totalAtivos}</div>
           </CardContent>
         </Card>
         <Card>
@@ -149,7 +149,7 @@ export function GruposLista() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-lg font-semibold truncate">{kpis.maior.nome}</div>
+            <div className="text-lg font-medium truncate">{kpis.maior.nome}</div>
             <div className="text-xs text-muted-foreground">
               ({kpis.maior.qtd} parceiro{kpis.maior.qtd === 1 ? "" : "s"})
             </div>
@@ -162,7 +162,7 @@ export function GruposLista() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatBRL(kpis.despesa12m)}</div>
+            <div className="text-2xl font-medium">{formatBRL(kpis.despesa12m)}</div>
           </CardContent>
         </Card>
       </div>

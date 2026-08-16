@@ -319,7 +319,7 @@ export function ImportarOFXDialog({ open, onOpenChange, onSuccess, contaBancaria
               </div>
             )}
 
-            <div className="rounded-md bg-blue-50 border border-blue-200 p-3 flex gap-2 text-xs text-blue-900">
+            <div className="rounded-md bg-info/10 border border-info/40 p-3 flex gap-2 text-xs text-info">
               <Info className="h-4 w-4 shrink-0 mt-0.5" />
               <div className="space-y-1">
                 <p>
@@ -342,7 +342,7 @@ export function ImportarOFXDialog({ open, onOpenChange, onSuccess, contaBancaria
             {/* Resumo */}
             <div className="rounded-lg border p-4 bg-muted/30 space-y-2">
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold flex items-center gap-2">
+                <h3 className="font-medium flex items-center gap-2">
                   <FileText className="h-4 w-4" />
                   {arquivoNome}
                 </h3>
@@ -390,19 +390,19 @@ export function ImportarOFXDialog({ open, onOpenChange, onSuccess, contaBancaria
 
             {/* Status de duplicatas */}
             <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-md border border-green-200 bg-green-50 p-3 flex items-center gap-2 text-sm">
-                <CheckCircle2 className="h-4 w-4 text-green-700 shrink-0" />
+              <div className="rounded-md border border-success/40 bg-success/10 p-3 flex items-center gap-2 text-sm">
+                <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
                 <div>
-                  <strong className="text-green-800">{transacoesNovas.length}</strong>{" "}
-                  <span className="text-green-700 text-xs">novas pra importar</span>
+                  <strong className="text-success">{transacoesNovas.length}</strong>{" "}
+                  <span className="text-success text-xs">novas pra importar</span>
                 </div>
               </div>
               {duplicatasCount > 0 ? (
-                <div className="rounded-md border border-amber-200 bg-amber-50 p-3 flex items-center gap-2 text-sm">
-                  <AlertTriangle className="h-4 w-4 text-amber-700 shrink-0" />
+                <div className="rounded-md border border-warning/40 bg-warning/10 p-3 flex items-center gap-2 text-sm">
+                  <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
                   <div>
-                    <strong className="text-amber-800">{duplicatasCount}</strong>{" "}
-                    <span className="text-amber-700 text-xs">duplicatas (serão ignoradas)</span>
+                    <strong className="text-warning">{duplicatasCount}</strong>{" "}
+                    <span className="text-warning text-xs">duplicatas (serão ignoradas)</span>
                   </div>
                 </div>
               ) : (
@@ -447,7 +447,7 @@ export function ImportarOFXDialog({ open, onOpenChange, onSuccess, contaBancaria
                           </TableCell>
                           <TableCell
                             className={`text-right font-mono text-xs whitespace-nowrap ${
-                              t.valor < 0 ? "text-red-700" : "text-green-700"
+                              t.valor < 0 ? "text-destructive" : "text-success"
                             }`}
                           >
                             {formatBRL(t.valor)}
@@ -458,7 +458,7 @@ export function ImportarOFXDialog({ open, onOpenChange, onSuccess, contaBancaria
                                 Já importado
                               </Badge>
                             ) : (
-                              <Badge className="text-[9px] py-0 px-1.5 bg-green-100 text-green-800 hover:bg-green-100">
+                              <Badge className="text-[9px] py-0 px-1.5 bg-success/10 text-success hover:bg-success/10">
                                 Novo
                               </Badge>
                             )}
@@ -486,11 +486,11 @@ export function ImportarOFXDialog({ open, onOpenChange, onSuccess, contaBancaria
         {/* ETAPA 4: CONCLUÍDO */}
         {etapa === "concluido" && resultadoFinal && (
           <div className="py-12 text-center space-y-4">
-            <CheckCircle2 className="h-12 w-12 text-green-600 mx-auto" />
+            <CheckCircle2 className="h-12 w-12 text-success mx-auto" />
             <div>
-              <h3 className="text-lg font-semibold">Importado no Stage!</h3>
+              <h3 className="text-lg font-medium">Importado no Stage!</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                <strong className="text-green-700">{resultadoFinal.novas}</strong> transações enviadas pra rascunho
+                <strong className="text-success">{resultadoFinal.novas}</strong> transações enviadas pra rascunho
               </p>
             </div>
             <p className="text-xs text-muted-foreground">

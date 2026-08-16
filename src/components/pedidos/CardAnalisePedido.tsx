@@ -24,8 +24,8 @@ export function CardAnalisePedido({
   const reanalisar = useReanalisarPedido();
 
   const corBorda =
-    status === "ok" ? "border-l-emerald-500"
-    : status === "desvio" ? "border-l-amber-500"
+    status === "ok" ? "border-l-success/40"
+    : status === "desvio" ? "border-l-warning/40"
     : status === "erro" ? "border-l-destructive"
     : "border-l-muted";
 
@@ -46,13 +46,13 @@ export function CardAnalisePedido({
           <>
             <div className="flex items-center gap-2">
               {status === "ok" && (
-                <Badge className="bg-emerald-500 hover:bg-emerald-500 text-white gap-1">
+                <Badge className="bg-success hover:bg-success text-white gap-1">
                   <ShieldCheck className="h-3 w-3" />
                   Condição compatível
                 </Badge>
               )}
               {status === "desvio" && (
-                <Badge className="bg-amber-500 hover:bg-amber-500 text-white gap-1">
+                <Badge className="bg-warning hover:bg-warning text-white gap-1">
                   <ShieldAlert className="h-3 w-3" />
                   Desvio
                 </Badge>

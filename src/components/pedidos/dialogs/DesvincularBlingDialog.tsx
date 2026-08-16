@@ -86,7 +86,7 @@ export function DesvincularBlingDialog({ open, onOpenChange, pedidoId, idExterno
         </label>
 
         {!confirmado && (
-          <Alert className="border-amber-500/50 text-amber-700 dark:text-amber-400">
+          <Alert className="border-warning/40 text-warning">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription className="text-xs">
               Sem essa confirmação, o pedido pode seguir vivo no Bling e virar duplicidade num reenvio.

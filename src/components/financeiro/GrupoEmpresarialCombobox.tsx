@@ -187,7 +187,7 @@ export function GrupoEmpresarialCombobox({
                       )}
                       <span>
                         Criar grupo{" "}
-                        <strong className="font-semibold">
+                        <strong className="font-medium">
                           "{search.trim()}"
                         </strong>
                       </span>

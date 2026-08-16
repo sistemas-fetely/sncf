@@ -167,7 +167,7 @@ export function PreviewNFsImport({
       <div className="flex flex-wrap items-center gap-3 text-sm">
         <Badge variant="outline">{nfs.length} NFs</Badge>
         {totals.vincular > 0 && (
-          <Badge variant="outline" className="gap-1 border-blue-300 text-blue-700">
+          <Badge variant="outline" className="gap-1 border-info/40 text-info">
             <Link2 className="h-3 w-3" />
             {totals.vincular} vincular a existentes
           </Badge>
@@ -334,14 +334,14 @@ export function PreviewNFsImport({
                         <Badge variant="secondary">Duplicada</Badge>
                       ) : nf._match_pagamento ? (
                         <div className="space-y-1">
-                          <Badge className="text-[10px] bg-blue-100 text-blue-800 hover:bg-blue-100 gap-1">
+                          <Badge className="text-[10px] bg-info/10 text-info hover:bg-info/10 gap-1">
                             <Link2 className="h-3 w-3" /> Vincular
                           </Badge>
                           <p className="text-[10px] text-muted-foreground line-clamp-2 max-w-[180px]">
                             {nf._match_pagamento.conta_descricao}
                           </p>
                           {nf._match_pagamento.conta_docs_status && (
-                            <p className="text-[10px] text-blue-600">
+                            <p className="text-[10px] text-info">
                               Docs: {nf._match_pagamento.conta_docs_status}
                             </p>
                           )}

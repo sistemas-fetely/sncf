@@ -163,7 +163,7 @@ export default function PlanoPagamentoDialog({ open, onOpenChange, doc, onDone }
 
         <div className="rounded border p-3 bg-muted/30 flex items-center justify-between">
           <div className="text-xs text-muted-foreground">Valor total do documento</div>
-          <div className="text-lg font-semibold font-mono">{formatBRL(doc.valor)}</div>
+          <div className="text-lg font-medium font-mono">{formatBRL(doc.valor)}</div>
         </div>
 
         {isLoading ? (
@@ -172,7 +172,7 @@ export default function PlanoPagamentoDialog({ open, onOpenChange, doc, onDone }
           </div>
         ) : jaTemPlano ? (
           <div className="space-y-2">
-            <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+            <div className="text-sm text-warning bg-warning/10 border border-warning/40 rounded px-3 py-2">
               Plano já gerado para este documento.
             </div>
             <div className="border rounded divide-y">
@@ -238,8 +238,8 @@ export default function PlanoPagamentoDialog({ open, onOpenChange, doc, onDone }
             <div
               className={`text-sm flex items-center justify-between px-3 py-2 rounded border ${
                 bate
-                  ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                  : "bg-rose-50 border-rose-200 text-rose-800"
+                  ? "bg-success/10 border-success/40 text-success"
+                  : "bg-destructive/10 border-destructive/40 text-destructive"
               }`}
             >
               <span>Soma das parcelas</span>

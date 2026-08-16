@@ -39,23 +39,23 @@ export type StatusCpr = (typeof STATUS_CPR_VALIDOS)[number];
 const VALIDOS: Record<StatusCpr, StatusCprMeta> = {
   aberto: {
     label: "Aberto",
-    className: "bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-100",
+    className: "bg-muted/10 text-muted-foreground border-border/40 hover:bg-muted/10",
   },
   aprovado: {
     label: "Aprovado",
-    className: "bg-blue-100 text-blue-800 border-blue-300 hover:bg-blue-100",
+    className: "bg-info/10 text-info border-info/40 hover:bg-info/10",
   },
   enviado_para_pagamento: {
     label: "Enviado p/ pagamento",
-    className: "bg-blue-600 text-white border-transparent hover:bg-blue-600",
+    className: "bg-info text-white border-transparent hover:bg-info",
   },
   pago: {
     label: "Pago",
-    className: "bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-100",
+    className: "bg-success/10 text-success border-success/40 hover:bg-success/10",
   },
   conciliado: {
     label: "Conciliado",
-    className: "bg-emerald-600 text-white border-transparent hover:bg-emerald-600",
+    className: "bg-success text-white border-transparent hover:bg-success",
   },
   cancelado: {
     label: "Cancelado",
@@ -63,12 +63,12 @@ const VALIDOS: Record<StatusCpr, StatusCprMeta> = {
   },
   doc_pendente: {
     label: "Doc pendente",
-    className: "bg-amber-100 text-amber-800 border-amber-400 hover:bg-amber-100",
+    className: "bg-warning/10 text-warning border-warning/40 hover:bg-warning/10",
   },
   previsto: {
     label: "Previsto",
     className:
-      "bg-slate-50 text-slate-600 border border-dashed border-slate-400 hover:bg-slate-50",
+      "bg-muted/10 text-muted-foreground border border-dashed border-border/40 hover:bg-muted/10",
   },
 };
 

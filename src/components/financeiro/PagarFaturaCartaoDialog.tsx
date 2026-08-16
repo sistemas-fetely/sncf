@@ -93,7 +93,7 @@ export function PagarFaturaCartaoDialog({ open, onOpenChange, furo, onDone }: Pr
             <span className="flex-1 min-w-0 truncate" title={furo.descricao || ""}>
               {furo.descricao || "—"}
             </span>
-            <span className="font-mono font-semibold whitespace-nowrap">{formatBRL(Number(furo.valor))}</span>
+            <span className="font-mono font-medium whitespace-nowrap">{formatBRL(Number(furo.valor))}</span>
           </div>
         )}
 
@@ -122,11 +122,11 @@ export function PagarFaturaCartaoDialog({ open, onOpenChange, furo, onDone }: Pr
                     </div>
                     <div className="flex-1">
                       {bate ? (
-                        <Badge variant="outline" className="text-[10px] border-emerald-500 text-emerald-700 dark:text-emerald-400">
+                        <Badge variant="outline" className="text-[10px] border-success/40 text-success">
                           valor bate
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-700 dark:text-amber-500">
+                        <Badge variant="outline" className="text-[10px] border-warning/40 text-warning">
                           Δ {formatBRL(Math.abs(delta))}
                         </Badge>
                       )}

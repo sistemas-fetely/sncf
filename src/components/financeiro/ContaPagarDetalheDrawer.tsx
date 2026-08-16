@@ -379,12 +379,12 @@ export default function ContaPagarDetalheDrawer({
                       </Badge>
                     )}
                     {isCartao && (
-                    <Badge variant="outline" className="gap-1 text-xs border-blue-300 text-blue-700">
+                    <Badge variant="outline" className="gap-1 text-xs border-info/40 text-info">
                         <CreditCard className="h-3 w-3" /> Cartão
                       </Badge>
                     )}
                     {conta.movimentacao_bancaria_id && (
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 gap-1">
+                      <Badge variant="outline" className="bg-info/10 text-info border-info/40 gap-1">
                         <ArrowRightLeft className="h-3 w-3" />
                         Já em Movimentação
                       </Badge>
@@ -408,7 +408,7 @@ export default function ContaPagarDetalheDrawer({
                 )}
                 {/* Botão de Lançar em Mov movido pra área de ações por status (footer) — bloco enviado_para_pagamento */}
               </div>
-              <div className="text-2xl font-bold mt-2">{formatBRL(conta.valor)}</div>
+              <div className="text-2xl font-medium mt-2">{formatBRL(conta.valor)}</div>
               {conta.origem === "nf_pj_interno" && nfPjId && (
                 <Link
                   to={`/notas-fiscais/${nfPjId}`}
@@ -460,7 +460,7 @@ export default function ContaPagarDetalheDrawer({
             </div>
 
             {isCartao && conta.status === "aberto" && (
-              <div className="mt-3 p-2 rounded-md bg-blue-50 text-blue-700 text-[11px] flex items-center gap-2">
+              <div className="mt-3 p-2 rounded-md bg-info/10 text-info text-[11px] flex items-center gap-2">
                 <CreditCard className="h-3 w-3" />
                 Cartão — pagamento via fatura mensal. Conciliação acontece em Caixa & Banco quando a fatura é paga.
               </div>
@@ -665,14 +665,14 @@ export default function ContaPagarDetalheDrawer({
                   {(conta.status === "aberto" || conta.status === "atrasado") && (
                     <div className="space-y-2">
                       <p
-                        className={`text-xs ${conta.status === "atrasado" ? "text-red-600 font-medium" : "text-muted-foreground"}`}
+                        className={`text-xs ${conta.status === "atrasado" ? "text-destructive font-medium" : "text-muted-foreground"}`}
                       >
                         {conta.status === "atrasado"
                           ? "⚠ Atrasada! Aprove para liberar pagamento."
                           : "Validada. Aprove para liberar pagamento."}
                       </p>
                       <Button
-                        className="w-full bg-purple-700 hover:bg-purple-800 text-white gap-2"
+                        className="w-full bg-info hover:bg-info text-white gap-2"
                         onClick={async () => {
                           // Cartão vai direto pra enviado_para_pagamento em cascata (sem email ao fornecedor)
                           // Não-cartão vai pra aprovado em cascata (requer envio de email depois)
@@ -707,7 +707,7 @@ export default function ContaPagarDetalheDrawer({
                             Pagamento via fatura de cartão — não cabe envio de email ao fornecedor.
                           </p>
                           <Button
-                            className="w-full bg-amber-600 hover:bg-amber-700 text-white gap-2"
+                            className="w-full bg-warning hover:bg-warning text-white gap-2"
                             onClick={() =>
                               avancar(
                                 "enviado_para_pagamento",
@@ -724,7 +724,7 @@ export default function ContaPagarDetalheDrawer({
                             Aprovado! Envie ao financeiro com os documentos.
                           </p>
                           <Button
-                            className="w-full bg-amber-600 hover:bg-amber-700 text-white gap-2"
+                            className="w-full bg-warning hover:bg-warning text-white gap-2"
                             onClick={() => setShowEnviar(true)}
                           >
                             <Send className="h-4 w-4" /> Enviar para pagamento
@@ -736,11 +736,11 @@ export default function ContaPagarDetalheDrawer({
 
                   {/* ENVIADO_PARA_PAGAMENTO — status terminal, conciliação automática */}
                   {conta.status === "enviado_para_pagamento" && (
-                    <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-start gap-3">
+                    <div className="p-4 rounded-lg bg-success/10 border border-success/40 text-success text-sm flex items-start gap-3">
                       <CheckCircle2 className="h-5 w-5 shrink-0 mt-0.5" />
                       <div>
                         <p className="font-medium">Enviado para pagamento</p>
-                        <p className="text-xs mt-1 text-emerald-700">
+                        <p className="text-xs mt-1 text-success">
                           A conciliação bancária irá confirmar automaticamente quando o débito aparecer no extrato.
                           Acesse <strong>Conciliação → Stage 1</strong> para vincular à movimentação.
                         </p>
@@ -751,11 +751,11 @@ export default function ContaPagarDetalheDrawer({
                   {/* DOC_PENDENTE → reenviar email + opção finalizar manual */}
                   {conta.status === "doc_pendente" && (
                     <div className="space-y-2">
-                      <div className="p-3 rounded-lg bg-amber-50 text-amber-700 text-sm flex items-center gap-2">
+                      <div className="p-3 rounded-lg bg-warning/10 text-warning text-sm flex items-center gap-2">
                         <Clock className="h-4 w-4" /> Aguardando NF/Recibo do fornecedor
                       </div>
                       <Button
-                        className="w-full bg-amber-600 hover:bg-amber-700 text-white gap-2"
+                        className="w-full bg-warning hover:bg-warning text-white gap-2"
                         onClick={() => setShowEnviar(true)}
                       >
                         <Send className="h-4 w-4" /> Reenviar e-mail (cobrar documentação)
@@ -772,7 +772,7 @@ export default function ContaPagarDetalheDrawer({
                   {/* FINALIZADO */}
                   {conta.status === "finalizado" && (
                     <div className="space-y-2">
-                      <div className="p-3 rounded-lg bg-green-50 text-green-700 text-sm flex items-center gap-2">
+                      <div className="p-3 rounded-lg bg-success/10 text-success text-sm flex items-center gap-2">
                         <Check className="h-4 w-4" /> Finalizado — documentação OK, pagamento gerenciado em Caixa e Banco
                       </div>
                       <Button
@@ -789,7 +789,7 @@ export default function ContaPagarDetalheDrawer({
                   {/* CANCELADO */}
                   {conta.status === "cancelado" && (
                     <div className="space-y-2">
-                      <div className="p-3 rounded-lg bg-gray-100 text-gray-700 text-sm flex items-center gap-2">
+                      <div className="p-3 rounded-lg bg-muted/10 text-muted-foreground text-sm flex items-center gap-2">
                         <X className="h-4 w-4" /> Cancelado
                       </div>
                       <Button
@@ -805,7 +805,7 @@ export default function ContaPagarDetalheDrawer({
                   {/* STATUS LEGADOS (registros antigos migrados manualmente) */}
                   {(conta.status === "rascunho" || conta.status === "agendado" || conta.status === "conciliado") && (
                     <div className="space-y-2">
-                      <div className="p-3 rounded-lg bg-blue-50 text-blue-700 text-xs">
+                      <div className="p-3 rounded-lg bg-info/10 text-info text-xs">
                         Status legado: <strong>{conta.status}</strong>. Reabrir para novo fluxo.
                       </div>
                       <Button
@@ -882,7 +882,7 @@ function CancelarButton({
       <AlertDialogTrigger asChild>
         <Button
           variant="ghost"
-          className="w-full text-red-500 hover:text-red-700 hover:bg-red-50 gap-2 text-xs"
+          className="w-full text-destructive hover:text-destructive hover:bg-destructive/10 gap-2 text-xs"
         >
           <X className="h-3 w-3" /> Cancelar esta conta
         </Button>
@@ -910,7 +910,7 @@ function CancelarButton({
         <AlertDialogFooter>
           <AlertDialogCancel>Voltar</AlertDialogCancel>
           <AlertDialogAction
-            className="bg-red-600 hover:bg-red-700 text-white"
+            className="bg-destructive hover:bg-destructive text-white"
             onClick={async () => {
               try {
                 const { data, error } = await supabase.rpc("cancelar_conta_pagar", {
@@ -938,7 +938,7 @@ function CancelarButton({
           </AlertDialogAction>
           {temIrmasAtivas && (
             <AlertDialogAction
-              className="bg-red-700 hover:bg-red-800 text-white"
+              className="bg-destructive hover:bg-destructive text-white"
               onClick={async () => {
                 try {
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1057,11 +1057,11 @@ function NFsAnexadasSecao({ contaId }: { contaId: string }) {
           {nfs.map((nf) => (
             <div
               key={nf.id}
-              className="flex items-center justify-between gap-2 p-2 rounded border border-emerald-200 bg-emerald-50/40"
+              className="flex items-center justify-between gap-2 p-2 rounded border border-success/40 bg-success/10"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <FileText className="h-3.5 w-3.5 text-emerald-700 shrink-0" />
+                  <FileText className="h-3.5 w-3.5 text-success shrink-0" />
                   <span className="text-sm font-medium truncate">
                     {nf.fornecedor_razao_social || "Fornecedor"}
                   </span>
@@ -1086,7 +1086,7 @@ function NFsAnexadasSecao({ contaId }: { contaId: string }) {
                 size="sm"
                 variant="ghost"
                 onClick={() => desanexarNF(nf.id)}
-                className="h-6 w-6 p-0 text-red-600 hover:bg-red-50 hover:text-red-700 shrink-0"
+                className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0"
                 title="Desanexar esta NF"
               >
                 <X className="h-3.5 w-3.5" />
@@ -1117,22 +1117,22 @@ function VinculoNFStatusBadge({ conta }: { conta: Conta }) {
     icon = <Ban className="h-4 w-4" />;
     titulo = "NF não aplicável";
     subtitulo = conta.nf_aplicavel_motivo || "Despesa sem exigência fiscal.";
-    cls = "border-zinc-300 bg-zinc-50 text-zinc-700";
+    cls = "border-border/40 bg-muted/10 text-muted-foreground";
   } else if (completo) {
     icon = <CheckCircle className="h-4 w-4" />;
     titulo = "Vínculo NF completo";
     subtitulo = `${formatBRL(vinculado)} de ${formatBRL(valor)}`;
-    cls = "border-emerald-300 bg-emerald-50 text-emerald-800";
+    cls = "border-success/40 bg-success/10 text-success";
   } else if (vinculado <= 0) {
     icon = <AlertTriangle className="h-4 w-4" />;
     titulo = "Sem NF vinculada";
     subtitulo = "Esta despesa exige nota fiscal.";
-    cls = "border-amber-300 bg-amber-50 text-amber-800";
+    cls = "border-warning/40 bg-warning/10 text-warning";
   } else {
     icon = <AlertTriangle className="h-4 w-4" />;
     titulo = "Vínculo NF parcial";
     subtitulo = `${formatBRL(vinculado)} de ${formatBRL(valor)} — faltam ${formatBRL(valor - vinculado)}`;
-    cls = "border-amber-300 bg-amber-50 text-amber-800";
+    cls = "border-warning/40 bg-warning/10 text-warning";
   }
 
   return (

@@ -106,8 +106,8 @@ export function VincularLancamentoModal({ open, onOpenChange, lancamento }: Prop
 
         <div className="space-y-3">
           {/* Header do lançamento */}
-          <div className="p-2 bg-zinc-50 border rounded text-xs">
-            <div className="font-semibold">{lancamento.descricao}</div>
+          <div className="p-2 bg-muted/10 border rounded text-xs">
+            <div className="font-medium">{lancamento.descricao}</div>
             <div className="text-muted-foreground">
               {formatBRL(lancamento.valor)} · {formatDataBR(lancamento.data_compra)}
             </div>
@@ -150,7 +150,7 @@ export function VincularLancamentoModal({ open, onOpenChange, lancamento }: Prop
               matchesFiltrados.map((m) => (
                 <div
                   key={m.conta_pagar_id}
-                  className="p-3 border rounded hover:bg-zinc-50 transition-colors"
+                  className="p-3 border rounded hover:bg-muted/10 transition-colors"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
@@ -160,10 +160,10 @@ export function VincularLancamentoModal({ open, onOpenChange, lancamento }: Prop
                           variant="outline"
                           className={`text-[9px] shrink-0 ${
                             m.score >= 80
-                              ? "border-emerald-400 text-emerald-700 bg-emerald-50"
+                              ? "border-success/40 text-success bg-success/10"
                               : m.score >= 50
-                                ? "border-amber-400 text-amber-700 bg-amber-50"
-                                : "border-zinc-300 text-zinc-700"
+                                ? "border-warning/40 text-warning bg-warning/10"
+                                : "border-border/40 text-muted-foreground"
                           }`}
                         >
                           {m.score}% match

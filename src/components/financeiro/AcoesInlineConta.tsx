@@ -45,9 +45,9 @@ interface Props {
 type EstadoIcone = "feito" | "pendente" | "na";
 
 const COR_ICONE: Record<EstadoIcone, string> = {
-  feito: "text-emerald-600 hover:bg-emerald-50",
-  pendente: "text-rose-600 hover:bg-rose-50",
-  na: "text-zinc-300 cursor-not-allowed hover:bg-transparent",
+  feito: "text-success hover:bg-success/10",
+  pendente: "text-destructive hover:bg-destructive/10",
+  na: "text-muted-foreground cursor-not-allowed hover:bg-transparent",
 };
 
 export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props) {

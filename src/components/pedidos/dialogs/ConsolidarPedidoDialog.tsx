@@ -101,17 +101,17 @@ export function ConsolidarPedidoDialog({
                     )}
                   </div>
                   {c.condicao_solicitada && c.condicao_solicitada !== condicao && (
-                    <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-1">
+                    <p className="text-[11px] text-warning mt-1">
                       Condição diferente: {c.condicao_solicitada} → passa a {condicao ?? "condição deste pedido"}
                     </p>
                   )}
                   {c.qtd_titulos_ativos > 0 && (
-                    <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-1">
+                    <p className="text-[11px] text-warning mt-1">
                       Tem {c.qtd_titulos_ativos} título(s) ativo(s) — serão cancelados junto com os de {idExterno}.
                     </p>
                   )}
                   {Number(c.valor_liquido) > valorLiquido && (
-                    <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-1">
+                    <p className="text-[11px] text-warning mt-1">
                       Maior que {idExterno}. Quem sobrevive à fusão costuma ser o pedido maior — confira a direção.
                     </p>
                   )}
@@ -126,7 +126,7 @@ export function ConsolidarPedidoDialog({
                 Outros pedidos deste cliente
               </p>
               {bloqueados.map((b) => (
-                <div key={b.pedido_id} className="rounded-md border border-amber-300/60 bg-amber-50/50 dark:bg-amber-950/20 p-3 space-y-1.5">
+                <div key={b.pedido_id} className="rounded-md border border-warning/40 bg-warning/10 p-3 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-medium text-sm">{b.id_externo}</span>
                     <span className="text-sm">{fmtBRL.format(Number(b.valor_liquido) || 0)}</span>
@@ -135,7 +135,7 @@ export function ConsolidarPedidoDialog({
                     {rotuloEstagio(b.estagio)} · {b.itens} {b.itens === 1 ? "item" : "itens"}
                     {b.qtd_titulos_ativos > 0 ? ` · ${b.qtd_titulos_ativos} título(s) ativo(s)` : ""}
                   </p>
-                  <p className="text-[11px] text-amber-900 dark:text-amber-200">
+                  <p className="text-[11px] text-warning">
                     Não pode ser fundido: {b.motivo_bloqueio ?? "recebível não reversível"}.
                   </p>
                 </div>
@@ -148,7 +148,7 @@ export function ConsolidarPedidoDialog({
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Resultado</p>
               <div className="flex justify-between"><span className="text-muted-foreground">Valor bruto</span><span>{fmtBRL.format(valorBruto)} → {fmtBRL.format(novoBruto)}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Frete</span><span>{fmtBRL.format(novoFrete)}</span></div>
-              <div className="flex justify-between font-semibold border-t border-border/60 pt-1"><span>Valor líquido</span><span>{fmtBRL.format(valorLiquido)} → {fmtBRL.format(novoLiquido)}</span></div>
+              <div className="flex justify-between font-medium border-t border-border/60 pt-1"><span>Valor líquido</span><span>{fmtBRL.format(valorLiquido)} → {fmtBRL.format(novoLiquido)}</span></div>
               <p className="text-[11px] text-muted-foreground pt-1">{selecionado.id_externo} será cancelado, com itens e valores zerados e trilha nos dois pedidos.</p>
               {candidatoMaior && (
                 <Button
@@ -165,10 +165,10 @@ export function ConsolidarPedidoDialog({
           )}
 
           {precisaAutorizar && (
-            <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/20 p-3 space-y-2">
+            <div className="rounded-md border border-warning/40 bg-warning/10 p-3 space-y-2">
               <div className="flex items-start gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-                <p className="text-xs text-amber-900 dark:text-amber-200">
+                <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+                <p className="text-xs text-warning">
                   Serão <strong>cancelados</strong>: {qtdTitulosAtivos} título(s) de {idExterno}{titulosDoCandidato > 0 && selecionado ? ` e ${titulosDoCandidato} título(s) de ${selecionado.id_externo}` : ""}. Os pedidos voltam para Cobrança e a cobrança precisa ser reoperada sobre o novo total. Títulos não são editados no lugar.
                 </p>
               </div>

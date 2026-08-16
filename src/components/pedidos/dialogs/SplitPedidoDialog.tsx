@@ -166,10 +166,10 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
                       const qOrig = it.quantidade - qSplit;
                       const semEstoque = isSemEstoque(it.sku, estoqueMap);
                       return (
-                        <tr key={it.sku} className={`border-t ${semEstoque ? "bg-red-50/60 dark:bg-red-950/20" : ""}`}>
+                        <tr key={it.sku} className={`border-t ${semEstoque ? "bg-destructive/10" : ""}`}>
                           <td className="p-2">
                             <div className="font-medium flex items-center gap-1.5">
-                              {semEstoque && <AlertTriangle className="h-3.5 w-3.5 text-red-600 shrink-0" />}
+                              {semEstoque && <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />}
                               {it.descricao}
                             </div>
                             <div className="text-xs text-muted-foreground">{it.sku}</div>
@@ -198,20 +198,20 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
 
               {(temItensSplit || itensOriginal.length > 0) && (
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-md border p-3 bg-blue-50/50">
-                    <div className="text-xs font-medium text-blue-900">
+                  <div className="rounded-md border p-3 bg-info/10">
+                    <div className="text-xs font-medium text-info">
                       {id_externo} — {origemEstoque ? "Continua aguardando estoque" : "Pedido original (fica)"}
                     </div>
-                    <div className="text-lg font-semibold mt-1">{fmtBRL.format(valorOrig)}</div>
+                    <div className="text-lg font-medium mt-1">{fmtBRL.format(valorOrig)}</div>
                     <div className="text-xs text-muted-foreground">
                       {itensOriginal.length} {itensOriginal.length === 1 ? "item" : "itens"}
                     </div>
                   </div>
-                  <div className="rounded-md border p-3 bg-yellow-50/50">
-                    <div className="text-xs font-medium text-yellow-900">
+                  <div className="rounded-md border p-3 bg-warning/10">
+                    <div className="text-xs font-medium text-warning">
                       {id_externo}/01 — {origemEstoque ? "Seguir agora (tem estoque)" : "Novo pedido (split)"}
                     </div>
-                    <div className="text-lg font-semibold mt-1">{fmtBRL.format(valorSplit)}</div>
+                    <div className="text-lg font-medium mt-1">{fmtBRL.format(valorSplit)}</div>
                     <div className="text-xs text-muted-foreground">
                       {itensSplit.length} {itensSplit.length === 1 ? "item" : "itens"}
                     </div>

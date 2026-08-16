@@ -89,8 +89,8 @@ export function OperacaoPixDialog({
   };
 
   const btnClass = isAtualizacao
-    ? "gap-2 bg-cyan-700 hover:bg-cyan-800 text-white"
-    : "gap-2 bg-cyan-600 hover:bg-cyan-700 text-white";
+    ? "gap-2 bg-info hover:bg-info text-white"
+    : "gap-2 bg-info hover:bg-info text-white";
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

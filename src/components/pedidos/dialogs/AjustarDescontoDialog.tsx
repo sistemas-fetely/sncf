@@ -149,7 +149,7 @@ export function AjustarDescontoDialog({
             )}
             <div className="flex justify-between border-t pt-1.5 mt-1.5">
               <span className="text-muted-foreground">Novo líquido</span>
-              <span className={`font-semibold text-base ${liquidoNegativo ? "text-destructive" : ""}`}>
+              <span className={`font-medium text-base ${liquidoNegativo ? "text-destructive" : ""}`}>
                 {formatBRL(novoLiquido)}
               </span>
             </div>

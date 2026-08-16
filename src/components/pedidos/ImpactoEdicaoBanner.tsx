@@ -59,8 +59,8 @@ export function ImpactoEdicaoBanner({
 
   if (caminho === "reconcilia_no_lugar") {
     return (
-      <Alert className={`border-green-600/40 bg-green-500/5 text-green-900 dark:text-green-200 ${className ?? ""}`}>
-        <CheckCircle2 className="h-4 w-4 !text-green-600" />
+      <Alert className={`border-success/40 bg-success text-success ${className ?? ""}`}>
+        <CheckCircle2 className="h-4 w-4 !text-success" />
         <AlertTitle>Dentro do crédito aprovado</AlertTitle>
         <AlertDescription>
           Pode materializar direto.
@@ -72,8 +72,8 @@ export function ImpactoEdicaoBanner({
 
   if (caminho === "re_analise") {
     return (
-      <Alert className={`border-amber-500/50 bg-amber-500/10 text-amber-900 dark:text-amber-200 ${className ?? ""}`}>
-        <AlertTriangle className="h-4 w-4 !text-amber-600" />
+      <Alert className={`border-warning/40 bg-warning text-warning ${className ?? ""}`}>
+        <AlertTriangle className="h-4 w-4 !text-warning" />
         <AlertTitle>Vai precisar de re-análise</AlertTitle>
         <AlertDescription>
           {d.motivo || "Condições fora do crédito aprovado."}

@@ -29,12 +29,12 @@ export function CardEntrega({ pedidoId, estagio }: Props) {
     if (!e || e.dias_vs_previsto === null || e.dias_vs_previsto === undefined) return null;
     const d = Number(e.dias_vs_previsto);
     if (d < 0) {
-      return <span className="text-[11px] text-emerald-600 dark:text-emerald-400">{Math.abs(d)} dias antes do previsto</span>;
+      return <span className="text-[11px] text-success">{Math.abs(d)} dias antes do previsto</span>;
     }
     if (d === 0) {
-      return <span className="text-[11px] text-emerald-600 dark:text-emerald-400">no prazo</span>;
+      return <span className="text-[11px] text-success">no prazo</span>;
     }
-    return <span className="text-[11px] text-amber-600 dark:text-amber-400">{d} dias após o previsto</span>;
+    return <span className="text-[11px] text-warning">{d} dias após o previsto</span>;
   };
 
   const renderTransportadora = () => {
@@ -114,7 +114,7 @@ export function CardEntrega({ pedidoId, estagio }: Props) {
   return (
     <Card className="border-border/60">
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+        <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Truck className="h-4 w-4 text-muted-foreground" />
           Entrega
         </CardTitle>
@@ -198,7 +198,7 @@ export function CardEntrega({ pedidoId, estagio }: Props) {
                     "text-sm font-medium",
                     Number(e.margem_frete) < 0
                       ? "text-destructive"
-                      : "text-emerald-600 dark:text-emerald-400",
+                      : "text-success",
                   )}
                 >
                   {formatBRL(Number(e.margem_frete))}

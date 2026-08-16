@@ -107,7 +107,7 @@ export default function SugestaoIADialog({ movId, onClose, onApply }: Props) {
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-amber-500" />
+            <Sparkles className="h-5 w-5 text-warning" />
             Sugestão da IA
           </DialogTitle>
           <DialogDescription className="truncate">
@@ -138,7 +138,7 @@ export default function SugestaoIADialog({ movId, onClose, onApply }: Props) {
                         {s.categoria_codigo}
                       </span>
                       {s.categoria_nome}
-                      <span className="ml-2 inline-flex items-center rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-[10px] font-semibold">
+                      <span className="ml-2 inline-flex items-center rounded-full bg-warning/10 text-warning px-2 py-0.5 text-[10px] font-medium">
                         {s.score}%
                       </span>
                     </div>
@@ -156,7 +156,7 @@ export default function SugestaoIADialog({ movId, onClose, onApply }: Props) {
                     size="sm"
                     onClick={() => handleAplicar(s.plano_contas_id)}
                     disabled={aplicando}
-                    className="gap-1 bg-emerald-600 hover:bg-emerald-700"
+                    className="gap-1 bg-success hover:bg-success"
                   >
                     {aplicando ? (
                       <Loader2 className="h-3 w-3 animate-spin" />

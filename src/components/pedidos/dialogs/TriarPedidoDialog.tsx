@@ -114,7 +114,7 @@ export function TriarPedidoDialog({
           <AcaoCard
             ativa={acao === "analise"}
             onClick={() => setAcao("analise")}
-            icone={<GitBranch className="h-5 w-5 text-blue-600" />}
+            icone={<GitBranch className="h-5 w-5 text-info" />}
             titulo="Encaminhar pra Análise de Crédito"
             descricao="Padrão. Análise verifica limite, prazo e perfil antes de aprovar."
           />
@@ -122,7 +122,7 @@ export function TriarPedidoDialog({
           <AcaoCard
             ativa={acao === "pular"}
             onClick={() => setAcao("pular")}
-            icone={<Zap className="h-5 w-5 text-emerald-600" />}
+            icone={<Zap className="h-5 w-5 text-success" />}
             titulo="Liberar (rotear pela regra)"
             descricao="Aplica a regra de pagamento: à vista vai pra Cobrança, boleto a prazo vai pra Análise."
           />
@@ -130,7 +130,7 @@ export function TriarPedidoDialog({
           <AcaoCard
             ativa={acao === "corrigir"}
             onClick={() => setAcao("corrigir")}
-            icone={<Undo2 className="h-5 w-5 text-amber-600" />}
+            icone={<Undo2 className="h-5 w-5 text-warning" />}
             titulo="Pedir correção (devolver ao vendedor)"
             descricao="Dado errado no pedido. Fica com o vendedor pra corrigir. Motivo obrigatório."
           />

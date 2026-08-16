@@ -541,7 +541,7 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
             </div>
             <div>
               <span className="text-muted-foreground">Valor:</span>{" "}
-              <span className="font-semibold text-foreground">{formatBRL(conta.valor)}</span>
+              <span className="font-medium text-foreground">{formatBRL(conta.valor)}</span>
             </div>
             <div>
               <span className="text-muted-foreground">Vencimento:</span>{" "}
@@ -574,8 +574,8 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
               parceiroDadosBancarios.agencia ||
               parceiroDadosBancarios.conta ||
               parceiroDadosBancarios.pix) && (
-              <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 space-y-1 text-sm">
-                <div className="font-semibold text-emerald-900 mb-1">
+              <div className="rounded-md border border-success/40 bg-success/10 p-3 space-y-1 text-sm">
+                <div className="font-medium text-success mb-1">
                   Dados bancários do destinatário
                 </div>
                 {parceiroDadosBancarios.pix && (
@@ -607,13 +607,13 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
 
           {/* Pré-validação cadastro_incompleto */}
           {parceiroCadastroIncompleto && (
-            <div className="rounded-md border border-amber-300 bg-amber-50 p-3 flex gap-3">
-              <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="rounded-md border border-warning/40 bg-warning/10 p-3 flex gap-3">
+              <AlertCircle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
               <div className="space-y-2 text-sm">
-                <div className="font-semibold text-amber-900">
+                <div className="font-medium text-warning">
                   Cadastro do Parceiro incompleto
                 </div>
-                <div className="text-amber-800">
+                <div className="text-warning">
                   Antes de enviar pagamento, complete os dados bancários no cadastro do Parceiro.
                   O envio só fica liberado quando o cadastro está completo.
                 </div>
@@ -635,23 +635,23 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
 
           {/* Envio agrupado */}
           {ehEnvioAgrupado && dadosAgrupamento && (
-            <div className="rounded-md border border-blue-300 bg-blue-50 p-3 space-y-2">
-              <div className="flex items-center gap-2 text-sm font-semibold text-blue-900">
+            <div className="rounded-md border border-info/40 bg-info/10 p-3 space-y-2">
+              <div className="flex items-center gap-2 text-sm font-medium text-info">
                 <Users className="h-4 w-4" />
                 Envio agrupado: {dadosAgrupamento.parcelas.length} parcelas serão enviadas juntas
               </div>
-              <div className="text-xs text-blue-800">
+              <div className="text-xs text-info">
                 Como o pagamento é {dadosAgrupamento.formaNome.toLowerCase()}, o financeiro recebe
                 todas as parcelas pendentes do grupo no mesmo email para pré-agendar no banco.
               </div>
               <div className="space-y-1">
                 {dadosAgrupamento.parcelas.map((p) => (
                   <div key={p.id} className="flex items-center justify-between text-xs bg-white/60 rounded px-2 py-1">
-                    <span className="font-medium text-blue-900">
+                    <span className="font-medium text-info">
                       {p.parcela_atual}/{p.parcelas}
                     </span>
-                    <span className="text-blue-800">{formatDateBR(p.data_vencimento)}</span>
-                    <span className="font-semibold text-blue-900">{formatBRL(p.valor)}</span>
+                    <span className="text-info">{formatDateBR(p.data_vencimento)}</span>
+                    <span className="font-medium text-info">{formatBRL(p.valor)}</span>
                   </div>
                 ))}
               </div>
@@ -659,8 +659,8 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
           )}
 
           {ehEnvioAgrupadoContrato && (
-            <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm mb-3">
-              <p className="font-medium text-blue-800 mb-2">
+            <div className="rounded-md border border-info/40 bg-info/10 p-3 text-sm mb-3">
+              <p className="font-medium text-info mb-2">
                 Este contrato tem {dadosAgrupamentoContrato!.parcelas.length} parcelas em aberto.
               </p>
               <div className="flex gap-2">
@@ -769,7 +769,7 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
                   ))}
                 </div>
                 {tamanhoSelecionado > 0 && (
-                  <div className={`text-xs ${tamanhoExcedeLimite ? "text-amber-700" : "text-muted-foreground"}`}>
+                  <div className={`text-xs ${tamanhoExcedeLimite ? "text-warning" : "text-muted-foreground"}`}>
                     Total selecionado: {formatMB(tamanhoSelecionado)}
                     {tamanhoExcedeLimite
                       ? ` (excede 18MB — alguns docs virão como link assinado 30 dias)`
@@ -804,7 +804,7 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
           <Button
             onClick={handleEnviar}
             disabled={enviando || parceiroCadastroIncompleto || uploadando}
-            className="bg-amber-600 hover:bg-amber-700 text-white gap-2"
+            className="bg-warning hover:bg-warning text-white gap-2"
           >
             {enviando ? (
               <Loader2 className="h-4 w-4 animate-spin" />

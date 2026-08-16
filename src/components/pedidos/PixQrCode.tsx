@@ -271,7 +271,7 @@ export function PixQrCode({
 
               <Badge
                 variant="outline"
-                className="border-0 bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 text-[10px]"
+                className="border-0 bg-warning/10 text-warning text-[10px]"
               >
                 Uso único · valor exato
               </Badge>

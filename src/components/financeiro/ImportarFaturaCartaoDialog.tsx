@@ -551,13 +551,13 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
                                 </Badge>
                               )}
                               {l.natureza === "INTERNACIONAL" && (
-                                <Globe className="h-3 w-3 text-blue-600" />
+                                <Globe className="h-3 w-3 text-info" />
                               )}
                             </div>
                           </td>
                           <td
                             className={`px-3 py-1.5 text-right font-mono whitespace-nowrap ${
-                              l.valor < 0 ? "text-emerald-700" : ""
+                              l.valor < 0 ? "text-success" : ""
                             }`}
                           >
                             {formatBRL(l.valor)}
@@ -568,11 +568,11 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
                               className={
                                 "text-[9px] py-0 px-1 h-4 " +
                                 (l.tipo === "estorno"
-                                  ? "border-emerald-300 text-emerald-700"
+                                  ? "border-success/40 text-success"
                                   : l.tipo === "iof"
-                                    ? "border-amber-300 text-amber-700"
+                                    ? "border-warning/40 text-warning"
                                     : l.tipo === "pagamento"
-                                      ? "border-blue-300 text-blue-700"
+                                      ? "border-info/40 text-info"
                                       : "")
                               }
                             >
@@ -587,12 +587,12 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
               </div>
 
               {parsed.alertas.length > 0 && (
-                <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs">
+                <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-xs">
                   <p className="font-medium flex items-center gap-1.5 mb-1">
-                    <AlertTriangle className="h-3.5 w-3.5 text-amber-700" />
+                    <AlertTriangle className="h-3.5 w-3.5 text-warning" />
                     Alertas
                   </p>
-                  <ul className="list-disc pl-5 text-amber-800">
+                  <ul className="list-disc pl-5 text-warning">
                     {parsed.alertas.map((a, i) => (
                       <li key={i}>{a}</li>
                     ))}
@@ -616,9 +616,9 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
           {/* ETAPA 4 - CONCLUIDO */}
           {etapa === "concluido" && (
             <div className="py-8 text-center space-y-4">
-              <CheckCircle2 className="h-14 w-14 text-emerald-600 mx-auto" />
+              <CheckCircle2 className="h-14 w-14 text-success mx-auto" />
               <div>
-                <p className="font-semibold text-lg">Fatura importada!</p>
+                <p className="font-medium text-lg">Fatura importada!</p>
                 <p className="text-sm text-muted-foreground mt-1">
                   Acesse "Faturas de Cartão" para classificar os lançamentos.
                 </p>
@@ -626,24 +626,24 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
 
               {resultadoFinal && (
                 <div className="rounded-md border bg-muted/20 p-4 max-w-md mx-auto text-left space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
                     Resumo da importação
                   </p>
                   <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                    <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
                     <span>
                       <strong>{resultadoFinal.qtd_lancamentos}</strong> lançamento(s) na fatura
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <Receipt className="h-4 w-4 text-blue-600 shrink-0" />
+                    <Receipt className="h-4 w-4 text-info shrink-0" />
                     <span>
                       <strong>1</strong> conta a pagar criada (vai aparecer em Contas a Pagar)
                     </span>
                   </div>
                   {resultadoFinal.compromissos_criados > 0 && (
                     <div className="flex items-center gap-2 text-sm">
-                      <Sparkles className="h-4 w-4 text-violet-600 shrink-0" />
+                      <Sparkles className="h-4 w-4 text-info shrink-0" />
                       <span>
                         <strong>{resultadoFinal.compromissos_criados}</strong> compromisso(s) parcelado(s) detectado(s)
                       </span>
@@ -651,7 +651,7 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
                   )}
                   {resultadoFinal.parcelas_previstas_criadas > 0 && (
                     <div className="flex items-center gap-2 text-sm">
-                      <Sparkles className="h-4 w-4 text-violet-600 shrink-0" />
+                      <Sparkles className="h-4 w-4 text-info shrink-0" />
                       <span>
                         <strong>{resultadoFinal.parcelas_previstas_criadas}</strong> parcelas futuras lançadas no fluxo de caixa
                       </span>
@@ -659,7 +659,7 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
                   )}
                   {resultadoFinal.parcelas_pagas_marcadas > 0 && (
                     <div className="flex items-center gap-2 text-sm">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                      <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
                       <span>
                         <strong>{resultadoFinal.parcelas_pagas_marcadas}</strong> parcelas previstas marcadas como pagas
                       </span>
@@ -734,7 +734,7 @@ function ResumoCard({
         {label}
       </p>
       <p
-        className={`text-lg font-bold ${
+        className={`text-lg font-medium ${
           error ? "text-destructive" : highlight ? "text-admin" : ""
         }`}
       >

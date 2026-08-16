@@ -46,10 +46,10 @@ interface Props {
 
 function badgeOrigem(origem: EventoFluxo["origem"]) {
   if (origem === "cpr")
-    return <Badge variant="outline" className="border-blue-300 text-blue-700">CPR</Badge>;
+    return <Badge variant="outline" className="border-info/40 text-info">CPR</Badge>;
   if (origem === "linha_com_data")
-    return <Badge variant="outline" className="border-emerald-300 text-emerald-700">Planejado c/ data</Badge>;
-  return <Badge variant="outline" className="border-amber-300 text-amber-700">Planejado s/ data</Badge>;
+    return <Badge variant="outline" className="border-success/40 text-success">Planejado c/ data</Badge>;
+  return <Badge variant="outline" className="border-warning/40 text-warning">Planejado s/ data</Badge>;
 }
 
 export function FluxoInvestimentoDrillDrawer({ open, onOpenChange, filtro, eventos }: Props) {

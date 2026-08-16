@@ -47,7 +47,7 @@ function EstadoLinha({ p }: { p: Provisao }) {
   const pago = estaPago(p);
   if (pago) {
     return (
-      <Badge className="text-[10px] bg-emerald-600 hover:bg-emerald-600">
+      <Badge className="text-[10px] bg-success hover:bg-success">
         Pago {p.pago_em ? `em ${fmtDate(p.pago_em)}` : ""}
       </Badge>
     );

@@ -104,9 +104,9 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
   return (
     <div className="space-y-2">
       {mostrarAlerta && (
-        <Alert variant="default" className="bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900">
-          <AlertTriangle className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="text-amber-800 dark:text-amber-300 text-xs">
+        <Alert variant="default" className="bg-warning/10 border-warning/40">
+          <AlertTriangle className="h-4 w-4 text-warning" />
+          <AlertDescription className="text-warning text-xs">
             Parceiro ainda não cadastrado no Bling. Sincronize antes de enviar.
           </AlertDescription>
           <Button
@@ -186,9 +186,9 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
       )}
 
       {pedidoXpm?.xpm_envio_erro && !jaEmpurrado && (
-        <Alert variant="default" className="bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-900">
-          <AlertTriangle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800 dark:text-red-300 text-xs">
+        <Alert variant="default" className="bg-destructive/10 border-destructive/40">
+          <AlertTriangle className="h-4 w-4 text-destructive" />
+          <AlertDescription className="text-destructive text-xs">
             XPM recusou: {pedidoXpm.xpm_envio_erro}
           </AlertDescription>
         </Alert>

@@ -59,10 +59,10 @@ export type RecebimentoNivel = {
 type NivelKey = "recebivel" | "compensado" | "conciliado" | "haver";
 
 const NIVEIS = [
-  { key: "recebivel", emoji: "🔴", label: "Recebível", classe: "bg-red-100 text-red-800", texto: "text-red-800" },
-  { key: "compensado", emoji: "🟡", label: "Compensado", classe: "bg-amber-100 text-amber-800", texto: "text-amber-800" },
-  { key: "conciliado", emoji: "🟢", label: "Conciliado", classe: "bg-green-100 text-green-800", texto: "text-green-800" },
-  { key: "haver", emoji: "🔵", label: "Quitado s/ caixa", classe: "bg-blue-100 text-blue-800", texto: "text-blue-800" },
+  { key: "recebivel", emoji: "🔴", label: "Recebível", classe: "bg-destructive/10 text-destructive", texto: "text-destructive" },
+  { key: "compensado", emoji: "🟡", label: "Compensado", classe: "bg-warning/10 text-warning", texto: "text-warning" },
+  { key: "conciliado", emoji: "🟢", label: "Conciliado", classe: "bg-success/10 text-success", texto: "text-success" },
+  { key: "haver", emoji: "🔵", label: "Quitado s/ caixa", classe: "bg-info/10 text-info", texto: "text-info" },
 ] as const satisfies readonly { key: NivelKey; emoji: string; label: string; classe: string; texto: string }[];
 
 /** Chave do nível a partir do emoji contido no texto canônico. */
@@ -235,7 +235,7 @@ export function RecebimentoPorPedido() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className={`text-2xl font-bold ${n.texto}`}>{formatBRL(t.soma)}</div>
+                <div className={`text-2xl font-medium ${n.texto}`}>{formatBRL(t.soma)}</div>
                 <p className="text-xs text-muted-foreground mt-1">{t.qtd} título(s)</p>
               </CardContent>
             </Card>

@@ -86,7 +86,7 @@ function highlightText(text: string, search: string): ReactNode {
   return (
     <>
       {text.substring(0, idx)}
-      <strong className="text-admin font-semibold">
+      <strong className="text-admin font-medium">
         {text.substring(idx, idx + search.length)}
       </strong>
       {text.substring(idx + search.length)}
@@ -309,7 +309,7 @@ export function CategoriaCombobox({
                     className={cn(
                       "flex items-center px-2 py-1.5 text-sm rounded-sm outline-none",
                       temFilhos
-                        ? "cursor-pointer hover:bg-muted/60 font-semibold text-foreground/70"
+                        ? "cursor-pointer hover:bg-muted/60 font-medium text-foreground/70"
                         : "cursor-pointer hover:bg-accent",
                       isSelected && "bg-admin/10 font-medium",
                     )}

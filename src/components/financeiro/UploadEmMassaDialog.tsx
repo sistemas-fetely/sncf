@@ -284,11 +284,11 @@ export function UploadEmMassaDialog({ open, onClose }: Props) {
         {/* Resumo */}
         {arquivos.length > 0 && (
           <div className="flex gap-2 text-xs">
-            <Badge variant="outline" className="border-emerald-300 text-emerald-700 bg-emerald-50">
+            <Badge variant="outline" className="border-success/40 text-success bg-success/10">
               {totalProntos} prontos
             </Badge>
             {totalSemMatch > 0 && (
-              <Badge variant="outline" className="border-amber-400 text-amber-700 bg-amber-50">
+              <Badge variant="outline" className="border-warning/40 text-warning bg-warning/10">
                 {totalSemMatch} sem match (revisar)
               </Badge>
             )}
@@ -341,13 +341,13 @@ export function UploadEmMassaDialog({ open, onClose }: Props) {
                       </SelectContent>
                     </Select>
                     {a.scoreSugestao > 0 && a.status === "pronto" && (
-                      <Badge variant="outline" className="text-[9px] border-emerald-300 text-emerald-700">
+                      <Badge variant="outline" className="text-[9px] border-success/40 text-success">
                         {a.scoreSugestao}
                       </Badge>
                     )}
                   </div>
                   {a.status === "erro" && (
-                    <p className="text-[10px] text-red-600 mt-1 flex items-center gap-1">
+                    <p className="text-[10px] text-destructive mt-1 flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
                       {a.erro}
                     </p>
@@ -355,7 +355,7 @@ export function UploadEmMassaDialog({ open, onClose }: Props) {
                 </div>
                 <div className="shrink-0">
                   {a.status === "enviando" && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                  {a.status === "enviado" && <Check className="h-4 w-4 text-emerald-600" />}
+                  {a.status === "enviado" && <Check className="h-4 w-4 text-success" />}
                   {a.status === "pronto" && (
                     <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removerArquivo(idx)}>
                       <X className="h-3 w-3" />

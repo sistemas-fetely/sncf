@@ -6,8 +6,8 @@ import type { EixoDim } from "@/hooks/credito/useTituloEixosDim";
 /** Cores da dimensão → classes que o projeto já usa em Badge. */
 const CLASSE_COR: Record<string, string> = {
   outline: "",
-  amber: "bg-amber-100 text-amber-800 border-0 hover:bg-amber-100",
-  emerald: "bg-emerald-100 text-emerald-800 border-0 hover:bg-emerald-100",
+  amber: "bg-warning/10 text-warning border-0 hover:bg-warning/10",
+  emerald: "bg-success/10 text-success border-0 hover:bg-success/10",
   muted: "bg-muted text-muted-foreground border-0 hover:bg-muted",
   destructive: "bg-destructive text-destructive-foreground border-0",
 };

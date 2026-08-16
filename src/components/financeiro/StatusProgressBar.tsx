@@ -27,7 +27,7 @@ export default function StatusProgressBar({ statusAtual, isCartao }: Props) {
   if (statusAtual === "cancelado") {
     return (
       <div className="flex justify-center py-2">
-        <Badge variant="outline" className="bg-gray-100 text-gray-700">Cancelado</Badge>
+        <Badge variant="outline" className="bg-muted/10 text-muted-foreground">Cancelado</Badge>
       </div>
     );
   }
@@ -89,7 +89,7 @@ export default function StatusProgressBar({ statusAtual, isCartao }: Props) {
             <span
               className={cn(
                 "text-[10px] mt-1 truncate w-full text-center",
-                isAtual ? "text-admin font-semibold" : "text-muted-foreground",
+                isAtual ? "text-admin font-medium" : "text-muted-foreground",
               )}
             >
               {statusAtual === "atrasado" && step.key === "aberto" ? "Atrasado" : step.label}

@@ -20,21 +20,21 @@ export default function VencimentoBadge({ dataVencimento, status }: Props) {
   }
   if (diff === 0) {
     return (
-      <Badge className="bg-red-100 text-red-800 hover:bg-red-100 text-[10px] py-0 px-1.5 ml-1">
+      <Badge className="bg-destructive/10 text-destructive hover:bg-destructive/10 text-[10px] py-0 px-1.5 ml-1">
         Vence hoje!
       </Badge>
     );
   }
   if (diff <= 3) {
     return (
-      <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 text-[10px] py-0 px-1.5 ml-1">
+      <Badge className="bg-warning/10 text-warning hover:bg-warning/10 text-[10px] py-0 px-1.5 ml-1">
         {diff}d
       </Badge>
     );
   }
   if (diff <= 7) {
     return (
-      <Badge className="bg-yellow-50 text-yellow-700 hover:bg-yellow-50 text-[10px] py-0 px-1.5 ml-1">
+      <Badge className="bg-warning/10 text-warning hover:bg-warning/10 text-[10px] py-0 px-1.5 ml-1">
         {diff}d
       </Badge>
     );

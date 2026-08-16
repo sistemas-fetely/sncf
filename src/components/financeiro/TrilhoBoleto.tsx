@@ -46,7 +46,7 @@ export function TrilhoBoleto({
         const cumprido = ordem < ordemAtual || r.encerrado;
 
         let cls: string;
-        if (atual && r.alerta) cls = "bg-red-100 text-red-800 border-red-500";
+        if (atual && r.alerta) cls = "bg-destructive/10 text-destructive border-destructive/40";
         else if (atual && r.emCurso) cls = `${MARCO_COR_ATUAL[m]} border-dashed`;
         else if (atual) cls = MARCO_COR_ATUAL[m];
         else if (cumprido) cls = "bg-muted text-muted-foreground border-transparent";

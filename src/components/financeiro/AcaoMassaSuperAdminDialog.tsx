@@ -156,7 +156,7 @@ export function AcaoMassaSuperAdminDialog({
           <DialogTitle className="flex items-center gap-2">
             {isFinalizar ? (
               <>
-                <Zap className="h-5 w-5 text-amber-600" />
+                <Zap className="h-5 w-5 text-warning" />
                 Finalizar em massa (pular fluxo)
               </>
             ) : (
@@ -172,7 +172,7 @@ export function AcaoMassaSuperAdminDialog({
 
         <div className="space-y-4 py-2">
           {isFinalizar && (
-            <div className="p-3 rounded-md border border-amber-300 bg-amber-50 flex gap-2 text-xs text-amber-900">
+            <div className="p-3 rounded-md border border-warning/40 bg-warning/10 flex gap-2 text-xs text-warning">
               <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
               <div>
                 <strong>Atenção - super ação:</strong> esta ação <em>pula todas as etapas</em> do fluxo (aprovação, envio de e-mail, anexação de documentos). Use apenas para migração de legado ou casos onde o pagamento já foi feito fora do sistema.
@@ -238,7 +238,7 @@ export function AcaoMassaSuperAdminDialog({
             disabled={executando || (isFinalizar && !confirmou)}
             className={
               isFinalizar
-                ? "bg-amber-600 hover:bg-amber-700 text-white gap-2"
+                ? "bg-warning hover:bg-warning text-white gap-2"
                 : "gap-2"
             }
           >

@@ -112,21 +112,21 @@ export function ResumoSafraCarteira({ contaId, dataReferencia }: Props) {
           <div className="grid gap-4 sm:grid-cols-3">
             <div>
               <div className="text-xs text-muted-foreground">ABERTO</div>
-              <div className="text-lg font-semibold">{abertos.length}</div>
+              <div className="text-lg font-medium">{abertos.length}</div>
               <div className="text-xs text-muted-foreground">
                 {formatBRL(somaBoleto(abertos))} em boletos
               </div>
             </div>
             <div>
               <div className="text-xs text-muted-foreground">LIQUIDAÇÃO</div>
-              <div className="text-lg font-semibold">{liquidados.length}</div>
+              <div className="text-lg font-medium">{liquidados.length}</div>
               <div className="text-xs text-muted-foreground">
                 {formatBRL(somaRecebido(liquidados))} recebidos
               </div>
             </div>
             <div>
               <div className="text-xs text-muted-foreground">Total na carteira</div>
-              <div className="text-lg font-semibold">{linhas.length}</div>
+              <div className="text-lg font-medium">{linhas.length}</div>
               <div className="text-xs text-muted-foreground">
                 {formatBRL(somaBoleto(linhas))} em boletos
               </div>

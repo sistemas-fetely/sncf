@@ -314,7 +314,7 @@ export default function EnviarPeloSistemaDialog({
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Send className="h-5 w-5 text-emerald-600" />
+              <Send className="h-5 w-5 text-success" />
               Enviar pelo sistema
             </DialogTitle>
             <DialogDescription>
@@ -325,7 +325,7 @@ export default function EnviarPeloSistemaDialog({
 
           <div className="space-y-4 py-2">
             {/* Resumo */}
-            <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-sm">
+            <div className="rounded-lg bg-success/10 border border-success/40 px-3 py-2 text-sm">
               <div className="flex items-center justify-between gap-2">
                 <span>
                   <strong>{totais.qtdContas}</strong> conta(s) — total{" "}
@@ -449,10 +449,10 @@ export default function EnviarPeloSistemaDialog({
 
             {/* Progress durante envio */}
             {processando && (
-              <div className="rounded-lg border border-emerald-200 bg-emerald-50/40 p-3 space-y-2">
-                <div className="flex items-center gap-2 text-sm text-emerald-800">
+              <div className="rounded-lg border border-success/40 bg-success/10 p-3 space-y-2">
+                <div className="flex items-center gap-2 text-sm text-success">
                   {etapa === "done" ? (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    <CheckCircle2 className="h-4 w-4 text-success" />
                   ) : (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   )}
@@ -489,7 +489,7 @@ export default function EnviarPeloSistemaDialog({
                 !corpo.trim() ||
                 !descricaoRemessa.trim()
               }
-              className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="gap-1 bg-success hover:bg-success text-white"
             >
               {processando ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -534,22 +534,22 @@ export default function EnviarPeloSistemaDialog({
             <div className="border rounded-lg overflow-hidden bg-white">
               {/* Renderização visual do template */}
               <div className="px-6 py-5 max-w-[560px] mx-auto">
-                <h2 className="text-xl font-bold mb-4" style={{ color: "#1a3d2b" }}>
+                <h2 className="text-xl font-medium mb-4" style={{ color: "#1a3d2b" }}>
                   Pacote Fiscal — {descricaoRemessa || "Sem descrição"}
                 </h2>
 
                 {corpo.trim() && (
-                  <div className="bg-zinc-50 border border-zinc-200 rounded-md p-3 mb-4">
+                  <div className="bg-muted/10 border border-border/40 rounded-md p-3 mb-4">
                     {corpo.split("\n").map((l, i) => (
-                      <p key={i} className="text-sm leading-relaxed text-zinc-700 mb-1">
+                      <p key={i} className="text-sm leading-relaxed text-muted-foreground mb-1">
                         {l || "\u00A0"}
                       </p>
                     ))}
                   </div>
                 )}
 
-                <div className="bg-slate-50 border border-slate-200 rounded-md p-3 mb-4">
-                  <h3 className="text-sm font-bold mb-2" style={{ color: "#1a3d2b" }}>
+                <div className="bg-muted/10 border border-border/40 rounded-md p-3 mb-4">
+                  <h3 className="text-sm font-medium mb-2" style={{ color: "#1a3d2b" }}>
                     Resumo
                   </h3>
                   <div className="space-y-1 text-xs">
@@ -563,7 +563,7 @@ export default function EnviarPeloSistemaDialog({
                     </div>
                     <div className="flex">
                       <span className="w-28 text-muted-foreground uppercase">Valor total</span>
-                      <span className="font-bold" style={{ color: "#1a3d2b" }}>
+                      <span className="font-medium" style={{ color: "#1a3d2b" }}>
                         {formatBRL(totais.valor)}
                       </span>
                     </div>
@@ -574,15 +574,15 @@ export default function EnviarPeloSistemaDialog({
                   className="rounded-md p-4 mb-4 text-center border"
                   style={{ backgroundColor: "#f0f9f4", borderColor: "#c8e6d3" }}
                 >
-                  <h3 className="text-sm font-bold mb-2" style={{ color: "#1a3d2b" }}>
+                  <h3 className="text-sm font-medium mb-2" style={{ color: "#1a3d2b" }}>
                     Download do pacote
                   </h3>
-                  <p className="text-xs text-zinc-600 mb-3">
+                  <p className="text-xs text-muted-foreground mb-3">
                     O pacote inclui todas as NFs e recibos do período em um arquivo
                     ZIP, organizados por fornecedor, com um CSV de resumo.
                   </p>
                   <div
-                    className="inline-block px-6 py-2.5 rounded-md text-white text-sm font-bold"
+                    className="inline-block px-6 py-2.5 rounded-md text-white text-sm font-medium"
                     style={{ backgroundColor: "#1a3d2b" }}
                   >
                     <Package className="h-4 w-4 inline mr-2" />
@@ -593,8 +593,8 @@ export default function EnviarPeloSistemaDialog({
                   </p>
                 </div>
 
-                <hr className="my-4 border-zinc-200" />
-                <p className="text-xs text-zinc-500">
+                <hr className="my-4 border-border/40" />
+                <p className="text-xs text-muted-foreground">
                   Atenciosamente,
                   <br />
                   Equipe Fetely

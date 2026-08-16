@@ -35,7 +35,7 @@ export function isVencimentoFuturo(dataVencimento: string | null | undefined): b
  */
 export function classFundoFuturo(dataVencimento: string | null | undefined): string {
   return isVencimentoFuturo(dataVencimento)
-    ? "bg-sky-50/60 dark:bg-sky-950/20 hover:bg-sky-100/60 dark:hover:bg-sky-900/30"
+    ? "bg-info/10 hover:bg-info/10"
     : "";
 }
 

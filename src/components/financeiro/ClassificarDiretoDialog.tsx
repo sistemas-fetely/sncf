@@ -96,7 +96,7 @@ export function ClassificarDiretoDialog({ open, onOpenChange, furo, onDone }: Pr
           <div className="rounded-md border bg-muted/40 p-3 text-sm space-y-0.5">
             <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">{formatDateBR(furo.data_transacao)}</span>
-              <span className="font-mono font-semibold">{formatBRL(Number(furo.valor))}</span>
+              <span className="font-mono font-medium">{formatBRL(Number(furo.valor))}</span>
             </div>
             <div className="text-xs text-muted-foreground truncate">
               {furo.descricao || furo.contraparte_nome || "—"}

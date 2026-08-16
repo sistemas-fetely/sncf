@@ -35,31 +35,31 @@ export function getMeioPagamentoIcon(meio: string | null | undefined): MeioPagam
 
   // Cartão (cobre "Cartão de Crédito", "Cartão Débito", "Cartao", etc)
   if (m.includes("cart")) {
-    return { Icon: CreditCard, cor: "text-violet-600", label: meio };
+    return { Icon: CreditCard, cor: "text-info", label: meio };
   }
   // PIX
   if (m === "pix" || m.includes("pix")) {
-    return { Icon: Zap, cor: "text-cyan-600", label: meio };
+    return { Icon: Zap, cor: "text-info", label: meio };
   }
   // Boleto
   if (m.includes("boleto")) {
-    return { Icon: FileText, cor: "text-amber-600", label: meio };
+    return { Icon: FileText, cor: "text-warning", label: meio };
   }
   // TED / Transferência
   if (m === "ted" || m.includes("ted") || m.includes("transfer")) {
-    return { Icon: Landmark, cor: "text-blue-600", label: meio };
+    return { Icon: Landmark, cor: "text-info", label: meio };
   }
   // Dinheiro
   if (m.includes("dinheiro") || m.includes("espécie") || m.includes("especie")) {
-    return { Icon: Banknote, cor: "text-emerald-600", label: meio };
+    return { Icon: Banknote, cor: "text-success", label: meio };
   }
   // Débito Automático
   if (m.includes("débito autom") || m.includes("debito autom") || m.includes("autom")) {
-    return { Icon: RefreshCw, cor: "text-indigo-600", label: meio };
+    return { Icon: RefreshCw, cor: "text-info", label: meio };
   }
   // Outros conhecidos mas sem ícone específico
   if (m === "outros" || m === "outro") {
-    return { Icon: HelpCircle, cor: "text-zinc-400", label: meio };
+    return { Icon: HelpCircle, cor: "text-muted-foreground", label: meio };
   }
 
   // Fallback: sem ícone (UI vai mostrar texto)

@@ -29,12 +29,12 @@ const fmtDate = (d?: string | null) =>
 function BadgeStatusProvisao({ coberta }: { coberta?: boolean | null }) {
   if (coberta) {
     return (
-      <Badge variant="outline" className="border-emerald-500 text-emerald-700 dark:text-emerald-400">
+      <Badge variant="outline" className="border-success/40 text-success">
         Paga por adiantamento
       </Badge>
     );
   }
-  return <Badge variant="outline" className="border-sky-500 text-sky-700 dark:text-sky-400">Prevista</Badge>;
+  return <Badge variant="outline" className="border-info/40 text-info">Prevista</Badge>;
 }
 
 export function usePlanoRecebimento(pedidoId: string) {
@@ -78,7 +78,7 @@ export function PlanoRecebimentoCard({
   const temAdiantamento = jaRecebido > 0.005;
 
   const valorClasse = (coberta?: boolean | null) =>
-    cn("font-semibold", coberta && "line-through text-muted-foreground font-normal");
+    cn("font-medium", coberta && "line-through text-muted-foreground font-normal");
 
   const linhas = (
     <div className="space-y-2">
@@ -90,7 +90,7 @@ export function PlanoRecebimentoCard({
                 <div className="flex items-center gap-1.5">
                   <span className="font-mono text-xs">{p.numero_parcela}/{p.total_parcelas ?? data.length}</span>
                   {p.eh_entrada && (
-                    <Badge variant="outline" className="text-[9px] h-4 px-1 border-emerald-500 text-emerald-700">entrada</Badge>
+                    <Badge variant="outline" className="text-[9px] h-4 px-1 border-success/40 text-success">entrada</Badge>
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -124,7 +124,7 @@ export function PlanoRecebimentoCard({
                   <TableCell className="font-mono text-xs">
                     {p.numero_parcela}/{p.total_parcelas ?? data.length}
                     {p.eh_entrada && (
-                      <Badge variant="outline" className="ml-2 border-emerald-500 text-emerald-700">Entrada</Badge>
+                      <Badge variant="outline" className="ml-2 border-success/40 text-success">Entrada</Badge>
                     )}
                   </TableCell>
                   <TableCell className={valorClasse(p.coberta_por_adiantamento)}>
@@ -143,14 +143,14 @@ export function PlanoRecebimentoCard({
       {temAdiantamento && (
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Já recebido (adiantamento)</span>
-          <span className="font-semibold text-emerald-700 dark:text-emerald-400">
+          <span className="font-medium text-success">
             {fmtBRL.format(jaRecebido)}
           </span>
         </div>
       )}
       <div className="flex justify-between text-sm">
         <span className="text-muted-foreground">Ainda a receber</span>
-        <span className="font-bold">{fmtBRL.format(aReceber)}</span>
+        <span className="font-medium">{fmtBRL.format(aReceber)}</span>
       </div>
     </div>
   );

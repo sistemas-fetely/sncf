@@ -29,7 +29,7 @@ export function PedidoStepper({ estagioAtual, onClickEstagio }: Props) {
             "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium",
             estagioAtual === "cancelado"
               ? "bg-destructive/10 text-destructive border border-destructive/30"
-              : "bg-orange-500/10 text-orange-700 dark:text-orange-400 border border-orange-500/30"
+              : "bg-warning text-warning border border-warning/40"
           )}
         >
           {estagioAtual === "cancelado" ? (
@@ -60,7 +60,7 @@ export function PedidoStepper({ estagioAtual, onClickEstagio }: Props) {
                   className={cn(
                     "flex-1 h-0.5",
                     i === 0 && "invisible",
-                    completo || atual ? "bg-emerald-500" : "bg-border"
+                    completo || atual ? "bg-success" : "bg-border"
                   )}
                 />
                 <button
@@ -68,7 +68,7 @@ export function PedidoStepper({ estagioAtual, onClickEstagio }: Props) {
                   disabled={!clicavel}
                   onClick={() => onClickEstagio?.(e)}
                   className={cn(
-                    "h-6 w-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0 border-2 transition-transform",
+                    "h-6 w-6 rounded-full flex items-center justify-center text-white text-[10px] font-medium shrink-0 border-2 transition-transform",
                     foraDoPipeline
                       ? "bg-transparent border-border text-muted-foreground"
                       : completo || atual
@@ -89,7 +89,7 @@ export function PedidoStepper({ estagioAtual, onClickEstagio }: Props) {
                   className={cn(
                     "flex-1 h-0.5",
                     i === estagios.length - 1 && "invisible",
-                    completo ? "bg-emerald-500" : "bg-border"
+                    completo ? "bg-success" : "bg-border"
                   )}
                 />
               </div>
@@ -100,7 +100,7 @@ export function PedidoStepper({ estagioAtual, onClickEstagio }: Props) {
                 className={cn(
                   "mt-1.5 text-[10px] text-center px-0.5 truncate w-full",
                   atual
-                    ? "font-bold text-foreground"
+                    ? "font-medium text-foreground"
                     : completo
                     ? "text-foreground/80"
                     : "text-muted-foreground",
@@ -145,7 +145,7 @@ export function PedidoStepper({ estagioAtual, onClickEstagio }: Props) {
                       disabled={!clicavel}
                       onClick={() => onClickEstagio?.(e)}
                       className={cn(
-                        "h-6 w-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold border-2 transition-transform",
+                        "h-6 w-6 rounded-full flex items-center justify-center text-white text-[10px] font-medium border-2 transition-transform",
                         completo || atual
                           ? `${cor} border-transparent`
                           : "bg-transparent border-border text-muted-foreground",
@@ -162,7 +162,7 @@ export function PedidoStepper({ estagioAtual, onClickEstagio }: Props) {
                       onClick={() => onClickEstagio?.(e)}
                       className={cn(
                         "mt-1 text-[10px] text-center truncate w-full",
-                        atual ? "font-bold" : "text-muted-foreground",
+                        atual ? "font-medium" : "text-muted-foreground",
                         clicavel && "hover:underline cursor-pointer",
                         !clicavel && "cursor-default"
                       )}

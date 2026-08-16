@@ -8,21 +8,21 @@ const ESTILOS: Record<
 > = {
   coberto_haver: {
     classe:
-      "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200",
+      "border-success/40 bg-success/10 text-success",
     Icone: CheckCircle2,
-    iconeClasse: "text-emerald-600 dark:text-emerald-400",
+    iconeClasse: "text-success",
   },
   previsto: {
     classe:
-      "border-sky-300 bg-sky-50 text-sky-900 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200",
+      "border-info/40 bg-info/10 text-info",
     Icone: Clock,
-    iconeClasse: "text-sky-600 dark:text-sky-400",
+    iconeClasse: "text-info",
   },
   recebivel_familia: {
     classe:
-      "border-sky-300 bg-sky-50 text-sky-900 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200",
+      "border-info/40 bg-info/10 text-info",
     Icone: Info,
-    iconeClasse: "text-sky-600 dark:text-sky-400",
+    iconeClasse: "text-info",
   },
   sem_cobranca: {
     classe: "border-border bg-muted/40 text-foreground",

@@ -59,7 +59,7 @@ export function ExtratoLinhaSheet({
                 </p>
                 <p
                   className={
-                    "text-2xl font-bold " +
+                    "text-2xl font-medium " +
                     (l.sentido === "entrada" ? "text-success" : "text-destructive")
                   }
                 >

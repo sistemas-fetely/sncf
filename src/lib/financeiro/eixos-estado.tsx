@@ -33,19 +33,19 @@ export const RECEBIMENTO_META: Record<EixoRecebimento, EixoMeta> = {
   em_aberto: {
     label: "Em aberto",
     ordem: 1,
-    classe: "bg-amber-100 text-amber-800 border-0",
+    classe: "bg-warning/10 text-warning border-0",
     tooltip: "O dinheiro ainda não chegou.",
   },
   quitado: {
     label: "Quitado",
     ordem: 2,
-    classe: "bg-emerald-100 text-emerald-800 border-0",
+    classe: "bg-success/10 text-success border-0",
     tooltip: "O cliente pagou; aguarda compensação bancária.",
   },
   compensado: {
     label: "Compensado",
     ordem: 3,
-    classe: "bg-emerald-700 text-white border-0",
+    classe: "bg-success text-white border-0",
     tooltip: "O dinheiro está no banco, confirmado.",
   },
   cancelado: {
@@ -57,7 +57,7 @@ export const RECEBIMENTO_META: Record<EixoRecebimento, EixoMeta> = {
   devolvido: {
     label: "Devolvido",
     ordem: 5,
-    classe: "bg-purple-100 text-purple-800 border-0",
+    classe: "bg-info/10 text-info border-0",
     tooltip: null,
   },
 };
@@ -67,13 +67,13 @@ export const PRAZO_META: Record<EixoPrazo, EixoMeta> = {
   vence_hoje: {
     label: "Vence hoje",
     ordem: 2,
-    classe: "bg-amber-100 text-amber-800 border-0",
+    classe: "bg-warning/10 text-warning border-0",
     tooltip: null,
   },
   vencido: {
     label: "Vencido",
     ordem: 3,
-    classe: "bg-red-100 text-red-800 border-0",
+    classe: "bg-destructive/10 text-destructive border-0",
     tooltip: null,
   },
 };
@@ -81,8 +81,8 @@ export const PRAZO_META: Record<EixoPrazo, EixoMeta> = {
 /** Cor do texto por prazo — para colunas de data (sem chip). */
 export const PRAZO_CLASSE_TEXTO: Record<EixoPrazo, string> = {
   a_vencer: "",
-  vence_hoje: "text-amber-700 font-medium",
-  vencido: "text-red-700 font-medium",
+  vence_hoje: "text-warning font-medium",
+  vencido: "text-destructive font-medium",
 };
 
 export const INSTRUMENTO_META: Record<EixoInstrumento, EixoMeta> = {
@@ -101,25 +101,25 @@ export const INSTRUMENTO_META: Record<EixoInstrumento, EixoMeta> = {
   remessa_gerada: {
     label: "Remessa gerada",
     ordem: 3,
-    classe: "bg-sky-100 text-sky-800 border-0",
+    classe: "bg-info/10 text-info border-0",
     tooltip: "Remessa enviada ao banco.",
   },
   baixa_solicitada: {
     label: "Baixa solicitada",
     ordem: 4,
-    classe: "bg-amber-100 text-amber-800 border-0",
+    classe: "bg-warning/10 text-warning border-0",
     tooltip: "Baixa pedida ao banco, ainda sem retorno.",
   },
   liquidado_banco: {
     label: "Liquidado no banco",
     ordem: 5,
-    classe: "bg-emerald-100 text-emerald-800 border-0",
+    classe: "bg-success/10 text-success border-0",
     tooltip: "O banco confirmou a liquidação do instrumento.",
   },
   conciliado: {
     label: "Conciliado",
     ordem: 6,
-    classe: "bg-emerald-700 text-white border-0",
+    classe: "bg-success text-white border-0",
     tooltip: "Instrumento conferido contra o extrato.",
   },
 };
@@ -148,7 +148,7 @@ export const PROVA_META: Record<
   conciliado: {
     label: "Conciliado",
     ordem: 2,
-    classe: "bg-emerald-100 text-emerald-800 border-0",
+    classe: "bg-success/10 text-success border-0",
     tooltip:
       "A venda foi validada no banco pelo mecanismo de conciliação. Em cartão, um NSU casado vale para todas as parcelas.",
   },
@@ -180,14 +180,14 @@ export const STATUS_META: Record<
   pago: {
     label: "Pago",
     ordem: 2,
-    classe: "bg-amber-100 text-amber-800 border-0",
+    classe: "bg-warning/10 text-warning border-0",
     tooltip:
       "Baixa dada, sem confirmação bancária desta parcela. O pagador quitou; o dinheiro pode estar no adquirente.",
   },
   compensado: {
     label: "Compensado",
     ordem: 3,
-    classe: "bg-emerald-100 text-emerald-800 border-0",
+    classe: "bg-success/10 text-success border-0",
     tooltip: "O dinheiro desta parcela está no banco, confirmado.",
   },
   devolvido: {

@@ -63,7 +63,7 @@ export function AtencaoPedidoDialog({ pedidoId, children }: Props) {
                 <RadioGroupItem value="pausa" id="atencao-pausa" className="mt-1" />
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 font-medium text-sm">
-                    <PauseCircle className="h-4 w-4 text-red-600" />
+                    <PauseCircle className="h-4 w-4 text-destructive" />
                     Pausa
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -78,7 +78,7 @@ export function AtencaoPedidoDialog({ pedidoId, children }: Props) {
                 <RadioGroupItem value="aviso" id="atencao-aviso" className="mt-1" />
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 font-medium text-sm">
-                    <Bell className="h-4 w-4 text-amber-500" />
+                    <Bell className="h-4 w-4 text-warning" />
                     Aviso
                   </div>
                   <p className="text-xs text-muted-foreground">

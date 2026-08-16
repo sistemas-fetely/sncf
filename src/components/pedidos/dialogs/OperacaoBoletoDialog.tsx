@@ -150,8 +150,8 @@ export function OperacaoBoletoDialog({
   };
 
   const btnClass = isAtualizacao
-    ? "gap-2 bg-amber-700 hover:bg-amber-800 text-white"
-    : "gap-2 bg-amber-600 hover:bg-amber-700 text-white";
+    ? "gap-2 bg-warning hover:bg-warning text-white"
+    : "gap-2 bg-warning hover:bg-warning text-white";
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -187,7 +187,7 @@ export function OperacaoBoletoDialog({
           {parcelas.map((p, idx) => (
             <div key={idx} className="rounded-md border border-border p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Parcela {idx + 1} de {parcelas.length}
                 </span>
                 {parcelas.length > 1 && (
@@ -249,7 +249,7 @@ export function OperacaoBoletoDialog({
 
           <div className="flex items-center justify-between rounded-md bg-muted px-3 py-2">
             <span className="text-sm font-medium">Total</span>
-            <span className="text-sm font-bold">{fmtBRL.format(valorTotal)}</span>
+            <span className="text-sm font-medium">{fmtBRL.format(valorTotal)}</span>
           </div>
 
           <div className="space-y-2">

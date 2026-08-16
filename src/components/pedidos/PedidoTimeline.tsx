@@ -60,11 +60,11 @@ export function PedidoTimeline({ eventos }: Props) {
                 ev.metadata?.autor_nome ?? (isCom ? "Comercial" : "SOPS");
               return (
                 <li key={ev.id} className="ml-4">
-                  <div className="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full bg-blue-400" />
+                  <div className="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full bg-info" />
                   <div className="text-xs text-muted-foreground">
                     {new Date(ev.criado_em).toLocaleString("pt-BR")}
                   </div>
-                  <div className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                  <div className="text-sm font-medium text-info">
                     {isCom ? "📩 do Comercial" : "💬 do SOPS"} · {autorNome}
                   </div>
                   <div className="text-sm text-muted-foreground mt-1">

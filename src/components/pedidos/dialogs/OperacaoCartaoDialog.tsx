@@ -82,8 +82,8 @@ export function OperacaoCartaoDialog({
   };
 
   const btnClass = isAtualizacao
-    ? "gap-2 bg-blue-700 hover:bg-blue-800 text-white"
-    : "gap-2 bg-blue-600 hover:bg-blue-700 text-white";
+    ? "gap-2 bg-info hover:bg-info text-white"
+    : "gap-2 bg-info hover:bg-info text-white";
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
