@@ -5,11 +5,11 @@ import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePedidosPipeline } from "@/hooks/pedidos/usePedidosPipeline";
 import { ESTAGIO_LABELS_CURTO, PIPELINE_PRINCIPAL } from "@/types/pedido";
-import { ESTAGIO_CORES } from "@/components/pedidos/BadgesPedido";
 import type { EstagioPedido } from "@/types/pedido";
 import {
   AlertTriangle, Inbox, Shield, CheckCircle2, Receipt,
   Clock, FileClock, Package, PackageSearch, FileText, Truck, PackageCheck,
+  PauseCircle,
 } from "lucide-react";
 
 const ESTAGIO_ICONES: Record<EstagioPedido, JSX.Element> = {
@@ -29,41 +29,42 @@ const ESTAGIO_ICONES: Record<EstagioPedido, JSX.Element> = {
   recuperacao_venda:    <AlertTriangle className="h-4 w-4" />,
 };
 
-// Fundo suave — tom claro da cor do estágio
-const ESTAGIO_BG_SUAVE: Record<EstagioPedido, string> = {
-  recebido:             "bg-muted/10",
-  em_analise_credito:   "bg-info/10",
-  
-  cobranca:             "bg-info/10",
-  aguardando_pagamento: "bg-warning/10",
-  pre_separacao:        "bg-warning/10",
-  pre_faturamento:      "bg-warning/10",
-  aguardando_estoque:   "bg-warning/10",
-  em_separacao:         "bg-info/10",
-  faturado:             "bg-info/10",
-  em_transporte:        "bg-info/10",
-  entregue:             "bg-success/10",
-  cancelado:            "bg-destructive/10",
-  recuperacao_venda:    "bg-warning/10",
-};
-
-// Cor do número e ícone — tom médio da cor do estágio
-const ESTAGIO_TEXT_COR: Record<EstagioPedido, string> = {
-  recebido:             "text-muted-foreground",
-  em_analise_credito:   "text-info",
-  
-  cobranca:             "text-info",
-  aguardando_pagamento: "text-warning",
-  pre_separacao:        "text-warning",
-  pre_faturamento:      "text-warning",
-  aguardando_estoque:   "text-warning",
-  em_separacao:         "text-info",
-  faturado:             "text-info",
-  em_transporte:        "text-info",
-  entregue:             "text-success",
-  cancelado:            "text-destructive",
-  recuperacao_venda:    "text-warning",
-};
+/**
+ * A aparência do card nasce do dado: `tipo_sla` vem de `v_pedidos_pipeline`.
+ * Em `espera_externa` o relógio não corre — nunca fica vermelho.
+ */
+function aparenciaCard(
+  estagio: EstagioPedido,
+  sla: number,
+  tipoSla: string | null,
+): { caixa: string; numero: string; espera: boolean; selo: boolean } {
+  if (tipoSla === "espera_externa") {
+    return {
+      caixa: "bg-muted/40 border-border",
+      numero: "text-muted-foreground",
+      espera: true,
+      selo: false,
+    };
+  }
+  if (sla > 0) {
+    return {
+      caixa: "border-destructive/40 bg-destructive/5",
+      numero: "text-destructive",
+      espera: false,
+      selo: tipoSla === "interno",
+    };
+  }
+  if (estagio === "recebido") {
+    return { caixa: "border-dashed border-border bg-card", numero: "text-foreground", espera: false, selo: false };
+  }
+  if (estagio === "entregue") {
+    return { caixa: "border-success/40 bg-success/5", numero: "text-success", espera: false, selo: false };
+  }
+  if (estagio === "cancelado" || estagio === "recuperacao_venda") {
+    return { caixa: "border-destructive/40 bg-card", numero: "text-muted-foreground", espera: false, selo: false };
+  }
+  return { caixa: "border-border bg-card", numero: "text-foreground", espera: false, selo: false };
+}
 
 interface Props {
   onClickEstagio?: (estagio: EstagioPedido) => void;
