@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
-import { Input } from "@/components/ui/input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Search, Truck } from "lucide-react";
 import { useEntregasTransportadora } from "@/hooks/logistica/useEntregasTransportadora";
 import { TabelaEntregas } from "./TabelaEntregas";
+import { TabelaFetely } from "@/components/ui/tabela-fetely";
 import { cn } from "@/lib/utils";
+
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
