@@ -1006,10 +1006,16 @@ export default function PedidoMercadoriaDetalhe() {
               </Card>
             </TabsContent>
 
+            {/* ==================== SALDO ==================== */}
+            <TabsContent value="saldo" className="mt-4">
+              <SaldoPedidoTab pedidoId={pedidoId} />
+            </TabsContent>
+
             {/* ==================== HISTÓRICO ==================== */}
             <TabsContent value="historico" className="mt-4">
               <HistoricoTab pedidoId={pedidoId} />
             </TabsContent>
+
           </Tabs>
 
           <LancarNfDialog
