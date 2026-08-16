@@ -669,7 +669,12 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
             </Button>
             <Button
               onClick={handleSalvar}
-              disabled={!cartaoId || !dataVencimento || (cartoes && cartoes.length === 0)}
+              disabled={
+                !cartaoId ||
+                !dataVencimento ||
+                (cartoes && cartoes.length === 0) ||
+                totalDivergente
+              }
               className="gap-2 bg-admin hover:bg-admin-accent text-admin-foreground"
             >
               Importar fatura
