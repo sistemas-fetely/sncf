@@ -94,6 +94,6 @@ export default function Logistica() {
           )}
         </>
       )}
-    </div>
+    </PageShell>
   );
 }
