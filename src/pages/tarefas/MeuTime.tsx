@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageShell } from "@/components/layout/PageShell";
 import { TarefaItem } from "@/components/tarefas/TarefaItem";
+import { useAuth } from "@/contexts/AuthContext";
 import { usePessoasSistema } from "@/hooks/tarefas/useTarefasCatalogos";
 import {
   usePessoasDoTime, useTarefasAbertasDoTime, useTarefasEntreguesDoTime,
