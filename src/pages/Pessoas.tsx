@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  Users, Search, MoreHorizontal, Eye, Edit, Plus, UserCheck, Briefcase, Building2, UserMinus, BarChart3, ClipboardList, AlertTriangle, Wallet, CalendarDays, Network,
+  Users, Search, MoreHorizontal, Eye, Edit, Plus, UserCheck, Briefcase, Building2, UserMinus, BarChart3, ClipboardList, AlertTriangle, Wallet, CalendarDays, Network, Handshake,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { humanizeError } from "@/lib/errorMessages";
+import { useIsSocio } from "@/hooks/useIsSocio";
 
 interface PessoaLinha {
   pessoa_id: string;
@@ -47,6 +48,7 @@ const statusStyles: Record<string, string> = {
 export default function Pessoas() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { data: isSocio } = useIsSocio();
   const tipoFromQuery = searchParams.get("tipo");
 
   const [linhas, setLinhas] = useState<PessoaLinha[]>([]);
@@ -205,6 +207,11 @@ export default function Pessoas() {
           <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas/organograma")}>
             <Network className="h-4 w-4" /> Organograma
           </Button>
+          {isSocio && (
+            <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas/socios")}>
+              <Handshake className="h-4 w-4" /> Sócios
+            </Button>
+          )}
           <Button className="gap-2" onClick={() => navigate("/pessoas/novo")}>
             <Plus className="h-4 w-4" /> Nova Pessoa
           </Button>
