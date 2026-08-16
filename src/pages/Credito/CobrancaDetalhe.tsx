@@ -49,6 +49,7 @@ import { LinkPagamentoCard } from "@/components/pedidos/LinkPagamentoCard";
 import { PortaoLinksPanel } from "@/components/pedidos/PortaoLinksPanel";
 import { useVoltarParaOrigem } from "@/hooks/useVoltarParaOrigem";
 import { useMontarPlanoPagamento } from "@/hooks/credito/useMontarPlanoPagamento";
+import { PageShell } from "@/components/layout/PageShell";
 
 
 const DIAS_PRIMEIRO_PAGAMENTO_FALLBACK = 9;
@@ -314,7 +315,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
   };
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 space-y-6 animate-casa-fade-in">
+    <PageShell className="animate-casa-fade-in">
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
@@ -429,7 +430,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
         estagio="cobranca"
         motivoAlterarPagamento
       />
-    </div>
+    </PageShell>
   );
 }
 
@@ -735,18 +736,18 @@ export default function CobrancaDetalhe() {
   // Loading
   if (pedidoQ.isLoading || propostaQ.isLoading || planoExistenteQ.isLoading) {
     return (
-      <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 space-y-4">
+      <PageShell>
         <Skeleton className="h-20 w-full" />
         <Skeleton className="h-40 w-full" />
         <Skeleton className="h-96 w-full" />
-      </div>
+      </PageShell>
     );
   }
 
   // Erro ao carregar pedido (query falhou)
   if (pedidoQ.error) {
     return (
-      <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 space-y-4">
+      <PageShell>
         <Alert variant="destructive">
           <AlertDescription>
             Erro ao carregar pedido: {(pedidoQ.error as Error).message}
@@ -755,21 +756,21 @@ export default function CobrancaDetalhe() {
         <Button variant="ghost" onClick={() => navigate(voltarPara)}>
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
-      </div>
+      </PageShell>
     );
   }
 
   // Pedido não encontrado
   if (!pedidoQ.data) {
     return (
-      <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8">
+      <PageShell>
         <Alert variant="destructive">
           <AlertDescription>Pedido não encontrado.</AlertDescription>
         </Alert>
         <Button variant="ghost" className="mt-4" onClick={() => navigate(voltarPara)}>
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
-      </div>
+      </PageShell>
     );
   }
 
@@ -783,7 +784,7 @@ export default function CobrancaDetalhe() {
   // Erro na RPC de proposta
   if (propostaQ.error) {
     return (
-      <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 space-y-4">
+      <PageShell>
         <Alert variant="destructive">
           <AlertDescription>
             Erro ao calcular proposta: {(propostaQ.error as Error).message}
@@ -792,7 +793,7 @@ export default function CobrancaDetalhe() {
         <Button variant="ghost" onClick={() => navigate(voltarPara)}>
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
-      </div>
+      </PageShell>
     );
   }
 
@@ -834,7 +835,7 @@ export default function CobrancaDetalhe() {
   })();
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 space-y-6 animate-casa-fade-in">
+    <PageShell className="animate-casa-fade-in">
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
@@ -1476,6 +1477,6 @@ export default function CobrancaDetalhe() {
           parceiroId={(pedidoQ.data as any).parceiro_id}
         />
       )}
-    </div>
+    </PageShell>
   );
 }

@@ -2310,7 +2310,7 @@ export default function RecrutamentoDetalhe() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }
 
@@ -3745,6 +3745,6 @@ function ModuloOferta({
           </Button>
         </div>
       </div>
-    </PageShell>
+    </div>
   );
 }
