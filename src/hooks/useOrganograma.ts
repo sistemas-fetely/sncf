@@ -62,11 +62,12 @@ function buildTree(posicoes: PosicaoRaw[], vinculos: ColaboradorVinculado[]): Po
       subordinados_totais: 0,
       nome_display: vinculo ? vinculo.nome_completo : "",
       foto_url: vinculo?.foto_url ?? null,
-      vinculo: vinculo ? vinculo.tipo_contrato : null,
+      vinculo: vinculo ? (vinculo.tipo_contrato as "CLT" | "PJ") : null,
       status_pessoal: vinculo ? vinculo.status : null,
     };
     nodeMap.set(p.id, node);
   }
+
 
   // Create virtual nodes for unlinked vinculos (active)
   for (const v of vinculos) {
@@ -99,11 +100,12 @@ function buildTree(posicoes: PosicaoRaw[], vinculos: ColaboradorVinculado[]): Po
       subordinados_totais: 0,
       nome_display: v.nome_completo,
       foto_url: v.foto_url,
-      vinculo: v.tipo_contrato,
+      vinculo: v.tipo_contrato as "CLT" | "PJ",
       status_pessoal: v.status,
     };
     nodeMap.set(virtualId, node);
   }
+
 
   // Build tree
   for (const node of nodeMap.values()) {
