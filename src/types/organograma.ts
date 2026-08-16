@@ -9,6 +9,7 @@ export interface PosicaoRaw {
   id_pai: string | null;
   colaborador_id: string | null;
   contrato_pj_id: string | null;
+  vinculo_id: string | null;
   salario_previsto: number | null;
   centro_custo: string | null;
   created_at: string;
@@ -16,6 +17,7 @@ export interface PosicaoRaw {
   depth: number;
   path: string[];
 }
+
 
 export interface ColaboradorVinculado {
   id: string;
