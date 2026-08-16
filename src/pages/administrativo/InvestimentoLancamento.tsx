@@ -312,7 +312,7 @@ export default function InvestimentoLancamento() {
     if (l.saldo < 0) return "bg-destructive/10 hover:bg-destructive/10 border-l-4 border-destructive/40";
     if (base > 0 && l.valor_pago / base >= 0.85)
       return "bg-warning/10 hover:bg-warning/10 border-l-4 border-warning/40";
-    if (l.valor_fechado !== null) return "bg-success/10 hover:bg-success/10";
+    if (l.valor_fechado !== null) return "bg-success/40 hover:bg-success/60";
     return "hover:bg-muted/50";
   }
 

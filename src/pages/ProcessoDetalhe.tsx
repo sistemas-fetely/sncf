@@ -29,8 +29,8 @@ import { MermaidRenderer } from "@/components/processos/MermaidRenderer";
 
 import { PageShell } from "@/components/layout/PageShell";
 const STATUS_COR: Record<string, string> = {
-  vigente: "bg-success text-success border-success/40",
-  em_revisao: "bg-warning text-warning border-warning/40",
+  vigente: "bg-success/10 text-success border-success/30",
+  em_revisao: "bg-warning/10 text-warning border-warning/30",
   rascunho: "bg-muted text-muted-foreground",
   arquivado: "bg-muted/50 text-muted-foreground",
 };
@@ -220,7 +220,7 @@ export default function ProcessoDetalhe() {
               {importacaoInfo && (
                 <Badge
                   variant="outline"
-                  className="mt-2 gap-1 border-info/40 bg-info text-info"
+                  className="mt-2 gap-1 border-info/40 bg-info/5 text-info"
                 >
                   <Sparkles className="h-3 w-3" />
                   Importado de PDF · {importacaoInfo.arquivo_nome}
@@ -301,7 +301,7 @@ export default function ProcessoDetalhe() {
 
       {/* Sugestões pendentes */}
       {sugestoesPendentes.length > 0 && (
-        <div className="flex items-start gap-2 p-3 bg-warning border border-warning/40 rounded-md">
+        <div className="flex items-start gap-2 p-3 bg-warning/10 border border-warning/30 rounded-md">
           <AlertCircle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
           <p className="text-sm text-warning">
             <strong>{sugestoesPendentes.length}</strong> sugestão(ões) aguardando avaliação.
@@ -498,9 +498,9 @@ export default function ProcessoDetalhe() {
                         variant="outline"
                         className={
                           s.status === "pendente"
-                            ? "bg-warning text-warning"
+                            ? "bg-warning/10 text-warning"
                             : s.status === "aceita" || s.status === "aplicada"
-                              ? "bg-success text-success"
+                              ? "bg-success/10 text-success"
                               : "bg-muted text-muted-foreground"
                         }
                       >

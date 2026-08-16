@@ -1418,7 +1418,7 @@ export default function PedidoDetalhe() {
       )}
 
       {adiantadoVivo > 0.01 && (
-        <div className="mx-6 mb-3 flex items-start gap-2 rounded-lg border border-success/40 bg-success/10 p-3 text-success">
+        <div className="mx-6 mb-3 flex items-start gap-2 rounded-lg border border-success/40 bg-success/70 p-3 text-success">
           <Wallet className="h-4 w-4 shrink-0 mt-0.5" />
           <p className="text-sm">
             {adiantamentoPedido?.cobre_pedido_inteiro ? (
@@ -1879,7 +1879,7 @@ export default function PedidoDetalhe() {
                     </TooltipProvider>
 
                     {(emb?.skus_sem_dimensao ?? 0) > 0 && (
-                      <Badge variant="outline" className="border-warning/40 text-warning text-[10px]">
+                      <Badge variant="outline" className="border-warning/60 text-warning text-[10px]">
                         {emb!.skus_sem_dimensao} SKU(s) sem dimensão cadastrada — não entram na estimativa de caixas nem de peso
                       </Badge>
                     )}
@@ -2258,7 +2258,7 @@ export default function PedidoDetalhe() {
               const hasDelta            = Math.abs(deltaLiquido) > 0.01;
 
               return (
-                <Card className="border-warning/40 flex-1 flex flex-col bg-warning/10 lg:order-2">
+                <Card className="border-warning/70 flex-1 flex flex-col bg-warning/30 lg:order-2">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm font-medium flex items-center gap-2">
                       <History className="h-4 w-4 text-warning" />
@@ -2346,7 +2346,7 @@ export default function PedidoDetalhe() {
                     </div>
 
                 {temOrigemConsolidada && (
-                  <div className="mt-3 rounded-md border border-warning/40 bg-warning/10 p-3 space-y-2">
+                  <div className="mt-3 rounded-md border border-warning/60 bg-warning/50 p-3 space-y-2">
                     <div className="text-[10px] uppercase tracking-wide text-warning font-medium">
                       Segunda origem — consolidado de outro pedido
                     </div>
@@ -2514,7 +2514,7 @@ export default function PedidoDetalhe() {
 
 
           {estagioFinal && (
-            <div className={cn("rounded-lg border p-4 text-sm", pedido.estagio === "cancelado" ? "border-destructive/30 bg-destructive/5 text-destructive" : "border-success/40 bg-success text-success")}>
+            <div className={cn("rounded-lg border p-4 text-sm", pedido.estagio === "cancelado" ? "border-destructive/30 bg-destructive/5 text-destructive" : "border-success/30 bg-success/5 text-success")}>
               <p className="font-medium">{pedido.estagio === "cancelado" ? "Pedido cancelado" : "Pedido entregue"}{pedido.cancelado_motivo && ` · ${pedido.cancelado_motivo}`}</p>
               <p className="text-xs opacity-70 mt-0.5">{pedido.cancelado_em ? fmtDateTime(pedido.cancelado_em) : fmtDateTime(pedido.entregue_em)}</p>
             </div>

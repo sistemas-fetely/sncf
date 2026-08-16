@@ -9,10 +9,10 @@ import { useRecentes } from "@/hooks/useRecentes";
 import { useFavoritos } from "@/hooks/useFavoritos";
 
 const PILAR_COLORS: Record<string, string> = {
-  sncf: "bg-success text-success border-success/40",
-  people: "bg-info text-info border-info/40",
-  ti: "bg-info text-info border-info/40",
-  admin: "bg-warning text-warning border-warning/40",
+  sncf: "bg-success/10 text-success border-success/20",
+  people: "bg-info/10 text-info border-info/20",
+  ti: "bg-info/10 text-info border-info/20",
+  admin: "bg-warning/10 text-warning border-warning/20",
 };
 
 const PILAR_LABELS: Record<string, string> = {

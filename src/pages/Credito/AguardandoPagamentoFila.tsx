@@ -107,7 +107,7 @@ export default function AguardandoPagamentoFila() {
                         p.dias_aguardando > 15
                           ? ""
                           : p.dias_aguardando > 7
-                            ? "bg-warning text-white hover:bg-warning"
+                            ? "bg-warning text-white hover:bg-warning/90"
                             : ""
                       }
                     >

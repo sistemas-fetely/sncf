@@ -334,7 +334,7 @@ export default function SaudeEstoque() {
 
         {onboarding && (
           seguro ? (
-            <div className="rounded-md border border-success/40 bg-success p-4 flex items-start gap-3">
+            <div className="rounded-md border border-success/30 bg-success/10 p-4 flex items-start gap-3">
               <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
               <div className="text-sm text-success">
                 <div className="font-medium mb-0.5">Seguro desligar o controle de estoque do Bling.</div>
@@ -342,7 +342,7 @@ export default function SaudeEstoque() {
               </div>
             </div>
           ) : (
-            <div className="rounded-md border border-destructive/40 bg-destructive p-4 flex items-start gap-3">
+            <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 flex items-start gap-3">
               <AlertTriangle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
               <div className="text-sm text-destructive">
                 <div className="font-medium mb-0.5">NÃO desligar o controle de estoque do Bling.</div>

@@ -297,7 +297,7 @@ export default function Dre() {
           {mesEmCurso && (
             <Badge
               variant="outline"
-              className="font-normal border-warning/40 bg-warning text-warning"
+              className="font-normal border-warning/40 bg-warning/10 text-warning"
             >
               mês em curso — parcial
             </Badge>

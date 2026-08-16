@@ -166,7 +166,7 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
                       const qOrig = it.quantidade - qSplit;
                       const semEstoque = isSemEstoque(it.sku, estoqueMap);
                       return (
-                        <tr key={it.sku} className={`border-t ${semEstoque ? "bg-destructive/10" : ""}`}>
+                        <tr key={it.sku} className={`border-t ${semEstoque ? "bg-destructive/60" : ""}`}>
                           <td className="p-2">
                             <div className="font-medium flex items-center gap-1.5">
                               {semEstoque && <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />}
@@ -198,7 +198,7 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
 
               {(temItensSplit || itensOriginal.length > 0) && (
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-md border p-3 bg-info/10">
+                  <div className="rounded-md border p-3 bg-info/50">
                     <div className="text-xs font-medium text-info">
                       {id_externo} — {origemEstoque ? "Continua aguardando estoque" : "Pedido original (fica)"}
                     </div>
@@ -207,7 +207,7 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
                       {itensOriginal.length} {itensOriginal.length === 1 ? "item" : "itens"}
                     </div>
                   </div>
-                  <div className="rounded-md border p-3 bg-warning/10">
+                  <div className="rounded-md border p-3 bg-warning/50">
                     <div className="text-xs font-medium text-warning">
                       {id_externo}/01 — {origemEstoque ? "Seguir agora (tem estoque)" : "Novo pedido (split)"}
                     </div>

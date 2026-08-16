@@ -857,7 +857,7 @@ const TIPO_LABEL: Record<string, string> = {
 const STATUS_STYLES: Record<string, string> = {
   pendente: "bg-warning/10 text-warning border-0",
   aprovada: "bg-info/10 text-info border-0",
-  efetivada: "bg-success text-success border-0",
+  efetivada: "bg-success/10 text-success border-0",
   cancelada: "bg-destructive/10 text-destructive border-0",
 };
 

@@ -78,8 +78,8 @@ function fmtCompact(n: number): string {
 function heatBg(atual: number, anterior: number): string {
   if (!anterior || !atual) return "";
   const d = (atual - anterior) / Math.abs(anterior);
-  if (d > 0.2) return "bg-destructive";
-  if (d < -0.2) return "bg-success";
+  if (d > 0.2) return "bg-destructive/10";
+  if (d < -0.2) return "bg-success/10";
   return "";
 }
 
@@ -855,7 +855,7 @@ export default function AnaliseDespesas() {
               )}
 
               {totaisMes.nao_classificado > 0 && (
-                <div className="mt-4 rounded-md bg-warning border border-warning/40 p-3 flex items-center justify-between">
+                <div className="mt-4 rounded-md bg-warning/10 border border-warning/30 p-3 flex items-center justify-between">
                   <span className="flex items-center gap-2 text-warning text-sm">
                     <AlertTriangle className="h-4 w-4" />
                     Não classificado no mês: <span className="font-medium tabular-nums">{formatBRL(totaisMes.nao_classificado)}</span>

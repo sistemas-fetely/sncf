@@ -349,7 +349,7 @@ export default function PrevisaoRecebimentos() {
                         key={r.id}
                         className={
                           r.condicional
-                            ? "bg-warning/10 [background-image:repeating-linear-gradient(45deg,transparent_0,transparent_6px,hsl(40_90%_70%/0.08)_6px,hsl(40_90%_70%/0.08)_12px)]"
+                            ? "bg-warning/40 [background-image:repeating-linear-gradient(45deg,transparent_0,transparent_6px,hsl(40_90%_70%/0.08)_6px,hsl(40_90%_70%/0.08)_12px)]"
                             : ""
                         }
                       >

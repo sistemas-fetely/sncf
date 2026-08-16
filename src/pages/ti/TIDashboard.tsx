@@ -275,7 +275,7 @@ export default function TIDashboard() {
                           </Badge>
                         )}
                         {tarefa.status === "em_andamento" && (
-                          <Badge className="text-[10px] bg-info hover:bg-info">Em andamento</Badge>
+                          <Badge className="text-[10px] bg-info hover:bg-info/90">Em andamento</Badge>
                         )}
                         {tarefa.esta_atrasada && (
                           <Badge variant="destructive" className="text-[10px]">

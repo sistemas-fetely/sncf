@@ -596,7 +596,7 @@ export default function FluxoCaixaFuturo() {
               </div>
 
               {compromissoDetalhado.origem === "cartao" && (
-                <div className="rounded-md border p-3 bg-info/10 text-xs">
+                <div className="rounded-md border p-3 bg-info/50 text-xs">
                   <p className="flex items-center gap-1.5 font-medium text-info">
                     <CreditCard className="h-3.5 w-3.5" />
                     Compromisso de cartão de crédito

@@ -29,7 +29,7 @@ export function PedidoStepper({ estagioAtual, onClickEstagio }: Props) {
             "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium",
             estagioAtual === "cancelado"
               ? "bg-destructive/10 text-destructive border border-destructive/30"
-              : "bg-warning text-warning border border-warning/40"
+              : "bg-warning/10 text-warning border border-warning/30"
           )}
         >
           {estagioAtual === "cancelado" ? (

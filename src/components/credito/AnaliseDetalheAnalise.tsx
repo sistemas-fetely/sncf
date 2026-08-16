@@ -291,7 +291,7 @@ function PreAprovacaoCard({
       <CardContent className="space-y-4">
         <div className="space-y-2 text-sm">
           <div>
-            <p className="text-xs font-medium text-success uppercase tracking-wide">
+            <p className="text-xs font-medium text-success/70 uppercase tracking-wide">
               Parecer sugerido
             </p>
             <p className="text-success whitespace-pre-wrap">
@@ -299,7 +299,7 @@ function PreAprovacaoCard({
             </p>
           </div>
           <div>
-            <p className="text-xs font-medium text-success uppercase tracking-wide">
+            <p className="text-xs font-medium text-success/70 uppercase tracking-wide">
               Condição sugerida
             </p>
             <p className="text-success">
@@ -324,7 +324,7 @@ function PreAprovacaoCard({
               </>
             )}
           </Button>
-          <p className="text-xs text-success">
+          <p className="text-xs text-success/70">
             Você ainda pode decidir manualmente nos botões abaixo se preferir.
           </p>
         </div>

@@ -405,7 +405,7 @@ export default function TarefasDoTime() {
                         </Badge>
                       )}
                       {sobrecarregado && (
-                        <Badge className="bg-warning hover:bg-warning gap-1">
+                        <Badge className="bg-warning hover:bg-warning/90 gap-1">
                           <AlertTriangle className="h-3 w-3" /> Sobrecarga
                         </Badge>
                       )}
@@ -437,7 +437,7 @@ export default function TarefasDoTime() {
                                 <Badge variant="destructive" className="text-[10px]">⚠ Legal</Badge>
                               )}
                               {tarefa.status === "em_andamento" && (
-                                <Badge className="text-[10px] bg-info hover:bg-info">Em andamento</Badge>
+                                <Badge className="text-[10px] bg-info hover:bg-info/90">Em andamento</Badge>
                               )}
                               {tarefa.esta_atrasada && (
                                 <Badge variant="destructive" className="text-[10px]">

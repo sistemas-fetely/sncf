@@ -487,7 +487,7 @@ export function ContaPagarFormEdit({
 
       {/* Seletor de parceiro — só aparece se conta é órfã (sem parceiro vinculado) */}
       {!conta.parceiro_id && !isReadOnly && (
-        <div className="rounded-md border border-dashed border-warning/40 bg-warning/10 p-3 space-y-2">
+        <div className="rounded-md border border-dashed border-warning/40 bg-warning/40 p-3 space-y-2">
           <p className="text-[11px] text-warning leading-snug">
             <strong>Sem parceiro vinculado.</strong> Selecione abaixo para
             classificar a despesa. Os padrões do parceiro (categoria, centro de
@@ -524,7 +524,7 @@ export function ContaPagarFormEdit({
 
       {/* Botão Buscar do Parceiro — doutrina "Parceiro é Verdade" */}
       {conta.parceiro_id && !isReadOnly && (
-        <div className="rounded-md border border-dashed border-info/40 bg-info/10 p-2.5 flex items-center justify-between gap-3">
+        <div className="rounded-md border border-dashed border-info/40 bg-info/40 p-2.5 flex items-center justify-between gap-3">
           <p className="text-[11px] text-info leading-snug flex-1">
             <strong>Parceiro é verdade.</strong> Buscar Categoria, Centro de custo e Forma de pagamento do cadastro.
           </p>
@@ -559,7 +559,7 @@ export function ContaPagarFormEdit({
           && !sugestaoAplicada
           && topSugestao.score >= 60
           && !isReadOnly && (
-            <div className="mt-2 rounded-md border border-info/40 bg-info/10 p-2.5">
+            <div className="mt-2 rounded-md border border-info/40 bg-info/60 p-2.5">
               <div className="flex items-start gap-2">
                 <Sparkles className="h-4 w-4 text-info mt-0.5 shrink-0" />
                 <div className="flex-1 min-w-0">
@@ -572,7 +572,7 @@ export function ContaPagarFormEdit({
                     {topSugestao.amostra_count === 1 ? "" : "es"}
                   </div>
                   {topSugestao.amostra_descricao && (
-                    <div className="text-[11px] text-info mt-0.5 italic truncate">
+                    <div className="text-[11px] text-info/80 mt-0.5 italic truncate">
                       ex: "{topSugestao.amostra_descricao}"
                     </div>
                   )}
@@ -659,7 +659,7 @@ export function ContaPagarFormEdit({
         className={cn(
           "space-y-1 rounded-md transition-all",
           highlightCampo === "pago_em_conta_id" &&
-            "ring-2 ring-destructive ring-offset-2 p-2 -m-2 bg-destructive/10",
+            "ring-2 ring-destructive ring-offset-2 p-2 -m-2 bg-destructive/40",
         )}
       >
         <Label className="flex items-center gap-2">

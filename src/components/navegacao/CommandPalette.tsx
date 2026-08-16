@@ -97,15 +97,15 @@ const ALL_PAGES: PageItem[] = [
 ];
 
 const PILAR_COLORS: Record<string, string> = {
-  sncf: "bg-success text-success border-success/40",
-  people: "bg-info text-info border-info/40",
-  ti: "bg-info text-info border-info/40",
-  admin: "bg-warning text-warning border-warning/40",
-  financas: "bg-success text-success border-success/40",
-  marca: "bg-destructive text-destructive border-destructive/40",
-  credito: "bg-info text-info border-info/40",
-  sops: "bg-warning text-warning border-warning/40",
-  comercial: "bg-warning text-warning border-warning/40",
+  sncf: "bg-success/10 text-success border-success/20",
+  people: "bg-info/10 text-info border-info/20",
+  ti: "bg-info/10 text-info border-info/20",
+  admin: "bg-warning/10 text-warning border-warning/20",
+  financas: "bg-success/10 text-success border-success/20",
+  marca: "bg-destructive/10 text-destructive border-destructive/20",
+  credito: "bg-info/10 text-info border-info/20",
+  sops: "bg-warning/10 text-warning border-warning/20",
+  comercial: "bg-warning/10 text-warning border-warning/20",
   
 };
 

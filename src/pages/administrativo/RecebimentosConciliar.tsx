@@ -958,7 +958,7 @@ function BlocoSobra({
   }
 
   return (
-    <Card className="border-warning/40">
+    <Card className="border-warning/50">
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 text-warning" />

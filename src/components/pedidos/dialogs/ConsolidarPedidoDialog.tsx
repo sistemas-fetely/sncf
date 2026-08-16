@@ -126,7 +126,7 @@ export function ConsolidarPedidoDialog({
                 Outros pedidos deste cliente
               </p>
               {bloqueados.map((b) => (
-                <div key={b.pedido_id} className="rounded-md border border-warning/40 bg-warning/10 p-3 space-y-1.5">
+                <div key={b.pedido_id} className="rounded-md border border-warning/60 bg-warning/50 p-3 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-medium text-sm">{b.id_externo}</span>
                     <span className="text-sm">{fmtBRL.format(Number(b.valor_liquido) || 0)}</span>

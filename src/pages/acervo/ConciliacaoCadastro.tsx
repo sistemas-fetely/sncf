@@ -133,11 +133,11 @@ function buildPageRange(current: number, total: number): (number | "…")[] {
 function toneClasses(tone: "emerald" | "amber" | "red" | "muted") {
   switch (tone) {
     case "emerald":
-      return "bg-success text-success border-success/40";
+      return "bg-success/10 text-success border-success/30";
     case "amber":
-      return "bg-warning text-warning border-warning/40";
+      return "bg-warning/10 text-warning border-warning/30";
     case "red":
-      return "bg-destructive text-destructive border-destructive/40";
+      return "bg-destructive/10 text-destructive border-destructive/30";
     default:
       return "bg-muted text-muted-foreground border-border";
   }
@@ -400,7 +400,7 @@ export default function ConciliacaoCadastro() {
       </div>
 
       {/* Aviso obrigatório */}
-      <div className="rounded-md border border-warning/40 bg-warning p-4 mb-6 flex items-start gap-3">
+      <div className="rounded-md border border-warning/40 bg-warning/10 p-4 mb-6 flex items-start gap-3">
         <AlertTriangle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
         <div className="text-sm text-warning">
           <strong>Nomenclatura divergente na linha Vela Numérica.</strong>{" "}

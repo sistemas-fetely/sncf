@@ -98,9 +98,9 @@ function situacaoDe(t: CicloTituloRow, hoje: string): Situacao {
 }
 
 const SITUACAO_CLASSE: Record<Situacao, string> = {
-  pago: "border-success/40 bg-success text-success",
+  pago: "border-success/40 bg-success/10 text-success",
   aberto: "border-destructive/40 bg-destructive/10 text-destructive",
-  futuro: "border-info/40 bg-info text-info",
+  futuro: "border-info/40 bg-info/10 text-info",
   cancelado: "border-muted bg-muted text-muted-foreground",
   devolvido: "border-muted bg-muted text-muted-foreground",
 };
@@ -124,12 +124,12 @@ function eloClasse(elo: string | null | undefined): string {
     case "caixa_confirmado":
     case "haver":
     case "haver_com_lastro":
-      return "border-success/40 bg-success text-success";
+      return "border-success/40 bg-success/10 text-success";
     case "previsto":
-      return "border-info/40 bg-info text-info";
+      return "border-info/40 bg-info/10 text-info";
     case "previsto_vencido":
     case "aguarda_safrapay":
-      return "border-warning/40 bg-warning text-warning";
+      return "border-warning/40 bg-warning/10 text-warning";
     case "pago_sem_rastro":
     case "haver_sem_lastro":
       return "border-destructive/40 bg-destructive/10 text-destructive";
@@ -667,7 +667,7 @@ export default function FluxoCompetencia() {
         </Card>
 
         {kpis.safrapay > 0 && (
-          <Card className="border-warning/40">
+          <Card className="border-warning/50">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Aguarda SafraPay</CardTitle>
             </CardHeader>

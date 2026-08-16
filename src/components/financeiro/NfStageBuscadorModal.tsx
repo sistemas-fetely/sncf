@@ -157,7 +157,7 @@ export function NfStageBuscadorModal({
                       onSelecionar(nf.id);
                     }}
                     className={`w-full text-left p-3 border rounded-md hover:bg-muted/50 transition-colors ${
-                      valorMatch ? "border-success/40 bg-success/10" : ""
+                      valorMatch ? "border-success/40 bg-success/50" : ""
                     }`}
                   >
                     <div className="flex items-center gap-2 flex-wrap">

@@ -438,7 +438,7 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
                   </p>
                 )}
                 {portao?.pix_txid && (
-                  <p className="text-xs text-success">
+                  <p className="text-xs text-success/80">
                     Identificador no extrato: <span className="font-mono">{portao.pix_txid}</span>
                   </p>
                 )}

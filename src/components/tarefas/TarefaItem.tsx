@@ -21,7 +21,7 @@ import { TarefaDetalhePainel } from "@/components/tarefas/detalhe/TarefaDetalheP
 const PRIORIDADE_CLASSE: Record<TarefaPrioridade, string> = {
   urgente: "border-destructive/40 bg-destructive/10 text-destructive",
   alta: "border-warning/40 bg-warning/10 text-warning",
-  media: "border-warning/40 bg-warning text-warning",
+  media: "border-warning/40 bg-warning/10 text-warning",
   baixa: "border-border bg-muted text-muted-foreground",
 };
 

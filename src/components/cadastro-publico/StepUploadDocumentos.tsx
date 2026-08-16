@@ -145,7 +145,7 @@ export default function StepUploadDocumentos({ tipo, token, uploadedFiles, onFil
           const isUploading = uploading === doc.key;
 
           return (
-            <Card key={doc.key} className={uploaded ? "border-success/40 bg-success/10" : ""}>
+            <Card key={doc.key} className={uploaded ? "border-success/40 bg-success/50" : ""}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">

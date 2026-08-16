@@ -164,10 +164,10 @@ function formatDateBR(iso: string | null | undefined) {
 }
 
 const CURVA_STYLE: Record<string, string> = {
-  A: "bg-success text-success border-success/40",
-  B: "bg-info text-info border-info/40",
+  A: "bg-success/10 text-success border-success/20",
+  B: "bg-info/10 text-info border-info/20",
   C: "bg-muted text-muted-foreground border-border",
-  sem_venda: "bg-warning text-warning border-warning/40",
+  sem_venda: "bg-warning/10 text-warning border-warning/20",
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -510,10 +510,10 @@ export default function Produtos() {
                           <div className="flex items-center justify-end gap-1.5">
                             <span>{formatBRL(p.custo)}</span>
                             {p.custo_status === "interino" && (
-                              <Badge variant="outline" className="text-[10px] px-1 py-0 bg-warning text-warning border-warning/40">int.</Badge>
+                              <Badge variant="outline" className="text-[10px] px-1 py-0 bg-warning/10 text-warning border-warning/20">int.</Badge>
                             )}
                             {p.custo_status === "ausente" && (
-                              <Badge variant="outline" className="text-[10px] px-1 py-0 bg-destructive text-destructive border-destructive/40">s/ custo</Badge>
+                              <Badge variant="outline" className="text-[10px] px-1 py-0 bg-destructive/10 text-destructive border-destructive/20">s/ custo</Badge>
                             )}
                           </div>
                         )}
@@ -968,7 +968,7 @@ Solicitado por: SNCF · Cockpit de Produto · ${hoje}`;
 
             {/* 1. Cadastro (FOP) */}
             <Secao titulo="Cadastro (FOP)">
-              <div className="rounded-md border border-warning/40 bg-warning px-3 py-2 text-xs text-warning mb-3 flex items-start justify-between gap-3">
+              <div className="rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-warning mb-3 flex items-start justify-between gap-3">
                 <span>Cadastro e preço são do FOP. Correções devem ser feitas lá e refletem aqui automaticamente.</span>
                 <Button size="sm" variant="outline" onClick={copiarSolicitacao} className="shrink-0 h-7 gap-1.5">
                   <Copy className="h-3 w-3" />
@@ -1023,10 +1023,10 @@ Solicitado por: SNCF · Cockpit de Produto · ${hoje}`;
                   <span className="inline-flex items-center gap-2">
                     {row?.custo != null ? formatBRL(row.custo) : ou(null)}
                     {row?.custo_status === "interino" && (
-                      <Badge variant="outline" className="text-[10px] bg-warning text-warning border-warning/40">int.</Badge>
+                      <Badge variant="outline" className="text-[10px] bg-warning/10 text-warning border-warning/20">int.</Badge>
                     )}
                     {row?.custo_status === "ausente" && (
-                      <Badge variant="outline" className="text-[10px] bg-destructive text-destructive border-destructive/40">s/ custo</Badge>
+                      <Badge variant="outline" className="text-[10px] bg-destructive/10 text-destructive border-destructive/20">s/ custo</Badge>
                     )}
                   </span>
                 </Field>
@@ -1044,7 +1044,7 @@ Solicitado por: SNCF · Cockpit de Produto · ${hoje}`;
                 </Field>
               </div>
               {row?.preco_divergente_bling && (
-                <div className="mt-3 rounded-md border border-warning/40 bg-warning px-3 py-2 text-xs text-warning">
+                <div className="mt-3 rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-warning">
                   Preço divergente: FOP {row.preco_b2c != null ? formatBRL(row.preco_b2c) : "—"} · Bling {row.preco_no_bling != null ? formatBRL(row.preco_no_bling) : "—"}. A correção é no FOP.
                 </div>
               )}

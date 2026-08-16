@@ -59,7 +59,7 @@ export function ImpactoEdicaoBanner({
 
   if (caminho === "reconcilia_no_lugar") {
     return (
-      <Alert className={`border-success/40 bg-success text-success ${className ?? ""}`}>
+      <Alert className={`border-success/40 bg-success/5 text-success ${className ?? ""}`}>
         <CheckCircle2 className="h-4 w-4 !text-success" />
         <AlertTitle>Dentro do crédito aprovado</AlertTitle>
         <AlertDescription>
@@ -72,7 +72,7 @@ export function ImpactoEdicaoBanner({
 
   if (caminho === "re_analise") {
     return (
-      <Alert className={`border-warning/40 bg-warning text-warning ${className ?? ""}`}>
+      <Alert className={`border-warning/50 bg-warning/10 text-warning ${className ?? ""}`}>
         <AlertTriangle className="h-4 w-4 !text-warning" />
         <AlertTitle>Vai precisar de re-análise</AlertTitle>
         <AlertDescription>

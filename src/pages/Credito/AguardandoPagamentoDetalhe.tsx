@@ -248,7 +248,7 @@ export default function AguardandoPagamentoDetalhe() {
 
                       <div className="flex items-center justify-between pt-2">
                         {pago ? (
-                          <Badge className="bg-success hover:bg-success text-white gap-1">
+                          <Badge className="bg-success hover:bg-success/90 text-white gap-1">
                             <CheckCircle2 className="h-3 w-3" />
                             Pago em{" "}
                             {t.data_pagamento

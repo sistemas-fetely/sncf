@@ -328,7 +328,7 @@ export default function LancarNfDialog({ open, onOpenChange, pedidoId, fornecedo
         {previa && (
           <div className="space-y-3 rounded-md border p-3">
             {previa.nf_existe && (
-              <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning p-2 text-sm">
+              <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-2 text-sm">
                 <AlertTriangle className="h-4 w-4 mt-0.5 text-warning" />
                 <span>
                   Já existe NF com esse número e série. A gravação vai <b>atualizar</b> a NF
@@ -368,7 +368,7 @@ export default function LancarNfDialog({ open, onOpenChange, pedidoId, fornecedo
             )}
 
             {Number(previa.linhas_sem_depara ?? 0) > 0 && (
-              <div className="rounded-md border border-warning/40 bg-warning p-2 text-sm space-y-1">
+              <div className="rounded-md border border-warning/40 bg-warning/10 p-2 text-sm space-y-1">
                 <div>
                   {previa.linhas_sem_depara} linha(s) com código sem de-para para SKU. Isso não
                   impede gravar a NF — só deixa a alocação em SKU pendente.

@@ -42,7 +42,7 @@ const texto = (v: string | null | undefined) => (v && v.trim() ? v : "—");
 
 function estadoBadgeCls(r: EntregaRow) {
   const e = r.estado_canonico ?? "";
-  if (e === "entregue") return "border-success/40 text-success bg-success";
+  if (e === "entregue") return "border-success/40 text-success bg-success/10";
   if (e === "devolucao") return "border-destructive/40 text-destructive bg-destructive/10";
   if (e === "excecao") return "border-destructive/40 text-destructive bg-destructive/10";
   if (e === "em_transito") return "border-gold/50 text-foreground bg-gold/10";
@@ -139,7 +139,7 @@ function Kpi({
     <Card
       className={cn(
         tom === "alerta" && "border-destructive/30 bg-destructive/5",
-        tom === "aviso" && "border-warning/40 bg-warning"
+        tom === "aviso" && "border-warning/30 bg-warning/5"
       )}
     >
       <CardContent className="p-3">
@@ -161,7 +161,7 @@ function LinhaEntrega({ r, completo }: { r: EntregaRow; completo?: boolean }) {
       className={cn(
         "text-xs",
         urgente && "bg-destructive/5 hover:bg-destructive/10",
-        !urgente && parado && "bg-warning hover:bg-warning"
+        !urgente && parado && "bg-warning/5 hover:bg-warning/10"
       )}
     >
       <TableCell>
@@ -257,7 +257,7 @@ function AlertaFeedParado() {
               key={`${f.transportadora}-${f.canal}-${i}`}
               className={cn(
                 "flex items-start gap-2 p-3",
-                grave ? "bg-destructive/5" : "bg-warning"
+                grave ? "bg-destructive/5" : "bg-warning/5"
               )}
             >
               <AlertTriangle

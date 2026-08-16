@@ -1026,7 +1026,7 @@ export default function CobrancaDetalhe() {
             />
           </div>
           {jaPagoPedido > 0.005 && (
-            <Alert className="mb-4 border-success/40 bg-success/10">
+            <Alert className="mb-4 border-success/40 bg-success/60">
               <AlertDescription className="text-sm">
                 Este pedido já tem <strong>{fmtBRL.format(jaPagoPedido)}</strong> quitado
                 {jaPagoHaver > 0.005 && (
@@ -1100,7 +1100,7 @@ export default function CobrancaDetalhe() {
               </Label>
             </div>
             {haverDisponivel && (
-              <div className="space-y-1 ml-auto rounded-md border bg-success/10 p-3">
+              <div className="space-y-1 ml-auto rounded-md border bg-success/50 p-3">
                 <p className="text-xs font-medium">Crédito do cliente (haver)</p>
                 <p className="text-sm font-medium">{fmtBRL.format(haverSaldo)}</p>
                 <p className="text-xs text-muted-foreground">disponível na conta do cliente</p>

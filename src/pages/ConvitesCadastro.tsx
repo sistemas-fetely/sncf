@@ -148,7 +148,7 @@ function getDisplayStatus(c: Convite): string {
 
 // ─── Helper: row bg class based on status ────────────────────────────
 function getRowClass(displayStatus: string): string {
-  if (displayStatus === "atrasado") return "bg-warning/10";
+  if (displayStatus === "atrasado") return "bg-warning/50";
   return "";
 }
 
@@ -888,7 +888,7 @@ export default function ConvitesCadastro() {
 
                 {/* Returned comment if devolvido */}
                 {reviewTarget.dados_preenchidos?._comentario_rh && (
-                  <Card className="border-warning/40 bg-warning/10">
+                  <Card className="border-warning/40 bg-warning/50">
                     <CardContent className="p-4">
                       <h4 className="text-sm font-medium text-warning mb-1">Comentário do RH (devolução)</h4>
                       <p className="text-sm">{reviewTarget.dados_preenchidos._comentario_rh}</p>
@@ -1300,14 +1300,14 @@ export default function ConvitesCadastro() {
                       </p>
                     )}
                     {showSalaryField && (
-                      <div className="rounded-lg border border-warning/40 bg-warning/10 p-4 space-y-4">
+                      <div className="rounded-lg border border-warning/40 bg-warning/50 p-4 space-y-4">
                         <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2"><Lock className="h-3.5 w-3.5" /> Dados Sensíveis</h3>
                         <div>
                           <Label className="flex items-center gap-2">
                             {form.tipo === "clt" ? "Salário Base (R$)" : "Valor Mensal (R$)"}
                             <span className="text-xs text-warning flex items-center gap-1"><Lock className="h-3 w-3" /> Dado sensível</span>
                             {selectedCargoCLevel && (
-                              <Badge className="text-[10px] bg-warning text-warning border-warning/40 ml-1">
+                              <Badge className="text-[10px] bg-warning/10 text-warning border-warning/40 ml-1">
                                 C-Level 🔒
                               </Badge>
                             )}

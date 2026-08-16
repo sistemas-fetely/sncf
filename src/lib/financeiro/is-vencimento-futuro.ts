@@ -35,7 +35,7 @@ export function isVencimentoFuturo(dataVencimento: string | null | undefined): b
  */
 export function classFundoFuturo(dataVencimento: string | null | undefined): string {
   return isVencimentoFuturo(dataVencimento)
-    ? "bg-info/10 hover:bg-info/10"
+    ? "bg-info/60 hover:bg-info/60"
     : "";
 }
 

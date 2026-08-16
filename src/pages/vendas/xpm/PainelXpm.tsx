@@ -385,7 +385,7 @@ export default function PainelXpm() {
                 </div>
               </CardContent>
             </Card>
-            <Card className={farolFila.atencao > 0 ? "border-warning/40" : undefined}>
+            <Card className={farolFila.atencao > 0 ? "border-warning/50" : undefined}>
               <CardContent className="pt-6">
                 <div className="text-xs text-muted-foreground">Atenção</div>
                 <div
@@ -682,7 +682,7 @@ export default function PainelXpm() {
                     <div className="text-2xl font-medium">{nfInt.format(emCurso.length)}</div>
                   </CardContent>
                 </Card>
-                <Card className={pausadas.length > 0 ? "border-warning/40" : undefined}>
+                <Card className={pausadas.length > 0 ? "border-warning/50" : undefined}>
                   <CardContent className="pt-6">
                     <div className="text-xs text-muted-foreground">Pausadas</div>
                     <div className="text-2xl font-medium">{nfInt.format(pausadas.length)}</div>

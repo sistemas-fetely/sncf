@@ -421,7 +421,7 @@ function BlocoPausa({ codigo }: { codigo: string }) {
       ) : (
         <div className="space-y-3">
           {aberta ? (
-            <div className="rounded-md border border-warning/40 bg-warning p-3 space-y-1">
+            <div className="rounded-md border border-warning/50 bg-warning/5 p-3 space-y-1">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="secondary">Pausado</Badge>
                 <span className="text-sm font-medium">{motivoNome(aberta.motivo_id)}</span>
@@ -821,7 +821,7 @@ export default function ExpedicoesXpm() {
               <div className="text-2xl font-medium">{nf.format(kpis.emCurso)}</div>
             </CardContent>
           </Card>
-          <Card className={kpis.semNf > 0 ? "border-warning/40" : undefined}>
+          <Card className={kpis.semNf > 0 ? "border-warning/50" : undefined}>
             <CardContent className="pt-6">
               <div className="text-xs text-muted-foreground">Separado sem NF</div>
               <div
@@ -839,9 +839,9 @@ export default function ExpedicoesXpm() {
             onClick={() => setFarolFiltro(farolFiltro === "atencao" ? null : "atencao")}
             className={`cursor-pointer ${
               farolFiltro === "atencao"
-                ? "border-warning/40 ring-1 ring-warning"
+                ? "border-warning/40 ring-1 ring-warning/40"
                 : kpis.atencao > 0
-                  ? "border-warning/40"
+                  ? "border-warning/50"
                   : ""
             }`}
           >
@@ -999,11 +999,11 @@ export default function ExpedicoesXpm() {
                           r.farol === "risco"
                             ? "bg-destructive/5"
                             : r.farol === "atencao"
-                              ? "bg-warning"
+                              ? "bg-warning/5"
                               : r.farol === "pausada"
                                 ? ""
                                 : r.tem_corte
-                                  ? "bg-warning"
+                                  ? "bg-warning/5"
                                   : "";
                         const recente = recemExpedida(r);
 

@@ -274,7 +274,7 @@ export default function LancarInvoiceDialog({
         {previa && (
           <div className="space-y-3 rounded-md border p-3">
             {previa.invoice_existe && (
-              <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning p-2 text-sm">
+              <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-2 text-sm">
                 <AlertTriangle className="h-4 w-4 mt-0.5 text-warning" />
                 <span>
                   Já existe invoice com esse número. A gravação vai <b>atualizar</b> a invoice
@@ -314,7 +314,7 @@ export default function LancarInvoiceDialog({
             )}
 
             {Number(previa.linhas_sem_sku ?? 0) > 0 && (
-              <div className="rounded-md border border-warning/40 bg-warning p-2 text-sm space-y-1">
+              <div className="rounded-md border border-warning/40 bg-warning/10 p-2 text-sm space-y-1">
                 <div>
                   {previa.linhas_sem_sku} linha(s) sem SKU resolvido. Isso não impede gravar a
                   invoice — só deixa a alocação em SKU pendente.

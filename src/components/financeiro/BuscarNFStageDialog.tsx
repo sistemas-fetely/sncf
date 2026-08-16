@@ -346,7 +346,7 @@ export default function BuscarNFStageDialog({
                   htmlFor={cand.cprId}
                   className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
                     cprSelecionado === cand.cprId
-                      ? "border-success/40 bg-success/10"
+                      ? "border-success/40 bg-success/40"
                       : "hover:bg-muted/50"
                   }`}
                 >
