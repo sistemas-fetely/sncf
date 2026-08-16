@@ -113,11 +113,11 @@ export default function Organograma() {
 
   if (isLoading) {
     return (
-      <div className="p-6 space-y-4">
+      <PageShell>
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-[500px] w-full" />
-      </div>
+      </PageShell>
     );
   }
 
