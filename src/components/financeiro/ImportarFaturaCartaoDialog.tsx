@@ -490,6 +490,18 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
                 </div>
               </div>
 
+              {totalDivergente && (
+                <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <span>
+                    A soma dos lançamentos não bate com o total impresso na fatura. Diferença de{" "}
+                    {formatBRL(divergencia)}. Isso quase sempre significa que a leitura do PDF errou
+                    uma linha — importar assim grava despesa com valor errado. Tente ler o arquivo de
+                    novo antes de importar.
+                  </span>
+                </div>
+              )}
+
               {/* Lista compacta de lançamentos */}
               <div className="rounded-md border overflow-hidden">
                 <div className="bg-muted/40 px-3 py-2 text-xs font-medium flex items-center justify-between">
