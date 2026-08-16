@@ -61776,6 +61776,12 @@ export type Database = {
         Returns: boolean
       }
       tarefas_is_admin: { Args: { _user_id: string }; Returns: boolean }
+      tarefas_meu_time: {
+        Args: never
+        Returns: {
+          user_id: string
+        }[]
+      }
       tarefas_pode_gerenciar_projeto: {
         Args: { _projeto_id: string }
         Returns: boolean

@@ -113,35 +113,9 @@ export default function MeuTime() {
       <header className="space-y-1">
         <h1 className="text-2xl font-medium tracking-tight">Meu time</h1>
         <p className="text-sm text-muted-foreground">
-          O que está aberto, o que atrasou e o que saiu nos últimos 7 dias.
+          Tarefas de quem reporta a você. Para a empresa toda, veja Carga.
         </p>
       </header>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <Select value={pessoaFiltro} onValueChange={setPessoaFiltro}>
-          <SelectTrigger className="w-56">
-            <SelectValue placeholder="Pessoa" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todas">Todas as pessoas</SelectItem>
-            {pessoasDoFiltro.map((p) => (
-              <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={prioridadeFiltro} onValueChange={setPrioridadeFiltro}>
-          <SelectTrigger className="w-44">
-            <SelectValue placeholder="Prioridade" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todas">Todas as prioridades</SelectItem>
-            {PRIORIDADES.map((p) => (
-              <SelectItem key={p.valor} value={p.valor}>{p.rotulo}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
 
       {erroTime && (
         <Card>
@@ -151,114 +125,156 @@ export default function MeuTime() {
         </Card>
       )}
 
-      <Tabs defaultValue="pessoa">
-        <TabsList>
-          <TabsTrigger value="pessoa">Por pessoa</TabsTrigger>
-          <TabsTrigger value="atrasadas">
-            Atrasadas
-            {atrasadas.length > 0 && (
-              <Badge variant="outline" className="ml-2 border-destructive/40 bg-destructive/10 text-destructive">
-                {atrasadas.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="entregues">Entregues</TabsTrigger>
-        </TabsList>
+      {!erroTime && !carregandoTime && (userIds ?? []).length === 0 && (
+        <Card>
+          <CardContent className="p-4 space-y-2">
+            <p className="text-sm font-medium">Você não tem liderados diretos</p>
+            <p className="text-sm text-muted-foreground">
+              Esta tela mostra as tarefas de quem reporta a você no organograma.
+              Para ver as tarefas de toda a empresa, use a tela de Carga.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
-        <TabsContent value="pessoa" className="mt-4 space-y-4">
-          {carregandoTime || carregandoAbertas ? (
-            <p className="text-sm text-muted-foreground">Carregando…</p>
-          ) : porPessoa.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhuma pessoa no time com esse filtro.</p>
-          ) : (
-            porPessoa.map((g) => (
-              <Card key={g.userId}>
-                <CardContent className="space-y-3 p-4">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <Avatar className="h-8 w-8">
-                      {g.avatar && <AvatarImage src={g.avatar} alt={g.nome} />}
-                      <AvatarFallback className="text-[11px]">{iniciais(g.nome)}</AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm font-medium">{g.nome}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {g.tarefas.length} {g.tarefas.length === 1 ? "aberta" : "abertas"}
-                    </span>
-                    {g.atrasadas > 0 && (
-                      <span className="flex items-center gap-1 text-xs font-medium text-destructive">
-                        <AlertTriangle className="h-3.5 w-3.5" />
-                        {g.atrasadas} atrasada{g.atrasadas === 1 ? "" : "s"}
-                      </span>
-                    )}
-                  </div>
+      {!erroTime && (userIds ?? []).length > 0 && (
+        <div className="contents">
+          <div className="flex flex-wrap items-center gap-3">
+            <Select value={pessoaFiltro} onValueChange={setPessoaFiltro}>
+              <SelectTrigger className="w-56">
+                <SelectValue placeholder="Pessoa" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas as pessoas</SelectItem>
+                {pessoasDoFiltro.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-                  {g.tarefas.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">nenhuma tarefa aberta</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {g.tarefas.map((t) => (
-                        <TarefaItem
-                          key={t.id}
-                          tarefa={t}
-                          atrasada={!!t.data_limite && t.data_limite < hoje}
-                        />
-                      ))}
+            <Select value={prioridadeFiltro} onValueChange={setPrioridadeFiltro}>
+              <SelectTrigger className="w-44">
+                <SelectValue placeholder="Prioridade" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas as prioridades</SelectItem>
+                {PRIORIDADES.map((p) => (
+                  <SelectItem key={p.valor} value={p.valor}>{p.rotulo}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Tabs defaultValue="pessoa">
+            <TabsList>
+              <TabsTrigger value="pessoa">Por pessoa</TabsTrigger>
+              <TabsTrigger value="atrasadas">
+                Atrasadas
+                {atrasadas.length > 0 && (
+                  <Badge variant="outline" className="ml-2 border-destructive/40 bg-destructive/10 text-destructive">
+                    {atrasadas.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="entregues">Entregues</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="pessoa" className="mt-4 space-y-4">
+              {carregandoTime || carregandoAbertas ? (
+                <p className="text-sm text-muted-foreground">Carregando…</p>
+              ) : porPessoa.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhuma pessoa no time com esse filtro.</p>
+              ) : (
+                porPessoa.map((g) => (
+                  <Card key={g.userId}>
+                    <CardContent className="space-y-3 p-4">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          {g.avatar && <AvatarImage src={g.avatar} alt={g.nome} />}
+                          <AvatarFallback className="text-[11px]">{iniciais(g.nome)}</AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm font-medium">{g.nome}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {g.tarefas.length} {g.tarefas.length === 1 ? "aberta" : "abertas"}
+                        </span>
+                        {g.atrasadas > 0 && (
+                          <span className="flex items-center gap-1 text-xs font-medium text-destructive">
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                            {g.atrasadas} atrasada{g.atrasadas === 1 ? "" : "s"}
+                          </span>
+                        )}
+                      </div>
+
+                      {g.tarefas.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">nenhuma tarefa aberta</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {g.tarefas.map((t) => (
+                            <TarefaItem
+                              key={t.id}
+                              tarefa={t}
+                              atrasada={!!t.data_limite && t.data_limite < hoje}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </TabsContent>
+
+            <TabsContent value="atrasadas" className="mt-4 space-y-2">
+              {atrasadas.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nada atrasado no time com esse filtro.</p>
+              ) : (
+                atrasadas.map((t) => (
+                  <div key={t.id} className="space-y-1">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <UsersRound className="h-3.5 w-3.5" />
+                      {nomeDe(t.responsavel_id)}
+                      {t.data_limite && (
+                        <span className="text-destructive">
+                          · venceu em {format(parseISO(t.data_limite), "dd/MM/yyyy", { locale: ptBR })}
+                        </span>
+                      )}
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </TabsContent>
-
-        <TabsContent value="atrasadas" className="mt-4 space-y-2">
-          {atrasadas.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nada atrasado no time com esse filtro.</p>
-          ) : (
-            atrasadas.map((t) => (
-              <div key={t.id} className="space-y-1">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <UsersRound className="h-3.5 w-3.5" />
-                  {nomeDe(t.responsavel_id)}
-                  {t.data_limite && (
-                    <span className="text-destructive">
-                      · venceu em {format(parseISO(t.data_limite), "dd/MM/yyyy", { locale: ptBR })}
-                    </span>
-                  )}
-                </div>
-                <TarefaItem tarefa={t} atrasada />
-              </div>
-            ))
-          )}
-        </TabsContent>
-
-        <TabsContent value="entregues" className="mt-4 space-y-4">
-          {porPessoaEntregues.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhuma entrega nos últimos 7 dias com esse filtro.</p>
-          ) : (
-            porPessoaEntregues.map((g) => (
-              <Card key={g.userId}>
-                <CardContent className="space-y-3 p-4">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8">
-                      {g.avatar && <AvatarImage src={g.avatar} alt={g.nome} />}
-                      <AvatarFallback className="text-[11px]">{iniciais(g.nome)}</AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm font-medium">{g.nome}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {g.tarefas.length} entregue{g.tarefas.length === 1 ? "" : "s"}
-                    </span>
+                    <TarefaItem tarefa={t} atrasada />
                   </div>
-                  <div className="space-y-2">
-                    {g.tarefas.map((t) => (
-                      <TarefaItem key={t.id} tarefa={t} />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </TabsContent>
-      </Tabs>
+                ))
+              )}
+            </TabsContent>
+
+            <TabsContent value="entregues" className="mt-4 space-y-4">
+              {porPessoaEntregues.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhuma entrega nos últimos 7 dias com esse filtro.</p>
+              ) : (
+                porPessoaEntregues.map((g) => (
+                  <Card key={g.userId}>
+                    <CardContent className="space-y-3 p-4">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          {g.avatar && <AvatarImage src={g.avatar} alt={g.nome} />}
+                          <AvatarFallback className="text-[11px]">{iniciais(g.nome)}</AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm font-medium">{g.nome}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {g.tarefas.length} entregue{g.tarefas.length === 1 ? "" : "s"}
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        {g.tarefas.map((t) => (
+                          <TarefaItem key={t.id} tarefa={t} />
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </TabsContent>
+          </Tabs>
+        </div>
+      )}
     </PageShell>
   );
 }
