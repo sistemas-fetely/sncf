@@ -145,6 +145,7 @@ export default function Organograma() {
       {viewMode === "analitico" && (
         <OrgAnalyticView flat={filteredFlat} filters={filters} />
       )}
+      {viewMode === "lista" && <OrgListaView />}
 
       <OrgNodeDrawer
         node={selectedNode}
