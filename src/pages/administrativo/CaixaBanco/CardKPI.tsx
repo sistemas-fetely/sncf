@@ -32,7 +32,7 @@ export function CardKPIDuplo({
   const pctTem = total > 0 ? Math.round((qtdTem / total) * 100) : 0;
   const pctFalta = total > 0 ? Math.round((qtdFalta / total) * 100) : 0;
   return (
-    <div className="border border-success/40 bg-success/30 rounded-lg overflow-hidden">
+    <div className="border border-success/40 bg-success/10 rounded-lg overflow-hidden">
       <div className="px-3 pt-1.5 pb-0.5 flex items-center gap-1.5">
         <Icone className="h-3.5 w-3.5 text-success" />
         <span className="text-[11px] font-medium text-success">{titulo}</span>

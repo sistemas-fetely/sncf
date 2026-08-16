@@ -1026,7 +1026,7 @@ export default function CobrancaDetalhe() {
             />
           </div>
           {jaPagoPedido > 0.005 && (
-            <Alert className="mb-4 border-success/40 bg-success/60">
+            <Alert className="mb-4 border-success/40 bg-success/10">
               <AlertDescription className="text-sm">
                 Este pedido já tem <strong>{fmtBRL.format(jaPagoPedido)}</strong> quitado
                 {jaPagoHaver > 0.005 && (

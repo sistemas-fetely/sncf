@@ -449,7 +449,7 @@ export default function EnviarPeloSistemaDialog({
 
             {/* Progress durante envio */}
             {processando && (
-              <div className="rounded-lg border border-success/40 bg-success/40 p-3 space-y-2">
+              <div className="rounded-lg border border-success/40 bg-success/10 p-3 space-y-2">
                 <div className="flex items-center gap-2 text-sm text-success">
                   {etapa === "done" ? (
                     <CheckCircle2 className="h-4 w-4 text-success" />

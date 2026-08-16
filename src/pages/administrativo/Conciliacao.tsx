@@ -1199,7 +1199,7 @@ export default function Conciliacao() {
           </h2>
           <div className="space-y-1">
             {itensConciliados.map((item) => (
-              <div key={item.id} className="rounded-md border border-success/40 bg-success/30 p-3 text-xs flex items-center justify-between gap-4">
+              <div key={item.id} className="rounded-md border border-success/40 bg-success/10 p-3 text-xs flex items-center justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{item.nome_favorecido ?? "—"}</p>
                   <p className="text-muted-foreground text-[10px]">{item.cnpj_favorecido}</p>
