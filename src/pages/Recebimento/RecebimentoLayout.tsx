@@ -1,5 +1,6 @@
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
+import { PageShell } from "@/components/layout/PageShell";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function RecebimentoLayout() {
@@ -19,7 +20,7 @@ export default function RecebimentoLayout() {
   const isCobranca = location.pathname.startsWith("/recebimento/cobranca");
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 animate-casa-fade-in">
+    <PageShell variant="dados" className="animate-casa-fade-in">
       {!isCobranca && (
         <>
           <CasaPageHeader
@@ -53,6 +54,6 @@ export default function RecebimentoLayout() {
       <div className={isCobranca ? "" : "mt-4"}>
         <Outlet />
       </div>
-    </div>
+    </PageShell>
   );
 }

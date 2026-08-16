@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
+import { PageShell } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FilterInput } from "@/components/ui/filter-input";
@@ -48,7 +49,7 @@ export default function RetornoDevolucao() {
     : null;
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 animate-casa-fade-in">
+    <PageShell variant="dados" className="animate-casa-fade-in">
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
@@ -179,6 +180,6 @@ export default function RetornoDevolucao() {
         onOpenChange={(v) => { if (!v) setSelecionado(null); }}
         pedido={pedidoAberto}
       />
-    </div>
+    </PageShell>
   );
 }
