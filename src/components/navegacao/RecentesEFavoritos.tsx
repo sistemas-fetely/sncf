@@ -9,10 +9,10 @@ import { useRecentes } from "@/hooks/useRecentes";
 import { useFavoritos } from "@/hooks/useFavoritos";
 
 const PILAR_COLORS: Record<string, string> = {
-  sncf: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
-  people: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
-  ti: "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20",
-  admin: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
+  sncf: "bg-success text-success border-success/40",
+  people: "bg-info text-info border-info/40",
+  ti: "bg-info text-info border-info/40",
+  admin: "bg-warning text-warning border-warning/40",
 };
 
 const PILAR_LABELS: Record<string, string> = {
@@ -44,7 +44,7 @@ export function RecentesEFavoritos() {
           <Clock className="h-4 w-4" />
           <span className="hidden md:inline text-sm font-medium">Recentes</span>
           {favoritos.length > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-amber-400" />
+            <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-warning" />
           )}
         </Button>
       </PopoverTrigger>
@@ -54,8 +54,8 @@ export function RecentesEFavoritos() {
           {favoritos.length > 0 && (
             <>
               <div className="flex items-center gap-2 px-4 py-2.5 border-b">
-                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <Star className="h-3.5 w-3.5 fill-warning text-warning" />
+                <h4 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Favoritos
                 </h4>
               </div>
@@ -87,7 +87,7 @@ export function RecentesEFavoritos() {
                       className="shrink-0 p-1 hover:bg-muted rounded"
                       aria-label="Remover dos favoritos"
                     >
-                      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                      <Star className="h-3.5 w-3.5 fill-warning text-warning" />
                     </button>
                   </div>
                 ))}
@@ -99,7 +99,7 @@ export function RecentesEFavoritos() {
           {/* Recentes */}
           <div className="flex items-center gap-2 px-4 py-2.5 border-b">
             <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <h4 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Recentes
             </h4>
           </div>
@@ -147,8 +147,8 @@ export function RecentesEFavoritos() {
                     <Star
                       className={`h-3.5 w-3.5 ${
                         isFavorito(r.rota)
-                          ? "fill-amber-400 text-amber-400"
-                          : "text-muted-foreground/30 hover:text-amber-400"
+                          ? "fill-warning text-warning"
+                          : "text-muted-foreground/30 hover:text-warning"
                       }`}
                     />
                   </button>

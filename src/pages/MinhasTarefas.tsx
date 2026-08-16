@@ -34,6 +34,7 @@ import { NovaTarefaDialog } from "@/components/tarefas/NovaTarefaDialog";
 import { TarefaDetalheDrawer, type TarefaDrawer } from "@/components/tarefas/TarefaDetalheDrawer";
 
 
+import { PageShell } from "@/components/layout/PageShell";
 interface Tarefa {
   id: string;
   tipo_processo: string;
@@ -535,7 +536,7 @@ export default function MinhasTarefas() {
           tarefa.esta_atrasada
             ? "bg-destructive/5 border-destructive/30 hover:bg-destructive/10"
             : tarefa.bloqueante
-            ? "bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900 hover:bg-amber-100/50"
+            ? "bg-warning/10 border-warning/40 hover:bg-warning/10"
             : tarefa.status === "concluida"
             ? "bg-muted/30 border-border"
             : "hover:bg-muted/50 border-border",
@@ -547,8 +548,8 @@ export default function MinhasTarefas() {
           className={cn(
             "mt-1 flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors",
             tarefa.status === "concluida"
-              ? "bg-emerald-500 border-emerald-500"
-              : "border-muted-foreground/30 hover:border-emerald-400",
+              ? "bg-success border-success/40"
+              : "border-muted-foreground/30 hover:border-success/40",
           )}
           aria-label="Concluir tarefa"
         >
@@ -588,10 +589,10 @@ export default function MinhasTarefas() {
               </Badge>
             )}
             {tarefa.status === "em_andamento" && (
-              <Badge className="text-[10px] bg-blue-500 hover:bg-blue-500/90">Em andamento</Badge>
+              <Badge className="text-[10px] bg-info hover:bg-info">Em andamento</Badge>
             )}
             {tarefa.status === "aguardando_terceiro" && (
-              <Badge className="text-[10px] bg-amber-500 hover:bg-amber-500/90 gap-1">
+              <Badge className="text-[10px] bg-warning hover:bg-warning gap-1">
                 <PauseCircle className="h-2.5 w-2.5" /> Aguardando
               </Badge>
             )}
@@ -628,8 +629,8 @@ export default function MinhasTarefas() {
           </div>
 
           {tarefa.status === "concluida" && tarefa.evidencia_texto && (
-            <div className="mt-2 p-2 rounded bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900">
-              <p className="text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+            <div className="mt-2 p-2 rounded bg-success/10 border border-success/40">
+              <p className="text-[11px] font-medium text-success">
                 Concluída em{" "}
                 {tarefa.concluida_em
                   ? new Date(tarefa.concluida_em).toLocaleDateString("pt-BR")
@@ -641,7 +642,7 @@ export default function MinhasTarefas() {
                   href={tarefa.evidencia_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs inline-flex items-center gap-1 mt-1 hover:underline text-emerald-700 dark:text-emerald-400"
+                  className="text-xs inline-flex items-center gap-1 mt-1 hover:underline text-success"
                 >
                   Ver evidência <ExternalLink className="h-3 w-3" />
                 </a>
@@ -655,18 +656,18 @@ export default function MinhasTarefas() {
           {!["concluida", "cancelada"].includes(tarefa.status) && (
             <div className="flex gap-1 flex-wrap justify-end">
               {tarefa.status === "pendente" && (
-                <Button size="sm" variant="outline" className="h-7 gap-1 text-xs border-emerald-500/40 text-emerald-700 hover:bg-emerald-500/10"
+                <Button size="sm" variant="outline" className="h-7 gap-1 text-xs border-success/40 text-success hover:bg-success"
                   onClick={() => handleIniciar(tarefa)}>
                   <Play className="h-3 w-3" /> Iniciar
                 </Button>
               )}
               {tarefa.status === "em_andamento" && (
                 <>
-                  <Button size="sm" className="h-7 gap-1 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                  <Button size="sm" className="h-7 gap-1 text-xs bg-success hover:bg-success text-white"
                     onClick={() => handleConcluir(tarefa)}>
                     <CheckCircle2 className="h-3 w-3" /> Concluir
                   </Button>
-                  <Button size="sm" variant="outline" className="h-7 gap-1 text-xs border-amber-500/40 text-amber-700 hover:bg-amber-500/10"
+                  <Button size="sm" variant="outline" className="h-7 gap-1 text-xs border-warning/40 text-warning hover:bg-warning"
                     onClick={() => handleAguardando(tarefa)}>
                     <PauseCircle className="h-3 w-3" /> Aguardando
                   </Button>
@@ -674,11 +675,11 @@ export default function MinhasTarefas() {
               )}
               {tarefa.status === "aguardando_terceiro" && (
                 <>
-                  <Button size="sm" variant="outline" className="h-7 gap-1 text-xs border-blue-500/40 text-blue-700 hover:bg-blue-500/10"
+                  <Button size="sm" variant="outline" className="h-7 gap-1 text-xs border-info/40 text-info hover:bg-info"
                     onClick={() => handleRetomar(tarefa)}>
                     <Play className="h-3 w-3" /> Retomar
                   </Button>
-                  <Button size="sm" className="h-7 gap-1 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                  <Button size="sm" className="h-7 gap-1 text-xs bg-success hover:bg-success text-white"
                     onClick={() => handleConcluir(tarefa)}>
                     <CheckCircle2 className="h-3 w-3" /> Concluir
                   </Button>
@@ -732,8 +733,8 @@ export default function MinhasTarefas() {
       return (
         <Card>
           <CardContent className="py-12 text-center">
-            <Inbox className="h-12 w-12 mx-auto mb-3 text-emerald-500" />
-            <p className="text-lg font-semibold">Inbox zero!</p>
+            <Inbox className="h-12 w-12 mx-auto mb-3 text-success" />
+            <p className="text-lg font-medium">Inbox zero!</p>
             <p className="text-sm text-muted-foreground mt-1">
               Todas as suas tarefas estão em dia.
             </p>
@@ -749,7 +750,7 @@ export default function MinhasTarefas() {
           <Card key={g.nome}>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold">{g.nome}</CardTitle>
+                <CardTitle className="text-sm font-medium">{g.nome}</CardTitle>
                 <Badge variant="outline" className="text-xs">
                   {g.tarefas.length} {g.tarefas.length === 1 ? "tarefa" : "tarefas"}
                 </Badge>
@@ -763,11 +764,11 @@ export default function MinhasTarefas() {
   };
 
   return (
-    <div className="space-y-6 p-6 max-w-7xl mx-auto">
+    <PageShell>
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Inbox</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Inbox</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Visão unificada de todas as suas pendências
           </p>
@@ -782,10 +783,10 @@ export default function MinhasTarefas() {
 
       {/* Prioridades do Dia — ações operacionais (não-tarefa) */}
       {!isColaboradorPuro && prioridadesDia.length > 0 && (
-        <Card className="border-l-4 border-l-amber-500 bg-amber-50/30 dark:bg-amber-950/10">
+        <Card className="border-l-4 border-l-warning/40 bg-warning/10">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <Flame className="h-4 w-4 text-amber-600" /> Prioridades do Dia
+              <Flame className="h-4 w-4 text-warning" /> Prioridades do Dia
               <Badge variant="outline" className="ml-auto text-[10px]">
                 {prioridadesDia.length} pendência{prioridadesDia.length !== 1 ? "s" : ""}
               </Badge>
@@ -807,13 +808,13 @@ export default function MinhasTarefas() {
                     <div
                       className={cn(
                         "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
-                        p.prioridade === "urgente" ? "bg-destructive/10" : "bg-amber-100 dark:bg-amber-950/40"
+                        p.prioridade === "urgente" ? "bg-destructive/10" : "bg-warning/10"
                       )}
                     >
                       <Icone
                         className={cn(
                           "h-4 w-4",
-                          p.prioridade === "urgente" ? "text-destructive" : "text-amber-600"
+                          p.prioridade === "urgente" ? "text-destructive" : "text-warning"
                         )}
                       />
                     </div>
@@ -842,43 +843,43 @@ export default function MinhasTarefas() {
       )}
 
       {/* KPIs */}
-      <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+      <h2 className="text-sm font-medium uppercase tracking-widest text-muted-foreground">
         Minhas tarefas
       </h2>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card>
           <CardContent className="p-4 text-center">
-            <Clock className="h-5 w-5 mx-auto mb-1 text-amber-500" />
-            <p className="text-2xl font-bold">{kpis.pendentes}</p>
+            <Clock className="h-5 w-5 mx-auto mb-1 text-warning" />
+            <p className="text-2xl font-medium">{kpis.pendentes}</p>
             <p className="text-xs text-muted-foreground">Pendentes</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
             <AlertTriangle className="h-5 w-5 mx-auto mb-1 text-destructive" />
-            <p className="text-2xl font-bold text-destructive">{kpis.atrasadas}</p>
+            <p className="text-2xl font-medium text-destructive">{kpis.atrasadas}</p>
             <p className="text-xs text-muted-foreground">Atrasadas</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <Play className="h-5 w-5 mx-auto mb-1 text-blue-500" />
-            <p className="text-2xl font-bold">{kpis.emAndamento}</p>
+            <Play className="h-5 w-5 mx-auto mb-1 text-info" />
+            <p className="text-2xl font-medium">{kpis.emAndamento}</p>
             <p className="text-xs text-muted-foreground">Em andamento</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <CheckCircle2 className="h-5 w-5 mx-auto mb-1 text-emerald-500" />
-            <p className="text-2xl font-bold">{kpis.concluidasHoje}</p>
+            <CheckCircle2 className="h-5 w-5 mx-auto mb-1 text-success" />
+            <p className="text-2xl font-medium">{kpis.concluidasHoje}</p>
             <p className="text-xs text-muted-foreground">Concluídas hoje</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <Eye className="h-5 w-5 mx-auto mb-1 text-purple-500" />
-            <p className="text-2xl font-bold">{kpis.acompanhamento}</p>
+            <Eye className="h-5 w-5 mx-auto mb-1 text-info" />
+            <p className="text-2xl font-medium">{kpis.acompanhamento}</p>
             <p className="text-xs text-muted-foreground">Acompanhamento</p>
           </CardContent>
         </Card>
@@ -889,7 +890,7 @@ export default function MinhasTarefas() {
         <CardContent className="p-4">
           <div className="flex items-center gap-2 mb-3">
             <Filter className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Filtros
             </span>
           </div>
@@ -1165,6 +1166,6 @@ export default function MinhasTarefas() {
         onOpenChange={(open) => { if (!open) setDrawerTarefa(null); }}
         onAtualizada={() => void loadTarefas()}
       />
-    </div>
+    </PageShell>
   );
 }

@@ -18,6 +18,7 @@ import { AvisoNaoFaturado } from "@/components/credito/AvisoNaoFaturado";
 import type { TituloB2B } from "@/hooks/credito/useClienteDetalhe";
 import { apelidoParceiro } from "@/lib/parceiros/nome";
 
+import { PageShell } from "@/components/layout/PageShell";
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (s: string | null | undefined) =>
   s ? new Date(s.length === 10 ? s + "T00:00:00" : s).toLocaleDateString("pt-BR") : "—";
@@ -47,7 +48,7 @@ export default function ClienteDetalhe() {
   const { parceiro, socios, kpisFinanceiros, kpisGrupo, analises, marcos, haveres, titulos } = data;
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 space-y-6 animate-casa-fade-in">
+    <PageShell className="md:px-8 animate-casa-fade-in">
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
@@ -116,7 +117,7 @@ export default function ClienteDetalhe() {
       {parceiro?.bandeira_vermelha && parceiro?.bandeira_vermelha_motivo && (
         <Card className="border-destructive/50 bg-destructive/5">
           <CardContent className="pt-6 space-y-2">
-            <p className="text-sm font-semibold text-destructive">
+            <p className="text-sm font-medium text-destructive">
               Motivo da bandeira vermelha
             </p>
             <p className="text-sm">{parceiro.bandeira_vermelha_motivo}</p>
@@ -385,9 +386,9 @@ function Linha({
   return (
     <div className="flex justify-between gap-4">
       <span className="text-muted-foreground">{label}</span>
-      <span className={destaque ? "font-semibold text-destructive" : "font-medium"}>
+      <span className={destaque ? "font-medium text-destructive" : "font-medium"}>
         {value ?? "—"}
       </span>
-    </div>
+    </PageShell>
   );
 }

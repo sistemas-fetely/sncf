@@ -145,7 +145,7 @@ export default function FeriasColaborador() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold flex items-center gap-2">
+          <h1 className="text-2xl font-medium flex items-center gap-2">
             <UserCircle className="h-6 w-6 text-primary" />
             {colaborador?.nome_completo ?? "Carregando..."}
           </h1>
@@ -165,10 +165,10 @@ export default function FeriasColaborador() {
       {/* KPI Summary */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Total Direito", value: `${totalDireito} dias`, color: "text-blue-600 bg-blue-50" },
-          { label: "Gozados", value: `${totalGozados} dias`, color: "text-green-600 bg-green-50" },
-          { label: "Vendidos", value: `${totalVendidos} dias`, color: "text-orange-600 bg-orange-50" },
-          { label: "Saldo Total", value: `${totalSaldo} dias`, color: "text-purple-600 bg-purple-50" },
+          { label: "Total Direito", value: `${totalDireito} dias`, color: "text-info bg-info/10" },
+          { label: "Gozados", value: `${totalGozados} dias`, color: "text-success bg-success/10" },
+          { label: "Vendidos", value: `${totalVendidos} dias`, color: "text-warning bg-warning/10" },
+          { label: "Saldo Total", value: `${totalSaldo} dias`, color: "text-info bg-info/10" },
         ].map((k) => (
           <Card key={k.label}>
             <CardContent className="flex items-center gap-3 p-3">
@@ -177,7 +177,7 @@ export default function FeriasColaborador() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">{k.label}</p>
-                <p className="text-lg font-bold">{k.value}</p>
+                <p className="text-lg font-medium">{k.value}</p>
               </div>
             </CardContent>
           </Card>
@@ -226,7 +226,7 @@ export default function FeriasColaborador() {
                 {/* Programações */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-sm font-semibold">Programações</h4>
+                    <h4 className="text-sm font-medium">Programações</h4>
                     {canManage && (p.saldo ?? 0) > 0 && (
                       <Button variant="outline" size="sm" onClick={() => { setSelectedPeriodo(p); setShowNovaProg(true); }}>
                         <Plus className="h-3.5 w-3.5 mr-1" /> Programar
@@ -263,12 +263,12 @@ export default function FeriasColaborador() {
                                 <TableCell className="text-right space-x-1">
                                   {pr.status === "programada" && (
                                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => atualizarStatusMut.mutate({ id: pr.id, status: "aprovada" })}>
-                                      <Check className="h-4 w-4 text-green-600" />
+                                      <Check className="h-4 w-4 text-success" />
                                     </Button>
                                   )}
                                   {(pr.status === "programada" || pr.status === "aprovada") && (
                                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => atualizarStatusMut.mutate({ id: pr.id, status: "cancelada" })}>
-                                      <X className="h-4 w-4 text-red-600" />
+                                      <X className="h-4 w-4 text-destructive" />
                                     </Button>
                                   )}
                                 </TableCell>

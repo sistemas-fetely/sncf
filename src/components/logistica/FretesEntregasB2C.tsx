@@ -146,16 +146,16 @@ export function FretesEntregasB2C({ transportadoraId }: Props) {
             className={cn("rounded-lg border bg-card p-3 text-left transition", k.cls, filtro === k.key && "ring-2 ring-primary")}
           >
             <div className="text-xs text-muted-foreground">{k.label}</div>
-            <div className="text-2xl font-semibold tabular-nums">{k.value}</div>
+            <div className="text-2xl font-medium tabular-nums">{k.value}</div>
           </button>
         ))}
         <div className="rounded-lg border bg-card p-3">
           <div className="text-xs text-muted-foreground">Total envios</div>
-          <div className="text-2xl font-semibold tabular-nums">{kpis.count}</div>
+          <div className="text-2xl font-medium tabular-nums">{kpis.count}</div>
         </div>
         <div className="rounded-lg border bg-card p-3">
           <div className="text-xs text-muted-foreground">Frete total</div>
-          <div className="text-2xl font-semibold tabular-nums">{BRL.format(kpis.total)}</div>
+          <div className="text-2xl font-medium tabular-nums">{BRL.format(kpis.total)}</div>
         </div>
       </div>
 

@@ -80,7 +80,7 @@ export default function Beneficios() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Gestão de Benefícios</h1>
+        <h1 className="text-2xl font-medium">Gestão de Benefícios</h1>
         <p className="text-muted-foreground">Benefícios ativos por pessoa</p>
       </div>
 
@@ -92,7 +92,7 @@ export default function Beneficios() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Benefícios ativos</p>
-              <p className="text-2xl font-bold tabular-nums">{kpis.totalAtivos}</p>
+              <p className="text-2xl font-medium tabular-nums">{kpis.totalAtivos}</p>
             </div>
           </CardContent>
         </Card>
@@ -103,7 +103,7 @@ export default function Beneficios() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Custo total empresa</p>
-              <p className="text-2xl font-bold tabular-nums">{formatBRL(kpis.custoTotal)}</p>
+              <p className="text-2xl font-medium tabular-nums">{formatBRL(kpis.custoTotal)}</p>
             </div>
           </CardContent>
         </Card>

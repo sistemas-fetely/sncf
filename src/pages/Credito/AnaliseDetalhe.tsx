@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, XCircle, AlertCircle, ArrowLeft } from "lucide-react";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 
+import { PageShell } from "@/components/layout/PageShell";
 export default function AnaliseDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -32,14 +33,14 @@ export default function AnaliseDetalhe() {
   // Análise finalizada — tela read-only
   if (statusFinal) {
     const iconMap: Record<string, JSX.Element> = {
-      aprovado: <CheckCircle2 className="h-10 w-10 text-green-600" />,
-      aprovado_com_ressalva: <AlertCircle className="h-10 w-10 text-amber-600" />,
+      aprovado: <CheckCircle2 className="h-10 w-10 text-success" />,
+      aprovado_com_ressalva: <AlertCircle className="h-10 w-10 text-warning" />,
       reprovado: <XCircle className="h-10 w-10 text-destructive" />,
       cancelado: <XCircle className="h-10 w-10 text-muted-foreground" />,
     };
 
     return (
-      <div className="max-w-3xl mx-auto px-4 md:px-8 py-8 animate-casa-fade-in">
+      <PageShell className="md:px-8 animate-casa-fade-in">
         <CasaPageHeader
           breadcrumb={[
             { label: "Casa", to: "/" },
@@ -62,7 +63,7 @@ export default function AnaliseDetalhe() {
         <Card>
           <CardContent className="p-8 space-y-5 text-center">
             <div className="flex justify-center">{iconMap[statusFinal]}</div>
-            <h1 className="text-2xl font-bold capitalize">
+            <h1 className="text-2xl font-medium capitalize">
               Análise {statusFinal.replace(/_/g, " ")}
             </h1>
             <p className="text-sm text-muted-foreground">
@@ -77,11 +78,11 @@ export default function AnaliseDetalhe() {
               </blockquote>
             )}
             {data.analise.ressalva && (
-              <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-left max-w-xl mx-auto">
-                <p className="text-xs font-medium text-amber-900 uppercase tracking-wide mb-1">
+              <div className="bg-warning/10 border border-warning/40 rounded-md p-3 text-left max-w-xl mx-auto">
+                <p className="text-xs font-medium text-warning uppercase tracking-wide mb-1">
                   Ressalva
                 </p>
-                <p className="text-sm text-amber-900">{data.analise.ressalva}</p>
+                <p className="text-sm text-warning">{data.analise.ressalva}</p>
               </div>
             )}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t text-left">
@@ -110,7 +111,7 @@ export default function AnaliseDetalhe() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </PageShell>
     );
   }
 

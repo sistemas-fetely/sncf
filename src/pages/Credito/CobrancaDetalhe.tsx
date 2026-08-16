@@ -193,10 +193,10 @@ function LinhaInfo({ label, value, copiavel }: { label: string; value: string; c
 }
 
 function CobrancaStepper({ fase }: { fase: 1 | 2 | 3 }) {
-  const ativo  = "h-7 w-7 rounded-full flex items-center justify-center text-xs font-semibold border-2 bg-primary border-primary text-primary-foreground";
-  const feito  = "h-7 w-7 rounded-full flex items-center justify-center text-xs font-semibold border-2 bg-emerald-500 border-emerald-500 text-white";
-  const futuro = "h-7 w-7 rounded-full flex items-center justify-center text-xs font-semibold border-2 bg-background border-border text-muted-foreground";
-  const linhaVerde = "flex-1 h-0.5 mx-3 bg-emerald-400";
+  const ativo  = "h-7 w-7 rounded-full flex items-center justify-center text-xs font-medium border-2 bg-primary border-primary text-primary-foreground";
+  const feito  = "h-7 w-7 rounded-full flex items-center justify-center text-xs font-medium border-2 bg-success border-success/40 text-white";
+  const futuro = "h-7 w-7 rounded-full flex items-center justify-center text-xs font-medium border-2 bg-background border-border text-muted-foreground";
+  const linhaVerde = "flex-1 h-0.5 mx-3 bg-success";
   const linhaCinza = "flex-1 h-0.5 mx-3 bg-border";
 
   return (
@@ -206,7 +206,7 @@ function CobrancaStepper({ fase }: { fase: 1 | 2 | 3 }) {
         <div className={fase > 1 ? feito : fase === 1 ? ativo : futuro}>
           {fase > 1 ? <Check className="h-3.5 w-3.5" /> : "1"}
         </div>
-        <span className={"text-sm " + (fase === 1 ? "font-semibold" : fase > 1 ? "text-emerald-600" : "text-muted-foreground")}>
+        <span className={"text-sm " + (fase === 1 ? "font-medium" : fase > 1 ? "text-success" : "text-muted-foreground")}>
           Criar link / boleto
         </span>
       </div>
@@ -216,7 +216,7 @@ function CobrancaStepper({ fase }: { fase: 1 | 2 | 3 }) {
         <div className={fase > 2 ? feito : fase === 2 ? ativo : futuro}>
           {fase > 2 ? <Check className="h-3.5 w-3.5" /> : "2"}
         </div>
-        <span className={"text-sm " + (fase === 2 ? "font-semibold" : fase > 2 ? "text-emerald-600" : "text-muted-foreground")}>
+        <span className={"text-sm " + (fase === 2 ? "font-medium" : fase > 2 ? "text-success" : "text-muted-foreground")}>
           Link / boleto criado
         </span>
       </div>
@@ -226,7 +226,7 @@ function CobrancaStepper({ fase }: { fase: 1 | 2 | 3 }) {
         <div className={fase === 3 ? feito : futuro}>
           {fase === 3 ? <Check className="h-3.5 w-3.5" /> : "3"}
         </div>
-        <span className={"text-sm " + (fase === 3 ? "text-emerald-600 font-semibold" : "text-muted-foreground")}>
+        <span className={"text-sm " + (fase === 3 ? "text-success font-medium" : "text-muted-foreground")}>
           Link / boleto enviado
         </span>
       </div>
@@ -327,7 +327,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
       />
 
       {/* Faixa de estado: já materializei ou não? */}
-      <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
+      <div className="flex items-center gap-2 rounded-lg border border-success/40 bg-success/10 px-4 py-3 text-sm text-success">
         <Check className="h-4 w-4 shrink-0" />
         <span className="font-medium">
           Plano materializado · {titulosQ.data?.length ?? 0} parcela
@@ -881,12 +881,12 @@ export default function CobrancaDetalhe() {
                 <p className="text-muted-foreground text-xs">
                   {jaAdiantado > 0.005 ? "Crédito do cliente aplicado" : "Já pago"}
                 </p>
-                <p className="font-medium text-emerald-700">−{fmtBRL.format(jaPagoPedido)}</p>
+                <p className="font-medium text-success">−{fmtBRL.format(jaPagoPedido)}</p>
               </div>
             )}
             <div className="ml-auto text-right">
               <p className="text-muted-foreground text-xs">A cobrar</p>
-              <p className="text-2xl font-semibold leading-tight">
+              <p className="text-2xl font-medium leading-tight">
                 {fmtBRL.format(Math.max(0, valorPedido - jaPagoPedido))}
               </p>
             </div>
@@ -902,7 +902,7 @@ export default function CobrancaDetalhe() {
               pedido.condicao_solicitada !== proposta.condicao_original && (
               <div>
                 <p className="text-muted-foreground text-xs">Condição nova</p>
-                <p className="font-medium text-amber-600">{pedido.condicao_solicitada}</p>
+                <p className="font-medium text-warning">{pedido.condicao_solicitada}</p>
               </div>
             )}
             <div>
@@ -986,7 +986,7 @@ export default function CobrancaDetalhe() {
           <CardContent className="py-4 space-y-2">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="font-semibold text-sm">Portão — primeiro pagamento à vista para liberar a NF</p>
+                <p className="font-medium text-sm">Portão — primeiro pagamento à vista para liberar a NF</p>
               </div>
               <Badge variant="secondary" className="gap-1.5">
                 <Lock className="h-3 w-3" />
@@ -1025,7 +1025,7 @@ export default function CobrancaDetalhe() {
             />
           </div>
           {jaPagoPedido > 0.005 && (
-            <Alert className="mb-4 border-emerald-300 bg-emerald-50/60 dark:bg-emerald-950/20">
+            <Alert className="mb-4 border-success/40 bg-success/10">
               <AlertDescription className="text-sm">
                 Este pedido já tem <strong>{fmtBRL.format(jaPagoPedido)}</strong> quitado
                 {jaPagoHaver > 0.005 && (
@@ -1099,9 +1099,9 @@ export default function CobrancaDetalhe() {
               </Label>
             </div>
             {haverDisponivel && (
-              <div className="space-y-1 ml-auto rounded-md border bg-emerald-50/50 dark:bg-emerald-950/20 p-3">
+              <div className="space-y-1 ml-auto rounded-md border bg-success/10 p-3">
                 <p className="text-xs font-medium">Crédito do cliente (haver)</p>
-                <p className="text-sm font-semibold">{fmtBRL.format(haverSaldo)}</p>
+                <p className="text-sm font-medium">{fmtBRL.format(haverSaldo)}</p>
                 <p className="text-xs text-muted-foreground">disponível na conta do cliente</p>
                 <p className="text-[11px] text-muted-foreground">
                   Aplicar registra o crédito neste pedido.
@@ -1139,18 +1139,18 @@ export default function CobrancaDetalhe() {
           </p>
 
           {creditoAplicado > 0.005 && (
-            <div className="flex items-center justify-between rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm dark:border-emerald-900 dark:bg-emerald-950/40">
-              <span className="text-emerald-800 dark:text-emerald-200">
+            <div className="flex items-center justify-between rounded-md border border-success/40 bg-success/10 px-3 py-2 text-sm">
+              <span className="text-success">
                 Crédito do cliente já abatido deste pedido — não entra no plano
               </span>
-              <span className="font-semibold text-emerald-800 dark:text-emerald-200">
+              <span className="font-medium text-success">
                 −{fmtBRL.format(creditoAplicado)}
               </span>
             </div>
           )}
 
           {planoEditado && (
-            <p className="mb-2 text-xs text-amber-700 dark:text-amber-400">
+            <p className="mb-2 text-xs text-warning">
               Plano editado e ainda não materializado.
             </p>
           )}
@@ -1161,8 +1161,8 @@ export default function CobrancaDetalhe() {
               className={
                 "mb-3 flex items-start gap-2 rounded-md border px-3 py-2 text-sm " +
                 (coberturaPortaoOk
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200"
-                  : "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200")
+                  ? "border-success/40 bg-success/10 text-success"
+                  : "border-warning/40 bg-warning/10 text-warning")
               }
             >
               {coberturaPortaoOk ? (
@@ -1318,11 +1318,11 @@ export default function CobrancaDetalhe() {
                     Total
                   </TableCell>
                   <TableCell
-                    className={`text-right font-semibold ${
+                    className={`text-right font-medium ${
                       temDivergenciaGrave
                         ? "text-destructive"
                         : temDivergenciaLeve
-                          ? "text-amber-600"
+                          ? "text-warning"
                           : ""
                     }`}
                   >

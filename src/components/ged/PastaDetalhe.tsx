@@ -127,17 +127,17 @@ interface Props {
 // ─── Cores dos badges por tipo de documento ──────────────────
 function tipoBadgeClass(tipo: string): string {
   const map: Record<string, string> = {
-    contrato:    "bg-green-100 text-green-800 border-green-300",
-    aditivo:     "bg-emerald-100 text-emerald-800 border-emerald-300",
-    orcamento:   "bg-blue-100 text-blue-800 border-blue-300",
-    proposta:    "bg-sky-100 text-sky-800 border-sky-300",
-    nf:          "bg-purple-100 text-purple-800 border-purple-300",
-    boleto:      "bg-orange-100 text-orange-800 border-orange-300",
-    recibo:      "bg-teal-100 text-teal-800 border-teal-300",
-    comprovante: "bg-cyan-100 text-cyan-800 border-cyan-300",
-    invoice:     "bg-indigo-100 text-indigo-800 border-indigo-300",
-    certidao:    "bg-amber-100 text-amber-800 border-amber-300",
-    outro:       "bg-gray-100 text-gray-700 border-gray-300",
+    contrato:    "bg-success/10 text-success border-success/40",
+    aditivo:     "bg-success/10 text-success border-success/40",
+    orcamento:   "bg-info/10 text-info border-info/40",
+    proposta:    "bg-info/10 text-info border-info/40",
+    nf:          "bg-info/10 text-info border-info/40",
+    boleto:      "bg-warning/10 text-warning border-warning/40",
+    recibo:      "bg-success/10 text-success border-success/40",
+    comprovante: "bg-info/10 text-info border-info/40",
+    invoice:     "bg-info/10 text-info border-info/40",
+    certidao:    "bg-warning/10 text-warning border-warning/40",
+    outro:       "bg-muted/10 text-muted-foreground border-border/40",
   };
   return map[tipo?.toLowerCase()] ?? map.outro;
 }
@@ -153,7 +153,7 @@ export function PastaDetalhe({ pasta, onAtualizado }: Props) {
       <div className="border-b px-6 py-4">
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-semibold truncate">{pasta.nome}</h1>
+            <h1 className="text-xl font-medium truncate">{pasta.nome}</h1>
             <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
               {pasta.parceiro_nome && <span>{pasta.parceiro_nome}</span>}
               {pasta.grupo_nome && (
@@ -161,7 +161,7 @@ export function PastaDetalhe({ pasta, onAtualizado }: Props) {
                   <span>·</span>
                   <Badge
                     variant="outline"
-                    className="bg-purple-50 text-purple-800 border-purple-300 cursor-pointer hover:bg-purple-100"
+                    className="bg-info/10 text-info border-info/40 cursor-pointer hover:bg-info/10"
                     title="Clique para ver outras pastas do mesmo grupo"
                   >
                     Grupo: {pasta.grupo_nome}
@@ -317,7 +317,7 @@ function AbaContrato({ pasta, onAtualizado }: { pasta: Pasta; onAtualizado: () =
       {/* Contratos vigentes */}
       {vigentes.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-3">
             Vigente{vigentes.length > 1 ? "s" : ""}
           </h3>
           <div className="space-y-3">
@@ -344,7 +344,7 @@ function AbaContrato({ pasta, onAtualizado }: { pasta: Pasta; onAtualizado: () =
       {/* Histórico de contratos */}
       {historicos.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-3">
             Histórico ({historicos.length})
           </h3>
           <div className="space-y-2">
@@ -465,13 +465,13 @@ function ContratoCard({
     <div className="border rounded-lg p-4 bg-card">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="min-w-0 flex-1">
-          <p className="font-semibold text-sm">{contrato.numero}</p>
+          <p className="font-medium text-sm">{contrato.numero}</p>
           <p className="text-xs text-muted-foreground">
             {formatDateBR(contrato.vigencia_inicio)}
             {contrato.vigencia_fim ? ` → ${formatDateBR(contrato.vigencia_fim)}` : " → sem fim definido"}
           </p>
         </div>
-        <Badge className="bg-green-100 text-green-700">Vigente</Badge>
+        <Badge className="bg-success/10 text-success">Vigente</Badge>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
@@ -732,9 +732,9 @@ function NovoContratoLogicoDialog({
         </DialogHeader>
 
         {dadosIA?.resumo_ia && (
-          <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm">
-            <strong className="text-blue-800">IA:</strong>{" "}
-            <span className="text-blue-700">{dadosIA.resumo_ia}</span>
+          <div className="rounded-lg bg-info/10 border border-info/40 p-3 text-sm">
+            <strong className="text-info">IA:</strong>{" "}
+            <span className="text-info">{dadosIA.resumo_ia}</span>
           </div>
         )}
 
@@ -762,7 +762,7 @@ function NovoContratoLogicoDialog({
           </div>
 
           <Separator />
-          <h3 className="font-semibold text-sm">Pagamento</h3>
+          <h3 className="font-medium text-sm">Pagamento</h3>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
@@ -1001,12 +1001,12 @@ function AbaDocumentos({ pastaId }: { pastaId: string }) {
       );
     if (s === "lendo_ia")
       return (
-        <Badge variant="outline" className="gap-1 bg-blue-50 text-blue-700">
+        <Badge variant="outline" className="gap-1 bg-info/10 text-info">
           <Loader2 className="h-3 w-3 animate-spin" /> Lendo IA
         </Badge>
       );
     if (s === "salvo")
-      return <Badge className="bg-green-100 text-green-700">✓ Salvo</Badge>;
+      return <Badge className="bg-success/10 text-success">✓ Salvo</Badge>;
     if (s === "erro") return <Badge variant="destructive">Erro</Badge>;
     return null;
   }
@@ -1359,19 +1359,19 @@ function DocumentoVisualizadorSheet({
               {/* Painel lateral com dados IA */}
               <div className="overflow-y-auto border-l p-4 space-y-4 text-sm">
                 {documento.resumo_ia && (
-                  <div className="rounded-lg bg-blue-50 border border-blue-200 p-3">
-                    <p className="font-medium text-blue-800 text-xs uppercase tracking-wide mb-1">
+                  <div className="rounded-lg bg-info/10 border border-info/40 p-3">
+                    <p className="font-medium text-info text-xs uppercase tracking-wide mb-1">
                       Resumo IA
                     </p>
-                    <p className="text-blue-700 text-xs leading-relaxed">
+                    <p className="text-info text-xs leading-relaxed">
                       {documento.resumo_ia}
                     </p>
                   </div>
                 )}
 
                 {documento.classificacao_ia?.pontos_principais?.length > 0 && (
-                  <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3">
-                    <p className="font-medium text-yellow-800 text-xs uppercase tracking-wide mb-2">
+                  <div className="rounded-lg bg-warning/10 border border-warning/40 p-3">
+                    <p className="font-medium text-warning text-xs uppercase tracking-wide mb-2">
                       Pontos principais
                     </p>
                     <ul className="space-y-1.5">
@@ -1379,7 +1379,7 @@ function DocumentoVisualizadorSheet({
                         (p: string, i: number) => (
                           <li
                             key={i}
-                            className="text-yellow-700 text-xs flex gap-1.5"
+                            className="text-warning text-xs flex gap-1.5"
                           >
                             <span>•</span>
                             <span>{p}</span>
@@ -1567,7 +1567,7 @@ function AbaParcelas({ pastaId }: { pastaId: string }) {
   }
 
   const statusBadge = (s: string) => {
-    if (s === "paga") return <Badge className="bg-green-100 text-green-700"><CheckCircle2 className="h-3 w-3 mr-1" /> Paga</Badge>;
+    if (s === "paga") return <Badge className="bg-success/10 text-success"><CheckCircle2 className="h-3 w-3 mr-1" /> Paga</Badge>;
     if (s === "atrasada") return <Badge variant="destructive">Atrasada</Badge>;
     if (s === "cancelada") return <Badge variant="secondary">Cancelada</Badge>;
     return <Badge variant="outline">Pendente</Badge>;

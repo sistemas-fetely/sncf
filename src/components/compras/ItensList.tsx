@@ -167,7 +167,7 @@ export function ItensList({ items, onChange, readOnly, showItemStatus, headerAct
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold">Itens do pedido</h3>
+          <h3 className="text-sm font-medium">Itens do pedido</h3>
           <Badge variant="secondary">{visiveis.length} {visiveis.length === 1 ? "item" : "itens"}</Badge>
         </div>
         {!readOnly && (
@@ -213,13 +213,13 @@ export function ItensList({ items, onChange, readOnly, showItemStatus, headerAct
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">Total efetivo (sem cancelados)</div>
-                  <div className="text-xl font-semibold">{fmtBRL(totalEfetivo)}</div>
+                  <div className="text-xl font-medium">{fmtBRL(totalEfetivo)}</div>
                 </div>
               </>
             ) : (
               <>
                 <div className="text-xs text-muted-foreground">Total estimado</div>
-                <div className="text-xl font-semibold">{fmtBRL(totalOriginal)}</div>
+                <div className="text-xl font-medium">{fmtBRL(totalOriginal)}</div>
               </>
             )}
             {itensSemValor > 0 && (
@@ -388,7 +388,7 @@ function ItemCard({
         <div className="flex justify-end">
           <div className="text-right">
             <div className="text-xs text-muted-foreground">Subtotal</div>
-            <div className={cn("text-sm font-semibold", subtotalIncompleto && "text-muted-foreground")}>
+            <div className={cn("text-sm font-medium", subtotalIncompleto && "text-muted-foreground")}>
               {subtotalIncompleto ? "a definir" : fmtBRL(subtotal)}
             </div>
           </div>

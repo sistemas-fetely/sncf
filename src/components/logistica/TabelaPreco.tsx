@@ -54,7 +54,7 @@ export function TabelaPreco({ transportadoraId }: Props) {
               <div className="text-destructive">{estimado.erro}</div>
             ) : (
               <>
-                <div className="text-2xl font-semibold tabular-nums">
+                <div className="text-2xl font-medium tabular-nums">
                   {BRL.format(estimado.valor_estimado)}
                 </div>
                 <div className="text-xs text-muted-foreground">

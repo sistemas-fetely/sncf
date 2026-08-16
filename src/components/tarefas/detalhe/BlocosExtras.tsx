@@ -339,7 +339,7 @@ export function BlocoHistorico({ tarefa }: { tarefa: TarefaDetalhe }) {
   return (
     <Collapsible open={aberto} onOpenChange={setAberto}>
       <section className="space-y-2 border-t border-border pt-4">
-        <CollapsibleTrigger className="flex w-full items-center justify-between text-sm font-semibold">
+        <CollapsibleTrigger className="flex w-full items-center justify-between text-sm font-medium">
           Histórico
           <ChevronDown className={aberto ? "h-4 w-4 rotate-180 transition" : "h-4 w-4 transition"} />
         </CollapsibleTrigger>

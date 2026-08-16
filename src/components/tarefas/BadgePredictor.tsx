@@ -17,7 +17,7 @@ export function BadgePredictor({ tamanho = "sm" }: Props) {
       <Tooltip>
         <TooltipTrigger asChild>
           <span
-            className={`inline-flex items-center gap-1 rounded-full border border-dashed border-purple-300 bg-purple-50 text-purple-700 dark:bg-purple-950/30 dark:border-purple-800 dark:text-purple-300 cursor-help ${
+            className={`inline-flex items-center gap-1 rounded-full border border-dashed border-info/40 bg-info/10 text-info cursor-help ${
               isSmall ? "text-[10px] px-2 py-0.5" : "text-xs px-2.5 py-1"
             }`}
           >

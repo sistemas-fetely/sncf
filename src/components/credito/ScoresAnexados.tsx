@@ -130,7 +130,7 @@ export function ScoresAnexados({ scores, analiseId }: Props) {
 
                 <div className="flex flex-wrap gap-1.5">
                   {flagsAtivas.length === 0 ? (
-                    <Badge variant="outline" className="border-emerald-500 text-emerald-700">
+                    <Badge variant="outline" className="border-success/40 text-success">
                       Sem alertas
                     </Badge>
                   ) : (
@@ -142,7 +142,7 @@ export function ScoresAnexados({ scores, analiseId }: Props) {
                     ))
                   )}
                   {s.total_dividas != null && s.total_dividas > 0 && (
-                    <Badge variant="outline" className="border-amber-500 text-amber-700">
+                    <Badge variant="outline" className="border-warning/40 text-warning">
                       Dívidas: {fmtBRL.format(s.total_dividas)}
                     </Badge>
                   )}

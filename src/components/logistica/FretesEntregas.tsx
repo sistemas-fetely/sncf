@@ -124,12 +124,12 @@ function FretesEntregasPadrao({ transportadoraId, transportadoraNome, hideImport
             )}
           >
             <div className="text-xs text-muted-foreground">{k.label}</div>
-            <div className="text-2xl font-semibold tabular-nums">{k.value}</div>
+            <div className="text-2xl font-medium tabular-nums">{k.value}</div>
           </button>
         ))}
         <div className="rounded-lg border bg-card p-3">
           <div className="text-xs text-muted-foreground">Frete total</div>
-          <div className="text-2xl font-semibold tabular-nums">{BRL.format(kpis.total)}</div>
+          <div className="text-2xl font-medium tabular-nums">{BRL.format(kpis.total)}</div>
         </div>
       </div>
 

@@ -7,6 +7,7 @@ import { ExportarPedidosButton } from "@/components/pedidos/ExportarPedidosButto
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { EstagioPedido } from "@/types/pedido";
 
+import { PageShell } from "@/components/layout/PageShell";
 export default function PedidosIndex() {
   const [searchParams, setSearchParams] = useSearchParams();
   const estagioParam = searchParams.get("estagio") as EstagioPedido | null;
@@ -27,10 +28,10 @@ export default function PedidosIndex() {
   };
 
   return (
-    <div className="space-y-4 p-4">
+    <PageShell>
       {/* Header */}
       <div className="flex flex-row items-center justify-between">
-        <h1 className="text-2xl font-semibold">Casa dos Pedidos</h1>
+        <h1 className="text-2xl font-medium">Casa dos Pedidos</h1>
         <ExportarPedidosButton />
       </div>
 
@@ -71,7 +72,7 @@ export default function PedidosIndex() {
           <PainelDashPedidos />
         </TabsContent>
       </Tabs>
-    </div>
+    </PageShell>
   );
 }
 

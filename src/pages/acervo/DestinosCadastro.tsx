@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { PageShell } from "@/components/layout/PageShell";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -594,9 +595,9 @@ export default function DestinosCadastro() {
 
 
   return (
-    <div className="p-6 space-y-6 max-w-5xl">
+    <PageShell>
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Destinos de Cadastro</h1>
+        <h1 className="text-2xl font-medium tracking-tight">Destinos de Cadastro</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Prepara arquivos de cadastro para os sistemas de destino. Nada é gravado no banco nesta
           tela — ela lê o arquivo, calcula e devolve outro arquivo.
@@ -741,25 +742,25 @@ export default function DestinosCadastro() {
                   <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
                     <div className="rounded-lg border p-3">
                       <p className="text-xs text-muted-foreground">Já preenchido</p>
-                      <p className="text-2xl font-bold">{resumo.jaPreenchido}</p>
+                      <p className="text-2xl font-medium">{resumo.jaPreenchido}</p>
                     </div>
                     <div className="rounded-lg border p-3">
                       <p className="text-xs text-muted-foreground">Vai mudar</p>
-                      <p className="text-2xl font-bold">{resumo.vaiMudar}</p>
+                      <p className="text-2xl font-medium">{resumo.vaiMudar}</p>
                     </div>
                     <div className="rounded-lg border p-3">
                       <p className="text-xs text-muted-foreground">Completado pelo SNCF</p>
-                      <p className="text-2xl font-bold">{resumo.completados}</p>
+                      <p className="text-2xl font-medium">{resumo.completados}</p>
                     </div>
                     <div className="rounded-lg border p-3">
                       <p className="text-xs text-muted-foreground">Situação a mudar</p>
-                      <p className="text-2xl font-bold">
+                      <p className="text-2xl font-medium">
                         {planoSituacao ? planoSituacao.mudancas.length : "—"}
                       </p>
                     </div>
                     <div className="rounded-lg border p-3">
                       <p className="text-xs text-muted-foreground">Estoque a atualizar</p>
-                      <p className="text-2xl font-bold">
+                      <p className="text-2xl font-medium">
                         {planoEstoque ? planoEstoque.aAtualizar : "—"}
                       </p>
                       {planoEstoque && (
@@ -778,7 +779,7 @@ export default function DestinosCadastro() {
 
                 {planoEstoque && (
                   <div className="rounded-lg border p-3 space-y-2">
-                    <p className="text-sm font-semibold">Estoque · conferência</p>
+                    <p className="text-sm font-medium">Estoque · conferência</p>
                     <p className="text-xs text-muted-foreground">
                       {planoEstoque.iguais} iguais · {planoEstoque.sobem} sobem ·{" "}
                       {planoEstoque.descem} descem · {planoEstoque.semRazao} voltam verbatim por não
@@ -813,7 +814,7 @@ export default function DestinosCadastro() {
                                 <TableCell
                                   className={`text-right font-mono text-xs ${
                                     l.delta > 0
-                                      ? "text-emerald-700 dark:text-emerald-400"
+                                      ? "text-success"
                                       : "text-destructive"
                                   }`}
                                 >
@@ -834,19 +835,19 @@ export default function DestinosCadastro() {
                   <div
                     className={`rounded-lg border p-3 space-y-2 ${
                       planoSituacao.indoParaInativo > 0
-                        ? "border-amber-500/50 bg-amber-50/60 dark:bg-amber-950/20"
+                        ? "border-warning/40 bg-warning/10"
                         : ""
                     }`}
                   >
-                    <p className="text-sm font-semibold flex items-center gap-2">
+                    <p className="text-sm font-medium flex items-center gap-2">
                       {planoSituacao.indoParaInativo > 0 && (
-                        <AlertTriangle className="h-4 w-4 text-amber-700 dark:text-amber-400" />
+                        <AlertTriangle className="h-4 w-4 text-warning" />
                       )}
                       Situação a mudar: {planoSituacao.mudancas.length} linha
                       {planoSituacao.mudancas.length > 1 ? "s" : ""}
                     </p>
                     {planoSituacao.indoParaInativo > 0 && (
-                      <p className="text-xs text-amber-700 dark:text-amber-400">
+                      <p className="text-xs text-warning">
                         Estes produtos estão inativos no SNCF e ativos no Bling. A importação vai
                         inativá-los.
                       </p>
@@ -869,9 +870,9 @@ export default function DestinosCadastro() {
 
 
                 {resumo?.vaiMudar === 0 && (
-                  <Alert className="border-emerald-500/50 bg-emerald-50/60 dark:bg-emerald-950/20">
-                    <Info className="h-4 w-4 text-emerald-700 dark:text-emerald-400" />
-                    <AlertDescription className="text-xs text-emerald-700 dark:text-emerald-400">
+                  <Alert className="border-success/40 bg-success/10">
+                    <Info className="h-4 w-4 text-success" />
+                    <AlertDescription className="text-xs text-success">
                       O Bling já está sincronizado. O download é opcional.
                     </AlertDescription>
                   </Alert>
@@ -907,7 +908,7 @@ export default function DestinosCadastro() {
                             <span className="text-muted-foreground truncate flex-1">
                               {d.descricao}
                             </span>
-                            <span className="shrink-0 text-emerald-700 dark:text-emerald-400">
+                            <span className="shrink-0 text-success">
                               {d.campos.join(", ")}
                             </span>
                           </div>
@@ -922,7 +923,7 @@ export default function DestinosCadastro() {
                 <div className="rounded-lg border">
                   <div className="flex items-center justify-between gap-3 p-3 border-b">
                     <div>
-                      <p className="text-sm font-semibold">
+                      <p className="text-sm font-medium">
                         Grupo de produtos · auditoria informativa
                       </p>
                       <p className="text-xs text-muted-foreground">
@@ -957,7 +958,7 @@ export default function DestinosCadastro() {
 
                 {semNcm.falhaCompletar.length > 0 && (
                   <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-3 space-y-2">
-                    <p className="text-sm font-semibold text-destructive flex items-center gap-2">
+                    <p className="text-sm font-medium text-destructive flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4" />
                       {semNcm.falhaCompletar.length} produto(s) com NCM vazio e SKU existente no
                       SNCF
@@ -977,12 +978,12 @@ export default function DestinosCadastro() {
                 )}
 
                 {semNcm.ausenteSncf.length > 0 && (
-                  <div className="rounded-lg border border-amber-500/50 bg-amber-50/60 dark:bg-amber-950/20 p-3 space-y-2">
-                    <p className="text-sm font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                  <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 space-y-2">
+                    <p className="text-sm font-medium text-warning flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4" />
                       {semNcm.ausenteSncf.length} produto(s) com NCM vazio e código ausente do SNCF
                     </p>
-                    <p className="text-xs text-amber-700 dark:text-amber-400">
+                    <p className="text-xs text-warning">
                       Estes códigos existem no Bling e não no SNCF. Como FOP/SNCF é a razão, ou o
                       código do Bling está errado, ou falta cadastrar aqui. Exige decisão humana.
                     </p>
@@ -1002,8 +1003,8 @@ export default function DestinosCadastro() {
 
 
                 {paraRevisar.length > 0 && (
-                  <div className="rounded-lg border border-amber-500/50 bg-amber-50/60 dark:bg-amber-950/20 p-3 space-y-2">
-                    <p className="text-sm font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                  <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 space-y-2">
+                    <p className="text-sm font-medium text-warning flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4" />
                       {paraRevisar.length} produto(s) exigem decisão humana (FISCAL-REVISAR /
                       FISCAL-NAO-MERCADORIA)
@@ -1015,7 +1016,7 @@ export default function DestinosCadastro() {
                           <span className="text-muted-foreground truncate flex-1">
                             {l.descricao}
                           </span>
-                          <span className="font-mono shrink-0 text-amber-700 dark:text-amber-400">
+                          <span className="font-mono shrink-0 text-warning">
                             {l.grupo}
                           </span>
                         </div>
@@ -1082,6 +1083,6 @@ export default function DestinosCadastro() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+    </PageShell>
   );
 }

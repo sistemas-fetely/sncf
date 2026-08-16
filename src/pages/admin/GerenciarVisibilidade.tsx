@@ -83,7 +83,7 @@ export default function GerenciarVisibilidade() {
     <TooltipProvider>
       <div className="container max-w-4xl py-8 space-y-6">
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold tracking-tight">Visibilidade de Telas</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Visibilidade de Telas</h1>
           <p className="text-sm text-muted-foreground">
             Ligue ou desligue telas para os usuários. Telas em construção ficam ocultas
             para todos exceto super_admin. Você (super_admin) sempre vê tudo.
@@ -116,7 +116,7 @@ export default function GerenciarVisibilidade() {
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       {visivel ? (
-                        <Eye className="h-4 w-4 shrink-0 text-emerald-600" />
+                        <Eye className="h-4 w-4 shrink-0 text-success" />
                       ) : (
                         <EyeOff className="h-4 w-4 shrink-0 text-muted-foreground" />
                       )}
@@ -126,7 +126,7 @@ export default function GerenciarVisibilidade() {
                           {r.apenas_super_admin && (
                             <Tooltip>
                               <TooltipTrigger>
-                                <ShieldAlert className="h-3.5 w-3.5 text-amber-600" />
+                                <ShieldAlert className="h-3.5 w-3.5 text-warning" />
                               </TooltipTrigger>
                               <TooltipContent>Restrita a super_admin</TooltipContent>
                             </Tooltip>
@@ -141,7 +141,7 @@ export default function GerenciarVisibilidade() {
                     {travado ? (
                       <Tooltip>
                         <TooltipTrigger>
-                          <AlertTriangle className="h-4 w-4 text-amber-600" />
+                          <AlertTriangle className="h-4 w-4 text-warning" />
                         </TooltipTrigger>
                         <TooltipContent>
                           Sem dono: defina a permissão da tela antes de publicar

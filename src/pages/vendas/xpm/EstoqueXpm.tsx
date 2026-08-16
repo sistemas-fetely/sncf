@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/table";
 import { Upload, Loader2, AlertTriangle, CheckCircle2, PackageX, RefreshCw } from "lucide-react";
 
+import { PageShell } from "@/components/layout/PageShell";
 type ConciliacaoApi = {
   sku: string;
   nome_comercial: string | null;
@@ -298,10 +299,10 @@ export default function EstoqueXpm() {
   }
 
   return (
-    <div className="max-w-[1300px] mx-auto px-4 md:px-8 py-8 space-y-6">
+    <PageShell className="md:px-8">
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Estoque XPM</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Estoque XPM</h1>
           <p className="text-sm text-muted-foreground">
             Posição sincronizada direto da XPM. Atualiza sozinha todo dia às 03:25.
           </p>
@@ -352,32 +353,32 @@ export default function EstoqueXpm() {
           <Card>
             <CardContent className="pt-6">
               <div className="text-xs text-muted-foreground">Total de SKUs</div>
-              <div className="text-2xl font-semibold">{nf.format(kpis.totalSkus)}</div>
+              <div className="text-2xl font-medium">{nf.format(kpis.totalSkus)}</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
               <div className="text-xs text-muted-foreground">Unidades na XPM</div>
-              <div className="text-2xl font-semibold">{nf.format(kpis.unidades)}</div>
+              <div className="text-2xl font-medium">{nf.format(kpis.unidades)}</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
               <div className="text-xs text-muted-foreground">SKUs conciliados</div>
-              <div className="text-2xl font-semibold">{nf.format(kpis.porStatus.ok ?? 0)}</div>
+              <div className="text-2xl font-medium">{nf.format(kpis.porStatus.ok ?? 0)}</div>
             </CardContent>
           </Card>
-          <Card className={(kpis.porStatus.divergente ?? 0) > 0 ? "border-amber-500/50" : undefined}>
+          <Card className={(kpis.porStatus.divergente ?? 0) > 0 ? "border-warning/40" : undefined}>
             <CardContent className="pt-6">
               <div className="text-xs text-muted-foreground flex items-center gap-1">
                 {(kpis.porStatus.divergente ?? 0) > 0 && (
-                  <AlertTriangle className="h-3 w-3 text-amber-600" />
+                  <AlertTriangle className="h-3 w-3 text-warning" />
                 )}
                 SKUs divergentes
               </div>
               <div
-                className={`text-2xl font-semibold ${
-                  (kpis.porStatus.divergente ?? 0) > 0 ? "text-amber-700 dark:text-amber-500" : ""
+                className={`text-2xl font-medium ${
+                  (kpis.porStatus.divergente ?? 0) > 0 ? "text-warning" : ""
                 }`}
               >
                 {nf.format(kpis.porStatus.divergente ?? 0)}
@@ -387,7 +388,7 @@ export default function EstoqueXpm() {
           <Card>
             <CardContent className="pt-6">
               <div className="text-xs text-muted-foreground">Só no razão</div>
-              <div className="text-2xl font-semibold">
+              <div className="text-2xl font-medium">
                 {nf.format(kpis.porStatus.so_no_ledger ?? 0)}
               </div>
             </CardContent>
@@ -437,7 +438,7 @@ export default function EstoqueXpm() {
           {resultado && (
             <div className="mt-2 rounded-md border bg-muted/30 p-4 space-y-2 text-sm">
               <div className="flex items-center gap-2 font-medium">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                <CheckCircle2 className="h-4 w-4 text-success" />
                 Snapshot de {resultado.data_snapshot} salvo — {nf.format(resultado.linhas)} linhas
               </div>
               <div className="text-muted-foreground">
@@ -451,7 +452,7 @@ export default function EstoqueXpm() {
                 </div>
               )}
               {resultado.validado_contra_rodape === false && (
-                <div className="flex items-center gap-2 text-amber-700 dark:text-amber-500">
+                <div className="flex items-center gap-2 text-warning">
                   <AlertTriangle className="h-4 w-4" />
                   Rodapé do arquivo não reconhecido — importado sem conferência de totais
                 </div>
@@ -522,7 +523,7 @@ export default function EstoqueXpm() {
                         dif < 0
                           ? "text-destructive font-medium"
                           : dif > 0
-                            ? "text-emerald-700 dark:text-emerald-500 font-medium"
+                            ? "text-success font-medium"
                             : "text-muted-foreground";
                       return (
                         <TableRow key={r.sku}>
@@ -672,6 +673,6 @@ export default function EstoqueXpm() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

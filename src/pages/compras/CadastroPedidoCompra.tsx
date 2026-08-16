@@ -1055,7 +1055,7 @@ function ResultadoConferencia({
                       {problema ? (
                         <AlertTriangle className="h-4 w-4 text-destructive" />
                       ) : (
-                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                        <CheckCircle2 className="h-4 w-4 text-success" />
                       )}
                     </TableCell>
                     <TableCell className="font-mono text-xs">{r.codigo}</TableCell>
@@ -1162,7 +1162,7 @@ function MiniStat({
       )}
     >
       <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="text-lg font-semibold">{value}</div>
+      <div className="text-lg font-medium">{value}</div>
     </div>
   );
 }

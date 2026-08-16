@@ -270,7 +270,7 @@ export function CandidatoDrawer({ open, onOpenChange, candidato, vagaSkills, vag
           <>
           <SheetHeader className="pb-4">
             <div className="flex items-start gap-3">
-              <div className="h-12 w-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-semibold shrink-0">
+              <div className="h-12 w-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-medium shrink-0">
                 {getInitials(candidato.nome)}
               </div>
               <div className="min-w-0 space-y-1">
@@ -335,10 +335,10 @@ export function CandidatoDrawer({ open, onOpenChange, candidato, vagaSkills, vag
                 <div className="pt-4 border-t space-y-3">
                   <p className="text-xs font-medium text-muted-foreground uppercase">Score de aderência</p>
                   <div className="flex items-center gap-3">
-                    <div className={`text-3xl font-bold ${
-                      (candidato.score_total ?? 0) >= 80 ? "text-green-600"
-                        : (candidato.score_total ?? 0) >= 50 ? "text-yellow-600"
-                        : "text-red-600"
+                    <div className={`text-3xl font-medium ${
+                      (candidato.score_total ?? 0) >= 80 ? "text-success"
+                        : (candidato.score_total ?? 0) >= 50 ? "text-warning"
+                        : "text-destructive"
                     }`}>
                       {candidato.score_total}%
                     </div>
@@ -379,7 +379,7 @@ export function CandidatoDrawer({ open, onOpenChange, candidato, vagaSkills, vag
               {scoreMedia && (
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10">
                   <Star className="h-5 w-5 text-primary fill-primary" />
-                  <span className="text-lg font-bold text-primary">{scoreMedia}</span>
+                  <span className="text-lg font-medium text-primary">{scoreMedia}</span>
                   <span className="text-sm text-muted-foreground">/ 5.0 (média de {avaliacoes.length} avaliações)</span>
                 </div>
               )}

@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Building2, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 
+import { PageShell } from "@/components/layout/PageShell";
 type Status = "loading" | "valid" | "already" | "invalid" | "success" | "error";
 
 export default function Unsubscribe() {
@@ -51,7 +52,7 @@ export default function Unsubscribe() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <PageShell className="flex min-h-screen items-center justify-center bg-background">
       <div className="w-full max-w-md space-y-6">
         <div className="flex flex-col items-center gap-3">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary">
@@ -68,7 +69,7 @@ export default function Unsubscribe() {
             )}
             {status === "valid" && (
               <>
-                <h2 className="text-xl font-bold">Cancelar inscrição</h2>
+                <h2 className="text-xl font-medium">Cancelar inscrição</h2>
                 <p className="text-sm text-muted-foreground">
                   Deseja deixar de receber e-mails de notificação?
                 </p>
@@ -80,35 +81,35 @@ export default function Unsubscribe() {
             )}
             {status === "success" && (
               <div className="flex flex-col items-center gap-3">
-                <CheckCircle2 className="h-10 w-10 text-emerald-500" />
-                <h2 className="text-xl font-bold">Inscrição cancelada</h2>
+                <CheckCircle2 className="h-10 w-10 text-success" />
+                <h2 className="text-xl font-medium">Inscrição cancelada</h2>
                 <p className="text-sm text-muted-foreground">Você não receberá mais e-mails de notificação.</p>
               </div>
             )}
             {status === "already" && (
               <div className="flex flex-col items-center gap-3">
                 <CheckCircle2 className="h-10 w-10 text-muted-foreground" />
-                <h2 className="text-xl font-bold">Já cancelado</h2>
+                <h2 className="text-xl font-medium">Já cancelado</h2>
                 <p className="text-sm text-muted-foreground">Sua inscrição já foi cancelada anteriormente.</p>
               </div>
             )}
             {status === "invalid" && (
               <div className="flex flex-col items-center gap-3">
                 <XCircle className="h-10 w-10 text-destructive" />
-                <h2 className="text-xl font-bold">Link inválido</h2>
+                <h2 className="text-xl font-medium">Link inválido</h2>
                 <p className="text-sm text-muted-foreground">Este link de cancelamento é inválido ou expirou.</p>
               </div>
             )}
             {status === "error" && (
               <div className="flex flex-col items-center gap-3">
                 <XCircle className="h-10 w-10 text-destructive" />
-                <h2 className="text-xl font-bold">Erro</h2>
+                <h2 className="text-xl font-medium">Erro</h2>
                 <p className="text-sm text-muted-foreground">Ocorreu um erro ao processar sua solicitação. Tente novamente.</p>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PageShell>
   );
 }

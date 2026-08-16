@@ -109,27 +109,28 @@ import { ProvaPagamentoAlerta } from "@/components/pedidos/ProvaPagamentoAlerta"
 
 
 
+import { PageShell } from "@/components/layout/PageShell";
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (s: string | null | undefined) => s ? new Date(s + (s.length === 10 ? "T00:00:00" : "")).toLocaleDateString("pt-BR") : "—";
 const fmtDateTime = (s: string | null | undefined) => s ? new Date(s).toLocaleString("pt-BR") : "—";
 
 const TIPO_LABEL: Record<TipoTituloPagamento, string> = { boleto: "Boleto", pix: "PIX", cartao: "Cartão", troca_mercadoria: "Troca" };
 const STATUS_CORES: Record<StatusTitulo, string> = {
-  aguardando_pagamento: "bg-amber-500 text-white border-0", aberto: "bg-sky-500 text-white border-0",
-  aguardando_emissao_nf: "bg-sky-600 text-white border-0", vigente: "bg-blue-500 text-white border-0",
-  vigente_parcial: "bg-blue-400 text-white border-0", pago: "bg-emerald-500 text-white border-0",
-  pago_com_atraso: "bg-emerald-600 text-white border-0", pago_judicial: "bg-emerald-700 text-white border-0",
-  vencido: "bg-red-500 text-white border-0", vencido_suspenso: "bg-red-600 text-white border-0",
-  em_juridico: "bg-red-700 text-white border-0", renegociado: "bg-purple-500 text-white border-0",
+  aguardando_pagamento: "bg-warning text-white border-0", aberto: "bg-info text-white border-0",
+  aguardando_emissao_nf: "bg-info text-white border-0", vigente: "bg-info text-white border-0",
+  vigente_parcial: "bg-info text-white border-0", pago: "bg-success text-white border-0",
+  pago_com_atraso: "bg-success text-white border-0", pago_judicial: "bg-success text-white border-0",
+  vencido: "bg-destructive text-white border-0", vencido_suspenso: "bg-destructive text-white border-0",
+  em_juridico: "bg-destructive text-white border-0", renegociado: "bg-info text-white border-0",
   baixado_por_perda: "bg-muted text-muted-foreground border-0", cancelado: "bg-muted text-muted-foreground border-0",
   cancelado_recuperacao: "bg-muted text-muted-foreground border-0",
 };
 
 function Linha({ label, value, destaque }: { label: string; value?: string | number | null; destaque?: boolean }) {
   return (
-    <div className="flex justify-between gap-3 text-sm py-1.5 border-b border-border/40 last:border-0">
+    <PageShell className="flex justify-between gap-3 text-sm border-b border-border/40 last:border-0">
       <span className="text-muted-foreground shrink-0">{label}</span>
-      <span className={cn("text-right", destaque && "font-semibold")}>{value ?? "—"}</span>
+      <span className={cn("text-right", destaque && "font-medium")}>{value ?? "—"}</span>
     </div>
   );
 }
@@ -145,9 +146,9 @@ function ListaItensComEstoque({ itens }: { itens: any[] }) {
   return (
     <>
       {temSemEstoque && (
-        <div className="flex items-center gap-2 rounded-md bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 px-3 py-2 mb-3">
-          <AlertCircle className="h-4 w-4 text-red-600 shrink-0" />
-          <p className="text-xs text-red-800 dark:text-red-200">
+        <div className="flex items-center gap-2 rounded-md bg-destructive/10 border border-destructive/40 px-3 py-2 mb-3">
+          <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+          <p className="text-xs text-destructive">
             Este pedido contém produto(s) sem estoque — verifique disponibilidade antes de seguir.
           </p>
         </div>
@@ -161,14 +162,14 @@ function ListaItensComEstoque({ itens }: { itens: any[] }) {
                 key={item.id}
                 className={cn(
                   "flex justify-between items-center gap-3 py-2.5 border-b border-border/40 last:border-0 rounded-md px-2 -mx-2",
-                  semEstoque && "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800"
+                  semEstoque && "bg-destructive/10 border-destructive/40"
                 )}
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium truncate">{item.descricao}</p>
                     {semEstoque && (
-                      <Badge variant="outline" className="text-[10px] h-5 border-red-300 text-red-700 bg-red-100 dark:bg-red-900/40 dark:text-red-400 dark:border-red-700">
+                      <Badge variant="outline" className="text-[10px] h-5 border-destructive/40 text-destructive bg-destructive/10">
                         Sem Estoque
                       </Badge>
                     )}
@@ -177,7 +178,7 @@ function ListaItensComEstoque({ itens }: { itens: any[] }) {
                     {item.sku && `SKU ${item.sku} · `}{item.quantidade} × {fmtBRL.format(item.valor_unitario)}{item.desconto_pct > 0 && ` · ${item.desconto_pct}% desc`}
                   </p>
                 </div>
-                <p className="text-sm font-semibold shrink-0">{fmtBRL.format(item.subtotal || 0)}</p>
+                <p className="text-sm font-medium shrink-0">{fmtBRL.format(item.subtotal || 0)}</p>
               </div>
             );
           })
@@ -265,9 +266,9 @@ function ParcelasTab({ pedidoId }: { pedidoId: string }) {
             {titulos.map((t: TituloAReceber) => (
               <TableRow key={t.id}>
                 <TableCell className="font-mono text-xs">{t.numero_parcela}/{t.total_parcelas}</TableCell>
-                <TableCell>{t.eh_entrada ? <Badge variant="outline" className="border-emerald-500 text-emerald-700">Entrada</Badge> : <Badge variant="outline">Parcela</Badge>}</TableCell>
+                <TableCell>{t.eh_entrada ? <Badge variant="outline" className="border-success/40 text-success">Entrada</Badge> : <Badge variant="outline">Parcela</Badge>}</TableCell>
                 <TableCell className="text-sm">{fmtDate(t.data_vencimento_atual)}</TableCell>
-                <TableCell className="font-semibold">{fmtBRL.format(Number(t.valor_atual || 0))}</TableCell>
+                <TableCell className="font-medium">{fmtBRL.format(Number(t.valor_atual || 0))}</TableCell>
                 <TableCell className="text-sm">{TIPO_LABEL[t.tipo_pagamento]}</TableCell>
                 <TableCell>
                   <BadgeEstadoParcela titulo={t} eixos={eixos} dim={dimEixos} />
@@ -278,7 +279,7 @@ function ParcelasTab({ pedidoId }: { pedidoId: string }) {
                         numero: t.numero_titulo ?? "",
                         valor: Number(t.valor_bruto ?? 0),
                       })}
-                      className="text-xs text-muted-foreground hover:text-amber-700 dark:hover:text-amber-400 underline underline-offset-2 ml-2"
+                      className="text-xs text-muted-foreground hover:text-warning underline underline-offset-2 ml-2"
                     >
                       → crédito
                     </button>
@@ -291,7 +292,7 @@ function ParcelasTab({ pedidoId }: { pedidoId: string }) {
       </div>
       <div className="flex justify-end text-sm gap-2">
         <span className="text-muted-foreground">Total:</span>
-        <span className="font-bold">{fmtBRL.format(total)}</span>
+        <span className="font-medium">{fmtBRL.format(total)}</span>
       </div>
 
       {convertendo && (
@@ -422,7 +423,7 @@ function BotaoEmailNfFaturado({ pedido }: { pedido: any }) {
             <Button
               size="sm"
               variant="outline"
-              className="w-full gap-1.5 text-emerald-600 border-emerald-200 hover:text-emerald-700"
+              className="w-full gap-1.5 text-success border-success/40 hover:text-success"
               onClick={() => setOpen(true)}
             >
               <MailCheck className="h-4 w-4" />NF enviada · reenviar
@@ -478,7 +479,7 @@ function BotaoEmailNfBoletos({ pedido }: { pedido: any }) {
                 size="sm"
                 variant="outline"
                 disabled={disabled}
-                className="w-full gap-1.5 text-emerald-600 border-emerald-200 hover:text-emerald-700 disabled:opacity-60"
+                className="w-full gap-1.5 text-success border-success/40 hover:text-success disabled:opacity-60"
                 onClick={() => setOpen(true)}
               >
                 <MailCheck className="h-4 w-4" />NF + boletos enviados · reenviar
@@ -619,7 +620,7 @@ function LinkPagamentoCard({ pedido, titulos }: { pedido: any; titulos: any[] })
           <Copy className="h-3 w-3" />
           Copiar
         </Button>
-        <Button size="sm" variant="outline" className="flex-1 h-7 gap-1 text-xs text-green-700 border-green-200 hover:bg-green-50 hover:text-green-800" onClick={handleWhatsApp}>
+        <Button size="sm" variant="outline" className="flex-1 h-7 gap-1 text-xs text-success border-success/40 hover:bg-success/10 hover:text-success" onClick={handleWhatsApp}>
           <MessageCircle className="h-3 w-3" />
           WhatsApp
         </Button>
@@ -687,7 +688,7 @@ function AcaoPrimaria({ pedido, parceiro, estagio, geraTituloReceber }: { pedido
     );
   }
   if (estagio === "pre_faturamento") return (
-    <div className="rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-3 text-sm text-amber-700 dark:text-amber-300 flex gap-2">
+    <div className="rounded-md bg-warning/10 border border-warning/40 p-3 text-sm text-warning flex gap-2">
       <Clock className="h-4 w-4 mt-0.5 shrink-0" />
       <span>WNS em Nota Fiscal — aguardando emissão da NF no Bling para avançar automaticamente.</span>
     </div>
@@ -696,7 +697,7 @@ function AcaoPrimaria({ pedido, parceiro, estagio, geraTituloReceber }: { pedido
     <AcoesPedidoFaturado pedido={pedido} />
   );
   if (estagio === "em_analise_credito") return (
-    <div className="rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 text-sm text-blue-700 dark:text-blue-300 flex gap-2">
+    <div className="rounded-md bg-info/10 border border-info/40 p-3 text-sm text-info flex gap-2">
       <Clock className="h-4 w-4 mt-0.5 shrink-0" /><span>Em análise de crédito — aguardando decisão.</span>
     </div>
   );
@@ -820,7 +821,7 @@ function EnviarParaSeparacaoAcao({ pedidoId }: { pedidoId: string }) {
           {rotuloBotao}
         </Button>
         {destino?.pago && (
-          <Badge variant="outline" className="h-6 px-1.5 text-[10px] border-emerald-500 text-emerald-700 dark:text-emerald-400">
+          <Badge variant="outline" className="h-6 px-1.5 text-[10px] border-success/40 text-success">
             Pago
           </Badge>
         )}
@@ -846,7 +847,7 @@ function EnviarParaSeparacaoAcao({ pedidoId }: { pedidoId: string }) {
                   e por isso a cobrança dessas parcelas é responsabilidade do CPR, não da expedição.
                 </p>
                 {Number(destino?.falta_recebivel ?? 0) > 0 && (
-                  <p className="text-amber-700 dark:text-amber-400">
+                  <p className="text-warning">
                     Esta remessa ainda <strong>não tem recebível</strong> ({fmtBRL(Number(destino?.falta_recebivel))}).
                     Ao confirmar, ela vai para <strong>Cobrança</strong> para ser faturada — não para expedição.
                   </p>
@@ -1390,14 +1391,14 @@ export default function PedidoDetalhe() {
         <div className={cn(
           "mx-6 mb-3 flex items-start gap-3 rounded-lg border p-3",
           (pedido as any).atencao_nivel === 'pausa'
-            ? "border-red-300 bg-red-50 text-red-900 dark:bg-red-950/30 dark:border-red-800 dark:text-red-200"
-            : "border-amber-300 bg-amber-50 text-amber-900 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-200"
+            ? "border-destructive/40 bg-destructive/10 text-destructive"
+            : "border-warning/40 bg-warning/10 text-warning"
         )}>
           {(pedido as any).atencao_nivel === 'pausa'
             ? <PauseCircle className="h-5 w-5 mt-0.5 shrink-0" />
             : <Bell className="h-5 w-5 mt-0.5 shrink-0" />}
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold uppercase tracking-wide">
+            <p className="text-xs font-medium uppercase tracking-wide">
               {(pedido as any).atencao_nivel === 'pausa' ? 'PEDIDO PAUSADO' : 'AVISO'}
             </p>
             <p className="text-sm">{(pedido as any).atencao_motivo}</p>
@@ -1418,17 +1419,17 @@ export default function PedidoDetalhe() {
       )}
 
       {adiantadoVivo > 0.01 && (
-        <div className="mx-6 mb-3 flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50/70 p-3 text-emerald-900 dark:bg-emerald-950/20 dark:border-emerald-900 dark:text-emerald-200">
+        <div className="mx-6 mb-3 flex items-start gap-2 rounded-lg border border-success/40 bg-success/10 p-3 text-success">
           <Wallet className="h-4 w-4 shrink-0 mt-0.5" />
           <p className="text-sm">
             {adiantamentoPedido?.cobre_pedido_inteiro ? (
               <>
-                Pedido já pago integralmente — <span className="font-semibold">{fmtBRL.format(adiantadoVivo)}</span>{" "}
+                Pedido já pago integralmente — <span className="font-medium">{fmtBRL.format(adiantadoVivo)}</span>{" "}
                 recebidos em {adiantamentoPedido?.formas ?? "—"}. Os títulos nascem quitados no faturamento.
               </>
             ) : (
               <>
-                <span className="font-semibold">{fmtBRL.format(adiantadoVivo)}</span> já pagos neste pedido
+                <span className="font-medium">{fmtBRL.format(adiantadoVivo)}</span> já pagos neste pedido
                 {" "}({adiantamentoPedido?.formas ?? "—"}
                 {adiantamentoPedido?.recebido_em ? `, ${formatDateBR(adiantamentoPedido.recebido_em)}` : ""}).
                 {" "}Abate a parcela mais próxima automaticamente no faturamento.
@@ -1440,11 +1441,11 @@ export default function PedidoDetalhe() {
 
 
       {totalHaverDisponivel > 0.01 && pedido.estagio !== "faturado" && pedido.estagio !== "cancelado" && (
-        <div className="mx-6 mb-3 flex items-center justify-between gap-3 rounded-lg border border-emerald-300 bg-emerald-50 p-3 dark:bg-emerald-950/30 dark:border-emerald-800">
-          <div className="flex items-center gap-2 text-emerald-900 dark:text-emerald-200">
+        <div className="mx-6 mb-3 flex items-center justify-between gap-3 rounded-lg border border-success/40 bg-success/10 p-3">
+          <div className="flex items-center gap-2 text-success">
             <Wallet className="h-4 w-4 shrink-0" />
             <p className="text-sm">
-              <span className="font-semibold">{fmtBRL.format(totalHaverDisponivel)}</span> em crédito disponível para este cliente
+              <span className="font-medium">{fmtBRL.format(totalHaverDisponivel)}</span> em crédito disponível para este cliente
             </p>
           </div>
           <Button
@@ -1460,11 +1461,11 @@ export default function PedidoDetalhe() {
 
       {/* NATUREZA-INCOERENTE: banco decide, tela só mostra o motivo em texto humano. */}
       {naturezaAlerta?.incoerente === true && (
-        <div className="mx-6 mb-3 flex items-start justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-200">
+        <div className="mx-6 mb-3 flex items-start justify-between gap-3 rounded-lg border border-warning/40 bg-warning/10 p-3 text-warning">
           <div className="flex items-start gap-2 min-w-0">
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
             <div className="min-w-0">
-              <p className="text-xs font-bold uppercase tracking-wide">Natureza incoerente</p>
+              <p className="text-xs font-medium uppercase tracking-wide">Natureza incoerente</p>
               <p className="text-sm">{naturezaAlerta.motivo}</p>
               {!naturezaAlerta.pode_trocar && (
                 <p className="text-xs mt-1 opacity-80">
@@ -1518,19 +1519,19 @@ export default function PedidoDetalhe() {
           {analiseCredito?.status_final && analiseCredito.status_final !== "aprovado" && (
             <Alert className={cn(
               analiseCredito.status_final === "reprovado"
-                ? "border-red-300 bg-red-50 dark:bg-red-950/30 dark:border-red-800"
-                : "border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800"
+                ? "border-destructive/40 bg-destructive/10"
+                : "border-warning/40 bg-warning/10"
             )}>
               <ShieldAlert className={cn(
                 "h-4 w-4",
-                analiseCredito.status_final === "reprovado" ? "text-red-600" : "text-amber-600"
+                analiseCredito.status_final === "reprovado" ? "text-destructive" : "text-warning"
               )} />
               <AlertDescription className={cn(
                 analiseCredito.status_final === "reprovado"
-                  ? "text-red-900 dark:text-red-200"
-                  : "text-amber-900 dark:text-amber-200"
+                  ? "text-destructive"
+                  : "text-warning"
               )}>
-                <p className="font-semibold mb-0.5">
+                <p className="font-medium mb-0.5">
                   {analiseCredito.status_final === "reprovado"
                     ? "Crédito reprovado"
                     : "Crédito aprovado com ressalva"}
@@ -1551,7 +1552,7 @@ export default function PedidoDetalhe() {
               {/* Card — Pedido */}
               <Card className="border-border/60">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
                     <Receipt className="h-4 w-4 text-muted-foreground" />
                     Pedido
                   </CardTitle>
@@ -1648,7 +1649,7 @@ export default function PedidoDetalhe() {
               {/* Card — Resumo financeiro */}
                 <Card className="border-border/60 flex-1 flex flex-col">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
                       <Wallet className="h-4 w-4 text-muted-foreground" />
                       Resumo financeiro
                     </CardTitle>
@@ -1715,7 +1716,7 @@ export default function PedidoDetalhe() {
                             </div>
                           )}
                           <div className="border-t border-border/60 pt-2">
-                            <div className="flex justify-between text-sm font-semibold">
+                            <div className="flex justify-between text-sm font-medium">
                               <span>Valor líquido</span>
                               <span>{fmtBRL.format(liquido)}</span>
                             </div>
@@ -1725,26 +1726,26 @@ export default function PedidoDetalhe() {
                             <>
                               {creditoCliente > 0.005 && (
                                 <div className="flex justify-between text-sm">
-                                  <span className="text-emerald-700 dark:text-emerald-400">
+                                  <span className="text-success">
                                     Crédito do cliente
                                   </span>
-                                  <span className="text-emerald-700 dark:text-emerald-400">
+                                  <span className="text-success">
                                     −{fmtBRL.format(creditoCliente)}
                                   </span>
                                 </div>
                               )}
                               {jaPagoDinheiro > 0.005 && (
                                 <div className="flex justify-between text-sm">
-                                  <span className="text-emerald-700 dark:text-emerald-400">
+                                  <span className="text-success">
                                     Já pago
                                   </span>
-                                  <span className="text-emerald-700 dark:text-emerald-400">
+                                  <span className="text-success">
                                     −{fmtBRL.format(jaPagoDinheiro)}
                                   </span>
                                 </div>
                               )}
                               <div className="border-t border-border/60 pt-2">
-                                <div className="flex justify-between text-base font-semibold">
+                                <div className="flex justify-between text-base font-medium">
                                   <span>A cobrar</span>
                                   <span>{fmtBRL.format(Math.max(0, liquido - abatido))}</span>
                                 </div>
@@ -1762,7 +1763,7 @@ export default function PedidoDetalhe() {
             {estagio !== "cancelado" && (
               <Card className="border-border/60 h-full flex flex-col">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
                     <Truck className="h-4 w-4 text-muted-foreground" />
                     Dados de envio
                   </CardTitle>
@@ -1818,28 +1819,28 @@ export default function PedidoDetalhe() {
                         </TooltipProvider>
                         {emb?.caixas_min != null && emb?.caixas_max != null ? (
                           emb.caixas_min === emb.caixas_max ? (
-                            <p className="text-base font-semibold">{emb.caixas_min}</p>
+                            <p className="text-base font-medium">{emb.caixas_min}</p>
                           ) : (
                             <>
-                              <p className="text-base font-semibold">{emb.caixas_min} a {emb.caixas_max}</p>
+                              <p className="text-base font-medium">{emb.caixas_min} a {emb.caixas_max}</p>
                               {emb.caixas_estimadas != null && (
                                 <p className="text-[10px] text-muted-foreground leading-tight">central {emb.caixas_estimadas}</p>
                               )}
                             </>
                           )
                         ) : (
-                          <p className="text-base font-semibold">{emb?.caixas_estimadas ?? "—"}</p>
+                          <p className="text-base font-medium">{emb?.caixas_estimadas ?? "—"}</p>
                         )}
                       </div>
                       <div>
                         <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Cubagem expedição</p>
-                        <p className="text-base font-semibold">
+                        <p className="text-base font-medium">
                           {emb?.cubagem_expedicao_m3 != null ? `${fmtNum(emb.cubagem_expedicao_m3, 4)} m³` : "—"}
                         </p>
                       </div>
                       <div>
                         <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Peso expedido (estimado)</p>
-                        <p className="text-base font-semibold">
+                        <p className="text-base font-medium">
                           {emb?.peso_expedido_kg != null ? `${fmtNum(emb.peso_expedido_kg, 1)} kg` : "—"}
                         </p>
                         <p className="text-[10px] text-muted-foreground leading-tight">produto + embalagem</p>
@@ -1879,7 +1880,7 @@ export default function PedidoDetalhe() {
                     </TooltipProvider>
 
                     {(emb?.skus_sem_dimensao ?? 0) > 0 && (
-                      <Badge variant="outline" className="border-amber-500/60 text-amber-700 dark:text-amber-400 text-[10px]">
+                      <Badge variant="outline" className="border-warning/40 text-warning text-[10px]">
                         {emb!.skus_sem_dimensao} SKU(s) sem dimensão cadastrada — não entram na estimativa de caixas nem de peso
                       </Badge>
                     )}
@@ -1897,7 +1898,7 @@ export default function PedidoDetalhe() {
                     <div className="rounded-md border border-border/60 bg-muted/30 p-3 space-y-1">
                       <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Estimativa Icaro</p>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-base font-semibold">{freteEst.data.valor_estimado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
+                        <p className="text-base font-medium">{freteEst.data.valor_estimado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
                         {pedido.valor_bruto > 0 && (<span className="text-xs text-muted-foreground">({((freteEst.data.valor_estimado / pedido.valor_bruto) * 100).toFixed(2)}% do bruto)</span>)}
                       </div>
                       <p className="text-xs text-muted-foreground">{emb?.peso_taxado_previsto != null && <>Peso taxado {fmtNum(emb.peso_taxado_previsto, 1)} kg · </>}Prazo {freteEst.data.prazo_dias}d · {freteEst.data.tarifa_code}</p>
@@ -1949,12 +1950,12 @@ export default function PedidoDetalhe() {
                         Cobrado do cliente — não muda ao escolher transportadora.
                       </p>
                       {freteDivergeOriginal && (
-                        <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-1 leading-tight font-medium">
+                        <p className="text-[10px] text-warning mt-1 leading-tight font-medium">
                           Divergência: FOP trouxe {fmtBRL.format(freteOriginalFop as number)} · pedido está {fmtBRL.format(Number(pedido.valor_frete) || 0)}.
                         </p>
                       )}
                       {valorFreteCongelado && valorFreteAlterado && (
-                        <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1 leading-tight">
+                        <p className="text-[10px] text-warning mt-1 leading-tight">
                           Há recebível emitido: o banco vai recusar esta alteração de valor. Ajuste pela tela de Cobrança.
                         </p>
                       )}
@@ -2011,7 +2012,7 @@ export default function PedidoDetalhe() {
             {/* Card — Detalhes */}
             <Card className="border-border/60 h-full">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-muted-foreground" />
                   Detalhes
                 </CardTitle>
@@ -2024,7 +2025,7 @@ export default function PedidoDetalhe() {
                   <TabsTrigger value="credito" className="gap-1.5">
                     Crédito
                     {analiseCredito?.ressalva && (
-                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-warning" />
                     )}
                   </TabsTrigger>
                   <TabsTrigger value="timeline">Histórico</TabsTrigger>
@@ -2035,7 +2036,7 @@ export default function PedidoDetalhe() {
                     {(eventos ?? []).some(
                       (ev: any) => ev.tipo_evento === "msg_comercial"
                     ) && (
-                      <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-info" />
                     )}
                   </TabsTrigger>
                   <TabsTrigger value="tarefas">Tarefas</TabsTrigger>
@@ -2058,9 +2059,9 @@ export default function PedidoDetalhe() {
                     <Select value={urgencia} onValueChange={(v) => setUrgencia(v as UrgenciaDeclarada)}>
                       <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="normal"><span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-gray-400" />{URGENCIA_LABELS.normal}</span></SelectItem>
-                        <SelectItem value="alta"><span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-yellow-500" />{URGENCIA_LABELS.alta}</span></SelectItem>
-                        <SelectItem value="critica"><span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-red-500" />{URGENCIA_LABELS.critica}</span></SelectItem>
+                        <SelectItem value="normal"><span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-muted" />{URGENCIA_LABELS.normal}</span></SelectItem>
+                        <SelectItem value="alta"><span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-warning" />{URGENCIA_LABELS.alta}</span></SelectItem>
+                        <SelectItem value="critica"><span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-destructive" />{URGENCIA_LABELS.critica}</span></SelectItem>
                       </SelectContent>
                     </Select>
                     <textarea
@@ -2168,19 +2169,19 @@ export default function PedidoDetalhe() {
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5">
                                 <span className="font-mono text-xs">{t.numero_parcela}/{t.total_parcelas}</span>
-                                {t.eh_entrada && <Badge variant="outline" className="text-[9px] h-4 px-1 border-emerald-500 text-emerald-700">entrada</Badge>}
+                                {t.eh_entrada && <Badge variant="outline" className="text-[9px] h-4 px-1 border-success/40 text-success">entrada</Badge>}
                               </div>
                               <p className="text-xs text-muted-foreground">{TIPO_LABEL[t.tipo_pagamento]} · {fmtDate(t.data_vencimento_atual)}</p>
                             </div>
                             <div className="text-right shrink-0">
-                              <p className="text-sm font-semibold">{fmtBRL.format(Number(t.valor_atual || 0))}</p>
+                              <p className="text-sm font-medium">{fmtBRL.format(Number(t.valor_atual || 0))}</p>
                               <BadgeEstadoParcela titulo={t} eixos={eixosTitulos} dim={dimEixosTitulos} compacto />
                             </div>
                           </div>
                         ))}
                         <div className="flex justify-between text-sm pt-1">
                           <span className="text-muted-foreground">Total</span>
-                          <span className="font-bold">{fmtBRL.format(titulosData.reduce((acc: number, t: TituloAReceber) => acc + Number(t.valor_atual || 0), 0))}</span>
+                          <span className="font-medium">{fmtBRL.format(titulosData.reduce((acc: number, t: TituloAReceber) => acc + Number(t.valor_atual || 0), 0))}</span>
                         </div>
                       </div>
                     )}
@@ -2194,20 +2195,20 @@ export default function PedidoDetalhe() {
             {/* Card — Observações */}
             <Card className="border-border/60 h-full flex flex-col">
               <CardHeader className="pb-3 shrink-0">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
                   <MessageCircle className="h-4 w-4 text-muted-foreground" />
                   Observações
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 flex-1 flex flex-col">
                 <div className="rounded-md border border-border/50 bg-muted/30 px-3 py-2.5 flex-1">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">Do cliente</p>
+                  <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground mb-1.5">Do cliente</p>
                   <p className="text-sm whitespace-pre-wrap text-foreground leading-relaxed">
                     {(pedido as any).observacao_cliente?.trim() || <span className="text-muted-foreground italic">Sem observação.</span>}
                   </p>
                 </div>
                 <div className="rounded-md border border-border/50 bg-muted/30 px-3 py-2.5 flex-1">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">Fetély (interna)</p>
+                  <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground mb-1.5">Fetély (interna)</p>
                   <p className="text-sm whitespace-pre-wrap text-foreground leading-relaxed">
                     {pedido.observacao_pedido?.trim() || <span className="text-muted-foreground italic">Sem observação.</span>}
                   </p>
@@ -2258,10 +2259,10 @@ export default function PedidoDetalhe() {
               const hasDelta            = Math.abs(deltaLiquido) > 0.01;
 
               return (
-                <Card className="border-amber-200/70 dark:border-amber-800/50 flex-1 flex flex-col bg-amber-50/30 dark:bg-amber-950/10 lg:order-2">
+                <Card className="border-warning/40 flex-1 flex flex-col bg-warning/10 lg:order-2">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                      <History className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <History className="h-4 w-4 text-warning" />
                       Como chegou do FOP
                       {snap.backfill && (
                         <Badge variant="secondary" className="ml-1 text-[10px] font-normal h-5 px-1.5">via backfill</Badge>
@@ -2326,13 +2327,13 @@ export default function PedidoDetalhe() {
                     );
                   })()}
                       <div className="border-t border-border/60 pt-2">
-                        <div className="flex justify-between text-sm font-semibold">
+                        <div className="flex justify-between text-sm font-medium">
                           <span>Valor líquido</span>
                           <span>{fmtBRL.format(snapLiquido)}</span>
                         </div>
                       </div>
                       {hasDelta && (
-                        <div className={`flex justify-between text-xs pt-1 ${deltaLiquido < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                        <div className={`flex justify-between text-xs pt-1 ${deltaLiquido < 0 ? "text-success" : "text-destructive"}`}>
                           <span>Δ vs original</span>
                           <span>{deltaLiquido > 0 ? "+" : ""}{fmtBRL.format(deltaLiquido)}</span>
                         </div>
@@ -2346,8 +2347,8 @@ export default function PedidoDetalhe() {
                     </div>
 
                 {temOrigemConsolidada && (
-                  <div className="mt-3 rounded-md border border-amber-300/60 bg-amber-50/50 dark:bg-amber-950/20 p-3 space-y-2">
-                    <div className="text-[10px] uppercase tracking-wide text-amber-800 dark:text-amber-300 font-medium">
+                  <div className="mt-3 rounded-md border border-warning/40 bg-warning/10 p-3 space-y-2">
+                    <div className="text-[10px] uppercase tracking-wide text-warning font-medium">
                       Segunda origem — consolidado de outro pedido
                     </div>
                     {origens.map((o) => (
@@ -2370,7 +2371,7 @@ export default function PedidoDetalhe() {
                         )}
                       </div>
                     ))}
-                    <div className="text-[10px] text-muted-foreground leading-tight border-t border-amber-300/40 pt-1.5">
+                    <div className="text-[10px] text-muted-foreground leading-tight border-t border-warning/40 pt-1.5">
                       Os itens acima não constam na lista de itens originais abaixo: eles chegaram por consolidação, não pelo FOP deste pedido.
                     </div>
                   </div>
@@ -2412,7 +2413,7 @@ export default function PedidoDetalhe() {
                           Restaurar original
                         </Button>
                         {temOrigemConsolidada && (
-                          <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-1 leading-tight">
+                          <p className="text-[10px] text-warning mt-1 leading-tight">
                             Restauração bloqueada: este pedido absorveu {origens.map((o) => o.origem_id_externo).join(", ")} por consolidação. Restaurar apagaria os itens vindos de fora, que não existem em nenhum snapshot.
                           </p>
                         )}
@@ -2451,7 +2452,7 @@ export default function PedidoDetalhe() {
                       ) : (
                         <>
                           {pedido?.split_de_pedido_id && (
-                            <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
+                            <p className="text-sm text-warning font-medium">
                               Este pedido é um split. A restauração será aplicada no pedido pai e todos os splits serão cancelados.
                             </p>
                           )}
@@ -2487,7 +2488,7 @@ export default function PedidoDetalhe() {
             <Card className="border-border/60 lg:order-1">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between gap-2">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
                     <Package className="h-4 w-4 text-muted-foreground" />
                     Itens do pedido
                     <span className="text-xs font-normal text-muted-foreground">{itens.length} {itens.length === 1 ? "item" : "itens"}</span>
@@ -2514,7 +2515,7 @@ export default function PedidoDetalhe() {
 
 
           {estagioFinal && (
-            <div className={cn("rounded-lg border p-4 text-sm", pedido.estagio === "cancelado" ? "border-destructive/30 bg-destructive/5 text-destructive" : "border-emerald-500/30 bg-emerald-500/5 text-emerald-700")}>
+            <div className={cn("rounded-lg border p-4 text-sm", pedido.estagio === "cancelado" ? "border-destructive/30 bg-destructive/5 text-destructive" : "border-success/40 bg-success text-success")}>
               <p className="font-medium">{pedido.estagio === "cancelado" ? "Pedido cancelado" : "Pedido entregue"}{pedido.cancelado_motivo && ` · ${pedido.cancelado_motivo}`}</p>
               <p className="text-xs opacity-70 mt-0.5">{pedido.cancelado_em ? fmtDateTime(pedido.cancelado_em) : fmtDateTime(pedido.entregue_em)}</p>
             </div>
@@ -2667,7 +2668,7 @@ export default function PedidoDetalhe() {
           parceiroId={pedido.parceiro_id}
         />
       )}
-    </div>
+    </PageShell>
   );
 }
 

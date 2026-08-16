@@ -69,8 +69,8 @@ interface OportunidadeRow {
 function corDiasVencido(dias: number | null | undefined) {
   const d = Number(dias ?? 0);
   if (d <= 15) return "bg-muted text-muted-foreground";
-  if (d <= 45) return "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300";
-  return "bg-destructive/15 text-destructive font-semibold";
+  if (d <= 45) return "bg-warning/10 text-warning";
+  return "bg-destructive/15 text-destructive font-medium";
 }
 
 const ORIGEM_LABEL: Record<OrigemOportunidade, string> = {
@@ -80,9 +80,9 @@ const ORIGEM_LABEL: Record<OrigemOportunidade, string> = {
 };
 
 const ORIGEM_CLASSES: Record<OrigemOportunidade, string> = {
-  portao_vencido: "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300",
-  estoque_inadimplente: "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300",
-  manual: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
+  portao_vencido: "bg-info/10 text-info",
+  estoque_inadimplente: "bg-info/10 text-info",
+  manual: "bg-warning/10 text-warning",
 };
 
 async function copiar(link: string) {
@@ -316,7 +316,7 @@ export default function Oportunidades() {
                             {r.alerta_operacional && (
                               <Badge
                                 variant="outline"
-                                className="border-0 rounded px-2 py-0.5 whitespace-nowrap bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 w-fit text-[10px]"
+                                className="border-0 rounded px-2 py-0.5 whitespace-nowrap bg-warning/10 text-warning w-fit text-[10px]"
                               >
                                 {r.alerta_operacional}
                               </Badge>
@@ -439,7 +439,7 @@ function KpiCard({ label, value }: { label: string; value: string }) {
     <Card>
       <CardContent className="p-4">
         <p className="text-xs text-muted-foreground uppercase tracking-wide">{label}</p>
-        <p className="text-2xl font-bold mt-1">{value}</p>
+        <p className="text-2xl font-medium mt-1">{value}</p>
       </CardContent>
     </Card>
   );

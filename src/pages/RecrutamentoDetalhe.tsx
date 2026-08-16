@@ -905,7 +905,7 @@ export default function RecrutamentoDetalhe() {
         <div className="flex items-center gap-3">
           <SmartBackButton fallback="/recrutamento" fallbackLabel="Recrutamento" />
           <div>
-            <h1 className="text-lg font-semibold">{vaga.titulo}</h1>
+            <h1 className="text-lg font-medium">{vaga.titulo}</h1>
             <div className="flex items-center gap-2">
               <p className="text-xs text-muted-foreground">
                 {vaga.area}
@@ -1014,10 +1014,10 @@ export default function RecrutamentoDetalhe() {
                 {/* Column header */}
                 <div className="px-3 py-2.5 flex items-center justify-between"
                   style={{ backgroundColor: stage.cor }}>
-                  <span className="text-xs font-semibold text-white uppercase tracking-wider">
+                  <span className="text-xs font-medium text-white uppercase tracking-wider">
                     {stage.label}
                   </span>
-                  <span className="bg-white/20 text-white text-xs font-bold rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                  <span className="bg-white/20 text-white text-xs font-medium rounded-full px-2 py-0.5 min-w-[20px] text-center">
                     {cards.length}
                   </span>
                 </div>
@@ -1039,19 +1039,19 @@ export default function RecrutamentoDetalhe() {
                       {/* Avatar + Name */}
                       <div className="flex items-center gap-2 mb-2">
                         <div
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium flex-shrink-0"
                           style={{ backgroundColor: stage.cor }}
                         >
                           {getInitials(c.nome)}
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold truncate leading-tight">{c.nome}</p>
+                          <p className="text-sm font-medium truncate leading-tight">{c.nome}</p>
                           <p className="text-xs text-muted-foreground truncate">{c.email}</p>
                         </div>
                       </div>
 
                       {/* Footer */}
-                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
+                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/40">
                         <span className="text-xs px-2 py-0.5 rounded-full font-medium"
                           style={{ backgroundColor: stage.bg, color: stage.cor }}>
                           {c.origem || "portal"}
@@ -1063,7 +1063,7 @@ export default function RecrutamentoDetalhe() {
 
                       {/* Score badge */}
                       {(c as any).score_total > 0 && (
-                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
+                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/40">
                           <span className="text-xs text-muted-foreground">
                             {(c as any).score_detalhado?.alerta?.startsWith("overqualified")
                               ? "⚠ Overqualified"
@@ -1071,16 +1071,16 @@ export default function RecrutamentoDetalhe() {
                                 ? "⚠ Underqualified"
                                 : "Score"}
                           </span>
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                             (c as any).score_detalhado?.alerta?.startsWith("overqualified")
-                              ? "bg-orange-100 text-orange-700"
+                              ? "bg-warning/10 text-warning"
                               : (c as any).score_detalhado?.alerta === "underqualified"
-                                ? "bg-red-100 text-red-700"
+                                ? "bg-destructive/10 text-destructive"
                                 : (c as any).score_total >= 80
-                                  ? "bg-green-100 text-green-700"
+                                  ? "bg-success/10 text-success"
                                   : (c as any).score_total >= 50
-                                    ? "bg-yellow-100 text-yellow-700"
-                                    : "bg-red-100 text-red-700"
+                                    ? "bg-warning/10 text-warning"
+                                    : "bg-destructive/10 text-destructive"
                           }`}>
                             {(c as any).score_total}%
                           </span>
@@ -1092,7 +1092,7 @@ export default function RecrutamentoDetalhe() {
                         const statusCard = getStatusCard(c);
                         if (!statusCard) return null;
                         return (
-                          <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
+                          <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/40">
                             <span className="text-xs text-muted-foreground">Status</span>
                             <span className="text-xs font-medium px-2 py-0.5 rounded-full"
                               style={{
@@ -1109,14 +1109,14 @@ export default function RecrutamentoDetalhe() {
                       <div className="flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button
                           variant="ghost" size="sm"
-                          className="h-6 text-xs flex-1 px-2 hover:bg-gray-100"
+                          className="h-6 text-xs flex-1 px-2 hover:bg-muted/10"
                           onClick={(e) => { e.stopPropagation(); advanceCandidato(c.id); }}
                         >
                           Avançar →
                         </Button>
                         <Button
                           variant="ghost" size="sm"
-                          className="h-6 text-xs text-destructive hover:bg-red-50 px-2"
+                          className="h-6 text-xs text-destructive hover:bg-destructive/10 px-2"
                           onClick={(e) => { e.stopPropagation(); rejectCandidato(c.id); }}
                         >
                           Recusar
@@ -1146,7 +1146,7 @@ export default function RecrutamentoDetalhe() {
         <div className="px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Col 1 — Info */}
           <div className="space-y-3">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Informações</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Informações</p>
             <div className="grid grid-cols-2 gap-x-4 gap-y-2">
               {[
                 { label: "Tipo", value: vaga.tipo_contrato === "clt" ? "CLT" : vaga.tipo_contrato === "pj" ? "PJ" : "CLT/PJ" },
@@ -1174,8 +1174,8 @@ export default function RecrutamentoDetalhe() {
           <div className="space-y-4">
             {canSeeFaixa && (vaga.faixa_min || vaga.faixa_max) && (
               <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Remuneração</p>
-                <p className="text-base font-bold text-[#1A4A3A]">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Remuneração</p>
+                <p className="text-base font-medium text-[#1A4A3A]">
                   {vaga.faixa_min ? `R$ ${Number(vaga.faixa_min).toLocaleString("pt-BR")}` : "—"}
                   {" – "}
                   {vaga.faixa_max ? `R$ ${Number(vaga.faixa_max).toLocaleString("pt-BR")}` : "—"}
@@ -1184,7 +1184,7 @@ export default function RecrutamentoDetalhe() {
             )}
             {(beneficiosLabels.length > 0 || vaga.beneficios_outros) && (
               <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Benefícios</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Benefícios</p>
                 <div className="flex flex-wrap gap-1.5">
                   {beneficiosLabels.map((b) => (
                     <span key={b} className="px-2.5 py-1 rounded-full text-xs font-medium bg-[#1A4A3A]/8 text-[#1A4A3A] border border-[#1A4A3A]/15">{b}</span>
@@ -1197,7 +1197,7 @@ export default function RecrutamentoDetalhe() {
             )}
             {(vaga.responsabilidades as string[] | null)?.length ? (
               <div className="pt-3 border-t">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Responsabilidades</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Responsabilidades</p>
                 <ul className="text-sm text-muted-foreground list-disc pl-4 space-y-1">
                   {(vaga.responsabilidades as string[]).map((r, i) => <li key={i}>{r}</li>)}
                 </ul>
@@ -1207,7 +1207,7 @@ export default function RecrutamentoDetalhe() {
 
           {/* Col 3 — Skills */}
           <div className="space-y-4">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Skills</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Skills</p>
             {(vaga.skills_obrigatorias as string[] | null)?.length ? (
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-1.5">Obrigatórias</p>
@@ -1223,7 +1223,7 @@ export default function RecrutamentoDetalhe() {
                 <p className="text-xs font-medium text-muted-foreground mb-1.5">Desejadas</p>
                 <div className="flex flex-wrap gap-1.5">
                   {(vaga.skills_desejadas as string[]).map((s) => (
-                    <span key={s} className="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">{s}</span>
+                    <span key={s} className="px-2.5 py-1 rounded-full text-xs font-medium bg-info/10 text-info border border-info/40">{s}</span>
                   ))}
                 </div>
               </div>
@@ -1233,7 +1233,7 @@ export default function RecrutamentoDetalhe() {
                 <p className="text-xs font-medium text-muted-foreground mb-1.5">Ferramentas</p>
                 <div className="flex flex-wrap gap-1.5">
                   {(vaga.ferramentas as string[]).map((s) => (
-                    <span key={s} className="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">{s}</span>
+                    <span key={s} className="px-2.5 py-1 rounded-full text-xs font-medium bg-muted/10 text-muted-foreground border border-border/40">{s}</span>
                   ))}
                 </div>
               </div>
@@ -1264,7 +1264,7 @@ export default function RecrutamentoDetalhe() {
                   <Sparkles className="h-4 w-4 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-foreground">Importar CV</p>
+                  <p className="text-sm font-medium text-foreground">Importar CV</p>
                   <p className="text-xs text-muted-foreground">A IA lê e preenche os campos automaticamente</p>
                 </div>
               </div>
@@ -1310,7 +1310,7 @@ export default function RecrutamentoDetalhe() {
                       <Check className="h-4 w-4 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-success">CV importado!</p>
+                      <p className="text-sm font-medium text-success">CV importado!</p>
                       <p className="text-xs text-muted-foreground truncate">{addCandidatoNomePDF}</p>
                     </div>
                     <Button type="button" variant="ghost" size="sm" className="text-muted-foreground"
@@ -1463,11 +1463,11 @@ export default function RecrutamentoDetalhe() {
           {selectedCandidato && (
             <div className="space-y-6 py-4">
               <div className="flex items-start gap-3">
-                <div className="h-12 w-12 rounded-full flex items-center justify-center text-lg font-semibold shrink-0 bg-primary text-primary-foreground">
+                <div className="h-12 w-12 rounded-full flex items-center justify-center text-lg font-medium shrink-0 bg-primary text-primary-foreground">
                   {getInitials(selectedCandidato.nome)}
                 </div>
                 <div className="min-w-0 space-y-1">
-                  <p className="text-lg font-semibold leading-tight">{selectedCandidato.nome}</p>
+                  <p className="text-lg font-medium leading-tight">{selectedCandidato.nome}</p>
                   {editandoEmail ? (
                     <div className="flex items-center gap-1">
                       <Input
@@ -1536,7 +1536,7 @@ export default function RecrutamentoDetalhe() {
                       }}>
                       <div className="flex items-center justify-between">
                         <p className="text-xs font-medium text-muted-foreground">Score de aderência</p>
-                        <span className="text-lg font-bold" style={{ color:
+                        <span className="text-lg font-medium" style={{ color:
                           (selectedCandidato as any).score_detalhado?.alerta?.startsWith("overqualified") ? '#D97706' :
                           (selectedCandidato as any).score_total >= 80 ? '#1A4A3A' :
                           (selectedCandidato as any).score_total >= 50 ? '#D97706' : '#DC2626'
@@ -1683,7 +1683,7 @@ export default function RecrutamentoDetalhe() {
                       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Sistemas e ferramentas</p>
                       <div className="flex flex-wrap gap-1.5">
                         {(selectedCandidato as any).sistemas_candidato.map((s: any, i: number) => (
-                          <span key={i} className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                          <span key={i} className="px-2 py-1 rounded-full text-xs font-medium bg-info/10 text-info">
                             {s.sistema}
                             {s.nivel && s.nivel !== 'intermediario' && (
                               <span className="ml-1 opacity-70">· {s.nivel}</span>
@@ -1822,8 +1822,8 @@ export default function RecrutamentoDetalhe() {
                           (selectedCandidato as any).score_total >= 50 ? '#FFFBEB' : '#FEF2F2'
                       }}>
                         <div className="flex items-center justify-between mb-2">
-                          <p className="text-sm font-semibold">Score de aderência</p>
-                          <span className="text-2xl font-bold" style={{ color:
+                          <p className="text-sm font-medium">Score de aderência</p>
+                          <span className="text-2xl font-medium" style={{ color:
                             (selectedCandidato as any).score_total >= 80 ? '#1A4A3A' :
                             (selectedCandidato as any).score_total >= 50 ? '#D97706' : '#DC2626'
                           }}>
@@ -1893,7 +1893,7 @@ export default function RecrutamentoDetalhe() {
                       )}
                       {/* Breakdown por dimensão */}
                       <div className="p-4 rounded-lg border space-y-3">
-                        <p className="text-sm font-semibold">Detalhamento por dimensão</p>
+                        <p className="text-sm font-medium">Detalhamento por dimensão</p>
                         {[
                           { label: "Skills", valor: (selectedCandidato as any).score_detalhado?.skills_match, max: 35, cor: "#1A4A3A" },
                           { label: "Adequação de nível", valor: (selectedCandidato as any).score_detalhado?.nivel_adequacao, max: 30, cor: "#2563EB" },
@@ -1904,9 +1904,9 @@ export default function RecrutamentoDetalhe() {
                           <div key={dim.label} className="space-y-1">
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-medium">{dim.label}</span>
-                              <span className="text-xs font-bold" style={{ color: dim.cor }}>{dim.valor}/{dim.max}</span>
+                              <span className="text-xs font-medium" style={{ color: dim.cor }}>{dim.valor}/{dim.max}</span>
                             </div>
-                            <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                            <div className="h-2 rounded-full bg-muted/10 overflow-hidden">
                               <div className="h-full rounded-full transition-all" style={{
                                 width: `${(dim.valor / dim.max) * 100}%`,
                                 backgroundColor: dim.cor
@@ -1974,7 +1974,7 @@ export default function RecrutamentoDetalhe() {
             <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: "rgba(255,255,255,0.15)" }}>
               <Check className="h-7 w-7 text-white" />
             </div>
-            <h2 className="text-xl font-semibold text-white mb-1">
+            <h2 className="text-xl font-medium text-white mb-1">
               Vaga publicada! 🎉
             </h2>
             <p className="text-sm" style={{ color: "rgba(255,255,255,0.7)" }}>
@@ -1992,7 +1992,7 @@ export default function RecrutamentoDetalhe() {
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
                 Link da vaga
               </p>
-              <p className="text-sm font-mono text-gray-700 break-all leading-relaxed">
+              <p className="text-sm font-mono text-muted-foreground break-all leading-relaxed">
                 {PUBLIC_APP_URL}/vagas/{id}
               </p>
             </div>
@@ -2037,14 +2037,14 @@ export default function RecrutamentoDetalhe() {
       }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-amber-600">
+            <DialogTitle className="flex items-center gap-2 text-warning">
               <AlertTriangle className="h-5 w-5" />
               Score abaixo do mínimo
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
-              <p className="text-sm text-amber-800">
+            <div className="p-3 rounded-lg bg-warning/10 border border-warning/40">
+              <p className="text-sm text-warning">
                 <strong>{gatilhoCandidato?.nome}</strong> tem score de{" "}
                 <strong>{(gatilhoCandidato as any)?.score_total ?? 0}%</strong>{" "}
                 (mínimo recomendado: {SCORE_MINIMO_ENTREVISTA}%).
@@ -2145,7 +2145,7 @@ export default function RecrutamentoDetalhe() {
                   onClick={() => setEditarForm((f: any) => ({ ...f, num_vagas: Math.max(1, (f.num_vagas ?? 1) - 1) }))}>
                   −
                 </button>
-                <span className="text-lg font-semibold w-8 text-center">
+                <span className="text-lg font-medium w-8 text-center">
                   {editarForm.num_vagas ?? 1}
                 </span>
                 <button type="button"
@@ -2356,13 +2356,13 @@ function HistoricoCandidato({ candidatoId }: { candidatoId?: string }) {
               <span className="font-medium">{stageLabel(h.status_novo)}</span>
             </p>
             {h.justificativa && (
-              <div className="mt-1.5 p-2 rounded-md bg-amber-50 border border-amber-100">
-                <p className="text-xs text-amber-800">
+              <div className="mt-1.5 p-2 rounded-md bg-warning/10 border border-warning/40">
+                <p className="text-xs text-warning">
                   <span className="font-medium">Exceção: </span>
                   {h.justificativa}
                 </p>
                 {h.score_no_momento != null && (
-                  <p className="text-xs text-amber-600 mt-0.5">
+                  <p className="text-xs text-warning mt-0.5">
                     Score no momento: {h.score_no_momento}%
                   </p>
                 )}
@@ -2539,7 +2539,7 @@ function FormularioEntrevista({
           type="button"
           disabled={disabled}
           onClick={() => !disabled && onChange?.(n)}
-          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
+          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
             n <= value
               ? "text-white"
               : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -2558,7 +2558,7 @@ function FormularioEntrevista({
     <div className="space-y-4">
       <div className="flex items-center gap-2 pb-2 border-b">
         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: corTema }} />
-        <p className="text-sm font-semibold">{titulo}</p>
+        <p className="text-sm font-medium">{titulo}</p>
         {entrevista && (
           <span className="text-xs text-muted-foreground ml-auto">
             Preenchido em {new Date((entrevista as any).updated_at).toLocaleDateString("pt-BR")}
@@ -2571,7 +2571,7 @@ function FormularioEntrevista({
         <div className="rounded-lg border p-3 space-y-2"
           style={{ borderColor: corTema + "40", backgroundColor: corTema + "08" }}>
           <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold flex items-center gap-1.5"
+            <p className="text-xs font-medium flex items-center gap-1.5"
               style={{ color: corTema }}>
               <Sparkles className="h-3.5 w-3.5" />
               Pré-análise por IA
@@ -2597,7 +2597,7 @@ function FormularioEntrevista({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <p className="text-xs text-muted-foreground">Fit com a vaga</p>
-                <span className="text-sm font-semibold" style={{ color:
+                <span className="text-sm font-medium" style={{ color:
                   resumoIA.score_fit >= 70 ? "#1A4A3A" :
                   resumoIA.score_fit >= 40 ? "#D97706" : "#DC2626"
                 }}>
@@ -2623,13 +2623,13 @@ function FormularioEntrevista({
               )}
               {resumoIA.pontos_atencao?.length > 0 && (
                 <div>
-                  <p className="text-xs font-medium mb-1 text-amber-600">
+                  <p className="text-xs font-medium mb-1 text-warning">
                     Pontos de atenção
                   </p>
                   <ul className="space-y-0.5">
                     {resumoIA.pontos_atencao.map((p: string, i: number) => (
                       <li key={i} className="text-xs text-muted-foreground flex gap-1.5">
-                        <span className="text-amber-500">·</span> {p}
+                        <span className="text-warning">·</span> {p}
                       </li>
                     ))}
                   </ul>
@@ -2642,8 +2642,8 @@ function FormularioEntrevista({
                   resumoIA.recomendacao_ia === "avançar"
                     ? "bg-[#D8F3DC] text-[#1A4A3A]"
                     : resumoIA.recomendacao_ia === "aguardar"
-                      ? "bg-amber-100 text-amber-700"
-                      : "bg-red-100 text-red-700"
+                      ? "bg-warning/10 text-warning"
+                      : "bg-destructive/10 text-destructive"
                 }`}>
                   {resumoIA.recomendacao_ia === "avançar" ? "✓ Avançar" :
                    resumoIA.recomendacao_ia === "aguardar" ? "⏳ Aguardar" : "✗ Não avançar"}
@@ -3070,7 +3070,7 @@ function TesteTecnico({
     <div className="flex gap-1">
       {[1, 2, 3, 4, 5].map(n => (
         <button key={n} type="button" onClick={() => onChange(n)}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors border"
+          className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors border"
           style={n <= value ? { backgroundColor: corTema, color: "white", borderColor: corTema } : { borderColor: "#E5E7EB", color: "#6B7280" }}
         >
           {n}
@@ -3085,7 +3085,7 @@ function TesteTecnico({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <ClipboardList className="h-4 w-4" style={{ color: corTema }} />
-          <p className="text-sm font-semibold">Teste Técnico</p>
+          <p className="text-sm font-medium">Teste Técnico</p>
         </div>
         {jaEnviado && (
           <Badge variant="outline" className="text-xs">
@@ -3345,7 +3345,7 @@ function TesteTecnico({
                     }}>
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs font-semibold">{sv.skill}</p>
+                        <p className="text-xs font-medium">{sv.skill}</p>
                         <p className="text-xs text-muted-foreground">
                           Declarado: <span className="capitalize">{sv.nivel_declarado}</span>
                         </p>
@@ -3363,7 +3363,7 @@ function TesteTecnico({
                               arr[i] = { ...arr[i], resultado: op.value };
                               setFormResultado(f => ({ ...f, skills_validadas: arr }));
                             }}
-                            className="w-7 h-7 rounded-full text-xs font-bold border transition-colors"
+                            className="w-7 h-7 rounded-full text-xs font-medium border transition-colors"
                             style={sv.resultado === op.value
                               ? { backgroundColor: op.cor, color: "white", borderColor: op.cor }
                               : { borderColor: "#E5E7EB", color: "#9CA3AF" }}>
@@ -3599,7 +3599,7 @@ function ModuloOferta({
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm" style={{ backgroundColor: "#D97706" }}>
             <ClipboardList className="h-4 w-4" />
           </div>
-          <p className="text-sm font-semibold">Proposta de oferta</p>
+          <p className="text-sm font-medium">Proposta de oferta</p>
         </div>
         {jaEnviada && (
           <span className="text-xs text-muted-foreground">
@@ -3667,11 +3667,11 @@ function ModuloOferta({
             </Label>
             {(faixaMinEfetiva || faixaMaxEfetiva) && (
               <div className="p-3 rounded-lg border space-y-2" style={{ backgroundColor: "#F0F7F4", borderColor: "#1A4A3A20" }}>
-                <p className="text-xs font-semibold" style={{ color: "#1A4A3A" }}>Faixa salarial do cargo</p>
+                <p className="text-xs font-medium" style={{ color: "#1A4A3A" }}>Faixa salarial do cargo</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <p className="text-xs text-muted-foreground">F1 (entrada)</p>
-                    <p className="text-sm font-semibold" style={{ color: "#1A4A3A" }}>
+                    <p className="text-sm font-medium" style={{ color: "#1A4A3A" }}>
                       R$ {Number(faixaMinEfetiva ?? 0).toLocaleString("pt-BR")} – R$ {Number(faixaMaxEfetiva ?? 0).toLocaleString("pt-BR")}
                     </p>
                   </div>

@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { humanizeError } from "@/lib/errorMessages";
 import { SmartBackButton } from "@/components/SmartBackButton";
 
+import { PageShell } from "@/components/layout/PageShell";
 interface CustoLinha {
   vinculo_id: string;
   pessoa_id: string;
@@ -144,10 +145,10 @@ export default function CustoPessoas() {
   }, [linhas]);
 
   return (
-    <div className="p-6 space-y-6">
+    <PageShell>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
+          <h1 className="text-2xl font-medium flex items-center gap-2">
             <Wallet className="h-6 w-6" /> Custo de Pessoas
           </h1>
           <p className="text-muted-foreground text-sm mt-1">Custo recorrente mensal da equipe</p>
@@ -169,12 +170,12 @@ export default function CustoPessoas() {
             <Card className="card-shadow border-primary/40"><CardContent className="p-4 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Wallet className="h-5 w-5" /></div>
               <div className="min-w-0">
-                <p className="text-2xl font-bold truncate">{fmtBRL(kpis.totalEmpresa)}</p>
+                <p className="text-2xl font-medium truncate">{fmtBRL(kpis.totalEmpresa)}</p>
                 <p className="text-xs text-muted-foreground">Custo total (empresa)</p>
               </div>
             </CardContent></Card>
             <Card className="card-shadow"><CardContent className="p-4">
-              <p className="text-xl font-bold truncate">{fmtBRL(kpis.remuneracao)}</p>
+              <p className="text-xl font-medium truncate">{fmtBRL(kpis.remuneracao)}</p>
               <p className="text-xs text-muted-foreground">Remuneração (sem encargos)</p>
               <div className="mt-2 flex flex-col gap-0.5 text-xs">
                 <span><span className="text-muted-foreground">Encargos (caixa do mês):</span> <span className="font-medium">{fmtBRL(kpis.encargos)}</span></span>
@@ -184,7 +185,7 @@ export default function CustoPessoas() {
             <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Users className="h-5 w-5" /></div>
               <div>
-                <p className="text-2xl font-bold">{kpis.headcount}</p>
+                <p className="text-2xl font-medium">{kpis.headcount}</p>
                 <p className="text-xs text-muted-foreground">Headcount</p>
                 <p className="text-xs text-muted-foreground mt-1 truncate">Média: {fmtBRL(kpis.media)}</p>
               </div>
@@ -192,8 +193,8 @@ export default function CustoPessoas() {
             <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Briefcase className="h-5 w-5" /></div>
               <div className="min-w-0">
-                <p className="text-xs"><span className="font-semibold">CLT:</span> {kpis.cltCount} · {fmtBRL(kpis.cltCusto)}</p>
-                <p className="text-xs"><span className="font-semibold">PJ:</span> {kpis.pjCount} · {fmtBRL(kpis.pjCusto)}</p>
+                <p className="text-xs"><span className="font-medium">CLT:</span> {kpis.cltCount} · {fmtBRL(kpis.cltCusto)}</p>
+                <p className="text-xs"><span className="font-medium">PJ:</span> {kpis.pjCount} · {fmtBRL(kpis.pjCusto)}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">CLT vs PJ (custo total)</p>
               </div>
             </CardContent></Card>
@@ -276,10 +277,10 @@ export default function CustoPessoas() {
                       <TableCell className="text-right">{fmtBRL(num(r.custo_recorrente_mensal))}</TableCell>
                       <TableCell className="text-right">{fmtBRL(num(r.encargo_direto_mensal))}</TableCell>
                       <TableCell className="text-right">{fmtBRL(num(r.provisao_mensal))}</TableCell>
-                      <TableCell className="text-right font-bold">{fmtBRL(num(r.custo_total_empresa))}</TableCell>
+                      <TableCell className="text-right font-medium">{fmtBRL(num(r.custo_total_empresa))}</TableCell>
                     </TableRow>
                   ))}
-                  <TableRow className="bg-muted/60 font-semibold">
+                  <TableRow className="bg-muted/60 font-medium">
                     <TableCell colSpan={3}>Total</TableCell>
                     <TableCell className="text-right">{fmtBRL(totaisRodape.remuneracao)}</TableCell>
                     <TableCell className="text-right">{fmtBRL(totaisRodape.encargos)}</TableCell>
@@ -292,6 +293,6 @@ export default function CustoPessoas() {
           </Card>
         </>
       )}
-    </div>
+    </PageShell>
   );
 }

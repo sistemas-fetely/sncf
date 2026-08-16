@@ -134,7 +134,7 @@ export function AnexosCompraList(props: Props) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <h3 className="text-sm font-semibold">Anexos da compra (opcional)</h3>
+        <h3 className="text-sm font-medium">Anexos da compra (opcional)</h3>
         <Badge variant="secondary">
           {lista.length} {lista.length === 1 ? "arquivo" : "arquivos"}
         </Badge>

@@ -56,9 +56,9 @@ function KpiCard({
 }) {
   const toneCls =
     tone === "danger"
-      ? "border-red-300 text-red-700"
+      ? "border-destructive/40 text-destructive"
       : tone === "warn"
-        ? "border-amber-300 text-amber-700"
+        ? "border-warning/40 text-warning"
         : "border-border";
   return (
     <button
@@ -71,7 +71,7 @@ function KpiCard({
       )}
     >
       <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="text-2xl font-semibold mt-1">{valor}</div>
+      <div className="text-2xl font-medium mt-1">{valor}</div>
       <div className="text-xs text-muted-foreground tabular-nums">{formatBRL(total)}</div>
     </button>
   );
@@ -177,7 +177,7 @@ function LinhaCompacta({
       <Badge variant={vencido ? "destructive" : "outline"} className="text-[10px] shrink-0">
         {atraso === 0 ? "hoje" : vencido ? `há ${atraso}d` : `D${atraso}`}
       </Badge>
-      <span className="text-xs font-semibold tabular-nums shrink-0 w-24 text-right">
+      <span className="text-xs font-medium tabular-nums shrink-0 w-24 text-right">
         {formatBRL(titulo.valor_efetivo)}
       </span>
     </button>
@@ -212,7 +212,7 @@ function CardTitulo({
       )}
     >
       {acaoAtrasada && (
-        <div className="flex items-center gap-1 text-[10px] font-semibold text-destructive">
+        <div className="flex items-center gap-1 text-[10px] font-medium text-destructive">
           <AlertTriangle className="h-3 w-3" />
           Ação da régua atrasada
           {proxima && <span className="font-normal">· prevista para {String(proxima).slice(0, 10).split("-").reverse().join("/")}</span>}
@@ -231,7 +231,7 @@ function CardTitulo({
           </p>
         </div>
         <div className="text-right shrink-0">
-          <div className="font-semibold text-sm">{formatBRL(titulo.valor_efetivo)}</div>
+          <div className="font-medium text-sm">{formatBRL(titulo.valor_efetivo)}</div>
           {atraso > 0 ? (
             <Badge variant="destructive" className="text-[10px]">
               há {titulo.dias_atraso}d
@@ -248,7 +248,7 @@ function CardTitulo({
 
       <TooltipProvider>
         <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-border bg-muted/50 px-2 py-1.5">
-          <span className="text-sm font-semibold tabular-nums">
+          <span className="text-sm font-medium tabular-nums">
             {atraso === 0 ? "vence hoje" : `vence ${fmtDataMesa(vencimento)}`}
           </span>
           {atraso > 0 ? (
@@ -270,17 +270,17 @@ function CardTitulo({
           </Badge>
         )}
         {titulo.vip_relacionamento && (
-          <Badge className="text-[10px] bg-amber-100 text-amber-800 border border-amber-300">
+          <Badge className="text-[10px] bg-warning/10 text-warning border border-warning/40">
             <Star className="h-3 w-3 mr-0.5" /> VIP
           </Badge>
         )}
         {titulo.flag_bandeira_amarela && (
-          <Badge className="text-[10px] bg-yellow-100 text-yellow-800 border border-yellow-300">
+          <Badge className="text-[10px] bg-warning/10 text-warning border border-warning/40">
             <AlertTriangle className="h-3 w-3 mr-0.5" /> Bandeira amarela
           </Badge>
         )}
         {titulo.flag_grupo_economico_inadimplente && (
-          <Badge className="text-[10px] bg-red-100 text-red-800 border border-red-300">
+          <Badge className="text-[10px] bg-destructive/10 text-destructive border border-destructive/40">
             <Users className="h-3 w-3 mr-0.5" /> Grupo inadimplente
           </Badge>
         )}
@@ -300,7 +300,7 @@ function CardTitulo({
       })()}
 
       {(titulo as any).regua_cobrar_sem_boleto && (
-        <div className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1.5 text-[11px] font-medium text-amber-900 dark:bg-amber-950/40 dark:border-amber-900 dark:text-amber-100">
+        <div className="rounded-md border border-warning/40 bg-warning/10 px-2 py-1.5 text-[11px] font-medium text-warning">
           <AlertTriangle className="h-3 w-3 inline mr-1 -mt-0.5" />
           Cobrar a dívida, mas NÃO reenviar este boleto — vencido, precisa reemissão
         </div>
@@ -547,7 +547,7 @@ export default function ReguaTab() {
       {!loading && grupos.map(([nomeGrupo, { etapa, titulos }]) => (
         <section key={nomeGrupo} className="space-y-2">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold">{nomeGrupo}</h3>
+            <h3 className="text-sm font-medium">{nomeGrupo}</h3>
             <span className="text-xs text-muted-foreground">{titulos.length} título(s)</span>
           </div>
           <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
@@ -597,7 +597,7 @@ export default function ReguaTab() {
         >
           <p className="font-medium">Nenhuma ação de régua pendente hoje.</p>
           {vencidosNaLista.length > 0 ? (
-            <p className="text-destructive font-semibold inline-flex items-center gap-1 mt-1">
+            <p className="text-destructive font-medium inline-flex items-center gap-1 mt-1">
               <AlertTriangle className="h-3.5 w-3.5" />
               {vencidosNaLista.length} título(s) vencido(s) na lista abaixo · {formatBRL(somaValor(vencidosNaLista))}
               {" — já contatados, aguardando pagamento."}
@@ -613,7 +613,7 @@ export default function ReguaTab() {
       {!loading && vista === "atraso" && lista.length > 0 && (
         <section className="space-y-2">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold">Em atraso — visão informativa</h3>
+            <h3 className="text-sm font-medium">Em atraso — visão informativa</h3>
             <span className="text-xs text-muted-foreground">
               {lista.length} título(s) · {formatBRL(somaLista(lista))}
             </span>
@@ -652,7 +652,7 @@ export default function ReguaTab() {
       {!loading && vista === "fila" && baldes.jaContatado.length > 0 && (
         <section className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-muted-foreground">
+            <h3 className="text-sm font-medium text-muted-foreground">
               Já contatado — régua cumprida
             </h3>
             <span className="text-xs text-muted-foreground">
@@ -694,7 +694,7 @@ export default function ReguaTab() {
       {!loading && vista === "fila" && baldes.aguardando.length > 0 && (
         <section className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-muted-foreground">
+            <h3 className="text-sm font-medium text-muted-foreground">
               Aguardando data — nenhuma etapa ainda
             </h3>
             <span className="text-xs text-muted-foreground">

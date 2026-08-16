@@ -128,7 +128,7 @@ export default function Recrutamento() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Recrutamento e Seleção</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Recrutamento e Seleção</h1>
           <p className="text-muted-foreground text-sm mt-1">Gestão de vagas e candidatos</p>
         </div>
         {canCreate && (

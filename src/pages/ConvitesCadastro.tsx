@@ -54,12 +54,12 @@ import { SalarioMasked } from "@/components/SalarioMasked";
 
 // ─── Status config ───────────────────────────────────────────────────
 const STATUS_CONFIG: Record<string, { label: string; badge: string; icon: typeof Send }> = {
-  pendente: { label: "Pendente", badge: "bg-amber-100 text-amber-700 border-0", icon: Clock },
-  email_enviado: { label: "Enviado", badge: "bg-sky-100 text-sky-700 border-0", icon: Send },
-  atrasado: { label: "Atrasado", badge: "bg-yellow-100 text-yellow-700 border-0", icon: AlertTriangle },
-  preenchido: { label: "Preenchido", badge: "bg-emerald-100 text-emerald-700 border-0", icon: CheckCircle2 },
-  devolvido: { label: "Devolvido", badge: "bg-orange-100 text-orange-700 border-0", icon: Undo2 },
-  aprovado: { label: "Aprovado", badge: "bg-blue-100 text-blue-700 border-0", icon: CheckCircle2 },
+  pendente: { label: "Pendente", badge: "bg-warning/10 text-warning border-0", icon: Clock },
+  email_enviado: { label: "Enviado", badge: "bg-info/10 text-info border-0", icon: Send },
+  atrasado: { label: "Atrasado", badge: "bg-warning/10 text-warning border-0", icon: AlertTriangle },
+  preenchido: { label: "Preenchido", badge: "bg-success/10 text-success border-0", icon: CheckCircle2 },
+  devolvido: { label: "Devolvido", badge: "bg-warning/10 text-warning border-0", icon: Undo2 },
+  aprovado: { label: "Aprovado", badge: "bg-info/10 text-info border-0", icon: CheckCircle2 },
   cadastrado: { label: "Cadastrado", badge: "bg-muted text-muted-foreground border-0", icon: UserCheck },
   cancelado: { label: "Cancelado", badge: "bg-muted text-muted-foreground border-0", icon: XCircle },
 };
@@ -148,7 +148,7 @@ function getDisplayStatus(c: Convite): string {
 
 // ─── Helper: row bg class based on status ────────────────────────────
 function getRowClass(displayStatus: string): string {
-  if (displayStatus === "atrasado") return "bg-yellow-50/50 dark:bg-yellow-950/10";
+  if (displayStatus === "atrasado") return "bg-warning/10";
   return "";
 }
 
@@ -611,7 +611,7 @@ export default function ConvitesCadastro() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Convites de Pré-Cadastro</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Convites de Pré-Cadastro</h1>
           <p className="text-muted-foreground text-sm mt-1">
             {isGestorDireto ? "Convites do seu time" : "Gestão do funil de pré-cadastro de colaboradores"}
           </p>
@@ -651,10 +651,10 @@ export default function ConvitesCadastro() {
                 </p>
                 {funnelFilter === phase.key && <X className="h-3 w-3 flex-shrink-0" style={{ color: phase.color }} />}
               </div>
-              <p className="text-xl font-bold" style={{ color: phase.color }}>
+              <p className="text-xl font-medium" style={{ color: phase.color }}>
                 {funnelCounts[phase.key] || 0}
                 {phase.key === "email_enviado" && atrasadosCount > 0 && (
-                  <span className="text-xs font-medium ml-1.5 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 inline-flex items-center gap-0.5">
+                  <span className="text-xs font-medium ml-1.5 px-1.5 py-0.5 rounded-full bg-warning/10 text-warning inline-flex items-center gap-0.5">
                     ⏰ {atrasadosCount}
                   </span>
                 )}
@@ -750,9 +750,9 @@ export default function ConvitesCadastro() {
                                       }}
                                     >
                                       {c.lembretes_ativos !== false ? (
-                                        <Mail className="h-3.5 w-3.5 text-blue-500" />
+                                        <Mail className="h-3.5 w-3.5 text-info" />
                                       ) : (
-                                        <MailX className="h-3.5 w-3.5 text-red-500" />
+                                        <MailX className="h-3.5 w-3.5 text-destructive" />
                                       )}
                                     </button>
                                   </TooltipTrigger>
@@ -768,8 +768,8 @@ export default function ConvitesCadastro() {
                           <Badge
                             className={
                               c.tipo?.toLowerCase() === "clt"
-                                ? "bg-info text-info-foreground hover:bg-info/90 font-bold border-0 text-xs"
-                                : "bg-warning text-warning-foreground hover:bg-warning/90 font-bold border-0 text-xs"
+                                ? "bg-info text-info-foreground hover:bg-info/90 font-medium border-0 text-xs"
+                                : "bg-warning text-warning-foreground hover:bg-warning/90 font-medium border-0 text-xs"
                             }
                           >
                             {c.tipo.toUpperCase()}
@@ -868,7 +868,7 @@ export default function ConvitesCadastro() {
                 {/* RH Data Card */}
                 <Card className="border-primary/20 bg-primary/5">
                   <CardContent className="p-4 space-y-2">
-                    <h4 className="text-sm font-semibold text-primary">Dados definidos pelo RH</h4>
+                    <h4 className="text-sm font-medium text-primary">Dados definidos pelo RH</h4>
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div><span className="text-xs text-muted-foreground">Tipo</span><p className="font-medium">{reviewTarget.tipo.toUpperCase()}</p></div>
                       {reviewTarget.cargo && <div><span className="text-xs text-muted-foreground">Cargo</span><p className="font-medium">{reviewTarget.cargo}</p></div>}
@@ -888,9 +888,9 @@ export default function ConvitesCadastro() {
 
                 {/* Returned comment if devolvido */}
                 {reviewTarget.dados_preenchidos?._comentario_rh && (
-                  <Card className="border-orange-200 bg-orange-50/50 dark:bg-orange-950/20 dark:border-orange-800">
+                  <Card className="border-warning/40 bg-warning/10">
                     <CardContent className="p-4">
-                      <h4 className="text-sm font-semibold text-orange-700 dark:text-orange-400 mb-1">Comentário do RH (devolução)</h4>
+                      <h4 className="text-sm font-medium text-warning mb-1">Comentário do RH (devolução)</h4>
                       <p className="text-sm">{reviewTarget.dados_preenchidos._comentario_rh}</p>
                       {reviewTarget.dados_preenchidos._devolvido_em && (
                         <p className="text-xs text-muted-foreground mt-1">
@@ -904,13 +904,13 @@ export default function ConvitesCadastro() {
                 {/* Employee Data */}
                 {reviewTarget.dados_preenchidos && Object.keys(reviewTarget.dados_preenchidos).length > 0 ? (
                   <div className="space-y-4">
-                    <h4 className="text-sm font-semibold text-muted-foreground uppercase">Dados preenchidos pelo colaborador</h4>
+                    <h4 className="text-sm font-medium text-muted-foreground uppercase">Dados preenchidos pelo colaborador</h4>
                     {Object.entries(reviewTarget.dados_preenchidos as Record<string, any>).map(([key, value]) => {
                       if (key.startsWith("_") || key === "documentos_upload" || key === "lgpd_aceito" || key === "lgpd_aceito_em" || key === "lgpd_versao") return null;
                       if (key === "dependentes" && Array.isArray(value)) {
                         return (
                           <div key={key}>
-                            <p className="text-sm font-semibold mb-2">Dependentes ({value.length})</p>
+                            <p className="text-sm font-medium mb-2">Dependentes ({value.length})</p>
                             {value.map((dep: any, i: number) => (
                               <Card key={i} className="mb-2"><CardContent className="p-3">
                                 <div className="grid grid-cols-2 gap-1 text-sm">
@@ -935,7 +935,7 @@ export default function ConvitesCadastro() {
                     {/* Uploaded docs */}
                     {reviewTarget.dados_preenchidos.documentos_upload && Array.isArray(reviewTarget.dados_preenchidos.documentos_upload) && (
                       <div>
-                        <p className="text-sm font-semibold mb-2">Documentos Anexados</p>
+                        <p className="text-sm font-medium mb-2">Documentos Anexados</p>
                         {reviewTarget.dados_preenchidos.documentos_upload.map((doc: any) => (
                           <div key={doc.key} className="flex items-center justify-between p-2 rounded border mb-1">
                             <span className="text-sm">{doc.name || doc.key}</span>
@@ -947,7 +947,7 @@ export default function ConvitesCadastro() {
 
                     {/* LGPD info */}
                     {reviewTarget.dados_preenchidos.lgpd_aceito && (
-                      <div className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400">
+                      <div className="flex items-center gap-2 text-sm text-success">
                         <CheckCircle2 className="h-4 w-4" />
                         Termo LGPD aceito em {reviewTarget.dados_preenchidos.lgpd_aceito_em ? format(parseISO(reviewTarget.dados_preenchidos.lgpd_aceito_em), "dd/MM/yyyy HH:mm") : "—"}
                         {reviewTarget.dados_preenchidos.lgpd_versao && ` (v${reviewTarget.dados_preenchidos.lgpd_versao})`}
@@ -1011,7 +1011,7 @@ export default function ConvitesCadastro() {
             <div className="space-y-6 py-4">
               {/* Section 1: Dados Básicos */}
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Dados Básicos</h3>
+                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Dados Básicos</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div><Label>Nome *</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} placeholder="Nome completo" /></div>
                   <div><Label>Email *</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="email@exemplo.com" /></div>
@@ -1027,7 +1027,7 @@ export default function ConvitesCadastro() {
 
               {/* Section 2: Dados da Vaga */}
               <div className="rounded-lg border bg-muted/30 p-4 space-y-4">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Dados da Vaga</h3>
+                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Dados da Vaga</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label>Cargo *</Label>
@@ -1169,7 +1169,7 @@ export default function ConvitesCadastro() {
               {/* Section 3: Provisionamento */}
               <div className="rounded-lg border bg-muted/30 p-4 space-y-4">
                 <div>
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Provisionamento</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Provisionamento</h3>
                   <p className="text-xs text-muted-foreground mt-1">Defina o que precisa ser preparado antes da chegada do colaborador. Essas informações geram tarefas automáticas no onboarding.</p>
                 </div>
 
@@ -1300,14 +1300,14 @@ export default function ConvitesCadastro() {
                       </p>
                     )}
                     {showSalaryField && (
-                      <div className="rounded-lg border border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-800 p-4 space-y-4">
-                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2"><Lock className="h-3.5 w-3.5" /> Dados Sensíveis</h3>
+                      <div className="rounded-lg border border-warning/40 bg-warning/10 p-4 space-y-4">
+                        <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2"><Lock className="h-3.5 w-3.5" /> Dados Sensíveis</h3>
                         <div>
                           <Label className="flex items-center gap-2">
                             {form.tipo === "clt" ? "Salário Base (R$)" : "Valor Mensal (R$)"}
-                            <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1"><Lock className="h-3 w-3" /> Dado sensível</span>
+                            <span className="text-xs text-warning flex items-center gap-1"><Lock className="h-3 w-3" /> Dado sensível</span>
                             {selectedCargoCLevel && (
-                              <Badge className="text-[10px] bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-300 dark:border-orange-700 ml-1">
+                              <Badge className="text-[10px] bg-warning text-warning border-warning/40 ml-1">
                                 C-Level 🔒
                               </Badge>
                             )}
@@ -1322,7 +1322,7 @@ export default function ConvitesCadastro() {
 
               {/* Section 4: Configurações */}
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Configurações do Convite</h3>
+                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Configurações do Convite</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label>Data de Início Prevista</Label>

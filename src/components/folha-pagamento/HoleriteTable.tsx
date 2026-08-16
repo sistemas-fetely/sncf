@@ -96,10 +96,10 @@ export function HoleriteTable({ holerites, onSelect }: Props) {
                   <TableCell className="text-right">
                     <SalarioMasked valor={h.total_proventos} userId={(h.colaborador as any)?.user_id || null} contexto="holerite" />
                   </TableCell>
-                  <TableCell className="text-right text-red-600">{fmt(h.inss)}</TableCell>
-                  <TableCell className="text-right text-red-600">{fmt(h.irrf)}</TableCell>
-                  <TableCell className="text-right text-red-600">{fmt(h.total_descontos)}</TableCell>
-                  <TableCell className="text-right font-semibold">
+                  <TableCell className="text-right text-destructive">{fmt(h.inss)}</TableCell>
+                  <TableCell className="text-right text-destructive">{fmt(h.irrf)}</TableCell>
+                  <TableCell className="text-right text-destructive">{fmt(h.total_descontos)}</TableCell>
+                  <TableCell className="text-right font-medium">
                     <SalarioMasked valor={h.salario_liquido} userId={(h.colaborador as any)?.user_id || null} contexto="holerite" />
                   </TableCell>
                   <TableCell className="text-right">{fmt(h.fgts)}</TableCell>
@@ -110,13 +110,13 @@ export function HoleriteTable({ holerites, onSelect }: Props) {
           {visible.length > 0 && (
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={3} className="font-semibold">Totais ({visible.length})</TableCell>
-                <TableCell className="text-right font-semibold">{fmt(totais.bruto)}</TableCell>
-                <TableCell className="text-right font-semibold text-red-600">{fmt(totais.inss)}</TableCell>
-                <TableCell className="text-right font-semibold text-red-600">{fmt(totais.irrf)}</TableCell>
-                <TableCell className="text-right font-semibold text-red-600">{fmt(totais.descontos)}</TableCell>
-                <TableCell className="text-right font-semibold">{fmt(totais.liquido)}</TableCell>
-                <TableCell className="text-right font-semibold">{fmt(totais.fgts)}</TableCell>
+                <TableCell colSpan={3} className="font-medium">Totais ({visible.length})</TableCell>
+                <TableCell className="text-right font-medium">{fmt(totais.bruto)}</TableCell>
+                <TableCell className="text-right font-medium text-destructive">{fmt(totais.inss)}</TableCell>
+                <TableCell className="text-right font-medium text-destructive">{fmt(totais.irrf)}</TableCell>
+                <TableCell className="text-right font-medium text-destructive">{fmt(totais.descontos)}</TableCell>
+                <TableCell className="text-right font-medium">{fmt(totais.liquido)}</TableCell>
+                <TableCell className="text-right font-medium">{fmt(totais.fgts)}</TableCell>
               </TableRow>
             </TableFooter>
           )}

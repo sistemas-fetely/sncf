@@ -39,7 +39,7 @@ function diferente(a: unknown, b: unknown): boolean {
 function MarcadorDelta({ alterado }: { alterado: boolean }) {
   if (!alterado) return null;
   return (
-    <Badge variant="outline" className="gap-1 text-[10px] py-0 px-1.5 border-blue-300 text-blue-700">
+    <Badge variant="outline" className="gap-1 text-[10px] py-0 px-1.5 border-info/40 text-info">
       <Wand2 className="h-2.5 w-2.5" />
       editado
     </Badge>
@@ -213,7 +213,7 @@ export function FormDecisaoCredito({ valores, sugestaoIA, onChange, disabled }: 
           </Select>
           {sugestaoIA?.perfil_aplicado && sugestaoIA.perfil_aplicado !== valores.perfil_aplicado && (
             <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-              <Wand2 className="h-3 w-3 text-blue-600" />
+              <Wand2 className="h-3 w-3 text-info" />
               Sugestão IA: {" "}
               <span className="font-medium capitalize">
                 {sugestaoIA.perfil_aplicado.replace(/_/g, " ")}

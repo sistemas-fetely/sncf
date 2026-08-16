@@ -13,6 +13,7 @@ import { SelectDepartamentoHierarquico } from "@/components/shared/SelectDeparta
 import { useTemplates } from "@/hooks/useTemplates";
 import { toast } from "sonner";
 
+import { PageShell } from "@/components/layout/PageShell";
 const NIVEIS = [
   { value: "jr", label: "Júnior" },
   { value: "pl", label: "Pleno" },
@@ -273,10 +274,10 @@ export default function CargoForm() {
   });
 
   return (
-    <div className="p-6 space-y-6 max-w-2xl">
+    <PageShell>
       <div className="flex items-center gap-3">
         <SmartBackButton fallback="/admin/cargos" fallbackLabel="Cargos" />
-        <h1 className="text-2xl font-semibold">{isNovo ? "Novo Cargo" : "Editar Cargo"}</h1>
+        <h1 className="text-2xl font-medium">{isNovo ? "Novo Cargo" : "Editar Cargo"}</h1>
       </div>
 
       <div className="space-y-6">
@@ -444,7 +445,7 @@ export default function CargoForm() {
               values={form.skills_desejadas ?? []}
               onChange={(v) => setField("skills_desejadas", v)}
               placeholder="Digite e pressione Enter"
-              colorClass="bg-blue-100 text-blue-800"
+              colorClass="bg-info/10 text-info"
             />
           </div>
 
@@ -454,7 +455,7 @@ export default function CargoForm() {
               values={form.ferramentas ?? []}
               onChange={(v) => setField("ferramentas", v)}
               placeholder="Digite e pressione Enter"
-              colorClass="bg-purple-100 text-purple-800"
+              colorClass="bg-info/10 text-info"
             />
           </div>
         </div>
@@ -478,6 +479,6 @@ export default function CargoForm() {
           {salvar.isPending ? "Salvando..." : isNovo ? "Criar cargo" : "Salvar alterações"}
         </Button>
       </div>
-    </div>
+    </PageShell>
   );
 }

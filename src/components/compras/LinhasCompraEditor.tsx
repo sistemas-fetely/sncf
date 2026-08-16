@@ -36,34 +36,34 @@ const tipoBadge: Record<TipoLinha, { label: string; cls: string }> = {
   produto: { label: "Produto", cls: "bg-secondary text-secondary-foreground" },
   frete: {
     label: "Frete",
-    cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+    cls: "bg-info/10 text-info",
   },
   servico: {
     label: "Serviço",
-    cls: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
+    cls: "bg-info/10 text-info",
   },
   extra: {
     label: "Extra",
-    cls: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
+    cls: "bg-warning/10 text-warning",
   },
   desconto: {
     label: "Desconto",
-    cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+    cls: "bg-success/10 text-success",
   },
 };
 
 const statusBadge: Record<StatusLinha, { label: string; cls: string }> = {
   comprada: {
     label: "Veio",
-    cls: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+    cls: "bg-success/10 text-success",
   },
   nao_comprada: {
     label: "Faltou",
-    cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+    cls: "bg-warning/10 text-warning",
   },
   substituida: {
     label: "Trocado",
-    cls: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
+    cls: "bg-muted/10 text-muted-foreground",
   },
 };
 
@@ -380,7 +380,7 @@ export function LinhasCompraEditor({ linhas, onChange, pedidoItens, readonly }: 
                   <TableCell
                     className={cn(
                       "text-right text-sm font-medium",
-                      l.tipo_linha === "desconto" && "text-rose-600 dark:text-rose-400",
+                      l.tipo_linha === "desconto" && "text-destructive",
                     )}
                   >
                     {l.tipo_linha === "desconto" ? `− ${fmtBRL(l._valor_total)}` : fmtBRL(l._valor_total)}
@@ -440,7 +440,7 @@ export function LinhasCompraEditor({ linhas, onChange, pedidoItens, readonly }: 
           <AdicionarLinhaDropdown onAdd={handleAdd} disabled={readonly} />
           <div className="text-sm">
             <span className="text-muted-foreground">Total: </span>
-            <span className="text-lg font-bold">{fmtBRL(total)}</span>
+            <span className="text-lg font-medium">{fmtBRL(total)}</span>
           </div>
         </div>
       </CardContent>

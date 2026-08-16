@@ -30,7 +30,7 @@ export function Secao({ titulo, acao, children }: { titulo: string; acao?: React
   return (
     <section className="space-y-2 border-t border-border pt-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold">{titulo}</h3>
+        <h3 className="text-sm font-medium">{titulo}</h3>
         {acao}
       </div>
       {children}

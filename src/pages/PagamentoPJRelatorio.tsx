@@ -99,7 +99,7 @@ export default function PagamentoPJRelatorio() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold tracking-tight">Relatório de Pagamentos</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Relatório de Pagamentos</h1>
           <p className="text-muted-foreground text-sm mt-0.5">{nome} — CNPJ: {contrato?.cnpj || "—"}</p>
           {apelido && (
             <p className="text-muted-foreground text-xs mt-0.5">{apelido}</p>
@@ -118,7 +118,7 @@ export default function PagamentoPJRelatorio() {
               <CreditCard className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{pagamentos.length}</p>
+              <p className="text-2xl font-medium">{pagamentos.length}</p>
               <p className="text-xs text-muted-foreground">Total Pagamentos</p>
             </div>
           </CardContent>
@@ -129,7 +129,7 @@ export default function PagamentoPJRelatorio() {
               <TrendingUp className="h-5 w-5" />
             </div>
             <div>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-medium">
                 <SalarioMasked valor={totalPago} userId={contrato?.user_id || null} contexto="relatorio_pj" />
               </div>
               <p className="text-xs text-muted-foreground">Total Pago</p>
@@ -142,7 +142,7 @@ export default function PagamentoPJRelatorio() {
               <Calendar className="h-5 w-5" />
             </div>
             <div>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-medium">
                 <SalarioMasked valor={totalPendente} userId={contrato?.user_id || null} contexto="relatorio_pj" />
               </div>
               <p className="text-xs text-muted-foreground">A Pagar</p>
@@ -155,7 +155,7 @@ export default function PagamentoPJRelatorio() {
               <TrendingUp className="h-5 w-5" />
             </div>
             <div>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-medium">
                 <SalarioMasked valor={mediaMensal} userId={contrato?.user_id || null} contexto="relatorio_pj" />
               </div>
               <p className="text-xs text-muted-foreground">Média Mensal</p>
@@ -168,7 +168,7 @@ export default function PagamentoPJRelatorio() {
       {chartData.length > 0 && (
         <Card className="card-shadow">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold">Evolução de Pagamentos por Competência</CardTitle>
+            <CardTitle className="text-base font-medium">Evolução de Pagamentos por Competência</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-64">
@@ -197,20 +197,20 @@ export default function PagamentoPJRelatorio() {
       {/* Table */}
       <Card className="card-shadow">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-semibold">Histórico Detalhado</CardTitle>
+          <CardTitle className="text-base font-medium">Histórico Detalhado</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="font-semibold">Competência</TableHead>
-                  <TableHead className="font-semibold">Nº NF</TableHead>
-                  <TableHead className="font-semibold">Data Prevista</TableHead>
-                  <TableHead className="font-semibold">Data Pgto</TableHead>
-                  <TableHead className="font-semibold">Valor</TableHead>
-                  <TableHead className="font-semibold">Forma</TableHead>
-                  <TableHead className="font-semibold">Status</TableHead>
+                  <TableHead className="font-medium">Competência</TableHead>
+                  <TableHead className="font-medium">Nº NF</TableHead>
+                  <TableHead className="font-medium">Data Prevista</TableHead>
+                  <TableHead className="font-medium">Data Pgto</TableHead>
+                  <TableHead className="font-medium">Valor</TableHead>
+                  <TableHead className="font-medium">Forma</TableHead>
+                  <TableHead className="font-medium">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -243,9 +243,9 @@ export default function PagamentoPJRelatorio() {
           {pagamentos.length > 0 && (
             <div className="flex justify-end pt-4 border-t mt-4">
               <div className="text-sm space-y-1 text-right">
-                <p>Total Pago: <span className="font-semibold text-success">{BRL(totalPago)}</span></p>
-                <p>Total Pendente: <span className="font-semibold text-warning">{BRL(totalPendente)}</span></p>
-                <p>Total Geral: <span className="font-bold">{BRL(totalPago + totalPendente)}</span></p>
+                <p>Total Pago: <span className="font-medium text-success">{BRL(totalPago)}</span></p>
+                <p>Total Pendente: <span className="font-medium text-warning">{BRL(totalPendente)}</span></p>
+                <p>Total Geral: <span className="font-medium">{BRL(totalPago + totalPendente)}</span></p>
               </div>
             </div>
           )}

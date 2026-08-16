@@ -12,6 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 
+import { PageShell } from "@/components/layout/PageShell";
 export function fmtDate(s: string | null | undefined): string {
   if (!s) return "—";
   try { return format(new Date(s), "dd/MM/yyyy HH:mm"); } catch { return "—"; }
@@ -62,7 +63,7 @@ export function ShopifyListPage<T extends Record<string, any>>({
   }, [data, busca, searchFields]);
 
   return (
-    <div className="p-6 space-y-4">
+    <PageShell>
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-serif">{titulo}</h1>
         <Input
@@ -121,7 +122,7 @@ export function ShopifyListPage<T extends Record<string, any>>({
             <div className="space-y-4">
               {detailFields.map((f) => (
                 <div key={f}>
-                  <div className="text-xs font-semibold text-muted-foreground mb-1">{f}</div>
+                  <div className="text-xs font-medium text-muted-foreground mb-1">{f}</div>
                   <pre className="text-xs bg-muted p-3 rounded overflow-auto max-h-80">
                     {JSON.stringify((detalheRow as any)[f] ?? null, null, 2)}
                   </pre>
@@ -131,6 +132,6 @@ export function ShopifyListPage<T extends Record<string, any>>({
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

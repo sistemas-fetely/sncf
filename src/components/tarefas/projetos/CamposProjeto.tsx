@@ -39,7 +39,7 @@ export function CamposProjeto({ projetoId }: Props) {
   return (
     <div className="space-y-6">
       <section className="space-y-2">
-        <h3 className="text-sm font-semibold">Campos do projeto</h3>
+        <h3 className="text-sm font-medium">Campos do projeto</h3>
         {(vinculos ?? []).length === 0 && (
           <p className="text-sm text-muted-foreground">Nenhum campo ligado a este projeto.</p>
         )}
@@ -101,7 +101,7 @@ export function CamposProjeto({ projetoId }: Props) {
       </section>
 
       <section className="space-y-2 border-t pt-4">
-        <h3 className="text-sm font-semibold">Ligar campo existente</h3>
+        <h3 className="text-sm font-medium">Ligar campo existente</h3>
         <div className="flex flex-wrap items-center gap-2">
           <Select value={aVincular} onValueChange={setAVincular}>
             <SelectTrigger className="h-9 w-64">
@@ -129,7 +129,7 @@ export function CamposProjeto({ projetoId }: Props) {
       </section>
 
       <section className="space-y-2 border-t pt-4">
-        <h3 className="text-sm font-semibold">Criar campo novo</h3>
+        <h3 className="text-sm font-medium">Criar campo novo</h3>
         <div className="flex flex-wrap items-end gap-2">
           <div className="space-y-1">
             <Label htmlFor="campo-nome">Nome</Label>

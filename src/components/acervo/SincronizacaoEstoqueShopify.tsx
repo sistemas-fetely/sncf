@@ -144,9 +144,9 @@ export function SincronizacaoEstoqueShopify() {
           <div className="rounded-md border bg-muted/30 p-4 space-y-3">
             <div className="text-sm">
               <span className="font-medium">{dryRun.total_mudariam}</span> SKUs mudariam ·{" "}
-              <span className="text-red-700 dark:text-red-300 font-medium">{dryRun.reduzir}</span>{" "}
+              <span className="text-destructive font-medium">{dryRun.reduzir}</span>{" "}
               reduzem (Shopify vendia a mais) ·{" "}
-              <span className="text-emerald-700 dark:text-emerald-300 font-medium">
+              <span className="text-success font-medium">
                 {dryRun.aumentar}
               </span>{" "}
               aumentam
@@ -172,8 +172,8 @@ export function SincronizacaoEstoqueShopify() {
                         <td
                           className={cn(
                             "px-3 py-1.5 text-right tabular-nums font-medium",
-                            e.diff < 0 && "text-red-700 dark:text-red-300",
-                            e.diff > 0 && "text-emerald-700 dark:text-emerald-300",
+                            e.diff < 0 && "text-destructive",
+                            e.diff > 0 && "text-success",
                           )}
                         >
                           {e.diff > 0 ? `+${e.diff}` : e.diff}
@@ -194,17 +194,17 @@ export function SincronizacaoEstoqueShopify() {
         )}
 
         {pushResumo && (
-          <div className="rounded-md border bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900 p-4 space-y-2">
-            <div className="text-sm font-medium text-emerald-800 dark:text-emerald-200">
+          <div className="rounded-md border bg-success/10 border-success/40 p-4 space-y-2">
+            <div className="text-sm font-medium text-success">
               {pushResumo.empurrados} SKUs empurrados em {pushResumo.batches} lote(s)
             </div>
             {Array.isArray(pushResumo.erros) && pushResumo.erros.length > 0 && (
-              <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-900 p-2 text-xs">
-                <div className="flex items-center gap-1.5 font-medium text-amber-800 dark:text-amber-200">
+              <div className="rounded-md border border-warning/40 bg-warning/10 p-2 text-xs">
+                <div className="flex items-center gap-1.5 font-medium text-warning">
                   <AlertTriangle className="h-3.5 w-3.5" />
                   {pushResumo.erros.length} erro(s) durante a sincronização
                 </div>
-                <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap text-[10px] text-amber-900 dark:text-amber-100">
+                <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap text-[10px] text-warning">
                   {JSON.stringify(pushResumo.erros, null, 2)}
                 </pre>
               </div>

@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Clock, LogOut } from "lucide-react";
 
+import { PageShell } from "@/components/layout/PageShell";
 export default function AguardandoAprovacao() {
   const { signOut, user, approved, roles, loading } = useAuth();
 
@@ -27,14 +28,14 @@ export default function AguardandoAprovacao() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <PageShell className="flex min-h-screen items-center justify-center bg-background">
       <div className="w-full max-w-md space-y-6">
         <div className="flex flex-col items-center gap-3">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
             <Clock className="h-7 w-7 text-primary" />
           </div>
           <div className="text-center">
-            <h1 className="text-2xl font-bold">Aguardando Aprovação</h1>
+            <h1 className="text-2xl font-medium">Aguardando Aprovação</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Sua conta está pendente de aprovação
             </p>
@@ -56,6 +57,6 @@ export default function AguardandoAprovacao() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PageShell>
   );
 }

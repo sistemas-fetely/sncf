@@ -29,6 +29,7 @@ import {
 import { formatBRL } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 
+import { PageShell } from "@/components/layout/PageShell";
 const PERFIS: PerfilCadencia[] = ["padrao", "bandeira_amarela", "vip"];
 const PERFIL_LABEL: Record<PerfilCadencia, string> = {
   padrao: "Padrão",
@@ -172,7 +173,7 @@ export default function ReguaEtapas() {
   }, [etapas]);
 
   return (
-    <div className="max-w-[1200px] mx-auto px-4 md:px-8 py-8 animate-casa-fade-in space-y-6">
+    <PageShell className="md:px-8 animate-casa-fade-in">
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
@@ -194,7 +195,7 @@ export default function ReguaEtapas() {
         const lista = porPerfil[perfil];
         return (
           <section key={perfil} className="space-y-2">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
               {PERFIL_LABEL[perfil]} · {lista.length} etapa{lista.length !== 1 ? "s" : ""}
             </h3>
             <div className="rounded-md border">
@@ -327,6 +328,6 @@ export default function ReguaEtapas() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

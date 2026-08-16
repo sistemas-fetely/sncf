@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Plus, ArrowUpDown, ArrowUp, ArrowDown, Search } from "lucide-react";
 import { apelidoParceiro, parceiroCombina } from "@/lib/parceiros/nome";
 
+import { PageShell } from "@/components/layout/PageShell";
 const fmtBRL = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
@@ -169,7 +170,7 @@ export default function CreditoClientesIndex() {
   const loading = resumosQ.isLoading || haveresQ.isLoading || parceirosAllQ.isLoading;
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 space-y-6 animate-casa-fade-in">
+    <PageShell className="md:px-8 animate-casa-fade-in">
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
@@ -269,7 +270,7 @@ export default function CreditoClientesIndex() {
                       </td>
                         <td className="px-4 py-2 text-right">
                           {c.haver_disponivel > 0 ? (
-                            <span className="font-medium text-emerald-600">
+                            <span className="font-medium text-success">
                               {fmtBRL.format(c.haver_disponivel)}
                             </span>
                           ) : (
@@ -281,7 +282,7 @@ export default function CreditoClientesIndex() {
                           title="Adiantamento amarrado a um pedido — sai sozinho no faturamento"
                         >
                           {(c.reservado ?? 0) > 0 ? (
-                            <span className="font-medium text-sky-600">
+                            <span className="font-medium text-info">
                               {fmtBRL.format(c.reservado)}
                             </span>
                           ) : (
@@ -318,7 +319,7 @@ export default function CreditoClientesIndex() {
         onOpenChange={setCriarHaverOpen}
         parceiroId={null}
       />
-    </div>
+    </PageShell>
   );
 }
 
@@ -369,7 +370,7 @@ function KpiCard({
 }) {
   const toneCls =
     tone === "success"
-      ? "text-emerald-600"
+      ? "text-success"
       : tone === "danger"
       ? "text-destructive"
       : "text-foreground";
@@ -377,7 +378,7 @@ function KpiCard({
     <Card>
       <CardContent className="pt-6 space-y-1">
         <p className="text-xs text-muted-foreground uppercase tracking-wide">{label}</p>
-        <p className={`text-2xl font-semibold ${toneCls}`}>{value}</p>
+        <p className={`text-2xl font-medium ${toneCls}`}>{value}</p>
       </CardContent>
     </Card>
   );

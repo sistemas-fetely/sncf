@@ -246,7 +246,7 @@ export function DevolucaoParcialDialog({
               placeholder="0,00"
             />
             {excedeTotal && (
-              <p className="text-xs text-red-700">
+              <p className="text-xs text-destructive">
                 Valor não pode exceder o total do pedido ({formatBRL(total)}).
               </p>
             )}
@@ -330,7 +330,7 @@ export function DevolucaoParcialDialog({
                   </SelectContent>
                 </Select>
                 {abaterZera && parcelaSelecionada && (
-                  <p className="text-xs text-red-700">
+                  <p className="text-xs text-destructive">
                     O valor devolvido ({formatBRL(valorNum)}) é maior ou igual à parcela ({formatBRL(Number(parcelaSelecionada.valor_atual ?? 0))}).
                     Escolha outra parcela ou use haver/reembolso.
                   </p>
@@ -356,9 +356,9 @@ export function DevolucaoParcialDialog({
             </div>
           )}
 
-          <Alert className="border-amber-300 bg-amber-50">
-            <AlertTriangle className="h-4 w-4 !text-amber-700" />
-            <AlertDescription className="text-xs text-amber-900">
+          <Alert className="border-warning/40 bg-warning/10">
+            <AlertTriangle className="h-4 w-4 !text-warning" />
+            <AlertDescription className="text-xs text-warning">
               {desfecho === "abater_divida" ? (
                 <>Reduz a dívida da parcela escolhida. <strong>NÃO gera haver nem crédito.</strong></>
               ) : (

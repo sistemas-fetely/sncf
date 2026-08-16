@@ -40,16 +40,16 @@ interface Ativo {
 }
 
 const condicaoVariant: Record<string, { label: string; className: string }> = {
-  otima: { label: "Ótima", className: "bg-emerald-100 text-emerald-700 border-0" },
-  muito_boa: { label: "Muito Boa", className: "bg-blue-100 text-blue-700 border-0" },
-  boa: { label: "Boa", className: "bg-yellow-100 text-yellow-700 border-0" },
-  inativo: { label: "Inativo", className: "bg-red-100 text-red-700 border-0" },
+  otima: { label: "Ótima", className: "bg-success/10 text-success border-0" },
+  muito_boa: { label: "Muito Boa", className: "bg-info/10 text-info border-0" },
+  boa: { label: "Boa", className: "bg-warning/10 text-warning border-0" },
+  inativo: { label: "Inativo", className: "bg-destructive/10 text-destructive border-0" },
 };
 
 const statusVariant: Record<string, { label: string; className: string }> = {
-  disponivel: { label: "Disponível", className: "bg-emerald-100 text-emerald-700 border-0" },
-  atribuido: { label: "Atribuído", className: "bg-blue-100 text-blue-700 border-0" },
-  descartado: { label: "Descartado", className: "bg-gray-100 text-gray-500 border-0" },
+  disponivel: { label: "Disponível", className: "bg-success/10 text-success border-0" },
+  atribuido: { label: "Atribuído", className: "bg-info/10 text-info border-0" },
+  descartado: { label: "Descartado", className: "bg-muted/10 text-muted-foreground border-0" },
 };
 
 export default function TIAtivos() {
@@ -160,7 +160,7 @@ export default function TIAtivos() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight" style={{ color: TI_COLOR }}>
+          <h1 className="text-2xl font-medium tracking-tight" style={{ color: TI_COLOR }}>
             Gestão de Ativos
           </h1>
           <p className="text-muted-foreground text-sm mt-1">Inventário e movimentação de equipamentos</p>
@@ -245,7 +245,7 @@ export default function TIAtivos() {
                         <div className="flex flex-wrap items-center gap-1">
                           <Badge variant="outline" className={v.className}>{v.label}</Badge>
                           {a.em_manutencao && (
-                            <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-0 text-[10px]">
+                            <Badge variant="outline" className="bg-warning/10 text-warning border-0 text-[10px]">
                               🔧 Manutenção
                             </Badge>
                           )}

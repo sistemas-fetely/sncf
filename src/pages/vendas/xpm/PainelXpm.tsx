@@ -66,15 +66,15 @@ type CicloXpm = {
 function corAderencia(pct: number | null) {
   if (pct == null) return "bg-muted";
   if (pct < 50) return "bg-destructive";
-  if (pct < 80) return "bg-amber-500";
-  return "bg-emerald-600";
+  if (pct < 80) return "bg-warning";
+  return "bg-success";
 }
 
 function textoAderencia(pct: number | null) {
   if (pct == null) return "";
   if (pct < 50) return "text-destructive";
-  if (pct < 80) return "text-amber-700 dark:text-amber-500";
-  return "text-emerald-700 dark:text-emerald-500";
+  if (pct < 80) return "text-warning";
+  return "text-success";
 }
 
 function BarraAderencia({ pct }: { pct: number | null }) {
@@ -341,7 +341,7 @@ export default function PainelXpm() {
     <div className="max-w-[1300px] mx-auto px-4 md:px-8 py-8 space-y-6">
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Painel XPM</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Painel XPM</h1>
           <p className="text-sm text-muted-foreground">
             Ciclo do armazém, do pedido solicitado à expedição efetiva.
           </p>
@@ -376,7 +376,7 @@ export default function PainelXpm() {
               <CardContent className="pt-6">
                 <div className="text-xs text-muted-foreground">Risco</div>
                 <div
-                  className={`text-2xl font-semibold ${
+                  className={`text-2xl font-medium ${
                     farolFila.risco > 0 ? "text-destructive" : ""
                   }`}
                 >
@@ -384,12 +384,12 @@ export default function PainelXpm() {
                 </div>
               </CardContent>
             </Card>
-            <Card className={farolFila.atencao > 0 ? "border-amber-500/50" : undefined}>
+            <Card className={farolFila.atencao > 0 ? "border-warning/40" : undefined}>
               <CardContent className="pt-6">
                 <div className="text-xs text-muted-foreground">Atenção</div>
                 <div
-                  className={`text-2xl font-semibold ${
-                    farolFila.atencao > 0 ? "text-amber-700 dark:text-amber-500" : ""
+                  className={`text-2xl font-medium ${
+                    farolFila.atencao > 0 ? "text-warning" : ""
                   }`}
                 >
                   {nfInt.format(farolFila.atencao)}
@@ -399,13 +399,13 @@ export default function PainelXpm() {
             <Card>
               <CardContent className="pt-6">
                 <div className="text-xs text-muted-foreground">No prazo</div>
-                <div className="text-2xl font-semibold">{nfInt.format(farolFila.noPrazo)}</div>
+                <div className="text-2xl font-medium">{nfInt.format(farolFila.noPrazo)}</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6">
                 <div className="text-xs text-muted-foreground">Pausadas</div>
-                <div className="text-2xl font-semibold text-muted-foreground">
+                <div className="text-2xl font-medium text-muted-foreground">
                   {nfInt.format(farolFila.pausadas)}
                 </div>
               </CardContent>
@@ -678,19 +678,19 @@ export default function PainelXpm() {
                 <Card>
                   <CardContent className="pt-6">
                     <div className="text-xs text-muted-foreground">Em curso</div>
-                    <div className="text-2xl font-semibold">{nfInt.format(emCurso.length)}</div>
+                    <div className="text-2xl font-medium">{nfInt.format(emCurso.length)}</div>
                   </CardContent>
                 </Card>
-                <Card className={pausadas.length > 0 ? "border-amber-500/50" : undefined}>
+                <Card className={pausadas.length > 0 ? "border-warning/40" : undefined}>
                   <CardContent className="pt-6">
                     <div className="text-xs text-muted-foreground">Pausadas</div>
-                    <div className="text-2xl font-semibold">{nfInt.format(pausadas.length)}</div>
+                    <div className="text-2xl font-medium">{nfInt.format(pausadas.length)}</div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-6">
                     <div className="text-xs text-muted-foreground">Mais antiga em curso</div>
-                    <div className="text-2xl font-semibold">
+                    <div className="text-2xl font-medium">
                       {emCurso.length === 0 || emCurso[0].horas_em_curso_liquido == null
                         ? "—"
                         : `${(Number(emCurso[0].horas_em_curso_liquido) / 24).toFixed(1)} d`}
@@ -770,19 +770,19 @@ export default function PainelXpm() {
                 <Card>
                   <CardContent className="pt-6">
                     <div className="text-xs text-muted-foreground">Expedições concluídas</div>
-                    <div className="text-2xl font-semibold">{nfInt.format(volume.expedicoes)}</div>
+                    <div className="text-2xl font-medium">{nfInt.format(volume.expedicoes)}</div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-6">
                     <div className="text-xs text-muted-foreground">Volumes</div>
-                    <div className="text-2xl font-semibold">{nfInt.format(volume.volumes)}</div>
+                    <div className="text-2xl font-medium">{nfInt.format(volume.volumes)}</div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-6">
                     <div className="text-xs text-muted-foreground">Peso bruto</div>
-                    <div className="text-2xl font-semibold">{nf2.format(volume.peso)} kg</div>
+                    <div className="text-2xl font-medium">{nf2.format(volume.peso)} kg</div>
                   </CardContent>
                 </Card>
               </div>

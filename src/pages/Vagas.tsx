@@ -276,7 +276,7 @@ export default function Vagas() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Vagas</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Vagas</h1>
           <p className="text-muted-foreground text-sm mt-1">
             Posições planejadas por área
           </p>
@@ -311,14 +311,14 @@ export default function Vagas() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="font-semibold">Título</TableHead>
-                  <TableHead className="font-semibold hidden md:table-cell">Área</TableHead>
-                  <TableHead className="font-semibold hidden md:table-cell">Centro de custo</TableHead>
-                  <TableHead className="font-semibold hidden lg:table-cell">Cargo</TableHead>
-                  <TableHead className="font-semibold hidden md:table-cell">Tipo</TableHead>
-                  <TableHead className="font-semibold hidden lg:table-cell">Senioridade</TableHead>
-                  <TableHead className="font-semibold hidden lg:table-cell">Prevista p/</TableHead>
-                  <TableHead className="font-semibold">Status</TableHead>
+                  <TableHead className="font-medium">Título</TableHead>
+                  <TableHead className="font-medium hidden md:table-cell">Área</TableHead>
+                  <TableHead className="font-medium hidden md:table-cell">Centro de custo</TableHead>
+                  <TableHead className="font-medium hidden lg:table-cell">Cargo</TableHead>
+                  <TableHead className="font-medium hidden md:table-cell">Tipo</TableHead>
+                  <TableHead className="font-medium hidden lg:table-cell">Senioridade</TableHead>
+                  <TableHead className="font-medium hidden lg:table-cell">Prevista p/</TableHead>
+                  <TableHead className="font-medium">Status</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>

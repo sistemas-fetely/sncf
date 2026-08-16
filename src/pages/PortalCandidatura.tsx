@@ -234,7 +234,7 @@ export default function PortalCandidatura() {
   const Header = () => (
     <header className="border-b border-border/40 bg-card/80 backdrop-blur-sm">
       <div className="max-w-3xl mx-auto px-6 py-5 flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight" style={{ color: "hsl(156, 28%, 22%)" }}>
+        <h1 className="text-3xl font-medium tracking-tight" style={{ color: "hsl(156, 28%, 22%)" }}>
           Fetély.
         </h1>
         <p className="text-sm text-muted-foreground italic hidden sm:block max-w-[280px] text-right">
@@ -260,7 +260,7 @@ export default function PortalCandidatura() {
       <div className="min-h-screen bg-background">
         <Header />
         <div className="max-w-3xl mx-auto px-6 py-20 text-center space-y-4">
-          <h2 className="text-xl font-semibold text-foreground">Esta vaga não está mais disponível.</h2>
+          <h2 className="text-xl font-medium text-foreground">Esta vaga não está mais disponível.</h2>
           <p className="text-muted-foreground">A posição pode ter sido encerrada ou preenchida.</p>
         </div>
       </div>
@@ -275,7 +275,7 @@ export default function PortalCandidatura() {
           <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: "#1A4A3A" }}>
             <CheckCircle2 className="h-8 w-8 text-white" />
           </div>
-          <h2 className="text-2xl font-bold text-foreground">Candidatura enviada!</h2>
+          <h2 className="text-2xl font-medium text-foreground">Candidatura enviada!</h2>
           <p className="text-muted-foreground text-lg max-w-md mx-auto leading-relaxed">
             Recebemos sua candidatura para <strong>{vaga?.titulo}</strong>.
             Entraremos em contato em breve.
@@ -297,7 +297,7 @@ export default function PortalCandidatura() {
       <div className="max-w-3xl mx-auto px-6 py-10 space-y-8">
         {/* Título da vaga */}
         <div className="space-y-2">
-          <h2 className="text-3xl font-bold text-primary">{vaga.titulo}</h2>
+          <h2 className="text-3xl font-medium text-primary">{vaga.titulo}</h2>
           <p className="text-sm text-muted-foreground">
             {vaga.area} · {tipoLabel}
             {(vaga as any).local_trabalho ? ` · ${(vaga as any).local_trabalho}` : ""}
@@ -314,7 +314,7 @@ export default function PortalCandidatura() {
                 <Sparkles className="h-4 w-4 text-white" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-white">
+                <p className="text-sm font-medium text-white">
                   Comece pelo seu currículo
                 </p>
                 <p className="text-xs" style={{ color: "rgba(255,255,255,0.7)" }}>
@@ -334,7 +334,7 @@ export default function PortalCandidatura() {
                   { num: "3", texto: "Formulário preenchido" },
                 ].map((p, i) => (
                   <div key={i} className="flex items-center gap-1.5 flex-1">
-                    <span className="w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center flex-shrink-0 text-white"
+                    <span className="w-5 h-5 rounded-full text-xs font-medium flex items-center justify-center flex-shrink-0 text-white"
                       style={{ backgroundColor: "#1A4A3A" }}>
                       {p.num}
                     </span>
@@ -366,7 +366,7 @@ export default function PortalCandidatura() {
                 {importando ? (
                   <div className="space-y-3">
                     <Loader2 className="h-8 w-8 animate-spin mx-auto" style={{ color: "#1A4A3A" }} />
-                    <p className="text-sm font-semibold" style={{ color: "#1A4A3A" }}>
+                    <p className="text-sm font-medium" style={{ color: "#1A4A3A" }}>
                       Lendo seu currículo...
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -395,13 +395,13 @@ export default function PortalCandidatura() {
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-3 p-4 rounded-xl border bg-green-50 border-green-200">
+              <div className="flex items-center gap-3 p-4 rounded-xl border bg-success/10 border-success/40">
                 <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
                   style={{ backgroundColor: "#1A4A3A" }}>
                   <Check className="h-5 w-5 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold" style={{ color: "#1A4A3A" }}>
+                  <p className="text-sm font-medium" style={{ color: "#1A4A3A" }}>
                     Currículo lido com sucesso!
                   </p>
                   <p className="text-xs text-muted-foreground truncate">
@@ -426,7 +426,7 @@ export default function PortalCandidatura() {
 
         {/* SEÇÃO 1 — Identificação */}
         <div className="bg-card rounded-xl p-6 space-y-4 shadow-sm border">
-          <h2 className="font-semibold text-sm uppercase tracking-wide" style={{ color: "#1A4A3A" }}>
+          <h2 className="font-medium text-sm uppercase tracking-wide" style={{ color: "#1A4A3A" }}>
             Quem é você
           </h2>
 
@@ -457,7 +457,7 @@ export default function PortalCandidatura() {
 
         {/* SEÇÃO 2 — Experiências */}
         <div className="bg-card rounded-xl p-6 space-y-4 shadow-sm border">
-          <h2 className="font-semibold text-sm uppercase tracking-wide" style={{ color: "#1A4A3A" }}>
+          <h2 className="font-medium text-sm uppercase tracking-wide" style={{ color: "#1A4A3A" }}>
             Experiências profissionais
           </h2>
           <p className="text-xs text-muted-foreground">Últimas 3 experiências</p>
@@ -533,7 +533,7 @@ export default function PortalCandidatura() {
 
         {/* SEÇÃO 3 — Formação */}
         <div className="bg-card rounded-xl p-6 space-y-4 shadow-sm border">
-          <h2 className="font-semibold text-sm uppercase tracking-wide" style={{ color: "#1A4A3A" }}>
+          <h2 className="font-medium text-sm uppercase tracking-wide" style={{ color: "#1A4A3A" }}>
             Formação acadêmica
           </h2>
 
@@ -611,7 +611,7 @@ export default function PortalCandidatura() {
         {(skillsVaga.length > 0 || sistemasVaga.length > 0) && (
           <div className="bg-card rounded-xl p-6 space-y-5 shadow-sm border">
             <div>
-              <h2 className="font-semibold text-sm uppercase tracking-wide" style={{ color: "#1A4A3A" }}>
+              <h2 className="font-medium text-sm uppercase tracking-wide" style={{ color: "#1A4A3A" }}>
                 Skills e sistemas
               </h2>
               <p className="text-xs text-muted-foreground mt-1">Marque o que você domina e informe seu nível</p>
@@ -633,7 +633,7 @@ export default function PortalCandidatura() {
                         onClick={() => toggleSkill(skill)}>
                         <div className="flex items-center gap-2">
                           <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${
-                            selecionada ? "border-transparent" : "border-gray-300"
+                            selecionada ? "border-transparent" : "border-border/40"
                           }`} style={selecionada ? { backgroundColor: "#1A4A3A" } : {}}>
                             {selecionada && <Check className="h-3 w-3 text-white" />}
                           </div>
@@ -664,7 +664,7 @@ export default function PortalCandidatura() {
                     const selecionado = form.sistemas_candidato.find((s) => s.sistema === sistema);
                     return (
                       <div key={sistema}
-                        className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:border-purple-400 transition-colors"
+                        className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:border-info/40 transition-colors"
                         style={{
                           backgroundColor: selecionado ? "#FAF5FF" : undefined,
                           borderColor: selecionado ? "#7C3AED" : undefined,
@@ -672,7 +672,7 @@ export default function PortalCandidatura() {
                         onClick={() => toggleSistema(sistema)}>
                         <div className="flex items-center gap-2">
                           <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${
-                            selecionado ? "bg-purple-600 border-purple-600" : "border-gray-300"
+                            selecionado ? "bg-info border-info/40" : "border-border/40"
                           }`}>
                             {selecionado && <Check className="h-3 w-3 text-white" />}
                           </div>
@@ -706,7 +706,7 @@ export default function PortalCandidatura() {
 
         {/* SEÇÃO 5 — Por que a Fetely */}
         <div className="bg-card rounded-xl p-6 space-y-3 shadow-sm border">
-          <h2 className="font-semibold text-sm uppercase tracking-wide" style={{ color: "#1A4A3A" }}>
+          <h2 className="font-medium text-sm uppercase tracking-wide" style={{ color: "#1A4A3A" }}>
             Por que a Fetely?
           </h2>
           <Textarea
@@ -719,7 +719,7 @@ export default function PortalCandidatura() {
 
         {/* SEÇÃO 6 — Pretensão salarial */}
         <div className="bg-card rounded-xl p-6 space-y-3 shadow-sm border">
-          <h2 className="font-semibold text-sm uppercase tracking-wide" style={{ color: "#1A4A3A" }}>
+          <h2 className="font-medium text-sm uppercase tracking-wide" style={{ color: "#1A4A3A" }}>
             Pretensão salarial
           </h2>
           <p className="text-xs text-muted-foreground">Informe o valor mensal bruto (R$). Campo opcional mas ajuda no processo.</p>

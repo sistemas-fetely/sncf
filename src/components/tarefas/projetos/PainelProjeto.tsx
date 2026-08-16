@@ -69,7 +69,7 @@ export function PainelProjeto({ projetoId }: Props) {
         <CardHeader className="pb-2"><CardTitle className="text-sm">Progresso</CardTitle></CardHeader>
         <CardContent className="space-y-2">
           <div className="flex items-end justify-between">
-            <span className="text-2xl font-bold">{pct}%</span>
+            <span className="text-2xl font-medium">{pct}%</span>
             <span className="text-sm text-muted-foreground">{concluidas}/{total} concluídas</span>
           </div>
           <Progress value={pct} />

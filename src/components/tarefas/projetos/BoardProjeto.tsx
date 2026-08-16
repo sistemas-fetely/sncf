@@ -30,7 +30,7 @@ const SEM_SECAO = "__sem_secao__";
 const PRIORIDADE_CLASSE: Record<string, string> = {
   urgente: "border-destructive/40 bg-destructive/10 text-destructive",
   alta: "border-warning/40 bg-warning/10 text-warning",
-  media: "border-amber-500/40 bg-amber-500/10 text-amber-600",
+  media: "border-warning/40 bg-warning text-warning",
   baixa: "border-border bg-muted text-muted-foreground",
 };
 
@@ -169,7 +169,7 @@ export function BoardProjeto({ projetoId }: Props) {
               >
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <div className="flex min-w-0 items-center gap-2">
-                    <span className="truncate text-sm font-semibold">{col.nome}</span>
+                    <span className="truncate text-sm font-medium">{col.nome}</span>
                     <Badge variant="outline" className="shrink-0">{itens.length}</Badge>
                   </div>
                   {!col.fixa && podeGerenciar && (
@@ -269,7 +269,7 @@ export function BoardProjeto({ projetoId }: Props) {
                             </span>
                           )}
                           {t.responsavel_id && (
-                            <span className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary">
+                            <span className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[10px] font-medium text-primary">
                               {iniciais(nomePessoa(t.responsavel_id))}
                             </span>
                           )}

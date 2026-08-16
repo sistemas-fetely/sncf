@@ -208,7 +208,7 @@ export function RegraCadenciaDialog({ open, onOpenChange, regra }: Props) {
 
             <Separator />
             <div className="space-y-3">
-              <h3 className="text-sm font-semibold">Critérios</h3>
+              <h3 className="text-sm font-medium">Critérios</h3>
 
               <FormField
                 control={form.control}
@@ -302,7 +302,7 @@ export function RegraCadenciaDialog({ open, onOpenChange, regra }: Props) {
 
             <Separator />
             <div className="space-y-3">
-              <h3 className="text-sm font-semibold">Defaults da decisão</h3>
+              <h3 className="text-sm font-medium">Defaults da decisão</h3>
               <FormField
                 control={form.control}
                 name="parecer_template"

@@ -358,7 +358,7 @@ export default function Conhecimento() {
             </Button>
             <div className="flex items-center gap-2">
               <BookOpen className="h-6 w-6" style={{ color: "#1A4A3A" }} />
-              <h1 className="text-2xl font-bold" style={{ color: "#1A4A3A" }}>Base de Conhecimento</h1>
+              <h1 className="text-2xl font-medium" style={{ color: "#1A4A3A" }}>Base de Conhecimento</h1>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
               Ensine o Fala Fetely sobre cultura, regras, mercado e diretrizes da empresa
@@ -469,7 +469,7 @@ export default function Conhecimento() {
                               </Badge>
                             )}
                           </div>
-                          <h3 className="font-semibold text-base">{item.titulo}</h3>
+                          <h3 className="font-medium text-base">{item.titulo}</h3>
                           <p className="text-sm text-muted-foreground line-clamp-2">
                             {item.conteudo.length > 220 ? item.conteudo.slice(0, 220) + "..." : item.conteudo}
                           </p>

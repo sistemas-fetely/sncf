@@ -199,7 +199,7 @@ function ContratoPJForm({
         <div className="space-y-6 py-2">
           {/* Dados da Empresa */}
           <div>
-            <h3 className="text-sm font-semibold text-muted-foreground mb-3">DADOS DA EMPRESA</h3>
+            <h3 className="text-sm font-medium text-muted-foreground mb-3">DADOS DA EMPRESA</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>CNPJ *</Label>
@@ -226,7 +226,7 @@ function ContratoPJForm({
 
           {/* Contato */}
           <div>
-            <h3 className="text-sm font-semibold text-muted-foreground mb-3">CONTATO</h3>
+            <h3 className="text-sm font-medium text-muted-foreground mb-3">CONTATO</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label>Nome do Responsável *</Label>
@@ -245,7 +245,7 @@ function ContratoPJForm({
 
           {/* Contrato */}
           <div>
-            <h3 className="text-sm font-semibold text-muted-foreground mb-3">CONTRATO</h3>
+            <h3 className="text-sm font-medium text-muted-foreground mb-3">CONTRATO</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <Label>Cargo *</Label>
@@ -308,7 +308,7 @@ function ContratoPJForm({
 
           {/* Vigência */}
           <div>
-            <h3 className="text-sm font-semibold text-muted-foreground mb-3">VIGÊNCIA</h3>
+            <h3 className="text-sm font-medium text-muted-foreground mb-3">VIGÊNCIA</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label>Data de Início *</Label>
@@ -327,7 +327,7 @@ function ContratoPJForm({
 
           {/* Dados Bancários */}
           <div>
-            <h3 className="text-sm font-semibold text-muted-foreground mb-3">DADOS BANCÁRIOS DO PRESTADOR</h3>
+            <h3 className="text-sm font-medium text-muted-foreground mb-3">DADOS BANCÁRIOS DO PRESTADOR</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <Label>Banco</Label>
@@ -364,7 +364,7 @@ function ContratoPJForm({
 
           {/* Objeto e Observações */}
           <div>
-            <h3 className="text-sm font-semibold text-muted-foreground mb-3">DETALHES</h3>
+            <h3 className="text-sm font-medium text-muted-foreground mb-3">DETALHES</h3>
             <div className="space-y-4">
               <div>
                 <Label>Objeto do Contrato</Label>
@@ -478,7 +478,7 @@ export default function ContratosPJ() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Contratos PJ</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Contratos PJ</h1>
           <p className="text-muted-foreground text-sm mt-1">Gestão de contratos de prestadores de serviço</p>
         </div>
         {canCreate && (
@@ -507,7 +507,7 @@ export default function ContratosPJ() {
               <Briefcase className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{contratos.length}</p>
+              <p className="text-2xl font-medium">{contratos.length}</p>
               <p className="text-xs text-muted-foreground">Total</p>
             </div>
           </CardContent>
@@ -518,7 +518,7 @@ export default function ContratosPJ() {
               <FileCheck className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{totalAtivos}</p>
+              <p className="text-2xl font-medium">{totalAtivos}</p>
               <p className="text-xs text-muted-foreground">Ativos</p>
             </div>
           </CardContent>
@@ -529,7 +529,7 @@ export default function ContratosPJ() {
               <FileClock className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold">R$ {totalValor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+              <p className="text-2xl font-medium">R$ {totalValor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
               <p className="text-xs text-muted-foreground">Valor mensal ativo</p>
             </div>
           </CardContent>
@@ -565,14 +565,14 @@ export default function ContratosPJ() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="font-semibold">Empresa</TableHead>
-                  <TableHead className="font-semibold hidden md:table-cell">CNPJ</TableHead>
-                  <TableHead className="font-semibold">Serviço</TableHead>
-                  <TableHead className="font-semibold hidden lg:table-cell">Departamento</TableHead>
-                  <TableHead className="font-semibold">Valor Mensal</TableHead>
-                  <TableHead className="font-semibold">Status</TableHead>
-                  <TableHead className="font-semibold hidden lg:table-cell">Contrato</TableHead>
-                  <TableHead className="font-semibold hidden lg:table-cell">Vigência</TableHead>
+                  <TableHead className="font-medium">Empresa</TableHead>
+                  <TableHead className="font-medium hidden md:table-cell">CNPJ</TableHead>
+                  <TableHead className="font-medium">Serviço</TableHead>
+                  <TableHead className="font-medium hidden lg:table-cell">Departamento</TableHead>
+                  <TableHead className="font-medium">Valor Mensal</TableHead>
+                  <TableHead className="font-medium">Status</TableHead>
+                  <TableHead className="font-medium hidden lg:table-cell">Contrato</TableHead>
+                  <TableHead className="font-medium hidden lg:table-cell">Vigência</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
@@ -686,7 +686,7 @@ export default function ContratosPJ() {
           {viewContrato && (
             <div className="space-y-6 py-2">
               <div>
-                <h3 className="text-sm font-semibold text-muted-foreground mb-3">DADOS DA EMPRESA</h3>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">DADOS DA EMPRESA</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div><p className="text-xs text-muted-foreground">CNPJ</p><p className="text-sm font-medium">{viewContrato.cnpj}</p></div>
                   <div><p className="text-xs text-muted-foreground">Razão Social</p><p className="text-sm font-medium">{viewContrato.razao_social}</p></div>
@@ -697,7 +697,7 @@ export default function ContratosPJ() {
               </div>
 
               <div>
-                <h3 className="text-sm font-semibold text-muted-foreground mb-3">CONTATO</h3>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">CONTATO</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div><p className="text-xs text-muted-foreground">Responsável</p><p className="text-sm font-medium">{viewContrato.contato_nome}</p></div>
                   {viewContrato.contato_telefone && <div><p className="text-xs text-muted-foreground">Telefone</p><p className="text-sm font-medium">{viewContrato.contato_telefone}</p></div>}
@@ -706,7 +706,7 @@ export default function ContratosPJ() {
               </div>
 
               <div>
-                <h3 className="text-sm font-semibold text-muted-foreground mb-3">CONTRATO</h3>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">CONTRATO</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div><p className="text-xs text-muted-foreground">Cargo</p><p className="text-sm font-medium">{viewContrato.tipo_servico}</p></div>
                   <div><p className="text-xs text-muted-foreground">Departamento</p><p className="text-sm font-medium">{viewContrato.departamento}</p></div>
@@ -718,7 +718,7 @@ export default function ContratosPJ() {
               </div>
 
               <div>
-                <h3 className="text-sm font-semibold text-muted-foreground mb-3">VIGÊNCIA</h3>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">VIGÊNCIA</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div><p className="text-xs text-muted-foreground">Início</p><p className="text-sm font-medium">{format(parseISO(viewContrato.data_inicio), "dd/MM/yyyy")}</p></div>
                   <div><p className="text-xs text-muted-foreground">Fim</p><p className="text-sm font-medium">{viewContrato.data_fim ? format(parseISO(viewContrato.data_fim), "dd/MM/yyyy") : "Indeterminado"}</p></div>
@@ -728,7 +728,7 @@ export default function ContratosPJ() {
 
               {(viewContrato.banco_nome || viewContrato.chave_pix) && (
                 <div>
-                  <h3 className="text-sm font-semibold text-muted-foreground mb-3">DADOS BANCÁRIOS</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-3">DADOS BANCÁRIOS</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     {viewContrato.banco_nome && <div><p className="text-xs text-muted-foreground">Banco</p><p className="text-sm font-medium">{viewContrato.banco_nome} {viewContrato.banco_codigo && `(${viewContrato.banco_codigo})`}</p></div>}
                     {viewContrato.agencia && <div><p className="text-xs text-muted-foreground">Agência</p><p className="text-sm font-medium">{viewContrato.agencia}</p></div>}
@@ -740,7 +740,7 @@ export default function ContratosPJ() {
 
               {(viewContrato.objeto || viewContrato.observacoes) && (
                 <div>
-                  <h3 className="text-sm font-semibold text-muted-foreground mb-3">DETALHES</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-3">DETALHES</h3>
                   {viewContrato.objeto && <div className="mb-2"><p className="text-xs text-muted-foreground">Objeto do Contrato</p><p className="text-sm">{viewContrato.objeto}</p></div>}
                   {viewContrato.observacoes && <div><p className="text-xs text-muted-foreground">Observações</p><p className="text-sm">{viewContrato.observacoes}</p></div>}
                 </div>

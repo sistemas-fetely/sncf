@@ -520,12 +520,12 @@ export default function ColaboradorDetalhe() {
               {colaborador.foto_url ? (
                 <img src={colaborador.foto_url} alt={colaborador.nome_completo} className="h-16 w-16 rounded-full object-cover" />
               ) : (
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-xl font-bold text-primary">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-xl font-medium text-primary">
                   {initials}
                 </div>
               )}
               <div className="flex-1">
-                <h1 className="text-2xl font-bold">{colaborador.nome_completo}</h1>
+                <h1 className="text-2xl font-medium">{colaborador.nome_completo}</h1>
                 <p className="text-muted-foreground">{colaborador.cargo}</p>
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                   <Badge variant="outline" className={statusStyles[colaborador.status] || ""}>
@@ -611,7 +611,7 @@ export default function ColaboradorDetalhe() {
                 <InfoField label="Certificado Reservista" value={colaborador.certificado_reservista} />
               </div>
               <div className="mt-6 pt-4 border-t">
-                <h3 className="font-semibold mb-3 text-sm text-muted-foreground uppercase">Documentos Anexados</h3>
+                <h3 className="font-medium mb-3 text-sm text-muted-foreground uppercase">Documentos Anexados</h3>
                 <DocumentosAnexados
                   colaboradorId={id}
                   currentFotoUrl={colaborador.foto_url}
@@ -670,7 +670,7 @@ export default function ColaboradorDetalhe() {
                 <InfoField label="Data de Integração" value={colaborador.data_integracao ? safeFormatDate(colaborador.data_integracao) : ""} />
               </div>
 
-              <h3 className="font-semibold mb-3">🔐 Acesso aos Sistemas</h3>
+              <h3 className="font-medium mb-3">🔐 Acesso aos Sistemas</h3>
               {acessosSistemas.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">Nenhum acesso cadastrado.</p>
               ) : (
@@ -690,7 +690,7 @@ export default function ColaboradorDetalhe() {
                 </div>
               )}
 
-              <h3 className="font-semibold mb-3">💻 Equipamentos</h3>
+              <h3 className="font-medium mb-3">💻 Equipamentos</h3>
               {equipamentos.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">Nenhum equipamento cadastrado.</p>
               ) : (
@@ -800,7 +800,7 @@ export default function ColaboradorDetalhe() {
           </Button>
         </div>
 
-        <h1 className="text-2xl font-bold tracking-tight">Editar: {colaborador.nome_completo}</h1>
+        <h1 className="text-2xl font-medium tracking-tight">Editar: {colaborador.nome_completo}</h1>
 
         <Tabs defaultValue="pessoais">
           <TabsList className="w-full justify-start">
@@ -857,7 +857,7 @@ const TIPO_LABEL: Record<string, string> = {
 const STATUS_STYLES: Record<string, string> = {
   pendente: "bg-warning/10 text-warning border-0",
   aprovada: "bg-info/10 text-info border-0",
-  efetivada: "bg-emerald-500/10 text-emerald-600 border-0",
+  efetivada: "bg-success text-success border-0",
   cancelada: "bg-destructive/10 text-destructive border-0",
 };
 

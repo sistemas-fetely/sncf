@@ -51,7 +51,7 @@ function OrgCard({ data }: NodeProps) {
             <AvatarFallback className="text-[10px]">{getInitials(node.nome_display)}</AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold truncate leading-tight">{node.nome_display}</p>
+            <p className="text-xs font-medium truncate leading-tight">{node.nome_display}</p>
             <p className="text-[10px] text-muted-foreground truncate">{node.titulo_cargo}</p>
             <div className="flex items-center gap-1.5 mt-0.5">
               <Badge variant="outline" className="text-[8px] h-3.5 px-1">{node.vinculo}</Badge>

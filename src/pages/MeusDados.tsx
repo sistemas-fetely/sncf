@@ -15,6 +15,7 @@ import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+import { PageShell } from "@/components/layout/PageShell";
 type ConsentTipo = {
   tipo: string;
   label: string;
@@ -253,9 +254,9 @@ export default function MeusDados() {
   const tipoVinculo = colabClt ? "CLT" : contratoPj ? "PJ" : null;
 
   return (
-    <div className="container max-w-6xl py-8 space-y-6">
+    <PageShell>
       <div>
-        <h1 className="text-3xl font-bold flex items-center gap-2">
+        <h1 className="text-3xl font-medium flex items-center gap-2">
           <ShieldCheck className="h-8 w-8 text-primary" />
           Meus Dados
         </h1>
@@ -658,7 +659,7 @@ function ResultadoSecao({ titulo, itens, comMotivo }: { titulo: string; itens: a
           </li>
         ))}
       </ul>
-    </div>
+    </PageShell>
   );
 }
 

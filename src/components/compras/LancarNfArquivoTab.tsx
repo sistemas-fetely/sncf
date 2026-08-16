@@ -322,14 +322,14 @@ export default function LancarNfArquivoTab({ pedidoId, fornecedorId, onGravado }
             {doc.origem === "xml" ? (
               <Badge
                 variant="outline"
-                className="border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                className="border-success/40 bg-success text-success"
               >
                 <ShieldCheck className="h-3.5 w-3.5 mr-1" /> XML — fonte fiscal exata
               </Badge>
             ) : (
               <Badge
                 variant="outline"
-                className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                className="border-warning/40 bg-warning text-warning"
               >
                 <AlertTriangle className="h-3.5 w-3.5 mr-1" /> PDF — leitura de documento, confira
               </Badge>
@@ -392,7 +392,7 @@ export default function LancarNfArquivoTab({ pedidoId, fornecedorId, onGravado }
           )}
 
           {!cnpjDivergente && cnpjIndefinido && (
-            <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-sm">
+            <div className="rounded-md border border-warning/40 bg-warning p-2 text-sm">
               Não deu para comparar o CNPJ do emitente com o do fornecedor do pedido
               {!cnpjDoc ? " (arquivo sem CNPJ legível)" : " (fornecedor sem CNPJ cadastrado)"}.
               Confira manualmente antes de gravar.
@@ -437,7 +437,7 @@ export default function LancarNfArquivoTab({ pedidoId, fornecedorId, onGravado }
       {previa && (
         <div className="space-y-3 rounded-md border p-3">
           {previa.nf_existe && (
-            <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-sm">
+            <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning p-2 text-sm">
               <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
               <div className="space-y-1">
                 <div>
@@ -466,7 +466,7 @@ export default function LancarNfArquivoTab({ pedidoId, fornecedorId, onGravado }
             </div>
             <div>
               <div className="text-xs text-muted-foreground">Divergência</div>
-              <div className={divergente ? "font-semibold text-destructive" : "font-medium"}>
+              <div className={divergente ? "font-medium text-destructive" : "font-medium"}>
                 {fmtMoeda(previa.divergencia)}
               </div>
             </div>
@@ -488,7 +488,7 @@ export default function LancarNfArquivoTab({ pedidoId, fornecedorId, onGravado }
           )}
 
           {Number(previa.linhas_sem_depara ?? 0) > 0 && (
-            <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-sm space-y-1">
+            <div className="rounded-md border border-warning/40 bg-warning p-2 text-sm space-y-1">
               <div>
                 {previa.linhas_sem_depara} linha(s) com código sem de-para para SKU. Isso não impede
                 gravar a NF — só deixa a alocação em SKU pendente.

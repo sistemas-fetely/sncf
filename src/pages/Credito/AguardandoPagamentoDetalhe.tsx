@@ -224,7 +224,7 @@ export default function AguardandoPagamentoDetalhe() {
                     <CardContent className="p-4 space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-semibold text-primary">
+                          <span className="font-mono text-xs font-medium text-primary">
                             {t.numero_titulo}
                           </span>
                           <span className="text-xs text-muted-foreground">
@@ -237,7 +237,7 @@ export default function AguardandoPagamentoDetalhe() {
                       </div>
 
                       <div className="flex items-baseline justify-between">
-                        <p className="text-xl font-semibold">
+                        <p className="text-xl font-medium">
                           {formatBRL(t.valor_bruto)}
                         </p>
                         <p className="text-xs text-muted-foreground">
@@ -247,7 +247,7 @@ export default function AguardandoPagamentoDetalhe() {
 
                       <div className="flex items-center justify-between pt-2">
                         {pago ? (
-                          <Badge className="bg-emerald-600 hover:bg-emerald-600/90 text-white gap-1">
+                          <Badge className="bg-success hover:bg-success text-white gap-1">
                             <CheckCircle2 className="h-3 w-3" />
                             Pago em{" "}
                             {t.data_pagamento

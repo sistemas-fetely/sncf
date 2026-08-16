@@ -50,7 +50,7 @@ function VariationBadge({ atual, anterior, invertColor }: { atual: number; anter
       : (isUp ? "text-success" : "text-destructive");
 
   return (
-    <span className={cn("inline-flex items-center gap-0.5 text-xs font-semibold", colorClass)}>
+    <span className={cn("inline-flex items-center gap-0.5 text-xs font-medium", colorClass)}>
       {isNeutral ? <Minus className="h-3 w-3" /> : isUp ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
       {Math.abs(variation).toFixed(1)}%
     </span>
@@ -69,7 +69,7 @@ function FinancialKpiCard({
         <div className="flex items-start justify-between">
           <div className="space-y-1 flex-1">
             <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{title}</p>
-            <p className="text-xl font-bold tracking-tight">{formatBRL(valorAtual)}</p>
+            <p className="text-xl font-medium tracking-tight">{formatBRL(valorAtual)}</p>
             <div className="flex items-center gap-2">
               <VariationBadge atual={valorAtual} anterior={valorAnterior} invertColor={invertColor} />
               <span className="text-xs text-muted-foreground">vs mês anterior</span>
@@ -157,7 +157,7 @@ function VelocidadeInsightsSection() {
     <div className="space-y-4">
       {data.totalConvitesComMetrica >= 5 && (
         <div>
-          <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wide mb-3">
+          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-3">
             Velocidade operacional
           </h3>
           <div className="grid gap-3 grid-cols-1 md:grid-cols-3">
@@ -168,7 +168,7 @@ function VelocidadeInsightsSection() {
                     <Clock className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-lg font-bold">{data.tempoMedioPreenchimento.toFixed(1)} dias</p>
+                    <p className="text-lg font-medium">{data.tempoMedioPreenchimento.toFixed(1)} dias</p>
                     <p className="text-xs text-muted-foreground">Tempo médio de preenchimento de convite</p>
                     <p className="text-xs text-muted-foreground/70 mt-0.5">
                       Baseado em {data.totalConvitesComMetrica} convites
@@ -335,7 +335,7 @@ function DashboardGestao() {
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Salário Médio CLT</p>
-                <p className="text-xl font-bold tracking-tight">{formatBRL(salarioMedio.medio)}</p>
+                <p className="text-xl font-medium tracking-tight">{formatBRL(salarioMedio.medio)}</p>
                 <p className="text-xs text-muted-foreground">
                   {salarioMedio.count} colaboradores ativos
                   {agregadosExcluemClevel ? " · * C-Level excluídos" : ""}
@@ -356,7 +356,7 @@ function DashboardGestao() {
             <div className="flex h-8 w-8 mx-auto items-center justify-center rounded-lg bg-primary/10 text-primary mb-2">
               <Users className="h-4 w-4" />
             </div>
-            <p className="text-2xl font-bold">{headcountTotal}</p>
+            <p className="text-2xl font-medium">{headcountTotal}</p>
             <p className="text-xs text-muted-foreground">Headcount Total</p>
             <p className="text-xs text-muted-foreground">{clt.ativos} CLT · {pj.ativos} PJ</p>
           </CardContent>
@@ -366,7 +366,7 @@ function DashboardGestao() {
             <div className="flex h-8 w-8 mx-auto items-center justify-center rounded-lg bg-info/10 text-info mb-2">
               <Briefcase className="h-4 w-4" />
             </div>
-            <p className="text-2xl font-bold">{clt.experiencia}</p>
+            <p className="text-2xl font-medium">{clt.experiencia}</p>
             <p className="text-xs text-muted-foreground">Em Experiência</p>
           </CardContent>
         </Card>
@@ -375,7 +375,7 @@ function DashboardGestao() {
             <div className="flex h-8 w-8 mx-auto items-center justify-center rounded-lg bg-success/10 text-success mb-2">
               <Calendar className="h-4 w-4" />
             </div>
-            <p className="text-2xl font-bold">{ferias.emGozo}</p>
+            <p className="text-2xl font-medium">{ferias.emGozo}</p>
             <p className="text-xs text-muted-foreground">Férias em Gozo</p>
             {ferias.programadas > 0 && <p className="text-xs text-muted-foreground">{ferias.programadas} programadas</p>}
           </CardContent>
@@ -385,7 +385,7 @@ function DashboardGestao() {
             <div className="flex h-8 w-8 mx-auto items-center justify-center rounded-lg bg-warning/10 text-warning mb-2">
               <FileText className="h-4 w-4" />
             </div>
-            <p className="text-2xl font-bold">{nfPendentes}</p>
+            <p className="text-2xl font-medium">{nfPendentes}</p>
             <p className="text-xs text-muted-foreground">NFs Pendentes</p>
           </CardContent>
         </Card>
@@ -394,7 +394,7 @@ function DashboardGestao() {
             <div className={cn("flex h-8 w-8 mx-auto items-center justify-center rounded-lg mb-2", pagPjPendentes > 0 ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground")}>
               <CreditCard className="h-4 w-4" />
             </div>
-            <p className="text-2xl font-bold">{pagPjPendentes}</p>
+            <p className="text-2xl font-medium">{pagPjPendentes}</p>
             <p className="text-xs text-muted-foreground">Pgto PJ Pendentes</p>
           </CardContent>
         </Card>
@@ -403,7 +403,7 @@ function DashboardGestao() {
             <div className={cn("flex h-8 w-8 mx-auto items-center justify-center rounded-lg mb-2", pj.vencendo > 0 ? "bg-warning/10 text-warning" : "bg-muted text-muted-foreground")}>
               <AlertTriangle className="h-4 w-4" />
             </div>
-            <p className="text-2xl font-bold">{pj.vencendo}</p>
+            <p className="text-2xl font-medium">{pj.vencendo}</p>
             <p className="text-xs text-muted-foreground">Contratos Vencendo</p>
           </CardContent>
         </Card>
@@ -633,7 +633,7 @@ function DashboardGestao() {
             {aniversariantes.length > 0 ? (
               aniversariantes.map((a, i) => (
                 <div key={i} className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
                     {a.nome.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
                   </div>
                   <div className="flex-1">
@@ -664,7 +664,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground text-sm mt-1">Fetély · Visão de Gestão</p>
         </div>
       </div>

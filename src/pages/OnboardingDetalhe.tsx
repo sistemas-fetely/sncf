@@ -303,7 +303,7 @@ export default function OnboardingDetalhe() {
             <div className="mb-2 -ml-2">
               <SmartBackButton fallback="/onboarding" fallbackLabel="Onboarding" />
             </div>
-            <h1 className="text-2xl font-bold">{checklist.nome}</h1>
+            <h1 className="text-2xl font-medium">{checklist.nome}</h1>
             <p className="text-muted-foreground text-sm">
               {checklist.cargo} · {checklist.departamento} · {checklist.colaborador_tipo?.toUpperCase()}
             </p>
@@ -333,19 +333,19 @@ export default function OnboardingDetalhe() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-3xl font-bold">{stats.total}</p>
+              <p className="text-3xl font-medium">{stats.total}</p>
               <p className="text-xs text-muted-foreground">Total de tarefas</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-3xl font-bold text-success">{stats.concluidas}</p>
+              <p className="text-3xl font-medium text-success">{stats.concluidas}</p>
               <p className="text-xs text-muted-foreground">Concluídas</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <p className={`text-3xl font-bold ${stats.atrasadas > 0 ? "text-destructive" : ""}`}>
+              <p className={`text-3xl font-medium ${stats.atrasadas > 0 ? "text-destructive" : ""}`}>
                 {stats.atrasadas}
               </p>
               <p className="text-xs text-muted-foreground">
@@ -358,7 +358,7 @@ export default function OnboardingDetalhe() {
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-3xl font-bold">{stats.progress}%</p>
+              <p className="text-3xl font-medium">{stats.progress}%</p>
               <p className="text-xs text-muted-foreground mb-2">Progresso</p>
               <Progress value={stats.progress} className="h-2" />
             </CardContent>

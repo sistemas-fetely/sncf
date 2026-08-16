@@ -124,9 +124,9 @@ export function BaixaManualDialog({
 
           {boletoVivo && (
             <>
-              <Alert className="border-amber-300 bg-amber-50">
-                <AlertTriangle className="h-4 w-4 !text-amber-700" />
-                <AlertDescription className="text-xs text-amber-900">
+              <Alert className="border-warning/40 bg-warning/10">
+                <AlertTriangle className="h-4 w-4 !text-warning" />
+                <AlertDescription className="text-xs text-warning">
                   Este boleto continua <b>ATIVO</b> no banco. Se o cliente pagá-lo
                   depois, haverá pagamento em dobro.
                 </AlertDescription>

@@ -113,7 +113,7 @@ export function AnaliseDetalheDecisao({ analiseId }: Props) {
             <p className="text-xs text-muted-foreground uppercase tracking-wide">
               Valor líquido
             </p>
-            <p className="text-2xl font-bold text-gold font-serif">
+            <p className="text-2xl font-medium text-gold font-serif">
               {fmtBRL.format(Number(pedido?.valor_liquido || 0))}
             </p>
             <p className="text-xs text-muted-foreground">

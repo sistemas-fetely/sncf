@@ -355,7 +355,7 @@ export default function ConsignadoDetalhe() {
               <Card key={c.label}>
                 <CardContent className="p-4">
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{c.label}</p>
-                  <p className="text-lg font-semibold tabular-nums mt-1">{c.valor}</p>
+                  <p className="text-lg font-medium tabular-nums mt-1">{c.valor}</p>
                 </CardContent>
               </Card>
             ))}
@@ -513,7 +513,7 @@ export default function ConsignadoDetalhe() {
                       <TableCell className="text-right tabular-nums text-sm">{Number(e.qtd_enviada ?? 0)}</TableCell>
                       <TableCell className="text-right tabular-nums text-sm">{Number(e.qtd_devolvida ?? 0)}</TableCell>
                       <TableCell className="text-right tabular-nums text-sm">{Number(e.qtd_vendida_reportada ?? 0)}</TableCell>
-                      <TableCell className="text-right tabular-nums font-semibold">{Number(e.estoque_estimado ?? 0)}</TableCell>
+                      <TableCell className="text-right tabular-nums font-medium">{Number(e.estoque_estimado ?? 0)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

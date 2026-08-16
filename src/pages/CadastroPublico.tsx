@@ -303,7 +303,7 @@ function StepDocumentosCLT() {
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">Informe os dados dos seus documentos trabalhistas.</p>
       <div>
-        <h4 className="text-base font-semibold mb-3">PIS/PASEP e CTPS</h4>
+        <h4 className="text-base font-medium mb-3">PIS/PASEP e CTPS</h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div><Label>PIS/PASEP *</Label><Input {...register("pis_pasep")} />{errors.pis_pasep && <p className="text-xs text-destructive mt-1">{errors.pis_pasep.message}</p>}</div>
           <div><Label>CTPS Número *</Label><Input {...register("ctps_numero")} />{errors.ctps_numero && <p className="text-xs text-destructive mt-1">{errors.ctps_numero.message}</p>}</div>
@@ -319,7 +319,7 @@ function StepDocumentosCLT() {
         </div>
       </div>
       <div>
-        <h4 className="text-base font-semibold mb-3">Título de Eleitor (opcional)</h4>
+        <h4 className="text-base font-medium mb-3">Título de Eleitor (opcional)</h4>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div><Label>Número</Label><Input {...register("titulo_eleitor")} /></div>
           <div><Label>Zona</Label><Input {...register("zona_eleitoral")} /></div>
@@ -327,7 +327,7 @@ function StepDocumentosCLT() {
         </div>
       </div>
       <div>
-        <h4 className="text-base font-semibold mb-3">CNH (opcional)</h4>
+        <h4 className="text-base font-medium mb-3">CNH (opcional)</h4>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div><Label>Número</Label><Input {...register("cnh_numero")} /></div>
           <div>
@@ -341,7 +341,7 @@ function StepDocumentosCLT() {
         </div>
       </div>
       <div>
-        <h4 className="text-base font-semibold mb-3">Certificado de Reservista (opcional)</h4>
+        <h4 className="text-base font-medium mb-3">Certificado de Reservista (opcional)</h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div><Label>Número</Label><Input {...register("certificado_reservista")} /></div>
         </div>
@@ -360,7 +360,7 @@ function StepDocumentosPJ() {
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">Informe os dados da sua empresa e documentos pessoais.</p>
       <div>
-        <h4 className="text-base font-semibold mb-3">Dados da Empresa</h4>
+        <h4 className="text-base font-medium mb-3">Dados da Empresa</h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Label>CNPJ *</Label>
@@ -475,13 +475,13 @@ function StepLGPD({ lgpdAceito, onAccept }: { lgpdAceito: boolean; onAccept: (v:
     <div className="space-y-5">
       <div className="flex items-center gap-2 mb-2">
         <Shield className="h-5 w-5 text-primary" />
-        <h3 className="text-base font-semibold">Termo de Consentimento LGPD</h3>
+        <h3 className="text-base font-medium">Termo de Consentimento LGPD</h3>
       </div>
       <div className="rounded-lg border bg-muted/30 p-4 max-h-[400px] overflow-y-auto text-sm leading-relaxed space-y-3">
-        <p className="font-semibold">TERMO DE CONSENTIMENTO PARA TRATAMENTO DE DADOS PESSOAIS</p>
+        <p className="font-medium">TERMO DE CONSENTIMENTO PARA TRATAMENTO DE DADOS PESSOAIS</p>
         <p>Em conformidade com a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018 — LGPD), declaro que autorizo a <strong>Fetely Tecnologia LTDA</strong> ("Controladora") a coletar, armazenar, utilizar e processar os dados pessoais por mim fornecidos neste formulário de pré-cadastro.</p>
 
-        <p className="font-semibold mt-4">1. Finalidade do Tratamento</p>
+        <p className="font-medium mt-4">1. Finalidade do Tratamento</p>
         <p>Os dados pessoais coletados serão utilizados exclusivamente para as seguintes finalidades:</p>
         <ul className="list-disc pl-5 space-y-1">
           <li>Processo de admissão e gestão do contrato de trabalho (CLT) ou prestação de serviços (PJ);</li>
@@ -492,16 +492,16 @@ function StepLGPD({ lgpdAceito, onAccept }: { lgpdAceito: boolean; onAccept: (v:
           <li>Geração de relatórios gerenciais internos (anonimizados quando possível).</li>
         </ul>
 
-        <p className="font-semibold mt-4">2. Dados Coletados</p>
+        <p className="font-medium mt-4">2. Dados Coletados</p>
         <p>Serão coletados dados pessoais, incluindo mas não se limitando a: nome completo, CPF, RG, data de nascimento, endereço, telefone, e-mail, dados bancários, documentos trabalhistas (CTPS, PIS/PASEP), dados de dependentes e fotografias para fins de identificação.</p>
 
-        <p className="font-semibold mt-4">3. Compartilhamento</p>
+        <p className="font-medium mt-4">3. Compartilhamento</p>
         <p>Os dados poderão ser compartilhados com: órgãos governamentais para cumprimento de obrigações legais; operadoras de benefícios (plano de saúde, vale-transporte, vale-refeição); instituições financeiras para processamento de pagamentos; e contadores/auditores externos, sempre sob sigilo contratual.</p>
 
-        <p className="font-semibold mt-4">4. Armazenamento e Segurança</p>
+        <p className="font-medium mt-4">4. Armazenamento e Segurança</p>
         <p>Os dados serão armazenados em servidores seguros com criptografia e controle de acesso, pelo período necessário ao cumprimento das finalidades descritas ou conforme exigido por legislação aplicável.</p>
 
-        <p className="font-semibold mt-4">5. Direitos do Titular</p>
+        <p className="font-medium mt-4">5. Direitos do Titular</p>
         <p>Em conformidade com a LGPD, você pode exercer os seguintes direitos a qualquer momento, mediante solicitação formal ao setor de RH:</p>
         <ul className="list-disc pl-5 space-y-1">
           <li>Confirmação da existência de tratamento;</li>
@@ -512,7 +512,7 @@ function StepLGPD({ lgpdAceito, onAccept }: { lgpdAceito: boolean; onAccept: (v:
           <li>Revogação do consentimento.</li>
         </ul>
 
-        <p className="font-semibold mt-4">6. Revogação</p>
+        <p className="font-medium mt-4">6. Revogação</p>
         <p>O consentimento aqui concedido pode ser revogado a qualquer momento, sem prejuízo da legalidade do tratamento realizado anteriormente. A revogação pode ser solicitada pelo e-mail do setor de Recursos Humanos.</p>
 
         <p className="text-xs text-muted-foreground mt-4">Versão 1.0 — Abril 2026</p>
@@ -768,7 +768,7 @@ export default function CadastroPublico() {
         <Card className="max-w-md w-full">
           <CardContent className="flex flex-col items-center py-12 text-center">
             <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
-            <h2 className="text-xl font-bold mb-2">Link Indisponível</h2>
+            <h2 className="text-xl font-medium mb-2">Link Indisponível</h2>
             <p className="text-muted-foreground">{error}</p>
           </CardContent>
         </Card>
@@ -782,7 +782,7 @@ export default function CadastroPublico() {
         <Card className="max-w-md w-full">
           <CardContent className="flex flex-col items-center py-12 text-center">
             <CheckCircle2 className="h-12 w-12 text-success mb-4" />
-            <h2 className="text-xl font-bold mb-2">Cadastro Enviado!</h2>
+            <h2 className="text-xl font-medium mb-2">Cadastro Enviado!</h2>
             <p className="text-muted-foreground mb-4">
               Obrigado, {convite?.nome}! Sua ficha foi enviada com sucesso.
             </p>
@@ -808,7 +808,7 @@ export default function CadastroPublico() {
       {/* Header */}
       <div className="bg-primary text-primary-foreground py-5 px-4">
         <div className="max-w-lg mx-auto">
-          <h1 className="text-lg font-bold">Fetely — Pré-Cadastro</h1>
+          <h1 className="text-lg font-medium">Fetely — Pré-Cadastro</h1>
           <p className="text-primary-foreground/80 text-sm mt-1">
             Olá, {convite?.nome}! Complete seu cadastro abaixo.
           </p>
@@ -827,7 +827,7 @@ export default function CadastroPublico() {
         {step === 0 && (
           <Card className="border-primary/20 bg-primary/5">
             <CardContent className="p-4 space-y-3">
-              <h3 className="text-sm font-semibold text-primary flex items-center gap-2">
+              <h3 className="text-sm font-medium text-primary flex items-center gap-2">
                 <Briefcase className="h-4 w-4" />
                 Informações da Vaga
               </h3>
@@ -867,16 +867,16 @@ export default function CadastroPublico() {
 
         {/* Banner de devolução */}
         {convite?.status === "devolvido" && (convite as any)?.dados_preenchidos?._comentario_rh && (
-          <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
+          <div className="rounded-lg border border-warning/40 bg-warning/10 p-4">
             <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0" />
-              <p className="font-semibold text-amber-800 text-sm">Cadastro devolvido para ajustes</p>
+              <AlertTriangle className="h-5 w-5 text-warning flex-shrink-0" />
+              <p className="font-medium text-warning text-sm">Cadastro devolvido para ajustes</p>
             </div>
-            <p className="text-sm text-amber-900 leading-relaxed">
+            <p className="text-sm text-warning leading-relaxed">
               {(convite as any).dados_preenchidos._comentario_rh}
             </p>
             {(convite as any).dados_preenchidos._devolvido_em && (
-              <p className="text-xs text-amber-600 mt-2">
+              <p className="text-xs text-warning mt-2">
                 Devolvido em {new Date((convite as any).dados_preenchidos._devolvido_em).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
               </p>
             )}

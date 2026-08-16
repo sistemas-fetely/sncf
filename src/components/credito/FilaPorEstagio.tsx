@@ -91,19 +91,19 @@ export function FilaPorEstagio({ estagio }: Props) {
                   key={a.id}
                   className={cn(
                     "cursor-pointer hover:bg-muted/50",
-                    devolvida && "border-l-4 border-l-orange-400",
+                    devolvida && "border-l-4 border-l-warning/40",
                   )}
                   onClick={() => navigate(`/credito/analises/${a.id}`)}
                 >
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-semibold text-primary">
+                      <span className="font-mono text-xs font-medium text-primary">
                         {a.pedido_id_externo}
                       </span>
                       {devolvida && (
                         <Badge
                           variant="outline"
-                          className="gap-1 text-[10px] py-0 px-1.5 border-orange-300 text-orange-700"
+                          className="gap-1 text-[10px] py-0 px-1.5 border-warning/40 text-warning"
                         >
                           <Undo2 className="h-2.5 w-2.5" />
                           Devolvida

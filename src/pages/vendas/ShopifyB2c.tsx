@@ -77,7 +77,7 @@ export default function ShopifyB2c() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Shopify · B2C</h1>
+        <h1 className="text-2xl font-medium tracking-tight">Shopify · B2C</h1>
         <Button variant="outline" onClick={() => setDialogOpen(true)} className="gap-2">
           <Upload className="h-4 w-4" />
           Importar CSV
@@ -209,7 +209,7 @@ export default function ShopifyB2c() {
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
                         {p.rastreio_entregue ? (
-                          <Badge className="bg-green-600 hover:bg-green-600 text-white">Entregue</Badge>
+                          <Badge className="bg-success hover:bg-success text-white">Entregue</Badge>
                         ) : p.rastreio_status ? (
                           <span className="text-xs">{p.rastreio_status}</span>
                         ) : (

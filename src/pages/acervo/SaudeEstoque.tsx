@@ -16,6 +16,7 @@ import { SortableTableHead, type SortState, ordenarPor } from "@/components/shar
 import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RefreshCw, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+import { PageShell } from "@/components/layout/PageShell";
 interface OnboardingProgresso {
   skus_ativos: number;
   com_razao: number;
@@ -274,7 +275,7 @@ export default function SaudeEstoque() {
   const seguro = !!onboarding?.seguro_desligar_bling;
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 animate-casa-fade-in">
+    <PageShell className="md:px-8 animate-casa-fade-in">
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
@@ -309,7 +310,7 @@ export default function SaudeEstoque() {
             <div className="text-sm">
               {onboarding ? (
                 <>
-                  <span className="text-2xl font-semibold tabular-nums">{formatNum(onboarding.com_razao)}</span>
+                  <span className="text-2xl font-medium tabular-nums">{formatNum(onboarding.com_razao)}</span>
                   <span className="text-muted-foreground"> de </span>
                   <span className="font-medium tabular-nums">{formatNum(onboarding.skus_ativos)}</span>
                   <span className="text-muted-foreground"> SKUs lastreados no razão </span>
@@ -325,7 +326,7 @@ export default function SaudeEstoque() {
           <div
             className={cn(
               "h-full transition-all",
-              seguro ? "bg-emerald-500" : "bg-amber-500",
+              seguro ? "bg-success" : "bg-warning",
             )}
             style={{ width: `${Math.max(0, Math.min(100, pct))}%` }}
           />
@@ -333,18 +334,18 @@ export default function SaudeEstoque() {
 
         {onboarding && (
           seguro ? (
-            <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-4 flex items-start gap-3">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-emerald-900 dark:text-emerald-100">
-                <div className="font-semibold mb-0.5">Seguro desligar o controle de estoque do Bling.</div>
+            <div className="rounded-md border border-success/40 bg-success p-4 flex items-start gap-3">
+              <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-success">
+                <div className="font-medium mb-0.5">Seguro desligar o controle de estoque do Bling.</div>
                 Todos os SKUs ativos estão lastreados no razão SNCF.
               </div>
             </div>
           ) : (
-            <div className="rounded-md border border-red-500/30 bg-red-500/10 p-4 flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-red-900 dark:text-red-100">
-                <div className="font-semibold mb-0.5">NÃO desligar o controle de estoque do Bling.</div>
+            <div className="rounded-md border border-destructive/40 bg-destructive p-4 flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-destructive">
+                <div className="font-medium mb-0.5">NÃO desligar o controle de estoque do Bling.</div>
                 <span className="tabular-nums">{formatNum(onboarding.sem_razao)}</span> SKUs ainda tiram saldo do Bling — desligar agora congela esses SKUs, porque a baixa por NF só toca SKU com contagem.
               </div>
             </div>
@@ -462,9 +463,9 @@ export default function SaudeEstoque() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 {div === 0 ? (
-                                  <span className="text-emerald-600 dark:text-emerald-400 cursor-help">✓</span>
+                                  <span className="text-success cursor-help">✓</span>
                                 ) : (
-                                  <span className="font-medium cursor-help text-red-600 dark:text-red-400">
+                                  <span className="font-medium cursor-help text-destructive">
                                     {formatSigned(div)}
                                   </span>
                                 )}
@@ -486,7 +487,7 @@ export default function SaudeEstoque() {
                           ) : (
                             <span className={cn(
                               "text-xs",
-                              idadeAmber ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground",
+                              idadeAmber ? "text-warning" : "text-muted-foreground",
                             )}>
                               {idade === 0 ? "hoje" : `${idade}d`}
                             </span>
@@ -600,7 +601,7 @@ export default function SaudeEstoque() {
                     <TableCell className="py-1.5">{b.nome_comercial ?? "—"}</TableCell>
                     <TableCell className="py-1.5">{MOTIVO_BAIXA[b.motivo ?? ""] ?? (b.motivo ?? "—")}</TableCell>
                     <TableCell className="text-right tabular-nums py-1.5">{formatNum(b.notas)}</TableCell>
-                    <TableCell className="text-right tabular-nums py-1.5 text-amber-600 dark:text-amber-400">{formatNum(b.unidades_nao_lancadas)}</TableCell>
+                    <TableCell className="text-right tabular-nums py-1.5 text-warning">{formatNum(b.unidades_nao_lancadas)}</TableCell>
                     <TableCell className="py-1.5">{formatData(b.primeira_nf)}</TableCell>
                     <TableCell className="py-1.5">{formatData(b.ultima_nf)}</TableCell>
                   </TableRow>
@@ -641,7 +642,7 @@ export default function SaudeEstoque() {
                       <TableCell className="py-1.5">{r.nome_comercial ?? "—"}</TableCell>
                       <TableCell className="text-right tabular-nums py-1.5">{formatNum(r.shopify_atual)}</TableCell>
                       <TableCell className="text-right tabular-nums py-1.5">{formatNum(r.sncf_virtual_estimado)}</TableCell>
-                      <TableCell className={cn("text-right tabular-nums py-1.5", diff !== 0 && "text-red-600 dark:text-red-400")}>
+                      <TableCell className={cn("text-right tabular-nums py-1.5", diff !== 0 && "text-destructive")}>
                         {formatSigned(diff)}
                       </TableCell>
                       <TableCell className="py-1.5">{r.motivo_retencao ?? "—"}</TableCell>
@@ -689,7 +690,7 @@ export default function SaudeEstoque() {
           </Table>
         </div>
       </section>
-    </div>
+    </PageShell>
   );
 }
 
@@ -719,8 +720,8 @@ function PendenciaCard({
       <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">{label}</div>
       <div className={cn(
         sizeClass,
-        "font-semibold tabular-nums leading-none mb-2",
-        tone === "amber" ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground",
+        "font-medium tabular-nums leading-none mb-2",
+        tone === "amber" ? "text-warning" : "text-muted-foreground",
       )}>
         {formatted}
         {suffix && <span className="text-sm font-normal ml-1">{suffix}</span>}

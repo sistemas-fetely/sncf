@@ -151,11 +151,11 @@ function ConviteAnexos({ documentos }: { documentos?: { key: string; name: strin
   return (
     <Card>
       <CardContent className="p-6 space-y-3">
-        <h3 className="text-lg font-semibold mb-4">Documentos Anexados</h3>
+        <h3 className="text-lg font-medium mb-4">Documentos Anexados</h3>
         {documentos.map((doc) => (
           <div key={doc.key} className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
             <div className="flex items-center gap-3">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+              <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
               <div>
                 <p className="text-sm font-medium">{labelMap[doc.key] || doc.key}</p>
                 <p className="text-xs text-muted-foreground">{doc.name}</p>
@@ -789,7 +789,7 @@ export default function ConviteDetalhe() {
           <SmartBackButton fallback="/convites-cadastro" fallbackLabel="Convites" />
           <div>
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl font-bold">{convite.nome}</h1>
+              <h1 className="text-2xl font-medium">{convite.nome}</h1>
               <Badge variant="outline" className={statusStyles[displayStatus] || ""}>
                 {statusLabels[displayStatus] || displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
               </Badge>
@@ -849,7 +849,7 @@ export default function ConviteDetalhe() {
               <CheckCircle2 className="h-5 w-5 text-white" />
             </div>
             <div>
-              <p className="font-semibold" style={{ color: "#1A4A3A" }}>
+              <p className="font-medium" style={{ color: "#1A4A3A" }}>
                 Cadastro aprovado — pronto para criar o {isClt ? "colaborador" : "contrato"}
               </p>
               <p className="text-sm text-muted-foreground">

@@ -92,7 +92,7 @@ export default function PanoramaAreas() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Panorama de Áreas</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Panorama de Áreas</h1>
           <p className="text-muted-foreground text-sm mt-1">
             Headcount e custo mensal por centro de custo
           </p>
@@ -110,19 +110,19 @@ export default function PanoramaAreas() {
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Users className="h-5 w-5" /></div>
-          <div><p className="text-2xl font-bold">{totOcupados}</p><p className="text-xs text-muted-foreground">Total de pessoas</p></div>
+          <div><p className="text-2xl font-medium">{totOcupados}</p><p className="text-xs text-muted-foreground">Total de pessoas</p></div>
         </CardContent></Card>
         <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success/10 text-success"><Wallet className="h-5 w-5" /></div>
-          <div><p className="text-2xl font-bold">{fmtBRL(totCusto)}</p><p className="text-xs text-muted-foreground">Custo total (empresa)</p><p className="text-[10px] text-muted-foreground mt-0.5">Remuneração (sem encargos): {fmtBRL(totRemuneracao)} · Encargos: {fmtBRL(totEncargo)}</p></div>
+          <div><p className="text-2xl font-medium">{fmtBRL(totCusto)}</p><p className="text-xs text-muted-foreground">Custo total (empresa)</p><p className="text-[10px] text-muted-foreground mt-0.5">Remuneração (sem encargos): {fmtBRL(totRemuneracao)} · Encargos: {fmtBRL(totEncargo)}</p></div>
         </CardContent></Card>
         <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-info/10 text-info"><Building2 className="h-5 w-5" /></div>
-          <div><p className="text-2xl font-bold">{totCLT}</p><p className="text-xs text-muted-foreground">CLT</p></div>
+          <div><p className="text-2xl font-medium">{totCLT}</p><p className="text-xs text-muted-foreground">CLT</p></div>
         </CardContent></Card>
         <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10 text-warning"><Briefcase className="h-5 w-5" /></div>
-          <div><p className="text-2xl font-bold">{totPJ}</p><p className="text-xs text-muted-foreground">PJ</p></div>
+          <div><p className="text-2xl font-medium">{totPJ}</p><p className="text-xs text-muted-foreground">PJ</p></div>
         </CardContent></Card>
       </div>
 
@@ -164,14 +164,14 @@ export default function PanoramaAreas() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="font-semibold">Centro de Custo</TableHead>
-                  <TableHead className="font-semibold text-right">Ocupados</TableHead>
-                  <TableHead className="font-semibold text-right">CLT</TableHead>
-                  <TableHead className="font-semibold text-right">PJ</TableHead>
-                  <TableHead className="font-semibold text-right">Vagas Abertas</TableHead>
-                  <TableHead className="font-semibold text-right">Remuneração (sem encargos)</TableHead>
-                  <TableHead className="font-semibold text-right">Encargos (caixa do mês)</TableHead>
-                  <TableHead className="font-semibold text-right">Custo total (empresa)</TableHead>
+                  <TableHead className="font-medium">Centro de Custo</TableHead>
+                  <TableHead className="font-medium text-right">Ocupados</TableHead>
+                  <TableHead className="font-medium text-right">CLT</TableHead>
+                  <TableHead className="font-medium text-right">PJ</TableHead>
+                  <TableHead className="font-medium text-right">Vagas Abertas</TableHead>
+                  <TableHead className="font-medium text-right">Remuneração (sem encargos)</TableHead>
+                  <TableHead className="font-medium text-right">Encargos (caixa do mês)</TableHead>
+                  <TableHead className="font-medium text-right">Custo total (empresa)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -196,10 +196,10 @@ export default function PanoramaAreas() {
                         </TableCell>
                         <TableCell className="text-right text-sm">{fmtBRL(remuneracao(r))}</TableCell>
                         <TableCell className="text-right text-sm">{fmtBRL(num(r.custo_encargo))}</TableCell>
-                        <TableCell className="text-right text-sm font-semibold">{fmtBRL(custoTotal(r))}</TableCell>
+                        <TableCell className="text-right text-sm font-medium">{fmtBRL(custoTotal(r))}</TableCell>
                       </TableRow>
                     ))}
-                    <TableRow className="bg-muted/50 font-semibold">
+                    <TableRow className="bg-muted/50 font-medium">
                       <TableCell>Total</TableCell>
                       <TableCell className="text-right">{totOcupados}</TableCell>
                       <TableCell className="text-right">{totCLT}</TableCell>

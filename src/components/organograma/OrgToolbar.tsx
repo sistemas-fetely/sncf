@@ -29,7 +29,7 @@ export function OrgToolbar({ viewMode, onViewModeChange, filters, onFiltersChang
     <div className="space-y-3">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Organograma</h1>
+          <h1 className="text-2xl font-medium text-foreground">Organograma</h1>
           <p className="text-sm text-muted-foreground">Estrutura organizacional da empresa</p>
         </div>
         <div className="flex items-center gap-2">

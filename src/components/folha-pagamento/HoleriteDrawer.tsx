@@ -32,7 +32,7 @@ interface Props {
 }
 
 function Linha({ label, valor, tipo }: { label: string; valor: number | null; tipo?: "provento" | "desconto" | "neutro" }) {
-  const color = tipo === "desconto" ? "text-destructive" : tipo === "provento" ? "text-green-700 dark:text-green-400" : "";
+  const color = tipo === "desconto" ? "text-destructive" : tipo === "provento" ? "text-success" : "";
   const prefix = tipo === "desconto" ? "- " : tipo === "provento" ? "+ " : "";
   return (
     <div className="flex justify-between text-sm py-1">
@@ -220,7 +220,7 @@ export function HoleriteDrawer({ holerite, open, onClose, competenciaId, canEdit
           {/* Edit form */}
           {editing && (
             <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3">
-              <h4 className="text-sm font-semibold">Editar Valores</h4>
+              <h4 className="text-sm font-medium">Editar Valores</h4>
               <div className="grid grid-cols-2 gap-3">
                 <NumField label="HE 50% (horas)" value={form.horasExtras50Qtd} onChange={(v) => upd("horasExtras50Qtd", v)} step="0.5" />
                 <NumField label="HE 100% (horas)" value={form.horasExtras100Qtd} onChange={(v) => upd("horasExtras100Qtd", v)} step="0.5" />
@@ -247,10 +247,10 @@ export function HoleriteDrawer({ holerite, open, onClose, competenciaId, canEdit
 
           {/* Proventos */}
           <div>
-            <h4 className="text-sm font-semibold text-green-700 dark:text-green-400 mb-2">Proventos</h4>
+            <h4 className="text-sm font-medium text-success mb-2">Proventos</h4>
             <div className="flex justify-between text-sm py-1">
               <span className="text-muted-foreground">Salário Base</span>
-              <span className="font-medium text-green-700 dark:text-green-400">+ <SalarioMasked valor={h.salario_base} userId={(h.colaborador as any)?.user_id || null} contexto="holerite" /></span>
+              <span className="font-medium text-success">+ <SalarioMasked valor={h.salario_base} userId={(h.colaborador as any)?.user_id || null} contexto="holerite" /></span>
             </div>
             {(d.horas_extras_50 ?? 0) > 0 && (
               <Linha label={`Horas Extras 50% (${form.horasExtras50Qtd || h.horas_extras_50_qtd}h)`} valor={d.horas_extras_50} tipo="provento" />
@@ -265,9 +265,9 @@ export function HoleriteDrawer({ holerite, open, onClose, competenciaId, canEdit
               <Linha label="Outros Proventos" valor={d.outros_proventos} tipo="provento" />
             )}
             <Separator />
-            <div className="flex justify-between font-semibold text-sm py-1">
+            <div className="flex justify-between font-medium text-sm py-1">
               <span>Total Proventos</span>
-              <span className="text-green-700 dark:text-green-400">
+              <span className="text-success">
                 <SalarioMasked valor={d.total_proventos} userId={(h.colaborador as any)?.user_id || null} contexto="holerite" />
               </span>
             </div>
@@ -275,7 +275,7 @@ export function HoleriteDrawer({ holerite, open, onClose, competenciaId, canEdit
 
           {/* Descontos */}
           <div>
-            <h4 className="text-sm font-semibold text-destructive mb-2">Descontos</h4>
+            <h4 className="text-sm font-medium text-destructive mb-2">Descontos</h4>
             <Linha label="INSS" valor={d.inss} tipo="desconto" />
             <Linha label="IRRF" valor={d.irrf} tipo="desconto" />
             {(d.vt_desconto ?? 0) > 0 && <Linha label="Vale Transporte (6%)" valor={d.vt_desconto} tipo="desconto" />}
@@ -286,7 +286,7 @@ export function HoleriteDrawer({ holerite, open, onClose, competenciaId, canEdit
             )}
             {(d.outros_descontos ?? 0) > 0 && <Linha label="Outros Descontos" valor={d.outros_descontos} tipo="desconto" />}
             <Separator />
-            <div className="flex justify-between font-semibold text-sm py-1">
+            <div className="flex justify-between font-medium text-sm py-1">
               <span>Total Descontos</span>
               <span className="text-destructive">{fmt(d.total_descontos)}</span>
             </div>
@@ -294,7 +294,7 @@ export function HoleriteDrawer({ holerite, open, onClose, competenciaId, canEdit
 
           {/* Líquido */}
           <div className="rounded-lg bg-muted p-4">
-            <div className="flex justify-between text-base font-bold">
+            <div className="flex justify-between text-base font-medium">
               <span>Salário Líquido</span>
               <SalarioMasked valor={d.salario_liquido} userId={(h.colaborador as any)?.user_id || null} contexto="holerite" />
             </div>
@@ -302,11 +302,11 @@ export function HoleriteDrawer({ holerite, open, onClose, competenciaId, canEdit
 
           {/* Encargos */}
           <div>
-            <h4 className="text-sm font-semibold mb-2">Encargos Patronais</h4>
+            <h4 className="text-sm font-medium mb-2">Encargos Patronais</h4>
             <Linha label={`FGTS (${((parametrosFolha?.aliquotaFGTS ?? 0.08) * 100).toFixed(0)}%)`} valor={d.fgts} tipo="neutro" />
             <Linha label={`INSS Patronal (${((parametrosFolha?.aliquotaINSSPatronal ?? 0.20) * 100).toFixed(0)}%)`} valor={d.inss_patronal} tipo="neutro" />
             <Separator />
-            <div className="flex justify-between font-semibold text-sm py-1">
+            <div className="flex justify-between font-medium text-sm py-1">
               <span>Total Encargos</span>
               <span>{fmt(d.total_encargos)}</span>
             </div>

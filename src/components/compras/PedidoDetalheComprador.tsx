@@ -173,7 +173,7 @@ export function PedidoDetalheComprador({
             <TabsContent value="detalhes" className="mt-4 space-y-6">
             {/* Detalhes */}
             <section className="space-y-2">
-              <h4 className="text-sm font-semibold">Detalhes</h4>
+              <h4 className="text-sm font-medium">Detalhes</h4>
               <Card className="p-3 space-y-2 text-sm">
                 <div>
                   <span className="text-xs text-muted-foreground">Justificativa</span>
@@ -198,7 +198,7 @@ export function PedidoDetalheComprador({
 
             {/* Itens */}
             <section className="space-y-2">
-              <h4 className="text-sm font-semibold">Itens</h4>
+              <h4 className="text-sm font-medium">Itens</h4>
               <Card className="p-0 overflow-hidden">
                 <Table>
                   <TableHeader>
@@ -254,13 +254,13 @@ export function PedidoDetalheComprador({
                 <span className="text-muted-foreground">
                   Total estimado pendente ({itensPendentes.length} itens):{" "}
                 </span>
-                <span className="font-semibold">{fmtBRL(totalEstimado)}</span>
+                <span className="font-medium">{fmtBRL(totalEstimado)}</span>
               </div>
             </section>
 
             {/* Anexos do pedido */}
             <section className="space-y-2">
-              <h4 className="text-sm font-semibold">
+              <h4 className="text-sm font-medium">
                 Anexos do solicitante ({pedido.pedidos_compra_anexos?.length || 0})
               </h4>
               {(pedido.pedidos_compra_anexos || []).length === 0 ? (
@@ -292,7 +292,7 @@ export function PedidoDetalheComprador({
             {/* Compras registradas */}
             {comprasRegistradas.length > 0 && (
               <section className="space-y-2">
-                <h4 className="text-sm font-semibold">
+                <h4 className="text-sm font-medium">
                   Compras já registradas ({comprasRegistradas.length})
                 </h4>
                 <div className="space-y-2">

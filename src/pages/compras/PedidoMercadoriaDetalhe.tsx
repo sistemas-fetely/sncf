@@ -187,8 +187,8 @@ const SITUACAO_NF: Record<
   ok: { rotulo: "OK", badge: "border-success/40 bg-success/10 text-success" },
   nao_alocado: {
     rotulo: "Não alocado",
-    badge: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400",
-    linha: "bg-amber-500/5",
+    badge: "border-warning/40 bg-warning text-warning",
+    linha: "bg-warning",
   },
   so_nf: {
     rotulo: "Só na NF",
@@ -239,7 +239,7 @@ function Stat({ rotulo, valor }: { rotulo: string; valor: React.ReactNode }) {
   return (
     <div className="rounded-md border p-3">
       <div className="text-xs text-muted-foreground">{rotulo}</div>
-      <div className="text-lg font-semibold tabular-nums">{valor}</div>
+      <div className="text-lg font-medium tabular-nums">{valor}</div>
     </div>
   );
 }
@@ -436,7 +436,7 @@ export default function PedidoMercadoriaDetalhe() {
           {/* Cabeçalho */}
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-semibold">{pedido.numero_pedido}</h1>
+              <h1 className="text-2xl font-medium">{pedido.numero_pedido}</h1>
               {pedido.rocabella_ref && (
                 <span className="text-sm text-muted-foreground">Ref. {pedido.rocabella_ref}</span>
               )}
@@ -467,8 +467,8 @@ export default function PedidoMercadoriaDetalhe() {
           </div>
 
           {Number(pedido.skus_incompletos_xpm ?? 0) > 0 && (
-            <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm flex items-start gap-2">
-              <AlertTriangle className="h-4 w-4 mt-0.5 text-amber-600" />
+            <div className="rounded-md border border-warning/40 bg-warning p-3 text-sm flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 mt-0.5 text-warning" />
               <div>
                 <div>
                   {pedido.skus_incompletos_xpm} SKU(s) sem peso, EAN ou dimensão — a planilha XPM vai
@@ -846,7 +846,7 @@ export default function PedidoMercadoriaDetalhe() {
                   ) : (
                     <div className="space-y-3">
                       {naoAlocadas > 0 && (
-                        <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+                        <div className="flex flex-wrap items-center gap-2 rounded-md border border-warning/40 bg-warning p-3 text-sm text-warning">
                           <AlertTriangle className="h-4 w-4 shrink-0" />
                           <span>
                             {naoAlocadas} linha(s) da NF ainda não foram distribuídas em SKU. É o
@@ -977,7 +977,7 @@ export default function PedidoMercadoriaDetalhe() {
                                 <TableCell className="text-right">{fmtNum(r.qtd_invoice)}</TableCell>
                                 <TableCell
                                   className={
-                                    problema ? "text-right font-semibold text-destructive" : "text-right"
+                                    problema ? "text-right font-medium text-destructive" : "text-right"
                                   }
                                 >
                                   {fmtNum(r.furo)}

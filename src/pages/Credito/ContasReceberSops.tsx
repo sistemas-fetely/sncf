@@ -38,6 +38,7 @@ import { useEnviarEmailCobranca } from "@/hooks/credito/useEnviarEmailCobranca";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { BaixaManualDialog } from "@/components/credito/BaixaManualDialog";
 
+import { PageShell } from "@/components/layout/PageShell";
 type Titulo = {
   id: string;
   numero_titulo: string | null;
@@ -79,13 +80,13 @@ const STATUS_PARA_GRUPO: Record<string, GrupoStatus> = {
 };
 
 const BOLETO_STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-  pendente: { label: "Pendente", className: "bg-gray-100 text-gray-600" },
-  remessa_gerada: { label: "Remessa gerada", className: "bg-yellow-100 text-yellow-800" },
-  registrado: { label: "Registrado", className: "bg-blue-100 text-blue-800" },
-  pago_manual: { label: "Pago (manual)", className: "bg-emerald-100 text-emerald-800" },
-  pago_banco: { label: "Pago (Safra)", className: "bg-green-700 text-white" },
-  rejeitado: { label: "Rejeitado", className: "bg-red-100 text-red-800" },
-  vencido: { label: "Vencido", className: "bg-orange-100 text-orange-800" },
+  pendente: { label: "Pendente", className: "bg-muted/10 text-muted-foreground" },
+  remessa_gerada: { label: "Remessa gerada", className: "bg-warning/10 text-warning" },
+  registrado: { label: "Registrado", className: "bg-info/10 text-info" },
+  pago_manual: { label: "Pago (manual)", className: "bg-success/10 text-success" },
+  pago_banco: { label: "Pago (Safra)", className: "bg-success text-white" },
+  rejeitado: { label: "Rejeitado", className: "bg-destructive/10 text-destructive" },
+  vencido: { label: "Vencido", className: "bg-warning/10 text-warning" },
 };
 
 const PAGE_SIZE = 25;
@@ -106,7 +107,7 @@ function BotaoEmailCobranca({ titulo }: { titulo: Titulo }) {
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className="inline-flex items-center text-green-600">
+            <span className="inline-flex items-center text-success">
               <MailCheck className="h-4 w-4" />
             </span>
           </TooltipTrigger>
@@ -281,11 +282,11 @@ export default function ContasReceberSops() {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <PageShell>
       <div className="flex items-center gap-3">
         <ArrowDownToLine className="h-7 w-7 text-admin" />
         <div>
-          <h1 className="text-2xl font-semibold">Contas a Receber</h1>
+          <h1 className="text-2xl font-medium">Contas a Receber</h1>
           <p className="text-sm text-muted-foreground">
             Recebíveis por parcela — acompanhe boletos, aging e confirmações.
           </p>
@@ -296,36 +297,36 @@ export default function ContasReceberSops() {
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-blue-700">Total a receber</CardTitle>
+            <CardTitle className="text-sm text-info">Total a receber</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold text-blue-700">
+            <div className="text-2xl font-medium text-info">
               {formatBRL(kpis.totalReceber)}
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-red-700">Vencido</CardTitle>
+            <CardTitle className="text-sm text-destructive">Vencido</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold text-red-700">{formatBRL(kpis.vencido)}</div>
+            <div className="text-2xl font-medium text-destructive">{formatBRL(kpis.vencido)}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-amber-600">Vence em 7 dias</CardTitle>
+            <CardTitle className="text-sm text-warning">Vence em 7 dias</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold text-amber-600">{formatBRL(kpis.vence7)}</div>
+            <div className="text-2xl font-medium text-warning">{formatBRL(kpis.vence7)}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-green-700">Recebido no mês</CardTitle>
+            <CardTitle className="text-sm text-success">Recebido no mês</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold text-green-700">
+            <div className="text-2xl font-medium text-success">
               {formatBRL(kpis.recebidoMes)}
             </div>
           </CardContent>
@@ -341,25 +342,25 @@ export default function ContasReceberSops() {
           <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
             <div className="rounded-md border p-3">
               <div className="text-xs text-muted-foreground">A vencer</div>
-              <div className="text-lg font-semibold text-blue-700">
+              <div className="text-lg font-medium text-info">
                 {formatBRL(aging.a_vencer)}
               </div>
             </div>
             <div className="rounded-md border p-3">
               <div className="text-xs text-muted-foreground">1–7 dias</div>
-              <div className="text-lg font-semibold text-amber-600">{formatBRL(aging.f1_7)}</div>
+              <div className="text-lg font-medium text-warning">{formatBRL(aging.f1_7)}</div>
             </div>
             <div className="rounded-md border p-3">
               <div className="text-xs text-muted-foreground">8–30 dias</div>
-              <div className="text-lg font-semibold text-orange-600">{formatBRL(aging.f8_30)}</div>
+              <div className="text-lg font-medium text-warning">{formatBRL(aging.f8_30)}</div>
             </div>
             <div className="rounded-md border p-3">
               <div className="text-xs text-muted-foreground">31–60 dias</div>
-              <div className="text-lg font-semibold text-red-600">{formatBRL(aging.f31_60)}</div>
+              <div className="text-lg font-medium text-destructive">{formatBRL(aging.f31_60)}</div>
             </div>
             <div className="rounded-md border p-3">
               <div className="text-xs text-muted-foreground">+60 dias</div>
-              <div className="text-lg font-semibold text-red-800">{formatBRL(aging.f60)}</div>
+              <div className="text-lg font-medium text-destructive">{formatBRL(aging.f60)}</div>
             </div>
           </div>
         </CardContent>
@@ -499,9 +500,9 @@ export default function ContasReceberSops() {
                       t.boleto_status !== "pago_banco";
 
                     return (
-                      <TableRow key={t.id} className={vencido ? "bg-red-50/40" : ""}>
+                      <TableRow key={t.id} className={vencido ? "bg-destructive/10" : ""}>
                         <TableCell
-                          className={vencido ? "font-semibold text-red-700" : ""}
+                          className={vencido ? "font-medium text-destructive" : ""}
                         >
                           {formatDateBR(t.data_vencimento_atual)}
                         </TableCell>
@@ -552,7 +553,7 @@ export default function ContasReceberSops() {
                                 onClick={() => handleCopy(t.id, t.linha_digitavel!)}
                               >
                                 {copiadoId === t.id ? (
-                                  <CheckCheck className="h-4 w-4 text-green-600" />
+                                  <CheckCheck className="h-4 w-4 text-success" />
                                 ) : (
                                   <Copy className="h-4 w-4" />
                                 )}
@@ -603,6 +604,6 @@ export default function ContasReceberSops() {
           onClose={() => setTituloBaixa(null)}
         />
       )}
-    </div>
+    </PageShell>
   );
 }

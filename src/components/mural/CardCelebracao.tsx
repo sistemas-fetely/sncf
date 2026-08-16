@@ -15,34 +15,34 @@ interface Tema {
 
 const temas: Record<string, Tema> = {
   rosa: {
-    bg: "bg-pink-50 dark:bg-pink-950/40",
-    border: "border-pink-200 dark:border-pink-900",
-    texto: "text-rose-900 dark:text-rose-100",
-    destaque: "text-rose-700 dark:text-rose-200",
+    bg: "bg-info/10",
+    border: "border-info/40",
+    texto: "text-destructive",
+    destaque: "text-destructive",
   },
   verde: {
-    bg: "bg-emerald-50 dark:bg-emerald-950/40",
-    border: "border-emerald-200 dark:border-emerald-900",
-    texto: "text-emerald-900 dark:text-emerald-100",
-    destaque: "text-emerald-700 dark:text-emerald-200",
+    bg: "bg-success/10",
+    border: "border-success/40",
+    texto: "text-success",
+    destaque: "text-success",
   },
   creme: {
-    bg: "bg-amber-50 dark:bg-amber-950/30",
-    border: "border-amber-200 dark:border-amber-900",
-    texto: "text-amber-900 dark:text-amber-100",
-    destaque: "text-amber-700 dark:text-amber-200",
+    bg: "bg-warning/10",
+    border: "border-warning/40",
+    texto: "text-warning",
+    destaque: "text-warning",
   },
   sage: {
-    bg: "bg-lime-50 dark:bg-lime-950/30",
-    border: "border-lime-200 dark:border-lime-900",
-    texto: "text-lime-900 dark:text-lime-100",
-    destaque: "text-lime-700 dark:text-lime-200",
+    bg: "bg-success/10",
+    border: "border-success/40",
+    texto: "text-success",
+    destaque: "text-success",
   },
   bordo: {
-    bg: "bg-red-50 dark:bg-red-950/30",
-    border: "border-red-200 dark:border-red-900",
-    texto: "text-red-900 dark:text-red-100",
-    destaque: "text-red-700 dark:text-red-200",
+    bg: "bg-destructive/10",
+    border: "border-destructive/40",
+    texto: "text-destructive",
+    destaque: "text-destructive",
   },
 };
 
@@ -73,7 +73,7 @@ export function CardCelebracao({ publicacao }: Props) {
         {publicacao.pessoa_alvo_nome && (
           <Avatar className="h-16 w-16 shrink-0 ring-2 ring-white dark:ring-white/10 shadow-sm">
             <AvatarImage src={publicacao.foto_url ?? undefined} alt={publicacao.pessoa_alvo_nome} />
-            <AvatarFallback className="bg-white/80 text-base font-semibold">
+            <AvatarFallback className="bg-white/80 text-base font-medium">
               {initials(publicacao.pessoa_alvo_nome)}
             </AvatarFallback>
           </Avatar>
@@ -83,7 +83,7 @@ export function CardCelebracao({ publicacao }: Props) {
           {publicacao.emoji && (
             <div className="text-2xl mb-1 leading-none">{publicacao.emoji}</div>
           )}
-          <h3 className={`text-base font-semibold ${tema.texto} leading-tight`}>
+          <h3 className={`text-base font-medium ${tema.texto} leading-tight`}>
             {publicacao.titulo}
           </h3>
           {publicacao.mensagem && (

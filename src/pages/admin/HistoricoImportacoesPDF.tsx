@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 
+import { PageShell } from "@/components/layout/PageShell";
 interface Importacao {
   id: string;
   importado_por_nome: string | null;
@@ -20,9 +21,9 @@ interface Importacao {
 }
 
 const statusLabels: Record<string, { label: string; cor: string; icone: any }> = {
-  em_processamento: { label: "Processando", cor: "text-blue-600", icone: Loader2 },
-  sucesso: { label: "Sucesso", cor: "text-green-600", icone: CheckCircle2 },
-  recusado_nao_processo: { label: "Não é processo", cor: "text-amber-600", icone: AlertCircle },
+  em_processamento: { label: "Processando", cor: "text-info", icone: Loader2 },
+  sucesso: { label: "Sucesso", cor: "text-success", icone: CheckCircle2 },
+  recusado_nao_processo: { label: "Não é processo", cor: "text-warning", icone: AlertCircle },
   erro_ia: { label: "Erro IA", cor: "text-destructive", icone: XCircle },
   erro_pdf: { label: "Erro PDF", cor: "text-destructive", icone: XCircle },
 };
@@ -57,11 +58,11 @@ export default function HistoricoImportacoesPDF() {
   }, [filtroStatus]);
 
   return (
-    <div className="container mx-auto py-6 space-y-5 max-w-5xl">
+    <PageShell>
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <Sparkles className="h-5 w-5 text-purple-500" />
-          <h1 className="text-2xl font-bold tracking-tight">Histórico de Importações PDF</h1>
+          <Sparkles className="h-5 w-5 text-info" />
+          <h1 className="text-2xl font-medium tracking-tight">Histórico de Importações PDF</h1>
         </div>
         <p className="text-sm text-muted-foreground">
           PDFs analisados pela IA para virar processos. Auditoria completa.
@@ -111,7 +112,7 @@ export default function HistoricoImportacoesPDF() {
                     <FileText className="h-5 w-5 text-primary mt-0.5 shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-semibold text-sm truncate">{imp.arquivo_nome}</h3>
+                        <h3 className="font-medium text-sm truncate">{imp.arquivo_nome}</h3>
                         <Badge variant="outline" className={`gap-1 text-[10px] ${statusInfo.cor}`}>
                           <StatusIcon className={`h-3 w-3 ${imp.status === "em_processamento" ? "animate-spin" : ""}`} />
                           {statusInfo.label}
@@ -128,7 +129,7 @@ export default function HistoricoImportacoesPDF() {
                       )}
 
                       {imp.status === "recusado_nao_processo" && imp.resultado_ia?.motivo && (
-                        <p className="text-xs text-amber-700 mt-1.5 italic">
+                        <p className="text-xs text-warning mt-1.5 italic">
                           IA disse: "{imp.resultado_ia.motivo}"
                         </p>
                       )}
@@ -151,6 +152,6 @@ export default function HistoricoImportacoesPDF() {
           })}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

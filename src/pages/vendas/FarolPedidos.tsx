@@ -89,9 +89,9 @@ const BLOQUEIO_LABEL: Record<string, string> = {
 function prazoBadgeClass(prazo: string | null): string {
   switch (prazo) {
     case "atrasado":
-      return "bg-red-100 text-red-800 hover:bg-red-100 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-900";
+      return "bg-destructive/10 text-destructive hover:bg-destructive/10 border-destructive/40";
     case "no_prazo":
-      return "bg-green-100 text-green-800 hover:bg-green-100 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-900";
+      return "bg-success/10 text-success hover:bg-success/10 border-success/40";
     case "pausado":
     case "sem_dado":
     default:
@@ -100,7 +100,7 @@ function prazoBadgeClass(prazo: string | null): string {
 }
 
 const BLOQUEIO_BADGE =
-  "bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-900";
+  "bg-warning/10 text-warning hover:bg-warning/10 border-warning/40";
 
 function fmtDate(d: string | null): string {
   if (!d) return "—";
@@ -279,7 +279,7 @@ function AbaB2B() {
     >
       <CardContent className="p-4">
         <div className={`text-xs font-medium lowercase ${tone}`}>{label}</div>
-        <div className="text-2xl font-semibold mt-1">{count}</div>
+        <div className="text-2xl font-medium mt-1">{count}</div>
         <div className="text-xs text-muted-foreground mt-1">
           {BRL.format(soma)}{sufixo ? ` ${sufixo}` : ""}
         </div>
@@ -394,7 +394,7 @@ function AbaB2B() {
           label="no prazo"
           count={resumo.no_prazo.count}
           soma={resumo.no_prazo.soma}
-          tone="text-green-600 dark:text-green-400"
+          tone="text-success"
           ativo={cardAtivo === "no_prazo"}
           onClick={() => toggleCard("no_prazo")}
         />
@@ -402,7 +402,7 @@ function AbaB2B() {
           label="atrasado"
           count={resumo.atrasado.count}
           soma={resumo.atrasado.soma}
-          tone="text-red-600 dark:text-red-400"
+          tone="text-destructive"
           ativo={cardAtivo === "atrasado"}
           onClick={() => toggleCard("atrasado")}
           sufixo="em risco"
@@ -411,7 +411,7 @@ function AbaB2B() {
           label="bloqueados"
           count={resumo.bloqueado.count}
           soma={resumo.bloqueado.soma}
-          tone="text-amber-600 dark:text-amber-400"
+          tone="text-warning"
           ativo={cardAtivo === "bloqueado"}
           onClick={() => toggleCard("bloqueado")}
         />
@@ -485,8 +485,8 @@ function AbaB2B() {
                   const dvm = r.dias_vs_meta;
                   const dvmNode =
                     dvm === null || dvm === undefined ? null
-                    : dvm > 0 ? <span className="text-red-600 dark:text-red-400 font-medium">+{dvm}</span>
-                    : dvm < 0 ? <span className="text-blue-600 dark:text-blue-400 font-medium">{dvm}</span>
+                    : dvm > 0 ? <span className="text-destructive font-medium">+{dvm}</span>
+                    : dvm < 0 ? <span className="text-info font-medium">{dvm}</span>
                     : <span className="text-muted-foreground">0</span>;
 
                   // situação
@@ -499,15 +499,15 @@ function AbaB2B() {
                     );
                   } else if (r.pago_apos_expedicao) {
                     situacao = (
-                      <span className="inline-flex items-center gap-1 text-amber-700 dark:text-amber-400 text-xs lowercase">
+                      <span className="inline-flex items-center gap-1 text-warning text-xs lowercase">
                         <AlertTriangle className="h-3.5 w-3.5" /> pago após expedição
                       </span>
                     );
                   } else if (r.sla_cor) {
                     const corClass =
-                      r.sla_cor === "verde" ? "text-emerald-500"
-                      : r.sla_cor === "amarelo" ? "text-amber-500"
-                      : "text-red-500";
+                      r.sla_cor === "verde" ? "text-success"
+                      : r.sla_cor === "amarelo" ? "text-warning"
+                      : "text-destructive";
                     situacao = (
                       <span className="inline-flex items-center gap-1.5 text-xs lowercase text-muted-foreground">
                         <Circle className={`h-2.5 w-2.5 fill-current ${corClass}`} />
@@ -587,10 +587,10 @@ const B2C_ESTAGIO_LABEL: Record<string, string> = {
 
 const B2C_ESTAGIO_BADGE: Record<string, string> = {
   pago: "bg-muted text-foreground border-border",
-  em_separacao: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-900",
-  expedido: "bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-900",
-  em_transito: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-900",
-  entregue: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-900",
+  em_separacao: "bg-info/10 text-info border-info/40",
+  expedido: "bg-info/10 text-info border-info/40",
+  em_transito: "bg-warning/10 text-warning border-warning/40",
+  entregue: "bg-success/10 text-success border-success/40",
 };
 
 const B2C_ESTAGIOS = ["pago", "em_separacao", "expedido", "em_transito", "entregue"] as const;
@@ -770,37 +770,37 @@ function AbaB2C() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Card
           onClick={() => togglePrazo("no_prazo")}
-          className={`cursor-pointer transition border-green-200 bg-green-50 dark:bg-green-900/10 dark:border-green-900 ${
-            filtroPrazo === "no_prazo" ? "ring-2 ring-green-500" : ""
+          className={`cursor-pointer transition border-success/40 bg-success/10 ${
+            filtroPrazo === "no_prazo" ? "ring-2 ring-success" : ""
           }`}
         >
           <CardContent className="p-4">
-            <div className="text-xs font-medium lowercase text-green-700 dark:text-green-400">no prazo</div>
-            <div className="text-2xl font-semibold mt-1">{resumo.no_prazo.count}</div>
+            <div className="text-xs font-medium lowercase text-success">no prazo</div>
+            <div className="text-2xl font-medium mt-1">{resumo.no_prazo.count}</div>
             <div className="text-xs text-muted-foreground mt-1">{BRL.format(resumo.no_prazo.soma)}</div>
           </CardContent>
         </Card>
         <Card
           onClick={() => togglePrazo("atrasado")}
-          className={`cursor-pointer transition border-red-200 bg-red-50 dark:bg-red-900/10 dark:border-red-900 ${
-            filtroPrazo === "atrasado" ? "ring-2 ring-red-500" : ""
+          className={`cursor-pointer transition border-destructive/40 bg-destructive/10 ${
+            filtroPrazo === "atrasado" ? "ring-2 ring-destructive" : ""
           }`}
         >
           <CardContent className="p-4">
-            <div className="text-xs font-medium lowercase text-red-700 dark:text-red-400">atrasado</div>
-            <div className="text-2xl font-semibold mt-1">{resumo.atrasado.count}</div>
+            <div className="text-xs font-medium lowercase text-destructive">atrasado</div>
+            <div className="text-2xl font-medium mt-1">{resumo.atrasado.count}</div>
             <div className="text-xs text-muted-foreground mt-1">{BRL.format(resumo.atrasado.soma)} em risco</div>
           </CardContent>
         </Card>
         <Card
           onClick={() => togglePrazo("bloqueado")}
-          className={`cursor-pointer transition border-amber-200 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-900 ${
-            filtroPrazo === "bloqueado" ? "ring-2 ring-amber-500" : ""
+          className={`cursor-pointer transition border-warning/40 bg-warning/10 ${
+            filtroPrazo === "bloqueado" ? "ring-2 ring-warning" : ""
           }`}
         >
           <CardContent className="p-4">
-            <div className="text-xs font-medium lowercase text-amber-700 dark:text-amber-400">bloqueados</div>
-            <div className="text-2xl font-semibold mt-1">{resumo.bloqueado.count}</div>
+            <div className="text-xs font-medium lowercase text-warning">bloqueados</div>
+            <div className="text-2xl font-medium mt-1">{resumo.bloqueado.count}</div>
             <div className="text-xs text-muted-foreground mt-1">{BRL.format(resumo.bloqueado.soma)}</div>
           </CardContent>
         </Card>
@@ -857,7 +857,7 @@ function AbaB2C() {
                   return (
                     <TableRow key={p.shopify_id}>
                       <TableCell>
-                        <div className="font-semibold">{p.order_name ?? "—"}</div>
+                        <div className="font-medium">{p.order_name ?? "—"}</div>
                         <div className="text-[11px] text-muted-foreground">
                           {[p.shipping_city, p.shipping_province].filter(Boolean).join(" · ") || "—"}
                         </div>
@@ -871,7 +871,7 @@ function AbaB2C() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="text-lg font-semibold">{p.diasDesdePago}</div>
+                        <div className="text-lg font-medium">{p.diasDesdePago}</div>
                         <div className="text-[10px] text-muted-foreground lowercase">d.u. desde pgto</div>
                       </TableCell>
                       <TableCell>{BRL.format(Number(p.total ?? 0))}</TableCell>
@@ -903,7 +903,7 @@ function AbaB2C() {
                       </TableCell>
                       <TableCell>
                         {p.rastreio_entregue ? (
-                          <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-900">
+                          <Badge variant="outline" className="bg-success/10 text-success border-success/40">
                             Entregue
                           </Badge>
                         ) : p.rastreio_status ? (
@@ -917,14 +917,14 @@ function AbaB2C() {
                       <TableCell>
                         {p.situacao === "atrasado" ? (
                           <span className="inline-flex items-center gap-1.5 text-xs">
-                            <Circle className="h-2.5 w-2.5 fill-current text-red-500" />
+                            <Circle className="h-2.5 w-2.5 fill-current text-destructive" />
                             {p.diasDesdePago}d sem avanço
                           </span>
                         ) : p.situacao === "bloqueado" ? (
                           <Badge variant="outline" className={BLOQUEIO_BADGE}>Sem WNS</Badge>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <Circle className="h-2.5 w-2.5 fill-current text-emerald-500" />
+                            <Circle className="h-2.5 w-2.5 fill-current text-success" />
                             no prazo
                           </span>
                         )}

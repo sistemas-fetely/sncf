@@ -318,13 +318,13 @@ function CepsSection({ tabelaId, zonas }: { tabelaId: string; zonas: ZonaTarifa[
 
   if (total === 0 && !isFetching && !busca && uf === "__all" && tarifa === "__all") {
     return (
-      <div className="rounded-lg border p-4 bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800 flex gap-3">
-        <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+      <div className="rounded-lg border p-4 bg-warning/10 border-warning/40 flex gap-3">
+        <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
         <div className="text-sm">
-          <div className="font-medium text-amber-900 dark:text-amber-200">
+          <div className="font-medium text-warning">
             Sem cobertura de CEP cadastrada
           </div>
-          <div className="text-amber-800 dark:text-amber-300">
+          <div className="text-warning">
             Cotação indisponível até importar as faixas de CEP para esta tabela.
           </div>
         </div>

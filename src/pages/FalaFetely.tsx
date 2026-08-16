@@ -558,7 +558,7 @@ export default function FalaFetely() {
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    {c.favorita && <Star className="h-3 w-3 flex-shrink-0 fill-amber-400 text-amber-400" />}
+                    {c.favorita && <Star className="h-3 w-3 flex-shrink-0 fill-warning text-warning" />}
                     <MessageCircle className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
                     <span className="truncate">{c.titulo || "Conversa"}</span>
                   </div>
@@ -574,7 +574,7 @@ export default function FalaFetely() {
                     }}
                     title={c.favorita ? "Remover dos favoritos" : "Fixar conversa"}
                   >
-                    <Star className={`h-3.5 w-3.5 ${c.favorita ? "fill-amber-400 text-amber-400" : "text-muted-foreground"}`} />
+                    <Star className={`h-3.5 w-3.5 ${c.favorita ? "fill-warning text-warning" : "text-muted-foreground"}`} />
                   </button>
                   <button
                     type="button"
@@ -607,10 +607,10 @@ export default function FalaFetely() {
             >
               <MessageCircleHeart className="w-4 h-4" />
             </div>
-            <span className="font-semibold">Fala Fetely</span>
+            <span className="font-medium">Fala Fetely</span>
             {pensando && (
               <span className="ml-2 text-xs text-muted-foreground flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
                 respondendo...
               </span>
             )}
@@ -647,7 +647,7 @@ export default function FalaFetely() {
                 <MessageCircleHeart className="w-11 h-11" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold mb-2" style={{ color: "#1A4A3A" }}>
+                <h1 className="text-3xl font-medium mb-2" style={{ color: "#1A4A3A" }}>
                   {fraseMotivacional}
                 </h1>
                 <p className="text-muted-foreground">
@@ -665,7 +665,7 @@ export default function FalaFetely() {
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <s.icone className="h-4 w-4" style={{ color: s.cor }} />
-                      <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: s.cor }}>
+                      <span className="text-xs font-medium uppercase tracking-wide" style={{ color: s.cor }}>
                         {s.categoria}
                       </span>
                     </div>
@@ -709,7 +709,7 @@ export default function FalaFetely() {
                 {mensagens.map((msg) => (
                   <div key={msg.id} className={`flex gap-3 ${msg.papel === "user" ? "flex-row-reverse" : ""}`}>
                     <div
-                      className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-white text-xs"
+                      className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center font-medium text-white text-xs"
                       style={
                         msg.papel === "user"
                           ? { backgroundColor: "#E91E63" }
@@ -764,8 +764,8 @@ export default function FalaFetely() {
                               onClick={() => void feedback(msg.id, true)}
                               className={`transition-colors p-1 rounded ${
                                 fbAtual === true
-                                  ? "text-emerald-600 bg-emerald-50"
-                                  : "text-muted-foreground hover:text-emerald-600"
+                                  ? "text-success bg-success/10"
+                                  : "text-muted-foreground hover:text-success"
                               }`}
                               title="Útil"
                             >
@@ -775,8 +775,8 @@ export default function FalaFetely() {
                               onClick={() => void feedback(msg.id, false)}
                               className={`transition-colors p-1 rounded ${
                                 fbAtual === false
-                                  ? "text-red-600 bg-red-50"
-                                  : "text-muted-foreground hover:text-red-600"
+                                  ? "text-destructive bg-destructive/10"
+                                  : "text-muted-foreground hover:text-destructive"
                               }`}
                               title="Não útil"
                             >

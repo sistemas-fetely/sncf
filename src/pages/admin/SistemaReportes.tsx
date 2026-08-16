@@ -39,16 +39,16 @@ import { cn } from "@/lib/utils";
 
 const PRIORIDADE_COR: Record<string, string> = {
   critica: "bg-destructive/10 text-destructive border-destructive/30",
-  alta: "bg-orange-500/10 text-orange-700 border-orange-500/30",
+  alta: "bg-warning text-warning border-warning/40",
   normal: "bg-muted text-muted-foreground",
   baixa: "bg-muted/50 text-muted-foreground",
 };
 
 const STATUS_COR: Record<string, string> = {
-  recebido: "bg-blue-500/10 text-blue-700 border-blue-500/30",
-  em_analise: "bg-amber-500/10 text-amber-700 border-amber-500/30",
-  em_correcao: "bg-purple-500/10 text-purple-700 border-purple-500/30",
-  resolvido: "bg-green-600/10 text-green-700 border-green-600/30",
+  recebido: "bg-info text-info border-info/40",
+  em_analise: "bg-warning text-warning border-warning/40",
+  em_correcao: "bg-info text-info border-info/40",
+  resolvido: "bg-success text-success border-success/40",
   duplicado: "bg-muted text-muted-foreground",
   nao_procede: "bg-muted/50 text-muted-foreground",
 };
@@ -125,7 +125,7 @@ export default function SistemaReportes() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
+        <h1 className="text-2xl font-medium flex items-center gap-2">
           <MessageSquareWarning className="h-6 w-6 text-primary" />
           Reportes do Sistema
         </h1>
@@ -138,25 +138,25 @@ export default function SistemaReportes() {
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Total</p>
-            <p className="text-2xl font-bold">{contadores.total}</p>
+            <p className="text-2xl font-medium">{contadores.total}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Recebidos</p>
-            <p className="text-2xl font-bold text-blue-700">{contadores.recebido}</p>
+            <p className="text-2xl font-medium text-info">{contadores.recebido}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Em análise</p>
-            <p className="text-2xl font-bold text-amber-700">{contadores.em_analise}</p>
+            <p className="text-2xl font-medium text-warning">{contadores.em_analise}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Resolvidos</p>
-            <p className="text-2xl font-bold text-green-700">{contadores.resolvido}</p>
+            <p className="text-2xl font-medium text-success">{contadores.resolvido}</p>
           </CardContent>
         </Card>
       </div>

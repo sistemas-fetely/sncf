@@ -23,8 +23,8 @@ export function BadgePreAprovado({ regraNome, compact, className }: Props) {
           <Badge
             variant="outline"
             className={cn(
-              "gap-1 bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100",
-              "dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800",
+              "gap-1 bg-success/10 text-success border-success/40 hover:bg-success/10",
+              "",
               compact && "text-[10px] py-0 px-1.5",
               className,
             )}

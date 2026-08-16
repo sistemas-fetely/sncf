@@ -53,9 +53,9 @@ export function CancelarPedidoDialog({ pedidoId, pedidoIdExterno, open, onClose 
           </DialogDescription>
         </DialogHeader>
 
-        <Alert className="border-amber-300 bg-amber-50">
-          <AlertTriangle className="h-4 w-4 !text-amber-700" />
-          <AlertDescription className="text-xs text-amber-900">
+        <Alert className="border-warning/40 bg-warning/10">
+          <AlertTriangle className="h-4 w-4 !text-warning" />
+          <AlertDescription className="text-xs text-warning">
             Isto cancela o <strong>pedido inteiro</strong> e todas as suas parcelas.
             Solicita a baixa dos boletos vivos e converte pagamentos já recebidos em
             <strong> haver do cliente</strong>.

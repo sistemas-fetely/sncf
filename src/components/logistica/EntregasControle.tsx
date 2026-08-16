@@ -42,7 +42,7 @@ const texto = (v: string | null | undefined) => (v && v.trim() ? v : "—");
 
 function estadoBadgeCls(r: EntregaRow) {
   const e = r.estado_canonico ?? "";
-  if (e === "entregue") return "border-emerald-600/40 text-emerald-700 bg-emerald-500/10";
+  if (e === "entregue") return "border-success/40 text-success bg-success";
   if (e === "devolucao") return "border-destructive/40 text-destructive bg-destructive/10";
   if (e === "excecao") return "border-destructive/40 text-destructive bg-destructive/10";
   if (e === "em_transito") return "border-gold/50 text-foreground bg-gold/10";
@@ -139,7 +139,7 @@ function Kpi({
     <Card
       className={cn(
         tom === "alerta" && "border-destructive/30 bg-destructive/5",
-        tom === "aviso" && "border-amber-500/30 bg-amber-500/5"
+        tom === "aviso" && "border-warning/40 bg-warning"
       )}
     >
       <CardContent className="p-3">
@@ -161,7 +161,7 @@ function LinhaEntrega({ r, completo }: { r: EntregaRow; completo?: boolean }) {
       className={cn(
         "text-xs",
         urgente && "bg-destructive/5 hover:bg-destructive/10",
-        !urgente && parado && "bg-amber-500/5 hover:bg-amber-500/10"
+        !urgente && parado && "bg-warning hover:bg-warning"
       )}
     >
       <TableCell>
@@ -219,8 +219,8 @@ function pct(v: number | null | undefined) {
 
 function otdCls(v: number | null | undefined) {
   if (v == null) return "text-muted-foreground";
-  if (v >= 95) return "text-emerald-700";
-  if (v >= 85) return "text-amber-600";
+  if (v >= 95) return "text-success";
+  if (v >= 85) return "text-warning";
   return "text-destructive";
 }
 
@@ -257,14 +257,14 @@ function AlertaFeedParado() {
               key={`${f.transportadora}-${f.canal}-${i}`}
               className={cn(
                 "flex items-start gap-2 p-3",
-                grave ? "bg-destructive/5" : "bg-amber-500/5"
+                grave ? "bg-destructive/5" : "bg-warning"
               )}
             >
               <AlertTriangle
-                className={cn("h-4 w-4 mt-0.5 shrink-0", grave ? "text-destructive" : "text-amber-600")}
+                className={cn("h-4 w-4 mt-0.5 shrink-0", grave ? "text-destructive" : "text-warning")}
               />
               <div className="min-w-0">
-                <div className={cn("text-xs font-medium", grave ? "text-destructive" : "text-amber-700")}>
+                <div className={cn("text-xs font-medium", grave ? "text-destructive" : "text-warning")}>
                   {texto(f.diagnostico)}
                 </div>
                 <div className="text-[10px] text-muted-foreground mt-0.5">
@@ -357,7 +357,7 @@ function SaudeTransportadora() {
                       <TableCell
                         className={cn(
                           "text-right tabular-nums",
-                          gap != null && gap < 0 && "text-emerald-700",
+                          gap != null && gap < 0 && "text-success",
                           gap != null && gap > 0 && "text-destructive"
                         )}
                       >
@@ -391,7 +391,7 @@ function SaudeTransportadora() {
                         {cobertura != null && cobertura < 80 ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="text-amber-600 cursor-help">{pct(cobertura)}</span>
+                              <span className="text-warning cursor-help">{pct(cobertura)}</span>
                             </TooltipTrigger>
                             <TooltipContent>
                               Parte das entregas não tem data para medir prazo

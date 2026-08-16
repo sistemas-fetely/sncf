@@ -1,8 +1,9 @@
 import { PainelDashPedidos } from "@/components/pedidos/PainelDashPedidos";
 
+import { PageShell } from "@/components/layout/PageShell";
 export default function DashPedidos() {
   return (
-    <div className="p-6 space-y-6">
+    <PageShell>
       <header>
         <h1 className="text-2xl font-serif">Dash de Pedidos</h1>
         <p className="text-sm text-muted-foreground">
@@ -10,6 +11,6 @@ export default function DashPedidos() {
         </p>
       </header>
       <PainelDashPedidos />
-    </div>
+    </PageShell>
   );
 }

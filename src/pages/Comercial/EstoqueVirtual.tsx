@@ -24,6 +24,7 @@ import {
 } from "@/lib/estoque/status-venda";
 import { DetalheEstoqueSkuSheet } from "@/components/estoque/DetalheEstoqueSkuSheet";
 
+import { PageShell } from "@/components/layout/PageShell";
 interface EstoqueRede {
   sku: string;
   nome_comercial: string | null;
@@ -271,7 +272,7 @@ export default function EstoqueVirtual() {
   const pageRange = buildPageRange(paginaAtual, totalPaginas);
 
   return (
-    <div className="max-w-[1500px] mx-auto px-4 md:px-8 py-8 animate-casa-fade-in">
+    <PageShell className="md:px-8 animate-casa-fade-in">
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
@@ -304,7 +305,7 @@ export default function EstoqueVirtual() {
         >
           <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
           <div>
-            <div className="font-semibold text-destructive">
+            <div className="font-medium text-destructive">
               {formatNum(resumo.semLastroSkus)} SKUs vendidos sem lastro
             </div>
             <div className="text-xs text-destructive/90">
@@ -693,12 +694,12 @@ function StatPill({
       <div className="flex flex-col leading-tight">
         <div className="flex items-baseline gap-2">
           <span className="text-xs text-muted-foreground">{label}</span>
-          <span className={cn("font-semibold tabular-nums", adaptiveValueClass(value), valueClassName)}>
+          <span className={cn("font-medium tabular-nums", adaptiveValueClass(value), valueClassName)}>
             {value}
           </span>
         </div>
         {sublabel && <span className="text-[10px] text-muted-foreground">{sublabel}</span>}
       </div>
-    </div>
+    </PageShell>
   );
 }

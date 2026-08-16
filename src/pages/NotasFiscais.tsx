@@ -64,12 +64,12 @@ const defaultStatusMap: Record<string, string> = {
   pendente: "Pendente", aprovada: "Aprovada", enviada_pagamento: "Enviada para Pagamento", paga: "Paga", cancelada: "Cancelada", vencida: "Vencida",
 };
 const statusStyles: Record<string, string> = {
-  pendente: "bg-amber-100 text-amber-700 border-0 min-w-[140px] justify-center",
-  aprovada: "bg-blue-100 text-blue-700 border-0 min-w-[140px] justify-center",
-  enviada_pagamento: "bg-violet-100 text-violet-700 border-0 min-w-[140px] justify-center",
-  paga: "bg-emerald-100 text-emerald-700 border-0 min-w-[140px] justify-center",
-  cancelada: "bg-red-100 text-red-700 border-0 min-w-[140px] justify-center",
-  vencida: "bg-orange-100 text-orange-700 border-0 min-w-[140px] justify-center",
+  pendente: "bg-warning/10 text-warning border-0 min-w-[140px] justify-center",
+  aprovada: "bg-info/10 text-info border-0 min-w-[140px] justify-center",
+  enviada_pagamento: "bg-info/10 text-info border-0 min-w-[140px] justify-center",
+  paga: "bg-success/10 text-success border-0 min-w-[140px] justify-center",
+  cancelada: "bg-destructive/10 text-destructive border-0 min-w-[140px] justify-center",
+  vencida: "bg-warning/10 text-warning border-0 min-w-[140px] justify-center",
 };
 
 interface NotaComContrato {
@@ -214,7 +214,7 @@ export default function NotasFiscais() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Notas Fiscais</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Notas Fiscais</h1>
           <p className="text-muted-foreground text-sm mt-1">Gestão de notas fiscais de todos os contratos PJ</p>
         </div>
         {canCreate && (
@@ -233,7 +233,7 @@ export default function NotasFiscais() {
       <div>
         <div className="flex items-center gap-2 mb-2">
           <Calendar className="h-3.5 w-3.5 text-foreground" />
-          <h2 className="text-xs font-semibold text-foreground uppercase tracking-wide capitalize">{nomeMesAtual}</h2>
+          <h2 className="text-xs font-medium text-foreground uppercase tracking-wide capitalize">{nomeMesAtual}</h2>
         </div>
         <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
           <Card className="border-l-[3px] border-l-info bg-gradient-to-br from-info/5 to-transparent">
@@ -241,7 +241,7 @@ export default function NotasFiscais() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Total NFs</p>
-                  <p className="text-lg font-bold mt-0.5">{mesAtualTotal}</p>
+                  <p className="text-lg font-medium mt-0.5">{mesAtualTotal}</p>
                 </div>
                 <div className="h-8 w-8 rounded-full bg-info/10 flex items-center justify-center">
                   <FileText className="h-4 w-4 text-info" />
@@ -250,41 +250,41 @@ export default function NotasFiscais() {
               <p className="text-[10px] text-muted-foreground mt-1">R$ {fmtBRL(mesAtualValor)} total</p>
             </CardContent>
           </Card>
-          <Card className="border-l-[3px] border-l-emerald-500 bg-gradient-to-br from-emerald-500/5 to-transparent">
+          <Card className="border-l-[3px] border-l-success/40 bg-gradient-to-br from-success to-transparent">
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Total Pago</p>
-                  <p className="text-lg font-bold mt-0.5 text-emerald-600">R$ {fmtBRL(mesAtualPagas)}</p>
+                  <p className="text-lg font-medium mt-0.5 text-success">R$ {fmtBRL(mesAtualPagas)}</p>
                 </div>
-                <div className="h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                <div className="h-8 w-8 rounded-full bg-success flex items-center justify-center">
+                  <CheckCircle2 className="h-4 w-4 text-success" />
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="border-l-[3px] border-l-amber-500 bg-gradient-to-br from-amber-500/5 to-transparent">
+          <Card className="border-l-[3px] border-l-warning/40 bg-gradient-to-br from-warning to-transparent">
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">A Pagar</p>
-                  <p className="text-lg font-bold mt-0.5 text-amber-600">R$ {fmtBRL(mesAtualPendente)}</p>
+                  <p className="text-lg font-medium mt-0.5 text-warning">R$ {fmtBRL(mesAtualPendente)}</p>
                 </div>
-                <div className="h-8 w-8 rounded-full bg-amber-500/10 flex items-center justify-center">
-                  <Clock className="h-4 w-4 text-amber-500" />
+                <div className="h-8 w-8 rounded-full bg-warning flex items-center justify-center">
+                  <Clock className="h-4 w-4 text-warning" />
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="border-l-[3px] border-l-red-500 bg-gradient-to-br from-red-500/5 to-transparent">
+          <Card className="border-l-[3px] border-l-destructive/40 bg-gradient-to-br from-destructive to-transparent">
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Vencidas</p>
-                  <p className="text-lg font-bold mt-0.5 text-red-600">{notasMesAtual.filter((n) => n.status === "vencida").length}</p>
+                  <p className="text-lg font-medium mt-0.5 text-destructive">{notasMesAtual.filter((n) => n.status === "vencida").length}</p>
                 </div>
-                <div className="h-8 w-8 rounded-full bg-red-500/10 flex items-center justify-center">
-                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                <div className="h-8 w-8 rounded-full bg-destructive flex items-center justify-center">
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
                 </div>
               </div>
             </CardContent>
@@ -297,7 +297,7 @@ export default function NotasFiscais() {
         <div>
           <div className="flex items-center gap-2 mb-3">
             <Filter className="h-4 w-4 text-muted-foreground" />
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Resultado dos Filtros</h2>
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Resultado dos Filtros</h2>
           </div>
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             <Card className="bg-muted/30 border-dashed">
@@ -306,40 +306,40 @@ export default function NotasFiscais() {
                   <FileText className="h-4 w-4 text-info" />
                 </div>
                 <div>
-                  <p className="text-xl font-bold">{filteredTotal}</p>
+                  <p className="text-xl font-medium">{filteredTotal}</p>
                   <p className="text-xs text-muted-foreground">Notas encontradas</p>
                 </div>
               </CardContent>
             </Card>
             <Card className="bg-muted/30 border-dashed">
               <CardContent className="p-4 flex items-center gap-3">
-                <div className="h-9 w-9 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                  <DollarSign className="h-4 w-4 text-emerald-500" />
+                <div className="h-9 w-9 rounded-lg bg-success flex items-center justify-center">
+                  <DollarSign className="h-4 w-4 text-success" />
                 </div>
                 <div>
-                  <p className="text-xl font-bold">R$ {fmtBRL(filteredValor)}</p>
+                  <p className="text-xl font-medium">R$ {fmtBRL(filteredValor)}</p>
                   <p className="text-xs text-muted-foreground">Valor total</p>
                 </div>
               </CardContent>
             </Card>
             <Card className="bg-muted/30 border-dashed">
               <CardContent className="p-4 flex items-center gap-3">
-                <div className="h-9 w-9 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                <div className="h-9 w-9 rounded-lg bg-success flex items-center justify-center">
+                  <CheckCircle2 className="h-4 w-4 text-success" />
                 </div>
                 <div>
-                  <p className="text-xl font-bold">{filteredPagas}</p>
+                  <p className="text-xl font-medium">{filteredPagas}</p>
                   <p className="text-xs text-muted-foreground">Pagas — R$ {fmtBRL(filteredValorPago)}</p>
                 </div>
               </CardContent>
             </Card>
             <Card className="bg-muted/30 border-dashed">
               <CardContent className="p-4 flex items-center gap-3">
-                <div className="h-9 w-9 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                  <Clock className="h-4 w-4 text-amber-500" />
+                <div className="h-9 w-9 rounded-lg bg-warning flex items-center justify-center">
+                  <Clock className="h-4 w-4 text-warning" />
                 </div>
                 <div>
-                  <p className="text-xl font-bold">{filteredPendentes}</p>
+                  <p className="text-xl font-medium">{filteredPendentes}</p>
                   <p className="text-xs text-muted-foreground">Pendentes — R$ {fmtBRL(filteredValorPendente)}</p>
                 </div>
               </CardContent>
@@ -382,14 +382,14 @@ export default function NotasFiscais() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="font-semibold">Número</TableHead>
-                  <TableHead className="font-semibold">Contrato</TableHead>
-                  <TableHead className="font-semibold hidden md:table-cell">Competência</TableHead>
-                  <TableHead className="font-semibold hidden md:table-cell">Emissão</TableHead>
-                  <TableHead className="font-semibold">Valor</TableHead>
-                  <TableHead className="font-semibold hidden lg:table-cell">Vencimento</TableHead>
-                  <TableHead className="font-semibold hidden lg:table-cell">Forma Pgto</TableHead>
-                  <TableHead className="font-semibold">Status</TableHead>
+                  <TableHead className="font-medium">Número</TableHead>
+                  <TableHead className="font-medium">Contrato</TableHead>
+                  <TableHead className="font-medium hidden md:table-cell">Competência</TableHead>
+                  <TableHead className="font-medium hidden md:table-cell">Emissão</TableHead>
+                  <TableHead className="font-medium">Valor</TableHead>
+                  <TableHead className="font-medium hidden lg:table-cell">Vencimento</TableHead>
+                  <TableHead className="font-medium hidden lg:table-cell">Forma Pgto</TableHead>
+                  <TableHead className="font-medium">Status</TableHead>
                   {hasAnyAction && <TableHead className="w-10" />}
                 </TableRow>
               </TableHeader>

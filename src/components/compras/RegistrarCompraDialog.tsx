@@ -573,7 +573,7 @@ const valorTotalCalculado = useMemo(
             <CardContent className="space-y-3">
               <div className="rounded-md bg-muted/30 p-3 flex items-baseline justify-between">
                 <span className="text-sm text-muted-foreground">Total da compra</span>
-                <span className="text-2xl font-bold">{fmtBRL(valorTotalCalculado)}</span>
+                <span className="text-2xl font-medium">{fmtBRL(valorTotalCalculado)}</span>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

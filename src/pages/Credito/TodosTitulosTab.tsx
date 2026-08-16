@@ -28,13 +28,13 @@ const STATUS_LABEL: Record<string, string> = {
 
 const STATUS_COR: Record<string, string> = {
   aguardando_envio_bling:
-    "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
-  pago: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
-  pago_com_atraso: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
-  vigente: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
+    "bg-warning/10 text-warning",
+  pago: "bg-success/10 text-success",
+  pago_com_atraso: "bg-success/10 text-success",
+  vigente: "bg-info/10 text-info",
   cancelado: "bg-muted text-muted-foreground",
-  atrasado: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
-  vencido: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
+  atrasado: "bg-destructive/10 text-destructive",
+  vencido: "bg-destructive/10 text-destructive",
   vencido_suspenso: "bg-muted text-muted-foreground",
 };
 
@@ -129,7 +129,7 @@ export default function TodosTitulosTab() {
                 <span className="text-xs text-muted-foreground">{STATUS_LABEL[s] ?? s}</span>
                 {ativo && <Check className="h-3.5 w-3.5 text-foreground" />}
               </div>
-              <div className="text-lg font-semibold mt-1">{k.qtd}</div>
+              <div className="text-lg font-medium mt-1">{k.qtd}</div>
               <div className="text-xs text-muted-foreground mt-0.5">
                 {k.sem_nf > 0 ? `${k.sem_nf} sem NF · ` : ""}
                 {fmtBRL.format(k.valor)}
@@ -225,7 +225,7 @@ export default function TodosTitulosTab() {
                 </TableCell>
                 <TableCell className="text-sm">
                   {t.nf_id ? (
-                    <Check className="h-4 w-4 text-emerald-600" />
+                    <Check className="h-4 w-4 text-success" />
                   ) : (
                     "—"
                   )}
