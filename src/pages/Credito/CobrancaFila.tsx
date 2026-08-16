@@ -79,9 +79,9 @@ function MiniPipeline({ titulos }: { titulos: TituloBoletoPendente[] }) {
   };
   const stages = [
     { key: "pendente", label: "Pendente", color: "bg-muted-foreground/30" },
-    { key: "remessa_gerada", label: "Remessa gerada", color: "bg-amber-400" },
-    { key: "registrado", label: "Registrado", color: "bg-emerald-500" },
-    { key: "rejeitado", label: "Rejeitado", color: "bg-red-500" },
+    { key: "remessa_gerada", label: "Remessa gerada", color: "bg-warning" },
+    { key: "registrado", label: "Registrado", color: "bg-success" },
+    { key: "rejeitado", label: "Rejeitado", color: "bg-destructive" },
   ] as const;
   return (
     <div className="flex items-center gap-4 p-4 rounded-md border bg-card">
