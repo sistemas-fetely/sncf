@@ -972,7 +972,7 @@ function RemessasSafraTab() {
                     <TableCell className="font-mono text-xs">
                       <div className="flex items-center gap-1.5">
                         {esquecida && (
-                          <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                          <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
                         )}
                         {r.arquivo_nome}
                       </div>
