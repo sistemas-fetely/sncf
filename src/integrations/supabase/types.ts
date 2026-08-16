@@ -59962,6 +59962,14 @@ export type Database = {
         }
         Returns: string
       }
+      fn_fatura_cartao_importar: {
+        Args: { p_fatura: Json; p_lancamentos: Json }
+        Returns: {
+          fatura_id: string
+          qtd_lancamentos: number
+          total_calculado: number
+        }[]
+      }
       fn_faturar_pedido: {
         Args: { p_nf_id: string; p_pedido_id: string }
         Returns: Json
