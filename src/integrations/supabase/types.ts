@@ -27060,6 +27060,7 @@ export type Database = {
           status: string
           titulo_cargo: string
           updated_at: string
+          vinculo_id: string | null
         }
         Insert: {
           area?: string | null
@@ -27076,6 +27077,7 @@ export type Database = {
           status?: string
           titulo_cargo: string
           updated_at?: string
+          vinculo_id?: string | null
         }
         Update: {
           area?: string | null
@@ -27092,6 +27094,7 @@ export type Database = {
           status?: string
           titulo_cargo?: string
           updated_at?: string
+          vinculo_id?: string | null
         }
         Relationships: [
           {
@@ -27114,6 +27117,62 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "posicoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posicoes_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vinculos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posicoes_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "posicoes_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_vinculo_pessoa"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "posicoes_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organograma"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "posicoes_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "posicoes_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "posicoes_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_reembolso_saneamento"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "posicoes_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_vinculo_custo_total"
+            referencedColumns: ["vinculo_id"]
           },
         ]
       }
@@ -60136,6 +60195,7 @@ export type Database = {
         Returns: string
       }
       fn_recalc_taxa_adquirente: { Args: { p_nsu: string }; Returns: number }
+      fn_recalcular_gestores: { Args: never; Returns: number }
       fn_recalcular_tags_doc_cpr: {
         Args: { p_cpr_id: string }
         Returns: undefined
@@ -60452,6 +60512,7 @@ export type Database = {
           status: string
           titulo_cargo: string
           updated_at: string
+          vinculo_id: string
         }[]
       }
       get_profile_id_from_user: { Args: { _user_id: string }; Returns: string }
