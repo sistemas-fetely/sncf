@@ -835,7 +835,7 @@ export default function DestinosCadastro() {
                   <div
                     className={`rounded-lg border p-3 space-y-2 ${
                       planoSituacao.indoParaInativo > 0
-                        ? "border-warning/50 bg-warning/60"
+                        ? "border-warning/50 bg-warning/10"
                         : ""
                     }`}
                   >

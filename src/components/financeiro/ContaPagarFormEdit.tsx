@@ -659,7 +659,7 @@ export function ContaPagarFormEdit({
         className={cn(
           "space-y-1 rounded-md transition-all",
           highlightCampo === "pago_em_conta_id" &&
-            "ring-2 ring-destructive ring-offset-2 p-2 -m-2 bg-destructive/40",
+            "ring-2 ring-destructive ring-offset-2 p-2 -m-2 bg-destructive/10",
         )}
       >
         <Label className="flex items-center gap-2">

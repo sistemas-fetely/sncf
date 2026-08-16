@@ -87,12 +87,12 @@ export function CardKPI({
   icone?: LucideIcon;
 }) {
   const corBase: Record<string, string> = {
-    red: "bg-destructive/70 border-destructive/40",
-    amber: "bg-warning/70 border-warning/40",
-    blue: "bg-info/70 border-info/40",
-    purple: "bg-info/70 border-info/40",
-    teal: "bg-success/70 border-success/40",
-    fetely: "bg-success/70 border-success/40",
+    red: "bg-destructive/10 border-destructive/40",
+    amber: "bg-warning/10 border-warning/40",
+    blue: "bg-info/10 border-info/40",
+    purple: "bg-info/10 border-info/40",
+    teal: "bg-success/10 border-success/40",
+    fetely: "bg-success/10 border-success/40",
   };
   const corAtivo: Record<string, string> = {
     red: "bg-destructive/10 border-destructive/40 ring-2 ring-destructive",

@@ -148,7 +148,7 @@ function getDisplayStatus(c: Convite): string {
 
 // ─── Helper: row bg class based on status ────────────────────────────
 function getRowClass(displayStatus: string): string {
-  if (displayStatus === "atrasado") return "bg-warning/50";
+  if (displayStatus === "atrasado") return "bg-warning/10";
   return "";
 }
 

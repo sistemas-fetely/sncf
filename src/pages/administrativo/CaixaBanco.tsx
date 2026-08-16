@@ -505,7 +505,7 @@ export default function CaixaBanco() {
                 </div>
               </CardContent>
             </Card>
-            <Card className={cn(kpis.pctCompletas < 100 && "border-warning/40 bg-warning/50")}>
+            <Card className={cn(kpis.pctCompletas < 100 && "border-warning/40 bg-warning/10")}>
               <CardContent className="p-4">
                 <div className="text-xs text-muted-foreground flex items-center gap-1">
                   Classificação completa
@@ -576,7 +576,7 @@ export default function CaixaBanco() {
                     return (
                       <TableRow
                         key={row.chave}
-                        className={cn(row.alerta && "bg-warning/60")}
+                        className={cn(row.alerta && "bg-warning/10")}
                       >
                         <TableCell>
                           <button

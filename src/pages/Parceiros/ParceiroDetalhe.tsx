@@ -123,7 +123,7 @@ export default function ParceiroDetalhe() {
       {parceiro.cadastro_incompleto && parceiro.cnpj && parceiro.cnpj.length === 14 && (() => {
         const cnpjValido = validateCNPJ(parceiro.cnpj);
         return (
-          <Card className={`border-l-4 ${cnpjValido ? "border-l-warning/40 bg-warning/40" : "border-l-destructive bg-destructive/5"}`}>
+          <Card className={`border-l-4 ${cnpjValido ? "border-l-warning/40 bg-warning/10" : "border-l-destructive bg-destructive/5"}`}>
             <CardContent className="py-3 flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-start gap-2 flex-1 min-w-0">
                 <AlertCircle className={`h-4 w-4 shrink-0 mt-0.5 ${cnpjValido ? "text-warning" : "text-destructive"}`} />
