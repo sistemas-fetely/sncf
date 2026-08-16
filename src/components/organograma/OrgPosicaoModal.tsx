@@ -5,7 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCreatePosicao, useUpdatePosicao, useDeletePosicao } from "@/hooks/useOrgMutations";
+import { useCreatePosicao, useDeletePosicao, materializarSeVirtual } from "@/hooks/useOrgMutations";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { formatError } from "@/lib/format-error";
 import { useCargos } from "@/hooks/useCargos";
 import { useEstruturaOrganizacional } from "@/hooks/useEstruturaOrganizacional";
 import { SelectDepartamentoHierarquico } from "@/components/shared/SelectDepartamentoHierarquico";
@@ -32,8 +36,8 @@ const nivelLabels: Record<number, string> = {
 export function OrgPosicaoModal({ open, onClose, editNode, allNodes }: Props) {
   const { hasAnyRole } = useAuth();
   const canSeeSalary = hasAnyRole(["super_admin", "gestor_rh", "financeiro"]);
+  const qc = useQueryClient();
   const createMutation = useCreatePosicao();
-  const updateMutation = useUpdatePosicao();
   const deleteMutation = useDeletePosicao();
   const { data: cargosRaw, isLoading: loadingCargos } = useCargos();
   const cargosParam = (cargosRaw || []).map((c) => ({ id: c.id, label: c.nome }));
@@ -81,11 +85,30 @@ export function OrgPosicaoModal({ open, onClose, editNode, allNodes }: Props) {
 
   const parentOptions = allNodes.filter(n => !editNode || n.id !== editNode.id);
 
-  const handleSubmit = () => {
+  const ehVirtual = !!editNode?.id.startsWith("virtual-");
+
+  // O Select de cargo casa por texto exato contra cargos.nome. Em nó virtual o
+  // titulo_cargo vem do cargo do vínculo; se o texto não bater (acento/caixa),
+  // resolvemos aqui para o nome canônico e, em último caso, oferecemos o texto
+  // original como opção para o campo obrigatório não travar o formulário.
+  const normalizar = (s: string) =>
+    s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+  const cargoCasado = form.titulo_cargo
+    ? cargosParam.find((c) => normalizar(c.label) === normalizar(form.titulo_cargo))
+    : undefined;
+  const cargoValue = cargoCasado ? cargoCasado.label : form.titulo_cargo;
+  const cargoOpcoes =
+    form.titulo_cargo && !cargoCasado
+      ? [...cargosParam, { id: `__atual__`, label: form.titulo_cargo }]
+      : cargosParam;
+
+  const [salvando, setSalvando] = useState(false);
+
+  const handleSubmit = async () => {
     if (!form.titulo_cargo || !form.departamento) return;
 
     const payload = {
-      titulo_cargo: form.titulo_cargo,
+      titulo_cargo: cargoValue,
       nivel_hierarquico: form.nivel_hierarquico,
       departamento: form.departamento,
       area: form.area || null,
@@ -96,20 +119,49 @@ export function OrgPosicaoModal({ open, onClose, editNode, allNodes }: Props) {
       centro_custo: form.centro_custo || null,
     };
 
-    if (editNode) {
-      updateMutation.mutate({ id: editNode.id, ...payload }, { onSuccess: onClose });
-    } else {
+    if (!editNode) {
       createMutation.mutate(payload, { onSuccess: onClose });
+      return;
+    }
+
+    setSalvando(true);
+    try {
+      // 1. Resolve o pai: nó virtual escolhido como gestor precisa existir de fato.
+      let idPai = payload.id_pai;
+      if (idPai && idPai.startsWith("virtual-")) {
+        const paiNode = allNodes.find((n) => n.id === idPai);
+        if (!paiNode) throw new Error("Posição superior não encontrada.");
+        idPai = await materializarSeVirtual(paiNode);
+      }
+
+      // 2. Nó virtual: materializa e atualiza o id real com o formulário.
+      const idReal = await materializarSeVirtual(editNode);
+
+      const { error } = await supabase
+        .from("posicoes")
+        .update({ ...payload, id_pai: idPai })
+        .eq("id", idReal);
+      if (error) throw error;
+
+      qc.invalidateQueries({ queryKey: ["organograma"] });
+      toast.success("Posição atualizada com sucesso");
+      onClose();
+    } catch (e) {
+      toast.error(`Erro ao atualizar: ${formatError(e)}`);
+    } finally {
+      setSalvando(false);
     }
   };
 
   const handleDelete = () => {
     if (!editNode) return;
+    if (ehVirtual) return;
     if (editNode.subordinados_diretos > 0) return;
     deleteMutation.mutate(editNode.id, { onSuccess: onClose });
   };
 
-  const isPending = createMutation.isPending || updateMutation.isPending;
+  const isPending = createMutation.isPending || salvando;
+
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -122,10 +174,10 @@ export function OrgPosicaoModal({ open, onClose, editNode, allNodes }: Props) {
           <div className="grid gap-1.5">
             <Label>Cargo *</Label>
             {loadingCargos ? <Loader2 className="h-4 w-4 animate-spin mt-2" /> : (
-              <Select value={form.titulo_cargo} onValueChange={(v) => setForm({ ...form, titulo_cargo: v })}>
+              <Select value={cargoValue} onValueChange={(v) => setForm({ ...form, titulo_cargo: v })}>
                 <SelectTrigger><SelectValue placeholder="Selecione o cargo" /></SelectTrigger>
                 <SelectContent>
-                  {(cargosParam || []).map((c) => (
+                  {cargoOpcoes.map((c) => (
                     <SelectItem key={c.id} value={c.label}>{c.label}</SelectItem>
                   ))}
                 </SelectContent>
@@ -234,7 +286,7 @@ export function OrgPosicaoModal({ open, onClose, editNode, allNodes }: Props) {
                   <Button
                     variant="destructive"
                     size="sm"
-                    disabled={editNode.subordinados_diretos > 0 || deleteMutation.isPending}
+                    disabled={ehVirtual || editNode.subordinados_diretos > 0 || deleteMutation.isPending}
                   >
                     <Trash2 className="h-3.5 w-3.5 mr-1" />
                     Excluir
