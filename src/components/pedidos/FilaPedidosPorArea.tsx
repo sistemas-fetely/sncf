@@ -45,7 +45,7 @@ import { BotaoSplitPedido } from "@/components/pedidos/BotaoSplitPedido";
 import {
   EstagioBadge, FormatoIdade,
 } from "./BadgesPedido";
-import { MarcacaoPedido, MarcacaoBadge } from "./MarcacaoPedido";
+import { MarcacaoPedido } from "./MarcacaoPedido";
 import { useAtualizarUrgencia } from "@/hooks/pedidos/useAtualizarUrgencia";
 import { useAuth } from "@/contexts/AuthContext";
 import { URGENCIA_LABELS, type UrgenciaDeclarada, type AreaPedido, type EstagioPedido, type PedidoFilaItem } from "@/types/pedido";
@@ -528,7 +528,7 @@ export function FilaPedidosPorArea({
               <TableHead className="w-[160px]">Pagamento</TableHead>
               <TableHead className="w-[150px]">Estágio</TableHead>
               <TableHead className="w-[220px]">Entrega</TableHead>
-              <TableHead className="w-[80px]">Na fase</TableHead>
+              <TableHead className="w-[96px]">Na fase</TableHead>
               <TableHead className="w-[56px] text-right text-[11px] font-normal text-muted-foreground">Ações</TableHead>
 
             </TableRow>
