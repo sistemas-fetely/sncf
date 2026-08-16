@@ -42,7 +42,7 @@ export default function TarefasHoje() {
   const vazioHoje = !hoje.isLoading && atrasadas.length === 0 && doDia.length === 0;
 
   return (
-    <PageShell variant="leitura">
+    <PageShell>
       <PageTitle
         titulo="Hoje"
         estado={format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}

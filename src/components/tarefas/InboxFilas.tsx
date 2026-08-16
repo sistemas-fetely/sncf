@@ -26,7 +26,7 @@ export function InboxFilas() {
           <ListChecks className="h-4 w-4 text-muted-foreground" />
           Filas da operação
           {!isLoading && !isError && (
-            <Badge variant="secondary" className="ml-auto text-[10px]">
+            <Badge variant="secondary" className="ml-auto text-[11px]">
               {totalGeral} item{totalGeral !== 1 ? "s" : ""}
             </Badge>
           )}
@@ -48,7 +48,7 @@ export function InboxFilas() {
       {expanded && (
         <CardContent className="space-y-3">
           {isLoading && (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="h-24 w-full rounded-lg" />
               ))}
@@ -73,7 +73,7 @@ export function InboxFilas() {
           )}
 
           {!isLoading && !isError && visiveis.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
               {visiveis.map((fila) => {
                 const comErro = !!fila.erro;
                 const zerada = fila.total === 0 && !comErro;
