@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import type { PosicaoNode } from "@/types/organograma";
 
 interface PosicaoInsert {
   titulo_cargo: string;
@@ -18,6 +19,44 @@ interface PosicaoInsert {
 interface PosicaoUpdate extends Partial<PosicaoInsert> {
   id: string;
 }
+
+/**
+ * Nó virtual (`virtual-{vinculo_id}`) não existe em `posicoes`.
+ * Esta é a ÚNICA implementação da materialização — usada pelo modal e pelo arraste.
+ * Devolve sempre um id real de `posicoes`.
+ */
+export async function materializarSeVirtual(
+  node: Pick<PosicaoNode, "id" | "titulo_cargo" | "departamento" | "nivel_hierarquico" | "vinculo_id">,
+): Promise<string> {
+  if (!node.id.startsWith("virtual-")) return node.id;
+
+  const vinculoId = node.vinculo_id ?? node.id.replace("virtual-", "");
+
+  const { data: existente, error: buscaErro } = await supabase
+    .from("posicoes")
+    .select("id")
+    .eq("vinculo_id", vinculoId)
+    .limit(1);
+  if (buscaErro) throw buscaErro;
+  if (existente && existente.length > 0) return existente[0].id;
+
+  const insert: PosicaoInsert = {
+    titulo_cargo: node.titulo_cargo || "Sem cargo",
+    departamento: node.departamento || "Geral",
+    nivel_hierarquico: node.nivel_hierarquico || 1,
+    status: "ocupado",
+    id_pai: null,
+    vinculo_id: vinculoId,
+  };
+  const { data: nova, error } = await supabase
+    .from("posicoes")
+    .insert(insert)
+    .select("id")
+    .single();
+  if (error) throw error;
+  return nova.id;
+}
+
 
 export function useCreatePosicao() {
   const qc = useQueryClient();
