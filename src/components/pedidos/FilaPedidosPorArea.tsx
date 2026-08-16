@@ -378,6 +378,19 @@ export function FilaPedidosPorArea({
     });
   }, [linhas, liberacaoMap, liberacaoFilter]);
 
+  const resumoBuscaGlobal = useMemo(() => {
+    if (!buscaGlobalAtiva) return null;
+    let entregues = 0, cancelados = 0, recuperacao = 0;
+    linhasFiltradas.forEach((p) => {
+      if (p.estagio === "entregue") entregues++;
+      else if (p.estagio === "cancelado") cancelados++;
+      else if (p.estagio === "recuperacao_venda") recuperacao++;
+    });
+    return { entregues, cancelados, recuperacao, total: linhasFiltradas.length };
+  }, [buscaGlobalAtiva, linhasFiltradas]);
+
+
+
 
 
 
