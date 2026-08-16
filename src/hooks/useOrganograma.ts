@@ -152,7 +152,7 @@ export function useOrganograma() {
           .select(`
             id, tipo_vinculo, status, data_inicio, valor_base,
             email_corporativo, telefone_corporativo, departamento_id,
-            pessoa:pessoas!inner ( id, nome_completo, foto_url, telefone, email_pessoal ),
+            pessoa:pessoas!vinculos_pessoa_id_fkey ( id, nome_completo, foto_url, telefone, email_pessoal ),
             cargo:cargos ( nome ),
             departamento:departamentos ( nome )
           `)
@@ -161,7 +161,12 @@ export function useOrganograma() {
       ]);
 
       if (posRes.error) throw posRes.error;
-      if (vincRes.error) throw vincRes.error;
+      if (vincRes.error) {
+        console.warn(
+          "organograma: query de vínculos falhou; desenhando estrutura de posições sem pessoas.",
+          vincRes.error,
+        );
+      }
 
       let apareceCodigos: Set<string> | null = null;
       if (tipoRes.error || !tipoRes.data || tipoRes.data.length === 0) {
@@ -177,7 +182,9 @@ export function useOrganograma() {
         );
       }
 
-      const vinculosRaw = (vincRes.data || []) as unknown as VinculoRaw[];
+      const vinculosRaw = (!vincRes.error && vincRes.data
+        ? vincRes.data
+        : []) as unknown as VinculoRaw[];
       const vinculosFiltrados = apareceCodigos
         ? vinculosRaw.filter((v) => apareceCodigos!.has(v.tipo_vinculo))
         : vinculosRaw;
