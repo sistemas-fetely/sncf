@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -742,9 +742,8 @@ function WorklistNf({ nf, aoVoltar }: { nf: NfPendencia; aoVoltar: () => void })
                   <Selo estado="warning">Sem de-para</Selo>
                 );
                 return (
-                  <>
+                  <Fragment key={l.nf_linha_id}>
                     <TableRow
-                      key={l.nf_linha_id}
                       className="cursor-pointer"
                       onClick={() => setAberta(expandida ? null : l.nf_linha_id)}
                     >
@@ -772,13 +771,13 @@ function WorklistNf({ nf, aoVoltar }: { nf: NfPendencia; aoVoltar: () => void })
                       <TableCell>{selo}</TableCell>
                     </TableRow>
                     {expandida && (
-                      <TableRow key={`${l.nf_linha_id}-exp`}>
+                      <TableRow>
                         <TableCell colSpan={8} className="p-3">
                           <PainelMapeamento nf={nf} linha={l} aoSalvo={invalidar} />
                         </TableCell>
                       </TableRow>
                     )}
-                  </>
+                  </Fragment>
                 );
               })}
             </TableBody>
