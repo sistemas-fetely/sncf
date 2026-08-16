@@ -74,6 +74,7 @@ const ROLE_LABELS: Record<AppRole, string> = {
   triagem: "Triagem",
   coordenacao_op_fin: "Coordenação Op/Fin",
   auditor: "Auditor",
+  socio: "Sócio",
 };
 
 const ROLE_DESCRIPTIONS: Record<AppRole, string> = {
@@ -99,6 +100,7 @@ const ROLE_DESCRIPTIONS: Record<AppRole, string> = {
   triagem: "Triagem operacional de pedidos.",
   coordenacao_op_fin: "Coordenação entre operação e financeiro.",
   auditor: "Auditoria — leitura ampla para conferência.",
+  socio: "Sócio — visibilidade societária.",
 };
 
 const ACTIVE_ROLES: AppRole[] = [
