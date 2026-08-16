@@ -9,7 +9,6 @@ export default tseslint.config(
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
-    ignores: ["src/components/ui/**", "src/integrations/**"],
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
@@ -22,6 +21,14 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
+    },
+  },
+  {
+    // Purga concluida em 16/08/2026: a regra vale em todo o src, menos os
+    // primitivos do shadcn e o codigo gerado. O que foi limpo nao suja de novo.
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/components/ui/**", "src/integrations/**"],
+    rules: {
       // ===== ERRO CEGO — proibe o idioma que produz "[object Object]" =====
       // ===== SISTEMA VISUAL Fetely — guardiao das regras de cor/peso/largura =====
       "no-restricted-syntax": [
@@ -57,15 +64,6 @@ export default tseslint.config(
             "SISTEMA VISUAL §7: pagina nao declara largura propria. Use <PageShell variant='dados'|'leitura'|'foco'>.",
         },
       ],
-    },
-  },
-  {
-    // Purga concluida em 16/08/2026: a regra vale em todo o src, menos os
-    // primitivos do shadcn e o codigo gerado. O que foi limpo nao suja de novo.
-    files: ["src/**/*.{ts,tsx}"],
-    ignores: ["src/components/ui/**", "src/integrations/**"],
-    rules: {
-      "no-restricted-syntax": "error",
     },
   },
 );
