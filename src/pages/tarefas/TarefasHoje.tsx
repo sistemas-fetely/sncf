@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { QuickAddTarefa } from "@/components/tarefas/QuickAddTarefa";
+import { InboxFilas } from "@/components/tarefas/InboxFilas";
 import { TarefaItem } from "@/components/tarefas/TarefaItem";
 import {
   useTarefasConcluidas, useTarefasContadores, useTarefasHoje,
