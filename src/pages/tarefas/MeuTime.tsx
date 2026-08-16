@@ -167,7 +167,7 @@ export default function MeuTime() {
 
   const { data: time, isLoading: carregandoTime, error: erroTime } = usePessoasDoTime();
   const userIds = time?.ids;
-  const membros = time?.membros ?? [];
+  const membros = useMemo(() => time?.membros ?? [], [time]);
   const { data: abertas, isLoading: carregandoAbertas } = useTarefasAbertasDoTime(userIds);
   const { data: entregues } = useTarefasEntreguesDoTime(userIds);
   const { data: pessoas } = usePessoasSistema();
