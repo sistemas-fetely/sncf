@@ -361,6 +361,25 @@ export default function CadastroPedidoCompra() {
     },
   });
 
+  // Saldo por pedido (view pronta — nada e calculado aqui)
+  const saldoQ = useQuery({
+    queryKey: ["importacao-saldo-pedido-lista"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_importacao_saldo_pedido")
+        .select("pedido_id, fase_calculada, saldo_a_receber, divergencia_status");
+      if (error) throw error;
+      return (data ?? []) as SaldoPedidoLinha[];
+    },
+  });
+
+  const saldoPorPedido = useMemo(() => {
+    const m = new Map<number, SaldoPedidoLinha>();
+    (saldoQ.data ?? []).forEach((s) => m.set(Number(s.pedido_id), s));
+    return m;
+  }, [saldoQ.data]);
+
+
 
 
 
