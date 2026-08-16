@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Info } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { humanizeError } from "@/lib/errorMessages";
@@ -50,15 +49,13 @@ function NoCard({
         <CardContent className={compact ? "p-2.5" : "p-3.5"}>
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="min-w-0">
-              <p className={`font-semibold truncate ${compact ? "text-sm" : "text-base"}`}>{row.nome}</p>
+              <p className={`font-medium truncate ${compact ? "text-sm" : "text-base"}`}>{row.nome}</p>
               <p className="text-xs text-muted-foreground truncate">
                 {row.cargo || "—"} {row.departamento ? `· ${row.departamento}` : ""}
                 {row.unidade ? ` · ${row.unidade}` : ""}
               </p>
             </div>
-            <Badge variant={row.tipo_vinculo === "CLT" ? "default" : "secondary"} className="shrink-0">
-              {row.tipo_vinculo}
-            </Badge>
+            <span className="shrink-0 text-[11px] text-muted-foreground">{row.tipo_vinculo}</span>
           </div>
         </CardContent>
       </Card>
@@ -146,7 +143,9 @@ export function OrgListaView() {
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : rows.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">Nenhuma pessoa ativa.</div>
+        <div className="rounded-lg border p-10 text-center text-sm text-muted-foreground">
+          Nenhuma pessoa ativa no organograma. Cadastre um vínculo em Pessoas para a árvore começar.
+        </div>
       ) : (
         <div className="space-y-3">
           {roots.map((r) => (

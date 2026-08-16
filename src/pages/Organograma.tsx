@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageShell } from "@/components/layout/PageShell";
 import { useOrganograma } from "@/hooks/useOrganograma";
 import { OrgToolbar } from "@/components/organograma/OrgToolbar";
 import { OrgVisualView } from "@/components/organograma/OrgVisualView";
@@ -112,16 +113,16 @@ export default function Organograma() {
 
   if (isLoading) {
     return (
-      <div className="p-6 space-y-4">
+      <PageShell>
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-[500px] w-full" />
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-4">
+    <PageShell>
       <OrgToolbar
         viewMode={viewMode}
         onViewModeChange={setViewMode}
@@ -169,6 +170,6 @@ export default function Organograma() {
         newParent={moveTarget}
         allNodes={data?.flat || []}
       />
-    </div>
+    </PageShell>
   );
 }
