@@ -342,7 +342,7 @@ function SecaoPagamento({ pedidoId, pedido, guarda }: {
               </Alert>
             )}
             {caminho === "reconcilia_no_lugar" && (
-              <Alert className="border-success/40 bg-success">
+              <Alert className="border-success/40 bg-success/10">
                 <CheckCircle2 className="h-4 w-4 text-success" />
                 <AlertDescription>
                   {impactoQ.data?.motivo || "Ajuste reconciliado no lugar, sem nova análise."}
@@ -350,7 +350,7 @@ function SecaoPagamento({ pedidoId, pedido, guarda }: {
               </Alert>
             )}
             {caminho === "re_analise" && (
-              <Alert className="border-warning/40 bg-warning">
+              <Alert className="border-warning/40 bg-warning/10">
                 <AlertTriangle className="h-4 w-4 text-warning" />
                 <AlertDescription>
                   Vai exigir nova análise de crédito.
@@ -371,8 +371,8 @@ function SecaoPagamento({ pedidoId, pedido, guarda }: {
               <div
                 className={`rounded-md border p-3 space-y-1.5 text-sm ${
                   direcao === "desce"
-                    ? "border-success/40 bg-success"
-                    : "border-warning/40 bg-warning"
+                    ? "border-success/40 bg-success/10"
+                    : "border-warning/40 bg-warning/10"
                 }`}
               >
                 <div className={`font-medium ${direcao === "desce" ? "text-success" : "text-warning"}`}>
@@ -409,7 +409,7 @@ function SecaoPagamento({ pedidoId, pedido, guarda }: {
                 variant="outline"
                 onClick={() => reabrir.mutate()}
                 disabled={!slug || motivo.trim().length < 3 || reabrir.isPending || impactoQ.isFetching}
-                className="border-warning/40 text-warning hover:bg-warning"
+                className="border-warning/60 text-warning hover:bg-warning/10"
               >
                 {reabrir.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Reenviar para análise

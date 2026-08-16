@@ -500,7 +500,7 @@ export default function ContasReceberSops() {
                       t.boleto_status !== "pago_banco";
 
                     return (
-                      <TableRow key={t.id} className={vencido ? "bg-destructive/10" : ""}>
+                      <TableRow key={t.id} className={vencido ? "bg-destructive/40" : ""}>
                         <TableCell
                           className={vencido ? "font-medium text-destructive" : ""}
                         >

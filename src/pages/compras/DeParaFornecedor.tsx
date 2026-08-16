@@ -636,7 +636,7 @@ function ConferirCodigosBloco({
                       className={cn(
                         r.status === "nao_mapeado" &&
                           "bg-destructive/5 hover:bg-destructive/10",
-                        r.status === "mapeado_inativo" && "bg-warning/10 hover:bg-warning/10",
+                        r.status === "mapeado_inativo" && "bg-warning/10 hover:bg-warning/60",
                       )}
                     >
                       <TableCell className="font-mono text-xs">{r.codigo}</TableCell>

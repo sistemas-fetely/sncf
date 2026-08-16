@@ -24,7 +24,7 @@ const TODOS = "__todos__";
 const COR_PRIORIDADE: Record<TarefaPrioridade, string> = {
   urgente: "border-l-destructive bg-destructive/10 text-destructive",
   alta: "border-l-warning bg-warning/10 text-warning",
-  media: "border-l-warning/40 bg-warning text-warning",
+  media: "border-l-warning/40 bg-warning/10 text-warning",
   baixa: "border-l-border bg-muted text-muted-foreground",
 };
 

@@ -9,12 +9,12 @@ import { casarPorNome, usePessoasSistema, useProjetos, useSecoes } from "@/hooks
 
 const COR_TOKEN: Record<TokenTipo, string> = {
   projeto: "bg-primary/20",
-  responsavel: "bg-info",
-  etiqueta: "bg-success",
-  secao: "bg-info",
+  responsavel: "bg-info/20",
+  etiqueta: "bg-success/20",
+  secao: "bg-info/20",
   prioridade: "bg-destructive/20",
-  data: "bg-warning",
-  hora: "bg-warning",
+  data: "bg-warning/25",
+  hora: "bg-warning/15",
 };
 
 /** classes que precisam ser IDÊNTICAS no input e na camada de realce */

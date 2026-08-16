@@ -304,10 +304,10 @@ type Remessa = {
 };
 
 const STATUS_CONTA_BG: Record<string, string> = {
-  enviado_para_pagamento: "bg-warning/10",
-  cancelado: "bg-destructive/10",
-  aprovado: "bg-warning/10",
-  aberto: "bg-info/10",
+  enviado_para_pagamento: "bg-warning/40",
+  cancelado: "bg-destructive/40",
+  aprovado: "bg-warning/40",
+  aberto: "bg-info/40",
 };
 
 const STATUS_CONTA_LABEL: Record<string, string> = {
@@ -1116,7 +1116,7 @@ function RemessaContas({
             key={it.plano_contas_id}
             className={cn(
               "px-3 py-2 text-xs flex items-center gap-3 cursor-pointer hover:bg-muted/40",
-              cancelada && "bg-destructive/10",
+              cancelada && "bg-destructive/40",
             )}
             onClick={() => onAbrirConta(it.plano_contas_id)}
           >
@@ -1181,7 +1181,7 @@ function ItemLinha({
         className={cn(
           "px-4 py-2 flex items-center gap-3 hover:bg-muted/30",
           bgClass,
-          isSelected && "bg-success/10",
+          isSelected && "bg-success/60",
         )}
       >
         {aba === "pronto" && (

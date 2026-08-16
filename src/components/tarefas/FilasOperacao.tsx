@@ -52,7 +52,7 @@ function BadgeFila({ fila }: { fila: FilaInbox }) {
   }
   if (fila.severidade === "alta") {
     return (
-      <Badge className="text-[10px] border-0 bg-warning text-white hover:bg-warning">
+      <Badge className="text-[10px] border-0 bg-warning text-white hover:bg-warning/90">
         {total}
       </Badge>
     );

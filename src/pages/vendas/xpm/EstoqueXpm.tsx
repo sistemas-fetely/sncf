@@ -368,7 +368,7 @@ export default function EstoqueXpm() {
               <div className="text-2xl font-medium">{nf.format(kpis.porStatus.ok ?? 0)}</div>
             </CardContent>
           </Card>
-          <Card className={(kpis.porStatus.divergente ?? 0) > 0 ? "border-warning/40" : undefined}>
+          <Card className={(kpis.porStatus.divergente ?? 0) > 0 ? "border-warning/50" : undefined}>
             <CardContent className="pt-6">
               <div className="text-xs text-muted-foreground flex items-center gap-1">
                 {(kpis.porStatus.divergente ?? 0) > 0 && (

@@ -739,7 +739,7 @@ function AbaB2B() {
     return (
       <TableRow
         key={t.id}
-        className={atrasado ? "bg-destructive/10" : aninhada ? "bg-muted/10" : undefined}
+        className={atrasado ? "bg-destructive/40" : aninhada ? "bg-muted/10" : undefined}
       >
         <TableCell className={aninhada ? "pl-10" : undefined}>
           <div className="font-mono text-xs">{t.numero_titulo ?? "—"}</div>
@@ -904,7 +904,7 @@ function AbaB2B() {
               </p>
             </CardContent>
           </Card>
-          <Card className="border-warning/40">
+          <Card className="border-warning/50">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-warning">Compensado a conciliar</CardTitle>
             </CardHeader>
@@ -1930,7 +1930,7 @@ function AbaB2C() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-warning/40">
+        <Card className="border-warning/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Faturado sem recebimento</CardTitle>
           </CardHeader>
@@ -2022,7 +2022,7 @@ function AbaB2C() {
       </Card>
 
       <div className="space-y-1">
-        <Card className="border-warning/40">
+        <Card className="border-warning/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Faturado × Recebido</CardTitle>
           </CardHeader>

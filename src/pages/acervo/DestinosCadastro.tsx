@@ -835,7 +835,7 @@ export default function DestinosCadastro() {
                   <div
                     className={`rounded-lg border p-3 space-y-2 ${
                       planoSituacao.indoParaInativo > 0
-                        ? "border-warning/40 bg-warning/10"
+                        ? "border-warning/50 bg-warning/60"
                         : ""
                     }`}
                   >
@@ -870,7 +870,7 @@ export default function DestinosCadastro() {
 
 
                 {resumo?.vaiMudar === 0 && (
-                  <Alert className="border-success/40 bg-success/10">
+                  <Alert className="border-success/50 bg-success/60">
                     <Info className="h-4 w-4 text-success" />
                     <AlertDescription className="text-xs text-success">
                       O Bling já está sincronizado. O download é opcional.
@@ -978,7 +978,7 @@ export default function DestinosCadastro() {
                 )}
 
                 {semNcm.ausenteSncf.length > 0 && (
-                  <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 space-y-2">
+                  <div className="rounded-lg border border-warning/50 bg-warning/60 p-3 space-y-2">
                     <p className="text-sm font-medium text-warning flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4" />
                       {semNcm.ausenteSncf.length} produto(s) com NCM vazio e código ausente do SNCF
@@ -1003,7 +1003,7 @@ export default function DestinosCadastro() {
 
 
                 {paraRevisar.length > 0 && (
-                  <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 space-y-2">
+                  <div className="rounded-lg border border-warning/50 bg-warning/60 p-3 space-y-2">
                     <p className="text-sm font-medium text-warning flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4" />
                       {paraRevisar.length} produto(s) exigem decisão humana (FISCAL-REVISAR /

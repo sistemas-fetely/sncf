@@ -380,10 +380,10 @@ export default function Conciliacao() {
 
   function corNivel(nivel: number | undefined | null): string {
     if (!nivel) return "";
-    if (nivel === 1) return "border-l-4 border-l-success/40 bg-success/10";
-    if (nivel === 2) return "border-l-4 border-l-warning/40 bg-warning/10";
-    if (nivel === 3) return "border-l-4 border-l-warning/40 bg-warning/10";
-    return "border-l-4 border-l-destructive/40 bg-destructive/10";
+    if (nivel === 1) return "border-l-4 border-l-success/40 bg-success/20";
+    if (nivel === 2) return "border-l-4 border-l-warning/40 bg-warning/20";
+    if (nivel === 3) return "border-l-4 border-l-warning/40 bg-warning/20";
+    return "border-l-4 border-l-destructive/40 bg-destructive/20";
   }
 
   return (
@@ -650,7 +650,7 @@ export default function Conciliacao() {
                     key={item.planilha_id}
                     className={`rounded-lg border bg-card p-3 transition-colors ${
                       item.tipo === "parcialmente_conciliado"
-                        ? "border-l-4 border-l-info/40 bg-info/10"
+                        ? "border-l-4 border-l-info/40 bg-info/20"
                         : corNivel(item.mov_sugerida?.nivel)
                     }`}
                   >
@@ -861,7 +861,7 @@ export default function Conciliacao() {
                 Aguardando OFX ({aguardandoOfx.length})
               </p>
               {aguardandoOfx.map((item) => (
-                <div key={item.planilha_id} className="border rounded-md p-3 flex items-center justify-between gap-4 border-l-4 border-l-warning/40 bg-warning/10">
+                <div key={item.planilha_id} className="border rounded-md p-3 flex items-center justify-between gap-4 border-l-4 border-l-warning/40 bg-warning/20">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{item.nome_favorecido ?? "—"}</p>
                     <p className="text-xs text-muted-foreground">
@@ -1040,7 +1040,7 @@ export default function Conciliacao() {
                       prev.includes(mov.id) ? prev.filter((id) => id !== mov.id) : [...prev, mov.id]
                     )}
                     className={`p-3 rounded border cursor-pointer text-xs flex items-start justify-between gap-2 ${
-                      selecionada ? "border-success/40 bg-success/10" : "hover:bg-muted/50"
+                      selecionada ? "border-success/40 bg-success/30" : "hover:bg-muted/50"
                     }`}
                   >
                     <div className="flex-1 min-w-0">
@@ -1138,9 +1138,9 @@ export default function Conciliacao() {
                             f.ja_vinculada
                               ? "opacity-50 cursor-not-allowed bg-muted/20"
                               : isSelecionada
-                                ? "border-success/40 bg-success/10"
+                                ? "border-success/40 bg-success/60"
                                 : destaqueExato
-                                  ? "border-success/40 bg-success/10 hover:bg-success/10"
+                                  ? "border-success/40 bg-success/30 hover:bg-success/60"
                                   : "hover:bg-muted/50"
                           }`}
                         >
@@ -1199,7 +1199,7 @@ export default function Conciliacao() {
           </h2>
           <div className="space-y-1">
             {itensConciliados.map((item) => (
-              <div key={item.id} className="rounded-md border border-success/40 bg-success/10 p-3 text-xs flex items-center justify-between gap-4">
+              <div key={item.id} className="rounded-md border border-success/40 bg-success/30 p-3 text-xs flex items-center justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{item.nome_favorecido ?? "—"}</p>
                   <p className="text-muted-foreground text-[10px]">{item.cnpj_favorecido}</p>

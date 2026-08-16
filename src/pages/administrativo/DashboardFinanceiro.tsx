@@ -142,7 +142,7 @@ function MetricCard({
   accent?: string; alert?: boolean; hint?: string;
 }) {
   return (
-    <div className={`rounded-xl border bg-card p-5 shadow-sm transition-all hover:shadow-md ${alert ? "border-destructive/40 bg-destructive/10" : ""}`}>
+    <div className={`rounded-xl border bg-card p-5 shadow-sm transition-all hover:shadow-md ${alert ? "border-destructive/40 bg-destructive/30" : ""}`}>
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
           {label}

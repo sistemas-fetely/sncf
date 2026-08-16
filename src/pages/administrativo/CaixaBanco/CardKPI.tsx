@@ -32,7 +32,7 @@ export function CardKPIDuplo({
   const pctTem = total > 0 ? Math.round((qtdTem / total) * 100) : 0;
   const pctFalta = total > 0 ? Math.round((qtdFalta / total) * 100) : 0;
   return (
-    <div className="border border-success/40 bg-success/10 rounded-lg overflow-hidden">
+    <div className="border border-success/40 bg-success/30 rounded-lg overflow-hidden">
       <div className="px-3 pt-1.5 pb-0.5 flex items-center gap-1.5">
         <Icone className="h-3.5 w-3.5 text-success" />
         <span className="text-[11px] font-medium text-success">{titulo}</span>
@@ -57,7 +57,7 @@ export function CardKPIDuplo({
           className={`px-3 py-1.5 text-left transition-colors ${
             ativoFalta
               ? "bg-destructive/10 ring-2 ring-inset ring-destructive"
-              : "hover:bg-destructive/10"
+              : "hover:bg-destructive/60"
           }`}
         >
           <div className="text-[10px] text-destructive font-medium">Falta</div>
@@ -87,12 +87,12 @@ export function CardKPI({
   icone?: LucideIcon;
 }) {
   const corBase: Record<string, string> = {
-    red: "bg-destructive/10 border-destructive/40",
-    amber: "bg-warning/10 border-warning/40",
-    blue: "bg-info/10 border-info/40",
-    purple: "bg-info/10 border-info/40",
-    teal: "bg-success/10 border-success/40",
-    fetely: "bg-success/10 border-success/40",
+    red: "bg-destructive/70 border-destructive/40",
+    amber: "bg-warning/70 border-warning/40",
+    blue: "bg-info/70 border-info/40",
+    purple: "bg-info/70 border-info/40",
+    teal: "bg-success/70 border-success/40",
+    fetely: "bg-success/70 border-success/40",
   };
   const corAtivo: Record<string, string> = {
     red: "bg-destructive/10 border-destructive/40 ring-2 ring-destructive",

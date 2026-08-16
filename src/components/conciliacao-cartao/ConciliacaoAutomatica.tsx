@@ -23,8 +23,8 @@ const num = (v: unknown) => Number(v ?? 0);
 const pct = (v: unknown) => (v == null ? "—" : `${num(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`);
 
 const TOM_CLASSE: Record<string, string> = {
-  verde: "border-success/40 bg-success/10",
-  ambar: "border-warning/40 bg-warning/10",
+  verde: "border-success/40 bg-success/60",
+  ambar: "border-warning/40 bg-warning/60",
   vermelho: "border-destructive/40 bg-destructive/5",
   neutro: "",
 };

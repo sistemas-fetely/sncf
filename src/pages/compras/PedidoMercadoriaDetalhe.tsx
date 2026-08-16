@@ -187,8 +187,8 @@ const SITUACAO_NF: Record<
   ok: { rotulo: "OK", badge: "border-success/40 bg-success/10 text-success" },
   nao_alocado: {
     rotulo: "Não alocado",
-    badge: "border-warning/40 bg-warning text-warning",
-    linha: "bg-warning",
+    badge: "border-warning/40 bg-warning/10 text-warning",
+    linha: "bg-warning/5",
   },
   so_nf: {
     rotulo: "Só na NF",
@@ -467,7 +467,7 @@ export default function PedidoMercadoriaDetalhe() {
           </div>
 
           {Number(pedido.skus_incompletos_xpm ?? 0) > 0 && (
-            <div className="rounded-md border border-warning/40 bg-warning p-3 text-sm flex items-start gap-2">
+            <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 mt-0.5 text-warning" />
               <div>
                 <div>
@@ -846,7 +846,7 @@ export default function PedidoMercadoriaDetalhe() {
                   ) : (
                     <div className="space-y-3">
                       {naoAlocadas > 0 && (
-                        <div className="flex flex-wrap items-center gap-2 rounded-md border border-warning/40 bg-warning p-3 text-sm text-warning">
+                        <div className="flex flex-wrap items-center gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning">
                           <AlertTriangle className="h-4 w-4 shrink-0" />
                           <span>
                             {naoAlocadas} linha(s) da NF ainda não foram distribuídas em SKU. É o

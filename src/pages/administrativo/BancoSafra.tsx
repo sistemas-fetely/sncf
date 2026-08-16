@@ -1080,7 +1080,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
           return (
             <TableRow
               key={b.id}
-              className={pendentePassado ? "bg-destructive/10 border-l-2 border-l-destructive/40" : ""}
+              className={pendentePassado ? "bg-destructive/60 border-l-2 border-l-destructive/40" : ""}
             >
               <TableCell className={vencido || pendentePassado ? "text-destructive font-medium" : ""}>
                 {pendentePassado && (
@@ -1730,7 +1730,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                       const passado = !!b.data_vencimento_atual && b.data_vencimento_atual < hojeIso;
                       const marcado = selecionados.has(b.id);
                       return (
-                        <TableRow key={b.id} className={passado ? "bg-destructive/10" : ""}>
+                        <TableRow key={b.id} className={passado ? "bg-destructive/60" : ""}>
                           <TableCell className="pl-6">
                             <Tooltip>
                               <TooltipTrigger asChild>

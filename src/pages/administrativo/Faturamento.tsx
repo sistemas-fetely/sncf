@@ -508,7 +508,7 @@ export default function Faturamento() {
 
       {/* A resolver */}
       {resolver.total > 0 && (
-        <Card className="border-warning/40">
+        <Card className="border-warning/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-warning" />
@@ -766,7 +766,7 @@ function AbaNfs({
                           {avisos.length > 0 && (
                             <Badge
                               variant="outline"
-                              className="border-warning/40 bg-warning text-warning px-1"
+                              className="border-warning/40 bg-warning/10 text-warning px-1"
                               title={avisos.join(" · ")}
                             >
                               <AlertTriangle className="h-3 w-3" />

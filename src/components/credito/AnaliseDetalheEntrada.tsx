@@ -115,7 +115,7 @@ export function AnaliseDetalheEntrada({ analiseId }: Props) {
               <Button
                 size="sm"
                 variant="outline"
-                className="w-full gap-2 mt-2 border-warning/40 text-warning hover:bg-warning/10"
+                className="w-full gap-2 mt-2 border-warning/50 text-warning hover:bg-warning/10"
                 onClick={() => enriquecer.mutate(parceiro.id)}
                 disabled={enriquecer.isPending}
               >

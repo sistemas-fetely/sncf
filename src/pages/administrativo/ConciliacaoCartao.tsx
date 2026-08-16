@@ -695,7 +695,7 @@ function AbaVincularVendas() {
 
         {/* Seção B */}
         {!isLoading && !isError && (
-          <Card className="border-warning/40">
+          <Card className="border-warning/50">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">
                 Precisam de decisão · {decidir.length} vendas · {formatBRL(soma(decidir))}

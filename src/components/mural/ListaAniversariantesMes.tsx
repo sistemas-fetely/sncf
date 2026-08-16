@@ -115,7 +115,7 @@ export function ListaAniversariantesMes() {
 
   return (
     <>
-      <div className="h-full min-h-[220px] rounded-xl border border-border bg-gradient-to-br from-warning via-card to-info p-3 flex flex-col overflow-hidden">
+      <div className="h-full min-h-[220px] rounded-xl border border-border bg-gradient-to-br from-warning/40 via-card to-info/20 p-3 flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center gap-1.5 mb-2 shrink-0">
           <Cake className="h-3.5 w-3.5 text-warning" />

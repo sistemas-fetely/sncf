@@ -496,7 +496,7 @@ export default function ConciliacaoDespesas() {
           <div className="text-2xl font-medium text-success">{comSugestao.length}</div>
           <div className="text-xs text-muted-foreground mt-1">{formatBRL(valorComSug)}</div>
         </CardContent></Card>
-        <Card className="border-warning/40 bg-warning/10">
+        <Card className="border-warning/60 bg-warning/40">
           <CardContent className="p-4">
             <div className="text-xs text-muted-foreground flex items-center gap-1">
               <AlertTriangle className="h-3 w-3" /> Furos sem sugestão
@@ -525,7 +525,7 @@ export default function ConciliacaoDespesas() {
       {aba === "sugestao" && (
         <>
           {seguros.length > 0 && (
-            <Card className="border-success/40 bg-success/10">
+            <Card className="border-success/60 bg-success/40">
               <CardContent className="p-4 flex items-center justify-between gap-4 flex-wrap">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="h-5 w-5 text-success" />

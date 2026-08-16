@@ -536,7 +536,7 @@ export default function MinhasTarefas() {
           tarefa.esta_atrasada
             ? "bg-destructive/5 border-destructive/30 hover:bg-destructive/10"
             : tarefa.bloqueante
-            ? "bg-warning/10 border-warning/40 hover:bg-warning/10"
+            ? "bg-warning/10 border-warning/40 hover:bg-warning/50"
             : tarefa.status === "concluida"
             ? "bg-muted/30 border-border"
             : "hover:bg-muted/50 border-border",
@@ -589,10 +589,10 @@ export default function MinhasTarefas() {
               </Badge>
             )}
             {tarefa.status === "em_andamento" && (
-              <Badge className="text-[10px] bg-info hover:bg-info">Em andamento</Badge>
+              <Badge className="text-[10px] bg-info hover:bg-info/90">Em andamento</Badge>
             )}
             {tarefa.status === "aguardando_terceiro" && (
-              <Badge className="text-[10px] bg-warning hover:bg-warning gap-1">
+              <Badge className="text-[10px] bg-warning hover:bg-warning/90 gap-1">
                 <PauseCircle className="h-2.5 w-2.5" /> Aguardando
               </Badge>
             )}
@@ -656,7 +656,7 @@ export default function MinhasTarefas() {
           {!["concluida", "cancelada"].includes(tarefa.status) && (
             <div className="flex gap-1 flex-wrap justify-end">
               {tarefa.status === "pendente" && (
-                <Button size="sm" variant="outline" className="h-7 gap-1 text-xs border-success/40 text-success hover:bg-success"
+                <Button size="sm" variant="outline" className="h-7 gap-1 text-xs border-success/40 text-success hover:bg-success/10"
                   onClick={() => handleIniciar(tarefa)}>
                   <Play className="h-3 w-3" /> Iniciar
                 </Button>
@@ -667,7 +667,7 @@ export default function MinhasTarefas() {
                     onClick={() => handleConcluir(tarefa)}>
                     <CheckCircle2 className="h-3 w-3" /> Concluir
                   </Button>
-                  <Button size="sm" variant="outline" className="h-7 gap-1 text-xs border-warning/40 text-warning hover:bg-warning"
+                  <Button size="sm" variant="outline" className="h-7 gap-1 text-xs border-warning/40 text-warning hover:bg-warning/10"
                     onClick={() => handleAguardando(tarefa)}>
                     <PauseCircle className="h-3 w-3" /> Aguardando
                   </Button>
@@ -675,7 +675,7 @@ export default function MinhasTarefas() {
               )}
               {tarefa.status === "aguardando_terceiro" && (
                 <>
-                  <Button size="sm" variant="outline" className="h-7 gap-1 text-xs border-info/40 text-info hover:bg-info"
+                  <Button size="sm" variant="outline" className="h-7 gap-1 text-xs border-info/40 text-info hover:bg-info/10"
                     onClick={() => handleRetomar(tarefa)}>
                     <Play className="h-3 w-3" /> Retomar
                   </Button>
@@ -783,7 +783,7 @@ export default function MinhasTarefas() {
 
       {/* Prioridades do Dia — ações operacionais (não-tarefa) */}
       {!isColaboradorPuro && prioridadesDia.length > 0 && (
-        <Card className="border-l-4 border-l-warning/40 bg-warning/10">
+        <Card className="border-l-4 border-l-warning/40 bg-warning/30">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <Flame className="h-4 w-4 text-warning" /> Prioridades do Dia

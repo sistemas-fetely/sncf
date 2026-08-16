@@ -1057,7 +1057,7 @@ function NFsAnexadasSecao({ contaId }: { contaId: string }) {
           {nfs.map((nf) => (
             <div
               key={nf.id}
-              className="flex items-center justify-between gap-2 p-2 rounded border border-success/40 bg-success/10"
+              className="flex items-center justify-between gap-2 p-2 rounded border border-success/40 bg-success/40"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 flex-wrap">

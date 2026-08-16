@@ -240,7 +240,7 @@ export function ConciliarLoteDialog({ open, onClose, movimentacao, onConciliado 
               return (
                 <label
                   key={c.id}
-                  className={`flex items-center gap-3 p-2 cursor-pointer hover:bg-muted/30 ${isSel ? "bg-success/10" : ""}`}
+                  className={`flex items-center gap-3 p-2 cursor-pointer hover:bg-muted/30 ${isSel ? "bg-success/40" : ""}`}
                 >
                   <Checkbox checked={isSel} onCheckedChange={() => toggle(c.id)} />
                   <div className="flex-1 min-w-0">

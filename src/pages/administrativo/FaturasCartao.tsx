@@ -626,7 +626,7 @@ export default function FaturasCartao() {
           {/* CARD FATURA MÊS ATUAL */}
           <Card
             className={cn(
-              "bg-warning/10 border-warning/40 transition",
+              "bg-warning/50 border-warning/40 transition",
               totals.mesAtual.faturaId &&
                 "cursor-pointer hover:shadow-md hover:border-warning/40",
               totals.mesAtual.faturaId &&

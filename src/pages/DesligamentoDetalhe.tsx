@@ -352,7 +352,7 @@ export default function DesligamentoDetalhe() {
                         </Badge>
                       )}
                       {t.prioridade === "urgente" && <Badge variant="destructive" className="text-[10px]">Urgente</Badge>}
-                      {t.status === "em_andamento" && <Badge className="text-[10px] bg-info hover:bg-info">Em andamento</Badge>}
+                      {t.status === "em_andamento" && <Badge className="text-[10px] bg-info hover:bg-info/90">Em andamento</Badge>}
                       {t.esta_atrasada && (
                         <Badge variant="destructive" className="text-[10px]">
                           Atrasada{t.dias_atraso ? ` há ${t.dias_atraso}d` : ""}

@@ -250,40 +250,40 @@ export default function NotasFiscais() {
               <p className="text-[10px] text-muted-foreground mt-1">R$ {fmtBRL(mesAtualValor)} total</p>
             </CardContent>
           </Card>
-          <Card className="border-l-[3px] border-l-success/40 bg-gradient-to-br from-success to-transparent">
+          <Card className="border-l-[3px] border-l-success/40 bg-gradient-to-br from-success/5 to-transparent">
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Total Pago</p>
                   <p className="text-lg font-medium mt-0.5 text-success">R$ {fmtBRL(mesAtualPagas)}</p>
                 </div>
-                <div className="h-8 w-8 rounded-full bg-success flex items-center justify-center">
+                <div className="h-8 w-8 rounded-full bg-success/10 flex items-center justify-center">
                   <CheckCircle2 className="h-4 w-4 text-success" />
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="border-l-[3px] border-l-warning/40 bg-gradient-to-br from-warning to-transparent">
+          <Card className="border-l-[3px] border-l-warning/40 bg-gradient-to-br from-warning/5 to-transparent">
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">A Pagar</p>
                   <p className="text-lg font-medium mt-0.5 text-warning">R$ {fmtBRL(mesAtualPendente)}</p>
                 </div>
-                <div className="h-8 w-8 rounded-full bg-warning flex items-center justify-center">
+                <div className="h-8 w-8 rounded-full bg-warning/10 flex items-center justify-center">
                   <Clock className="h-4 w-4 text-warning" />
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="border-l-[3px] border-l-destructive/40 bg-gradient-to-br from-destructive to-transparent">
+          <Card className="border-l-[3px] border-l-destructive/40 bg-gradient-to-br from-destructive/5 to-transparent">
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Vencidas</p>
                   <p className="text-lg font-medium mt-0.5 text-destructive">{notasMesAtual.filter((n) => n.status === "vencida").length}</p>
                 </div>
-                <div className="h-8 w-8 rounded-full bg-destructive flex items-center justify-center">
+                <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center">
                   <AlertTriangle className="h-4 w-4 text-destructive" />
                 </div>
               </div>
@@ -313,7 +313,7 @@ export default function NotasFiscais() {
             </Card>
             <Card className="bg-muted/30 border-dashed">
               <CardContent className="p-4 flex items-center gap-3">
-                <div className="h-9 w-9 rounded-lg bg-success flex items-center justify-center">
+                <div className="h-9 w-9 rounded-lg bg-success/10 flex items-center justify-center">
                   <DollarSign className="h-4 w-4 text-success" />
                 </div>
                 <div>
@@ -324,7 +324,7 @@ export default function NotasFiscais() {
             </Card>
             <Card className="bg-muted/30 border-dashed">
               <CardContent className="p-4 flex items-center gap-3">
-                <div className="h-9 w-9 rounded-lg bg-success flex items-center justify-center">
+                <div className="h-9 w-9 rounded-lg bg-success/10 flex items-center justify-center">
                   <CheckCircle2 className="h-4 w-4 text-success" />
                 </div>
                 <div>
@@ -335,7 +335,7 @@ export default function NotasFiscais() {
             </Card>
             <Card className="bg-muted/30 border-dashed">
               <CardContent className="p-4 flex items-center gap-3">
-                <div className="h-9 w-9 rounded-lg bg-warning flex items-center justify-center">
+                <div className="h-9 w-9 rounded-lg bg-warning/10 flex items-center justify-center">
                   <Clock className="h-4 w-4 text-warning" />
                 </div>
                 <div>

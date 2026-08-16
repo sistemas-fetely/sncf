@@ -33,8 +33,8 @@ import { ptBR } from "date-fns/locale";
 
 import { PageShell } from "@/components/layout/PageShell";
 const STATUS_COR: Record<string, string> = {
-  vigente: "bg-success text-success border-success/40",
-  em_revisao: "bg-warning text-warning border-warning/40",
+  vigente: "bg-success/10 text-success border-success/30",
+  em_revisao: "bg-warning/10 text-warning border-warning/30",
   rascunho: "bg-muted text-muted-foreground border-muted-foreground/20",
   arquivado: "bg-muted/50 text-muted-foreground border-muted-foreground/20",
 };

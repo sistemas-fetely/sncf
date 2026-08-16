@@ -614,13 +614,13 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
                           <Sparkles className="h-3.5 w-3.5" />
                           Sugestão IA: {topSugestao.categoria_codigo} {topSugestao.categoria_nome}
                         </div>
-                        <div className="text-xs text-info mt-0.5">
+                        <div className="text-xs text-info/80 mt-0.5">
                           {topSugestao.motivo} · baseado em {topSugestao.amostra_count}{" "}
                           {topSugestao.amostra_count === 1 ? "lançamento" : "lançamentos"} similar
                           {topSugestao.amostra_count === 1 ? "" : "es"}
                         </div>
                         {topSugestao.amostra_descricao && (
-                          <div className="text-xs text-info mt-1 italic truncate">
+                          <div className="text-xs text-info/70 mt-1 italic truncate">
                             ex: "{topSugestao.amostra_descricao}"
                           </div>
                         )}

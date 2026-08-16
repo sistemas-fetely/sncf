@@ -39,16 +39,16 @@ import { cn } from "@/lib/utils";
 
 const PRIORIDADE_COR: Record<string, string> = {
   critica: "bg-destructive/10 text-destructive border-destructive/30",
-  alta: "bg-warning text-warning border-warning/40",
+  alta: "bg-warning/10 text-warning border-warning/30",
   normal: "bg-muted text-muted-foreground",
   baixa: "bg-muted/50 text-muted-foreground",
 };
 
 const STATUS_COR: Record<string, string> = {
-  recebido: "bg-info text-info border-info/40",
-  em_analise: "bg-warning text-warning border-warning/40",
-  em_correcao: "bg-info text-info border-info/40",
-  resolvido: "bg-success text-success border-success/40",
+  recebido: "bg-info/10 text-info border-info/30",
+  em_analise: "bg-warning/10 text-warning border-warning/30",
+  em_correcao: "bg-info/10 text-info border-info/30",
+  resolvido: "bg-success/10 text-success border-success/30",
   duplicado: "bg-muted text-muted-foreground",
   nao_procede: "bg-muted/50 text-muted-foreground",
 };
