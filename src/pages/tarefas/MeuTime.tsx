@@ -49,11 +49,14 @@ export default function MeuTime() {
   const hoje = hojeISO();
   const [pessoaFiltro, setPessoaFiltro] = useState<string>("todas");
   const [prioridadeFiltro, setPrioridadeFiltro] = useState<string>("todas");
+  const { user } = useAuth();
 
   const { data: userIds, isLoading: carregandoTime, error: erroTime } = usePessoasDoTime();
   const { data: abertas, isLoading: carregandoAbertas } = useTarefasAbertasDoTime(userIds);
   const { data: entregues } = useTarefasEntreguesDoTime(userIds);
   const { data: pessoas } = usePessoasSistema();
+
+  const pessoaLogada = pessoas?.find((p) => p.id === user?.id);
 
   /** fail-loud: id vindo da RPC que não está em v_pessoas_sistema aparece identificado, não escondido */
   const nomeDe = (id: string | null) =>
