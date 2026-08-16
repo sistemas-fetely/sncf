@@ -1241,7 +1241,9 @@ export default function CobrancaFila() {
     "rounded-full border border-border bg-background px-3 py-1 text-xs text-muted-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground data-[state=active]:shadow-none";
 
   return (
-    <div className="space-y-6">
+    <PageShell>
+      <PageTitle titulo="Cobrança" estado="fila de títulos a receber" />
+      <div className="space-y-6">
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
