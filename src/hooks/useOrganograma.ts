@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { PosicaoRaw, PosicaoNode, ColaboradorVinculado } from "@/types/organograma";
+import type { PosicaoRaw, PosicaoNode, ColaboradorVinculado, TipoVinculoCodigo } from "@/types/organograma";
 
 interface VinculoRaw {
   id: string;
-  tipo_vinculo: "CLT" | "PJ";
+  tipo_vinculo: TipoVinculoCodigo;
   status: string;
   data_inicio: string;
   valor_base: number;
@@ -19,6 +19,7 @@ interface VinculoRaw {
     email_pessoal: string | null;
   } | null;
   cargo: { nome: string | null } | null;
+  tipo: { codigo: TipoVinculoCodigo; nome: string | null; aparece_organograma: boolean } | null;
   departamento: { nome: string | null } | null;
 }
 
@@ -32,7 +33,7 @@ function mapVinculoToColaborador(v: VinculoRaw): ColaboradorVinculado {
     data_admissao: v.data_inicio,
     salario_base: v.valor_base,
     status: v.status,
-    tipo_contrato: v.tipo_vinculo,
+    tipo_contrato: v.tipo?.codigo ?? v.tipo_vinculo,
     cargo: v.cargo?.nome ?? "",
     departamento: v.departamento?.nome ?? "",
   };
@@ -62,7 +63,7 @@ function buildTree(posicoes: PosicaoRaw[], vinculos: ColaboradorVinculado[]): Po
       subordinados_totais: 0,
       nome_display: vinculo ? vinculo.nome_completo : "",
       foto_url: vinculo?.foto_url ?? null,
-      vinculo: vinculo ? (vinculo.tipo_contrato as "CLT" | "PJ") : null,
+      vinculo: vinculo ? vinculo.tipo_contrato : null,
       status_pessoal: vinculo ? vinculo.status : null,
     };
     nodeMap.set(p.id, node);
@@ -100,7 +101,7 @@ function buildTree(posicoes: PosicaoRaw[], vinculos: ColaboradorVinculado[]): Po
       subordinados_totais: 0,
       nome_display: v.nome_completo,
       foto_url: v.foto_url,
-      vinculo: v.tipo_contrato as "CLT" | "PJ",
+      vinculo: v.tipo_contrato,
       status_pessoal: v.status,
     };
     nodeMap.set(virtualId, node);
@@ -154,9 +155,11 @@ export function useOrganograma() {
             email_corporativo, telefone_corporativo, departamento_id,
             pessoa:pessoas!inner ( id, nome_completo, foto_url, telefone, email_pessoal ),
             cargo:cargos ( nome ),
+            tipo:tipos_vinculo!inner ( codigo, nome, aparece_organograma ),
             departamento:departamentos ( nome )
           `)
-          .eq("status", "ativo"),
+          .eq("status", "ativo")
+          .eq("tipo.aparece_organograma", true),
       ]);
 
       if (posRes.error) throw posRes.error;
