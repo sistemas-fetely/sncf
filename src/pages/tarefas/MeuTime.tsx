@@ -132,11 +132,26 @@ export default function MeuTime() {
       {!erroTime && !carregandoTime && (userIds ?? []).length === 0 && (
         <Card>
           <CardContent className="p-4 space-y-2">
-            <p className="text-sm font-medium">Você não tem liderados diretos</p>
-            <p className="text-sm text-muted-foreground">
-              Esta tela mostra as tarefas de quem reporta a você no organograma.
-              Para ver as tarefas de toda a empresa, use a tela de Carga.
-            </p>
+            {pessoaLogada ? (
+              <>
+                <p className="text-sm font-medium">Você não tem liderados diretos</p>
+                <p className="text-sm text-muted-foreground">
+                  Esta tela mostra as tarefas de quem reporta a você no organograma.
+                  Para ver as tarefas de toda a empresa, use a tela de Carga.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Conectado como <span className="font-medium">{pessoaLogada.nome}</span> ({user?.email}).
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-medium">Esta conta não está vinculada a uma pessoa</p>
+                <p className="text-sm text-muted-foreground">
+                  A conta {user?.email} não tem ficha ativa no sistema, então não tem liderados nem aparece no organograma.
+                  Se você tem mais de um acesso, entre com a conta vinculada ao seu cadastro.
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
       )}
