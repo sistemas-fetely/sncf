@@ -217,6 +217,26 @@ export default function MeuTime() {
   const porPessoa = agrupar(abertasFiltradas);
   const porPessoaEntregues = agrupar(entreguesFiltradas).filter((g) => g.tarefas.length > 0);
 
+  const gruposPorId = new Map(porPessoa.map((g) => [g.userId, g]));
+
+  /** árvore: gestor_user_id -> filhos. Sem gestor (ou gestor fora da lista) vira raiz. */
+  const { raizes, filhosPorGestor } = useMemo(() => {
+    const presentes = new Set(membros.map((m) => m.user_id));
+    const mapa = new Map<string, string[]>();
+    const topo: string[] = [];
+    for (const m of membros) {
+      if (m.gestor_user_id && m.gestor_user_id !== m.user_id && presentes.has(m.gestor_user_id)) {
+        const atual = mapa.get(m.gestor_user_id) ?? [];
+        atual.push(m.user_id);
+        mapa.set(m.gestor_user_id, atual);
+      } else {
+        topo.push(m.user_id);
+      }
+    }
+    return { raizes: topo, filhosPorGestor: mapa };
+  }, [membros]);
+
+
   const atrasadas = useMemo(
     () =>
       abertasFiltradas
