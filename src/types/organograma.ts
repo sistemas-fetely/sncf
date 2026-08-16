@@ -1,3 +1,5 @@
+export type TipoVinculoCodigo = "CLT" | "PJ" | "PRESTADOR" | "SOCIO";
+
 export interface PosicaoRaw {
   id: string;
   titulo_cargo: string;
