@@ -28,6 +28,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { MermaidRenderer } from "@/components/processos/MermaidRenderer";
 
+import { PageShell } from "@/components/layout/PageShell";
 export default function ProcessoEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -144,25 +145,25 @@ export default function ProcessoEditor() {
 
   if (!isNovo && !processo) {
     return (
-      <div className="container mx-auto py-12 text-center">
+      <PageShell variant="leitura" className="text-center">
         <p className="text-muted-foreground">Processo não encontrado.</p>
         <Button variant="outline" onClick={() => navigate("/processos")} className="mt-4">
           Voltar
         </Button>
-      </div>
+      </PageShell>
     );
   }
 
   if (!isNovo && !podeEditar) {
     return (
-      <div className="container mx-auto py-12 text-center">
+      <PageShell variant="leitura" className="text-center">
         <p className="text-muted-foreground">
           Você não tem permissão para editar este processo.
         </p>
         <Button variant="outline" onClick={() => navigate(`/processos/${id}`, { state: { from: "/processos", fromLabel: "Processos" } })} className="mt-4">
           Voltar ao detalhe
         </Button>
-      </div>
+      </PageShell>
     );
   }
 
@@ -305,7 +306,7 @@ export default function ProcessoEditor() {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-5 max-w-5xl">
+    <PageShell variant="leitura">
       <div className="flex items-center justify-between gap-2">
         <Button
           variant="ghost"
@@ -739,7 +740,7 @@ export default function ProcessoEditor() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   );
 }
 

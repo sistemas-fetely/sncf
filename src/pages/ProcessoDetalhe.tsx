@@ -27,6 +27,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { MermaidRenderer } from "@/components/processos/MermaidRenderer";
 
+import { PageShell } from "@/components/layout/PageShell";
 const STATUS_COR: Record<string, string> = {
   vigente: "bg-success text-success border-success/40",
   em_revisao: "bg-warning text-warning border-warning/40",
@@ -162,12 +163,12 @@ export default function ProcessoDetalhe() {
 
   if (!processo) {
     return (
-      <div className="container mx-auto py-12 text-center">
+      <PageShell variant="leitura" className="text-center">
         <p className="text-muted-foreground">Processo não encontrado.</p>
         <Button variant="outline" onClick={() => navigate("/processos")} className="mt-4">
           Voltar
         </Button>
-      </div>
+      </PageShell>
     );
   }
 
@@ -175,7 +176,7 @@ export default function ProcessoDetalhe() {
   const totalLigacoes = (ligacoes || []).length;
 
   return (
-    <div className="container mx-auto py-6 space-y-5 max-w-5xl">
+    <PageShell variant="leitura">
       {/* Header */}
       <div className="flex items-center justify-between gap-2">
         <SmartBackButton fallback="/processos" fallbackLabel="Processos" />
@@ -544,7 +545,7 @@ export default function ProcessoDetalhe() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   );
 }
 

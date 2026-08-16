@@ -12,6 +12,7 @@ import { validateCNPJ } from "@/lib/cnpj";
 import { descricaoNaturezaJuridica } from "@/lib/natureza-juridica";
 import { PedidosDoParceiroSection } from "@/components/parceiros/PedidosDoParceiroSection";
 
+import { PageShell } from "@/components/layout/PageShell";
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 function Linha({
@@ -44,19 +45,19 @@ export default function ParceiroDetalhe() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6 space-y-4">
+      <PageShell>
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-32 w-full" />
         <Skeleton className="h-64 w-full" />
-      </div>
+      </PageShell>
     );
   }
 
   if (!data) {
     return (
-      <div className="container mx-auto p-6">
+      <PageShell>
         <p className="text-sm text-muted-foreground">Parceiro não encontrado.</p>
-      </div>
+      </PageShell>
     );
   }
 
@@ -79,7 +80,7 @@ export default function ParceiroDetalhe() {
     .join(", ");
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <PageShell>
       <Button variant="ghost" size="sm" className="gap-2" onClick={handleVoltar}>
         <ArrowLeft className="h-4 w-4" />
         Voltar
@@ -420,6 +421,6 @@ export default function ParceiroDetalhe() {
           Mais info da Receita Federal aparecerá aqui depois do enriquecimento.
         </p>
       )}
-    </div>
+    </PageShell>
   );
 }

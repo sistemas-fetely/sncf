@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useNomePessoa } from "@/components/tarefas/detalhe/comuns";
 import { NovoProjetoDialog } from "@/components/tarefas/projetos/NovoProjetoDialog";
+import { PageShell } from "@/components/layout/PageShell";
 import {
   SAUDE_CLASSE, SAUDE_ROTULO, useContagemAbertasPorProjeto, useProjetosLista,
 } from "@/hooks/tarefas/useProjetosTarefas";
@@ -18,7 +19,7 @@ export default function ProjetosGrid() {
   const [novo, setNovo] = useState(false);
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 p-6">
+    <PageShell>
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="space-y-1">
           <h1 className="text-2xl font-medium tracking-tight">Projetos</h1>
@@ -80,6 +81,6 @@ export default function ProjetosGrid() {
       )}
 
       <NovoProjetoDialog aberto={novo} onOpenChange={setNovo} />
-    </div>
+    </PageShell>
   );
 }

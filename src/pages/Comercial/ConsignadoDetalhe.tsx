@@ -19,6 +19,7 @@ import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import { useContaCorrenteCliente } from "./Consignados";
 
+import { PageShell } from "@/components/layout/PageShell";
 const soDigitos = (v: string | null | undefined) => (v ?? "").replace(/\D/g, "");
 
 interface TituloRow {
@@ -249,7 +250,7 @@ export default function ConsignadoDetalhe() {
   ];
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
+    <PageShell>
       <CasaPageHeader
         breadcrumb={[
           { label: "Comercial" },
@@ -579,6 +580,6 @@ export default function ConsignadoDetalhe() {
           </CardContent>
         </Card>
       </section>
-    </div>
+    </PageShell>
   );
 }

@@ -26,6 +26,7 @@ import { formatError } from "@/lib/format-error";
 
 import { cn } from "@/lib/utils";
 
+import { PageShell } from "@/components/layout/PageShell";
 interface Tarefa {
   id: string;
   titulo: string;
@@ -202,15 +203,15 @@ export default function DesligamentoDetalhe() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-12 flex justify-center">
+      <PageShell variant="leitura" className="flex justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
+      </PageShell>
     );
   }
   if (!checklist) return null;
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <PageShell variant="leitura">
       {/* Header */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <SmartBackButton fallback="/pessoas" fallbackLabel="Pessoas" />
@@ -463,6 +464,6 @@ export default function DesligamentoDetalhe() {
         </AlertDialogContent>
       </AlertDialog>
 
-    </div>
+    </PageShell>
   );
 }
