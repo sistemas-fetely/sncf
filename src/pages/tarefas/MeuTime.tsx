@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageShell } from "@/components/layout/PageShell";
 import { TarefaItem } from "@/components/tarefas/TarefaItem";
+import { useAuth } from "@/contexts/AuthContext";
 import { usePessoasSistema } from "@/hooks/tarefas/useTarefasCatalogos";
 import {
   usePessoasDoTime, useTarefasAbertasDoTime, useTarefasEntreguesDoTime,
@@ -48,11 +49,14 @@ export default function MeuTime() {
   const hoje = hojeISO();
   const [pessoaFiltro, setPessoaFiltro] = useState<string>("todas");
   const [prioridadeFiltro, setPrioridadeFiltro] = useState<string>("todas");
+  const { user } = useAuth();
 
   const { data: userIds, isLoading: carregandoTime, error: erroTime } = usePessoasDoTime();
   const { data: abertas, isLoading: carregandoAbertas } = useTarefasAbertasDoTime(userIds);
   const { data: entregues } = useTarefasEntreguesDoTime(userIds);
   const { data: pessoas } = usePessoasSistema();
+
+  const pessoaLogada = pessoas?.find((p) => p.id === user?.id);
 
   /** fail-loud: id vindo da RPC que não está em v_pessoas_sistema aparece identificado, não escondido */
   const nomeDe = (id: string | null) =>
@@ -128,11 +132,26 @@ export default function MeuTime() {
       {!erroTime && !carregandoTime && (userIds ?? []).length === 0 && (
         <Card>
           <CardContent className="p-4 space-y-2">
-            <p className="text-sm font-medium">Você não tem liderados diretos</p>
-            <p className="text-sm text-muted-foreground">
-              Esta tela mostra as tarefas de quem reporta a você no organograma.
-              Para ver as tarefas de toda a empresa, use a tela de Carga.
-            </p>
+            {pessoaLogada ? (
+              <>
+                <p className="text-sm font-medium">Você não tem liderados diretos</p>
+                <p className="text-sm text-muted-foreground">
+                  Esta tela mostra as tarefas de quem reporta a você no organograma.
+                  Para ver as tarefas de toda a empresa, use a tela de Carga.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Conectado como <span className="font-medium">{pessoaLogada.nome}</span> ({user?.email}).
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-medium">Esta conta não está vinculada a uma pessoa</p>
+                <p className="text-sm text-muted-foreground">
+                  A conta {user?.email} não tem ficha ativa no sistema, então não tem liderados nem aparece no organograma.
+                  Se você tem mais de um acesso, entre com a conta vinculada ao seu cadastro.
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
       )}
