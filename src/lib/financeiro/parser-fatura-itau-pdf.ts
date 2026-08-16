@@ -49,12 +49,33 @@ function isTextItem(item: TextContent["items"][number]): item is TextItem {
 }
 
 /**
- * Monta as linhas de uma página agrupando por Y e injetando espaços proporcionais
- * ao gap em X. Duas colunas de lançamentos ficam separadas por >= 2 espaços,
- * requisito da regex de lançamento.
+ * Monta as linhas de uma página por posição X absoluta (layout -layout).
+ *
+ * O PDF do Itaú emite os espaços como itens de texto próprios, com um único
+ * caractere de espaço e um width enorme (ex.: 52.1 para representar ~13
+ * caracteres). Se concatenarmos literalmente `item.str`, a linha vira
+ * "26/03  MP*MERCADOLIVRE 04/10 1.424,10" — apenas um espaço real antes do
+ * valor, e a regex de lançamento (que exige \s{2,}) não casa.
+ *
+ * Por isso descartamos os itens cujo `str.trim()` é vazio e reconstruímos o
+ * texto a partir da coluna absoluta de cada item: `coluna = round(x / larguraChar)`.
+ * O resultado é equivalente ao `pdftotext -layout`: colunas alinhadas por X,
+ * com gaps maiores que 2 espaços entre colunas distintas.
  */
 function linhasDaPagina(conteudo: TextContent): string[] {
-  const itens = conteudo.items.filter(isTextItem).filter((i) => i.str !== "");
+  const itens = conteudo.items
+    .filter(isTextItem)
+    .filter((i) => i.str.trim() !== "");
+
+  let larguraTotal = 0;
+  let caracteresTotal = 0;
+  for (const item of itens) {
+    if (item.width > 0) {
+      larguraTotal += item.width;
+      caracteresTotal += item.str.length;
+    }
+  }
+  const larguraChar = caracteresTotal > 0 ? larguraTotal / caracteresTotal : 5;
 
   const grupos = new Map<number, TextItem[]>();
   for (const item of itens) {
@@ -75,24 +96,15 @@ function linhasDaPagina(conteudo: TextContent): string[] {
     );
 
     let texto = "";
-    let fimAnterior: number | null = null;
     for (const item of linha) {
       const x = item.transform[4] as number;
-      const largura = item.width || 0;
-      const larguraMediaChar =
-        item.str.length > 0 && largura > 0 ? largura / item.str.length : 5;
-
-      if (fimAnterior !== null) {
-        const gap = x - fimAnterior;
-        if (gap > larguraMediaChar) {
-          const n = Math.max(2, Math.round(gap / larguraMediaChar));
-          texto += " ".repeat(n);
-        } else if (gap > 0) {
-          texto += " ";
-        }
+      const coluna = Math.max(0, Math.round(x / larguraChar));
+      if (coluna > texto.length) {
+        texto += " ".repeat(coluna - texto.length);
+      } else if (texto.length > 0) {
+        texto += " ";
       }
       texto += item.str;
-      fimAnterior = x + largura;
     }
 
     linhas.push(texto);
