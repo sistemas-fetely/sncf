@@ -118,7 +118,7 @@ export default function SlaXpm() {
   }
 
   return (
-    <div className="max-w-[1100px] mx-auto px-4 md:px-8 py-8 space-y-6">
+    <PageShell variant="dados">
       <header className="space-y-1">
         <h1 className="text-2xl font-medium tracking-tight">SLA da XPM por canal</h1>
         <p className="text-sm text-muted-foreground">
@@ -234,6 +234,6 @@ export default function SlaXpm() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

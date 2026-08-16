@@ -51,7 +51,7 @@ export default function MinhasTarefasNovo() {
     id === "__sem__" ? "Sem projeto" : projetos?.find((p) => p.id === id)?.nome ?? "Projeto";
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6 p-6">
+    <PageShell variant="dados">
       <header className="space-y-1">
         <h1 className="text-2xl font-medium tracking-tight">Minhas Tarefas</h1>
         <p className="text-sm text-muted-foreground">
@@ -97,6 +97,6 @@ export default function MinhasTarefasNovo() {
           </section>
         ))}
       </div>
-    </div>
+    </PageShell>
   );
 }
