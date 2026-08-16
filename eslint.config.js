@@ -194,13 +194,4 @@ export default tseslint.config(
       "no-restricted-syntax": "error",
     },
   },
-  {
-    // Conversao visual em andamento: GestaoPedidos ainda usa `any` para views
-    // nao tipadas. Mantendo a regra desligada neste arquivo para nao misturar
-    // refatoracao de tipos com a mudanca de apresentacao.
-    files: ["src/pages/vendas/GestaoPedidos.tsx"],
-    rules: {
-      "@typescript-eslint/no-explicit-any": "off",
-    },
-  },
 );
