@@ -875,19 +875,19 @@ function RemessasSafraTab() {
   }
 
   const statusMap: Record<string, { label: string; className: string }> = {
-    gerada: { label: "Gerada", className: "bg-amber-50 text-amber-700 border border-amber-200" },
-    enviada: { label: "Enviada", className: "bg-blue-50 text-blue-700 border border-blue-200" },
+    gerada: { label: "Gerada", className: "bg-warning/15 text-warning" },
+    enviada: { label: "Enviada", className: "bg-info/15 text-info" },
     processada: {
       label: "Processada",
-      className: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+      className: "bg-success/15 text-success",
     },
     com_rejeicoes: {
       label: "Com rejeições",
-      className: "bg-red-50 text-red-700 border border-red-200",
+      className: "bg-destructive/15 text-destructive",
     },
     cancelada: {
       label: "Cancelada",
-      className: "bg-red-50 text-red-700 border border-red-200",
+      className: "bg-destructive/15 text-destructive",
     },
   };
 
