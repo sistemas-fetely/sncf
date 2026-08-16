@@ -28226,6 +28226,7 @@ export type Database = {
           position: string | null
           termo_uso_aceito_em: string | null
           termo_uso_versao: string | null
+          tipo_usuario: string | null
           updated_at: string
           user_id: string
         }
@@ -28242,6 +28243,7 @@ export type Database = {
           position?: string | null
           termo_uso_aceito_em?: string | null
           termo_uso_versao?: string | null
+          tipo_usuario?: string | null
           updated_at?: string
           user_id: string
         }
@@ -28258,6 +28260,7 @@ export type Database = {
           position?: string | null
           termo_uso_aceito_em?: string | null
           termo_uso_versao?: string | null
+          tipo_usuario?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -28268,6 +28271,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "parametros"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_tipo_usuario_fkey"
+            columns: ["tipo_usuario"]
+            isOneToOne: false
+            referencedRelation: "tipos_usuario"
+            referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "profiles_user_id_fkey"
@@ -35320,6 +35330,48 @@ export type Database = {
           created_at?: string | null
           id?: string
           nome?: string
+        }
+        Relationships: []
+      }
+      tipos_usuario: {
+        Row: {
+          aparece_em_pessoas: boolean
+          ativo: boolean
+          codigo: string
+          created_at: string
+          descricao: string | null
+          exige_dominio_corporativo: boolean
+          exige_vinculo: boolean
+          nome: string
+          ordem: number
+          pode_super_admin: boolean
+          updated_at: string
+        }
+        Insert: {
+          aparece_em_pessoas?: boolean
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          descricao?: string | null
+          exige_dominio_corporativo?: boolean
+          exige_vinculo?: boolean
+          nome: string
+          ordem?: number
+          pode_super_admin?: boolean
+          updated_at?: string
+        }
+        Update: {
+          aparece_em_pessoas?: boolean
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          descricao?: string | null
+          exige_dominio_corporativo?: boolean
+          exige_vinculo?: boolean
+          nome?: string
+          ordem?: number
+          pode_super_admin?: boolean
+          updated_at?: string
         }
         Relationships: []
       }
