@@ -487,6 +487,16 @@ export function FilaPedidosPorArea({
             <SelectItem value="com_entrada_paga">Com entrada paga</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={liberacaoFilter} onValueChange={setLiberacaoFilter}>
+          <SelectTrigger className="w-full sm:w-44">
+            <SelectValue placeholder="Liberação" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Liberação: Todas</SelectItem>
+            <SelectItem value="liberado">Só liberáveis</SelectItem>
+            <SelectItem value="bloqueado">Falta pagamento</SelectItem>
+          </SelectContent>
+        </Select>
         <Select value={marcacaoFilter} onValueChange={setMarcacaoFilter}>
           <SelectTrigger className="w-full sm:w-48">
             <SelectValue placeholder="Marcação" />
