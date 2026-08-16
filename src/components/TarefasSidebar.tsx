@@ -52,7 +52,7 @@ export function TarefasSidebar() {
           </div>
           {!collapsed && (
             <div className="flex flex-col">
-              <span className="text-sm font-bold tracking-tight text-sidebar-foreground">Tarefas</span>
+              <span className="text-sm font-medium tracking-tight text-sidebar-foreground">Tarefas</span>
               <span className="text-[11px] text-sidebar-muted">O que precisa sair hoje</span>
             </div>
           )}

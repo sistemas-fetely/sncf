@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AlertTriangle, UsersRound } from "lucide-react";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageShell } from "@/components/layout/PageShell";
 import { TarefaItem } from "@/components/tarefas/TarefaItem";
 import { usePessoasSistema } from "@/hooks/tarefas/useTarefasCatalogos";
 import {
@@ -63,12 +64,15 @@ export default function MeuTime() {
     return pessoaFiltro === "todas" ? base : base.filter((id) => id === pessoaFiltro);
   }, [userIds, pessoaFiltro]);
 
-  const filtrar = (linhas: Tarefa[]) =>
-    linhas.filter(
-      (t) =>
-        (!t.responsavel_id || idsVisiveis.includes(t.responsavel_id)) &&
-        (prioridadeFiltro === "todas" || t.prioridade === prioridadeFiltro)
-    );
+  const filtrar = useCallback(
+    (linhas: Tarefa[]) =>
+      linhas.filter(
+        (t) =>
+          (!t.responsavel_id || idsVisiveis.includes(t.responsavel_id)) &&
+          (prioridadeFiltro === "todas" || t.prioridade === prioridadeFiltro)
+      ),
+    [idsVisiveis, prioridadeFiltro]
+  );
 
   const agrupar = (linhas: Tarefa[]): GrupoPessoa[] =>
     idsVisiveis
@@ -84,8 +88,8 @@ export default function MeuTime() {
       })
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
-  const abertasFiltradas = useMemo(() => filtrar(abertas ?? []), [abertas, idsVisiveis, prioridadeFiltro]);
-  const entreguesFiltradas = useMemo(() => filtrar(entregues ?? []), [entregues, idsVisiveis, prioridadeFiltro]);
+  const abertasFiltradas = useMemo(() => filtrar(abertas ?? []), [abertas, filtrar]);
+  const entreguesFiltradas = useMemo(() => filtrar(entregues ?? []), [entregues, filtrar]);
 
   const porPessoa = agrupar(abertasFiltradas);
   const porPessoaEntregues = agrupar(entreguesFiltradas).filter((g) => g.tarefas.length > 0);
@@ -103,7 +107,7 @@ export default function MeuTime() {
     .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-5 p-4 sm:p-6">
+    <PageShell>
       <header className="space-y-1">
         <h1 className="text-2xl font-medium tracking-tight">Meu time</h1>
         <p className="text-sm text-muted-foreground">
@@ -253,6 +257,6 @@ export default function MeuTime() {
           )}
         </TabsContent>
       </Tabs>
-    </div>
+    </PageShell>
   );
 }
