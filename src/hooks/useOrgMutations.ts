@@ -125,77 +125,44 @@ export function useDeletePosicao() {
 export function useMovePosicao() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, newParentId, node, parentNode }: { id: string; newParentId: string | null; node?: any; parentNode?: any }) => {
-      // Resolve parent: if virtual, create a real position first
+    mutationFn: async ({
+      id,
+      newParentId,
+      node,
+      parentNode,
+    }: {
+      id: string;
+      newParentId: string | null;
+      node?: PosicaoNode | null;
+      parentNode?: PosicaoNode | null;
+    }) => {
+      // Resolve parent: if virtual, materialize it first
       let resolvedParentId = newParentId;
       if (newParentId && newParentId.startsWith("virtual-")) {
-        const parentRealId = newParentId.replace("virtual-", "");
-
-        // Check if a position already exists for this person
-        const { data: existing } = await supabase
-          .from("posicoes")
-          .select("id")
-          .eq("vinculo_id", parentRealId)
-          .limit(1);
-
-        if (existing && existing.length > 0) {
-          resolvedParentId = existing[0].id;
-        } else {
-          const parentInsert: PosicaoInsert = {
-            titulo_cargo: parentNode?.titulo_cargo || "Sem cargo",
-            departamento: parentNode?.departamento || "Geral",
-            nivel_hierarquico: parentNode?.nivel_hierarquico || 1,
-            status: "ocupado",
-            id_pai: null,
-            vinculo_id: parentRealId,
-          };
-          const { data: newParent, error: parentErr } = await supabase
-            .from("posicoes")
-            .insert(parentInsert)
-            .select("id")
-            .single();
-          if (parentErr) throw parentErr;
-          resolvedParentId = newParent.id;
-        }
+        resolvedParentId = await materializarSeVirtual({
+          id: newParentId,
+          titulo_cargo: parentNode?.titulo_cargo ?? "",
+          departamento: parentNode?.departamento ?? "",
+          nivel_hierarquico: parentNode?.nivel_hierarquico ?? 1,
+          vinculo_id: parentNode?.vinculo_id ?? null,
+        });
       }
 
-      if (id.startsWith("virtual-")) {
-        const realId = id.replace("virtual-", "");
+      const realId = await materializarSeVirtual({
+        id,
+        titulo_cargo: node?.titulo_cargo ?? "",
+        departamento: node?.departamento ?? "",
+        nivel_hierarquico: node?.nivel_hierarquico ?? 1,
+        vinculo_id: node?.vinculo_id ?? null,
+      });
 
-        // Check if a position already exists for this person
-        const { data: existing } = await supabase
-          .from("posicoes")
-          .select("id")
-          .eq("vinculo_id", realId)
-          .limit(1);
-
-        if (existing && existing.length > 0) {
-          // Update existing position's parent
-          const { error } = await supabase
-            .from("posicoes")
-            .update({ id_pai: resolvedParentId })
-            .eq("id", existing[0].id);
-          if (error) throw error;
-        } else {
-          const insert: PosicaoInsert = {
-            titulo_cargo: node?.titulo_cargo || "Sem cargo",
-            departamento: node?.departamento || "Geral",
-            nivel_hierarquico: node?.nivel_hierarquico || 1,
-            status: "ocupado",
-            id_pai: resolvedParentId,
-            vinculo_id: realId,
-          };
-          const { error } = await supabase.from("posicoes").insert(insert);
-          if (error) throw error;
-        }
-      } else {
-        const { error } = await supabase
-          .from("posicoes")
-          .update({ id_pai: resolvedParentId })
-          .eq("id", id);
-        if (error) throw error;
-      }
+      const { error } = await supabase
+        .from("posicoes")
+        .update({ id_pai: resolvedParentId })
+        .eq("id", realId);
+      if (error) throw error;
     },
+
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["organograma"] });
       toast.success("Posição movida com sucesso");
