@@ -1,8 +1,9 @@
 import { useState, Fragment } from "react";
-import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { Selo, type EstadoSelo } from "@/components/ui/selo";
+import { CelulaDinheiro } from "@/components/ui/celula-dinheiro";
 import { ChevronDown, ChevronRight, AlertTriangle, Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -30,25 +31,20 @@ function fmtDataHora(iso: string | null) {
   });
 }
 
-export function faseBadge(fase: string | null): { label: string; cls: string } {
+/** Sistema Visual Fetely §4 — uma unica coluna de estado, sempre em Selo. */
+export function faseSelo(fase: string | null): { label: string; estado: EstadoSelo } {
   switch (fase) {
     case "entregue":
-      return { label: "Entregue", cls: "border-success/40 text-success bg-success/5" };
+      return { label: "Entregue", estado: "success" };
     case "em_transito":
-      return { label: "Em trânsito", cls: "border-info/40 text-info bg-info/5" };
+      return { label: "Em trânsito", estado: "info" };
     case "atencao":
-      return { label: "Atenção", cls: "border-destructive/40 text-destructive bg-destructive/5" };
+      return { label: "Atenção", estado: "destructive" };
     case "sem_conhecimento":
-      return { label: "Sem conhecimento", cls: "border-warning/40 text-warning bg-warning/5" };
+      return { label: "Sem conhecimento", estado: "warning" };
     default:
-      return { label: fase ?? "—", cls: "border-border text-muted-foreground" };
+      return { label: fase ?? "—", estado: "muted" };
   }
-}
-
-function pctClass(pct: number) {
-  if (pct >= 15) return "bg-destructive/10 text-destructive";
-  if (pct >= 8) return "bg-warning/10 text-warning";
-  return "bg-success/10 text-success";
 }
 
 function chaveLinha(e: EntregaCustoRow, i: number) {
@@ -67,19 +63,18 @@ export function TabelaEntregas({ entregas }: { entregas: EntregaCustoRow[] }) {
   }
 
   return (
-    <div className="rounded-md border overflow-x-auto">
+    <div className="overflow-x-auto rounded-md border">
       <Table>
         <TableHeader>
           <TableRow className="text-xs">
             <TableHead className="w-8"></TableHead>
-            <TableHead>Status</TableHead>
             <TableHead>Cliente</TableHead>
             <TableHead>Destino</TableHead>
             <TableHead>NF</TableHead>
             <TableHead>CT-e</TableHead>
-            <TableHead>CIF/FOB</TableHead>
             <TableHead>Prazo</TableHead>
-            <TableHead>Ocorrência</TableHead>
+            <TableHead>Situação</TableHead>
+            <TableHead>Última ocorrência</TableHead>
             <TableHead className="text-right">Frete R$</TableHead>
             <TableHead className="text-right">% NF</TableHead>
           </TableRow>
@@ -88,7 +83,7 @@ export function TabelaEntregas({ entregas }: { entregas: EntregaCustoRow[] }) {
           {entregas.map((e, i) => {
             const id = chaveLinha(e, i);
             const aberto = expandido.has(id);
-            const st = faseBadge(e.fase_entrega ?? null);
+            const st = faseSelo(e.fase_entrega ?? null);
             const atencao = e.fase_entrega === "atencao";
             const fob = (e.tipo_frete ?? "").toUpperCase() === "FOB";
             const pct = e.pct_frete_nf == null ? null : Number(e.pct_frete_nf);
@@ -97,7 +92,7 @@ export function TabelaEntregas({ entregas }: { entregas: EntregaCustoRow[] }) {
               <Fragment key={id}>
                 <TableRow
                   className={cn(
-                    "text-xs cursor-pointer",
+                    "cursor-pointer text-xs",
                     atencao && "bg-destructive/5 hover:bg-destructive/10"
                   )}
                   onClick={() => toggle(id)}
@@ -105,67 +100,51 @@ export function TabelaEntregas({ entregas }: { entregas: EntregaCustoRow[] }) {
                   <TableCell>
                     {aberto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                   </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={cn("text-[10px] border inline-flex items-center gap-1", st.cls)}
-                    >
-                      {atencao && <AlertTriangle className="h-3 w-3" />}
-                      {st.label}
-                    </Badge>
+                  <TableCell className="max-w-[240px]">
+                    <span className="block truncate">{e.destinatario ?? "—"}</span>
+                    {e.tipo_frete && (
+                      <span
+                        className="text-[11px] text-muted-foreground"
+                        title={fob ? "FOB — o pagante do frete deveria ser o destinatário" : undefined}
+                      >
+                        {e.tipo_frete}
+                      </span>
+                    )}
                   </TableCell>
-                  <TableCell className="max-w-[220px] truncate">{e.destinatario ?? "—"}</TableCell>
                   <TableCell>
                     {e.cidade_destino ?? "—"}{e.uf_destino ? ` / ${e.uf_destino}` : ""}
                   </TableCell>
                   <TableCell className="font-mono">{e.nf_numero ?? "—"}</TableCell>
                   <TableCell className="font-mono">{e.cte_numero ?? "—"}</TableCell>
-                  <TableCell>
-                    {e.tipo_frete ? (
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "text-[10px] border",
-                          fob
-                            ? "border-warning/50 text-warning bg-warning/5"
-                            : "border-border text-muted-foreground"
-                        )}
-                        title={fob ? "FOB — o pagante do frete deveria ser o destinatário" : undefined}
-                      >
-                        {e.tipo_frete}
-                      </Badge>
-                    ) : (
-                      "—"
-                    )}
-                  </TableCell>
                   <TableCell>{fmtData(e.previsao_entrega)}</TableCell>
-                  <TableCell className={cn("max-w-[240px] truncate", atencao && "text-destructive")}>
+                  <TableCell>
+                    <Selo estado={st.estado} className="gap-1">
+                      {atencao && <AlertTriangle className="h-3 w-3" aria-hidden="true" />}
+                      {st.label}
+                    </Selo>
+                  </TableCell>
+                  <TableCell className={cn("max-w-[240px] truncate", atencao ? "text-destructive" : "text-muted-foreground")}>
                     {e.ocorrencia_codigo ? `${e.ocorrencia_codigo} · ` : ""}
                     {e.ocorrencia_ativa ?? "—"}
                   </TableCell>
+                  <CelulaDinheiro
+                    valor={e.frete_total}
+                    indisponivel={!!e.custo_pendente}
+                    nota={e.custo_pendente ? "custo pendente" : undefined}
+                  />
                   <TableCell className="text-right tabular-nums">
-                    {e.custo_pendente ? (
-                      <div className="flex flex-col items-end">
-                        <span>—</span>
-                        <span className="text-[10px] text-muted-foreground">custo pendente</span>
-                      </div>
-                    ) : (
-                      fmt(e.frete_total)
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {pct != null && !e.custo_pendente && (
-                      <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium", pctClass(pct))}>
+                    {pct != null && !e.custo_pendente ? (
+                      <span className={cn("text-[11px]", pct >= 15 ? "text-destructive" : "text-muted-foreground")}>
                         {pct.toFixed(1)}%
                       </span>
-                    )}
+                    ) : null}
                   </TableCell>
                 </TableRow>
 
                 {atencao && e.motivo_atencao && (
                   <TableRow className="bg-destructive/5 hover:bg-destructive/5">
                     <TableCell />
-                    <TableCell colSpan={10} className="pt-0 text-xs text-destructive">
+                    <TableCell colSpan={9} className="pt-0 text-xs text-destructive">
                       <span className="font-medium">Motivo:</span> {e.motivo_atencao}
                     </TableCell>
                   </TableRow>
@@ -173,8 +152,8 @@ export function TabelaEntregas({ entregas }: { entregas: EntregaCustoRow[] }) {
 
                 {aberto && (
                   <TableRow className="bg-muted/30 hover:bg-muted/30">
-                    <TableCell colSpan={11}>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs p-2">
+                    <TableCell colSpan={10}>
+                      <div className="grid grid-cols-2 gap-3 p-2 text-xs md:grid-cols-4">
                         <div><span className="text-muted-foreground">Frete peso:</span> {fmt(e.frete_peso)}</div>
                         <div><span className="text-muted-foreground">GRIS:</span> {fmt(e.gris)}</div>
                         <div><span className="text-muted-foreground">Ad Valorem:</span> {fmt(e.ad_valorem)}</div>
@@ -189,9 +168,9 @@ export function TabelaEntregas({ entregas }: { entregas: EntregaCustoRow[] }) {
                         <div><span className="text-muted-foreground">Data ocorrência:</span> {fmtData(e.ocorrencia_data)}</div>
                       </div>
 
-                      <div className="border-t mt-2 pt-3 px-2 pb-2 space-y-3">
+                      <div className="mt-2 space-y-3 border-t px-2 pb-2 pt-3">
                         <div className="text-xs font-medium">Rastreio</div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                        <div className="grid grid-cols-2 gap-3 text-xs md:grid-cols-4">
                           <div className="md:col-span-2">
                             <span className="text-muted-foreground">Último evento:</span>{" "}
                             {e.ultimo_evento_descricao ?? "—"}
@@ -231,7 +210,7 @@ export function TabelaEntregas({ entregas }: { entregas: EntregaCustoRow[] }) {
                             Nenhum evento de rastreio registrado.
                           </div>
                         ) : (
-                          <ol className="space-y-2 border-l pl-4 ml-1">
+                          <ol className="ml-1 space-y-2 border-l pl-4">
                             {eventos.map((ev, idx) => (
                               <li key={idx} className="relative text-xs">
                                 <Circle
