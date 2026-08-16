@@ -1,110 +1,106 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { PosicaoRaw, PosicaoNode, ColaboradorVinculado, ContratoPJVinculado } from "@/types/organograma";
-import { nomePessoaPJ } from "@/lib/parceiros/nome";
+import type { PosicaoRaw, PosicaoNode, ColaboradorVinculado } from "@/types/organograma";
 
-function buildTree(posicoes: PosicaoRaw[], colaboradores: ColaboradorVinculado[], contratos: ContratoPJVinculado[]): PosicaoNode[] {
-  const colabMap = new Map(colaboradores.map(c => [c.id, c]));
-  const contratoMap = new Map(contratos.map(c => [c.id, c]));
+interface VinculoRaw {
+  id: string;
+  tipo_vinculo: "CLT" | "PJ";
+  status: string;
+  data_inicio: string;
+  valor_base: number;
+  email_corporativo: string | null;
+  telefone_corporativo: string | null;
+  departamento_id: string | null;
+  pessoa: {
+    id: string;
+    nome_completo: string;
+    foto_url: string | null;
+    telefone: string | null;
+    email_pessoal: string | null;
+  } | null;
+  cargo: { nome: string | null } | null;
+  departamento: { nome: string | null } | null;
+}
 
-  // Track which colaboradores/contratos are already linked to a position
-  const linkedColabIds = new Set<string>();
-  const linkedContratoIds = new Set<string>();
+function mapVinculoToColaborador(v: VinculoRaw): ColaboradorVinculado {
+  return {
+    id: v.id,
+    nome_completo: v.pessoa?.nome_completo ?? "",
+    foto_url: v.pessoa?.foto_url ?? null,
+    email_corporativo: v.email_corporativo,
+    telefone: v.telefone_corporativo ?? v.pessoa?.telefone ?? null,
+    data_admissao: v.data_inicio,
+    salario_base: v.valor_base,
+    status: v.status,
+    tipo_contrato: v.tipo_vinculo,
+    cargo: v.cargo?.nome ?? "",
+    departamento: v.departamento?.nome ?? "",
+  };
+}
+
+function buildTree(posicoes: PosicaoRaw[], vinculos: ColaboradorVinculado[]): PosicaoNode[] {
+  const vinculoMap = new Map(vinculos.map(v => [v.id, v]));
+
+  // Track which vinculos are already linked to a position
+  const linkedVinculoIds = new Set<string>();
 
   const nodeMap = new Map<string, PosicaoNode>();
   const roots: PosicaoNode[] = [];
 
   // Create nodes from positions
   for (const p of posicoes) {
-    const colab = p.colaborador_id ? colabMap.get(p.colaborador_id) : null;
-    const contrato = p.contrato_pj_id ? contratoMap.get(p.contrato_pj_id) : null;
+    const vinculo = p.vinculo_id ? vinculoMap.get(p.vinculo_id) : null;
 
-    if (colab && p.colaborador_id) linkedColabIds.add(p.colaborador_id);
-    if (contrato && p.contrato_pj_id) linkedContratoIds.add(p.contrato_pj_id);
+    if (vinculo && p.vinculo_id) linkedVinculoIds.add(p.vinculo_id);
 
     const node: PosicaoNode = {
       ...p,
-      colaborador: colab || null,
-      contrato_pj: contrato || null,
-      children: [],
-      subordinados_diretos: 0,
-      subordinados_totais: 0,
-      nome_display: colab ? colab.nome_completo : contrato ? nomePessoaPJ(contrato.contato_nome, contrato.razao_social, "") : "",
-      foto_url: colab?.foto_url || contrato?.foto_url || null,
-      vinculo: colab ? "CLT" : contrato ? "PJ" : null,
-      status_pessoal: colab ? colab.status : contrato ? contrato.status : null,
-    };
-    nodeMap.set(p.id, node);
-  }
-
-  // Create virtual nodes for unlinked colaboradores CLT (active)
-  for (const c of colaboradores) {
-    if (linkedColabIds.has(c.id)) continue;
-    if (c.status === "desligado") continue;
-
-    const virtualId = `virtual-clt-${c.id}`;
-    const node: PosicaoNode = {
-      id: virtualId,
-      titulo_cargo: c.cargo,
-      nivel_hierarquico: 1,
-      departamento: c.departamento,
-      area: null,
-      filial: null,
-      status: "ocupado",
-      id_pai: null,
-      colaborador_id: c.id,
-      contrato_pj_id: null,
-      salario_previsto: c.salario_base,
-      centro_custo: null,
-      created_at: "",
-      updated_at: "",
-      depth: 0,
-      path: [virtualId],
-      colaborador: c,
+      colaborador: vinculo || null,
       contrato_pj: null,
       children: [],
       subordinados_diretos: 0,
       subordinados_totais: 0,
-      nome_display: c.nome_completo,
-      foto_url: c.foto_url,
-      vinculo: "CLT",
-      status_pessoal: c.status,
+      nome_display: vinculo ? vinculo.nome_completo : "",
+      foto_url: vinculo?.foto_url ?? null,
+      vinculo: vinculo ? vinculo.tipo_contrato : null,
+      status_pessoal: vinculo ? vinculo.status : null,
     };
-    nodeMap.set(virtualId, node);
+    nodeMap.set(p.id, node);
   }
 
-  // Create virtual nodes for unlinked contratos PJ (active)
-  for (const cp of contratos) {
-    if (linkedContratoIds.has(cp.id)) continue;
-    if (cp.status === "encerrado" || cp.status === "cancelado") continue;
+  // Create virtual nodes for unlinked vinculos (active)
+  for (const v of vinculos) {
+    if (linkedVinculoIds.has(v.id)) continue;
+    if (v.status !== "ativo") continue;
 
-    const virtualId = `virtual-pj-${cp.id}`;
+    const virtualId = `virtual-${v.id}`;
     const node: PosicaoNode = {
       id: virtualId,
-      titulo_cargo: cp.razao_social ? `PJ - ${cp.contato_nome}` : cp.contato_nome,
+      titulo_cargo: v.cargo,
       nivel_hierarquico: 1,
-      departamento: "",
+      departamento: v.departamento,
       area: null,
       filial: null,
       status: "ocupado",
       id_pai: null,
       colaborador_id: null,
-      contrato_pj_id: cp.id,
-      salario_previsto: cp.valor_mensal,
+      contrato_pj_id: null,
+      vinculo_id: v.id,
+      salario_previsto: v.salario_base,
       centro_custo: null,
       created_at: "",
       updated_at: "",
       depth: 0,
       path: [virtualId],
-      colaborador: null,
-      contrato_pj: cp,
+      colaborador: v,
+      contrato_pj: null,
       children: [],
       subordinados_diretos: 0,
       subordinados_totais: 0,
-      nome_display: nomePessoaPJ(cp.contato_nome, cp.razao_social, ""),
-      foto_url: cp.foto_url || null,
-      vinculo: "PJ",
-      status_pessoal: cp.status,
+      nome_display: v.nome_completo,
+      foto_url: v.foto_url,
+      vinculo: v.tipo_contrato,
+      status_pessoal: v.status,
     };
     nodeMap.set(virtualId, node);
   }
@@ -147,18 +143,28 @@ export function useOrganograma() {
   return useQuery({
     queryKey: ["organograma"],
     queryFn: async () => {
-      const [posRes, colabRes, contrRes] = await Promise.all([
+      const [posRes, vincRes] = await Promise.all([
         supabase.rpc("get_organograma_tree"),
-        supabase.from("colaboradores_clt").select("id, nome_completo, foto_url, email_corporativo, telefone, data_admissao, salario_base, status, tipo_contrato, cargo, departamento"),
-        supabase.from("contratos_pj").select("id, contato_nome, nome_fantasia, razao_social, contato_email, contato_telefone, data_inicio, valor_mensal, status, foto_url"),
+        supabase
+          .from("vinculos")
+          .select(`
+            id, tipo_vinculo, status, data_inicio, valor_base,
+            email_corporativo, telefone_corporativo, departamento_id,
+            pessoa:pessoas!inner ( id, nome_completo, foto_url, telefone, email_pessoal ),
+            cargo:cargos ( nome ),
+            departamento:departamentos ( nome )
+          `)
+          .eq("status", "ativo"),
       ]);
 
       if (posRes.error) throw posRes.error;
+      if (vincRes.error) throw vincRes.error;
+
+      const vinculos = ((vincRes.data || []) as unknown as VinculoRaw[]).map(mapVinculoToColaborador);
 
       const tree = buildTree(
         (posRes.data || []) as unknown as PosicaoRaw[],
-        (colabRes.data || []) as ColaboradorVinculado[],
-        (contrRes.data || []) as ContratoPJVinculado[],
+        vinculos,
       );
 
       return { tree, flat: flattenTree(tree) };
