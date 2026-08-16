@@ -1013,7 +1013,7 @@ function RemessasSafraTab() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-red-700 hover:text-red-800"
+                            className="text-destructive hover:text-destructive/80"
                             onClick={() =>
                               setCancelarTarget({ id: r.id, arquivo_nome: r.arquivo_nome })
                             }
