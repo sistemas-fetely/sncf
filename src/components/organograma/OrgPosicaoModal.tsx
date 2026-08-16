@@ -35,8 +35,8 @@ const nivelLabels: Record<number, string> = {
 export function OrgPosicaoModal({ open, onClose, editNode, allNodes }: Props) {
   const { hasAnyRole } = useAuth();
   const canSeeSalary = hasAnyRole(["super_admin", "gestor_rh", "financeiro"]);
+  const qc = useQueryClient();
   const createMutation = useCreatePosicao();
-  const updateMutation = useUpdatePosicao();
   const deleteMutation = useDeletePosicao();
   const { data: cargosRaw, isLoading: loadingCargos } = useCargos();
   const cargosParam = (cargosRaw || []).map((c) => ({ id: c.id, label: c.nome }));
