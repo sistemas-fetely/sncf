@@ -623,17 +623,19 @@ export default function PedidoMercadoriaDetalhe() {
                   <CardTitle className="text-base flex items-center gap-2">
                     <FileText className="h-4 w-4" /> Notas fiscais
                   </CardTitle>
-                  <Button
-                    size="sm"
-                    style={{ backgroundColor: VERDE }}
-                    className="text-white hover:opacity-90"
-                    onClick={() => setNfDialog(true)}
-                  >
-                    Lançar NF
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => setVincNfDialog(true)}>
-                    Vincular NF existente
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      style={{ backgroundColor: VERDE }}
+                      className="text-white hover:opacity-90"
+                      onClick={() => setNfDialog(true)}
+                    >
+                      Lançar NF
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setVincNfDialog(true)}>
+                      Vincular NF existente
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {nfsQ.isLoading ? (
