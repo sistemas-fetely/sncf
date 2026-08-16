@@ -20,7 +20,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ArrowLeft, Loader2, RefreshCcw, AlertTriangle, Copy, Check, Mail, Plus, Trash2, Lock, Info, ChevronDown } from "lucide-react";
+import { ArrowLeft, Loader2, RefreshCcw, AlertTriangle, Copy, Check, Mail, Plus, Trash2, Lock, Info, ChevronDown, FileText } from "lucide-react";
 
 import { usePropostaCobranca } from "@/hooks/credito/usePropostaCobranca";
 import { useMaterializarCobranca } from "@/hooks/credito/useMaterializarCobranca";
@@ -328,8 +328,8 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
       />
 
       {/* Faixa de estado: já materializei ou não? */}
-      <div className="flex items-center gap-2 rounded-lg border border-success/40 bg-success/10 px-4 py-3 text-sm text-success">
-        <Check className="h-4 w-4 shrink-0" />
+      <div className="flex items-center gap-2 rounded-lg border border-info/40 bg-info/10 px-4 py-3 text-sm text-info">
+        <FileText className="h-4 w-4 shrink-0" />
         <span className="font-medium">
           Plano materializado · {titulosQ.data?.length ?? 0} parcela
           {(titulosQ.data?.length ?? 0) === 1 ? "" : "s"} · aguardando pagamento
