@@ -177,4 +177,21 @@ export default tseslint.config(
       "no-restricted-syntax": "warn",
     },
   },
+  {
+    // Areas ja convertidas ao Sistema Visual — aqui a regra e ERRO, nao aviso.
+    files: [
+      "src/components/layout/**/*.tsx",
+      "src/components/logistica/**/*.tsx",
+      "src/components/organograma/**/*.tsx",
+      "src/pages/logistica/**/*.tsx",
+      "src/pages/vendas/GestaoPedidos.tsx",
+      "src/pages/Organograma.tsx",
+      "src/components/ui/selo.tsx",
+      "src/components/ui/tabela-fetely.tsx",
+      "src/components/ui/celula-dinheiro.tsx",
+    ],
+    rules: {
+      "no-restricted-syntax": "error",
+    },
+  },
 );
