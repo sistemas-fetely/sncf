@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCreatePosicao, useUpdatePosicao, useDeletePosicao, materializarSeVirtual } from "@/hooks/useOrgMutations";
+import { useCreatePosicao, useDeletePosicao, materializarSeVirtual } from "@/hooks/useOrgMutations";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -173,10 +173,10 @@ export function OrgPosicaoModal({ open, onClose, editNode, allNodes }: Props) {
           <div className="grid gap-1.5">
             <Label>Cargo *</Label>
             {loadingCargos ? <Loader2 className="h-4 w-4 animate-spin mt-2" /> : (
-              <Select value={form.titulo_cargo} onValueChange={(v) => setForm({ ...form, titulo_cargo: v })}>
+              <Select value={cargoValue} onValueChange={(v) => setForm({ ...form, titulo_cargo: v })}>
                 <SelectTrigger><SelectValue placeholder="Selecione o cargo" /></SelectTrigger>
                 <SelectContent>
-                  {(cargosParam || []).map((c) => (
+                  {cargoOpcoes.map((c) => (
                     <SelectItem key={c.id} value={c.label}>{c.label}</SelectItem>
                   ))}
                 </SelectContent>
@@ -285,7 +285,7 @@ export function OrgPosicaoModal({ open, onClose, editNode, allNodes }: Props) {
                   <Button
                     variant="destructive"
                     size="sm"
-                    disabled={editNode.subordinados_diretos > 0 || deleteMutation.isPending}
+                    disabled={ehVirtual || editNode.subordinados_diretos > 0 || deleteMutation.isPending}
                   >
                     <Trash2 className="h-3.5 w-3.5 mr-1" />
                     Excluir
