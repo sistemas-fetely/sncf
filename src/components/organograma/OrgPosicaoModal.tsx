@@ -81,11 +81,30 @@ export function OrgPosicaoModal({ open, onClose, editNode, allNodes }: Props) {
 
   const parentOptions = allNodes.filter(n => !editNode || n.id !== editNode.id);
 
-  const handleSubmit = () => {
+  const ehVirtual = !!editNode?.id.startsWith("virtual-");
+
+  // O Select de cargo casa por texto exato contra cargos.nome. Em nó virtual o
+  // titulo_cargo vem do cargo do vínculo; se o texto não bater (acento/caixa),
+  // resolvemos aqui para o nome canônico e, em último caso, oferecemos o texto
+  // original como opção para o campo obrigatório não travar o formulário.
+  const normalizar = (s: string) =>
+    s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+  const cargoCasado = form.titulo_cargo
+    ? cargosParam.find((c) => normalizar(c.label) === normalizar(form.titulo_cargo))
+    : undefined;
+  const cargoValue = cargoCasado ? cargoCasado.label : form.titulo_cargo;
+  const cargoOpcoes =
+    form.titulo_cargo && !cargoCasado
+      ? [...cargosParam, { id: `__atual__`, label: form.titulo_cargo }]
+      : cargosParam;
+
+  const [salvando, setSalvando] = useState(false);
+
+  const handleSubmit = async () => {
     if (!form.titulo_cargo || !form.departamento) return;
 
     const payload = {
-      titulo_cargo: form.titulo_cargo,
+      titulo_cargo: cargoValue,
       nivel_hierarquico: form.nivel_hierarquico,
       departamento: form.departamento,
       area: form.area || null,
@@ -96,20 +115,49 @@ export function OrgPosicaoModal({ open, onClose, editNode, allNodes }: Props) {
       centro_custo: form.centro_custo || null,
     };
 
-    if (editNode) {
-      updateMutation.mutate({ id: editNode.id, ...payload }, { onSuccess: onClose });
-    } else {
+    if (!editNode) {
       createMutation.mutate(payload, { onSuccess: onClose });
+      return;
+    }
+
+    setSalvando(true);
+    try {
+      // 1. Resolve o pai: nó virtual escolhido como gestor precisa existir de fato.
+      let idPai = payload.id_pai;
+      if (idPai && idPai.startsWith("virtual-")) {
+        const paiNode = allNodes.find((n) => n.id === idPai);
+        if (!paiNode) throw new Error("Posição superior não encontrada.");
+        idPai = await materializarSeVirtual(paiNode);
+      }
+
+      // 2. Nó virtual: materializa e atualiza o id real com o formulário.
+      const idReal = await materializarSeVirtual(editNode);
+
+      const { error } = await supabase
+        .from("posicoes")
+        .update({ ...payload, id_pai: idPai })
+        .eq("id", idReal);
+      if (error) throw error;
+
+      qc.invalidateQueries({ queryKey: ["organograma"] });
+      toast.success("Posição atualizada com sucesso");
+      onClose();
+    } catch (e) {
+      toast.error(`Erro ao atualizar: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setSalvando(false);
     }
   };
 
   const handleDelete = () => {
     if (!editNode) return;
+    if (ehVirtual) return;
     if (editNode.subordinados_diretos > 0) return;
     deleteMutation.mutate(editNode.id, { onSuccess: onClose });
   };
 
-  const isPending = createMutation.isPending || updateMutation.isPending;
+  const isPending = createMutation.isPending || salvando;
+
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
