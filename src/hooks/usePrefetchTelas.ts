@@ -20,8 +20,6 @@ export function usePrefetchTelas() {
     const onda1 = setTimeout(() => {
       // Portal + transversais
       void import("@/pages/PortalSNCF");
-      void import("@/pages/MinhasTarefas");
-      void import("@/pages/TarefasDoTime");
       void import("@/pages/FalaFetely");
 
       // Financeiro/Administrativo (alto volume)
