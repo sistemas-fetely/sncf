@@ -299,15 +299,18 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
 
   const fasePagamento: 1 | 2 | 3 = useMemo(() => {
     const ts = titulosQ.data ?? [];
+    const provisoes = provisoesQ.data ?? [];
     const jaEnviado = ts.some((t: any) => t.email_cobranca_enviado_em || t.boleto_enviado_em) || !!emailLogQ.data;
     if (jaEnviado) return 3;
     if (ts.some((t: any) => t.link_pagamento || t.boleto_status === "registrado")) return 2;
+    if (provisoes.some((p: any) => p.link_pagamento || p.pix_txid)) return 2;
     return 1;
-  }, [titulosQ.data, emailLogQ.data]);
+  }, [titulosQ.data, provisoesQ.data, emailLogQ.data]);
 
   const handleSalvar = async () => {
     setSalvando(true);
     try {
+      let atualizados = 0;
       for (const t of titulosQ.data ?? []) {
         const novaData = datas[t.id] ?? "";
         const atualData = t.data_vencimento_atual ?? "";
@@ -319,9 +322,14 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
             .update(changed)
             .eq("id", t.id);
           if (error) throw error;
+          atualizados++;
         }
       }
-      toast({ title: "Salvo!", description: "Vencimentos atualizados com sucesso." });
+      if (atualizados > 0) {
+        toast({ title: "Salvo!", description: "Vencimentos atualizados com sucesso." });
+      } else {
+        toast({ title: "Nenhuma alteração", description: "Não havia vencimento alterado para salvar." });
+      }
     } catch (err) {
       toast({ title: "Erro ao salvar", description: (err as Error).message, variant: "destructive" });
     } finally {
@@ -346,8 +354,8 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
       <div className="flex items-center gap-2 rounded-lg border border-info/40 bg-info/10 px-4 py-3 text-sm text-info">
         <FileText className="h-4 w-4 shrink-0" />
         <span className="font-medium">
-          Plano materializado · {titulosQ.data?.length ?? 0} parcela
-          {(titulosQ.data?.length ?? 0) === 1 ? "" : "s"} · aguardando pagamento
+          Plano materializado · {provisoesQ.data?.length ?? 0} parcela
+          {(provisoesQ.data?.length ?? 0) === 1 ? "" : "s"} · aguardando pagamento
         </span>
       </div>
 
@@ -425,15 +433,17 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
 
           <div className="flex justify-between mt-6">
             <SmartBackButton fallback="/recebimento/cobranca" fallbackLabel="Voltar" />
-            <div className="flex gap-2">
-              <Button
-                onClick={handleSalvar}
-                disabled={salvando || titulosQ.isLoading || titulosQ.data?.length === 0}
-              >
-                {salvando && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-                Salvar vencimentos
-              </Button>
-            </div>
+            {titulosQ.data && titulosQ.data.length > 0 && (
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleSalvar}
+                  disabled={salvando || titulosQ.isLoading}
+                >
+                  {salvando && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                  Salvar vencimentos
+                </Button>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
