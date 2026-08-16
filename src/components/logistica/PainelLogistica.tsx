@@ -379,7 +379,7 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
       <section className="space-y-3">
         <div className="flex items-center gap-2">
           <DollarSign className="h-4 w-4 text-primary" />
-          <h2 className="text-[15px] font-medium">P<h2 className="text-base font-medium">P&L da LogísticaL da Logística</h2>
+          <h2 className="text-[15px] font-medium">P&L da Logística</h2>
           <span className="text-xs text-muted-foreground">Receita cobrada × custo real · escopo: {canalLabel}</span>
         </div>
 
