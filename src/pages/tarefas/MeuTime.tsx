@@ -113,35 +113,9 @@ export default function MeuTime() {
       <header className="space-y-1">
         <h1 className="text-2xl font-medium tracking-tight">Meu time</h1>
         <p className="text-sm text-muted-foreground">
-          O que está aberto, o que atrasou e o que saiu nos últimos 7 dias.
+          Tarefas de quem reporta a você. Para a empresa toda, veja Carga.
         </p>
       </header>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <Select value={pessoaFiltro} onValueChange={setPessoaFiltro}>
-          <SelectTrigger className="w-56">
-            <SelectValue placeholder="Pessoa" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todas">Todas as pessoas</SelectItem>
-            {pessoasDoFiltro.map((p) => (
-              <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={prioridadeFiltro} onValueChange={setPrioridadeFiltro}>
-          <SelectTrigger className="w-44">
-            <SelectValue placeholder="Prioridade" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todas">Todas as prioridades</SelectItem>
-            {PRIORIDADES.map((p) => (
-              <SelectItem key={p.valor} value={p.valor}>{p.rotulo}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
 
       {erroTime && (
         <Card>
@@ -151,7 +125,47 @@ export default function MeuTime() {
         </Card>
       )}
 
-      <Tabs defaultValue="pessoa">
+      {!erroTime && !carregandoTime && (userIds ?? []).length === 0 && (
+        <Card>
+          <CardContent className="p-4 space-y-2">
+            <p className="text-sm font-medium">Você não tem liderados diretos</p>
+            <p className="text-sm text-muted-foreground">
+              Esta tela mostra as tarefas de quem reporta a você no organograma.
+              Para ver as tarefas de toda a empresa, use a tela de Carga.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {!erroTime && (userIds ?? []).length > 0 && (
+        <>
+          <div className="flex flex-wrap items-center gap-3">
+            <Select value={pessoaFiltro} onValueChange={setPessoaFiltro}>
+              <SelectTrigger className="w-56">
+                <SelectValue placeholder="Pessoa" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas as pessoas</SelectItem>
+                {pessoasDoFiltro.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={prioridadeFiltro} onValueChange={setPrioridadeFiltro}>
+              <SelectTrigger className="w-44">
+                <SelectValue placeholder="Prioridade" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas as prioridades</SelectItem>
+                {PRIORIDADES.map((p) => (
+                  <SelectItem key={p.valor} value={p.valor}>{p.rotulo}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Tabs defaultValue="pessoa">
         <TabsList>
           <TabsTrigger value="pessoa">Por pessoa</TabsTrigger>
           <TabsTrigger value="atrasadas">
