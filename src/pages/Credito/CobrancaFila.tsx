@@ -19,7 +19,6 @@ import { useTitulosCobranca } from "@/hooks/credito/useTitulosCobranca";
 import { useReguaFilaHoje } from "@/hooks/credito/useReguaFila";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { PageShell } from "@/components/layout/PageShell";
-import { PageShell } from "@/components/layout/PageShell";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -1241,7 +1240,6 @@ export default function CobrancaFila() {
 
   return (
     <PageShell>
-      <PageTitle titulo="Cobrança" estado="fila de títulos a receber" />
       <div className="space-y-6">
       <CasaPageHeader
         breadcrumb={[
