@@ -122,7 +122,7 @@ export default function Organograma() {
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-4">
+    <PageShell>
       <OrgToolbar
         viewMode={viewMode}
         onViewModeChange={setViewMode}
@@ -170,6 +170,6 @@ export default function Organograma() {
         newParent={moveTarget}
         allNodes={data?.flat || []}
       />
-    </div>
+    </PageShell>
   );
 }
