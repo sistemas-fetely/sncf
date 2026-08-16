@@ -349,11 +349,11 @@ function ImportarRetornoModal({
               <div className="space-y-2 max-h-[300px] overflow-auto">
                 <p className="text-sm font-medium">Títulos rejeitados:</p>
                 {resultado.detalhes_rejeicao.map((r, i) => (
-                  <div key={i} className="p-3 rounded-md border bg-red-50/50">
+                  <div key={i} className="p-3 rounded-md border bg-destructive/5">
                     <p className="text-sm font-medium">
                       {r.parceiro_nome} · {r.numero_titulo}
                     </p>
-                    <p className="text-xs text-red-700">
+                    <p className="text-xs text-destructive">
                       Código {r.codigo_rejeicao}: {r.motivo}
                     </p>
                   </div>
