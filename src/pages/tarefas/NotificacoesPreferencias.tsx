@@ -1,3 +1,5 @@
+import { PageTitle } from "@/components/layout/PageTitle";
+import { PageShell } from "@/components/layout/PageShell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,14 +23,16 @@ export default function NotificacoesPreferencias() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-5 p-4 sm:p-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-medium tracking-tight">Notificações</h1>
-        <p className="text-sm text-muted-foreground">
-          Escolha o que aparece no sino e o que entra no <strong>resumo diário por e-mail</strong> —
-          nunca um e-mail por evento. Você nunca é notificado da sua própria ação.
-        </p>
-      </header>
+    <PageShell variant="leitura">
+      <PageTitle
+        titulo="Notificações"
+        estado={
+          <>
+            Escolha o que aparece no sino e o que entra no <strong>resumo diário por e-mail</strong> —
+            nunca um e-mail por evento. Você nunca é notificado da sua própria ação.
+          </>
+        }
+      />
 
       {error ? (
         <p className="text-sm text-destructive">
@@ -69,6 +73,6 @@ export default function NotificacoesPreferencias() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </PageShell>
   );
 }

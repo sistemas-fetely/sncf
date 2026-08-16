@@ -15,8 +15,6 @@ import {
   SidebarMenuItem, useSidebar,
 } from "@/components/ui/sidebar";
 
-const TAREFAS_COLOR = "#2563EB";
-
 interface ItemTarefas {
   title: string;
   url?: string;
@@ -45,8 +43,7 @@ export function TarefasSidebar() {
       <SidebarHeader className="p-5">
         <div className="flex items-center gap-3">
           <div
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl shadow-sm"
-            style={{ backgroundColor: TAREFAS_COLOR }}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gold shadow-sm"
           >
             <ListChecks className="h-5 w-5 text-primary-foreground" />
           </div>
@@ -72,13 +69,11 @@ export function TarefasSidebar() {
                         to={item.url!}
                         className={cn(
                           "flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-sidebar-foreground/80 transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-                          active && "bg-sidebar-accent font-medium border-l-[3px] shadow-sm"
+                          active && "bg-sidebar-accent font-medium border-l-[3px] border-l-gold text-gold shadow-sm"
                         )}
-                        style={active ? { borderLeftColor: TAREFAS_COLOR, color: TAREFAS_COLOR } : undefined}
                       >
                         <item.icon
-                          className="h-[18px] w-[18px] shrink-0"
-                          style={active ? { color: TAREFAS_COLOR } : undefined}
+                          className={cn("h-[18px] w-[18px] shrink-0", active && "text-gold")}
                         />
                         {!collapsed && <span className="flex-1">{item.title}</span>}
                       </NavLink>

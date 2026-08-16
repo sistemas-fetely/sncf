@@ -1,3 +1,5 @@
+import { PageTitle } from "@/components/layout/PageTitle";
+import { PageShell } from "@/components/layout/PageShell";
 import { useState } from "react";
 import { Pencil, Play, Plus, Repeat, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +9,6 @@ import { Switch } from "@/components/ui/switch";
 import { useNomePessoa } from "@/components/tarefas/detalhe/comuns";
 import { RecorrenciaDialog } from "@/components/tarefas/recorrencias/RecorrenciaDialog";
 import { dataBR, textoRecorrencia } from "@/lib/tarefas/recorrenciaTexto";
-import { PageShell } from "@/components/layout/PageShell";
 import {
   useAlternarRecorrencia, useExcluirRecorrencia, useGerarRecorrentesAgora, useRecorrencias,
   type Recorrencia,
@@ -28,24 +29,26 @@ export default function Recorrencias() {
 
   return (
     <PageShell>
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-medium tracking-tight">Recorrências</h1>
-          <p className="max-w-2xl text-sm text-muted-foreground">
+      <PageTitle
+        titulo="Recorrências"
+        estado={
+          <>
             Cada ciclo gera uma <strong>tarefa nova</strong> — a regra nunca empurra a data da
             mesma tarefa. É assim que dá para saber que o fechamento de março foi concluído em
             04/04 e o de abril em 06/05.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => gerar.mutate()} disabled={gerar.isPending}>
-            <Play className="mr-1 h-4 w-4" /> Gerar agora
-          </Button>
-          <Button onClick={abrirNova}>
-            <Plus className="mr-1 h-4 w-4" /> Nova recorrência
-          </Button>
-        </div>
-      </header>
+          </>
+        }
+        acoes={
+          <>
+            <Button variant="outline" onClick={() => gerar.mutate()} disabled={gerar.isPending}>
+              <Play className="mr-1 h-4 w-4" /> Gerar agora
+            </Button>
+            <Button onClick={abrirNova}>
+              <Plus className="mr-1 h-4 w-4" /> Nova recorrência
+            </Button>
+          </>
+        }
+      />
 
       {error ? (
         <p className="text-sm text-destructive">

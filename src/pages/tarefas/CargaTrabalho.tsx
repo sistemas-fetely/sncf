@@ -1,3 +1,5 @@
+import { PageTitle } from "@/components/layout/PageTitle";
+import { PageShell } from "@/components/layout/PageShell";
 import { useMemo, useState } from "react";
 import { addDays, addWeeks, format, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -9,7 +11,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { cn } from "@/lib/utils";
 import { TarefaDetalhePainel } from "@/components/tarefas/detalhe/TarefaDetalhePainel";
 import { PRIORIDADE_ROTULO, STATUS_ROTULO } from "@/components/tarefas/detalhe/comuns";
-import { PageShell } from "@/components/layout/PageShell";
 import {
   CLASSE_TOM, tomDaCarga, useCargaDetalhe, useCargaSemanal, usePodeEditarCapacidade,
   useSalvarCapacidade, type CargaSemana,
@@ -73,13 +74,10 @@ export default function CargaTrabalho() {
 
   return (
     <PageShell>
-      <header className="space-y-1">
-        <h1 className="text-2xl font-medium tracking-tight">Carga de trabalho</h1>
-        <p className="text-sm text-muted-foreground">
-          Estimativas das próximas {SEMANAS} semanas contra a capacidade de cada pessoa.
-          Clique numa célula para ver o que compõe o número.
-        </p>
-      </header>
+      <PageTitle
+        titulo="Carga de trabalho"
+        estado={`Estimativas das próximas ${SEMANAS} semanas contra a capacidade de cada pessoa. Clique numa célula para ver o que compõe o número.`}
+      />
 
       {error ? (
         <p className="text-sm text-destructive">

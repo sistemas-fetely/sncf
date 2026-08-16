@@ -1,3 +1,5 @@
+import { PageTitle } from "@/components/layout/PageTitle";
+import { PageShell } from "@/components/layout/PageShell";
 import { useState } from "react";
 import { CheckCheck, Pencil, Play, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +15,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AplicarTemplateDialog } from "@/components/tarefas/templates/AplicarTemplateDialog";
 import { TemplateItensEditor } from "@/components/tarefas/templates/TemplateItensEditor";
-import { PageShell } from "@/components/layout/PageShell";
 import {
   useExcluirTemplate, useSalvarTemplate, useTemplates, type Template,
 } from "@/hooks/tarefas/useTemplates";
@@ -29,17 +30,15 @@ export default function Templates() {
 
   return (
     <PageShell>
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-medium tracking-tight">Templates</h1>
-          <p className="text-sm text-muted-foreground">
-            Roteiros de projeto e checklists prontos para aplicar com datas calculadas.
-          </p>
-        </div>
-        <Button onClick={() => setForm({ id: null, nome: "", descricao: "", tipo: "projeto" })}>
-          <Plus className="mr-1 h-4 w-4" /> Novo template
-        </Button>
-      </header>
+      <PageTitle
+        titulo="Templates"
+        estado="Roteiros de projeto e checklists prontos para aplicar com datas calculadas."
+        acoes={
+          <Button onClick={() => setForm({ id: null, nome: "", descricao: "", tipo: "projeto" })}>
+            <Plus className="mr-1 h-4 w-4" /> Novo template
+          </Button>
+        }
+      />
 
       {error ? (
         <p className="text-sm text-destructive">

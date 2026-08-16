@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { PageTitle } from "@/components/layout/PageTitle";
 import { PageShell } from "@/components/layout/PageShell";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -52,12 +53,10 @@ export default function MinhasTarefasNovo() {
 
   return (
     <PageShell variant="dados">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-medium tracking-tight">Minhas Tarefas</h1>
-        <p className="text-sm text-muted-foreground">
-          Tudo sob sua responsabilidade, agrupado por projeto.
-        </p>
-      </header>
+      <PageTitle
+        titulo="Minhas tarefas"
+        estado="Tudo sob sua responsabilidade, agrupado por projeto."
+      />
 
       <Card>
         <CardContent className="pt-4">

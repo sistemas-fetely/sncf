@@ -1,3 +1,5 @@
+import { PageTitle } from "@/components/layout/PageTitle";
+import { PageShell } from "@/components/layout/PageShell";
 import { useCallback, useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -7,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PageShell } from "@/components/layout/PageShell";
 import { TarefaItem } from "@/components/tarefas/TarefaItem";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePessoasSistema } from "@/hooks/tarefas/useTarefasCatalogos";
@@ -114,12 +115,10 @@ export default function MeuTime() {
 
   return (
     <PageShell>
-      <header className="space-y-1">
-        <h1 className="text-2xl font-medium tracking-tight">Meu time</h1>
-        <p className="text-sm text-muted-foreground">
-          Tarefas de quem reporta a você. Para a empresa toda, veja Carga.
-        </p>
-      </header>
+      <PageTitle
+        titulo="Meu time"
+        estado="Tarefas de quem reporta a você. Para a empresa toda, veja Carga."
+      />
 
       {erroTime && (
         <Card>

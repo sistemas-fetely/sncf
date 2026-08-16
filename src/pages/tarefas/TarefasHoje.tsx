@@ -1,3 +1,5 @@
+import { PageTitle } from "@/components/layout/PageTitle";
+import { PageShell } from "@/components/layout/PageShell";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -40,13 +42,11 @@ export default function TarefasHoje() {
   const vazioHoje = !hoje.isLoading && atrasadas.length === 0 && doDia.length === 0;
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6 p-6">
-      <header>
-        <h1 className="text-2xl font-medium tracking-tight">Hoje</h1>
-        <p className="text-sm text-muted-foreground">
-          {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
-        </p>
-      </header>
+    <PageShell variant="leitura">
+      <PageTitle
+        titulo="Hoje"
+        estado={format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
+      />
 
       <Card>
         <CardContent className="pt-4">
@@ -129,6 +129,6 @@ export default function TarefasHoje() {
           )}
         </TabsContent>
       </Tabs>
-    </div>
+    </PageShell>
   );
 }

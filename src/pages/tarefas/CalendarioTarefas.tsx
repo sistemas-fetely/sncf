@@ -1,3 +1,5 @@
+import { PageTitle } from "@/components/layout/PageTitle";
+import { PageShell } from "@/components/layout/PageShell";
 import { useMemo, useState } from "react";
 import {
   addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth,
@@ -18,7 +20,6 @@ import {
 } from "@/hooks/tarefas/useTarefasCalendario";
 import type { Tarefa, TarefaPrioridade } from "@/hooks/tarefas/useTarefas";
 
-import { PageShell } from "@/components/layout/PageShell";
 const TODOS = "__todos__";
 
 const COR_PRIORIDADE: Record<TarefaPrioridade, string> = {
@@ -75,23 +76,21 @@ export default function CalendarioTarefas() {
 
   return (
     <PageShell>
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-medium tracking-tight">Calendário</h1>
-          <p className="text-sm text-muted-foreground">
-            Prazos no mês. Arraste uma tarefa para outro dia para reagendar.
-          </p>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button variant="outline" size="icon" onClick={() => setMes(addMonths(mes, -1))} aria-label="Mês anterior">
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" onClick={() => setMes(startOfMonth(new Date()))}>Hoje</Button>
-          <Button variant="outline" size="icon" onClick={() => setMes(addMonths(mes, 1))} aria-label="Próximo mês">
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </header>
+      <PageTitle
+        titulo="Calendário"
+        estado="Prazos no mês. Arraste uma tarefa para outro dia para reagendar."
+        acoes={
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="icon" onClick={() => setMes(addMonths(mes, -1))} aria-label="Mês anterior">
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" onClick={() => setMes(startOfMonth(new Date()))}>Hoje</Button>
+            <Button variant="outline" size="icon" onClick={() => setMes(addMonths(mes, 1))} aria-label="Próximo mês">
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        }
+      />
 
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-lg font-medium capitalize">

@@ -63,6 +63,12 @@ export default tseslint.config(
           message:
             "SISTEMA VISUAL §7: pagina nao declara largura propria. Use <PageShell variant='dados'|'leitura'|'foco'>.",
         },
+        {
+          selector:
+            "JSXAttribute[name.name='style'] Property > Literal[value=/^#[0-9a-fA-F]{3,8}$/]",
+          message:
+            "SISTEMA VISUAL §2: cor literal em style inline e proibida. Use classe com token semantico. (Cor vinda do banco e excecao — extraia para variavel antes.)",
+        },
       ],
     },
   },
