@@ -33,6 +33,8 @@ import {
 import LancarNfDialog from "@/components/compras/LancarNfDialog";
 import LancarInvoiceDialog from "@/components/compras/LancarInvoiceDialog";
 import EditarPedidoMercadoriaDialog from "@/components/compras/EditarPedidoMercadoriaDialog";
+import SaldoPedidoTab from "@/components/compras/SaldoPedidoTab";
+
 
 
 // ============================================================================
@@ -496,9 +498,11 @@ export default function PedidoMercadoriaDetalhe() {
               <TabsTrigger value="linhas">Linhas</TabsTrigger>
               <TabsTrigger value="documentos">Documentos</TabsTrigger>
               <TabsTrigger value="conferencia">Conferência</TabsTrigger>
+              <TabsTrigger value="saldo">Saldo</TabsTrigger>
               <TabsTrigger value="historico">Histórico</TabsTrigger>
 
             </TabsList>
+
 
             {/* ---------------- LINHAS ---------------- */}
             <TabsContent value="linhas" className="mt-4">
@@ -1004,10 +1008,16 @@ export default function PedidoMercadoriaDetalhe() {
               </Card>
             </TabsContent>
 
+            {/* ==================== SALDO ==================== */}
+            <TabsContent value="saldo" className="mt-4">
+              <SaldoPedidoTab pedidoId={pedidoId} />
+            </TabsContent>
+
             {/* ==================== HISTÓRICO ==================== */}
             <TabsContent value="historico" className="mt-4">
               <HistoricoTab pedidoId={pedidoId} />
             </TabsContent>
+
           </Tabs>
 
           <LancarNfDialog

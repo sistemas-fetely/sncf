@@ -51,6 +51,14 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { rotuloFaseCalculada } from "@/components/compras/SaldoPedidoTab";
+
 import { cn } from "@/lib/utils";
 
 // ============================================================================
@@ -103,6 +111,14 @@ interface PedidoListaRow {
   custo_total: number | null;
   fase_xpm: number | null;
 }
+
+interface SaldoPedidoLinha {
+  pedido_id: number;
+  fase_calculada: string | null;
+  saldo_a_receber: number | null;
+  divergencia_status: string | null;
+}
+
 
 interface ResolucaoRow {
   codigo: string;
@@ -361,6 +377,25 @@ export default function CadastroPedidoCompra() {
     },
   });
 
+  // Saldo por pedido (view pronta — nada e calculado aqui)
+  const saldoQ = useQuery({
+    queryKey: ["importacao-saldo-pedido-lista"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_importacao_saldo_pedido")
+        .select("pedido_id, fase_calculada, saldo_a_receber, divergencia_status");
+      if (error) throw error;
+      return (data ?? []) as SaldoPedidoLinha[];
+    },
+  });
+
+  const saldoPorPedido = useMemo(() => {
+    const m = new Map<number, SaldoPedidoLinha>();
+    (saldoQ.data ?? []).forEach((s) => m.set(Number(s.pedido_id), s));
+    return m;
+  }, [saldoQ.data]);
+
+
 
 
 
@@ -551,8 +586,11 @@ export default function CadastroPedidoCompra() {
                     <TableHead>ETD</TableHead>
                     <TableHead>ETA</TableHead>
                     <TableHead className="text-right">Linhas</TableHead>
-                    <TableHead className="text-right">Custo total</TableHead>
+                    <TableHead className="text-right">Custo FOB</TableHead>
                     <TableHead>Fase XPM</TableHead>
+                    <TableHead>Fase calculada</TableHead>
+                    <TableHead className="text-right">A receber</TableHead>
+
                     <TableHead className="w-10" />
 
                   </TableRow>
@@ -591,6 +629,44 @@ export default function CadastroPedidoCompra() {
                           "—"
                         )}
                       </TableCell>
+                      {(() => {
+                        const s = saldoPorPedido.get(Number(p.id));
+                        const aReceber = Number(s?.saldo_a_receber ?? 0);
+                        return (
+                          <>
+                            <TableCell>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-sm">
+                                  {rotuloFaseCalculada(s?.fase_calculada)}
+                                </span>
+                                {s?.divergencia_status && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <AlertTriangle
+                                          className="h-4 w-4 shrink-0 text-warning"
+                                          aria-label={s.divergencia_status}
+                                        />
+                                      </TooltipTrigger>
+                                      <TooltipContent>{s.divergencia_status}</TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell
+                              className={
+                                aReceber > 0
+                                  ? "text-right tabular-nums text-warning"
+                                  : "text-right tabular-nums text-muted-foreground"
+                              }
+                            >
+                              {aReceber > 0 ? new Intl.NumberFormat("pt-BR").format(aReceber) : "0"}
+                            </TableCell>
+                          </>
+                        );
+                      })()}
+
                       <TableCell className="text-right">
                         <Button
                           variant="ghost"
