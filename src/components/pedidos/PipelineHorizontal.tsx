@@ -118,17 +118,18 @@ export function PipelineHorizontal({
   });
 
   const estagios = useMemo(() => {
-    const map = new Map<EstagioPedido, { qtd: number; sla: number }>();
-    PIPELINE_PRINCIPAL.forEach((e) => map.set(e, { qtd: 0, sla: 0 }));
+    const map = new Map<EstagioPedido, { qtd: number; sla: number; tipo_sla: string | null }>();
+    PIPELINE_PRINCIPAL.forEach((e) => map.set(e, { qtd: 0, sla: 0, tipo_sla: null }));
     (data || []).forEach((row) => {
       const atual = map.get(row.estagio as EstagioPedido);
       if (!atual) return;
       atual.qtd += row.qtd;
       atual.sla += row.qtd_sla_estourado;
+      atual.tipo_sla = atual.tipo_sla ?? row.tipo_sla ?? null;
     });
     return PIPELINE_PRINCIPAL.map((estagio) => ({
       estagio,
-      ...(map.get(estagio) || { qtd: 0, sla: 0 }),
+      ...(map.get(estagio) || { qtd: 0, sla: 0, tipo_sla: null }),
     }));
   }, [data]);
 
