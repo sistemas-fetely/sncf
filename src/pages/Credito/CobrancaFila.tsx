@@ -1365,7 +1365,7 @@ export default function CobrancaFila() {
           <CreditoClientesIndex />
         </TabsContent>
       </Tabs>
-    </div>
+    </PageShell>
   );
 }
 
