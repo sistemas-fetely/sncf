@@ -4,9 +4,10 @@ import { STATUS_ABERTOS, type Tarefa } from "@/hooks/tarefas/useTarefas";
 
 /**
  * Meu Time (F5).
- * Quem é "meu time" é decidido NO BANCO por tarefas_carga_pessoas_visiveis().
- * O front não reimplementa a regra de gestor e não consulta vinculos.
- * É a mesma fonte usada pela tela de Carga — uma única definição de time.
+ * Quem é "meu time" é decidido NO BANCO por tarefas_meu_time().
+ * Ela devolve apenas os liderados diretos do usuário logado
+ * (vinculos.gestor_pessoa_id), sem bypass de admin. O front não
+ * reimplementa essa regra.
  */
 
 const CAMPOS =
@@ -14,10 +15,10 @@ const CAMPOS =
 
 export function usePessoasDoTime() {
   return useQuery({
-    queryKey: ["tarefas", "time", "pessoas-visiveis"],
+    queryKey: ["tarefas", "time", "pessoas"],
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<string[]> => {
-      const { data, error } = await supabase.rpc("tarefas_carga_pessoas_visiveis");
+      const { data, error } = await supabase.rpc("tarefas_meu_time");
       if (error) throw error;
       return (data ?? []).map((l) => l.user_id);
     },
