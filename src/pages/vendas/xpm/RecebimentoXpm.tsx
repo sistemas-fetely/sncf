@@ -68,6 +68,13 @@ export default function RecebimentoXpm() {
     },
   });
 
+  useEffect(() => {
+    if (!centro && centrosQ.data && centrosQ.data.length > 0) {
+      const padrao = centrosQ.data.find((c) => c.codigo === "XPM-SC");
+      setCentro(padrao ? padrao.codigo : centrosQ.data[0].codigo);
+    }
+  }, [centrosQ.data, centro]);
+
   type PedidoOpt = {
     numero_pedido: string;
     pedido_ref: string;
