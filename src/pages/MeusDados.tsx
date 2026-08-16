@@ -624,7 +624,7 @@ export default function MeusDados() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }
 
@@ -659,7 +659,7 @@ function ResultadoSecao({ titulo, itens, comMotivo }: { titulo: string; itens: a
           </li>
         ))}
       </ul>
-    </PageShell>
+    </div>
   );
 }
 

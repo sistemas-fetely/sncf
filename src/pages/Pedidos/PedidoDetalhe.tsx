@@ -131,7 +131,7 @@ function Linha({ label, value, destaque }: { label: string; value?: string | num
     <PageShell className="flex justify-between gap-3 text-sm border-b border-border/40 last:border-0">
       <span className="text-muted-foreground shrink-0">{label}</span>
       <span className={cn("text-right", destaque && "font-medium")}>{value ?? "—"}</span>
-    </div>
+    </PageShell>
   );
 }
 
@@ -2668,7 +2668,7 @@ export default function PedidoDetalhe() {
           parceiroId={pedido.parceiro_id}
         />
       )}
-    </PageShell>
+    </div>
   );
 }
 

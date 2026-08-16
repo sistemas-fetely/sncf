@@ -671,7 +671,7 @@ export default function EstoqueVirtual() {
         nome={detalhe?.nome ?? null}
         onClose={() => setDetalhe(null)}
       />
-    </div>
+    </PageShell>
   );
 }
 
@@ -700,6 +700,6 @@ function StatPill({
         </div>
         {sublabel && <span className="text-[10px] text-muted-foreground">{sublabel}</span>}
       </div>
-    </PageShell>
+    </div>
   );
 }
