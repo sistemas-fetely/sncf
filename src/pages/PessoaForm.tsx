@@ -19,6 +19,7 @@ import VinculoBeneficiosSection from "@/components/pessoas/VinculoBeneficiosSect
 import VinculoExtrasSection from "@/components/pessoas/VinculoExtrasSection";
 import VinculoFinanceiroPJSection from "@/components/pessoas/VinculoFinanceiroPJSection";
 import VinculoPagamentosPJSection from "@/components/pessoas/VinculoPagamentosPJSection";
+import CriarAcessoCard from "@/components/pessoas/CriarAcessoCard";
 
 import { PageShell } from "@/components/layout/PageShell";
 type Dim = { id: string; nome: string; codigo?: string };
@@ -566,6 +567,8 @@ export default function PessoaForm() {
           </div>
         </CardContent>
       </Card>
+
+      {isEdit && id && <CriarAcessoCard pessoaId={id} />}
 
       {isEdit && vinculoId && (
         <div className="space-y-4">
