@@ -1255,7 +1255,7 @@ export default function CobrancaFila() {
             <button
               type="button"
               onClick={() => setTabAtiva("banco")}
-              className="inline-flex items-center gap-1.5 rounded-full border border-orange-300 bg-orange-50 px-2.5 py-1 text-xs font-medium text-orange-900 hover:bg-orange-100 dark:bg-orange-950/40 dark:border-orange-900 dark:text-orange-100 dark:hover:bg-orange-950/60"
+              className="inline-flex items-center gap-1.5 rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning hover:bg-warning/20"
               title="Baixas pendentes — abrir aba Banco"
             >
               <AlertTriangle className="h-3.5 w-3.5" />
