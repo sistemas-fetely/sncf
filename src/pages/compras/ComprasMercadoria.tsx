@@ -4,6 +4,7 @@ import { ShoppingBag } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CadastroPedidoCompra from "@/pages/compras/CadastroPedidoCompra";
 import DeParaFornecedor from "@/pages/compras/DeParaFornecedor";
+import RateioNfTab from "@/components/compras/RateioNfTab";
 
 import { PageShell } from "@/components/layout/PageShell";
 interface AbaMercadoria {
@@ -17,7 +18,9 @@ interface AbaMercadoria {
 const ABAS: AbaMercadoria[] = [
   { value: "pedidos", label: "Pedidos", render: () => <CadastroPedidoCompra /> },
   { value: "de-para", label: "De-para de fornecedor", render: () => <DeParaFornecedor /> },
+  { value: "rateio-nf", label: "Rateio de NF", render: () => <RateioNfTab /> },
 ];
+
 
 export default function ComprasMercadoria() {
   const [params, setParams] = useSearchParams();
