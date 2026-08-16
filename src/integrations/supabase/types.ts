@@ -62062,6 +62062,15 @@ export type Database = {
         Args: { p_nf_stage_id: string; p_parceiro_id: string }
         Returns: Json
       }
+      vincular_nf_pedido: {
+        Args: {
+          p_confirmar?: boolean
+          p_desvincular_de?: number
+          p_nf_id: number
+          p_pedido_id: number
+        }
+        Returns: Json
+      }
       vincular_planilha_fatura: {
         Args: { p_fatura_id: string; p_planilha_id: string }
         Returns: Json

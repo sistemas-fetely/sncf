@@ -34,6 +34,7 @@ import LancarNfDialog from "@/components/compras/LancarNfDialog";
 import LancarInvoiceDialog from "@/components/compras/LancarInvoiceDialog";
 import EditarPedidoMercadoriaDialog from "@/components/compras/EditarPedidoMercadoriaDialog";
 import SaldoPedidoTab from "@/components/compras/SaldoPedidoTab";
+import VincularNfDialog from "@/components/compras/VincularNfDialog";
 
 
 
@@ -258,6 +259,7 @@ export default function PedidoMercadoriaDetalhe() {
   const [nfAberta, setNfAberta] = useState<number | null>(null);
   const [invAberta, setInvAberta] = useState<number | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [vincNfDialog, setVincNfDialog] = useState(false);
 
 
   const pedidoQ = useQuery({
@@ -276,6 +278,20 @@ export default function PedidoMercadoriaDetalhe() {
 
   const pedido = pedidoQ.data;
   const moeda = pedido?.moeda ?? "BRL";
+
+  const saldoQ = useQuery({
+    queryKey: ["importacao-saldo-pedido", pedidoId],
+    enabled: Number.isFinite(pedidoId),
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_importacao_saldo_pedido")
+        .select("saldo_a_faturar, saldo_a_receber")
+        .eq("pedido_id", pedidoId)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as { saldo_a_faturar: number | null; saldo_a_receber: number | null } | null;
+    },
+  });
 
   const linhasQ = useQuery({
     queryKey: ["pedido-mercadoria-linhas", pedidoId],
@@ -486,11 +502,27 @@ export default function PedidoMercadoriaDetalhe() {
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
             <Stat rotulo="Linhas" valor={fmtNum(pedido.linhas)} />
             <Stat rotulo="Kits" valor={fmtNum(pedido.kits)} />
-            <Stat rotulo="Custo total" valor={fmtMoeda(pedido.custo_total, moeda)} />
+            <Stat rotulo="Custo FOB" valor={fmtMoeda(pedido.custo_total, moeda)} />
             <Stat rotulo="ETD" valor={fmtDate(pedido.etd)} />
             <Stat rotulo="ETA" valor={fmtDate(pedido.eta)} />
             <Stat rotulo="NFs" valor={fmtNum(pedido.nfs)} />
             <Stat rotulo="Invoices" valor={fmtNum(pedido.invoices)} />
+            <Stat
+              rotulo="A entregar"
+              valor={
+                <span className={(saldoQ.data?.saldo_a_faturar ?? 0) > 0 ? "text-warning" : "text-muted-foreground"}>
+                  {fmtNum(saldoQ.data?.saldo_a_faturar ?? 0)}
+                </span>
+              }
+            />
+            <Stat
+              rotulo="A conferir"
+              valor={
+                <span className={(saldoQ.data?.saldo_a_receber ?? 0) > 0 ? "text-warning" : "text-muted-foreground"}>
+                  {fmtNum(saldoQ.data?.saldo_a_receber ?? 0)}
+                </span>
+              }
+            />
           </div>
 
           <Tabs defaultValue="linhas">
@@ -591,14 +623,19 @@ export default function PedidoMercadoriaDetalhe() {
                   <CardTitle className="text-base flex items-center gap-2">
                     <FileText className="h-4 w-4" /> Notas fiscais
                   </CardTitle>
-                  <Button
-                    size="sm"
-                    style={{ backgroundColor: VERDE }}
-                    className="text-white hover:opacity-90"
-                    onClick={() => setNfDialog(true)}
-                  >
-                    Lançar NF
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      style={{ backgroundColor: VERDE }}
+                      className="text-white hover:opacity-90"
+                      onClick={() => setNfDialog(true)}
+                    >
+                      Lançar NF
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setVincNfDialog(true)}>
+                      Vincular NF existente
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {nfsQ.isLoading ? (
@@ -1023,6 +1060,12 @@ export default function PedidoMercadoriaDetalhe() {
           <LancarNfDialog
             open={nfDialog}
             onOpenChange={setNfDialog}
+            pedidoId={pedidoId}
+            fornecedorId={pedido.fornecedor_id}
+          />
+          <VincularNfDialog
+            open={vincNfDialog}
+            onOpenChange={setVincNfDialog}
             pedidoId={pedidoId}
             fornecedorId={pedido.fornecedor_id}
           />
