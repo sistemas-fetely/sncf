@@ -675,20 +675,38 @@ function ResumoCard({
   valor,
   sub,
   highlight,
+  error,
 }: {
   label: string;
   valor: string;
   sub?: string;
   highlight?: boolean;
+  error?: boolean;
 }) {
   return (
     <div
       className={`rounded-md border p-2.5 ${
-        highlight ? "bg-admin/10 border-admin/30" : "bg-muted/20"
+        error
+          ? "bg-destructive/10 border-destructive/30"
+          : highlight
+          ? "bg-admin/10 border-admin/30"
+          : "bg-muted/20"
       }`}
     >
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className={`text-lg font-bold ${highlight ? "text-admin" : ""}`}>{valor}</p>
+      <p
+        className={`text-[10px] uppercase tracking-wide ${
+          error ? "text-destructive" : "text-muted-foreground"
+        }`}
+      >
+        {label}
+      </p>
+      <p
+        className={`text-lg font-bold ${
+          error ? "text-destructive" : highlight ? "text-admin" : ""
+        }`}
+      >
+        {valor}
+      </p>
       {sub && <p className="text-[10px] text-muted-foreground mt-0.5">{sub}</p>}
     </div>
   );
