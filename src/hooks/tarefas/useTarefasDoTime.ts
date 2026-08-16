@@ -13,17 +13,31 @@ import { STATUS_ABERTOS, type Tarefa } from "@/hooks/tarefas/useTarefas";
 const CAMPOS =
   "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id,data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,acao_url,ordem,criado_em" as const;
 
+export interface MembroTime {
+  user_id: string;
+  /** user_id de quem a pessoa reporta. Nulo quando o gestor não tem login. */
+  gestor_user_id: string | null;
+  /** distância até o usuário logado: 1 = reporta direto. */
+  nivel: number;
+}
+
 export function usePessoasDoTime() {
   return useQuery({
     queryKey: ["tarefas", "time", "pessoas"],
     staleTime: 5 * 60 * 1000,
-    queryFn: async (): Promise<string[]> => {
+    queryFn: async (): Promise<{ membros: MembroTime[]; ids: string[] }> => {
       const { data, error } = await supabase.rpc("tarefas_meu_time");
       if (error) throw error;
-      return (data ?? []).map((l) => l.user_id);
+      const membros = (data ?? []).map((l) => ({
+        user_id: l.user_id as string,
+        gestor_user_id: (l.gestor_user_id ?? null) as string | null,
+        nivel: Number(l.nivel ?? 1),
+      }));
+      return { membros, ids: membros.map((m) => m.user_id) };
     },
   });
 }
+
 
 /** Tarefas em aberto do time inteiro. */
 export function useTarefasAbertasDoTime(userIds: string[] | undefined) {
