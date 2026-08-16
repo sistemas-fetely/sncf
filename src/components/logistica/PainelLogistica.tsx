@@ -383,7 +383,7 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
           <span className="text-xs text-muted-foreground">Receita cobrada × custo real · escopo: {canalLabel}</span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2">
           <StatCardMini
             label="Receita de frete"
             value={BRL.format(totais.receita)}
@@ -399,9 +399,6 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
             tone={margemNeg ? "destructive" : "success"}
             hint="= subsídio que a Fetely banca"
           />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <StatCardMini label="% recuperação" value={`${totais.pctRec.toFixed(1)}%`} icon={Percent} tone={totais.pctRec >= 100 ? "success" : "warning"} hint="receita ÷ custo" />
           <StatCardMini label="Frete cobrado/NF" value={`${totais.pctNf.toFixed(2)}%`} icon={Percent} tone="info" hint="sobre NFs com frete" />
           {(() => {
