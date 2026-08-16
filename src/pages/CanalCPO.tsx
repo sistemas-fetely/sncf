@@ -22,8 +22,8 @@ const ESTAGIO_CORES: Record<string, string> = {
   aguardando_estoque: "bg-warning/10 text-warning",
   pre_separacao:      "bg-warning/10 text-warning",
   pre_faturamento:    "bg-warning/10 text-warning",
-  em_separacao:       "bg-success/10 text-success",
-  faturado:           "bg-success/10 text-success",
+  em_separacao:       "bg-muted text-muted-foreground",
+  faturado:           "bg-info/10 text-info",
   em_transporte:      "bg-info/10 text-info",
   entregue:           "bg-success/10 text-success",
 };
