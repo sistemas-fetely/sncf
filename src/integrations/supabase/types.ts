@@ -15539,6 +15539,13 @@ export type Database = {
             foreignKeyName: "importacao_invoice_pedido_importacao_pedido_id_fkey"
             columns: ["importacao_pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_compras_pendencias"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_pedido_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_importacao_invoice_conferencia"
             referencedColumns: ["importacao_pedido_id"]
           },
@@ -15664,6 +15671,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "importacao_pedido"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_linha_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_compras_pendencias"
+            referencedColumns: ["pedido_id"]
           },
           {
             foreignKeyName: "importacao_linha_importacao_pedido_id_fkey"
@@ -15985,6 +15999,13 @@ export type Database = {
             foreignKeyName: "importacao_nf_linha_sku_importacao_pedido_id_fkey"
             columns: ["importacao_pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_compras_pendencias"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_importacao_invoice_conferencia"
             referencedColumns: ["importacao_pedido_id"]
           },
@@ -16107,6 +16128,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "importacao_pedido"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_nf_pedido_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_compras_pendencias"
+            referencedColumns: ["pedido_id"]
           },
           {
             foreignKeyName: "importacao_nf_pedido_importacao_pedido_id_fkey"
@@ -16351,6 +16379,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "importacao_pedido"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_pedido_evento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_compras_pendencias"
+            referencedColumns: ["pedido_id"]
           },
           {
             foreignKeyName: "importacao_pedido_evento_pedido_id_fkey"
@@ -17444,6 +17479,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "importacao_pedido"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_compras_pendencias"
+            referencedColumns: ["pedido_id"]
           },
           {
             foreignKeyName: "movimentacao_estoque_importacao_pedido_id_fkey"
@@ -40789,6 +40831,13 @@ export type Database = {
             foreignKeyName: "xpm_termo_linha_importacao_pedido_id_fkey"
             columns: ["importacao_pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_compras_pendencias"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_importacao_invoice_conferencia"
             referencedColumns: ["importacao_pedido_id"]
           },
@@ -44386,6 +44435,45 @@ export type Database = {
             referencedColumns: ["pedido_id"]
           },
         ]
+      }
+      vw_compras_pendencias: {
+        Row: {
+          codigos_sem_sku: number | null
+          ficha_xpm_incompleta: number | null
+          movimentos: number | null
+          nf_linhas_sem_custo: number | null
+          nfs_ligadas: number | null
+          numero_pedido: string | null
+          pedido_id: number | null
+          rateios: number | null
+          skus_sem_peso: number | null
+          termos: number | null
+        }
+        Insert: {
+          codigos_sem_sku?: never
+          ficha_xpm_incompleta?: never
+          movimentos?: never
+          nf_linhas_sem_custo?: never
+          nfs_ligadas?: never
+          numero_pedido?: string | null
+          pedido_id?: number | null
+          rateios?: never
+          skus_sem_peso?: never
+          termos?: never
+        }
+        Update: {
+          codigos_sem_sku?: never
+          ficha_xpm_incompleta?: never
+          movimentos?: never
+          nf_linhas_sem_custo?: never
+          nfs_ligadas?: never
+          numero_pedido?: string | null
+          pedido_id?: number | null
+          rateios?: never
+          skus_sem_peso?: never
+          termos?: never
+        }
+        Relationships: []
       }
       vw_conciliacao_cartao_sugestoes: {
         Row: {
@@ -49344,6 +49432,13 @@ export type Database = {
             foreignKeyName: "importacao_nf_pedido_importacao_pedido_id_fkey"
             columns: ["importacao_pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_compras_pendencias"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "importacao_nf_pedido_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_importacao_invoice_conferencia"
             referencedColumns: ["importacao_pedido_id"]
           },
@@ -50958,14 +51053,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -51507,14 +51602,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -52627,14 +52722,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -59889,6 +59984,10 @@ export type Database = {
       }
       excluir_parceiro_seguro: {
         Args: { p_parceiro_id: string }
+        Returns: Json
+      }
+      excluir_pedido_importacao: {
+        Args: { p_confirmar?: boolean; p_pedido_id: number }
         Returns: Json
       }
       executar_pagamento: {
