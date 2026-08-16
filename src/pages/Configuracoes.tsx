@@ -1,9 +1,7 @@
 import { useState, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Search,
   SlidersHorizontal,
@@ -12,15 +10,15 @@ import {
   Briefcase,
   FileBarChart,
   FileText,
-  Building2,
-  Plug,
-  Bell,
-  Palette,
-  Lock,
-  Database,
-  Mail,
   ChevronRight,
+  Eye,
+  FolderTree,
+  Wand2,
+  Filter,
+  Timer,
 } from "lucide-react";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageTitle } from "@/components/layout/PageTitle";
 
 interface ConfigItem {
   value: string;
@@ -28,113 +26,81 @@ interface ConfigItem {
   description: string;
   icon: React.ComponentType<{ className?: string }>;
   path: string;
+  secao: string;
 }
 
-interface ConfigModulo {
-  label: string;
-  itens: ConfigItem[];
-}
+const ITENS: ConfigItem[] = [
+  // Acessos
+  { value: "usuarios", label: "Usuários", description: "Gerenciar usuários do sistema", icon: Users, path: "/admin/usuarios", secao: "Acessos" },
+  { value: "perfis", label: "Perfis de Acesso", description: "Permissões por perfil e módulo", icon: Shield, path: "/admin/usuarios/perfis", secao: "Acessos" },
+  { value: "cargos", label: "Cargos", description: "Cargos e estrutura de função", icon: Briefcase, path: "/admin/cargos", secao: "Acessos" },
+  { value: "visibilidade", label: "Visibilidade", description: "O que cada perfil enxerga em cada tela", icon: Eye, path: "/admin/visibilidade", secao: "Acessos" },
 
-const MODULOS: Record<string, ConfigModulo> = {
-  geral: {
-    label: "Geral",
-    itens: [
-      { value: "parametros", label: "Parâmetros", description: "Listas de cadastro: áreas, departamentos, sistemas, benefícios", icon: SlidersHorizontal, path: "/admin/parametros" },
-      { value: "unidades", label: "Unidades e Empresas", description: "Empresas, filiais e estrutura organizacional", icon: Building2, path: "/admin/parametros?modulo=geral" },
-      { value: "marca", label: "Marca e Aparência", description: "Logo, cores e identidade visual do sistema", icon: Palette, path: "/admin/configuracoes" },
-      { value: "notificacoes", label: "Notificações", description: "Preferências de e-mail e alertas do sistema", icon: Bell, path: "/admin/configuracoes" },
-    ],
-  },
-  usuarios: {
-    label: "Usuários & Acessos",
-    itens: [
-      { value: "usuarios", label: "Usuários", description: "Gerenciar usuários do sistema", icon: Users, path: "/admin/usuarios" },
-      { value: "perfis", label: "Perfis de Acesso", description: "Permissões por perfil e módulo", icon: Shield, path: "/admin/usuarios/perfis" },
-      { value: "cargos", label: "Cargos", description: "Cargos e estrutura de função", icon: Briefcase, path: "/admin/cargos" },
-      { value: "seguranca", label: "Segurança", description: "Senhas, autenticação e auditoria de acesso", icon: Lock, path: "/admin/configuracoes" },
-    ],
-  },
-  integracoes: {
-    label: "Integrações",
-    itens: [
-      { value: "bling", label: "Bling ERP", description: "Conexão com Bling para sincronização de dados", icon: Plug, path: "/administrativo/bling-callback" },
-      { value: "email", label: "E-mail (SMTP)", description: "Configurar servidor de envio de e-mails", icon: Mail, path: "/admin/configuracoes" },
-      { value: "api", label: "Chaves de API", description: "Tokens e chaves de integração externa", icon: Database, path: "/admin/configuracoes" },
-    ],
-  },
-  sistema: {
-    label: "Sistema",
-    itens: [
-      { value: "reportes", label: "Reportes do Sistema", description: "Logs e relatórios técnicos", icon: FileBarChart, path: "/admin/reportes" },
-      { value: "importacoes", label: "Importações PDF", description: "Histórico de importações de documentos", icon: FileText, path: "/admin/importacoes-pdf" },
-    ],
-  },
-};
+  // Cadastros
+  { value: "parametros", label: "Parâmetros", description: "Listas de cadastro: áreas, departamentos, sistemas, benefícios, unidades e empresas", icon: SlidersHorizontal, path: "/admin/parametros", secao: "Cadastros" },
+  { value: "plano-contas", label: "Plano de Contas", description: "Estrutura contábil de receitas e despesas", icon: FolderTree, path: "/admin/plano-contas", secao: "Cadastros" },
+
+  // Regras
+  { value: "regras-ofx", label: "Regras de OFX", description: "Classificação automática de lançamentos do extrato", icon: Wand2, path: "/admin/regras-ofx", secao: "Regras" },
+  { value: "extrato-regras", label: "Regras do Inbox", description: "Tratamento automático de entradas do extrato", icon: Filter, path: "/admin/extrato-regras", secao: "Regras" },
+  { value: "sla-xpm", label: "SLA do XPM", description: "Prazos acordados com o operador logístico", icon: Timer, path: "/admin/sla-xpm", secao: "Regras" },
+
+  // Sistema
+  { value: "reportes", label: "Reportes do Sistema", description: "Logs e relatórios técnicos", icon: FileBarChart, path: "/admin/reportes", secao: "Sistema" },
+  { value: "importacoes", label: "Importações PDF", description: "Histórico de importações de documentos", icon: FileText, path: "/admin/importacoes-pdf", secao: "Sistema" },
+];
 
 export default function Configuracoes() {
-  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const modulo = searchParams.get("modulo") || "geral";
   const [searchTerm, setSearchTerm] = useState("");
-
-  const handleModuloChange = (m: string) => {
-    setSearchParams({ modulo: m });
-    setSearchTerm("");
-  };
 
   const filtered = useMemo(() => {
     const lower = searchTerm.toLowerCase();
-    const itens = MODULOS[modulo]?.itens ?? [];
-    if (!lower) return itens;
-    return itens.filter(
+    if (!lower) return ITENS;
+    return ITENS.filter(
       (i) =>
         i.label.toLowerCase().includes(lower) ||
         i.description.toLowerCase().includes(lower)
     );
-  }, [modulo, searchTerm]);
+  }, [searchTerm]);
+
+  const secoes = useMemo(() => {
+    const map = new Map<string, ConfigItem[]>();
+    for (const item of filtered) {
+      const list = map.get(item.secao) ?? [];
+      list.push(item);
+      map.set(item.secao, list);
+    }
+    return map;
+  }, [filtered]);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-medium tracking-tight">Configurações</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Ajustes e parâmetros gerais do sistema
-        </p>
+    <PageShell>
+      <PageTitle titulo="Configurações" estado="Ajustes e parâmetros gerais do sistema" />
+
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar configuração..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-9"
+        />
       </div>
 
-      <Tabs value={modulo} onValueChange={handleModuloChange}>
-        <TabsList>
-          {Object.entries(MODULOS).map(([key, val]) => (
-            <TabsTrigger key={key} value={key}>
-              {val.label}
-              <Badge variant="secondary" className="text-[10px] ml-2 px-1.5 py-0">
-                {val.itens.length}
-              </Badge>
-            </TabsTrigger>
-          ))}
-        </TabsList>
-
-        {Object.entries(MODULOS).map(([key]) => (
-          <TabsContent key={key} value={key} className="space-y-4">
-            <div className="relative max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder={`Buscar em ${MODULOS[key].label}...`}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-
-            {filtered.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center text-sm text-muted-foreground">
-                  Nenhuma configuração encontrada.
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {filtered.map((item) => {
+      {filtered.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center text-sm text-muted-foreground">
+            Nenhuma configuração com esse termo. Tente o nome do módulo.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-6">
+          {Array.from(secoes.entries()).map(([secao, itens]) => (
+            <div key={secao} className="space-y-3">
+              <h2 className="text-[15px] font-medium">{secao}</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                {itens.map((item) => {
                   const Icon = item.icon;
                   return (
                     <button
@@ -162,10 +128,10 @@ export default function Configuracoes() {
                   );
                 })}
               </div>
-            )}
-          </TabsContent>
-        ))}
-      </Tabs>
-    </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </PageShell>
   );
 }
