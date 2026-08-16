@@ -178,7 +178,8 @@ export function AplicarTemplateDialog({ template, aberto, onOpenChange }: Props)
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button
             onClick={confirmar}
-            disabled={aplicar.isPending || !template || !podeConfirmar || (ehChecklist && projetosAtivos.length === 0)}
+            disabled={aplicar.isPending || !template || !podeConfirmar || (ehChecklist && (projetos ?? []).length === 0)}
+
           >
             {aplicar.isPending ? "Aplicando…" : ehChecklist ? "Adicionar ao projeto" : "Criar projeto"}
           </Button>
