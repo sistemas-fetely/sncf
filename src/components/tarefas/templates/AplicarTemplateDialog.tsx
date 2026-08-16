@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { usePessoasSistema } from "@/hooks/tarefas/useTarefasCatalogos";
+import { usePessoasSistema, useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
 import { useAplicarTemplate, useTemplateItens, type Template } from "@/hooks/tarefas/useTemplates";
 
 const SEM_VALOR = "__nenhum__";
@@ -28,17 +28,23 @@ export function AplicarTemplateDialog({ template, aberto, onOpenChange }: Props)
   const navigate = useNavigate();
   const { data: itens, isLoading } = useTemplateItens(aberto ? template?.id ?? null : null);
   const { data: pessoas } = usePessoasSistema();
+  const { data: projetos } = useProjetos();
   const aplicar = useAplicarTemplate();
 
   const [nome, setNome] = useState("");
   const [dataInicio, setDataInicio] = useState(hojeISO());
   const [responsavel, setResponsavel] = useState<string | null>(null);
+  const [projetoDestino, setProjetoDestino] = useState<string | null>(null);
+
+  const ehChecklist = template?.tipo === "checklist";
+  const projetosAtivos = useMemo(() => (projetos ?? []).filter((p) => p.status === "ativo"), [projetos]);
 
   useEffect(() => {
     if (!aberto) return;
     setNome(template?.nome ?? "");
     setDataInicio(hojeISO());
     setResponsavel(null);
+    setProjetoDestino(null);
   }, [aberto, template]);
 
   const previa = useMemo(() => {
@@ -54,10 +60,10 @@ export function AplicarTemplateDialog({ template, aberto, onOpenChange }: Props)
     aplicar.mutate(
       {
         templateId: template.id,
-        nomeProjeto: nome.trim() || template.nome,
+        nomeProjeto: ehChecklist ? null : nome.trim() || template.nome,
         dataInicio,
         responsavelPadrao: responsavel,
-        projetoExistente: null,
+        projetoExistente: ehChecklist ? projetoDestino : null,
       },
       {
         onSuccess: (projetoId) => {
@@ -68,21 +74,54 @@ export function AplicarTemplateDialog({ template, aberto, onOpenChange }: Props)
     );
   };
 
+  const podeConfirmar = ehChecklist
+    ? !!projetoDestino
+    : nome.trim().length > 0 || !!template?.nome;
+
   return (
     <Dialog open={aberto} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Aplicar template</DialogTitle>
           <DialogDescription>
-            Confira as tarefas e as datas já calculadas antes de criar o projeto.
+            {ehChecklist
+              ? "Vai adicionar estas tarefas a um projeto existente."
+              : "Vai criar um projeto novo com estas tarefas."}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
-          <div className="space-y-1.5">
-            <Label>Nome do projeto</Label>
-            <Input value={nome} onChange={(e) => setNome(e.target.value)} />
-          </div>
+          {ehChecklist ? (
+            <div className="space-y-1.5">
+              <Label>Projeto de destino</Label>
+              {projetosAtivos.length === 0 ? (
+                <div className="rounded-md border border-border bg-muted/50 p-3 text-sm">
+                  <p className="font-medium">Nenhum projeto ativo</p>
+                  <p className="text-muted-foreground">
+                    Um checklist adiciona tarefas a um projeto existente. Crie um projeto primeiro em Projetos.
+                  </p>
+                </div>
+              ) : (
+                <Select
+                  value={projetoDestino ?? SEM_VALOR}
+                  onValueChange={(v) => setProjetoDestino(v === SEM_VALOR ? null : v)}
+                >
+                  <SelectTrigger><SelectValue placeholder="Selecione um projeto" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={SEM_VALOR}>Selecione um projeto</SelectItem>
+                    {projetosAtivos.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <Label>Nome do projeto</Label>
+              <Input value={nome} onChange={(e) => setNome(e.target.value)} />
+            </div>
+          )}
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>Data de início</Label>
@@ -136,11 +175,15 @@ export function AplicarTemplateDialog({ template, aberto, onOpenChange }: Props)
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={confirmar} disabled={aplicar.isPending || !template}>
-            {aplicar.isPending ? "Aplicando…" : "Criar projeto"}
+          <Button
+            onClick={confirmar}
+            disabled={aplicar.isPending || !template || !podeConfirmar || (ehChecklist && projetosAtivos.length === 0)}
+          >
+            {aplicar.isPending ? "Aplicando…" : ehChecklist ? "Adicionar ao projeto" : "Criar projeto"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
