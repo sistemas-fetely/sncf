@@ -578,8 +578,11 @@ export default function CadastroPedidoCompra() {
                     <TableHead>ETD</TableHead>
                     <TableHead>ETA</TableHead>
                     <TableHead className="text-right">Linhas</TableHead>
-                    <TableHead className="text-right">Custo total</TableHead>
+                    <TableHead className="text-right">Custo FOB</TableHead>
                     <TableHead>Fase XPM</TableHead>
+                    <TableHead>Fase calculada</TableHead>
+                    <TableHead className="text-right">A receber</TableHead>
+
                     <TableHead className="w-10" />
 
                   </TableRow>
