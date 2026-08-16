@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { QuickAddTarefa } from "@/components/tarefas/QuickAddTarefa";
+import { InboxFilas } from "@/components/tarefas/InboxFilas";
 import { TarefaItem } from "@/components/tarefas/TarefaItem";
 import {
   useTarefasConcluidas, useTarefasContadores, useTarefasHoje,
@@ -66,8 +67,10 @@ export default function TarefasHoje() {
         </TabsList>
 
         <TabsContent value="hoje" className="space-y-6 pt-4">
+          <InboxFilas />
+
           {vazioHoje ? (
-            <Vazio texto="Nada para hoje. Use a caixa acima para capturar uma tarefa — dá para escrever tudo numa linha." />
+            <Vazio texto="Nenhuma tarefa sua para hoje. Use a caixa acima para capturar uma tarefa — dá para escrever tudo numa linha." />
           ) : (
             <>
               {atrasadas.length > 0 && (
