@@ -40,9 +40,19 @@ export function useUpdatePosicao() {
     mutationFn: async ({ id, ...data }: PosicaoUpdate) => {
       // If it's a virtual node, create a real position instead
       if (id.startsWith("virtual-")) {
-        const { error } = await supabase.from("posicoes").insert({
-          ...data,
-        });
+        const insertData: PosicaoInsert = {
+          titulo_cargo: data.titulo_cargo ?? "Sem cargo",
+          departamento: data.departamento ?? "Geral",
+          nivel_hierarquico: data.nivel_hierarquico ?? 1,
+          status: data.status ?? "ocupado",
+          id_pai: data.id_pai ?? null,
+          area: data.area ?? null,
+          filial: data.filial ?? null,
+          vinculo_id: data.vinculo_id ?? null,
+          salario_previsto: data.salario_previsto ?? null,
+          centro_custo: data.centro_custo ?? null,
+        };
+        const { error } = await supabase.from("posicoes").insert(insertData);
         if (error) throw error;
       } else {
         const { error } = await supabase.from("posicoes").update(data).eq("id", id);
