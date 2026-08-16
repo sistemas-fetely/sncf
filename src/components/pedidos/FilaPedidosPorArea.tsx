@@ -416,10 +416,10 @@ export function FilaPedidosPorArea({
   });
   const pedidosComMsg = msgPendentes ?? new Set<string>();
 
-  const totalLinhas = linhas?.length ?? 0;
+  const totalLinhas = linhasFiltradas.length;
   const totalPaginas = Math.max(1, Math.ceil(totalLinhas / pageSize));
   const paginaAtual = Math.min(pagina, totalPaginas);
-  const pageItems = (linhas || []).slice(
+  const pageItems = linhasFiltradas.slice(
     (paginaAtual - 1) * pageSize,
     paginaAtual * pageSize,
   );
