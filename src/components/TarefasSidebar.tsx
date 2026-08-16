@@ -1,7 +1,6 @@
 /**
  * TarefasSidebar — Módulo Tarefas (F1).
- * Só Hoje e Minhas Tarefas navegam; o resto fica visível e desabilitado
- * com tooltip "em breve", para o mapa do módulo já ficar claro.
+ * Todos os itens do módulo navegam.
  */
 
 import {
@@ -12,10 +11,9 @@ import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
-  SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton,
+  SidebarHeader, SidebarMenu, SidebarMenuButton,
   SidebarMenuItem, useSidebar,
 } from "@/components/ui/sidebar";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const TAREFAS_COLOR = "#2563EB";
 
@@ -34,10 +32,7 @@ const itensAtivos: ItemTarefas[] = [
   { title: "Carga", url: "/tarefas/carga", icon: Gauge },
   { title: "Recorrências", url: "/tarefas/recorrencias", icon: Repeat },
   { title: "Templates", url: "/tarefas/templates", icon: CheckCheck },
-];
-
-const itensEmBreve: ItemTarefas[] = [
-  { title: "Meu Time", icon: UsersRound },
+  { title: "Meu Time", url: "/tarefas/time", icon: UsersRound },
 ];
 
 export function TarefasSidebar() {
@@ -95,35 +90,6 @@ export function TarefasSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          {!collapsed && (
-            <SidebarGroupLabel className="mb-1 px-4 text-[10px] font-semibold uppercase tracking-widest text-sidebar-muted">
-              Em breve
-            </SidebarGroupLabel>
-          )}
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <TooltipProvider>
-                {itensEmBreve.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <SidebarMenuButton
-                          disabled
-                          className="flex cursor-not-allowed items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-sidebar-foreground/40"
-                        >
-                          <item.icon className="h-[18px] w-[18px] shrink-0" />
-                          {!collapsed && <span className="flex-1 text-left">{item.title}</span>}
-                        </SidebarMenuButton>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">em breve</TooltipContent>
-                    </Tooltip>
-                  </SidebarMenuItem>
-                ))}
-              </TooltipProvider>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
     </Sidebar>
   );
