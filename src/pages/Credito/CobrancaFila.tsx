@@ -18,6 +18,9 @@ import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
 import { useTitulosCobranca } from "@/hooks/credito/useTitulosCobranca";
 import { useReguaFilaHoje } from "@/hooks/credito/useReguaFila";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageTitle } from "@/components/layout/PageTitle";
+import { Selo } from "@/components/ui/selo";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -76,9 +79,9 @@ function MiniPipeline({ titulos }: { titulos: TituloBoletoPendente[] }) {
   };
   const stages = [
     { key: "pendente", label: "Pendente", color: "bg-muted-foreground/30" },
-    { key: "remessa_gerada", label: "Remessa gerada", color: "bg-amber-400" },
-    { key: "registrado", label: "Registrado", color: "bg-emerald-500" },
-    { key: "rejeitado", label: "Rejeitado", color: "bg-red-500" },
+    { key: "remessa_gerada", label: "Remessa gerada", color: "bg-warning" },
+    { key: "registrado", label: "Registrado", color: "bg-success" },
+    { key: "rejeitado", label: "Rejeitado", color: "bg-destructive" },
   ] as const;
   return (
     <div className="flex items-center gap-4 p-4 rounded-md border bg-card">
@@ -191,9 +194,9 @@ function GerarRemessaModal({
           {validacoes.map((v) => (
             <div key={v.titulo_id} className="flex items-start gap-3 p-3 rounded-md border">
               {v.valido ? (
-                <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+                <CheckCircle2 className="h-4 w-4 text-success mt-0.5 shrink-0" />
               ) : (
-                <XCircle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
+                <XCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
               )}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium">{v.parceiro_nome}</p>
@@ -202,7 +205,7 @@ function GerarRemessaModal({
                   {formatBRL(v.valor_bruto)} · venc {fmtDate(v.data_vencimento)}
                 </p>
                 {!v.valido && v.motivo_bloqueio && (
-                  <p className="text-xs text-red-600 mt-1">{v.motivo_bloqueio}</p>
+                  <p className="text-xs text-destructive mt-1">{v.motivo_bloqueio}</p>
                 )}
               </div>
             </div>
@@ -328,17 +331,17 @@ function ImportarRetornoModal({
         ) : (
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
-              <div className="p-4 rounded-md border bg-emerald-50 text-center">
-                <p className="text-2xl font-semibold text-emerald-700">{resultado.confirmados}</p>
-                <p className="text-xs text-emerald-700">Confirmados</p>
+              <div className="p-4 rounded-md border bg-success/10 text-center">
+                <p className="text-2xl font-medium tabular-nums text-success">{resultado.confirmados}</p>
+                <p className="text-xs text-success">Confirmados</p>
               </div>
-              <div className="p-4 rounded-md border bg-red-50 text-center">
-                <p className="text-2xl font-semibold text-red-700">{resultado.rejeitados}</p>
-                <p className="text-xs text-red-700">Rejeitados</p>
+              <div className="p-4 rounded-md border bg-destructive/10 text-center">
+                <p className="text-2xl font-medium tabular-nums text-destructive">{resultado.rejeitados}</p>
+                <p className="text-xs text-destructive">Rejeitados</p>
               </div>
-              <div className="p-4 rounded-md border bg-blue-50 text-center">
-                <p className="text-2xl font-semibold text-blue-700">{resultado.emails_enviados}</p>
-                <p className="text-xs text-blue-700">E-mails enviados</p>
+              <div className="p-4 rounded-md border bg-info/10 text-center">
+                <p className="text-2xl font-medium tabular-nums text-info">{resultado.emails_enviados}</p>
+                <p className="text-xs text-info">E-mails enviados</p>
               </div>
             </div>
 
@@ -346,11 +349,11 @@ function ImportarRetornoModal({
               <div className="space-y-2 max-h-[300px] overflow-auto">
                 <p className="text-sm font-medium">Títulos rejeitados:</p>
                 {resultado.detalhes_rejeicao.map((r, i) => (
-                  <div key={i} className="p-3 rounded-md border bg-red-50/50">
+                  <div key={i} className="p-3 rounded-md border bg-destructive/5">
                     <p className="text-sm font-medium">
                       {r.parceiro_nome} · {r.numero_titulo}
                     </p>
-                    <p className="text-xs text-red-700">
+                    <p className="text-xs text-destructive">
                       Código {r.codigo_rejeicao}: {r.motivo}
                     </p>
                   </div>
@@ -483,7 +486,7 @@ function TitulosBoletoTab() {
             {!isLoading && titulos.length === 0 && (
               <TableRow>
                 <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                  Nenhum título boleto encontrado.
+                  Nenhum título na fila com esse filtro.
                 </TableCell>
               </TableRow>
             )}
@@ -732,9 +735,9 @@ function CancelarRemessaDialog({
           <DialogTitle>Cancelar remessa {remessa?.arquivo_nome}</DialogTitle>
         </DialogHeader>
 
-        <Alert className="border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900">
-          <AlertTriangle className="h-4 w-4 text-amber-700 dark:text-amber-300" />
-          <AlertDescription className="text-amber-900 dark:text-amber-100">
+        <Alert className="border-warning/40 bg-warning/10">
+          <AlertTriangle className="h-4 w-4 text-warning" />
+          <AlertDescription className="text-warning">
             A remessa não será apagada — o número sequencial é a prova perante o Safra. Ela ficará
             marcada como cancelada e os títulos voltam ao estado anterior.
           </AlertDescription>
@@ -872,19 +875,19 @@ function RemessasSafraTab() {
   }
 
   const statusMap: Record<string, { label: string; className: string }> = {
-    gerada: { label: "Gerada", className: "bg-amber-50 text-amber-700 border border-amber-200" },
-    enviada: { label: "Enviada", className: "bg-blue-50 text-blue-700 border border-blue-200" },
+    gerada: { label: "Gerada", className: "bg-warning/15 text-warning" },
+    enviada: { label: "Enviada", className: "bg-info/15 text-info" },
     processada: {
       label: "Processada",
-      className: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+      className: "bg-success/15 text-success",
     },
     com_rejeicoes: {
       label: "Com rejeições",
-      className: "bg-red-50 text-red-700 border border-red-200",
+      className: "bg-destructive/15 text-destructive",
     },
     cancelada: {
       label: "Cancelada",
-      className: "bg-red-50 text-red-700 border border-red-200",
+      className: "bg-destructive/15 text-destructive",
     },
   };
 
@@ -944,7 +947,7 @@ function RemessasSafraTab() {
               return (
                 <Fragment key={r.id}>
                   <TableRow
-                    className={esquecida ? "bg-amber-50/60 hover:bg-amber-50" : undefined}
+                    className={esquecida ? "bg-warning/5 hover:bg-warning/10" : undefined}
                     title={
                       esquecida
                         ? "Gerada e nunca marcada como enviada — o arquivo subiu no SafraNet?"
@@ -969,7 +972,7 @@ function RemessasSafraTab() {
                     <TableCell className="font-mono text-xs">
                       <div className="flex items-center gap-1.5">
                         {esquecida && (
-                          <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                          <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
                         )}
                         {r.arquivo_nome}
                       </div>
@@ -1010,7 +1013,7 @@ function RemessasSafraTab() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-red-700 hover:text-red-800"
+                            className="text-destructive hover:text-destructive/80"
                             onClick={() =>
                               setCancelarTarget({ id: r.id, arquivo_nome: r.arquivo_nome })
                             }
@@ -1156,7 +1159,7 @@ function PedidosCobrancaTab() {
               >
                 <TableCell>
                   <div className="flex flex-col gap-1">
-                    <span className="font-mono text-xs font-semibold text-primary">
+                    <span className="font-mono text-xs font-medium text-primary">
                       {p.id_externo}
                     </span>
                     <BadgeLinkFila linha={linksFila?.[p.pedido_id]} />
@@ -1238,7 +1241,9 @@ export default function CobrancaFila() {
     "rounded-full border border-border bg-background px-3 py-1 text-xs text-muted-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground data-[state=active]:shadow-none";
 
   return (
-    <div className="space-y-6">
+    <PageShell>
+      <PageTitle titulo="Cobrança" estado="fila de títulos a receber" />
+      <div className="space-y-6">
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
@@ -1252,7 +1257,7 @@ export default function CobrancaFila() {
             <button
               type="button"
               onClick={() => setTabAtiva("banco")}
-              className="inline-flex items-center gap-1.5 rounded-full border border-orange-300 bg-orange-50 px-2.5 py-1 text-xs font-medium text-orange-900 hover:bg-orange-100 dark:bg-orange-950/40 dark:border-orange-900 dark:text-orange-100 dark:hover:bg-orange-950/60"
+              className="inline-flex items-center gap-1.5 rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning hover:bg-warning/20"
               title="Baixas pendentes — abrir aba Banco"
             >
               <AlertTriangle className="h-3.5 w-3.5" />
@@ -1361,6 +1366,7 @@ export default function CobrancaFila() {
         </TabsContent>
       </Tabs>
     </div>
+    </PageShell>
   );
 }
 
