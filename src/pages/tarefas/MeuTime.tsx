@@ -165,7 +165,9 @@ export default function MeuTime() {
   const [prioridadeFiltro, setPrioridadeFiltro] = useState<string>("todas");
   const { user } = useAuth();
 
-  const { data: userIds, isLoading: carregandoTime, error: erroTime } = usePessoasDoTime();
+  const { data: time, isLoading: carregandoTime, error: erroTime } = usePessoasDoTime();
+  const userIds = time?.ids;
+  const membros = time?.membros ?? [];
   const { data: abertas, isLoading: carregandoAbertas } = useTarefasAbertasDoTime(userIds);
   const { data: entregues } = useTarefasEntreguesDoTime(userIds);
   const { data: pessoas } = usePessoasSistema();
@@ -183,6 +185,7 @@ export default function MeuTime() {
     const base = userIds ?? [];
     return pessoaFiltro === "todas" ? base : base.filter((id) => id === pessoaFiltro);
   }, [userIds, pessoaFiltro]);
+
 
   const filtrar = useCallback(
     (linhas: Tarefa[]) =>
