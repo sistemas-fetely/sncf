@@ -1,3 +1,5 @@
+import { PageTitle } from "@/components/layout/PageTitle";
+import { PageShell } from "@/components/layout/PageShell";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Save } from "lucide-react";
@@ -13,8 +15,6 @@ import { CamposProjeto } from "@/components/tarefas/projetos/CamposProjeto";
 import { SalvarProjetoComoTemplateDialog } from "@/components/tarefas/templates/SalvarProjetoComoTemplateDialog";
 import { SAUDE_CLASSE, SAUDE_ROTULO, useProjeto } from "@/hooks/tarefas/useProjetosTarefas";
 
-import { PageShell } from "@/components/layout/PageShell";
-import { PageTitle } from "@/components/layout/PageTitle";
 export default function ProjetoDetalhe() {
   const { id } = useParams<{ id: string }>();
   const { data: projeto, isLoading, error } = useProjeto(id ?? null);

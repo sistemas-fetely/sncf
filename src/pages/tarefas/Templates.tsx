@@ -1,3 +1,5 @@
+import { PageTitle } from "@/components/layout/PageTitle";
+import { PageShell } from "@/components/layout/PageShell";
 import { useState } from "react";
 import { CheckCheck, Pencil, Play, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -13,9 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AplicarTemplateDialog } from "@/components/tarefas/templates/AplicarTemplateDialog";
 import { TemplateItensEditor } from "@/components/tarefas/templates/TemplateItensEditor";
-import { PageShell } from "@/components/layout/PageShell";
 import {
-import { PageTitle } from "@/components/layout/PageTitle";
   useExcluirTemplate, useSalvarTemplate, useTemplates, type Template,
 } from "@/hooks/tarefas/useTemplates";
 

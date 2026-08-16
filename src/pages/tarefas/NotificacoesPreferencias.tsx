@@ -1,9 +1,9 @@
+import { PageTitle } from "@/components/layout/PageTitle";
+import { PageShell } from "@/components/layout/PageShell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-import { PageTitle } from "@/components/layout/PageTitle";
-import { PageShell } from "@/components/layout/PageShell";
   TIPOS_NOTIFICACAO, usePreferenciasNotificacao, useSalvarPreferenciaNotificacao,
 } from "@/hooks/tarefas/useNotificacoesTarefas";
 

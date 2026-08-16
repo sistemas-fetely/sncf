@@ -1,3 +1,5 @@
+import { PageTitle } from "@/components/layout/PageTitle";
+import { PageShell } from "@/components/layout/PageShell";
 import { useMemo, useState } from "react";
 import {
   addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth,
@@ -18,8 +20,6 @@ import {
 } from "@/hooks/tarefas/useTarefasCalendario";
 import type { Tarefa, TarefaPrioridade } from "@/hooks/tarefas/useTarefas";
 
-import { PageShell } from "@/components/layout/PageShell";
-import { PageTitle } from "@/components/layout/PageTitle";
 const TODOS = "__todos__";
 
 const COR_PRIORIDADE: Record<TarefaPrioridade, string> = {

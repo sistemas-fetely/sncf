@@ -1,3 +1,5 @@
+import { PageTitle } from "@/components/layout/PageTitle";
+import { PageShell } from "@/components/layout/PageShell";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,8 +9,6 @@ import { QuickAddTarefa } from "@/components/tarefas/QuickAddTarefa";
 import { InboxFilas } from "@/components/tarefas/InboxFilas";
 import { TarefaItem } from "@/components/tarefas/TarefaItem";
 import {
-import { PageTitle } from "@/components/layout/PageTitle";
-import { PageShell } from "@/components/layout/PageShell";
   useTarefasConcluidas, useTarefasContadores, useTarefasHoje,
   useTarefasProximos7, useTarefasSemData, type Tarefa,
 } from "@/hooks/tarefas/useTarefas";

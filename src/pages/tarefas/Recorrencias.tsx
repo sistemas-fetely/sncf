@@ -1,3 +1,5 @@
+import { PageTitle } from "@/components/layout/PageTitle";
+import { PageShell } from "@/components/layout/PageShell";
 import { useState } from "react";
 import { Pencil, Play, Plus, Repeat, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -7,9 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { useNomePessoa } from "@/components/tarefas/detalhe/comuns";
 import { RecorrenciaDialog } from "@/components/tarefas/recorrencias/RecorrenciaDialog";
 import { dataBR, textoRecorrencia } from "@/lib/tarefas/recorrenciaTexto";
-import { PageShell } from "@/components/layout/PageShell";
 import {
-import { PageTitle } from "@/components/layout/PageTitle";
   useAlternarRecorrencia, useExcluirRecorrencia, useGerarRecorrentesAgora, useRecorrencias,
   type Recorrencia,
 } from "@/hooks/tarefas/useRecorrencias";

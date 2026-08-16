@@ -1,3 +1,5 @@
+import { PageTitle } from "@/components/layout/PageTitle";
+import { PageShell } from "@/components/layout/PageShell";
 import { useMemo, useState } from "react";
 import { addDays, addWeeks, format, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -9,9 +11,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { cn } from "@/lib/utils";
 import { TarefaDetalhePainel } from "@/components/tarefas/detalhe/TarefaDetalhePainel";
 import { PRIORIDADE_ROTULO, STATUS_ROTULO } from "@/components/tarefas/detalhe/comuns";
-import { PageShell } from "@/components/layout/PageShell";
 import {
-import { PageTitle } from "@/components/layout/PageTitle";
   CLASSE_TOM, tomDaCarga, useCargaDetalhe, useCargaSemanal, usePodeEditarCapacidade,
   useSalvarCapacidade, type CargaSemana,
 } from "@/hooks/tarefas/useCargaTrabalho";

@@ -1,3 +1,5 @@
+import { PageTitle } from "@/components/layout/PageTitle";
+import { PageShell } from "@/components/layout/PageShell";
 import { useCallback, useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -7,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PageShell } from "@/components/layout/PageShell";
 import { TarefaItem } from "@/components/tarefas/TarefaItem";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePessoasSistema } from "@/hooks/tarefas/useTarefasCatalogos";
@@ -15,7 +16,6 @@ import {
   usePessoasDoTime, useTarefasAbertasDoTime, useTarefasEntreguesDoTime,
 } from "@/hooks/tarefas/useTarefasDoTime";
 import type { Tarefa, TarefaPrioridade } from "@/hooks/tarefas/useTarefas";
-import { PageTitle } from "@/components/layout/PageTitle";
 
 const PRIORIDADES: { valor: TarefaPrioridade; rotulo: string }[] = [
   { valor: "urgente", rotulo: "Urgente" },

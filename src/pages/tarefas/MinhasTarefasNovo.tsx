@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { PageTitle } from "@/components/layout/PageTitle";
 import { PageShell } from "@/components/layout/PageShell";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,7 +11,6 @@ import { QuickAddTarefa } from "@/components/tarefas/QuickAddTarefa";
 import { useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
 import { STATUS_ABERTOS, type Tarefa, type TarefaStatus } from "@/hooks/tarefas/useTarefas";
 import { STATUS_ROTULO } from "@/components/tarefas/detalhe/comuns";
-import { PageTitle } from "@/components/layout/PageTitle";
 
 const CAMPOS =
   "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id,data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,acao_url,ordem,criado_em" as const;

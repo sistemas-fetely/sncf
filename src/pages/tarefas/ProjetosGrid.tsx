@@ -1,3 +1,5 @@
+import { PageTitle } from "@/components/layout/PageTitle";
+import { PageShell } from "@/components/layout/PageShell";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { LayoutGrid, Plus } from "lucide-react";
@@ -7,9 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useNomePessoa } from "@/components/tarefas/detalhe/comuns";
 import { NovoProjetoDialog } from "@/components/tarefas/projetos/NovoProjetoDialog";
-import { PageShell } from "@/components/layout/PageShell";
 import {
-import { PageTitle } from "@/components/layout/PageTitle";
   SAUDE_CLASSE, SAUDE_ROTULO, useContagemAbertasPorProjeto, useProjetosLista,
 } from "@/hooks/tarefas/useProjetosTarefas";
 
