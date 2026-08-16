@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
@@ -43,7 +43,7 @@ function useItensSino(userId: string | undefined) {
   return useQuery({
     queryKey: [...CHAVE, userId ?? "anon"],
     enabled: !!userId,
-    refetchInterval: 60_000,
+    refetchInterval: 300_000,
     queryFn: async (): Promise<ItemSino[]> => {
       const [rh, geral] = await Promise.all([
         supabase
@@ -115,8 +115,44 @@ function useMarcarLidas(userId: string | undefined) {
 export function SinoNotificacoes() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const { data: itens } = useItensSino(user?.id);
   const marcar = useMarcarLidas(user?.id);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`sino:${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "notificacoes_rh" },
+        () => {
+          qc.invalidateQueries({ queryKey: [...CHAVE, user.id] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notificacoes",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          qc.invalidateQueries({ queryKey: [...CHAVE, user.id] });
+        }
+      )
+      .subscribe((status, err) => {
+        if (err) {
+          console.error("Erro no realtime do sino:", err);
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
 
   const lista = useMemo(() => itens ?? [], [itens]);
   const naoLidas = lista.filter((i) => !i.lida);
