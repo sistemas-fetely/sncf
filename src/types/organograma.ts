@@ -30,7 +30,7 @@ export interface ColaboradorVinculado {
   data_admissao: string;
   salario_base: number;
   status: string;
-  tipo_contrato: string;
+  tipo_contrato: TipoVinculoCodigo;
   cargo: string;
   departamento: string;
 }
