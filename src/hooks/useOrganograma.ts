@@ -152,7 +152,7 @@ export function useOrganograma() {
           .select(`
             id, tipo_vinculo, status, data_inicio, valor_base,
             email_corporativo, telefone_corporativo, departamento_id,
-            pessoa:pessoas!inner ( id, nome_completo, foto_url, telefone, email_pessoal ),
+            pessoa:pessoas!vinculos_pessoa_id_fkey ( id, nome_completo, foto_url, telefone, email_pessoal ),
             cargo:cargos ( nome ),
             departamento:departamentos ( nome )
           `)
