@@ -496,9 +496,11 @@ export default function PedidoMercadoriaDetalhe() {
               <TabsTrigger value="linhas">Linhas</TabsTrigger>
               <TabsTrigger value="documentos">Documentos</TabsTrigger>
               <TabsTrigger value="conferencia">Conferência</TabsTrigger>
+              <TabsTrigger value="saldo">Saldo</TabsTrigger>
               <TabsTrigger value="historico">Histórico</TabsTrigger>
 
             </TabsList>
+
 
             {/* ---------------- LINHAS ---------------- */}
             <TabsContent value="linhas" className="mt-4">
