@@ -328,8 +328,8 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
       />
 
       {/* Faixa de estado: já materializei ou não? */}
-      <div className="flex items-center gap-2 rounded-lg border border-success/40 bg-success/10 px-4 py-3 text-sm text-success">
-        <Check className="h-4 w-4 shrink-0" />
+      <div className="flex items-center gap-2 rounded-lg border border-info/40 bg-info/10 px-4 py-3 text-sm text-info">
+        <FileText className="h-4 w-4 shrink-0" />
         <span className="font-medium">
           Plano materializado · {titulosQ.data?.length ?? 0} parcela
           {(titulosQ.data?.length ?? 0) === 1 ? "" : "s"} · aguardando pagamento
