@@ -19,7 +19,6 @@ interface VinculoRaw {
     email_pessoal: string | null;
   } | null;
   cargo: { nome: string | null } | null;
-  tipo: { codigo: TipoVinculoCodigo; nome: string | null; aparece_organograma: boolean } | null;
   departamento: { nome: string | null } | null;
 }
 
@@ -33,7 +32,7 @@ function mapVinculoToColaborador(v: VinculoRaw): ColaboradorVinculado {
     data_admissao: v.data_inicio,
     salario_base: v.valor_base,
     status: v.status,
-    tipo_contrato: v.tipo?.codigo ?? v.tipo_vinculo,
+    tipo_contrato: v.tipo_vinculo,
     cargo: v.cargo?.nome ?? "",
     departamento: v.departamento?.nome ?? "",
   };
