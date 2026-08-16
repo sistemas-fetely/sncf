@@ -81,17 +81,17 @@ type Sequencia = {
 const SITUACOES_ACAO = ["exige_acao", "sem_titulo", "liquidado_sem_baixa"];
 
 const SITUACAO_ROTULO: Record<string, { label: string; cls: string }> = {
-  exige_acao: { label: "Exige ação", cls: "bg-red-100 text-red-800" },
-  sem_titulo: { label: "Ocorrência órfã (sem título)", cls: "bg-orange-100 text-orange-900" },
-  liquidado_sem_baixa: { label: "Liquidado sem baixa", cls: "bg-amber-100 text-amber-900" },
-  tratado: { label: "Tratado", cls: "bg-emerald-100 text-emerald-800" },
+  exige_acao: { label: "Exige ação", cls: "bg-destructive/10 text-destructive" },
+  sem_titulo: { label: "Ocorrência órfã (sem título)", cls: "bg-warning/10 text-warning" },
+  liquidado_sem_baixa: { label: "Liquidado sem baixa", cls: "bg-warning/10 text-warning" },
+  tratado: { label: "Tratado", cls: "bg-success/10 text-success" },
   processado: { label: "Processado", cls: "bg-muted text-muted-foreground" },
 };
 
 const ARQUIVO_STATUS: Record<string, string> = {
-  importado: "bg-blue-100 text-blue-800",
-  processado: "bg-emerald-100 text-emerald-800",
-  erro: "bg-red-100 text-red-800",
+  importado: "bg-info/10 text-info",
+  processado: "bg-success/10 text-success",
+  erro: "bg-destructive/10 text-destructive",
 };
 
 export function RetornoSafraPainel() {
@@ -195,7 +195,7 @@ export function RetornoSafraPainel() {
     <BlocoErroBoundary titulo="O painel de Retorno Safra falhou">
       <div className="space-y-4">
         <div>
-          <h2 className="text-lg font-semibold">Retorno Safra</h2>
+          <h2 className="text-lg font-medium">Retorno Safra</h2>
           <p className="text-xs text-muted-foreground">
             O que o banco respondeu ao nosso arquivo de remessa. Este painel só registra e marca —
             nenhuma baixa de título acontece aqui.
@@ -204,14 +204,14 @@ export function RetornoSafraPainel() {
 
         {buracos.length > 0 && (
           <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 space-y-1">
-            <p className="flex items-center gap-2 text-sm font-semibold text-destructive">
+            <p className="flex items-center gap-2 text-sm font-medium text-destructive">
               <AlertTriangle className="h-4 w-4" />
               Sequência de retorno quebrada — arquivo não baixado
             </p>
             {buracos.map((b) => (
               <p key={b.nro_sequencial} className="text-xs text-destructive/90">
                 Entre o arquivo {b.nro_sequencial} e o {b.proximo ?? "?"} faltam:{" "}
-                <span className="font-semibold">{b.faltando_entre || "—"}</span>
+                <span className="font-medium">{b.faltando_entre || "—"}</span>
               </p>
             ))}
           </div>
@@ -265,7 +265,7 @@ export function RetornoSafraPainel() {
                       {o.nro_sequencial != null && <span>Arquivo {o.nro_sequencial}</span>}
                     </div>
                     {o.acao_sugerida && (
-                      <p className="rounded-md bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
+                      <p className="rounded-md bg-warning/10 px-3 py-2 text-sm font-medium text-warning">
                         {o.acao_sugerida}
                       </p>
                     )}

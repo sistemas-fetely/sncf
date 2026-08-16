@@ -208,7 +208,7 @@ export function AgruparLancamentosModal({ open, onOpenChange, lancamentoPrincipa
                           {isEstorno && (
                             <Badge
                               variant="outline"
-                              className="text-[9px] py-0 px-1.5 h-4 bg-red-50 text-red-700 border-red-300"
+                              className="text-[9px] py-0 px-1.5 h-4 bg-destructive/10 text-destructive border-destructive/40"
                             >
                               Estorno
                             </Badge>
@@ -220,8 +220,8 @@ export function AgruparLancamentosModal({ open, onOpenChange, lancamentoPrincipa
                       </div>
                       <div
                         className={cn(
-                          "text-sm font-semibold tabular-nums",
-                          isEstorno ? "text-red-600" : "text-foreground"
+                          "text-sm font-medium tabular-nums",
+                          isEstorno ? "text-destructive" : "text-foreground"
                         )}
                       >
                         {formatBRL(c.valor)}
@@ -239,7 +239,7 @@ export function AgruparLancamentosModal({ open, onOpenChange, lancamentoPrincipa
               <span className="text-sm text-muted-foreground">Total agrupado:</span>
               <span
                 className={cn(
-                  "text-lg font-bold tabular-nums",
+                  "text-lg font-medium tabular-nums",
                   totalZero ? "text-muted-foreground" : "text-foreground"
                 )}
               >
@@ -250,7 +250,7 @@ export function AgruparLancamentosModal({ open, onOpenChange, lancamentoPrincipa
               {selecionados.size + 1} lançamentos serão vinculados a 1 conta a pagar
             </div>
             {totalZero && selecionados.size > 0 && (
-              <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 mt-2">
+              <div className="text-xs text-warning bg-warning/10 border border-warning/40 rounded px-2 py-1.5 mt-2">
                 Este agrupamento resulta em R$ 0,00 — não cria conta a pagar.
               </div>
             )}

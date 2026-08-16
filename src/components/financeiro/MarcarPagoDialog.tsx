@@ -196,7 +196,7 @@ export function MarcarPagoDialog({ open, onOpenChange, contas, onSuccess }: Prop
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-green-600" />
+            <CheckCircle2 className="h-5 w-5 text-success" />
             Marcar como pago
           </DialogTitle>
           <DialogDescription>
@@ -297,7 +297,7 @@ export function MarcarPagoDialog({ open, onOpenChange, contas, onSuccess }: Prop
           <Button
             onClick={handleConfirmar}
             disabled={salvando}
-            className="gap-2 bg-green-600 hover:bg-green-700 text-white"
+            className="gap-2 bg-success hover:bg-success text-white"
           >
             {salvando ? (
               <Loader2 className="h-4 w-4 animate-spin" />

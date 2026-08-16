@@ -25,15 +25,15 @@ function corPct(pct: number | null | undefined): "verde" | "ambar" | "vermelho" 
   return "vermelho";
 }
 const CLASSE_COR: Record<string, string> = {
-  verde: "text-emerald-600 dark:text-emerald-400",
-  ambar: "text-amber-600 dark:text-amber-400",
-  vermelho: "text-red-600 dark:text-red-400",
+  verde: "text-success",
+  ambar: "text-warning",
+  vermelho: "text-destructive",
   neutro: "text-muted-foreground",
 };
 const CLASSE_BG: Record<string, string> = {
-  verde: "bg-emerald-500",
-  ambar: "bg-amber-500",
-  vermelho: "bg-red-500",
+  verde: "bg-success",
+  ambar: "bg-warning",
+  vermelho: "bg-destructive",
   neutro: "bg-muted-foreground/40",
 };
 
@@ -60,7 +60,7 @@ function KpiCard({
         {rotule && <p className="text-xs text-muted-foreground/70">{rotule}</p>}
       </CardHeader>
       <CardContent>
-        <div className={`text-2xl font-semibold ${destaqueClasse ?? ""}`}>{destaque}</div>
+        <div className={`text-2xl font-medium ${destaqueClasse ?? ""}`}>{destaque}</div>
         {secundario && <div className="text-sm text-muted-foreground mt-1">{secundario}</div>}
         {rotape && <div className="text-xs text-muted-foreground/70 mt-1">{rotape}</div>}
       </CardContent>
@@ -121,12 +121,12 @@ function LinhaCards() {
       <KpiCard
         titulo="Travados"
         destaque={
-          <span className={travados ? "text-red-600 dark:text-red-400" : ""}>
+          <span className={travados ? "text-destructive" : ""}>
             {data.travados_qtd ?? 0}
           </span>
         }
         secundario={
-          <span className={travados ? "text-red-600 dark:text-red-400" : ""}>
+          <span className={travados ? "text-destructive" : ""}>
             {BRL.format(Number(data.travados_valor ?? 0))}
           </span>
         }
@@ -452,7 +452,7 @@ function LinhaProblemas() {
                 <div key={g.tipo}>
                   <div className="flex items-baseline justify-between mb-2 pb-1 border-b">
                     <div className="flex items-baseline gap-2">
-                      <h3 className="font-semibold text-sm">{g.tipo}</h3>
+                      <h3 className="font-medium text-sm">{g.tipo}</h3>
                       <Badge variant="secondary">{g.rows.length}</Badge>
                     </div>
                     <span className="text-sm font-medium">{BRL.format(g.total)}</span>

@@ -6,20 +6,20 @@ import { cn } from "@/lib/utils";
 
 /** Cores por estágio — fonte única de verdade pra Badge + barra do pipeline. */
 export const ESTAGIO_CORES: Record<EstagioPedido, string> = {
-  recebido: "bg-slate-500",
-  em_analise_credito: "bg-blue-500",
+  recebido: "bg-muted",
+  em_analise_credito: "bg-info",
   
-  cobranca: "bg-violet-500",
-  aguardando_pagamento: "bg-amber-500",
-  pre_separacao: "bg-orange-500",
-  pre_faturamento: "bg-amber-600",
-  aguardando_estoque: "bg-yellow-500",
-  em_separacao: "bg-sky-600",
-  faturado: "bg-sky-700",
-  em_transporte: "bg-indigo-500",
-  entregue: "bg-green-600",
-  cancelado: "bg-red-500",
-  recuperacao_venda: "bg-orange-500",
+  cobranca: "bg-info",
+  aguardando_pagamento: "bg-warning",
+  pre_separacao: "bg-warning",
+  pre_faturamento: "bg-warning",
+  aguardando_estoque: "bg-warning",
+  em_separacao: "bg-info",
+  faturado: "bg-info",
+  em_transporte: "bg-info",
+  entregue: "bg-success",
+  cancelado: "bg-destructive",
+  recuperacao_venda: "bg-warning",
 };
 
 export function EstagioBadge({ estagio }: { estagio: EstagioPedido }) {
@@ -34,13 +34,13 @@ export function BadgesContextuaisPedido({ p }: { p: PedidoFilaItem }) {
   return (
     <div className="flex flex-wrap gap-1">
       {p.atencao_nivel === 'pausa' && (
-        <Badge className="gap-1 bg-red-600 text-white border-0">
+        <Badge className="gap-1 bg-destructive text-white border-0">
           <PauseCircle className="h-3 w-3" />
           Pausado
         </Badge>
       )}
       {p.atencao_nivel === 'aviso' && (
-        <Badge className="gap-1 bg-amber-500 text-white border-0">
+        <Badge className="gap-1 bg-warning text-white border-0">
           <Bell className="h-3 w-3" />
           Aviso
         </Badge>
@@ -52,23 +52,23 @@ export function BadgesContextuaisPedido({ p }: { p: PedidoFilaItem }) {
         </Badge>
       )}
       {p.categoria_ka && (
-        <Badge className="gap-1 bg-amber-500 text-white border-0">
+        <Badge className="gap-1 bg-warning text-white border-0">
           <Crown className="h-3 w-3" />
           KA {p.categoria_ka}
         </Badge>
       )}
       {p.tipo_pagamento === "a_vista" && (
-        <Badge variant="outline" className="border-emerald-500 text-emerald-700 dark:text-emerald-400">
+        <Badge variant="outline" className="border-success/40 text-success">
           À vista
         </Badge>
       )}
       {p.tipo_pagamento === "a_prazo" && (
-        <Badge variant="outline" className="border-purple-500 text-purple-700 dark:text-purple-400">
+        <Badge variant="outline" className="border-info/40 text-info">
           A prazo
         </Badge>
       )}
       {p.sla_estourado && (
-        <Badge className="gap-1 bg-red-500 text-white border-0">
+        <Badge className="gap-1 bg-destructive text-white border-0">
           <Clock className="h-3 w-3" />
           24h+
         </Badge>
@@ -92,9 +92,9 @@ export function FormatoIdade({ minutos }: { minutos: number }) {
 export function NaturezaOperacaoBadge({ codigo, nome }: { codigo: string | null; nome: string | null }) {
   if (!codigo || codigo === "venda") return null;
   const estilos: Record<string, string> = {
-    bonificacao: "bg-pink-100 text-pink-700 border-pink-300 dark:bg-pink-900/40 dark:text-pink-300 dark:border-pink-700",
-    transferencia_interna: "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-700",
-    venda_a_custo: "bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-900/40 dark:text-purple-300 dark:border-purple-700",
+    bonificacao: "bg-info/10 text-info border-info/40",
+    transferencia_interna: "bg-info/10 text-info border-info/40",
+    venda_a_custo: "bg-info/10 text-info border-info/40",
   };
   return (
     <Badge variant="outline" className={cn("text-[10px] gap-1", estilos[codigo] ?? "")}>

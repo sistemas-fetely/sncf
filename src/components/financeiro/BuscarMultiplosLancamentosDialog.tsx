@@ -159,12 +159,12 @@ export function BuscarMultiplosLancamentosDialog({
         </DialogHeader>
 
         {/* Header de valores */}
-        <div className="flex items-center gap-6 p-3 bg-zinc-50 border rounded-lg flex-wrap">
+        <div className="flex items-center gap-6 p-3 bg-muted/10 border rounded-lg flex-wrap">
           <div className="flex items-center gap-2">
-            <Landmark className="h-5 w-5 text-zinc-500" />
+            <Landmark className="h-5 w-5 text-muted-foreground" />
             <div>
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Valor no extrato</div>
-              <div className="text-sm font-mono font-semibold text-red-700">
+              <div className="text-sm font-mono font-medium text-destructive">
                 -{formatBRL(ofxValorAbs)}
               </div>
             </div>
@@ -172,12 +172,12 @@ export function BuscarMultiplosLancamentosDialog({
 
           <div>
             <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Para conciliar</div>
-            <div className={`text-sm font-mono font-semibold ${
+            <div className={`text-sm font-mono font-medium ${
               Math.abs(diferenca) < 0.01
-                ? "text-emerald-700"
+                ? "text-success"
                 : diferenca > 0
-                  ? "text-amber-700"
-                  : "text-red-700"
+                  ? "text-warning"
+                  : "text-destructive"
             }`}>
               {formatBRL(Math.abs(diferenca))}
               {Math.abs(diferenca) < 0.01 && " ✓"}
@@ -205,7 +205,7 @@ export function BuscarMultiplosLancamentosDialog({
         {/* Tabela */}
         <div className="flex-1 overflow-y-auto border rounded-md">
           <table className="w-full text-xs">
-            <thead className="bg-zinc-50 sticky top-0 border-b">
+            <thead className="bg-muted/10 sticky top-0 border-b">
               <tr>
                 <th className="p-2 text-left w-8"></th>
                 <th className="p-2 text-left">Descrição</th>
@@ -239,7 +239,7 @@ export function BuscarMultiplosLancamentosDialog({
                     <tr
                       key={c.id}
                       className={`border-b cursor-pointer transition ${
-                        sel ? "bg-emerald-50" : "hover:bg-zinc-50"
+                        sel ? "bg-success/10" : "hover:bg-muted/10"
                       }`}
                       onClick={() => toggle(c.id)}
                     >
@@ -256,10 +256,10 @@ export function BuscarMultiplosLancamentosDialog({
                       <td className="p-2 text-muted-foreground">
                         {meioPagamento ? (
                           <div className="flex items-center gap-1">
-                            <CreditCard className="h-3 w-3 text-zinc-500" />
+                            <CreditCard className="h-3 w-3 text-muted-foreground" />
                             <span>{meioPagamento}</span>
                             {faturaInfo?.banco_nome && (
-                              <span className="text-[10px] text-zinc-400 ml-1">
+                              <span className="text-[10px] text-muted-foreground ml-1">
                                 · {faturaInfo.banco_nome}
                                 {faturaInfo.fatura_vencimento &&
                                   ` · fat ${formatDateBR(faturaInfo.fatura_vencimento)}`}
@@ -270,7 +270,7 @@ export function BuscarMultiplosLancamentosDialog({
                           <span className="text-[10px] italic">—</span>
                         )}
                       </td>
-                      <td className="p-2 text-right font-mono font-semibold">
+                      <td className="p-2 text-right font-mono font-medium">
                         {formatBRL(c.valor)}
                       </td>
                     </tr>

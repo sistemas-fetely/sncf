@@ -176,7 +176,7 @@ export function DespesaDiretaDialog({ open, onClose, movimentacao, onConciliado 
                 {movimentacao.descricao}
               </div>
             </div>
-            <div className="font-mono text-lg font-bold text-red-700 whitespace-nowrap">
+            <div className="font-mono text-lg font-medium text-destructive whitespace-nowrap">
               {formatBRL(movimentacao.valor)}
             </div>
           </div>

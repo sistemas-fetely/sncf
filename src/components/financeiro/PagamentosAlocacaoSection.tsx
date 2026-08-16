@@ -175,7 +175,7 @@ export default function PagamentosAlocacaoSection({
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold">Pagamentos</h3>
+          <h3 className="text-sm font-medium">Pagamentos</h3>
           <Badge variant="secondary" className="text-[10px]">
             {data.length} {data.length === 1 ? "alocação" : "alocações"}
           </Badge>
@@ -183,7 +183,7 @@ export default function PagamentosAlocacaoSection({
         <div className="flex items-center gap-3 text-xs">
           <span>
             Total alocado:{" "}
-            <span className="font-semibold">{formatBRL(totalAlocado)}</span>
+            <span className="font-medium">{formatBRL(totalAlocado)}</span>
           </span>
           {isParcial ? (
             <span className="rounded-md px-2 py-0.5 bg-info/10 text-info font-medium">
@@ -207,7 +207,7 @@ export default function PagamentosAlocacaoSection({
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-sm">
+                  <span className="font-medium text-sm">
                     {formatBRL(Number(r.valor_alocado ?? 0))}
                   </span>
                   <span className="text-xs text-muted-foreground">

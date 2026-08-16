@@ -103,7 +103,7 @@ export function CompararTransportadorasDialog({
               <p>
                 Peso considerado: <span className="font-medium text-foreground">{data.peso_usado} kg</span>
                 {data.peso_fonte === "cubado" && data.peso_cubado != null && data.peso_bruto != null && (
-                  <span className="ml-2 text-amber-600 dark:text-amber-400">
+                  <span className="ml-2 text-warning">
                     peso cubado ({data.peso_cubado} kg) maior que o bruto ({data.peso_bruto} kg) — a transportadora cobra pelo maior
                   </span>
                 )}
@@ -154,13 +154,13 @@ export function CompararTransportadorasDialog({
                           key={(o.transportadora_id ?? "") + idx}
                           className={cn(
                             temErro && "text-muted-foreground",
-                            isMenor && "bg-emerald-50 dark:bg-emerald-950/30",
+                            isMenor && "bg-success/10",
                           )}
                         >
                           <TableCell>
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-medium text-foreground">{o.transportadora_nome}</span>
-                              {isMenor && <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-emerald-500 text-emerald-700 dark:text-emerald-400">Mais barata</Badge>}
+                              {isMenor && <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-success/40 text-success">Mais barata</Badge>}
                             </div>
                             {o.cnpj && <p className="text-[11px] text-muted-foreground">{o.cnpj}</p>}
                           </TableCell>
@@ -197,7 +197,7 @@ export function CompararTransportadorasDialog({
                             {!temErro && (
                               <div className="flex items-center justify-end gap-2">
                                 {diff != null && Math.abs(diff) >= 0.01 && (
-                                  <span className={cn("text-[11px]", diff > 0 ? "text-destructive" : "text-emerald-600 dark:text-emerald-400")}>
+                                  <span className={cn("text-[11px]", diff > 0 ? "text-destructive" : "text-success")}>
                                     {diff > 0 ? "+" : ""}{formatBRL(diff)} vs atual
                                   </span>
                                 )}

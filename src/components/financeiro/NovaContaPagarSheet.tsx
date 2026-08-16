@@ -607,20 +607,20 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
                   placeholder="Selecione uma categoria"
                 />
                 {topSugestao && !categoriaId && !sugestaoAplicada && topSugestao.score >= 60 && (
-                  <div className="mt-2 rounded-md border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950/40">
+                  <div className="mt-2 rounded-md border border-info/40 bg-info/10 p-3">
                     <div className="flex items-start gap-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 text-sm font-medium text-blue-900 dark:text-blue-200">
+                        <div className="flex items-center gap-1.5 text-sm font-medium text-info">
                           <Sparkles className="h-3.5 w-3.5" />
                           Sugestão IA: {topSugestao.categoria_codigo} {topSugestao.categoria_nome}
                         </div>
-                        <div className="text-xs text-blue-800/80 dark:text-blue-300/80 mt-0.5">
+                        <div className="text-xs text-info mt-0.5">
                           {topSugestao.motivo} · baseado em {topSugestao.amostra_count}{" "}
                           {topSugestao.amostra_count === 1 ? "lançamento" : "lançamentos"} similar
                           {topSugestao.amostra_count === 1 ? "" : "es"}
                         </div>
                         {topSugestao.amostra_descricao && (
-                          <div className="text-xs text-blue-700/70 dark:text-blue-300/60 mt-1 italic truncate">
+                          <div className="text-xs text-info mt-1 italic truncate">
                             ex: "{topSugestao.amostra_descricao}"
                           </div>
                         )}
@@ -629,7 +629,7 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
                         type="button"
                         size="sm"
                         variant="outline"
-                        className="shrink-0 border-blue-300 bg-white hover:bg-blue-100 dark:bg-blue-900/40"
+                        className="shrink-0 border-info/40 bg-white hover:bg-info/10"
                         onClick={() => {
                           setCategoriaId(topSugestao.plano_contas_id);
                           setSugestaoAplicada(true);

@@ -23,9 +23,9 @@ interface Props {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string; icon: typeof CheckCircle2 }> = {
-  conciliado: { label: "Vinculada", cls: "bg-emerald-50 text-emerald-700 border-emerald-300", icon: Link2 },
-  virou_despesa: { label: "Virou despesa", cls: "bg-blue-50 text-blue-700 border-blue-300", icon: CheckCircle2 },
-  ignorado: { label: "Ignorada", cls: "bg-zinc-50 text-zinc-700 border-zinc-300", icon: XCircle },
+  conciliado: { label: "Vinculada", cls: "bg-success/10 text-success border-success/40", icon: Link2 },
+  virou_despesa: { label: "Virou despesa", cls: "bg-info/10 text-info border-info/40", icon: CheckCircle2 },
+  ignorado: { label: "Ignorada", cls: "bg-muted/10 text-muted-foreground border-border/40", icon: XCircle },
 };
 
 /**
@@ -185,7 +185,7 @@ export function AcoesLancamentoCartao({ lancamento }: Props) {
         <Button
           size="sm"
           variant="outline"
-          className="h-6 px-2 text-[10px] gap-1 border-orange-300 text-orange-700 hover:bg-orange-50"
+          className="h-6 px-2 text-[10px] gap-1 border-warning/40 text-warning hover:bg-warning/10"
           onClick={() => setVincularOpen(true)}
           disabled={salvando}
         >
@@ -195,7 +195,7 @@ export function AcoesLancamentoCartao({ lancamento }: Props) {
         <Button
           size="sm"
           variant="outline"
-          className="h-6 px-2 text-[10px] gap-1 border-blue-300 text-blue-700 hover:bg-blue-50"
+          className="h-6 px-2 text-[10px] gap-1 border-info/40 text-info hover:bg-info/10"
           onClick={handleCriarContaAuto}
           disabled={salvando}
           title="Criar conta a pagar (detecta parcelas automaticamente)"
@@ -206,7 +206,7 @@ export function AcoesLancamentoCartao({ lancamento }: Props) {
         <Button
           size="sm"
           variant="outline"
-          className="h-6 px-2 text-[10px] gap-1 border-zinc-300 text-zinc-600 hover:bg-zinc-50"
+          className="h-6 px-2 text-[10px] gap-1 border-border/40 text-muted-foreground hover:bg-muted/10"
           onClick={handleIgnorar}
           disabled={salvando}
           title="Ocultar este lançamento"

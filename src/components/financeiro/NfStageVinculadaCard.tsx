@@ -33,11 +33,11 @@ export function NfStageVinculadaCard({ nfStageId, onRemover }: Props) {
   if (!nf) return null;
 
   return (
-    <div className="flex items-center gap-3 p-3 rounded-md border border-emerald-300 bg-emerald-50/50">
-      <FileText className="h-4 w-4 text-emerald-700 shrink-0" />
+    <div className="flex items-center gap-3 p-3 rounded-md border border-success/40 bg-success/10">
+      <FileText className="h-4 w-4 text-success shrink-0" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <Badge variant="outline" className="text-[10px] border-emerald-400 text-emerald-700">
+          <Badge variant="outline" className="text-[10px] border-success/40 text-success">
             {TIPO_LABEL[nf.tipo_documento] || nf.tipo_documento}
           </Badge>
           <span className="text-sm font-medium truncate">

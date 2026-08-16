@@ -120,16 +120,16 @@ export function DividirRemessaDialog({ remessaId, pedidoId, codigo, itens, trigg
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div className="rounded-md border p-2">
             <p className="text-muted-foreground text-xs">Fica em {codigo}</p>
-            <p className="font-semibold">{fmtBRL.format(valorFica)}</p>
+            <p className="font-medium">{fmtBRL.format(valorFica)}</p>
           </div>
           <div className="rounded-md border p-2">
             <p className="text-muted-foreground text-xs">Vai pra nova tentativa</p>
-            <p className="font-semibold">{fmtBRL.format(valorNova)}</p>
+            <p className="font-medium">{fmtBRL.format(valorNova)}</p>
           </div>
         </div>
 
         {totalMovido > 0 && totalFica === 0 && (
-          <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md p-2">
+          <div className="text-sm text-warning bg-warning/10 border border-warning/40 rounded-md p-2">
             Não dá pra mover tudo — ao menos um item precisa ficar nesta tentativa. Pra mandar tudo,
             use o envio normal.
           </div>

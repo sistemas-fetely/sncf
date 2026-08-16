@@ -304,12 +304,12 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
         variant="outline"
         size="sm"
         className={enviado
-          ? "w-full gap-2 justify-start bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300"
+          ? "w-full gap-2 justify-start bg-success/10 border-success/40 text-success hover:bg-success/10"
           : "w-full gap-2 justify-start"
         }
         onClick={() => abrirDialog(tipo)}
       >
-        <Icon className={enviado ? "h-4 w-4 text-emerald-600" : "h-4 w-4 text-muted-foreground"} />
+        <Icon className={enviado ? "h-4 w-4 text-success" : "h-4 w-4 text-muted-foreground"} />
         <span className="truncate">{TIPO_LABEL[tipo].btn}</span>
       </Button>
     );
@@ -416,8 +416,8 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
 
           <div className="space-y-4">
             {dialogTipo === "cobranca" && !!ultimoPorTipo["cobranca"] && (
-              <div className="rounded-md border border-amber-300 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950/30">
-                <p className="text-xs font-medium text-amber-900 dark:text-amber-300">
+              <div className="rounded-md border border-warning/40 bg-warning/10 p-3">
+                <p className="text-xs font-medium text-warning">
                   O cliente já recebeu esta cobrança em {fmtDateTime(ultimoPorTipo["cobranca"].enviado_em)}.
                   Enviar novamente é um reenvio consciente.
                 </p>
@@ -425,20 +425,20 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
             )}
 
             {dialogTipo === "cobranca" && !!brCodePix && (
-              <div className="rounded-md border border-emerald-300 bg-emerald-50 p-3 space-y-1.5 dark:border-emerald-800 dark:bg-emerald-950/30">
-                <p className="text-[10px] uppercase tracking-widest text-emerald-800 dark:text-emerald-300">
+              <div className="rounded-md border border-success/40 bg-success/10 p-3 space-y-1.5">
+                <p className="text-[10px] uppercase tracking-widest text-success">
                   PIX copia e cola
                 </p>
-                <p className="text-xs text-emerald-900 dark:text-emerald-200">
+                <p className="text-xs text-success">
                   O e-mail seguirá com o código PIX copia-e-cola gerado pelo SNCF (sem link do SafraPay).
                 </p>
                 {portao?.valor != null && (
-                  <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">
+                  <p className="text-sm font-medium text-success">
                     {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(portao.valor))}
                   </p>
                 )}
                 {portao?.pix_txid && (
-                  <p className="text-xs text-emerald-900/80 dark:text-emerald-300/80">
+                  <p className="text-xs text-success">
                     Identificador no extrato: <span className="font-mono">{portao.pix_txid}</span>
                   </p>
                 )}
@@ -464,11 +464,11 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
                       VENCIDO há {Math.abs(diasVencer)} dia(s)
                     </Badge>
                   ) : linkInfo?.situacao === "vencendo" ? (
-                    <Badge className="shrink-0 bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800">
+                    <Badge className="shrink-0 bg-warning/10 text-warning border-warning/40 hover:bg-warning/10">
                       vence em {diasVencer} dia(s)
                     </Badge>
                   ) : (
-                    <Badge className="shrink-0 bg-emerald-100 text-emerald-900 border-emerald-300 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">
+                    <Badge className="shrink-0 bg-success/10 text-success border-success/40 hover:bg-success/10">
                       válido
                     </Badge>
                   )}
@@ -479,7 +479,7 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
                   </p>
                 )}
                 {linkInfo?.renovado_nao_reenviado && (
-                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                  <p className="text-xs text-warning">
                     Link renovado e ainda não reenviado ao cliente.
                   </p>
                 )}
@@ -487,8 +487,8 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
             )}
 
             {precisaRenovar && (
-              <div className="rounded-md border border-amber-300 bg-amber-50 p-3 space-y-2 dark:border-amber-800 dark:bg-amber-950/30">
-                <p className="text-xs font-medium text-amber-900 dark:text-amber-300">
+              <div className="rounded-md border border-warning/40 bg-warning/10 p-3 space-y-2">
+                <p className="text-xs font-medium text-warning">
                   {linkExpirado
                     ? "Link vencido. Gere um link novo no SafraPay e cole abaixo antes de enviar."
                     : !linkUrl

@@ -133,7 +133,7 @@ export function BuscarMatchManualDialog({
                             </Badge>
                           )}
                           {valorMatch && (
-                            <Badge className="text-[9px] py-0 px-1.5 bg-emerald-100 text-emerald-800 hover:bg-emerald-100">
+                            <Badge className="text-[9px] py-0 px-1.5 bg-success/10 text-success hover:bg-success/10">
                               ✓ Mesmo valor
                             </Badge>
                           )}

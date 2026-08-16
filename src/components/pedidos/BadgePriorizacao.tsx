@@ -16,9 +16,9 @@ interface Props {
 }
 
 function corPorScore(score: number): string {
-  if (score >= 70) return "bg-red-500 text-white hover:bg-red-600";
-  if (score >= 40) return "bg-yellow-500 text-black hover:bg-yellow-600";
-  return "bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200";
+  if (score >= 70) return "bg-destructive text-white hover:bg-destructive";
+  if (score >= 40) return "bg-warning text-black hover:bg-warning";
+  return "bg-muted/15 text-muted-foreground hover:bg-muted/15";
 }
 
 function rotuloFaixa(score: number): string {
@@ -39,7 +39,7 @@ export function BadgePriorizacao({
   const triggerEl = (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold cursor-help transition-colors",
+        "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium cursor-help transition-colors",
         cor
       )}
     >
@@ -67,7 +67,7 @@ export function BadgePriorizacao({
         <TooltipTrigger asChild>{triggerEl}</TooltipTrigger>
         <TooltipContent side="right" className="max-w-xs">
           <div className="space-y-1.5">
-            <p className="text-xs font-semibold flex items-center gap-1">
+            <p className="text-xs font-medium flex items-center gap-1">
               <Sparkles className="h-3 w-3" />
               Score IA · {rotuloFaixa(score)}
             </p>
@@ -81,7 +81,7 @@ export function BadgePriorizacao({
                 </div>
               ))}
             </div>
-            <div className="pt-1 mt-1 border-t border-border/40 flex justify-between text-xs font-semibold">
+            <div className="pt-1 mt-1 border-t border-border/40 flex justify-between text-xs font-medium">
               <span>Total</span>
               <span className="font-mono">{score}/100</span>
             </div>

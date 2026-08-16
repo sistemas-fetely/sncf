@@ -58,8 +58,8 @@ export function getQualidadeDadoIcon(
   if (nivel === "vermelho") {
     return {
       Icon: Circle,
-      cor: "text-red-600",
-      bg: "fill-red-500",
+      cor: "text-destructive",
+      bg: "fill-destructive",
       label: "Atenção",
       tooltip: motivosTexto || "Atenção: dado incompleto",
     };
@@ -68,8 +68,8 @@ export function getQualidadeDadoIcon(
   // amarelo
   return {
     Icon: Circle,
-    cor: "text-amber-600",
-    bg: "fill-amber-400",
+    cor: "text-warning",
+    bg: "fill-warning",
     label: "Verificar",
     tooltip: motivosTexto || "Verificar: anomalia detectada",
   };

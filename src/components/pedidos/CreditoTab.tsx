@@ -30,9 +30,9 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_CLASS: Record<string, string> = {
-  aprovado: "bg-emerald-500 hover:bg-emerald-500 text-white border-0",
-  reprovado: "bg-red-500 hover:bg-red-500 text-white border-0",
-  aprovado_com_ressalva: "bg-amber-500 hover:bg-amber-500 text-white border-0",
+  aprovado: "bg-success hover:bg-success text-white border-0",
+  reprovado: "bg-destructive hover:bg-destructive text-white border-0",
+  aprovado_com_ressalva: "bg-warning hover:bg-warning text-white border-0",
 };
 
 const FORMA_LABEL: Record<string, string> = {
@@ -87,10 +87,10 @@ export function CreditoTab({ analise }: Props) {
 
       {/* RESSALVA — caixa de destaque */}
       {analise.ressalva && (
-        <Alert className="border-amber-400 bg-amber-50 dark:bg-amber-950/20">
-          <ShieldAlert className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="text-amber-800 dark:text-amber-300">
-            <span className="font-semibold block text-[10px] uppercase tracking-widest mb-1 text-amber-600">
+        <Alert className="border-warning/40 bg-warning/10">
+          <ShieldAlert className="h-4 w-4 text-warning" />
+          <AlertDescription className="text-warning">
+            <span className="font-medium block text-[10px] uppercase tracking-widest mb-1 text-warning">
               Ressalva do crédito
             </span>
             <span className="text-sm font-medium leading-relaxed">{analise.ressalva}</span>
@@ -101,7 +101,7 @@ export function CreditoTab({ analise }: Props) {
       {/* Parecer final do Joseph */}
       {analise.parecer_final && (
         <div className="rounded-md bg-muted/40 border border-border/50 px-3 py-2.5 space-y-1.5">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
             Parecer do Joseph
           </p>
           <p className="text-sm leading-relaxed">{analise.parecer_final}</p>
@@ -111,7 +111,7 @@ export function CreditoTab({ analise }: Props) {
       {/* Resumo da IA */}
       {analise.analise_ia_resumo && (
         <div className="rounded-md bg-muted/40 border border-border/50 px-3 py-2.5 space-y-1.5">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
             Resumo IA
           </p>
           <p className="text-sm text-muted-foreground leading-relaxed">{analise.analise_ia_resumo}</p>
@@ -128,7 +128,7 @@ export function CreditoTab({ analise }: Props) {
               <CreditCard className="h-3 w-3" />
               Limite concedido
             </p>
-            <p className="text-sm font-semibold">{fmtBRL.format(Number(analise.limite_concedido))}</p>
+            <p className="text-sm font-medium">{fmtBRL.format(Number(analise.limite_concedido))}</p>
           </div>
         )}
         {analise.prazo_max_dias != null && (
@@ -137,7 +137,7 @@ export function CreditoTab({ analise }: Props) {
               <Timer className="h-3 w-3" />
               Prazo máximo
             </p>
-            <p className="text-sm font-semibold">{analise.prazo_max_dias} dias</p>
+            <p className="text-sm font-medium">{analise.prazo_max_dias} dias</p>
           </div>
         )}
         {analise.validade_ate && (
@@ -146,7 +146,7 @@ export function CreditoTab({ analise }: Props) {
               <CalendarDays className="h-3 w-3" />
               Válida até
             </p>
-            <p className="text-sm font-semibold">{fmtDate(analise.validade_ate)}</p>
+            <p className="text-sm font-medium">{fmtDate(analise.validade_ate)}</p>
           </div>
         )}
         {analise.decidido_em && (
@@ -155,7 +155,7 @@ export function CreditoTab({ analise }: Props) {
               <User className="h-3 w-3" />
               Decisão em
             </p>
-            <p className="text-sm font-semibold">{fmtDateTime(analise.decidido_em)}</p>
+            <p className="text-sm font-medium">{fmtDateTime(analise.decidido_em)}</p>
           </div>
         )}
         {formas.length > 0 && (

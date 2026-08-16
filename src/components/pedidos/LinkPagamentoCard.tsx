@@ -25,20 +25,20 @@ export function BadgeSituacaoLink({ linha }: { linha: LinkPagamentoPedido }) {
   const d = Number(linha.dias_para_vencer ?? 0);
   if (linha.situacao === "expirado") {
     return (
-      <Badge variant="outline" className="border-0 bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 text-[10px] whitespace-nowrap">
+      <Badge variant="outline" className="border-0 bg-destructive/10 text-destructive text-[10px] whitespace-nowrap">
         VENCIDO há {Math.abs(d)} dia{Math.abs(d) === 1 ? "" : "s"}
       </Badge>
     );
   }
   if (linha.situacao === "vencendo") {
     return (
-      <Badge variant="outline" className="border-0 bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 text-[10px] whitespace-nowrap">
+      <Badge variant="outline" className="border-0 bg-warning/10 text-warning text-[10px] whitespace-nowrap">
         vence em {d} dia{d === 1 ? "" : "s"}
       </Badge>
     );
   }
   return (
-    <Badge variant="outline" className="border-0 bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 text-[10px]">
+    <Badge variant="outline" className="border-0 bg-success/10 text-success text-[10px]">
       válido
     </Badge>
   );
@@ -53,13 +53,13 @@ export function BadgeLinkFila({ linha }: { linha?: LinkPagamentoPedido | null })
   const d = Number(linha.dias_para_vencer ?? 0);
   if (linha.situacao === "expirado") {
     return (
-      <Badge variant="outline" className="border-0 bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 text-[10px] whitespace-nowrap w-fit">
+      <Badge variant="outline" className="border-0 bg-destructive/10 text-destructive text-[10px] whitespace-nowrap w-fit">
         link vencido
       </Badge>
     );
   }
   return (
-    <Badge variant="outline" className="border-0 bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 text-[10px] whitespace-nowrap w-fit">
+    <Badge variant="outline" className="border-0 bg-warning/10 text-warning text-[10px] whitespace-nowrap w-fit">
       link vence em {d} d
     </Badge>
   );
@@ -86,7 +86,7 @@ function UrlCopiavel({ url, className }: { url: string; className?: string }) {
         onClick={copiar}
         className="shrink-0 text-muted-foreground hover:text-primary transition-colors"
       >
-        {copiado ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+        {copiado ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
       </button>
     </div>
   );
@@ -145,7 +145,7 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
                   Gerado em {fmtDataBR(linha.gerado_em)} · válido até {fmtDataBR(linha.expira_em)}
                 </p>
                 {linha.renovado_nao_reenviado && (
-                  <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                  <p className="text-[11px] text-warning">
                     Renovado e ainda não reenviado ao cliente.
                   </p>
                 )}

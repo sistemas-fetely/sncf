@@ -263,7 +263,7 @@ export default function FilaRevisaoIADialog({ open, onClose }: Props) {
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-amber-500" />
+            <Sparkles className="h-5 w-5 text-warning" />
             IA precisa da sua ajuda
           </DialogTitle>
           <DialogDescription>
@@ -277,7 +277,7 @@ export default function FilaRevisaoIADialog({ open, onClose }: Props) {
           </div>
         ) : !atual ? (
           <div className="text-center py-12 space-y-2">
-            <Check className="h-8 w-8 mx-auto text-emerald-500" />
+            <Check className="h-8 w-8 mx-auto text-success" />
             <p className="text-sm font-medium">Nenhum ambíguo. Tudo OK!</p>
           </div>
         ) : (
@@ -337,11 +337,11 @@ export default function FilaRevisaoIADialog({ open, onClose }: Props) {
 
                         {/* Caixa amarela: itens da NF — chave de desempate */}
                         {Array.isArray(c.itens) && c.itens.length > 0 && (
-                          <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
-                            <div className="font-medium text-yellow-900 mb-1">
+                          <div className="mt-2 p-2 bg-warning/10 border border-warning/40 rounded text-xs">
+                            <div className="font-medium text-warning mb-1">
                               Itens da NF ({c.itens.length}):
                             </div>
-                            <ul className="space-y-0.5 text-yellow-800">
+                            <ul className="space-y-0.5 text-warning">
                               {c.itens.slice(0, 5).map((item: any, idx: number) => (
                                 <li key={idx} className="truncate">
                                   • {item.descricao ?? item.nome ?? "Sem descrição"}
@@ -349,7 +349,7 @@ export default function FilaRevisaoIADialog({ open, onClose }: Props) {
                                 </li>
                               ))}
                               {c.itens.length > 5 && (
-                                <li className="text-yellow-700 italic">
+                                <li className="text-warning italic">
                                   +{c.itens.length - 5} item(ns)
                                 </li>
                               )}
@@ -373,7 +373,7 @@ export default function FilaRevisaoIADialog({ open, onClose }: Props) {
                         size="sm"
                         onClick={() => aplicarNF(c.nf_id)}
                         disabled={resolvendo}
-                        className="gap-1 bg-emerald-600 hover:bg-emerald-700"
+                        className="gap-1 bg-success hover:bg-success"
                       >
                         {resolvendo ? (
                           <Loader2 className="h-3 w-3 animate-spin" />
@@ -399,7 +399,7 @@ export default function FilaRevisaoIADialog({ open, onClose }: Props) {
                             {c.categoria_codigo}
                           </span>
                           {c.categoria_nome}
-                          <span className="ml-2 inline-flex items-center rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-[10px] font-semibold">
+                          <span className="ml-2 inline-flex items-center rounded-full bg-warning/10 text-warning px-2 py-0.5 text-[10px] font-medium">
                             {c.score}%
                           </span>
                         </div>
@@ -414,14 +414,14 @@ export default function FilaRevisaoIADialog({ open, onClose }: Props) {
                         )}
                         {c.similares && c.similares.length > 0 && (
                           <div className="mt-2">
-                            <div className="text-[11px] font-medium text-blue-900 mb-1.5">
+                            <div className="text-[11px] font-medium text-info mb-1.5">
                               Lançamentos similares que a IA usou de base ({c.similares.length}):
                             </div>
-                            <div className="space-y-1.5 pl-2 border-l-2 border-blue-200">
+                            <div className="space-y-1.5 pl-2 border-l-2 border-info/40">
                               {c.similares.map((s) => (
                                 <div
                                   key={s.conta_id}
-                                  className="text-[11px] bg-blue-50/50 rounded px-2 py-1.5"
+                                  className="text-[11px] bg-info/10 rounded px-2 py-1.5"
                                 >
                                   <div className="flex items-start justify-between gap-2">
                                     <div className="min-w-0 flex-1">
@@ -434,7 +434,7 @@ export default function FilaRevisaoIADialog({ open, onClose }: Props) {
                                       </div>
                                     </div>
                                     <div className="text-right shrink-0">
-                                      <span className="inline-flex items-center rounded-full bg-blue-100 text-blue-800 px-1.5 py-0.5 text-[9px] font-semibold">
+                                      <span className="inline-flex items-center rounded-full bg-info/10 text-info px-1.5 py-0.5 text-[9px] font-medium">
                                         {s.match_motivo} {s.match_score}%
                                       </span>
                                     </div>
@@ -449,7 +449,7 @@ export default function FilaRevisaoIADialog({ open, onClose }: Props) {
                         size="sm"
                         onClick={() => aplicarCategoria(c.categoria_id)}
                         disabled={resolvendo}
-                        className="gap-1 bg-emerald-600 hover:bg-emerald-700"
+                        className="gap-1 bg-success hover:bg-success"
                       >
                         {resolvendo ? (
                           <Loader2 className="h-3 w-3 animate-spin" />

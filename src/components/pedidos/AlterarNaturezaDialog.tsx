@@ -124,8 +124,8 @@ export function AlterarNaturezaDialog({
           </div>
 
           {escolhida && !escolhida.gera_titulo_receber && (
-            <Alert className="border-amber-300 bg-amber-50 text-amber-900 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-200">
-              <AlertTriangle className="h-4 w-4 !text-amber-600" />
+            <Alert className="border-warning/40 bg-warning/10 text-warning">
+              <AlertTriangle className="h-4 w-4 !text-warning" />
               <AlertDescription>
                 Este pedido deixará de gerar cobrança e vai direto para separação.
               </AlertDescription>

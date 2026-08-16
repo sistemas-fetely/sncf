@@ -244,7 +244,7 @@ export function CancelarPedidoDialog({ pedido_id, id_externo, estagio, cliente_n
           <>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                <CheckCircle2 className="h-5 w-5 text-success" />
                 Pedido cancelado
               </DialogTitle>
             </DialogHeader>
@@ -335,7 +335,7 @@ export function CancelarPedidoDialog({ pedido_id, id_externo, estagio, cliente_n
             <AlertDialogTitle>Anular o crédito do cliente?</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-2">
-                <p className="text-2xl font-bold text-destructive">{brl(valorCredito)}</p>
+                <p className="text-2xl font-medium text-destructive">{brl(valorCredito)}</p>
                 {cliente_nome && (
                   <p className="text-sm">
                     Cliente: <strong>{cliente_nome}</strong>

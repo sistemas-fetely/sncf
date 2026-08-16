@@ -59,7 +59,7 @@ function Grupo({ rotulo, pedidos }: { rotulo: string; pedidos: PedidoVinculo[] }
   if (!pedidos.length) return null;
   return (
     <div className="space-y-1">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+      <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
         {rotulo}
       </p>
       <div className="space-y-1">
@@ -83,7 +83,7 @@ function GrupoRemessas({ remessas, id_externo }: { remessas: any[]; id_externo: 
   if (!remessas.length) return null;
   return (
     <div className="space-y-1">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+      <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
         Envios ao Bling
       </p>
       <div className="space-y-1">
@@ -103,7 +103,7 @@ function GrupoRemessas({ remessas, id_externo }: { remessas: any[]; id_externo: 
 
                   {delta > 0 && (
                     <span title={`Delta financeiro: ${fmtBRL.format(delta)}`} className="inline-flex">
-                      <AlertTriangle className="h-3 w-3 shrink-0 text-amber-500" aria-label="Delta financeiro" />
+                      <AlertTriangle className="h-3 w-3 shrink-0 text-warning" aria-label="Delta financeiro" />
                     </span>
                   )}
                 </div>
@@ -198,7 +198,7 @@ export function VinculosSection({
   return (
     <Card className="border-border/60">
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+        <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Link2 className="h-4 w-4 text-muted-foreground" />
           Vínculos
         </CardTitle>
@@ -214,7 +214,7 @@ export function VinculosSection({
             <Grupo rotulo="Consolidou" pedidos={vinculos.consolidou} />
             {vinculos.origem && (
               <div className="space-y-1">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
                   Origem
                 </p>
                 <div className="flex items-start justify-between gap-1">

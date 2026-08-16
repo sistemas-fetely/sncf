@@ -255,7 +255,7 @@ function RegrasPanel({ banco }: { banco: Banco }) {
   return (
     <div className="border-t bg-muted/30 p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <h4 className="text-sm font-semibold">Regras de liquidação — {banco.nome}</h4>
+        <h4 className="text-sm font-medium">Regras de liquidação — {banco.nome}</h4>
         <Button size="sm" onClick={() => { setEditing(null); setFormOpen(true); }} className="gap-2">
           <Plus className="h-4 w-4" /> Adicionar regra
         </Button>

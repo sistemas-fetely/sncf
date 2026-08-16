@@ -79,7 +79,7 @@ export function ReenviarBlingDialog({ pedidoId, idExterno, blingIdAtual }: Props
             <AlertDescription className="text-xs leading-relaxed">
               {aviso.texto}
               <br />
-              <span className="font-semibold">Situação no Bling: {aviso.situacao}</span>
+              <span className="font-medium">Situação no Bling: {aviso.situacao}</span>
             </AlertDescription>
           </Alert>
         )}

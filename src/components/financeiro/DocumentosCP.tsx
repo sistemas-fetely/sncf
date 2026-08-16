@@ -133,15 +133,15 @@ export default function DocumentosCP({
 
   const docsStatusBadge =
     docsStatus === "ok" ? (
-      <Badge className="bg-green-100 text-green-800 hover:bg-green-100 text-[10px]">
+      <Badge className="bg-success/10 text-success hover:bg-success/10 text-[10px]">
         Documentação OK
       </Badge>
     ) : docsStatus === "parcial" ? (
-      <Badge variant="outline" className="border-amber-400 text-amber-600 text-[10px]">
+      <Badge variant="outline" className="border-warning/40 text-warning text-[10px]">
         Parcial (falta NF ou recibo)
       </Badge>
     ) : (
-      <Badge variant="outline" className="border-amber-400 text-amber-600 text-[10px]">
+      <Badge variant="outline" className="border-warning/40 text-warning text-[10px]">
         Pendente
       </Badge>
     );
@@ -155,12 +155,12 @@ export default function DocumentosCP({
 
       {/* NF vinculada via Qive/XML */}
       {nfChaveAcesso && (
-        <div className="flex items-center gap-2 p-2 rounded border text-xs bg-green-50">
-          <FileText className="h-3 w-3 text-green-700" />
+        <div className="flex items-center gap-2 p-2 rounded border text-xs bg-success/10">
+          <FileText className="h-3 w-3 text-success" />
           <span className="flex-1 truncate">
             NF {nfNumero || "vinculada"}{origem ? ` (via ${origem})` : ""}
           </span>
-          <Badge variant="outline" className="text-[9px] border-green-500 text-green-700">
+          <Badge variant="outline" className="text-[9px] border-success/40 text-success">
             NF
           </Badge>
         </div>
@@ -191,7 +191,7 @@ export default function DocumentosCP({
             <Button
               size="sm"
               variant="ghost"
-              className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+              className="h-6 w-6 p-0 text-destructive hover:text-destructive"
               onClick={() => removerDoc(doc)}
             >
               <Trash2 className="h-3 w-3" />
@@ -237,7 +237,7 @@ export default function DocumentosCP({
       </div>
 
       {docsStatus !== "ok" && (
-        <p className="text-[11px] text-amber-600">
+        <p className="text-[11px] text-warning">
           ⚠ Falta NF ou recibo. Ticket de cartão sozinho não serve para compliance.
         </p>
       )}

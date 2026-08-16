@@ -31,38 +31,38 @@ const ESTAGIO_ICONES: Record<EstagioPedido, JSX.Element> = {
 
 // Fundo suave — tom claro da cor do estágio
 const ESTAGIO_BG_SUAVE: Record<EstagioPedido, string> = {
-  recebido:             "bg-slate-100 dark:bg-slate-800/40",
-  em_analise_credito:   "bg-blue-50 dark:bg-blue-900/30",
+  recebido:             "bg-muted/10",
+  em_analise_credito:   "bg-info/10",
   
-  cobranca:             "bg-violet-50 dark:bg-violet-900/30",
-  aguardando_pagamento: "bg-amber-50 dark:bg-amber-900/30",
-  pre_separacao:        "bg-orange-50 dark:bg-orange-900/30",
-  pre_faturamento:      "bg-amber-50 dark:bg-amber-900/30",
-  aguardando_estoque:   "bg-yellow-50 dark:bg-yellow-900/30",
-  em_separacao:         "bg-sky-50 dark:bg-sky-900/30",
-  faturado:             "bg-sky-100 dark:bg-sky-900/40",
-  em_transporte:        "bg-indigo-50 dark:bg-indigo-900/30",
-  entregue:             "bg-green-50 dark:bg-green-900/30",
-  cancelado:            "bg-red-50 dark:bg-red-900/30",
-  recuperacao_venda:    "bg-orange-50 dark:bg-orange-900/30",
+  cobranca:             "bg-info/10",
+  aguardando_pagamento: "bg-warning/10",
+  pre_separacao:        "bg-warning/10",
+  pre_faturamento:      "bg-warning/10",
+  aguardando_estoque:   "bg-warning/10",
+  em_separacao:         "bg-info/10",
+  faturado:             "bg-info/10",
+  em_transporte:        "bg-info/10",
+  entregue:             "bg-success/10",
+  cancelado:            "bg-destructive/10",
+  recuperacao_venda:    "bg-warning/10",
 };
 
 // Cor do número e ícone — tom médio da cor do estágio
 const ESTAGIO_TEXT_COR: Record<EstagioPedido, string> = {
-  recebido:             "text-slate-600 dark:text-slate-400",
-  em_analise_credito:   "text-blue-600 dark:text-blue-400",
+  recebido:             "text-muted-foreground",
+  em_analise_credito:   "text-info",
   
-  cobranca:             "text-violet-600 dark:text-violet-400",
-  aguardando_pagamento: "text-amber-600 dark:text-amber-400",
-  pre_separacao:        "text-orange-600 dark:text-orange-400",
-  pre_faturamento:      "text-amber-700 dark:text-amber-400",
-  aguardando_estoque:   "text-yellow-700 dark:text-yellow-400",
-  em_separacao:         "text-sky-600 dark:text-sky-400",
-  faturado:             "text-sky-700 dark:text-sky-400",
-  em_transporte:        "text-indigo-600 dark:text-indigo-400",
-  entregue:             "text-green-600 dark:text-green-400",
-  cancelado:            "text-red-600 dark:text-red-400",
-  recuperacao_venda:    "text-orange-600 dark:text-orange-400",
+  cobranca:             "text-info",
+  aguardando_pagamento: "text-warning",
+  pre_separacao:        "text-warning",
+  pre_faturamento:      "text-warning",
+  aguardando_estoque:   "text-warning",
+  em_separacao:         "text-info",
+  faturado:             "text-info",
+  em_transporte:        "text-info",
+  entregue:             "text-success",
+  cancelado:            "text-destructive",
+  recuperacao_venda:    "text-warning",
 };
 
 interface Props {
@@ -185,7 +185,7 @@ export function PipelineHorizontal({
               onClick={() => onToggleRiscoAlto?.()}
               aria-pressed={riscoAltoAtivo}
               className={cn(
-                "flex items-center gap-1.5 rounded-md px-2 py-0.5 font-semibold transition-colors",
+                "flex items-center gap-1.5 rounded-md px-2 py-0.5 font-medium transition-colors",
                 riscoAltoAtivo
                   ? "bg-destructive text-destructive-foreground ring-1 ring-destructive"
                   : "bg-destructive/10 text-destructive ring-1 ring-destructive/30 hover:bg-destructive/20"
@@ -209,7 +209,7 @@ export function PipelineHorizontal({
             </div>
           )}
           {(pagamentoVencido?.entregues ?? 0) > 0 && (
-            <div className="flex items-center gap-1.5 rounded-md bg-destructive/10 px-2 py-0.5 text-destructive font-semibold ring-1 ring-destructive/30">
+            <div className="flex items-center gap-1.5 rounded-md bg-destructive/10 px-2 py-0.5 text-destructive font-medium ring-1 ring-destructive/30">
               <AlertTriangle className="h-3.5 w-3.5" />
               {pagamentoVencido!.entregues} entregues sem pagamento
             </div>
@@ -231,7 +231,7 @@ export function PipelineHorizontal({
           <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
             Fila ativa
           </span>
-          <span className="text-lg font-semibold tabular-nums">
+          <span className="text-lg font-medium tabular-nums">
             {totalQtd}
           </span>
         </button>
@@ -251,7 +251,7 @@ export function PipelineHorizontal({
           <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide leading-tight">
             Incluir<br />cancelados
           </span>
-          <span className="text-[11px] font-semibold">
+          <span className="text-[11px] font-medium">
             {incluirCancelados ? "Ligado" : "Desligado"}
           </span>
         </button>
@@ -299,7 +299,7 @@ export function PipelineHorizontal({
               </span>
 
               {/* Número */}
-              <span className={cn("text-lg font-semibold tabular-nums", textCor)}>
+              <span className={cn("text-lg font-medium tabular-nums", textCor)}>
                 {qtd}
               </span>
 

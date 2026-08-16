@@ -82,7 +82,7 @@ export function PreviewNFsImportSimples({ nfs, onChange, onImport, importing }: 
             </span>
           )}
           {totals.jaExiste > 0 && (
-            <span className="ml-2 text-slate-500">
+            <span className="ml-2 text-muted-foreground">
               ({totals.jaExiste} já existente{totals.jaExiste === 1 ? "" : "s"})
             </span>
           )}
@@ -147,12 +147,12 @@ export function PreviewNFsImportSimples({ nfs, onChange, onImport, importing }: 
                     ) : nf._ambigua ? (
                       <div className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3 text-amber-600" />
-                          <Badge className="bg-amber-500 hover:bg-amber-500 text-white">Ambígua</Badge>
+                          <AlertCircle className="h-3 w-3 text-warning" />
+                          <Badge className="bg-warning hover:bg-warning text-white">Ambígua</Badge>
                         </div>
                         {nf._candidatos_match?.[0] && (
                           <span
-                            className="text-[10px] text-amber-700 cursor-help"
+                            className="text-[10px] text-warning cursor-help"
                             title={nf._candidatos_match
                               .map(
                                 (c) =>
@@ -168,7 +168,7 @@ export function PreviewNFsImportSimples({ nfs, onChange, onImport, importing }: 
                         )}
                   </div>
                 ) : nf._ja_existe ? (
-                  <Badge className="bg-slate-400 hover:bg-slate-400 text-white">Já existe</Badge>
+                  <Badge className="bg-muted hover:bg-muted text-white">Já existe</Badge>
                 ) : (
                   <Badge className="bg-success hover:bg-success text-success-foreground">
                     Novo
@@ -181,18 +181,18 @@ export function PreviewNFsImportSimples({ nfs, onChange, onImport, importing }: 
                         <select
                           value={nf.tipo_documento || "recibo"}
                           onChange={(e) => setTipo(i, e.target.value)}
-                          className="text-xs border rounded px-1.5 py-0.5 bg-background text-amber-700 border-amber-400 cursor-pointer"
+                          className="text-xs border rounded px-1.5 py-0.5 bg-background text-warning border-warning/40 cursor-pointer"
                           title="Tipo não identificado com certeza — confirme"
                         >
                           {TIPO_DOC_OPTIONS.map((o) => (
                             <option key={o.value} value={o.value}>{o.label}</option>
                           ))}
                         </select>
-                        <span className="text-[10px] text-amber-600">confirme o tipo</span>
+                        <span className="text-[10px] text-warning">confirme o tipo</span>
                       </div>
                     ) : ehBoleto ? (
                       <div className="flex items-center gap-1.5">
-                        <Badge className="bg-blue-600 hover:bg-blue-600 text-white">BOLETO</Badge>
+                        <Badge className="bg-info hover:bg-info text-white">BOLETO</Badge>
                         {nf.numero_parcela && nf.total_parcelas && (
                           <Badge variant="outline" className="text-[10px]">
                             {nf.numero_parcela}/{nf.total_parcelas}

@@ -10,15 +10,15 @@ import { useNavigate } from "react-router-dom";
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 const ESTAGIO_CORES: Record<string, string> = {
-  aguardando_estoque: "bg-yellow-100 text-yellow-800",
-  pre_separacao:      "bg-blue-100 text-blue-800",
-  pre_faturamento:    "bg-amber-100 text-amber-800",
-  cobranca:           "bg-purple-100 text-purple-800",
-  em_separacao:       "bg-indigo-100 text-indigo-800",
-  faturado:           "bg-green-100 text-green-800",
-  em_transporte:      "bg-teal-100 text-teal-800",
-  entregue:           "bg-emerald-100 text-emerald-800",
-  cancelado:          "bg-red-100 text-red-800",
+  aguardando_estoque: "bg-warning/10 text-warning",
+  pre_separacao:      "bg-info/10 text-info",
+  pre_faturamento:    "bg-warning/10 text-warning",
+  cobranca:           "bg-info/10 text-info",
+  em_separacao:       "bg-info/10 text-info",
+  faturado:           "bg-success/10 text-success",
+  em_transporte:      "bg-success/10 text-success",
+  entregue:           "bg-success/10 text-success",
+  cancelado:          "bg-destructive/10 text-destructive",
 };
 
 interface Props {
@@ -55,7 +55,7 @@ export function SplitsPedidoSection({ pedido_id }: Props) {
       <CardContent className="space-y-3">
         {splits.map((sp: any) => {
           const itens: any[] = Array.isArray(sp.itens_json) ? sp.itens_json : [];
-          const cor = ESTAGIO_CORES[sp.estagio] ?? "bg-gray-100 text-gray-700";
+          const cor = ESTAGIO_CORES[sp.estagio] ?? "bg-muted/10 text-muted-foreground";
           const label = ESTAGIO_LABELS[sp.estagio as EstagioPedido] ?? sp.estagio;
 
           return (
@@ -73,7 +73,7 @@ export function SplitsPedidoSection({ pedido_id }: Props) {
                 </div>
                 <div className="text-sm text-muted-foreground">
                   {itens.length} {itens.length === 1 ? "item" : "itens"} ·{" "}
-                  <span className="font-semibold text-foreground">{fmtBRL.format(sp.valor_liquido ?? 0)}</span>
+                  <span className="font-medium text-foreground">{fmtBRL.format(sp.valor_liquido ?? 0)}</span>
                 </div>
               </div>
 
@@ -88,7 +88,7 @@ export function SplitsPedidoSection({ pedido_id }: Props) {
                 <span>Desconto ({sp.valor_bruto > 0 ? (((sp.valor_bruto - sp.valor_liquido) / sp.valor_bruto) * 100).toFixed(2) : "0.00"}%)</span>
                 <span>−{fmtBRL.format(sp.valor_bruto - sp.valor_liquido)}</span>
               </div>
-              <div className="flex justify-between font-semibold border-t pt-1">
+              <div className="flex justify-between font-medium border-t pt-1">
                 <span>Valor líquido</span>
                 <span>{fmtBRL.format(sp.valor_liquido)}</span>
               </div>

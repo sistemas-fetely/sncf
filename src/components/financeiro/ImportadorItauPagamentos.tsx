@@ -278,7 +278,7 @@ export function ImportadorItauPagamentos({ contaBancariaId: contaBancariaIdProp,
           <div className="space-y-2 text-xs pt-2 border-t">
             <div className="flex items-center gap-1.5 text-success">
               <CheckCircle2 className="h-3.5 w-3.5" />
-              <span className="font-semibold">
+              <span className="font-medium">
                 {resultado.total_importadas} linha(s) importada(s)
               </span>
             </div>

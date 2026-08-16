@@ -27,15 +27,15 @@ export function ProvaPagamentoAlerta({ prova, className }: Props) {
       variant={tom === "perigo" ? "destructive" : "default"}
       className={cn(
         tom === "ok" &&
-          "border-emerald-300 bg-emerald-50 text-emerald-900 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-200 [&>svg]:text-emerald-600",
+          "border-success/40 bg-success/10 text-success [&>svg]:text-success",
         tom === "alerta" &&
-          "border-amber-300 bg-amber-50 text-amber-900 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-200 [&>svg]:text-amber-600",
+          "border-warning/40 bg-warning/10 text-warning [&>svg]:text-warning",
         className,
       )}
     >
       <Icone className="h-4 w-4" />
       <AlertDescription>
-        <span className="block font-semibold">{prova.prova_rotulo}</span>
+        <span className="block font-medium">{prova.prova_rotulo}</span>
         <span className="block text-sm">{prova.prova_frase}</span>
         {mostrarFonte && (
           <span className="block text-xs opacity-80 pt-0.5">

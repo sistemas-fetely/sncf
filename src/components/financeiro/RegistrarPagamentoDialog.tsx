@@ -190,7 +190,7 @@ export default function RegistrarPagamentoDialog({ open, onOpenChange, conta, on
           <Button
             onClick={() => mut.mutate()}
             disabled={mut.isPending}
-            className="bg-green-700 hover:bg-green-800 text-white gap-2"
+            className="bg-success hover:bg-success text-white gap-2"
           >
             {mut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
             Confirmar pagamento

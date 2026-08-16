@@ -293,7 +293,7 @@ export default function BuscarNFStageDialog({
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertTriangle className="h-4 w-4 text-warning" />
               Múltiplas parcelas encontradas
             </DialogTitle>
             <DialogDescription asChild>
@@ -310,19 +310,19 @@ export default function BuscarNFStageDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-            <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
-            <div className="text-sm text-amber-900">
+          <div className="flex items-center gap-2 p-3 bg-warning/10 border border-warning/40 rounded-lg">
+            <AlertTriangle className="h-5 w-5 text-warning shrink-0" />
+            <div className="text-sm text-warning">
               {candidatosCPR.length} parcelas em aberto deste parceiro com mesmo valor.
               IA sugeriu a mais próxima da data da NF.
             </div>
           </div>
 
-          <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
-            <div className="text-xs text-blue-900 space-y-1">
+          <div className="flex items-start gap-2 p-3 bg-info/10 border border-info/40 rounded-lg">
+            <Info className="h-4 w-4 text-info shrink-0 mt-0.5" />
+            <div className="text-xs text-info space-y-1">
               <div className="font-medium">Como escolher a parcela correta:</div>
-              <ul className="list-disc list-inside space-y-0.5 text-blue-800">
+              <ul className="list-disc list-inside space-y-0.5 text-info">
                 <li>
                   NF emitida em:{" "}
                   <strong>{formatDate(nfEscolhida.nf_data_emissao)}</strong>
@@ -346,7 +346,7 @@ export default function BuscarNFStageDialog({
                   htmlFor={cand.cprId}
                   className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
                     cprSelecionado === cand.cprId
-                      ? "border-emerald-400 bg-emerald-50/40"
+                      ? "border-success/40 bg-success/10"
                       : "hover:bg-muted/50"
                   }`}
                 >
@@ -360,18 +360,18 @@ export default function BuscarNFStageDialog({
                       {cand.parcela && (
                         <Badge
                           variant="outline"
-                          className="text-[10px] font-bold bg-slate-100 border-slate-300"
+                          className="text-[10px] font-medium bg-muted/10 border-border/40"
                         >
                           {cand.parcela}
                         </Badge>
                       )}
-                      <span className="font-semibold text-sm">
+                      <span className="font-medium text-sm">
                         {formatBRL(cand.valor)}
                       </span>
                       {isSugerido && (
                         <Badge
                           variant="outline"
-                          className="text-[10px] bg-blue-50 text-blue-700 border-blue-200"
+                          className="text-[10px] bg-info/10 text-info border-info/40"
                         >
                           <Sparkles className="h-3 w-3 mr-1" />
                           IA sugere
@@ -387,9 +387,9 @@ export default function BuscarNFStageDialog({
                         className={cn(
                           "flex items-center gap-1 font-medium",
                           cand.distanciaDias === 999999 && "text-muted-foreground",
-                          cand.distanciaDias <= 7 && "text-emerald-600",
-                          cand.distanciaDias > 7 && cand.distanciaDias <= 30 && "text-blue-600",
-                          cand.distanciaDias > 30 && cand.distanciaDias < 999999 && "text-orange-600",
+                          cand.distanciaDias <= 7 && "text-success",
+                          cand.distanciaDias > 7 && cand.distanciaDias <= 30 && "text-info",
+                          cand.distanciaDias > 30 && cand.distanciaDias < 999999 && "text-warning",
                         )}
                       >
                         <Clock className="h-3 w-3" />
@@ -428,7 +428,7 @@ export default function BuscarNFStageDialog({
             <Button
               onClick={() => doVincular(nfEscolhida.nf_id, cprSelecionado)}
               disabled={!cprSelecionado || !!vinculando}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="bg-success hover:bg-success text-white"
             >
               {vinculando ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
@@ -448,7 +448,7 @@ export default function BuscarNFStageDialog({
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-blue-600" />
+            <Sparkles className="h-4 w-4 text-info" />
             Buscar NF em Stage
           </DialogTitle>
           <DialogDescription asChild>
@@ -458,7 +458,7 @@ export default function BuscarNFStageDialog({
                 {formatBRL(contaValor)}
               </div>
               {compromissoInfo && (
-                <div className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded px-2 py-1">
+                <div className="text-xs text-info bg-info/10 border border-info/40 rounded px-2 py-1">
                   ✨ Buscando NF do compromisso completo (
                   {compromissoInfo.qtd_parcelas} parcelas) —{" "}
                   <span className="font-medium">
@@ -491,7 +491,7 @@ export default function BuscarNFStageDialog({
             candidatos.map((c) => (
               <div
                 key={c.nf_id}
-                className="border rounded-lg overflow-hidden transition-colors hover:border-emerald-300"
+                className="border rounded-lg overflow-hidden transition-colors hover:border-success/40"
               >
                 <div className="p-3 space-y-1.5">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -504,10 +504,10 @@ export default function BuscarNFStageDialog({
                     <Badge
                       className={
                         c.score >= 80
-                          ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 text-[10px]"
+                          ? "bg-success/10 text-success hover:bg-success/10 text-[10px]"
                           : c.score >= 60
-                            ? "bg-blue-100 text-blue-700 hover:bg-blue-100 text-[10px]"
-                            : "bg-amber-100 text-amber-700 hover:bg-amber-100 text-[10px]"
+                            ? "bg-info/10 text-info hover:bg-info/10 text-[10px]"
+                            : "bg-warning/10 text-warning hover:bg-warning/10 text-[10px]"
                       }
                     >
                       {c.score}% match
@@ -523,7 +523,7 @@ export default function BuscarNFStageDialog({
                         Math.abs(c.valor_total - valorParaMatch) < 0.01
                       ) {
                         return (
-                          <span className="text-emerald-700 font-medium">
+                          <span className="text-success font-medium">
                             {" "}
                             (= {formatBRL(valorParaMatch)})
                           </span>
@@ -538,7 +538,7 @@ export default function BuscarNFStageDialog({
                         Math.abs(ratio - ratioRounded) <= 0.02
                       ) {
                         return (
-                          <span className="text-blue-700 font-medium">
+                          <span className="text-info font-medium">
                             {" "}
                             ({ratioRounded}x {formatBRL(contaValor)})
                           </span>
@@ -559,20 +559,20 @@ export default function BuscarNFStageDialog({
                     </p>
                   )}
                   {c.motivos && (
-                    <p className="text-[11px] text-blue-600">✨ {c.motivos}</p>
+                    <p className="text-[11px] text-info">✨ {c.motivos}</p>
                   )}
                 </div>
 
                 <div className="px-3 py-2 bg-muted/30 border-t border-dashed flex items-center justify-between">
                   <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                    <CheckCircle2 className="h-3 w-3 text-success" />
                     Verifica parcelas em aberto antes de vincular
                   </span>
                   <Button
                     size="sm"
                     onClick={() => handleClickVincular(c)}
                     disabled={!!vinculando || carregandoCandidatos}
-                    className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+                    className="gap-1.5 bg-success hover:bg-success text-white"
                   >
                     {(vinculando === c.nf_id ||
                       (carregandoCandidatos &&

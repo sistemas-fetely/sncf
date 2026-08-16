@@ -160,9 +160,9 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
             return (
               <>
                 {temSemEstoque && (
-                  <div className="flex items-center gap-2 rounded-md bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 px-3 py-2 mb-3">
-                    <AlertCircle className="h-4 w-4 text-red-600 shrink-0" />
-                    <p className="text-xs text-red-800 dark:text-red-200">
+                  <div className="flex items-center gap-2 rounded-md bg-destructive/10 border border-destructive/40 px-3 py-2 mb-3">
+                    <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+                    <p className="text-xs text-destructive">
                       Este pedido contém produto(s) sem estoque — verifique disponibilidade antes de seguir.
                     </p>
                   </div>
@@ -174,14 +174,14 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
                       key={`${item.sku ?? "x"}-${idx}`}
                       className={cn(
                         "flex items-center gap-2 py-2 border-b border-border/40 last:border-0 rounded-md px-2 -mx-2",
-                        semEstoque && "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800"
+                        semEstoque && "bg-destructive/10 border-destructive/40"
                       )}
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium truncate">{item.descricao}</p>
                           {semEstoque && (
-                            <Badge variant="outline" className="text-[10px] h-5 border-red-300 text-red-700 bg-red-100 dark:bg-red-900/40 dark:text-red-400 dark:border-red-700">
+                            <Badge variant="outline" className="text-[10px] h-5 border-destructive/40 text-destructive bg-destructive/10">
                               Sem Estoque
                             </Badge>
                           )}
@@ -200,7 +200,7 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
                         />
                       </div>
 
-                      <p className="text-sm font-semibold shrink-0 w-24 text-right">
+                      <p className="text-sm font-medium shrink-0 w-24 text-right">
                         {fmtBRL.format(item.quantidade * item.valor_unitario)}
                       </p>
 
@@ -229,7 +229,7 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
         {/* Total */}
         <div className="flex justify-between items-center py-2 border-t border-border/60">
           <span className="text-sm font-medium">Total bruto</span>
-          <span className="text-base font-bold">{fmtBRL.format(totalBruto)}</span>
+          <span className="text-base font-medium">{fmtBRL.format(totalBruto)}</span>
         </div>
 
         {/* Adicionar produto */}
@@ -274,7 +274,7 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
                         {p.sku} · mín {p.multiplos} un
                       </p>
                     </div>
-                    <span className="text-sm font-semibold shrink-0 ml-2">
+                    <span className="text-sm font-medium shrink-0 ml-2">
                       {fmtBRL.format(p.preco_atacado)}
                     </span>
                   </button>

@@ -145,22 +145,22 @@ export function FurosPorFornecedor({ furos, onBuscar, onSolicitar, onClassificar
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium truncate">{g.nome}</span>
                       {g.temDoc && (
-                        <Badge variant="outline" className="text-[10px] border-emerald-500 text-emerald-700 dark:text-emerald-400 gap-1">
+                        <Badge variant="outline" className="text-[10px] border-success/40 text-success gap-1">
                           <FileCheck2 className="h-2.5 w-2.5" /> tem docs no sistema
                         </Badge>
                       )}
                       {g.temContaCorrente && (
-                        <Badge variant="outline" className="text-[10px] border-purple-500 text-purple-700 dark:text-purple-400 gap-1">
+                        <Badge variant="outline" className="text-[10px] border-info/40 text-info gap-1">
                           <Wallet className="h-2.5 w-2.5" /> conta corrente
                         </Badge>
                       )}
                       {recorrente && (
-                        <Badge variant="outline" className="text-[10px] border-blue-500 text-blue-700 dark:text-blue-400 gap-1">
+                        <Badge variant="outline" className="text-[10px] border-info/40 text-info gap-1">
                           <Repeat className="h-2.5 w-2.5" /> recorrente
                         </Badge>
                       )}
                       {g.nAguardando > 0 && (
-                        <Badge className="text-[10px] bg-amber-500 hover:bg-amber-500 gap-1">
+                        <Badge className="text-[10px] bg-warning hover:bg-warning gap-1">
                           <Clock className="h-2.5 w-2.5" /> aguardando doc ({g.nAguardando})
                         </Badge>
                       )}
@@ -170,7 +170,7 @@ export function FurosPorFornecedor({ furos, onBuscar, onSolicitar, onClassificar
                     )}
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="font-mono font-semibold">{formatBRL(g.total)}</div>
+                    <div className="font-mono font-medium">{formatBRL(g.total)}</div>
                     <div className="text-[11px] text-muted-foreground">
                       {g.itens.length} pagto{g.itens.length > 1 ? "s" : ""} · {formatDateBR(g.primeira)}–{formatDateBR(g.ultima)}
                     </div>
@@ -193,7 +193,7 @@ export function FurosPorFornecedor({ furos, onBuscar, onSolicitar, onClassificar
                         {diasSol !== null && (
                           <Badge
                             variant="outline"
-                            className="text-[10px] gap-1 border-amber-400 text-amber-700 dark:text-amber-500"
+                            className="text-[10px] gap-1 border-warning/40 text-warning"
                             title={f.doc_solicitado_nota || undefined}
                           >
                             <Clock className="h-2.5 w-2.5" /> aguardando · {diasSol}d

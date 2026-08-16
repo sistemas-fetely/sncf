@@ -208,7 +208,7 @@ export function BuscarDocumentoDialog({ open, onOpenChange, furo, onDone }: Prop
             {furo && (
               <span className="text-xs">
                 Débito {formatDateBR(furo.data_transacao)} · {furo.descricao || "—"} ·{" "}
-                <span className="font-mono font-semibold">{formatBRL(Number(furo.valor))}</span>
+                <span className="font-mono font-medium">{formatBRL(Number(furo.valor))}</span>
               </span>
             )}
           </DialogDescription>
@@ -280,7 +280,7 @@ export function BuscarDocumentoDialog({ open, onOpenChange, furo, onDone }: Prop
                     </TableCell>
                     <TableCell className={cn(
                       "text-xs font-mono text-right whitespace-nowrap",
-                      bate ? "text-emerald-600 font-semibold" : "text-muted-foreground",
+                      bate ? "text-success font-medium" : "text-muted-foreground",
                     )}>
                       {(diff >= 0 ? "+" : "") + formatBRL(diff)}
                     </TableCell>

@@ -38,14 +38,14 @@ export function PedidosStatsCards() {
         hint="recebidos a pronto"
       />
       <StatCard
-        icon={<Clock className="h-5 w-5 text-red-500" />}
+        icon={<Clock className="h-5 w-5 text-destructive" />}
         label="SLA estourado"
         value={slaEstourado}
         hint="passou de 24h"
         emphasize={slaEstourado > 0}
       />
       <StatCard
-        icon={<CheckCircle2 className="h-5 w-5 text-emerald-600" />}
+        icon={<CheckCircle2 className="h-5 w-5 text-success" />}
         label="Faturados+"
         value={faturados}
         hint="já foram pro Bling"
@@ -75,7 +75,7 @@ function StatCard({
         <div className="flex items-start justify-between">
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-wide">{label}</p>
-            <p className={cn("text-2xl font-bold mt-1", emphasize && "text-red-600")}>
+            <p className={cn("text-2xl font-medium mt-1", emphasize && "text-destructive")}>
               {value}
             </p>
             {hint && <p className="text-[11px] text-muted-foreground mt-0.5">{hint}</p>}

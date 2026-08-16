@@ -416,7 +416,7 @@ export function ParceiroFormSheet({ open, onOpenChange, editing, categorias, onS
           <div className="mt-3 flex items-center gap-2 text-xs">
             <span className="text-muted-foreground">Bling:</span>
             {blingId ? (
-              <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700">
+              <Badge variant="outline" className="border-success/40 bg-success/10 text-success">
                 {blingId}
               </Badge>
             ) : (
@@ -438,7 +438,7 @@ export function ParceiroFormSheet({ open, onOpenChange, editing, categorias, onS
 
 
         {editing?.cadastro_incompleto && (
-          <div className="mt-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+          <div className="mt-3 flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
             <span>Cadastro incompleto — criado automaticamente a partir de NF</span>
           </div>
@@ -506,7 +506,7 @@ export function ParceiroFormSheet({ open, onOpenChange, editing, categorias, onS
                   placeholder="00.000.000/0000-00"
                 />
                 {duplicateWarn && (
-                  <p className="text-xs text-amber-600 mt-1">⚠️ {duplicateWarn}</p>
+                  <p className="text-xs text-warning mt-1">⚠️ {duplicateWarn}</p>
                 )}
               </div>
               <div>
@@ -529,7 +529,7 @@ export function ParceiroFormSheet({ open, onOpenChange, editing, categorias, onS
                   placeholder="000.000.000-00"
                 />
                 {duplicateWarn && (
-                  <p className="text-xs text-amber-600 mt-1">⚠️ {duplicateWarn}</p>
+                  <p className="text-xs text-warning mt-1">⚠️ {duplicateWarn}</p>
                 )}
               </div>
               <div>
@@ -909,15 +909,15 @@ function PastaGedSection({ parceiroId, parceiroNome: _parceiroNome }: { parceiro
       </div>
       <div className="grid grid-cols-3 gap-2 text-center">
         <div>
-          <div className="text-lg font-bold">{stats.docs}</div>
+          <div className="text-lg font-medium">{stats.docs}</div>
           <div className="text-[10px] text-muted-foreground">documentos</div>
         </div>
         <div>
-          <div className="text-lg font-bold">{stats.cprs}</div>
+          <div className="text-lg font-medium">{stats.cprs}</div>
           <div className="text-[10px] text-muted-foreground">contas a pagar</div>
         </div>
         <div>
-          <div className={`text-lg font-bold ${stats.nfsSemCpr > 0 ? "text-amber-600" : ""}`}>
+          <div className={`text-lg font-medium ${stats.nfsSemCpr > 0 ? "text-warning" : ""}`}>
             {stats.nfsSemCpr}
           </div>
           <div className="text-[10px] text-muted-foreground">NFs sem CPR</div>

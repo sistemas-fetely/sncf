@@ -615,7 +615,7 @@ export function FilaPedidosPorArea({
                     <MarcacaoBadge marcacao={p.marcacao} />
                   </TableCell>
                   <TableCell>
-                    <p className="font-semibold">{fmtBRL.format(p.valor_liquido)}</p>
+                    <p className="font-medium">{fmtBRL.format(p.valor_liquido)}</p>
                     <div onClick={(e) => e.stopPropagation()}>
                       <LinhaNfFila info={entregaMap?.get(p.id)} />
                     </div>
@@ -627,7 +627,7 @@ export function FilaPedidosPorArea({
                     <div className="flex flex-wrap items-center gap-1.5">
                       <EstagioBadge estagio={p.estagio} />
                       {p.estagio === "em_analise_credito" && analiseStages?.get(p.id) === "entrada" && (
-                        <Badge className="bg-amber-500 text-white border-0 text-[10px]">
+                        <Badge className="bg-warning text-white border-0 text-[10px]">
                           Aguardando liberação
                         </Badge>
                       )}
@@ -644,11 +644,11 @@ export function FilaPedidosPorArea({
                           cod === "faturada_quitada"
                             ? "bg-muted text-foreground border-0"
                             : cod === "faturada_a_receber"
-                            ? "bg-sky-100 text-sky-900 dark:bg-sky-900/30 dark:text-sky-200 border-0"
+                            ? "bg-info/10 text-info border-0"
                             : cod === "faturada_com_diferenca" || cod === "sem_recebivel"
-                            ? "bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200 border-0"
+                            ? "bg-warning/10 text-warning border-0"
                             : cod === "natureza_sem_cobranca"
-                            ? "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-200 border-0"
+                            ? "bg-success/10 text-success border-0"
                             : "bg-muted text-foreground border-0";
                         const dias = info.dias_esperando;
                         const falta = Number(info.falta_linha ?? 0);
@@ -1017,7 +1017,7 @@ function FarolRisco({
           </span>
         </TooltipTrigger>
         <TooltipContent side="right" className="max-w-xs">
-          <p className="text-xs font-semibold">{label}{score != null ? ` · ${score}` : ""}</p>
+          <p className="text-xs font-medium">{label}{score != null ? ` · ${score}` : ""}</p>
           {motivosOrdenados.length > 0 ? (
             <ul className="mt-1 space-y-0.5 text-xs">
               {motivosOrdenados.map((m) => (

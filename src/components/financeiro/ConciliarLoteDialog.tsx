@@ -163,7 +163,7 @@ export function ConciliarLoteDialog({ open, onClose, movimentacao, onConciliado 
                 {movimentacao.descricao}
               </div>
             </div>
-            <div className="font-mono text-lg font-bold text-red-700 whitespace-nowrap">
+            <div className="font-mono text-lg font-medium text-destructive whitespace-nowrap">
               {formatBRL(movimentacao.valor)}
             </div>
           </div>
@@ -173,24 +173,24 @@ export function ConciliarLoteDialog({ open, onClose, movimentacao, onConciliado 
         <div
           className={`rounded-md border-2 p-3 transition-colors ${
             podeConciliar
-              ? "border-emerald-300 bg-emerald-50"
+              ? "border-success/40 bg-success/10"
               : selecionadas.size > 0
-                ? "border-amber-300 bg-amber-50"
+                ? "border-warning/40 bg-warning/10"
                 : "border-muted bg-muted/20"
           }`}
         >
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-2">
               {podeConciliar ? (
-                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                <CheckCircle2 className="h-5 w-5 text-success" />
               ) : (
-                <AlertCircle className="h-5 w-5 text-amber-600" />
+                <AlertCircle className="h-5 w-5 text-warning" />
               )}
               <div>
                 <div className="text-xs text-muted-foreground">
                   {selecionadas.size} conta(s) selecionada(s)
                 </div>
-                <div className="font-mono text-sm font-bold">
+                <div className="font-mono text-sm font-medium">
                   {formatBRL(somaSelecionadas)} de {formatBRL(valorMov)}
                 </div>
               </div>
@@ -201,7 +201,7 @@ export function ConciliarLoteDialog({ open, onClose, movimentacao, onConciliado 
               </Badge>
             )}
             {podeConciliar && (
-              <Badge variant="outline" className="text-xs border-emerald-400 text-emerald-700">
+              <Badge variant="outline" className="text-xs border-success/40 text-success">
                 ✓ Soma bate exato
               </Badge>
             )}
@@ -240,7 +240,7 @@ export function ConciliarLoteDialog({ open, onClose, movimentacao, onConciliado 
               return (
                 <label
                   key={c.id}
-                  className={`flex items-center gap-3 p-2 cursor-pointer hover:bg-muted/30 ${isSel ? "bg-emerald-50/40" : ""}`}
+                  className={`flex items-center gap-3 p-2 cursor-pointer hover:bg-muted/30 ${isSel ? "bg-success/10" : ""}`}
                 >
                   <Checkbox checked={isSel} onCheckedChange={() => toggle(c.id)} />
                   <div className="flex-1 min-w-0">

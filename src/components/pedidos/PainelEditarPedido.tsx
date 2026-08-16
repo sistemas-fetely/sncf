@@ -342,16 +342,16 @@ function SecaoPagamento({ pedidoId, pedido, guarda }: {
               </Alert>
             )}
             {caminho === "reconcilia_no_lugar" && (
-              <Alert className="border-emerald-500/40 bg-emerald-500/10">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              <Alert className="border-success/40 bg-success">
+                <CheckCircle2 className="h-4 w-4 text-success" />
                 <AlertDescription>
                   {impactoQ.data?.motivo || "Ajuste reconciliado no lugar, sem nova análise."}
                 </AlertDescription>
               </Alert>
             )}
             {caminho === "re_analise" && (
-              <Alert className="border-amber-500/40 bg-amber-500/10">
-                <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <Alert className="border-warning/40 bg-warning">
+                <AlertTriangle className="h-4 w-4 text-warning" />
                 <AlertDescription>
                   Vai exigir nova análise de crédito.
                   {impactoQ.data?.motivo ? ` ${impactoQ.data.motivo}` : ""}
@@ -371,11 +371,11 @@ function SecaoPagamento({ pedidoId, pedido, guarda }: {
               <div
                 className={`rounded-md border p-3 space-y-1.5 text-sm ${
                   direcao === "desce"
-                    ? "border-emerald-500/40 bg-emerald-500/10"
-                    : "border-amber-500/40 bg-amber-500/10"
+                    ? "border-success/40 bg-success"
+                    : "border-warning/40 bg-warning"
                 }`}
               >
-                <div className={`font-medium ${direcao === "desce" ? "text-emerald-700" : "text-amber-700"}`}>
+                <div className={`font-medium ${direcao === "desce" ? "text-success" : "text-warning"}`}>
                   {impacto.direcao_rotulo || direcao}
                 </div>
                 <div className="flex justify-between gap-2">
@@ -409,7 +409,7 @@ function SecaoPagamento({ pedidoId, pedido, guarda }: {
                 variant="outline"
                 onClick={() => reabrir.mutate()}
                 disabled={!slug || motivo.trim().length < 3 || reabrir.isPending || impactoQ.isFetching}
-                className="border-amber-500/60 text-amber-700 hover:bg-amber-500/10"
+                className="border-warning/40 text-warning hover:bg-warning"
               >
                 {reabrir.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Reenviar para análise
@@ -531,7 +531,7 @@ function SecaoDesconto({ pedidoId, pedido, guarda }: {
 
         <div className="flex justify-between border-t pt-1.5">
           <span className="text-muted-foreground">Líquido projetado</span>
-          <span className={`font-semibold ${liquidoProjetado < 0 ? "text-destructive" : ""}`}>{fmtBRL.format(liquidoProjetado)}</span>
+          <span className={`font-medium ${liquidoProjetado < 0 ? "text-destructive" : ""}`}>{fmtBRL.format(liquidoProjetado)}</span>
         </div>
       </div>
 
@@ -580,7 +580,7 @@ export function PainelEditarPedido({ pedidoId, pedido, itens }: Props) {
     <div className="space-y-4">
       <Card className="border-border/60">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Wallet className="h-4 w-4 text-muted-foreground" />
             {gPag.rotulo || "Pagamento"}
           </CardTitle>
@@ -592,7 +592,7 @@ export function PainelEditarPedido({ pedidoId, pedido, itens }: Props) {
 
       <Card className="border-border/60">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Package className="h-4 w-4 text-muted-foreground" />
             {gItens.rotulo || "Itens do pedido"}
           </CardTitle>
@@ -617,7 +617,7 @@ export function PainelEditarPedido({ pedidoId, pedido, itens }: Props) {
 
       <Card className="border-border/60">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Percent className="h-4 w-4 text-muted-foreground" />
             {gDesc.rotulo || "Desconto"}
           </CardTitle>

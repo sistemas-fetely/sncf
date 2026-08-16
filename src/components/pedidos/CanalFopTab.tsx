@@ -58,8 +58,8 @@ export function CanalFopTab({ pedidoId, eventos }: Props) {
                 key={ev.id}
                 className={`rounded-lg border p-3 text-sm ${
                   isCom
-                    ? "bg-blue-50/60 border-blue-100 dark:bg-blue-950/20 dark:border-blue-900/30"
-                    : "bg-emerald-50/60 border-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900/30"
+                    ? "bg-info/10 border-info/40"
+                    : "bg-success/10 border-success/40"
                 }`}
               >
                 <p className="text-foreground whitespace-pre-wrap">

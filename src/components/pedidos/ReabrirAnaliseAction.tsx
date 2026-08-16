@@ -72,7 +72,7 @@ export function ReabrirAnaliseAction({
         className={className}
         onClick={() => setOpen(true)}
       >
-        <AlertTriangle className="h-4 w-4 mr-1.5 text-amber-600" />
+        <AlertTriangle className="h-4 w-4 mr-1.5 text-warning" />
         Reabrir análise de crédito
       </Button>
 

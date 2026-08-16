@@ -35,10 +35,10 @@ export const MARCO_NOME: Record<Marco, string> = {
  *  o operador já lê amarelo = esperando banco, azul = registrado. Mudar custaria
  *  reaprendizado por zero ganho. Vermelho sobrepõe tudo quando há alerta. */
 export const MARCO_COR_ATUAL: Record<Marco, string> = {
-  C: "bg-gray-100 text-gray-700 border-gray-400",
-  E: "bg-yellow-100 text-yellow-800 border-yellow-500",
-  R: "bg-blue-100 text-blue-800 border-blue-500",
-  B: "bg-emerald-100 text-emerald-800 border-emerald-500",
+  C: "bg-muted/10 text-muted-foreground border-border/40",
+  E: "bg-warning/10 text-warning border-warning/40",
+  R: "bg-info/10 text-info border-info/40",
+  B: "bg-success/10 text-success border-success/40",
 };
 
 interface DefMarco {

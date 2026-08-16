@@ -183,7 +183,7 @@ export function ConfirmarMatchDialog({
             <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-2">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Extrato:</span>
-                <span className="font-mono font-semibold">{formatBRL(valorMov)}</span>
+                <span className="font-mono font-medium">{formatBRL(valorMov)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Conta sistema:</span>
@@ -191,7 +191,7 @@ export function ConfirmarMatchDialog({
               </div>
               <div className="flex justify-between border-t pt-2">
                 <span className="text-muted-foreground">Diferença:</span>
-                <span className="font-mono font-semibold text-destructive">
+                <span className="font-mono font-medium text-destructive">
                   {formatBRL(diferencaAbs)}
                 </span>
               </div>
@@ -214,12 +214,12 @@ export function ConfirmarMatchDialog({
           <DialogTitle className="flex items-center gap-2">
             {isMatchExato ? (
               <>
-                <Check className="h-5 w-5 text-emerald-600" />
+                <Check className="h-5 w-5 text-success" />
                 Confirmar conciliação
               </>
             ) : (
               <>
-                <AlertTriangle className="h-5 w-5 text-amber-600" />
+                <AlertTriangle className="h-5 w-5 text-warning" />
                 Há uma divergência de valor
               </>
             )}
@@ -243,7 +243,7 @@ export function ConfirmarMatchDialog({
               <div className="text-xs text-muted-foreground">
                 {formatDateBR(movimentacao.data_transacao)}
               </div>
-              <div className="text-lg font-mono font-bold mt-1">
+              <div className="text-lg font-mono font-medium mt-1">
                 {formatBRL(valorMov)}
               </div>
             </div>
@@ -261,7 +261,7 @@ export function ConfirmarMatchDialog({
               <div className="text-xs text-muted-foreground">
                 Venc: {formatDateBR(conta.data_vencimento)}
               </div>
-              <div className="text-lg font-mono font-bold mt-1">
+              <div className="text-lg font-mono font-medium mt-1">
                 {formatBRL(valorConta)}
               </div>
             </div>
@@ -272,8 +272,8 @@ export function ConfirmarMatchDialog({
               <div
                 className={
                   diferenca > 0
-                    ? "rounded-md border p-3 text-center bg-amber-50 border-amber-200"
-                    : "rounded-md border p-3 text-center bg-blue-50 border-blue-200"
+                    ? "rounded-md border p-3 text-center bg-warning/10 border-warning/40"
+                    : "rounded-md border p-3 text-center bg-info/10 border-info/40"
                 }
               >
                 <p className="text-xs text-muted-foreground">
@@ -281,7 +281,7 @@ export function ConfirmarMatchDialog({
                     ? "Extrato é MAIOR que sistema (diferença a mais)"
                     : "Extrato é MENOR que sistema (diferença a menos)"}
                 </p>
-                <p className="text-lg font-mono font-bold mt-1">
+                <p className="text-lg font-mono font-medium mt-1">
                   {diferenca > 0 ? "+" : "−"} {formatBRL(diferencaAbs)}
                 </p>
                 <p className="text-[10px] text-muted-foreground mt-1">
@@ -347,7 +347,7 @@ export function ConfirmarMatchDialog({
           <Button
             onClick={handleConfirmar}
             disabled={salvando || (!isMatchExato && !acao)}
-            className="gap-2 bg-emerald-700 hover:bg-emerald-800 text-white"
+            className="gap-2 bg-success hover:bg-success text-white"
           >
             {salvando ? (
               <Loader2 className="h-4 w-4 animate-spin" />
