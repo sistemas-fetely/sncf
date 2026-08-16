@@ -102,7 +102,7 @@ export function TabelaFretes({ fretes }: { fretes: FreteRow[] }) {
                         <div><span className="text-muted-foreground">Data ocorrência:</span> {fmtData(f.ocorrencia_data)}</div>
                       </div>
                       {f.ocorrencia_ruido_texto && (
-                        <div className="text-xs px-2 pb-2 text-amber-700 dark:text-amber-400">
+                        <div className="text-xs px-2 pb-2 text-warning">
                           <span className="font-medium">Evento posterior barrado:</span>{" "}
                           {f.ocorrencia_ruido_texto}
                           {f.ocorrencia_ruido_data && ` (${fmtData(f.ocorrencia_ruido_data)})`}

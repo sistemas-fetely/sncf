@@ -472,7 +472,7 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
               <Button
                 onClick={() => credMut.mutate()}
                 disabled={!podeCredito}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="bg-success hover:bg-success text-white"
               >
                 {credMut.isPending ? "Adicionando…" : "Adicionar crédito"}
               </Button>
@@ -532,7 +532,7 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
                   />
                   <p className="text-sm text-muted-foreground">
                     Saldo disponível:{" "}
-                    <span className="font-semibold text-foreground">
+                    <span className="font-medium text-foreground">
                       {fmtBRL.format(saldoTotal)}
                     </span>
                   </p>
@@ -609,7 +609,7 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
                                 )}
                               </div>
                               <div className="text-right shrink-0">
-                                <div className="text-sm font-semibold">
+                                <div className="text-sm font-medium">
                                   {fmtBRL.format(Number(h.saldo ?? 0))}
                                 </div>
                                 <div className="text-xs text-muted-foreground">
@@ -627,7 +627,7 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
                 {haveresSelecionados.length > 0 && (
                   <div className="space-y-3 p-3 border rounded-md bg-muted/30">
                     <p className="text-sm">
-                      <span className="font-semibold">
+                      <span className="font-medium">
                         {haveresSelecionados.length}
                       </span>{" "}
                       {haveresSelecionados.length === 1
@@ -637,7 +637,7 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
                       <span className="text-muted-foreground">
                         Soma dos saldos:
                       </span>{" "}
-                      <span className="font-semibold">
+                      <span className="font-medium">
                         {fmtBRL.format(somaSaldosSelecionados)}
                       </span>
                     </p>
@@ -735,7 +735,7 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
                           <span className="text-muted-foreground mr-2">
                             Total:
                           </span>
-                          <span className="font-semibold">
+                          <span className="font-medium">
                             {fmtBRL.format(totalIndividuais)}
                           </span>
                         </div>

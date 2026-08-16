@@ -62,10 +62,10 @@ interface TarefaTI {
 }
 
 const statusVariant: Record<string, { label: string; className: string }> = {
-  disponivel: { label: "Disponível", className: "bg-green-100 text-green-800 hover:bg-green-100" },
-  atribuido: { label: "Atribuído", className: "bg-blue-100 text-blue-800 hover:bg-blue-100" },
-  manutencao: { label: "Manutenção", className: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100" },
-  descartado: { label: "Descartado", className: "bg-gray-100 text-gray-700 hover:bg-gray-100" },
+  disponivel: { label: "Disponível", className: "bg-success/10 text-success hover:bg-success/10" },
+  atribuido: { label: "Atribuído", className: "bg-info/10 text-info hover:bg-info/10" },
+  manutencao: { label: "Manutenção", className: "bg-warning/10 text-warning hover:bg-warning/10" },
+  descartado: { label: "Descartado", className: "bg-muted/10 text-muted-foreground hover:bg-muted/10" },
 };
 
 export default function TIDashboard() {
@@ -175,7 +175,7 @@ export default function TIDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight" style={{ color: TI_COLOR }}>
+        <h1 className="text-2xl font-medium tracking-tight" style={{ color: TI_COLOR }}>
           TI Fetély — Dashboard
         </h1>
         <p className="text-muted-foreground text-sm mt-1">Visão geral do inventário de TI</p>
@@ -188,7 +188,7 @@ export default function TIDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">{c.label}</p>
-                  <p className="text-3xl font-bold mt-1">{loading ? "—" : c.value}</p>
+                  <p className="text-3xl font-medium mt-1">{loading ? "—" : c.value}</p>
                 </div>
                 <div
                   className="flex h-12 w-12 items-center justify-center rounded-xl"
@@ -214,10 +214,10 @@ export default function TIDashboard() {
                 <BookOpen className="h-6 w-6" style={{ color: TI_COLOR }} />
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
+                <p className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
                   Documentação Viva
                 </p>
-                <h3 className="text-lg font-semibold mt-0.5">
+                <h3 className="text-lg font-medium mt-0.5">
                   {docsCount} {docsCount === 1 ? "documento ativo" : "documentos ativos"}
                 </h3>
                 <p className="text-sm text-muted-foreground">RunBook, guias, roadmap e estado atual</p>
@@ -243,7 +243,7 @@ export default function TIDashboard() {
         <CardContent>
           {tarefasTI.length === 0 ? (
             <div className="text-center py-6">
-              <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-emerald-500" />
+              <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-success" />
               <p className="text-sm text-muted-foreground">Nenhuma tarefa pendente</p>
             </div>
           ) : (
@@ -255,15 +255,15 @@ export default function TIDashboard() {
                     key={tarefa.id}
                     className={`flex items-start gap-3 p-3 rounded-lg border ${
                       tarefa.esta_atrasada
-                        ? "bg-red-50 border-red-200"
+                        ? "bg-destructive/10 border-destructive/40"
                         : tarefa.bloqueante
-                        ? "bg-yellow-50 border-yellow-200"
+                        ? "bg-warning/10 border-warning/40"
                         : "hover:bg-muted/50"
                     }`}
                   >
                     <button
                       onClick={() => handleConcluirTarefa(tarefa)}
-                      className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full border-2 border-gray-300 hover:border-emerald-500 flex items-center justify-center"
+                      className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full border-2 border-border/40 hover:border-success/40 flex items-center justify-center"
                       title="Concluir tarefa"
                     />
                     <div className="flex-1 min-w-0">
@@ -275,7 +275,7 @@ export default function TIDashboard() {
                           </Badge>
                         )}
                         {tarefa.status === "em_andamento" && (
-                          <Badge className="text-[10px] bg-blue-500 hover:bg-blue-500/90">Em andamento</Badge>
+                          <Badge className="text-[10px] bg-info hover:bg-info">Em andamento</Badge>
                         )}
                         {tarefa.esta_atrasada && (
                           <Badge variant="destructive" className="text-[10px]">

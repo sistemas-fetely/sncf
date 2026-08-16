@@ -112,7 +112,7 @@ export default function PrimeiroPagamentoTab() {
             {data?.map((p) => (
               <TableRow key={p.portao_id}>
                 <TableCell>
-                  <span className="font-mono text-xs font-semibold text-primary">
+                  <span className="font-mono text-xs font-medium text-primary">
                     {p.id_externo}
                   </span>
                 </TableCell>

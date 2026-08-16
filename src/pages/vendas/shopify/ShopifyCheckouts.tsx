@@ -14,7 +14,7 @@ export default function ShopifyCheckouts() {
         { header: "E-mail", cell: (r) => txt(r.email) },
         { header: "Total", cell: (r) => r.total_price != null ? BRL.format(Number(r.total_price)) : "—" },
         { header: "Moeda", cell: (r) => txt(r.currency) },
-        { header: "Status", cell: (r) => r.completed_at ? fmtDate(r.completed_at) : <span className="text-amber-600">Abandonado</span> },
+        { header: "Status", cell: (r) => r.completed_at ? fmtDate(r.completed_at) : <span className="text-warning">Abandonado</span> },
         { header: "Criado em", cell: (r) => fmtDate(r.created_at_shopify) },
       ]}
       detailFields={["customer", "line_items", "shipping_address", "discount_codes"]}

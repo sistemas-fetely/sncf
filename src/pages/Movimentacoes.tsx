@@ -31,7 +31,7 @@ const TIPOS = [
 const STATUS_BADGE: Record<string, string> = {
   pendente: "bg-warning/10 text-warning border-0",
   aprovada: "bg-info/10 text-info border-0",
-  efetivada: "bg-emerald-500/10 text-emerald-600 border-0",
+  efetivada: "bg-success text-success border-0",
   cancelada: "bg-destructive/10 text-destructive border-0",
 };
 
@@ -153,7 +153,7 @@ export default function Movimentacoes() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Promoções e Movimentações</h1>
+          <h1 className="text-2xl font-medium">Promoções e Movimentações</h1>
           <p className="text-muted-foreground text-sm">Registro de promoções, transferências e alterações</p>
         </div>
         {canManage && (

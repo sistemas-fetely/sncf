@@ -387,7 +387,7 @@ export default function DeParaFornecedor() {
           ) : linhasFiltradas.length === 0 ? (
             <div className="p-12 text-center">
               <Link2 className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-              <h3 className="font-semibold mb-1">Nenhum mapeamento encontrado</h3>
+              <h3 className="font-medium mb-1">Nenhum mapeamento encontrado</h3>
               <p className="text-sm text-muted-foreground">
                 Ajuste os filtros ou crie um novo mapeamento.
               </p>
@@ -430,7 +430,7 @@ export default function DeParaFornecedor() {
                     <TableCell>{r.unidade_fornecedor || "—"}</TableCell>
                     <TableCell className="text-center">
                       {r.ativo ? (
-                        <Badge variant="secondary" className="bg-emerald-50 text-emerald-700">
+                        <Badge variant="secondary" className="bg-success/10 text-success">
                           Ativo
                         </Badge>
                       ) : (
@@ -636,7 +636,7 @@ function ConferirCodigosBloco({
                       className={cn(
                         r.status === "nao_mapeado" &&
                           "bg-destructive/5 hover:bg-destructive/10",
-                        r.status === "mapeado_inativo" && "bg-amber-50 hover:bg-amber-100/60",
+                        r.status === "mapeado_inativo" && "bg-warning/10 hover:bg-warning/10",
                       )}
                     >
                       <TableCell className="font-mono text-xs">{r.codigo}</TableCell>
@@ -676,7 +676,7 @@ function ConferirCodigosBloco({
 function StatusConferencia({ status }: { status: ConferenciaRow["status"] }) {
   if (status === "ok") {
     return (
-      <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 gap-1">
+      <Badge variant="secondary" className="bg-success/10 text-success gap-1">
         <CheckCircle2 className="h-3 w-3" />
         Mapeado
       </Badge>
@@ -684,7 +684,7 @@ function StatusConferencia({ status }: { status: ConferenciaRow["status"] }) {
   }
   if (status === "mapeado_inativo") {
     return (
-      <Badge variant="secondary" className="bg-amber-100 text-amber-800 gap-1">
+      <Badge variant="secondary" className="bg-warning/10 text-warning gap-1">
         <AlertTriangle className="h-3 w-3" />
         Mapeado inativo
       </Badge>
@@ -701,9 +701,9 @@ function StatusConferencia({ status }: { status: ConferenciaRow["status"] }) {
 function TipoBadge({ tipo }: { tipo: TipoLinha }) {
   const cls =
     tipo === "produto"
-      ? "bg-blue-50 text-blue-700"
+      ? "bg-info/10 text-info"
       : tipo === "servico"
-        ? "bg-purple-50 text-purple-700"
+        ? "bg-info/10 text-info"
         : "bg-muted text-muted-foreground";
   return (
     <Badge variant="secondary" className={cls}>

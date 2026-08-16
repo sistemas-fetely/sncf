@@ -68,11 +68,11 @@ const TRATAMENTO_LABEL: Record<string, { text: string; cls: string }> = {
   },
   pago_fantasma_revertido_sem_haver: {
     text: "pago sem lastro → revertido (sem haver)",
-    cls: "bg-amber-50 text-amber-800 border-amber-200",
+    cls: "bg-warning/10 text-warning border-warning/40",
   },
   pago_com_lastro_revisar_haver: {
     text: "pago com lastro → revisar haver (manual)",
-    cls: "bg-red-50 text-red-800 border-red-200",
+    cls: "bg-destructive/10 text-destructive border-destructive/40",
   },
 };
 
@@ -200,18 +200,18 @@ export function RegistrarDevolucaoDialog({ pedidoId, pedidoIdExterno, open, onCl
         )}
 
         {preview.error && (
-          <Alert className="border-red-300 bg-red-50">
-            <AlertTriangle className="h-4 w-4 !text-red-700" />
-            <AlertDescription className="text-xs text-red-900">
+          <Alert className="border-destructive/40 bg-destructive/10">
+            <AlertTriangle className="h-4 w-4 !text-destructive" />
+            <AlertDescription className="text-xs text-destructive">
               Erro ao carregar preview: {(preview.error as Error).message}
             </AlertDescription>
           </Alert>
         )}
 
         {previewErr && (
-          <Alert className="border-red-300 bg-red-50">
-            <AlertTriangle className="h-4 w-4 !text-red-700" />
-            <AlertDescription className="text-xs text-red-900">
+          <Alert className="border-destructive/40 bg-destructive/10">
+            <AlertTriangle className="h-4 w-4 !text-destructive" />
+            <AlertDescription className="text-xs text-destructive">
               {previewErr.erro}
               {previewErr.estagio ? ` (estágio: ${previewErr.estagio})` : ""}
             </AlertDescription>
@@ -223,19 +223,19 @@ export function RegistrarDevolucaoDialog({ pedidoId, pedidoIdExterno, open, onCl
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
               <div className="p-2 rounded border">
                 <div className="text-muted-foreground">Títulos a devolver</div>
-                <div className="text-base font-semibold">{previewOk.titulos_a_devolver}</div>
+                <div className="text-base font-medium">{previewOk.titulos_a_devolver}</div>
               </div>
               <div className="p-2 rounded border">
                 <div className="text-muted-foreground">Boletos a baixar</div>
-                <div className="text-base font-semibold">{previewOk.boletos_a_baixar}</div>
+                <div className="text-base font-medium">{previewOk.boletos_a_baixar}</div>
               </div>
               <div className="p-2 rounded border">
                 <div className="text-muted-foreground">Havers a revisar</div>
-                <div className="text-base font-semibold">{previewOk.havers_a_revisar}</div>
+                <div className="text-base font-medium">{previewOk.havers_a_revisar}</div>
               </div>
               <div className="p-2 rounded border">
                 <div className="text-muted-foreground">Fantasmas a reverter</div>
-                <div className="text-base font-semibold">{previewOk.fantasmas_a_reverter}</div>
+                <div className="text-base font-medium">{previewOk.fantasmas_a_reverter}</div>
               </div>
             </div>
 
@@ -303,14 +303,14 @@ export function RegistrarDevolucaoDialog({ pedidoId, pedidoIdExterno, open, onCl
                 />
               </div>
               {previewOk.havers_a_revisar > 0 && (
-                <div className="flex items-start gap-2 p-3 rounded-md border bg-amber-50 border-amber-200">
+                <div className="flex items-start gap-2 p-3 rounded-md border bg-warning/10 border-warning/40">
                   <Checkbox
                     id="gerar-haver"
                     checked={gerarHaver}
                     onCheckedChange={(v) => setGerarHaver(v === true)}
                     className="mt-0.5"
                   />
-                  <Label htmlFor="gerar-haver" className="text-xs text-amber-900 font-normal cursor-pointer leading-relaxed">
+                  <Label htmlFor="gerar-haver" className="text-xs text-warning font-normal cursor-pointer leading-relaxed">
                     Gerar haver de <strong>{formatBRL(previewOk.havers_valor_total ?? 0)}</strong> — valor já pago e recebido (com lastro bancário) volta como crédito do cliente.
                   </Label>
                 </div>

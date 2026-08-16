@@ -17,7 +17,7 @@ export default function Ferias() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Gestão de Férias</h1>
+        <h1 className="text-2xl font-medium">Gestão de Férias</h1>
         <p className="text-muted-foreground">Controle de períodos aquisitivos, programação e recessos</p>
       </div>
 

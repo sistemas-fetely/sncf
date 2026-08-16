@@ -153,17 +153,17 @@ export default function EntregaTeste() {
 
   if (entregue) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-muted/10 px-4">
         <div className="max-w-md w-full text-center space-y-6">
-          <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
-            <Check className="h-8 w-8 text-green-600" />
+          <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mx-auto">
+            <Check className="h-8 w-8 text-success" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Entrega recebida!</h1>
-          <p className="text-gray-600">
+          <h1 className="text-2xl font-medium text-muted-foreground">Entrega recebida!</h1>
+          <p className="text-muted-foreground">
             Recebemos sua entrega para a vaga de <strong>{vaga?.titulo}</strong>.
             Nossa equipe vai avaliar e entrar em contato em breve.
           </p>
-          <p className="text-sm text-gray-400 italic">
+          <p className="text-sm text-muted-foreground italic">
             A memória não guarda o preço, ela guarda a presença.
           </p>
         </div>
@@ -172,11 +172,11 @@ export default function EntregaTeste() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-muted/10">
       {/* Header */}
       <div className="bg-[#0891B2] text-white py-6 px-6 text-center">
-        <h1 className="text-3xl font-bold tracking-tight">Fetély.</h1>
-        <p className="text-cyan-100 text-sm mt-1 italic">
+        <h1 className="text-3xl font-medium tracking-tight">Fetély.</h1>
+        <p className="text-info text-sm mt-1 italic">
           Vamos celebrar!! Venha criar algo novo...
         </p>
       </div>
@@ -184,17 +184,17 @@ export default function EntregaTeste() {
       <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
         {/* Título */}
         <div className="text-center">
-          <h2 className="text-xl font-bold text-gray-900">Entrega do teste técnico</h2>
-          <p className="text-gray-500 mt-1">{vaga?.titulo}</p>
+          <h2 className="text-xl font-medium text-muted-foreground">Entrega do teste técnico</h2>
+          <p className="text-muted-foreground mt-1">{vaga?.titulo}</p>
         </div>
 
         {/* ETAPA 1 — Identificação */}
         {!teste && (
           <div className="bg-white rounded-xl border p-6 space-y-4">
-            <h3 className="text-sm font-semibold text-gray-900">
+            <h3 className="text-sm font-medium text-muted-foreground">
               Identificação
             </h3>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted-foreground">
               Informe o e-mail que você usou na candidatura para acessar seu teste.
             </p>
             <div className="space-y-1.5">
@@ -208,7 +208,7 @@ export default function EntregaTeste() {
               />
             </div>
             {erro && (
-              <p className="text-sm text-red-600">{erro}</p>
+              <p className="text-sm text-destructive">{erro}</p>
             )}
             <Button onClick={buscarTeste} disabled={buscando} className="w-full bg-[#0891B2] hover:bg-[#0891B2]/90">
               {buscando
@@ -223,24 +223,24 @@ export default function EntregaTeste() {
           <>
             {/* Desafio */}
             <div className="bg-white rounded-xl border p-6 space-y-4">
-              <h3 className="text-sm font-semibold text-gray-900">
+              <h3 className="text-sm font-medium text-muted-foreground">
                 Seu desafio
               </h3>
 
               {prazoVencido && (
-                <div className="rounded-lg bg-red-50 border border-red-200 p-3">
-                  <p className="text-sm font-medium text-red-700">
+                <div className="rounded-lg bg-destructive/10 border border-destructive/40 p-3">
+                  <p className="text-sm font-medium text-destructive">
                     ⚠️ Prazo vencido — {prazoFormatado}
                   </p>
-                  <p className="text-xs text-red-500 mt-1">
+                  <p className="text-xs text-destructive mt-1">
                     O prazo já passou mas você ainda pode enviar sua entrega.
                   </p>
                 </div>
               )}
 
               {!prazoVencido && prazoFormatado && (
-                <div className="rounded-lg bg-amber-50 border border-amber-200 p-3">
-                  <p className="text-sm font-medium text-amber-700">
+                <div className="rounded-lg bg-warning/10 border border-warning/40 p-3">
+                  <p className="text-sm font-medium text-warning">
                     ⏰ Prazo: {prazoFormatado}
                   </p>
                 </div>
@@ -248,34 +248,34 @@ export default function EntregaTeste() {
 
               {teste.desafio_contexto && (
                 <div className="space-y-1">
-                  <p className="text-xs font-semibold text-gray-500 uppercase">Contexto</p>
-                  <p className="text-sm text-gray-700 leading-relaxed">{teste.desafio_contexto}</p>
+                  <p className="text-xs font-medium text-muted-foreground uppercase">Contexto</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{teste.desafio_contexto}</p>
                 </div>
               )}
               <div className="space-y-1">
-                <p className="text-xs font-semibold text-gray-500 uppercase">Desafio</p>
-                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{teste.desafio_descricao}</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase">Desafio</p>
+                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{teste.desafio_descricao}</p>
               </div>
               {teste.desafio_entregaveis && (
                 <div className="space-y-1">
-                  <p className="text-xs font-semibold text-gray-500 uppercase">Entregáveis</p>
-                  <p className="text-sm text-gray-700 leading-relaxed">{teste.desafio_entregaveis}</p>
+                  <p className="text-xs font-medium text-muted-foreground uppercase">Entregáveis</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{teste.desafio_entregaveis}</p>
                 </div>
               )}
               {teste.desafio_criterios && (
                 <div className="space-y-1">
-                  <p className="text-xs font-semibold text-gray-500 uppercase">Critérios</p>
-                  <p className="text-sm text-gray-700 leading-relaxed">{teste.desafio_criterios}</p>
+                  <p className="text-xs font-medium text-muted-foreground uppercase">Critérios</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{teste.desafio_criterios}</p>
                 </div>
               )}
             </div>
 
             {/* Entrega */}
             <div className="bg-white rounded-xl border p-6 space-y-4">
-              <h3 className="text-sm font-semibold text-gray-900">
+              <h3 className="text-sm font-medium text-muted-foreground">
                 Sua entrega
               </h3>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Cole o link da sua entrega (Google Drive, GitHub, Notion, Figma...)
                 ou faça upload do arquivo.
               </p>
@@ -293,7 +293,7 @@ export default function EntregaTeste() {
               {/* Divisor */}
               <div className="flex items-center gap-3">
                 <div className="flex-1 border-t" />
-                <span className="text-xs text-gray-400">ou</span>
+                <span className="text-xs text-muted-foreground">ou</span>
                 <div className="flex-1 border-t" />
               </div>
 
@@ -313,16 +313,16 @@ export default function EntregaTeste() {
                   />
                   {arquivo ? (
                     <div className="flex items-center justify-center gap-2">
-                      <Check className="h-4 w-4 text-green-600" />
-                      <p className="text-sm text-gray-700">{arquivo.name}</p>
+                      <Check className="h-4 w-4 text-success" />
+                      <p className="text-sm text-muted-foreground">{arquivo.name}</p>
                     </div>
                   ) : (
                     <>
-                      <Upload className="h-6 w-6 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm text-gray-500">
+                      <Upload className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">
                         Clique para selecionar um arquivo
                       </p>
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         PDF, ZIP, DOC, PPTX, PNG, JPG, FIG
                       </p>
                     </>

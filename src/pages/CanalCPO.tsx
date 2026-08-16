@@ -14,17 +14,17 @@ function fmtData(d: string) {
 }
 
 const ESTAGIO_CORES: Record<string, string> = {
-  recebido:           "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300",
-  em_analise_credito: "bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300",
-  cobranca:           "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300",
-  aguardando_pagamento: "bg-amber-50 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300",
-  aguardando_estoque: "bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-300",
-  pre_separacao:      "bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-300",
-  pre_faturamento:    "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300",
-  em_separacao:       "bg-teal-50 text-teal-700 dark:bg-teal-900/20 dark:text-teal-300",
-  faturado:           "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300",
-  em_transporte:      "bg-sky-50 text-sky-700 dark:bg-sky-900/20 dark:text-sky-300",
-  entregue:           "bg-emerald-50 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-200",
+  recebido:           "bg-info/10 text-info",
+  em_analise_credito: "bg-info/10 text-info",
+  cobranca:           "bg-warning/10 text-warning",
+  aguardando_pagamento: "bg-warning/10 text-warning",
+  aguardando_estoque: "bg-warning/10 text-warning",
+  pre_separacao:      "bg-warning/10 text-warning",
+  pre_faturamento:    "bg-warning/10 text-warning",
+  em_separacao:       "bg-success/10 text-success",
+  faturado:           "bg-success/10 text-success",
+  em_transporte:      "bg-info/10 text-info",
+  entregue:           "bg-success/10 text-success",
 };
 
 const ESTAGIO_LABELS: Record<string, string> = {
@@ -96,9 +96,9 @@ export default function CanalCPO() {
       <div>
         <div className="flex items-center gap-2">
           <MessageCircle className="h-5 w-5" style={{ color: "#185FA5" }} />
-          <h1 className="text-xl font-semibold">Central de Mensagens</h1>
+          <h1 className="text-xl font-medium">Central de Mensagens</h1>
           {pendentes.length > 0 && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-600 text-white">
+            <span className="text-xs px-2 py-0.5 rounded-full bg-info text-white">
               {pendentes.length}
             </span>
           )}
@@ -113,7 +113,7 @@ export default function CanalCPO() {
           onClick={() => setFiltro("pendentes")}
           className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
             filtro === "pendentes"
-              ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800"
+              ? "bg-info/10 text-info border-info/40"
               : "border-border text-muted-foreground hover:bg-muted"
           }`}
         >
@@ -123,7 +123,7 @@ export default function CanalCPO() {
           onClick={() => setFiltro("todas")}
           className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
             filtro === "todas"
-              ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800"
+              ? "bg-info/10 text-info border-info/40"
               : "border-border text-muted-foreground hover:bg-muted"
           }`}
         >
@@ -163,7 +163,7 @@ export default function CanalCPO() {
                     </span>
                   )}
                   {c.lastTipo === "msg_comercial" && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-600 text-white">
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-info text-white">
                       aguardando resposta
                     </span>
                   )}

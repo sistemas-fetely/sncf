@@ -163,7 +163,7 @@ export default function Consignados() {
                       <TableCell className="text-right tabular-nums">
                         <Badge
                           variant="outline"
-                          className={saldo > 0 ? "border-amber-500/40 text-amber-700 dark:text-amber-300" : "text-muted-foreground"}
+                          className={saldo > 0 ? "border-warning/40 text-warning" : "text-muted-foreground"}
                         >
                           {formatBRL(saldo)}
                         </Badge>

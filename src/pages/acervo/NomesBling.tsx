@@ -155,14 +155,14 @@ export default function NomesBling() {
     const v = (s ?? "").toLowerCase();
     if (v.includes("erro") || v.includes("falha")) return "text-destructive font-medium";
     if (v.includes("pul")) return "text-muted-foreground";
-    if (v.includes("atualiz") || v.includes("ok") || v.includes("sucesso")) return "text-emerald-600 font-medium";
+    if (v.includes("atualiz") || v.includes("ok") || v.includes("sucesso")) return "text-success font-medium";
     return "";
   };
 
   return (
     <div className="space-y-6 p-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Nomes no Bling</h1>
+        <h1 className="text-2xl font-medium tracking-tight">Nomes no Bling</h1>
         <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
           Atualiza o nome do cadastro de produto no Bling a partir do nome operacional do SNCF.
           Afeta o texto que sai no pedido e na NF. Não altera NF já emitida.
@@ -195,27 +195,27 @@ export default function NomesBling() {
             <>
               <div className="grid gap-6 sm:grid-cols-4">
                 <div>
-                  <div className="text-3xl font-semibold tabular-nums">
+                  <div className="text-3xl font-medium tabular-nums">
                     {situacao.isLoading ? "—" : situacao.data?.produtos_ativos}
                   </div>
                   <div className="text-sm text-muted-foreground">Produtos ativos</div>
                 </div>
                 <div>
-                  <div className="text-3xl font-semibold tabular-nums text-emerald-600">
+                  <div className="text-3xl font-medium tabular-nums text-success">
                     {situacao.isLoading ? "—" : situacao.data?.ok_no_bling}
                   </div>
                   <div className="text-sm text-muted-foreground">OK no Bling</div>
                   <div className="text-xs text-muted-foreground">nome certo no Bling, confirmado</div>
                 </div>
                 <div>
-                  <div className="text-3xl font-semibold tabular-nums text-amber-600">
+                  <div className="text-3xl font-medium tabular-nums text-warning">
                     {situacao.isLoading ? "—" : situacao.data?.faltam_empurrar}
                   </div>
                   <div className="text-sm text-muted-foreground">Faltam empurrar</div>
                   <div className="text-xs text-muted-foreground">some a cada lote, até zerar</div>
                 </div>
                 <div>
-                  <div className="text-3xl font-semibold tabular-nums text-destructive">
+                  <div className="text-3xl font-medium tabular-nums text-destructive">
                     {situacao.isLoading ? "—" : situacao.data?.falhas_a_reprocessar}
                   </div>
                   <div className="text-sm text-muted-foreground">Falhas a reprocessar</div>

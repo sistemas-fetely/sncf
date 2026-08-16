@@ -34,12 +34,12 @@ export function AnaliseIaCard({
     iaConfianca == null
       ? ""
       : iaConfianca >= 85
-      ? "text-green-700 border-green-500"
+      ? "text-success border-success/40"
       : iaConfianca >= 70
-      ? "text-blue-700 border-blue-500"
+      ? "text-info border-info/40"
       : iaConfianca >= 50
-      ? "text-amber-700 border-amber-500"
-      : "text-red-700 border-red-500";
+      ? "text-warning border-warning/40"
+      : "text-destructive border-destructive/40";
 
   return (
     <Card>

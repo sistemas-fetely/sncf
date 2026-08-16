@@ -57,7 +57,7 @@ export function AnaliseDetalheEntrada({ analiseId }: Props) {
         </Button>
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="space-y-1">
-            <h1 className="text-2xl font-bold tracking-tight">
+            <h1 className="text-2xl font-medium tracking-tight">
               <button
                 type="button"
                 onClick={() => parceiro?.id && navigate(`/credito/clientes/${parceiro.id}`, { state: { from: `/credito/analises/${analiseId}`, fromLabel: "Análise" } })}
@@ -115,7 +115,7 @@ export function AnaliseDetalheEntrada({ analiseId }: Props) {
               <Button
                 size="sm"
                 variant="outline"
-                className="w-full gap-2 mt-2 border-amber-500/50 text-amber-700 hover:bg-amber-50"
+                className="w-full gap-2 mt-2 border-warning/40 text-warning hover:bg-warning/10"
                 onClick={() => enriquecer.mutate(parceiro.id)}
                 disabled={enriquecer.isPending}
               >

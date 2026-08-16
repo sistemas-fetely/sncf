@@ -341,7 +341,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
           >
             <CardContent className="p-3">
               <div
-                className={`text-[11px] font-semibold tracking-wide ${
+                className={`text-[11px] font-medium tracking-wide ${
                   resumoVencido.qtd > 0 ? "text-destructive" : "text-muted-foreground"
                 }`}
               >
@@ -350,7 +350,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
               {resumoVencido.qtd > 0 ? (
                 <>
                   <div className="mt-1 flex items-baseline gap-2">
-                    <span className="text-2xl font-semibold tabular-nums text-destructive">
+                    <span className="text-2xl font-medium tabular-nums text-destructive">
                       {resumoVencido.qtd}
                     </span>
                     <span className="text-xs text-muted-foreground">títulos</span>
@@ -380,9 +380,9 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                 className={`cursor-pointer transition ${ativo ? "ring-2 ring-primary" : "hover:bg-muted/50"}`}
               >
                 <CardContent className="p-3">
-                  <div className="text-[11px] font-semibold tracking-wide text-muted-foreground">{c.titulo}</div>
+                  <div className="text-[11px] font-medium tracking-wide text-muted-foreground">{c.titulo}</div>
                   <div className="mt-1 flex items-baseline gap-2">
-                    <span className="text-2xl font-semibold tabular-nums">{r.qtd}</span>
+                    <span className="text-2xl font-medium tabular-nums">{r.qtd}</span>
                     <span className="text-xs text-muted-foreground">títulos</span>
                   </div>
                   <div className="text-sm tabular-nums">{formatBRL(r.soma)}</div>
@@ -470,11 +470,11 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                     <ChevronDown className={`h-4 w-4 shrink-0 transition ${aberto ? "" : "-rotate-90"}`} />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold">{f.label}</span>
+                        <span className="text-sm font-medium">{f.label}</span>
                         <Badge variant="secondary" className="tabular-nums">{rows.length}</Badge>
                         <span className="text-xs tabular-nums text-muted-foreground">{formatBRL(soma)}</span>
                         {f.qtdVencido > 0 && (
-                          <Badge className="shrink-0 bg-red-100 text-red-800 hover:bg-red-100 text-[10px]">
+                          <Badge className="shrink-0 bg-destructive/10 text-destructive hover:bg-destructive/10 text-[10px]">
                             {f.qtdVencido} vencido{f.qtdVencido > 1 ? "s" : ""} · {formatBRL(f.totalVencido)}
                           </Badge>
                         )}

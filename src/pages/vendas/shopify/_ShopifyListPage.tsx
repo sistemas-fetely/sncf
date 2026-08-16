@@ -121,7 +121,7 @@ export function ShopifyListPage<T extends Record<string, any>>({
             <div className="space-y-4">
               {detailFields.map((f) => (
                 <div key={f}>
-                  <div className="text-xs font-semibold text-muted-foreground mb-1">{f}</div>
+                  <div className="text-xs font-medium text-muted-foreground mb-1">{f}</div>
                   <pre className="text-xs bg-muted p-3 rounded overflow-auto max-h-80">
                     {JSON.stringify((detalheRow as any)[f] ?? null, null, 2)}
                   </pre>

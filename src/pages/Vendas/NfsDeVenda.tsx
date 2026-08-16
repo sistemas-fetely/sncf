@@ -49,14 +49,14 @@ const SITUACAO_LABELS: Record<string, string> = {
 };
 
 const SITUACAO_CLASS: Record<string, string> = {
-  autorizada: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
-  cancelada: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
-  pendente: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
-  rejeitada: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
-  denegada: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
-  bloqueada: "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20",
-  registrada: "bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/20",
-  emitida: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
+  autorizada: "bg-success text-success border-success/40",
+  cancelada: "bg-destructive text-destructive border-destructive/40",
+  pendente: "bg-warning text-warning border-warning/40",
+  rejeitada: "bg-destructive text-destructive border-destructive/40",
+  denegada: "bg-destructive text-destructive border-destructive/40",
+  bloqueada: "bg-warning text-warning border-warning/40",
+  registrada: "bg-info text-info border-info/40",
+  emitida: "bg-success text-success border-success/40",
 };
 
 function getSituacaoBadge(n: NfEmitida) {

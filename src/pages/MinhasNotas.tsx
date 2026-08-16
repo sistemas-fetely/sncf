@@ -23,7 +23,7 @@ export default function MinhasNotas() {
   if (!contrato) {
     return (
       <div className="p-6 max-w-4xl mx-auto space-y-4">
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+        <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
           <FileText className="h-6 w-6" />
           Minhas Notas Fiscais
         </h1>
@@ -40,7 +40,7 @@ export default function MinhasNotas() {
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+        <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
           <FileText className="h-6 w-6" />
           Minhas Notas Fiscais
         </h1>
@@ -61,7 +61,7 @@ export default function MinhasNotas() {
 
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold">Timeline {anoAtual}</h2>
+          <h2 className="text-lg font-medium">Timeline {anoAtual}</h2>
           <span className="text-xs text-muted-foreground">
             {(notas || []).filter((n) => n.competencia.startsWith(`${anoAtual}-`)).length} NF(s) em {anoAtual}
           </span>

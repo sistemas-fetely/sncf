@@ -21,13 +21,13 @@ function StatusIcon({ status }: { status: string | null }) {
     );
   }
   const map: Record<string, { icon: typeof Clock; color: string; bg: string }> = {
-    paga: { icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-100 dark:bg-emerald-950/30" },
-    enviada_pagamento: { icon: FileText, color: "text-blue-600", bg: "bg-blue-100 dark:bg-blue-950/30" },
-    aprovada: { icon: CheckCircle2, color: "text-blue-600", bg: "bg-blue-100 dark:bg-blue-950/30" },
-    aguardando_aprovacao: { icon: Clock, color: "text-amber-600", bg: "bg-amber-100 dark:bg-amber-950/30" },
-    aguardando_validacao: { icon: Loader2, color: "text-amber-600", bg: "bg-amber-100 dark:bg-amber-950/30" },
-    em_analise: { icon: Loader2, color: "text-amber-600", bg: "bg-amber-100 dark:bg-amber-950/30" },
-    precisa_correcao: { icon: AlertCircle, color: "text-orange-600", bg: "bg-orange-100 dark:bg-orange-950/30" },
+    paga: { icon: CheckCircle2, color: "text-success", bg: "bg-success/10" },
+    enviada_pagamento: { icon: FileText, color: "text-info", bg: "bg-info/10" },
+    aprovada: { icon: CheckCircle2, color: "text-info", bg: "bg-info/10" },
+    aguardando_aprovacao: { icon: Clock, color: "text-warning", bg: "bg-warning/10" },
+    aguardando_validacao: { icon: Loader2, color: "text-warning", bg: "bg-warning/10" },
+    em_analise: { icon: Loader2, color: "text-warning", bg: "bg-warning/10" },
+    precisa_correcao: { icon: AlertCircle, color: "text-warning", bg: "bg-warning/10" },
     rejeitada: { icon: XCircle, color: "text-destructive", bg: "bg-destructive/10" },
     em_disputa: { icon: AlertCircle, color: "text-destructive", bg: "bg-destructive/10" },
     pendente: { icon: Clock, color: "text-muted-foreground", bg: "bg-muted" },
@@ -81,7 +81,7 @@ export function TimelineNotas({ notas, ano = new Date().getFullYear() }: Props) 
               <StatusIcon status={nota?.status || null} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-sm font-semibold capitalize">{nome}</span>
+                  <span className="text-sm font-medium capitalize">{nome}</span>
                   <span className="text-xs text-muted-foreground">/{ano}</span>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">

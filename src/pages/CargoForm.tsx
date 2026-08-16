@@ -276,7 +276,7 @@ export default function CargoForm() {
     <div className="p-6 space-y-6 max-w-2xl">
       <div className="flex items-center gap-3">
         <SmartBackButton fallback="/admin/cargos" fallbackLabel="Cargos" />
-        <h1 className="text-2xl font-semibold">{isNovo ? "Novo Cargo" : "Editar Cargo"}</h1>
+        <h1 className="text-2xl font-medium">{isNovo ? "Novo Cargo" : "Editar Cargo"}</h1>
       </div>
 
       <div className="space-y-6">
@@ -444,7 +444,7 @@ export default function CargoForm() {
               values={form.skills_desejadas ?? []}
               onChange={(v) => setField("skills_desejadas", v)}
               placeholder="Digite e pressione Enter"
-              colorClass="bg-blue-100 text-blue-800"
+              colorClass="bg-info/10 text-info"
             />
           </div>
 
@@ -454,7 +454,7 @@ export default function CargoForm() {
               values={form.ferramentas ?? []}
               onChange={(v) => setField("ferramentas", v)}
               placeholder="Digite e pressione Enter"
-              colorClass="bg-purple-100 text-purple-800"
+              colorClass="bg-info/10 text-info"
             />
           </div>
         </div>

@@ -83,7 +83,7 @@ export default function AguardandoPagamentoFila() {
                   onClick={() => navigate(`/recebimento/aguardando-pagamento/${p.pedido_id}`)}
                 >
                   <TableCell>
-                    <span className="font-mono text-xs font-semibold text-primary">
+                    <span className="font-mono text-xs font-medium text-primary">
                       {p.id_externo}
                     </span>
                   </TableCell>
@@ -107,7 +107,7 @@ export default function AguardandoPagamentoFila() {
                         p.dias_aguardando > 15
                           ? ""
                           : p.dias_aguardando > 7
-                            ? "bg-amber-500 text-white hover:bg-amber-500/90"
+                            ? "bg-warning text-white hover:bg-warning"
                             : ""
                       }
                     >

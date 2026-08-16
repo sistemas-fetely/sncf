@@ -242,14 +242,14 @@ export default function DesligamentoDetalhe() {
                   )}
                   {checklist.aviso_previo && <Badge variant="outline">Aviso prévio</Badge>}
                   {checklist.status === "concluido" && (
-                    <Badge className="bg-emerald-500">Concluído</Badge>
+                    <Badge className="bg-success">Concluído</Badge>
                   )}
                 </div>
               </div>
             </div>
             <div className="text-right">
               <p className="text-xs text-muted-foreground">Data efetiva</p>
-              <p className="font-semibold">
+              <p className="font-medium">
                 {checklist.data_efetivacao
                   ? new Date(checklist.data_efetivacao + "T00:00:00").toLocaleDateString("pt-BR")
                   : "—"}
@@ -264,7 +264,7 @@ export default function DesligamentoDetalhe() {
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>Progresso geral</span>
-              <span className="font-semibold">{stats.concluidas}/{stats.total} ({stats.pct}%)</span>
+              <span className="font-medium">{stats.concluidas}/{stats.total} ({stats.pct}%)</span>
             </div>
             <Progress value={stats.pct} className="h-2" />
           </div>
@@ -274,22 +274,22 @@ export default function DesligamentoDetalhe() {
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card><CardContent className="p-4">
-          <p className="text-2xl font-bold">{stats.total}</p>
+          <p className="text-2xl font-medium">{stats.total}</p>
           <p className="text-xs text-muted-foreground">Total</p>
         </CardContent></Card>
         <Card><CardContent className="p-4">
-          <p className="text-2xl font-bold text-emerald-600">{stats.concluidas}</p>
+          <p className="text-2xl font-medium text-success">{stats.concluidas}</p>
           <p className="text-xs text-muted-foreground">Concluídas</p>
         </CardContent></Card>
         <Card className={stats.atrasadas > 0 ? "border-destructive" : ""}>
           <CardContent className="p-4">
-            <p className="text-2xl font-bold text-destructive">{stats.atrasadas}</p>
+            <p className="text-2xl font-medium text-destructive">{stats.atrasadas}</p>
             <p className="text-xs text-muted-foreground">Atrasadas</p>
           </CardContent>
         </Card>
-        <Card className={stats.legais > 0 ? "border-amber-500 bg-amber-50 dark:bg-amber-950/20" : ""}>
+        <Card className={stats.legais > 0 ? "border-warning/40 bg-warning/10" : ""}>
           <CardContent className="p-4">
-            <p className="text-2xl font-bold text-amber-600">{stats.legais}</p>
+            <p className="text-2xl font-medium text-warning">{stats.legais}</p>
             <p className="text-xs text-muted-foreground">Pendências legais</p>
           </CardContent>
         </Card>
@@ -316,7 +316,7 @@ export default function DesligamentoDetalhe() {
                     t.esta_atrasada
                       ? "bg-destructive/5 border-destructive/30"
                       : t.bloqueante && t.status !== "concluida"
-                      ? "bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900"
+                      ? "bg-warning/10 border-warning/40"
                       : t.status === "concluida"
                       ? "bg-muted/30"
                       : "border-border",
@@ -333,8 +333,8 @@ export default function DesligamentoDetalhe() {
                     className={cn(
                       "mt-1 h-5 w-5 rounded-full border-2 flex items-center justify-center flex-shrink-0",
                       t.status === "concluida"
-                        ? "bg-emerald-500 border-emerald-500"
-                        : "border-muted-foreground/30 hover:border-emerald-400",
+                        ? "bg-success border-success/40"
+                        : "border-muted-foreground/30 hover:border-success/40",
                     )}
                     aria-label="Concluir"
                   >
@@ -351,7 +351,7 @@ export default function DesligamentoDetalhe() {
                         </Badge>
                       )}
                       {t.prioridade === "urgente" && <Badge variant="destructive" className="text-[10px]">Urgente</Badge>}
-                      {t.status === "em_andamento" && <Badge className="text-[10px] bg-blue-500 hover:bg-blue-500/90">Em andamento</Badge>}
+                      {t.status === "em_andamento" && <Badge className="text-[10px] bg-info hover:bg-info">Em andamento</Badge>}
                       {t.esta_atrasada && (
                         <Badge variant="destructive" className="text-[10px]">
                           Atrasada{t.dias_atraso ? ` há ${t.dias_atraso}d` : ""}
@@ -367,8 +367,8 @@ export default function DesligamentoDetalhe() {
                       {t.responsavel_role && <span>Resp: {t.responsavel_role}</span>}
                     </div>
                     {t.status === "concluida" && t.evidencia_texto && (
-                      <div className="mt-2 p-2 rounded bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900">
-                        <p className="text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+                      <div className="mt-2 p-2 rounded bg-success/10 border border-success/40">
+                        <p className="text-[11px] font-medium text-success">
                           Concluída em {t.concluida_em ? new Date(t.concluida_em).toLocaleDateString("pt-BR") : "—"}
                         </p>
                         <p className="text-xs mt-0.5">{t.evidencia_texto}</p>
@@ -377,7 +377,7 @@ export default function DesligamentoDetalhe() {
                             href={t.evidencia_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs inline-flex items-center gap-1 mt-1 hover:underline text-emerald-700"
+                            className="text-xs inline-flex items-center gap-1 mt-1 hover:underline text-success"
                           >
                             Ver evidência <ExternalLink className="h-3 w-3" />
                           </a>

@@ -39,9 +39,9 @@ export function PainelIaConsolidado({
 
   if (!iaJson || !iaProcessadaEm) {
     return (
-      <Card className="border-amber-300 bg-amber-50/40">
+      <Card className="border-warning/40 bg-warning/10">
         <CardContent className="p-6 flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
+          <AlertTriangle className="h-5 w-5 text-warning mt-0.5" />
           <div className="space-y-1">
             <p className="font-medium">Análise IA não foi gerada</p>
             <p className="text-sm text-muted-foreground">
@@ -56,12 +56,12 @@ export function PainelIaConsolidado({
   const conf = iaConfianca ?? 0;
   const corConf =
     conf >= 85
-      ? "bg-green-600"
+      ? "bg-success"
       : conf >= 70
-      ? "bg-blue-600"
+      ? "bg-info"
       : conf >= 50
-      ? "bg-amber-600"
-      : "bg-red-600";
+      ? "bg-warning"
+      : "bg-destructive";
   const labelConf =
     conf >= 85
       ? "Alta — caso claro"
@@ -141,7 +141,7 @@ export function PainelIaConsolidado({
             <ul className="space-y-1.5">
               {iaJson.pontos_atencao.map((p, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm">
-                  <AlertTriangle className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
+                  <AlertTriangle className="h-3.5 w-3.5 text-warning mt-0.5 shrink-0" />
                   <span>{typeof p === "string" ? p : p.texto}</span>
                 </li>
               ))}

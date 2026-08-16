@@ -42,7 +42,7 @@ export default function ComprasMercadoria() {
           <ShoppingBag className="h-6 w-6 text-white" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">Compras de Mercadoria</h1>
+          <h1 className="text-2xl font-medium">Compras de Mercadoria</h1>
           <p className="text-sm text-muted-foreground">
             Importação e compra nacional de produtos para revenda.
           </p>

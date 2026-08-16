@@ -81,7 +81,7 @@ export default function DocumentacaoViva() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight" style={{ color: TI_COLOR }}>
+          <h1 className="text-2xl font-medium tracking-tight" style={{ color: TI_COLOR }}>
             Documentação Viva
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
@@ -112,10 +112,10 @@ export default function DocumentacaoViva() {
                 <Sparkles className="h-6 w-6" style={{ color: TI_COLOR }} />
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
+                <p className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
                   Iniciar Nova Sessão de Desenvolvimento
                 </p>
-                <h3 className="text-lg font-semibold mt-0.5">
+                <h3 className="text-lg font-medium mt-0.5">
                   Copie o prompt de continuidade para colar no Claude
                 </h3>
               </div>
@@ -183,7 +183,7 @@ export default function DocumentacaoViva() {
                         {doc.tipo.replace("_", " ")}
                       </Badge>
                     </div>
-                    <h3 className="font-semibold text-base">{doc.titulo}</h3>
+                    <h3 className="font-medium text-base">{doc.titulo}</h3>
                     {doc.descricao && (
                       <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                         {doc.descricao}

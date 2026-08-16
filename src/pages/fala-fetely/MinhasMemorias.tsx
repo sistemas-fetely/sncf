@@ -72,16 +72,16 @@ const TIPO_LABELS: Record<TipoMemoria, string> = {
 };
 
 const TIPO_CORES: Record<TipoMemoria, string> = {
-  decisao: "bg-blue-100 text-blue-800 border-blue-200",
-  preferencia: "bg-purple-100 text-purple-800 border-purple-200",
-  fato: "bg-emerald-100 text-emerald-800 border-emerald-200",
-  contexto_pessoal: "bg-orange-100 text-orange-800 border-orange-200",
+  decisao: "bg-info/10 text-info border-info/40",
+  preferencia: "bg-info/10 text-info border-info/40",
+  fato: "bg-success/10 text-success border-success/40",
+  contexto_pessoal: "bg-warning/10 text-warning border-warning/40",
 };
 
 function relevanciaLabel(r: number): { label: string; cor: string } {
-  if (r >= 8) return { label: "Alta", cor: "bg-red-100 text-red-700" };
-  if (r >= 5) return { label: "Média", cor: "bg-amber-100 text-amber-700" };
-  return { label: "Baixa", cor: "bg-gray-100 text-gray-600" };
+  if (r >= 8) return { label: "Alta", cor: "bg-destructive/10 text-destructive" };
+  if (r >= 5) return { label: "Média", cor: "bg-warning/10 text-warning" };
+  return { label: "Baixa", cor: "bg-muted/10 text-muted-foreground" };
 }
 
 function formatData(iso: string) {
@@ -240,7 +240,7 @@ export default function MinhasMemorias() {
             <Button variant="ghost" onClick={() => navigate("/fala-fetely")} className="gap-1 -ml-2">
               <ArrowLeft className="h-4 w-4" /> Voltar ao Fala Fetely
             </Button>
-            <h1 className="text-3xl font-bold flex items-center gap-2" style={{ color: "#1A4A3A" }}>
+            <h1 className="text-3xl font-medium flex items-center gap-2" style={{ color: "#1A4A3A" }}>
               <Brain className="h-7 w-7" /> Minhas Memórias
             </h1>
             <p className="text-muted-foreground max-w-xl">
@@ -324,12 +324,12 @@ export default function MinhasMemorias() {
                         Relevância {rel.label}
                       </Badge>
                       {m.origem === "manual" && (
-                        <Badge variant="outline" className="bg-slate-100 text-slate-700">
+                        <Badge variant="outline" className="bg-muted/10 text-muted-foreground">
                           Manual
                         </Badge>
                       )}
                       {!m.ativo && (
-                        <Badge variant="outline" className="bg-gray-200 text-gray-600">
+                        <Badge variant="outline" className="bg-muted/15 text-muted-foreground">
                           Esquecida
                         </Badge>
                       )}
@@ -345,7 +345,7 @@ export default function MinhasMemorias() {
                             variant="ghost"
                             onClick={() => setConfirmarEsquecer(m)}
                             title="Esquecer"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -357,7 +357,7 @@ export default function MinhasMemorias() {
                       )}
                     </div>
                   </div>
-                  <h3 className="font-semibold mt-2" style={{ color: "#1A4A3A" }}>
+                  <h3 className="font-medium mt-2" style={{ color: "#1A4A3A" }}>
                     {m.resumo}
                   </h3>
                   {m.conteudo_completo && (
@@ -475,7 +475,7 @@ export default function MinhasMemorias() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => confirmarEsquecer && esquecer(confirmarEsquecer)}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive"
             >
               Esquecer
             </AlertDialogAction>
@@ -509,14 +509,14 @@ export default function MinhasMemorias() {
                 <X className="h-4 w-4" /> Fechar visualização
               </Button>
             </div>
-            <Card className="bg-amber-50 border-amber-200">
+            <Card className="bg-warning/10 border-warning/40">
               <CardContent className="p-3 text-sm">
                 🔐 Você está visualizando memórias de{" "}
                 <strong>{titularOutro.full_name || titularOutro.user_id}</strong>. Esse acesso foi
                 registrado em log de auditoria e também é visível ao próprio titular.
               </CardContent>
             </Card>
-            <h2 className="text-xl font-bold">Memórias ({memoriasOutro.length})</h2>
+            <h2 className="text-xl font-medium">Memórias ({memoriasOutro.length})</h2>
             {memoriasOutro.length === 0 ? (
               <p className="text-sm text-muted-foreground">Esse usuário não tem memórias armazenadas.</p>
             ) : (

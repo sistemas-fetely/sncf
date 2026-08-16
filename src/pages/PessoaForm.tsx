@@ -376,7 +376,7 @@ export default function PessoaForm() {
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate("/pessoas")}><ArrowLeft className="h-4 w-4" /></Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold tracking-tight">{isEdit ? "Editar pessoa" : "Nova pessoa"}</h1>
+          <h1 className="text-2xl font-medium tracking-tight">{isEdit ? "Editar pessoa" : "Nova pessoa"}</h1>
           <p className="text-muted-foreground text-sm">Dados do ser humano e do vínculo com a Fetely</p>
         </div>
         {vinculoStatus === "desligado" && (
@@ -535,7 +535,7 @@ export default function PessoaForm() {
 
           {tipo === "PJ" && (
             <div className="border-t pt-4">
-              <h3 className="font-semibold text-sm mb-3">Dados da empresa (PJ)</h3>
+              <h3 className="font-medium text-sm mb-3">Dados da empresa (PJ)</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div><Label>CNPJ</Label><Input value={vinculo.cnpj} onChange={(e) => setVinculo({ ...vinculo, cnpj: e.target.value })} /></div>
                 <div className="md:col-span-2"><Label>Razão social</Label><Input value={vinculo.razao_social} onChange={(e) => setVinculo({ ...vinculo, razao_social: e.target.value })} /></div>
@@ -548,7 +548,7 @@ export default function PessoaForm() {
 
           {tipo === "CLT" && (
             <div className="border-t pt-4">
-              <h3 className="font-semibold text-sm mb-3">Dados CLT</h3>
+              <h3 className="font-medium text-sm mb-3">Dados CLT</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div><Label>PIS/PASEP</Label><Input value={vinculo.pis_pasep} onChange={(e) => setVinculo({ ...vinculo, pis_pasep: e.target.value })} /></div>
                 <div><Label>CTPS número</Label><Input value={vinculo.ctps_numero} onChange={(e) => setVinculo({ ...vinculo, ctps_numero: e.target.value })} /></div>
@@ -568,7 +568,7 @@ export default function PessoaForm() {
 
       {isEdit && vinculoId && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold">Composição de Custo</h2>
+          <h2 className="text-lg font-medium">Composição de Custo</h2>
           <VinculoBeneficiosSection vinculoId={vinculoId} />
           <VinculoExtrasSection vinculoId={vinculoId} />
           {vinculo.tipo_vinculo === "PJ" && (

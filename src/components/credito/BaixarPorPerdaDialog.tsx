@@ -70,9 +70,9 @@ export function BaixarPorPerdaDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Alert className="border-red-300 bg-red-50">
-          <AlertTriangle className="h-4 w-4 !text-red-700" />
-          <AlertDescription className="text-xs text-red-900">
+        <Alert className="border-destructive/40 bg-destructive/10">
+          <AlertTriangle className="h-4 w-4 !text-destructive" />
+          <AlertDescription className="text-xs text-destructive">
             Reconhece este título como <strong>incobrável (write-off)</strong>. A venda/NF
             permanece; o boleto vivo será baixado no banco. <strong>Não gera haver.</strong>
           </AlertDescription>

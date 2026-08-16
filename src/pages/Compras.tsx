@@ -157,7 +157,7 @@ export default function Compras() {
             <ShoppingCart className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Compras</h1>
+            <h1 className="text-2xl font-medium">Compras</h1>
             <p className="text-sm text-muted-foreground">
               Insumo, material e serviço — pedido de compra interna
             </p>
@@ -252,7 +252,7 @@ export default function Compras() {
           ) : filtrados.length === 0 ? (
             <div className="p-12 text-center">
               <PackageOpen className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-              <h3 className="font-semibold mb-1">
+              <h3 className="font-medium mb-1">
                 {pedidos.length === 0
                   ? "Você ainda não tem pedidos de compra"
                   : "Nenhum pedido encontrado"}
@@ -340,7 +340,7 @@ export default function Compras() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-emerald-600"
+                              className="h-8 w-8 text-muted-foreground hover:text-success"
                               title="Enviar para comprador"
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -366,7 +366,7 @@ export default function Compras() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-emerald-600"
+                            className="h-8 w-8 text-muted-foreground hover:text-success"
                             title="Confirmar recebimento"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -529,7 +529,7 @@ function StatCard({
           <Icon className="h-5 w-5 text-muted-foreground" />
         </div>
         <div>
-          <div className="text-2xl font-bold">{value}</div>
+          <div className="text-2xl font-medium">{value}</div>
           <div className="text-xs text-muted-foreground">{label}</div>
         </div>
       </CardContent>

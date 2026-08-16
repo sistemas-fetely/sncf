@@ -48,7 +48,7 @@ export default function FolhaPagamento() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Folha de Pagamento</h1>
+        <h1 className="text-2xl font-medium">Folha de Pagamento</h1>
         <p className="text-muted-foreground">Gestão e cálculo da folha de pagamento CLT</p>
       </div>
 

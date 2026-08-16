@@ -31,7 +31,7 @@ export default function AdiantamentoSemNfTab() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-xs text-muted-foreground">Adiantamento s/ NF</p>
-            <p className="text-2xl font-semibold">{formatBRL(total)}</p>
+            <p className="text-2xl font-medium">{formatBRL(total)}</p>
             <p className="text-xs text-muted-foreground mt-1">
               {linhas.length} lançamento{linhas.length !== 1 ? "s" : ""}
             </p>
@@ -40,13 +40,13 @@ export default function AdiantamentoSemNfTab() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-xs text-muted-foreground">Cobre o pedido inteiro</p>
-            <p className="text-2xl font-semibold">{qtdIntegral}</p>
+            <p className="text-2xl font-medium">{qtdIntegral}</p>
           </CardContent>
         </Card>
         <Card className={qtdSemPlano > 0 ? "border-destructive" : undefined}>
           <CardContent className="pt-6">
             <p className="text-xs text-muted-foreground">Sem plano</p>
-            <p className={`text-2xl font-semibold ${qtdSemPlano > 0 ? "text-destructive" : ""}`}>
+            <p className={`text-2xl font-medium ${qtdSemPlano > 0 ? "text-destructive" : ""}`}>
               {qtdSemPlano}
             </p>
           </CardContent>
@@ -104,7 +104,7 @@ export default function AdiantamentoSemNfTab() {
                   </p>
                 </TableCell>
                 <TableCell>
-                  <p className="font-mono text-xs font-semibold text-primary">
+                  <p className="font-mono text-xs font-medium text-primary">
                     {r.pedido ?? "—"}
                   </p>
                   <p className="text-xs text-muted-foreground">{r.pedido_estagio ?? "—"}</p>
@@ -114,7 +114,7 @@ export default function AdiantamentoSemNfTab() {
                 <TableCell className="text-right font-medium">{formatBRL(r.saldo)}</TableCell>
                 <TableCell>
                   {r.cobre_pedido_inteiro ? (
-                    <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white">
+                    <Badge className="bg-success hover:bg-success text-white">
                       Integral
                     </Badge>
                   ) : (

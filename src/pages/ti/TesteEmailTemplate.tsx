@@ -145,16 +145,16 @@ export default function TesteEmailTemplate() {
 
   const statusBadge = (status: string) => {
     const variants: Record<string, string> = {
-      sent: "bg-green-100 text-green-800 border-green-300",
-      pending: "bg-yellow-100 text-yellow-800 border-yellow-300",
-      failed: "bg-red-100 text-red-800 border-red-300",
-      suppressed: "bg-gray-100 text-gray-700 border-gray-300",
-      bounced: "bg-orange-100 text-orange-800 border-orange-300",
-      complained: "bg-red-100 text-red-900 border-red-400",
-      dlq: "bg-red-200 text-red-900 border-red-500",
+      sent: "bg-success/10 text-success border-success/40",
+      pending: "bg-warning/10 text-warning border-warning/40",
+      failed: "bg-destructive/10 text-destructive border-destructive/40",
+      suppressed: "bg-muted/10 text-muted-foreground border-border/40",
+      bounced: "bg-warning/10 text-warning border-warning/40",
+      complained: "bg-destructive/10 text-destructive border-destructive/40",
+      dlq: "bg-destructive/15 text-destructive border-destructive/40",
     };
     return (
-      <Badge variant="outline" className={variants[status] ?? "bg-gray-50 text-gray-600 border-gray-200"}>
+      <Badge variant="outline" className={variants[status] ?? "bg-muted/10 text-muted-foreground border-border/40"}>
         {status}
       </Badge>
     );
@@ -167,7 +167,7 @@ export default function TesteEmailTemplate() {
           <Send className="h-5 w-5 text-white" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Diagnóstico — Teste de Email</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Diagnóstico — Teste de Email</h1>
           <p className="text-sm text-muted-foreground">
             Dispara um email de qualquer template registrado para um destinatário escolhido.
           </p>
@@ -242,10 +242,10 @@ export default function TesteEmailTemplate() {
           </Button>
 
           {result.status === "success" && (
-            <Alert className="border-green-300 bg-green-50">
-              <CheckCircle2 className="h-4 w-4 text-green-700" />
-              <AlertTitle className="text-green-900">Email enviado</AlertTitle>
-              <AlertDescription className="text-green-800">
+            <Alert className="border-success/40 bg-success/10">
+              <CheckCircle2 className="h-4 w-4 text-success" />
+              <AlertTitle className="text-success">Email enviado</AlertTitle>
+              <AlertDescription className="text-success">
                 <div>
                   messageId: <code>{result.messageId}</code>
                 </div>
@@ -304,7 +304,7 @@ export default function TesteEmailTemplate() {
                       {log.message_id?.slice(0, 8) ?? "—"}
                     </div>
                     {log.error_message && (
-                      <div className="text-xs text-red-700 mt-1">{log.error_message}</div>
+                      <div className="text-xs text-destructive mt-1">{log.error_message}</div>
                     )}
                   </div>
                   {statusBadge(log.status)}

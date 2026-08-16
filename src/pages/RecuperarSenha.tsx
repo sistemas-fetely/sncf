@@ -42,7 +42,7 @@ export default function RecuperarSenha() {
       {sent ? (
         <div className="space-y-4 text-center">
           <div className="flex justify-center">
-            <CheckCircle2 className="h-12 w-12 text-green-600" />
+            <CheckCircle2 className="h-12 w-12 text-success" />
           </div>
           <div className="space-y-2">
             <p className="text-sm font-medium">

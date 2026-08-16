@@ -107,7 +107,7 @@ export default function FolhaMensal() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Folha Mensal</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Folha Mensal</h1>
           <p className="text-muted-foreground text-sm mt-1">Custo da equipe por competência</p>
         </div>
         <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas")}>
@@ -139,28 +139,28 @@ export default function FolhaMensal() {
               <Wallet className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-2xl font-bold truncate">{fmtBRL(custoTotalEmpresa)}</p>
+              <p className="text-2xl font-medium truncate">{fmtBRL(custoTotalEmpresa)}</p>
               <p className="text-xs text-muted-foreground">Custo total (empresa)</p>
             </div>
           </CardContent>
         </Card>
         <Card className="card-shadow">
           <CardContent className="p-4">
-            <p className="text-xl font-bold truncate">{fmtBRL(totais.total)}</p>
+            <p className="text-xl font-medium truncate">{fmtBRL(totais.total)}</p>
             <p className="text-xs text-muted-foreground">Remuneração (sem encargos)</p>
             <p className="text-[11px] text-muted-foreground mt-1">Confere contra contrato e NF de PJ</p>
           </CardContent>
         </Card>
         <Card className="card-shadow">
           <CardContent className="p-4">
-            <p className="text-xl font-bold truncate">{fmtBRL(totais.encargos)}</p>
+            <p className="text-xl font-medium truncate">{fmtBRL(totais.encargos)}</p>
             <p className="text-xs text-muted-foreground">Encargos (caixa do mês)</p>
             <p className="text-[11px] text-muted-foreground mt-1">INSS patronal, RAT/SAT, terceiros, FGTS</p>
           </CardContent>
         </Card>
         <Card className="card-shadow">
           <CardContent className="p-4">
-            <p className="text-xl font-bold truncate">{fmtBRL(totais.provisoes)}</p>
+            <p className="text-xl font-medium truncate">{fmtBRL(totais.provisoes)}</p>
             <p className="text-xs text-muted-foreground">Provisões (13º, férias, rescisão)</p>
             <p className="text-[11px] text-muted-foreground mt-1">Competência que vira caixa depois</p>
           </CardContent>
@@ -174,7 +174,7 @@ export default function FolhaMensal() {
               <TrendingUp className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-lg font-bold truncate">{fmtBRL(recorrente)}</p>
+              <p className="text-lg font-medium truncate">{fmtBRL(recorrente)}</p>
               <p className="text-xs text-muted-foreground">Recorrente</p>
             </div>
           </CardContent>
@@ -185,14 +185,14 @@ export default function FolhaMensal() {
               <CalendarDays className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-lg font-bold truncate">{fmtBRL(totais.extras_pont)}</p>
+              <p className="text-lg font-medium truncate">{fmtBRL(totais.extras_pont)}</p>
               <p className="text-xs text-muted-foreground">Pontual no mês</p>
             </div>
           </CardContent>
         </Card>
         <Card className="card-shadow">
           <CardContent className="p-4">
-            <p className="text-lg font-bold truncate">{fmtBRL(totais.adiantamentos)}</p>
+            <p className="text-lg font-medium truncate">{fmtBRL(totais.adiantamentos)}</p>
             <p className="text-xs text-muted-foreground">Adiantamentos (não é custo)</p>
             <p className="text-[11px] text-muted-foreground mt-1">Antecipação do próprio salário</p>
           </CardContent>
@@ -203,7 +203,7 @@ export default function FolhaMensal() {
               <Users className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-lg font-bold">{linhas.length}</p>
+              <p className="text-lg font-medium">{linhas.length}</p>
               <p className="text-xs text-muted-foreground">Headcount</p>
             </div>
           </CardContent>
@@ -216,17 +216,17 @@ export default function FolhaMensal() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="font-semibold">Pessoa</TableHead>
-                  <TableHead className="font-semibold">Tipo</TableHead>
-                  <TableHead className="font-semibold">Área</TableHead>
-                  <TableHead className="font-semibold text-right">Base</TableHead>
-                  <TableHead className="font-semibold text-right">Benefícios</TableHead>
-                  <TableHead className="font-semibold text-right">Extras recorrentes</TableHead>
-                  <TableHead className="font-semibold text-right">Extras pontuais</TableHead>
-                  <TableHead className="font-semibold text-right">Remuneração (sem encargos)</TableHead>
-                  <TableHead className="font-semibold text-right">Encargos (caixa do mês)</TableHead>
-                  <TableHead className="font-semibold text-right">Provisões (13º, férias, rescisão)</TableHead>
-                  <TableHead className="font-semibold text-right">Custo total (empresa)</TableHead>
+                  <TableHead className="font-medium">Pessoa</TableHead>
+                  <TableHead className="font-medium">Tipo</TableHead>
+                  <TableHead className="font-medium">Área</TableHead>
+                  <TableHead className="font-medium text-right">Base</TableHead>
+                  <TableHead className="font-medium text-right">Benefícios</TableHead>
+                  <TableHead className="font-medium text-right">Extras recorrentes</TableHead>
+                  <TableHead className="font-medium text-right">Extras pontuais</TableHead>
+                  <TableHead className="font-medium text-right">Remuneração (sem encargos)</TableHead>
+                  <TableHead className="font-medium text-right">Encargos (caixa do mês)</TableHead>
+                  <TableHead className="font-medium text-right">Provisões (13º, férias, rescisão)</TableHead>
+                  <TableHead className="font-medium text-right">Custo total (empresa)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -257,8 +257,8 @@ export default function FolhaMensal() {
                             <Badge
                               className={
                                 l.tipo_vinculo === "CLT"
-                                  ? "bg-info text-info-foreground hover:bg-info/90 font-bold border-0"
-                                  : "bg-warning text-warning-foreground hover:bg-warning/90 font-bold border-0"
+                                  ? "bg-info text-info-foreground hover:bg-info/90 font-medium border-0"
+                                  : "bg-warning text-warning-foreground hover:bg-warning/90 font-medium border-0"
                               }
                             >
                               {l.tipo_vinculo}
@@ -268,17 +268,17 @@ export default function FolhaMensal() {
                           <TableCell className="text-right tabular-nums">{fmtBRL(base)}</TableCell>
                           <TableCell className="text-right tabular-nums">{fmtBRL(Number(l.total_beneficios) || 0)}</TableCell>
                           <TableCell className="text-right tabular-nums">{fmtBRL(Number(l.extras_recorrentes) || 0)}</TableCell>
-                          <TableCell className={`text-right tabular-nums ${pont > 0 ? "text-warning font-semibold" : "text-muted-foreground"}`}>
+                          <TableCell className={`text-right tabular-nums ${pont > 0 ? "text-warning font-medium" : "text-muted-foreground"}`}>
                             {pont > 0 ? fmtBRL(pont) : "—"}
                           </TableCell>
                           <TableCell className="text-right tabular-nums">{fmtBRL(Number(l.total_mes) || 0)}</TableCell>
                           <TableCell className="text-right tabular-nums">{fmtBRL(enc)}</TableCell>
                           <TableCell className="text-right tabular-nums">{fmtBRL(prov)}</TableCell>
-                          <TableCell className="text-right tabular-nums font-bold">{fmtBRL(custoEmpresa)}</TableCell>
+                          <TableCell className="text-right tabular-nums font-medium">{fmtBRL(custoEmpresa)}</TableCell>
                         </TableRow>
                       );
                     })}
-                    <TableRow className="bg-muted/60 font-semibold">
+                    <TableRow className="bg-muted/60 font-medium">
                       <TableCell colSpan={3}>Total</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtBRL(totais.base + totais.transporte)}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtBRL(totais.beneficios)}</TableCell>
@@ -287,7 +287,7 @@ export default function FolhaMensal() {
                       <TableCell className="text-right tabular-nums">{fmtBRL(totais.total)}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtBRL(totais.encargos)}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtBRL(totais.provisoes)}</TableCell>
-                      <TableCell className="text-right tabular-nums font-bold">{fmtBRL(custoTotalEmpresa)}</TableCell>
+                      <TableCell className="text-right tabular-nums font-medium">{fmtBRL(custoTotalEmpresa)}</TableCell>
                     </TableRow>
                   </>
                 )}

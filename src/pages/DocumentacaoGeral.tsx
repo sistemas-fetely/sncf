@@ -119,7 +119,7 @@ export default function DocumentacaoGeral() {
         <div>
           <div className="flex items-center gap-2">
             <BookOpen className="h-6 w-6" style={{ color: SNCF_COLOR }} />
-            <h1 className="text-2xl font-bold tracking-tight" style={{ color: SNCF_COLOR }}>
+            <h1 className="text-2xl font-medium tracking-tight" style={{ color: SNCF_COLOR }}>
               Documentação Fetely
             </h1>
           </div>
@@ -175,7 +175,7 @@ export default function DocumentacaoGeral() {
               <div key={cat} className="space-y-3">
                 <div className="flex items-center gap-2 px-1">
                   <span className="text-xl">{info.icon}</span>
-                  <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                  <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
                     {info.label}
                   </h2>
                   <span className="text-xs text-muted-foreground/70">
@@ -194,7 +194,7 @@ export default function DocumentacaoGeral() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               <FileText className="h-4 w-4 flex-shrink-0" style={{ color: SNCF_COLOR }} />
-                              <h3 className="font-semibold text-base truncate">{doc.titulo}</h3>
+                              <h3 className="font-medium text-base truncate">{doc.titulo}</h3>
                               <Badge variant="secondary" className="text-[10px] flex-shrink-0">
                                 v{doc.versao}
                               </Badge>

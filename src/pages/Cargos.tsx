@@ -93,14 +93,14 @@ function CargoDrawer({ cargo, onClose }: { cargo: Cargo; onClose: () => void }) 
           {/* Remuneração */}
           {cargo.tipo_contrato !== "pj" && (
             <div className="py-4">
-              <h4 className="text-sm font-semibold mb-2">Faixas CLT</h4>
+              <h4 className="text-sm font-medium mb-2">Faixas CLT</h4>
               <div className="border rounded-md divide-y text-sm">
                 {faixas.map((f) => {
                   const min = (cargo as any)[`faixa_clt_${f.key.toLowerCase()}_min`];
                   const max = (cargo as any)[`faixa_clt_${f.key.toLowerCase()}_max`];
                   return (
                     <div key={f.key} className="flex items-center px-3 py-2 gap-2">
-                      <span className="font-semibold w-8 text-xs">{f.key}</span>
+                      <span className="font-medium w-8 text-xs">{f.key}</span>
                       <span className="text-muted-foreground text-xs w-28">{f.label}</span>
                       <span className="text-xs tabular-nums">{fmt(min)} – {fmt(max)}</span>
                     </div>
@@ -111,14 +111,14 @@ function CargoDrawer({ cargo, onClose }: { cargo: Cargo; onClose: () => void }) 
           )}
           {cargo.tipo_contrato !== "clt" && (
             <div className="py-4">
-              <h4 className="text-sm font-semibold mb-2">Faixas PJ</h4>
+              <h4 className="text-sm font-medium mb-2">Faixas PJ</h4>
               <div className="border rounded-md divide-y text-sm">
                 {faixas.map((f) => {
                   const min = (cargo as any)[`faixa_pj_${f.key.toLowerCase()}_min`];
                   const max = (cargo as any)[`faixa_pj_${f.key.toLowerCase()}_max`];
                   return (
                     <div key={f.key} className="flex items-center px-3 py-2 gap-2">
-                      <span className="font-semibold w-8 text-xs">{f.key}</span>
+                      <span className="font-medium w-8 text-xs">{f.key}</span>
                       <span className="text-muted-foreground text-xs w-28">{f.label}</span>
                       <span className="text-xs tabular-nums">{fmt(min)} – {fmt(max)}</span>
                     </div>
@@ -157,7 +157,7 @@ function CargoDrawer({ cargo, onClose }: { cargo: Cargo; onClose: () => void }) 
               <p className="text-xs font-medium text-muted-foreground mb-2">Skills obrigatórias</p>
               <div className="flex flex-wrap gap-1">
                 {cargo.skills_obrigatorias.map((s: string, i: number) => (
-                  <span key={i} className="px-2 py-0.5 rounded-full bg-emerald-700 text-white text-xs">
+                  <span key={i} className="px-2 py-0.5 rounded-full bg-success text-white text-xs">
                     {s}
                   </span>
                 ))}
@@ -171,7 +171,7 @@ function CargoDrawer({ cargo, onClose }: { cargo: Cargo; onClose: () => void }) 
               <p className="text-xs font-medium text-muted-foreground mb-2">Skills desejadas</p>
               <div className="flex flex-wrap gap-1">
                 {cargo.skills_desejadas.map((s: string, i: number) => (
-                  <span key={i} className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-xs">
+                  <span key={i} className="px-2 py-0.5 rounded-full bg-info/10 text-info text-xs">
                     {s}
                   </span>
                 ))}
@@ -185,7 +185,7 @@ function CargoDrawer({ cargo, onClose }: { cargo: Cargo; onClose: () => void }) 
               <p className="text-xs font-medium text-muted-foreground mb-2">Ferramentas e sistemas</p>
               <div className="flex flex-wrap gap-1">
                 {cargo.ferramentas.map((s: string, i: number) => (
-                  <span key={i} className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 text-xs">
+                  <span key={i} className="px-2 py-0.5 rounded-full bg-info/10 text-info text-xs">
                     {s}
                   </span>
                 ))}
@@ -283,7 +283,7 @@ export default function Cargos() {
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Cargos e Salários</h1>
+          <h1 className="text-2xl font-medium text-foreground">Cargos e Salários</h1>
           <p className="text-sm text-muted-foreground">Plano de Posições e Remuneração</p>
         </div>
         <div className="flex gap-2">
@@ -376,7 +376,7 @@ export default function Cargos() {
                   </TableCell>
                   <TableCell className="text-center">
                     {cargo.is_clevel ? (
-                      <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-[10px]">C-Level</Badge>
+                      <Badge className="bg-warning/10 text-warning border-warning/40 text-[10px]">C-Level</Badge>
                     ) : <span className="text-muted-foreground text-xs">—</span>}
                   </TableCell>
                   <TableCell className="text-center">

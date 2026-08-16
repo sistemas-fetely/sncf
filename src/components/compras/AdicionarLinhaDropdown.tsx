@@ -42,7 +42,7 @@ export function AdicionarLinhaDropdown({ onAdd, disabled }: Props) {
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => onAdd("desconto")}>
-          <TrendingDown className="h-4 w-4 mr-2 text-emerald-600" />
+          <TrendingDown className="h-4 w-4 mr-2 text-success" />
           Desconto (saving negociado)
         </DropdownMenuItem>
       </DropdownMenuContent>

@@ -27,7 +27,7 @@ export default function VagaPublica() {
   const Header = () => (
     <header style={{ backgroundColor: "#1a3d2b" }} className="text-white">
       <div className="max-w-4xl mx-auto px-6 py-5 flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Fetély.</h1>
+        <h1 className="text-3xl font-medium tracking-tight">Fetély.</h1>
         <p className="text-sm italic hidden sm:block max-w-[280px] text-right opacity-80">
           Vamos celebrar!! Venha criar algo novo...
         </p>
@@ -51,7 +51,7 @@ export default function VagaPublica() {
       <div className="min-h-screen bg-background">
         <Header />
         <div className="max-w-4xl mx-auto px-6 py-20 text-center space-y-4">
-          <h2 className="text-xl font-semibold text-foreground">Esta vaga não está mais disponível.</h2>
+          <h2 className="text-xl font-medium text-foreground">Esta vaga não está mais disponível.</h2>
           <p className="text-muted-foreground">A posição pode ter sido encerrada ou preenchida.</p>
         </div>
       </div>
@@ -77,7 +77,7 @@ export default function VagaPublica() {
       {/* Hero */}
       <section style={{ backgroundColor: "#1a3d2b" }} className="text-white pb-12 pt-8">
         <div className="max-w-4xl mx-auto px-6 space-y-4">
-          <h2 className="text-3xl sm:text-4xl font-bold leading-tight">{vaga.titulo}</h2>
+          <h2 className="text-3xl sm:text-4xl font-medium leading-tight">{vaga.titulo}</h2>
           <div className="flex flex-wrap gap-2 text-sm opacity-90">
             {vaga.area && (
               <span className="flex items-center gap-1.5">
@@ -99,7 +99,7 @@ export default function VagaPublica() {
             )}
           </div>
           {faixaStr && (
-            <p className="text-lg font-semibold opacity-90">{faixaStr}</p>
+            <p className="text-lg font-medium opacity-90">{faixaStr}</p>
           )}
         </div>
       </section>
@@ -109,7 +109,7 @@ export default function VagaPublica() {
         {/* Missão */}
         {vaga.missao && (
           <section className="bg-card rounded-xl p-6 shadow-sm border space-y-3">
-            <h3 className="font-semibold text-sm uppercase tracking-wide flex items-center gap-2" style={{ color: "#1a3d2b" }}>
+            <h3 className="font-medium text-sm uppercase tracking-wide flex items-center gap-2" style={{ color: "#1a3d2b" }}>
               <Target className="h-4 w-4" /> Missão do cargo
             </h3>
             <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">{vaga.missao}</p>
@@ -119,7 +119,7 @@ export default function VagaPublica() {
         {/* Responsabilidades */}
         {responsabilidades.length > 0 && (
           <section className="bg-card rounded-xl p-6 shadow-sm border space-y-3">
-            <h3 className="font-semibold text-sm uppercase tracking-wide" style={{ color: "#1a3d2b" }}>
+            <h3 className="font-medium text-sm uppercase tracking-wide" style={{ color: "#1a3d2b" }}>
               Responsabilidades
             </h3>
             <ul className="space-y-2">
@@ -136,7 +136,7 @@ export default function VagaPublica() {
         {/* Skills */}
         {(skillsObrigatorias.length > 0 || skillsDesejadas.length > 0) && (
           <section className="bg-card rounded-xl p-6 shadow-sm border space-y-4">
-            <h3 className="font-semibold text-sm uppercase tracking-wide flex items-center gap-2" style={{ color: "#1a3d2b" }}>
+            <h3 className="font-medium text-sm uppercase tracking-wide flex items-center gap-2" style={{ color: "#1a3d2b" }}>
               <Star className="h-4 w-4" /> Competências
             </h3>
 
@@ -169,7 +169,7 @@ export default function VagaPublica() {
         {/* Ferramentas */}
         {ferramentas.length > 0 && (
           <section className="bg-card rounded-xl p-6 shadow-sm border space-y-3">
-            <h3 className="font-semibold text-sm uppercase tracking-wide flex items-center gap-2" style={{ color: "#1a3d2b" }}>
+            <h3 className="font-medium text-sm uppercase tracking-wide flex items-center gap-2" style={{ color: "#1a3d2b" }}>
               <Wrench className="h-4 w-4" /> Ferramentas e sistemas
             </h3>
             <div className="flex flex-wrap gap-2">
@@ -183,7 +183,7 @@ export default function VagaPublica() {
         {/* Benefícios */}
         {beneficiosTexto && (
           <section className="bg-card rounded-xl p-6 shadow-sm border space-y-3">
-            <h3 className="font-semibold text-sm uppercase tracking-wide flex items-center gap-2" style={{ color: "#1a3d2b" }}>
+            <h3 className="font-medium text-sm uppercase tracking-wide flex items-center gap-2" style={{ color: "#1a3d2b" }}>
               <Gift className="h-4 w-4" /> Benefícios
             </h3>
             <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">{beneficiosTexto}</p>
@@ -194,7 +194,7 @@ export default function VagaPublica() {
         <div className="text-center space-y-4 py-6">
           <Button
             size="lg"
-            className="h-14 px-10 text-base font-semibold text-white rounded-full"
+            className="h-14 px-10 text-base font-medium text-white rounded-full"
             style={{ backgroundColor: "#E85D75" }}
             onClick={() => navigate(`/vagas/${id}/candidatura`)}
           >

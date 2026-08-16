@@ -139,10 +139,10 @@ export default function ImportarLinhasMercadoriaDialog({
           {resultado && !resultado.erroGlobal && (
             <>
               <div className="text-sm">
-                <span className="font-semibold">{validas.length}</span>{" "}
+                <span className="font-medium">{validas.length}</span>{" "}
                 {validas.length === 1 ? "linha válida" : "linhas válidas"}
                 {" · "}
-                <span className={cn(invalidas.length > 0 && "text-destructive font-semibold")}>
+                <span className={cn(invalidas.length > 0 && "text-destructive font-medium")}>
                   {invalidas.length}
                 </span>{" "}
                 descartada(s)

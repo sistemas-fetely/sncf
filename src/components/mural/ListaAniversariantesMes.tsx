@@ -20,21 +20,21 @@ function ItemDestaqueHoje({ evento, onClick }: { evento: EventoDoMes; onClick: (
     <button
       type="button"
       onClick={onClick}
-      className="w-full relative rounded-lg bg-gradient-to-br from-amber-100 to-amber-50 dark:from-amber-900/40 dark:to-amber-950/30 border border-amber-300 dark:border-amber-700 p-2.5 hover:shadow-sm transition-all hover:-translate-y-0.5 text-left"
+      className="w-full relative rounded-lg bg-gradient-to-br from-warning to-warning border border-warning/40 p-2.5 hover:shadow-sm transition-all hover:-translate-y-0.5 text-left"
     >
       <div className="absolute -top-2 left-3 text-base leading-none">👑</div>
       <div className="flex items-center gap-2.5">
-        <Avatar className="h-10 w-10 ring-2 ring-amber-400 ring-offset-2 ring-offset-background shrink-0">
+        <Avatar className="h-10 w-10 ring-2 ring-warning ring-offset-2 ring-offset-background shrink-0">
           <AvatarImage src={evento.foto_url ?? undefined} alt={evento.nome} className="object-cover" />
-          <AvatarFallback className="bg-amber-200 text-amber-900 font-semibold text-xs">
+          <AvatarFallback className="bg-warning/15 text-warning font-medium text-xs">
             {initials(evento.nome)}
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-semibold text-amber-900 dark:text-amber-100 truncate leading-tight">
+          <p className="text-[13px] font-medium text-warning truncate leading-tight">
             {evento.nome}
           </p>
-          <p className="text-[11px] text-amber-800 dark:text-amber-200 font-medium flex items-center gap-1 leading-tight mt-0.5">
+          <p className="text-[11px] text-warning font-medium flex items-center gap-1 leading-tight mt-0.5">
             {evento.tipo_evento === "aniversario" ? (
               <Cake className="h-2.5 w-2.5" />
             ) : (
@@ -115,11 +115,11 @@ export function ListaAniversariantesMes() {
 
   return (
     <>
-      <div className="h-full min-h-[220px] rounded-xl border border-border bg-gradient-to-br from-amber-50/40 via-card to-pink-50/20 dark:from-amber-950/10 dark:to-pink-950/5 p-3 flex flex-col overflow-hidden">
+      <div className="h-full min-h-[220px] rounded-xl border border-border bg-gradient-to-br from-warning via-card to-info p-3 flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center gap-1.5 mb-2 shrink-0">
-          <Cake className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-          <h3 className="text-[13px] font-semibold">
+          <Cake className="h-3.5 w-3.5 text-warning" />
+          <h3 className="text-[13px] font-medium">
             Venha Celebrar Comigo! 🎂
           </h3>
         </div>

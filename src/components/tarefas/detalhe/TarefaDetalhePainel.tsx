@@ -81,7 +81,7 @@ function Conteudo({ tarefaId }: { tarefaId: string }) {
             if (e.key === "Enter") (e.target as HTMLInputElement).blur();
             if (e.key === "Escape") setTitulo(tarefa.titulo);
           }}
-          className="h-auto border-transparent px-1 text-lg font-semibold shadow-none focus-visible:border-input"
+          className="h-auto border-transparent px-1 text-lg font-medium shadow-none focus-visible:border-input"
         />
         <div className="flex flex-wrap items-center gap-2 px-1">
           <span className="text-xs text-muted-foreground" style={{ color: projeto?.cor || undefined }}>
@@ -123,7 +123,7 @@ function BlocoAprovacao({ tarefaId, statusAtual }: { tarefaId: string; statusAtu
 
   return (
     <div className="space-y-2 rounded-lg border border-warning/40 bg-warning/10 p-3">
-      <p className="text-sm font-semibold">
+      <p className="text-sm font-medium">
         Aprovação {statusAtual ? `· ${statusAtual}` : "· pendente"}
       </p>
       <Textarea

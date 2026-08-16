@@ -127,7 +127,7 @@ export function TitulosClienteAccordion({ titulos, emAbertoCard }: Props) {
           {t.nf_numero ? (
             <span className="text-xs text-muted-foreground">NF {t.nf_numero}</span>
           ) : (
-            <span className="text-xs text-amber-600">sem NF</span>
+            <span className="text-xs text-warning">sem NF</span>
           )}
           {t.tipo_pagamento && (
             <span className="text-xs text-muted-foreground">{t.tipo_pagamento}</span>

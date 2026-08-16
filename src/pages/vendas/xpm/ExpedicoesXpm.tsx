@@ -289,9 +289,9 @@ function Semaforo({ seq }: { seq: number }) {
               <span
                 className={`h-3 w-3 rounded-sm border ${
                   ultimoCheio
-                    ? "bg-amber-500 border-amber-500"
+                    ? "bg-warning border-warning/40"
                     : cheio
-                      ? "bg-emerald-600 border-emerald-600"
+                      ? "bg-success border-success/40"
                       : "border-muted-foreground/40"
                 }`}
               />
@@ -420,7 +420,7 @@ function BlocoPausa({ codigo }: { codigo: string }) {
       ) : (
         <div className="space-y-3">
           {aberta ? (
-            <div className="rounded-md border border-amber-500/50 bg-amber-500/5 p-3 space-y-1">
+            <div className="rounded-md border border-warning/40 bg-warning p-3 space-y-1">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="secondary">Pausado</Badge>
                 <span className="text-sm font-medium">{motivoNome(aberta.motivo_id)}</span>
@@ -787,7 +787,7 @@ export default function ExpedicoesXpm() {
       <div className="max-w-[1300px] mx-auto px-4 md:px-8 py-8 space-y-6">
         <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
           <div className="space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight">Expedições XPM</h1>
+            <h1 className="text-2xl font-medium tracking-tight">Expedições XPM</h1>
             <p className="text-sm text-muted-foreground">
               Andamento físico das expedições no armazém, do pedido ao embarque.
             </p>
@@ -817,15 +817,15 @@ export default function ExpedicoesXpm() {
           <Card>
             <CardContent className="pt-6">
               <div className="text-xs text-muted-foreground">Em curso</div>
-              <div className="text-2xl font-semibold">{nf.format(kpis.emCurso)}</div>
+              <div className="text-2xl font-medium">{nf.format(kpis.emCurso)}</div>
             </CardContent>
           </Card>
-          <Card className={kpis.semNf > 0 ? "border-amber-500/50" : undefined}>
+          <Card className={kpis.semNf > 0 ? "border-warning/40" : undefined}>
             <CardContent className="pt-6">
               <div className="text-xs text-muted-foreground">Separado sem NF</div>
               <div
-                className={`text-2xl font-semibold ${
-                  kpis.semNf > 0 ? "text-amber-700 dark:text-amber-500" : ""
+                className={`text-2xl font-medium ${
+                  kpis.semNf > 0 ? "text-warning" : ""
                 }`}
               >
                 {nf.format(kpis.semNf)}
@@ -838,17 +838,17 @@ export default function ExpedicoesXpm() {
             onClick={() => setFarolFiltro(farolFiltro === "atencao" ? null : "atencao")}
             className={`cursor-pointer ${
               farolFiltro === "atencao"
-                ? "border-amber-500 ring-1 ring-amber-500/40"
+                ? "border-warning/40 ring-1 ring-warning"
                 : kpis.atencao > 0
-                  ? "border-amber-500/50"
+                  ? "border-warning/40"
                   : ""
             }`}
           >
             <CardContent className="pt-6">
               <div className="text-xs text-muted-foreground">Em atenção</div>
               <div
-                className={`text-2xl font-semibold ${
-                  kpis.atencao > 0 ? "text-amber-700 dark:text-amber-500" : ""
+                className={`text-2xl font-medium ${
+                  kpis.atencao > 0 ? "text-warning" : ""
                 }`}
               >
                 {nf.format(kpis.atencao)}
@@ -872,7 +872,7 @@ export default function ExpedicoesXpm() {
                 {kpis.risco > 0 && <AlertTriangle className="h-3 w-3 text-destructive" />}
                 Em risco
               </div>
-              <div className={`text-2xl font-semibold ${kpis.risco > 0 ? "text-destructive" : ""}`}>
+              <div className={`text-2xl font-medium ${kpis.risco > 0 ? "text-destructive" : ""}`}>
                 {nf.format(kpis.risco)}
               </div>
             </CardContent>
@@ -880,13 +880,13 @@ export default function ExpedicoesXpm() {
           <Card>
             <CardContent className="pt-6">
               <div className="text-xs text-muted-foreground">Com corte</div>
-              <div className="text-2xl font-semibold">{nf.format(kpis.corte)}</div>
+              <div className="text-2xl font-medium">{nf.format(kpis.corte)}</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
               <div className="text-xs text-muted-foreground">Peso em curso</div>
-              <div className="text-2xl font-semibold">{nf2.format(kpis.peso)} kg</div>
+              <div className="text-2xl font-medium">{nf2.format(kpis.peso)} kg</div>
             </CardContent>
           </Card>
         </div>
@@ -998,11 +998,11 @@ export default function ExpedicoesXpm() {
                           r.farol === "risco"
                             ? "bg-destructive/5"
                             : r.farol === "atencao"
-                              ? "bg-amber-500/5"
+                              ? "bg-warning"
                               : r.farol === "pausada"
                                 ? ""
                                 : r.tem_corte
-                                  ? "bg-amber-500/5"
+                                  ? "bg-warning"
                                   : "";
                         const recente = recemExpedida(r);
 
@@ -1076,7 +1076,7 @@ export default function ExpedicoesXpm() {
                                   atrasado
                                     ? "text-destructive font-medium"
                                     : !pausada && dias != null && dias >= 3
-                                      ? "text-amber-700 dark:text-amber-500 font-medium"
+                                      ? "text-warning font-medium"
                                       : ""
                                 }`}
                               >

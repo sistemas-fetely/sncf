@@ -258,7 +258,7 @@ export default function RecebimentoXpm() {
   return (
     <div className="max-w-[1100px] mx-auto px-4 md:px-8 py-8 space-y-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Recebimento XPM</h1>
+        <h1 className="text-2xl font-medium tracking-tight">Recebimento XPM</h1>
         <p className="text-sm text-muted-foreground">
           Envie a planilha de cadastro pra XPM e ingira o Termo de Conferência de volta pra dar entrada no estoque.
         </p>
@@ -333,7 +333,7 @@ export default function RecebimentoXpm() {
             {resultado && (
               <div className="mt-4 rounded-md border bg-muted/30 p-4 space-y-2">
                 <div className="flex items-center gap-2 text-sm font-medium">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  <CheckCircle2 className="h-4 w-4 text-success" />
                   Termo {resultado.termo} ingerido
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -474,7 +474,7 @@ export default function RecebimentoXpm() {
               )}
 
               {previa.confirmado && (
-                <div className="flex items-center gap-2 text-sm text-emerald-600 pt-2 border-t">
+                <div className="flex items-center gap-2 text-sm text-success pt-2 border-t">
                   <CheckCircle2 className="h-4 w-4" />
                   Gravação concluída.
                 </div>

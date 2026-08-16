@@ -22,7 +22,7 @@ export function CardContratoAtivo({ contrato }: { contrato: MeuContratoPJ | null
             <div className="flex items-center gap-2">
               <Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />
               <div className="min-w-0">
-                <p className="font-semibold truncate">
+                <p className="font-medium truncate">
                   {nomeCanonico(contrato.razao_social, "—")}
                 </p>
                 {apelidoParceiro(contrato.razao_social, contrato.nome_fantasia) && (

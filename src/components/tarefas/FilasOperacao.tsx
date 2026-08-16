@@ -52,7 +52,7 @@ function BadgeFila({ fila }: { fila: FilaInbox }) {
   }
   if (fila.severidade === "alta") {
     return (
-      <Badge className="text-[10px] border-0 bg-amber-500 text-white hover:bg-amber-500/90">
+      <Badge className="text-[10px] border-0 bg-warning text-white hover:bg-warning">
         {total}
       </Badge>
     );
@@ -139,7 +139,7 @@ export function FilasOperacao() {
           !isError &&
           grupos.map((grupo) => (
             <div key={grupo.nome} className="space-y-1">
-              <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground px-1">
+              <p className="text-[10px] uppercase tracking-widest font-medium text-muted-foreground px-1">
                 {grupo.nome}
               </p>
               <div className="rounded-lg border divide-y">

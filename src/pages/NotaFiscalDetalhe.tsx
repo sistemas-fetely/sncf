@@ -28,12 +28,12 @@ const defaultStatusMap: Record<string, string> = {
   pendente: "Pendente", aprovada: "Aprovada", enviada_pagamento: "Enviada para Pagamento", paga: "Paga", cancelada: "Cancelada", vencida: "Vencida",
 };
 const statusStyles: Record<string, string> = {
-  pendente: "bg-amber-100 text-amber-700 border-0 min-w-[140px] justify-center",
-  aprovada: "bg-blue-100 text-blue-700 border-0 min-w-[140px] justify-center",
-  enviada_pagamento: "bg-violet-100 text-violet-700 border-0 min-w-[140px] justify-center",
-  paga: "bg-emerald-100 text-emerald-700 border-0 min-w-[140px] justify-center",
-  cancelada: "bg-red-100 text-red-700 border-0 min-w-[140px] justify-center",
-  vencida: "bg-orange-100 text-orange-700 border-0 min-w-[140px] justify-center",
+  pendente: "bg-warning/10 text-warning border-0 min-w-[140px] justify-center",
+  aprovada: "bg-info/10 text-info border-0 min-w-[140px] justify-center",
+  enviada_pagamento: "bg-info/10 text-info border-0 min-w-[140px] justify-center",
+  paga: "bg-success/10 text-success border-0 min-w-[140px] justify-center",
+  cancelada: "bg-destructive/10 text-destructive border-0 min-w-[140px] justify-center",
+  vencida: "bg-warning/10 text-warning border-0 min-w-[140px] justify-center",
 };
 
 interface NotaFiscal {
@@ -86,14 +86,14 @@ const statusPagMap: Record<string, string> = {
   vencida: "Vencida",
 };
 const statusPagStyles: Record<string, string> = {
-  pendente: "bg-amber-100 text-amber-700 border-0 min-w-[140px] justify-center",
-  aprovada: "bg-blue-100 text-blue-700 border-0 min-w-[140px] justify-center",
-  enviada_pagamento: "bg-violet-100 text-violet-700 border-0 min-w-[140px] justify-center",
-  paga: "bg-emerald-100 text-emerald-700 border-0 min-w-[140px] justify-center",
-  pago: "bg-emerald-100 text-emerald-700 border-0 min-w-[140px] justify-center",
-  cancelada: "bg-red-100 text-red-700 border-0 min-w-[140px] justify-center",
-  cancelado: "bg-red-100 text-red-700 border-0 min-w-[140px] justify-center",
-  vencida: "bg-orange-100 text-orange-700 border-0 min-w-[140px] justify-center",
+  pendente: "bg-warning/10 text-warning border-0 min-w-[140px] justify-center",
+  aprovada: "bg-info/10 text-info border-0 min-w-[140px] justify-center",
+  enviada_pagamento: "bg-info/10 text-info border-0 min-w-[140px] justify-center",
+  paga: "bg-success/10 text-success border-0 min-w-[140px] justify-center",
+  pago: "bg-success/10 text-success border-0 min-w-[140px] justify-center",
+  cancelada: "bg-destructive/10 text-destructive border-0 min-w-[140px] justify-center",
+  cancelado: "bg-destructive/10 text-destructive border-0 min-w-[140px] justify-center",
+  vencida: "bg-warning/10 text-warning border-0 min-w-[140px] justify-center",
 };
 
 function InfoItem({ label, value, icon: Icon }: { label: string; value: React.ReactNode; icon?: React.ComponentType<{ className?: string }> }) {
@@ -307,7 +307,7 @@ export default function NotaFiscalDetalhe() {
           <SmartBackButton fallback="/notas-fiscais" fallbackLabel="Notas Fiscais" />
           <div>
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl font-bold tracking-tight">
+              <h1 className="text-2xl font-medium tracking-tight">
                 NF {nota.numero}{nota.serie ? `/${nota.serie}` : ""}
               </h1>
               <Badge variant="outline" className={`text-sm ${statusStyles[nota.status] || ""}`}>
@@ -365,10 +365,10 @@ export default function NotaFiscalDetalhe() {
 
                 // Per-status color sets
                 const colorMap: Record<string, { activeBg: string; activeFg: string; pastBg: string; pastFg: string; dot: string }> = {
-                  pendente:           { activeBg: "bg-amber-500",   activeFg: "text-white",      pastBg: "bg-amber-100",  pastFg: "text-amber-700",  dot: "bg-amber-600" },
-                  aprovada:           { activeBg: "bg-blue-500",    activeFg: "text-white",      pastBg: "bg-blue-100",   pastFg: "text-blue-700",   dot: "bg-blue-600" },
-                  enviada_pagamento:  { activeBg: "bg-violet-500",  activeFg: "text-white",      pastBg: "bg-violet-100", pastFg: "text-violet-700", dot: "bg-violet-600" },
-                  paga:               { activeBg: "bg-emerald-500", activeFg: "text-white",      pastBg: "bg-emerald-100",pastFg: "text-emerald-700",dot: "bg-emerald-600" },
+                  pendente:           { activeBg: "bg-warning",   activeFg: "text-white",      pastBg: "bg-warning/10",  pastFg: "text-warning",  dot: "bg-warning" },
+                  aprovada:           { activeBg: "bg-info",    activeFg: "text-white",      pastBg: "bg-info/10",   pastFg: "text-info",   dot: "bg-info" },
+                  enviada_pagamento:  { activeBg: "bg-info",  activeFg: "text-white",      pastBg: "bg-info/10", pastFg: "text-info", dot: "bg-info" },
+                  paga:               { activeBg: "bg-success", activeFg: "text-white",      pastBg: "bg-success/10",pastFg: "text-success",dot: "bg-success" },
                 };
                 const colors = colorMap[status] || colorMap.pendente;
 
@@ -501,7 +501,7 @@ export default function NotaFiscalDetalhe() {
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground">Prévia do E-mail</p>
               <div className="rounded-lg border bg-muted/30 p-4 text-sm space-y-3">
-                <p className="font-semibold text-foreground">Nota Fiscal para Pagamento</p>
+                <p className="font-medium text-foreground">Nota Fiscal para Pagamento</p>
                 <p>
                   Segue abaixo a nota fiscal referente aos serviços prestados
                   {contrato ? ` por ${contrato.contato_nome}` : ''}
@@ -586,7 +586,7 @@ export default function NotaFiscalDetalhe() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Valor</p>
-                <p className="text-xl font-bold">{formatCurrency(nota.valor)}</p>
+                <p className="text-xl font-medium">{formatCurrency(nota.valor)}</p>
               </div>
             </div>
           </CardContent>
@@ -599,7 +599,7 @@ export default function NotaFiscalDetalhe() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Vencimento</p>
-                <p className="text-xl font-bold">{formatDate(nota.data_vencimento)}</p>
+                <p className="text-xl font-medium">{formatDate(nota.data_vencimento)}</p>
               </div>
             </div>
           </CardContent>
@@ -612,7 +612,7 @@ export default function NotaFiscalDetalhe() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Data Pagamento</p>
-                <p className="text-xl font-bold">{formatDate(nota.data_pagamento)}</p>
+                <p className="text-xl font-medium">{formatDate(nota.data_pagamento)}</p>
               </div>
             </div>
           </CardContent>
@@ -625,7 +625,7 @@ export default function NotaFiscalDetalhe() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Pagamentos Vinculados</p>
-                <p className="text-xl font-bold">{pagamentos.length}</p>
+                <p className="text-xl font-medium">{pagamentos.length}</p>
               </div>
             </div>
           </CardContent>
@@ -967,7 +967,7 @@ function ArquivoNFCard({ nota, onArquivoUpdated, canEdit = true }: { nota: NotaF
           <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center" onClick={() => setPreviewOpen(false)}>
             <div className="bg-background rounded-lg max-w-3xl w-full max-h-[85vh] p-6 m-4" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">NF {nota.numero}</h3>
+                <h3 className="text-lg font-medium">NF {nota.numero}</h3>
                 <Button variant="ghost" size="sm" onClick={() => setPreviewOpen(false)}>Fechar</Button>
               </div>
               <div className="flex items-center justify-center overflow-auto max-h-[70vh]">
@@ -986,13 +986,13 @@ function ArquivoNFCard({ nota, onArquivoUpdated, canEdit = true }: { nota: NotaF
 }
 
 function TimelineItem({ date, label, variant = "default" }: { date: string; label: string; variant?: "default" | "success" | "email" }) {
-  const dotColor = variant === "success" ? "bg-success" : variant === "email" ? "bg-blue-500" : "bg-primary";
+  const dotColor = variant === "success" ? "bg-success" : variant === "email" ? "bg-info" : "bg-primary";
   const formatted = date.includes("T") ? format(parseISO(date), "dd/MM/yyyy HH:mm") : format(parseISO(date), "dd/MM/yyyy");
   return (
     <div className="relative flex items-start gap-3">
       <div className={`absolute -left-[14px] top-1.5 h-2.5 w-2.5 rounded-full ${dotColor} ring-2 ring-background`} />
       <div className="flex items-start gap-2">
-        {variant === "email" && <Mail className="h-3.5 w-3.5 text-blue-500 mt-0.5 shrink-0" />}
+        {variant === "email" && <Mail className="h-3.5 w-3.5 text-info mt-0.5 shrink-0" />}
         <div>
           <p className="text-sm">{label}</p>
           <p className="text-xs text-muted-foreground">{formatted}</p>

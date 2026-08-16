@@ -178,7 +178,7 @@ export default function ComprasAComprar() {
         <Card>
           <CardContent className="p-12 text-center">
             <Truck className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-            <h3 className="font-semibold mb-1">Acesso restrito</h3>
+            <h3 className="font-medium mb-1">Acesso restrito</h3>
             <p className="text-sm text-muted-foreground mb-4">
               Apenas Compradores podem acessar esta fila.
             </p>
@@ -221,7 +221,7 @@ export default function ComprasAComprar() {
             <Truck className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Pedidos a Comprar</h1>
+            <h1 className="text-2xl font-medium">Pedidos a Comprar</h1>
             <p className="text-sm text-muted-foreground">Fila do Comprador</p>
           </div>
         </div>
@@ -262,7 +262,7 @@ export default function ComprasAComprar() {
           ) : filtrados.length === 0 ? (
             <div className="p-12 text-center">
               <PackageCheck className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-              <h3 className="font-semibold mb-1">Sem pedidos aguardando compra agora</h3>
+              <h3 className="font-medium mb-1">Sem pedidos aguardando compra agora</h3>
               <p className="text-sm text-muted-foreground">
                 {tab === "aguardando" && "Quando solicitantes enviarem pedidos, eles aparecem aqui."}
                 {tab === "em_compra" && "Você não está com nenhum pedido em compra."}
@@ -328,7 +328,7 @@ export default function ComprasAComprar() {
                           {rascunhoPorPedido.has(p.id) && (
                             <Badge
                               variant="outline"
-                              className="text-xs bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-300"
+                              className="text-xs bg-warning/10 text-warning border-warning/40"
                             >
                               <FileEdit className="h-3 w-3 mr-1" />
                               Rascunho • {fmtBRL(rascunhoPorPedido.get(p.id)!.valor_total)}
@@ -411,7 +411,7 @@ function StatCard({
           <Icon className="h-5 w-5 text-muted-foreground" />
         </div>
         <div>
-          <div className="text-2xl font-bold">{value}</div>
+          <div className="text-2xl font-medium">{value}</div>
           <div className="text-xs text-muted-foreground">{label}</div>
         </div>
       </CardContent>

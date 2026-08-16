@@ -304,7 +304,7 @@ export default function EstoqueVirtual() {
         >
           <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
           <div>
-            <div className="font-semibold text-destructive">
+            <div className="font-medium text-destructive">
               {formatNum(resumo.semLastroSkus)} SKUs vendidos sem lastro
             </div>
             <div className="text-xs text-destructive/90">
@@ -693,7 +693,7 @@ function StatPill({
       <div className="flex flex-col leading-tight">
         <div className="flex items-baseline gap-2">
           <span className="text-xs text-muted-foreground">{label}</span>
-          <span className={cn("font-semibold tabular-nums", adaptiveValueClass(value), valueClassName)}>
+          <span className={cn("font-medium tabular-nums", adaptiveValueClass(value), valueClassName)}>
             {value}
           </span>
         </div>

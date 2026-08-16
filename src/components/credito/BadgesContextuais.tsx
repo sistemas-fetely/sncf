@@ -66,7 +66,7 @@ export function BadgesContextuais({
 
   if (parceiro.cadastro_incompleto) {
     badges.push(
-      <Badge key="cad" variant="outline" className="gap-1 border-amber-500 text-amber-700">
+      <Badge key="cad" variant="outline" className="gap-1 border-warning/40 text-warning">
         <AlertTriangle className="h-3 w-3" />
         Cadastro incompleto
       </Badge>
@@ -75,7 +75,7 @@ export function BadgesContextuais({
 
   if (parceiro.grupo_economico_id && kpisGrupo && kpisGrupo.vencidos > 0) {
     badges.push(
-      <Badge key="grupo" variant="outline" className="gap-1 border-amber-500 text-amber-700">
+      <Badge key="grupo" variant="outline" className="gap-1 border-warning/40 text-warning">
         <UsersRound className="h-3 w-3" />
         Grupo c/ vencidos
       </Badge>
@@ -85,7 +85,7 @@ export function BadgesContextuais({
   if (badges.length === 0) {
     if (!mostrarSemAlertas) return null;
     return (
-      <Badge variant="outline" className="gap-1 border-emerald-500 text-emerald-700">
+      <Badge variant="outline" className="gap-1 border-success/40 text-success">
         <CheckCircle2 className="h-3 w-3" />
         Sem alertas
       </Badge>

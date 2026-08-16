@@ -255,7 +255,7 @@ export default function MeusDados() {
   return (
     <div className="container max-w-6xl py-8 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold flex items-center gap-2">
+        <h1 className="text-3xl font-medium flex items-center gap-2">
           <ShieldCheck className="h-8 w-8 text-primary" />
           Meus Dados
         </h1>

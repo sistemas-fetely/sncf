@@ -132,11 +132,11 @@ function buildPageRange(current: number, total: number): (number | "…")[] {
 function toneClasses(tone: "emerald" | "amber" | "red" | "muted") {
   switch (tone) {
     case "emerald":
-      return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30";
+      return "bg-success text-success border-success/40";
     case "amber":
-      return "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30";
+      return "bg-warning text-warning border-warning/40";
     case "red":
-      return "bg-red-500/10 text-red-700 dark:text-red-300 border-red-500/30";
+      return "bg-destructive text-destructive border-destructive/40";
     default:
       return "bg-muted text-muted-foreground border-border";
   }
@@ -399,9 +399,9 @@ export default function ConciliacaoCadastro() {
       </div>
 
       {/* Aviso obrigatório */}
-      <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-4 mb-6 flex items-start gap-3">
-        <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-        <div className="text-sm text-amber-900 dark:text-amber-100">
+      <div className="rounded-md border border-warning/40 bg-warning p-4 mb-6 flex items-start gap-3">
+        <AlertTriangle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
+        <div className="text-sm text-warning">
           <strong>Nomenclatura divergente na linha Vela Numérica.</strong>{" "}
           O Shopify usa SKUs como <code className="font-mono text-xs">VNANM.GL.5.0</code> e a matriz usa{" "}
           <code className="font-mono text-xs">VELNUMGRD.CL.7/01760</code> — são os mesmos produtos com códigos
@@ -566,7 +566,7 @@ export default function ConciliacaoCadastro() {
                         <TableCell>{s.matriz_marca ?? "—"}</TableCell>
                         <TableCell><CampoBling matriz={s.matriz_marca} bling={s.bling_marca} dif={s.dif_marca_bling} ausente={s.marca_ausente_no_bling} /></TableCell>
                         <TableCell className="text-right tabular-nums">{formatMoney(s.matriz_preco)}</TableCell>
-                        <TableCell className={cn("text-right tabular-nums", s.dif_preco_bling && "text-red-600 dark:text-red-400 font-medium")}>
+                        <TableCell className={cn("text-right tabular-nums", s.dif_preco_bling && "text-destructive font-medium")}>
                           {formatMoney(s.bling_preco)}
                         </TableCell>
                       </TableRow>
@@ -638,7 +638,7 @@ export default function ConciliacaoCadastro() {
                           <TableCell className="font-medium">{s.nome ?? "—"}</TableCell>
                           <TableCell className="font-mono text-xs text-muted-foreground">{s.handle ?? "—"}</TableCell>
                           <TableCell className="text-right tabular-nums">{formatNum(s.variantes_shopify)}</TableCell>
-                          <TableCell className={cn("text-right tabular-nums", multi && "text-amber-600 dark:text-amber-400 font-medium")}>
+                          <TableCell className={cn("text-right tabular-nums", multi && "text-warning font-medium")}>
                             {multi ? (
                               <Tooltip>
                                 <TooltipTrigger asChild><span className="cursor-help">{formatNum(inv)}</span></TooltipTrigger>
@@ -649,7 +649,7 @@ export default function ConciliacaoCadastro() {
                             ) : formatNum(inv)}
                           </TableCell>
                           <TableCell className="text-right tabular-nums">{formatMoney(s.matriz_preco)}</TableCell>
-                          <TableCell className={cn("text-right tabular-nums", s.dif_preco_shopify && "text-red-600 dark:text-red-400 font-medium")}>
+                          <TableCell className={cn("text-right tabular-nums", s.dif_preco_shopify && "text-destructive font-medium")}>
                             {formatMoney(s.preco_shopify)}
                           </TableCell>
                           <TableCell className="font-mono">{s.barcode_shopify ?? "—"}</TableCell>
@@ -743,10 +743,10 @@ function ResumoCard({
       <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">{label}</div>
       <div className={cn(
         sizeClass,
-        "font-semibold tabular-nums leading-none mb-2",
-        tone === "emerald" && "text-emerald-600 dark:text-emerald-400",
-        tone === "amber" && "text-amber-600 dark:text-amber-400",
-        tone === "red" && "text-red-600 dark:text-red-400",
+        "font-medium tabular-nums leading-none mb-2",
+        tone === "emerald" && "text-success",
+        tone === "amber" && "text-warning",
+        tone === "red" && "text-destructive",
       )}>
         {value}
         {suffix && <span className="text-sm font-normal ml-1 text-muted-foreground">{suffix}</span>}
@@ -788,7 +788,7 @@ function CampoBling({
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="text-red-600 dark:text-red-400 font-medium cursor-help">{bling ?? "—"}</span>
+          <span className="text-destructive font-medium cursor-help">{bling ?? "—"}</span>
         </TooltipTrigger>
         <TooltipContent className="max-w-xs text-xs">
           Divergência real: os dois lados têm valor e são diferentes.

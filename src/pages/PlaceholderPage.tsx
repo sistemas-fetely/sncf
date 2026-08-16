@@ -10,7 +10,7 @@ export default function PlaceholderPage({ title, description }: PlaceholderPageP
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+        <h1 className="text-2xl font-medium tracking-tight">{title}</h1>
         <p className="text-muted-foreground text-sm mt-1">{description}</p>
       </div>
       <Card className="card-shadow">
@@ -19,7 +19,7 @@ export default function PlaceholderPage({ title, description }: PlaceholderPageP
             <Construction className="h-8 w-8 text-muted-foreground" />
           </div>
           <div className="text-center">
-            <p className="text-lg font-semibold">Módulo em Desenvolvimento</p>
+            <p className="text-lg font-medium">Módulo em Desenvolvimento</p>
             <p className="text-sm text-muted-foreground mt-1">Este módulo será implementado em breve.</p>
           </div>
         </CardContent>

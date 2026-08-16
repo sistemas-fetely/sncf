@@ -89,11 +89,11 @@ export function AplicarHaverPedidoDialog({ open, onOpenChange, pedidoId, idExter
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-md border p-3">
               <p className="text-xs text-muted-foreground">Crédito disponível</p>
-              <p className="text-lg font-semibold">{fmtBRL.format(totalHaver)}</p>
+              <p className="text-lg font-medium">{fmtBRL.format(totalHaver)}</p>
             </div>
             <div className="rounded-md border p-3">
               <p className="text-xs text-muted-foreground">Valor do pedido</p>
-              <p className="text-lg font-semibold">{fmtBRL.format(valorLiquido)}</p>
+              <p className="text-lg font-medium">{fmtBRL.format(valorLiquido)}</p>
             </div>
           </div>
 

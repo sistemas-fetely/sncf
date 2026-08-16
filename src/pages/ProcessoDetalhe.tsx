@@ -28,8 +28,8 @@ import remarkGfm from "remark-gfm";
 import { MermaidRenderer } from "@/components/processos/MermaidRenderer";
 
 const STATUS_COR: Record<string, string> = {
-  vigente: "bg-green-600/10 text-green-700 border-green-600/30",
-  em_revisao: "bg-amber-500/10 text-amber-700 border-amber-500/30",
+  vigente: "bg-success text-success border-success/40",
+  em_revisao: "bg-warning text-warning border-warning/40",
   rascunho: "bg-muted text-muted-foreground",
   arquivado: "bg-muted/50 text-muted-foreground",
 };
@@ -181,7 +181,7 @@ export default function ProcessoDetalhe() {
         <SmartBackButton fallback="/processos" fallbackLabel="Processos" />
         <div className="flex items-center gap-2">
           {processo.sensivel && (
-            <Badge variant="outline" className="gap-1 border-amber-500/40 text-amber-700">
+            <Badge variant="outline" className="gap-1 border-warning/40 text-warning">
               <Lock className="h-3 w-3" /> Sensível
             </Badge>
           )}
@@ -212,14 +212,14 @@ export default function ProcessoDetalhe() {
         <CardContent className="p-6 space-y-4">
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div className="flex-1 min-w-0">
-              <h1 className="text-2xl font-bold tracking-tight">{processo.nome}</h1>
+              <h1 className="text-2xl font-medium tracking-tight">{processo.nome}</h1>
               {processo.descricao && (
                 <p className="text-sm text-muted-foreground mt-1">{processo.descricao}</p>
               )}
               {importacaoInfo && (
                 <Badge
                   variant="outline"
-                  className="mt-2 gap-1 border-purple-500/40 bg-purple-500/5 text-purple-700"
+                  className="mt-2 gap-1 border-info/40 bg-info text-info"
                 >
                   <Sparkles className="h-3 w-3" />
                   Importado de PDF · {importacaoInfo.arquivo_nome}
@@ -300,9 +300,9 @@ export default function ProcessoDetalhe() {
 
       {/* Sugestões pendentes */}
       {sugestoesPendentes.length > 0 && (
-        <div className="flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-md">
-          <AlertCircle className="h-4 w-4 text-amber-700 mt-0.5 shrink-0" />
-          <p className="text-sm text-amber-900">
+        <div className="flex items-start gap-2 p-3 bg-warning border border-warning/40 rounded-md">
+          <AlertCircle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+          <p className="text-sm text-warning">
             <strong>{sugestoesPendentes.length}</strong> sugestão(ões) aguardando avaliação.
             {podeEditar && " Abra a aba Sugestões para revisar."}
           </p>
@@ -354,7 +354,7 @@ export default function ProcessoDetalhe() {
                 </p>
                 {tarefasLegado.map((t: any, i: number) => (
                   <div key={t.id} className="flex gap-3 pb-3 border-b last:border-b-0 last:pb-0">
-                    <div className="h-7 w-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold shrink-0">
+                    <div className="h-7 w-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-medium shrink-0">
                       {i + 1}
                     </div>
                     <div className="flex-1 space-y-1">
@@ -497,9 +497,9 @@ export default function ProcessoDetalhe() {
                         variant="outline"
                         className={
                           s.status === "pendente"
-                            ? "bg-amber-500/10 text-amber-700"
+                            ? "bg-warning text-warning"
                             : s.status === "aceita" || s.status === "aplicada"
-                              ? "bg-green-600/10 text-green-700"
+                              ? "bg-success text-success"
                               : "bg-muted text-muted-foreground"
                         }
                       >

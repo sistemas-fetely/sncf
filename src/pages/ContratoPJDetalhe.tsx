@@ -546,12 +546,12 @@ export default function ContratoPJDetalhe() {
               {(contrato as any).foto_url ? (
                 <img src={(contrato as any).foto_url} alt={contrato.contato_nome} className="h-16 w-16 rounded-full object-cover" />
               ) : (
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-xl font-bold text-primary">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-xl font-medium text-primary">
                   {initials}
                 </div>
               )}
               <div className="flex-1">
-                <h1 className="text-2xl font-bold">{contrato.contato_nome}</h1>
+                <h1 className="text-2xl font-medium">{contrato.contato_nome}</h1>
                 <p className="text-muted-foreground">{contrato.tipo_servico} · {contrato.razao_social}</p>
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                   <Badge variant="outline" className={statusStyles[contrato.status] || ""}>
@@ -595,7 +595,7 @@ export default function ContratoPJDetalhe() {
 
           <TabsContent value="pessoais">
             <Card><CardContent className="pt-6">
-              <h3 className="font-semibold mb-4 text-sm text-muted-foreground">DADOS PESSOAIS DO PRESTADOR</h3>
+              <h3 className="font-medium mb-4 text-sm text-muted-foreground">DADOS PESSOAIS DO PRESTADOR</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 <InfoField label="Nome Completo" value={contrato.contato_nome} />
                 <InfoField label="CPF" value={contrato.cpf} />
@@ -610,7 +610,7 @@ export default function ContratoPJDetalhe() {
                 <InfoField label="Nome do Pai" value={contrato.nome_pai} />
               </div>
 
-              <h3 className="font-semibold mb-4 text-sm text-muted-foreground">ENDEREÇO</h3>
+              <h3 className="font-medium mb-4 text-sm text-muted-foreground">ENDEREÇO</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 <InfoField label="CEP" value={contrato.cep} />
                 <InfoField label="Logradouro" value={contrato.logradouro} />
@@ -621,7 +621,7 @@ export default function ContratoPJDetalhe() {
                 <InfoField label="UF" value={contrato.uf} />
               </div>
 
-              <h3 className="font-semibold mb-4 text-sm text-muted-foreground">CONTATO</h3>
+              <h3 className="font-medium mb-4 text-sm text-muted-foreground">CONTATO</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 <InfoField label="Telefone" value={contrato.telefone || contrato.contato_telefone} />
                 <InfoField label="Email Pessoal" value={contrato.email_pessoal} />
@@ -630,7 +630,7 @@ export default function ContratoPJDetalhe() {
                 <InfoField label="Contato Emergência - Telefone" value={contrato.contato_emergencia_telefone} />
               </div>
 
-              <h3 className="font-semibold mb-4 text-sm text-muted-foreground">DADOS DA EMPRESA</h3>
+              <h3 className="font-medium mb-4 text-sm text-muted-foreground">DADOS DA EMPRESA</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <InfoField label="CNPJ" value={contrato.cnpj} />
                 <InfoField label="Razão Social" value={contrato.razao_social} />
@@ -653,7 +653,7 @@ export default function ContratoPJDetalhe() {
                 <InfoField label="Observações" value={contrato.observacoes} />
               </div>
               <div className="mt-6 pt-4 border-t">
-                <h3 className="font-semibold mb-3 text-sm text-muted-foreground uppercase">Documentos Anexados</h3>
+                <h3 className="font-medium mb-3 text-sm text-muted-foreground uppercase">Documentos Anexados</h3>
                 <DocumentosAnexados
                   contratoPjId={id}
                   currentFotoUrl={(contrato as any).foto_url}
@@ -670,7 +670,7 @@ export default function ContratoPJDetalhe() {
                 <InfoField label="Departamento" value={contrato.departamento} />
                 {canSeeSalary(isCargoClevel(contrato.tipo_servico)) && (
                   <div className="md:col-span-2 lg:col-span-3 border rounded-lg p-4 space-y-2">
-                    <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Remuneração</h4>
+                    <h4 className="text-xs font-medium text-muted-foreground uppercase mb-2">Remuneração</h4>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Salário base</span>
                       <SalarioMasked valor={Number((contrato as any).valor_base) || 0} userId={(contrato as any).user_id} contexto="admissao" />
@@ -683,7 +683,7 @@ export default function ContratoPJDetalhe() {
                       <span className="text-muted-foreground">Outros benefícios</span>
                       <SalarioMasked valor={Number((contrato as any).valor_beneficios_extras) || 0} userId={(contrato as any).user_id} contexto="admissao" />
                     </div>
-                    <div className="flex justify-between text-sm pt-2 border-t font-semibold">
+                    <div className="flex justify-between text-sm pt-2 border-t font-medium">
                       <span>Total</span>
                       <SalarioMasked valor={Number(contrato.valor_mensal)} userId={(contrato as any).user_id} contexto="admissao" />
                     </div>
@@ -723,7 +723,7 @@ export default function ContratoPJDetalhe() {
 
           <TabsContent value="empresa">
             <Card><CardContent className="pt-6">
-              <h3 className="font-semibold mb-3">🔐 Acesso aos Sistemas</h3>
+              <h3 className="font-medium mb-3">🔐 Acesso aos Sistemas</h3>
               {acessosSistemas.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">Nenhum acesso cadastrado.</p>
               ) : (
@@ -743,7 +743,7 @@ export default function ContratoPJDetalhe() {
                 </div>
               )}
 
-              <h3 className="font-semibold mb-3">💻 Equipamentos</h3>
+              <h3 className="font-medium mb-3">💻 Equipamentos</h3>
               {equipamentos.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">Nenhum equipamento cadastrado.</p>
               ) : (
@@ -842,7 +842,7 @@ export default function ContratoPJDetalhe() {
           </Button>
         </div>
 
-        <h1 className="text-2xl font-bold tracking-tight">Editar: {contrato.contato_nome}</h1>
+        <h1 className="text-2xl font-medium tracking-tight">Editar: {contrato.contato_nome}</h1>
 
         <Tabs defaultValue="pessoais">
           <TabsList className="w-full justify-start">
@@ -905,7 +905,7 @@ function TabNotasFiscais({ contratoId }: { contratoId: string }) {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Notas Fiscais</h3>
+        <h3 className="text-lg font-medium">Notas Fiscais</h3>
         <Button size="sm" className="gap-2" onClick={() => { setEditNota(null); setFormOpen(true); }}>
           <Plus className="h-4 w-4" /> Nova NF
         </Button>
@@ -914,11 +914,11 @@ function TabNotasFiscais({ contratoId }: { contratoId: string }) {
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
-              <TableHead className="font-semibold">Número</TableHead>
-              <TableHead className="font-semibold">Competência</TableHead>
-              <TableHead className="font-semibold">Emissão</TableHead>
-              <TableHead className="font-semibold">Valor</TableHead>
-              <TableHead className="font-semibold">Status</TableHead>
+              <TableHead className="font-medium">Número</TableHead>
+              <TableHead className="font-medium">Competência</TableHead>
+              <TableHead className="font-medium">Emissão</TableHead>
+              <TableHead className="font-medium">Valor</TableHead>
+              <TableHead className="font-medium">Status</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -1064,7 +1064,7 @@ function TabPagamentos({ contratoId }: { contratoId: string }) {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Pagamentos</h3>
+        <h3 className="text-lg font-medium">Pagamentos</h3>
         <Button size="sm" className="gap-2" onClick={() => { setEditPag(null); setFormOpen(true); }}>
           <Plus className="h-4 w-4" /> Novo Pagamento
         </Button>
@@ -1073,13 +1073,13 @@ function TabPagamentos({ contratoId }: { contratoId: string }) {
         <Table>
           <TableHeader>
              <TableRow className="bg-muted/50">
-              <TableHead className="font-semibold">Competência</TableHead>
-              <TableHead className="font-semibold">Nº NF</TableHead>
-              <TableHead className="font-semibold">Data Prevista</TableHead>
-              <TableHead className="font-semibold">Data Pagamento</TableHead>
-              <TableHead className="font-semibold">Valor</TableHead>
-              <TableHead className="font-semibold">Forma</TableHead>
-              <TableHead className="font-semibold">Status</TableHead>
+              <TableHead className="font-medium">Competência</TableHead>
+              <TableHead className="font-medium">Nº NF</TableHead>
+              <TableHead className="font-medium">Data Prevista</TableHead>
+              <TableHead className="font-medium">Data Pagamento</TableHead>
+              <TableHead className="font-medium">Valor</TableHead>
+              <TableHead className="font-medium">Forma</TableHead>
+              <TableHead className="font-medium">Status</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -1216,7 +1216,7 @@ const TIPO_MOV_LABEL: Record<string, string> = {
 };
 const STATUS_MOV_STYLES: Record<string, string> = {
   pendente: "bg-warning/10 text-warning border-0", aprovada: "bg-info/10 text-info border-0",
-  efetivada: "bg-emerald-500/10 text-emerald-600 border-0", cancelada: "bg-destructive/10 text-destructive border-0",
+  efetivada: "bg-success text-success border-0", cancelada: "bg-destructive/10 text-destructive border-0",
 };
 
 function HistoricoMovimentacoes({ contratoId }: { contratoId: string }) {

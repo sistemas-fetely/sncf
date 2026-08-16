@@ -67,7 +67,7 @@ export function ConfirmarEnvioEmailDialog({
             Separe múltiplos e-mails por vírgula.
           </p>
           {invalidos.length > 0 && (
-            <p className="text-xs text-red-600">
+            <p className="text-xs text-destructive">
               E-mail inválido: {invalidos.join(", ")}
             </p>
           )}

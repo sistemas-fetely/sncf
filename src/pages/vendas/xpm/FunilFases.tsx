@@ -82,10 +82,10 @@ export default function FunilFases({
                   } ${clicavel ? "cursor-pointer" : "cursor-default"}`}
                 >
                   {Number(f.em_alerta ?? 0) > 0 && (
-                    <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-amber-500" />
+                    <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-warning" />
                   )}
                   <div className="text-[12px] font-medium">{f.descricao}</div>
-                  <div className="text-2xl font-semibold tabular-nums leading-tight">
+                  <div className="text-2xl font-medium tabular-nums leading-tight">
                     {semAcumulo ? "—" : nfInt.format(parados)}
                   </div>
                   <div className="text-[11px] text-muted-foreground">

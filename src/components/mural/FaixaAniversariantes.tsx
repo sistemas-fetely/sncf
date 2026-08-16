@@ -36,7 +36,7 @@ function AvatarEvento({ evento, onClick }: { evento: EventoDoMes; onClick: () =>
   const ehHoje = evento.eh_hoje;
   const tamanho = ehHoje ? "h-20 w-20" : "h-14 w-14";
   const anelClasse = ehHoje
-    ? "ring-[3px] ring-amber-400 ring-offset-2 ring-offset-background"
+    ? "ring-[3px] ring-warning ring-offset-2 ring-offset-background"
     : "ring-1 ring-border hover:ring-primary/50";
 
   return (
@@ -60,9 +60,9 @@ function AvatarEvento({ evento, onClick }: { evento: EventoDoMes; onClick: () =>
           />
           <AvatarFallback
             className={cn(
-              "font-semibold",
+              "font-medium",
               ehHoje
-                ? "bg-amber-100 text-amber-900 text-base"
+                ? "bg-warning/10 text-warning text-base"
                 : "bg-primary/10 text-primary text-xs",
             )}
           >
@@ -70,11 +70,11 @@ function AvatarEvento({ evento, onClick }: { evento: EventoDoMes; onClick: () =>
           </AvatarFallback>
         </Avatar>
         {ehHoje && (
-          <div className="absolute -bottom-1 -right-1 bg-amber-400 rounded-full h-7 w-7 flex items-center justify-center shadow">
+          <div className="absolute -bottom-1 -right-1 bg-warning rounded-full h-7 w-7 flex items-center justify-center shadow">
             {evento.tipo_evento === "aniversario" ? (
-              <Cake className="h-3.5 w-3.5 text-amber-900" />
+              <Cake className="h-3.5 w-3.5 text-warning" />
             ) : (
-              <Sparkles className="h-3.5 w-3.5 text-amber-900" />
+              <Sparkles className="h-3.5 w-3.5 text-warning" />
             )}
           </div>
         )}
@@ -84,7 +84,7 @@ function AvatarEvento({ evento, onClick }: { evento: EventoDoMes; onClick: () =>
         <span
           className={cn(
             "text-xs font-medium truncate w-full text-center group-hover:text-primary transition-colors",
-            ehHoje && "text-sm font-semibold",
+            ehHoje && "text-sm font-medium",
           )}
         >
           {evento.nome.split(" ")[0]}
@@ -92,7 +92,7 @@ function AvatarEvento({ evento, onClick }: { evento: EventoDoMes; onClick: () =>
         <span
           className={cn(
             "text-[10px] truncate w-full text-center",
-            ehHoje ? "text-amber-700 font-medium" : "text-muted-foreground",
+            ehHoje ? "text-warning font-medium" : "text-muted-foreground",
           )}
         >
           {evento.label_destaque}
@@ -136,11 +136,11 @@ export function FaixaAniversariantes() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Cake className="h-4 w-4 text-primary" />
-            <h3 className="text-sm font-semibold capitalize">
+            <h3 className="text-sm font-medium capitalize">
               Aniversariantes e marcos de {mesAtual}
             </h3>
             {temHoje && (
-              <span className="text-[11px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+              <span className="text-[11px] text-warning bg-warning/10 px-2 py-0.5 rounded-full border border-warning/40">
                 celebrando hoje 🎉
               </span>
             )}

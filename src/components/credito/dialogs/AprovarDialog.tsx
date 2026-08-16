@@ -128,7 +128,7 @@ export function AprovarDialog({ analise_id, pedido_id, campos, sugestaoIA, comRe
             Aprovar com ressalva
           </Button>
         ) : (
-          <Button className="gap-2 bg-green-600 hover:bg-green-700 text-white">
+          <Button className="gap-2 bg-success hover:bg-success text-white">
             <CheckCircle2 className="h-4 w-4" />
             Aprovar
           </Button>
@@ -238,7 +238,7 @@ export function AprovarDialog({ analise_id, pedido_id, campos, sugestaoIA, comRe
               transicionar.isPending ||
               definirPortao.isPending
             }
-            className={comRessalva ? "" : "bg-green-600 hover:bg-green-700"}
+            className={comRessalva ? "" : "bg-success hover:bg-success"}
           >
             {transicionar.isPending || definirPortao.isPending
               ? "Aprovando..."

@@ -216,7 +216,7 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose, reenvio = 
       <DialogContent className="max-w-lg max-h-[85vh] flex flex-col gap-0 p-0">
         {/* Header */}
         <DialogHeader className="px-6 pt-6 pb-4 border-b space-y-1.5">
-          <DialogTitle className="text-base font-semibold">
+          <DialogTitle className="text-base font-medium">
             {modo === "pulada" ? "Pular etapa" : reenvio ? "Reenviar lembrete" : "Registrar ação"}
           </DialogTitle>
           <div className="text-sm font-medium text-foreground">{clienteNome}</div>
@@ -230,9 +230,9 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose, reenvio = 
           {etapa ? (
             <div className="space-y-4">
               {reenvio && (
-                <Alert className="border-amber-300 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-900">
-                  <AlertTriangle className="h-4 w-4 text-amber-700" />
-                  <AlertDescription className="text-xs text-amber-900 dark:text-amber-100">
+                <Alert className="border-warning/40 bg-warning/10">
+                  <AlertTriangle className="h-4 w-4 text-warning" />
+                  <AlertDescription className="text-xs text-warning">
                     Esta etapa já foi cumprida{ultimaEm ? ` em ${formatDateBR(ultimaEm)}` : ""}. O
                     cliente já recebeu este contato — reenviar manda a mensagem de novo.
                   </AlertDescription>
@@ -250,9 +250,9 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose, reenvio = 
               </div>
 
               {etapa.requer_aprovacao && (
-                <Alert className="border-amber-300 bg-amber-50">
-                  <AlertTriangle className="h-4 w-4 !text-amber-700" />
-                  <AlertDescription className="text-xs text-amber-900">
+                <Alert className="border-warning/40 bg-warning/10">
+                  <AlertTriangle className="h-4 w-4 !text-warning" />
+                  <AlertDescription className="text-xs text-warning">
                     Esta etapa requer aprovação antes da execução.
                   </AlertDescription>
                 </Alert>

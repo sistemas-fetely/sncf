@@ -67,7 +67,7 @@ export function PausarReguaDialog({ titulo, etapa, open, onClose }: Props) {
             o motivo fica registrado no histórico da régua.
           </p>
           <div className="space-y-1.5">
-            <Label className="text-xs">Motivo <span className="text-red-600">*</span></Label>
+            <Label className="text-xs">Motivo <span className="text-destructive">*</span></Label>
             <Textarea
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}

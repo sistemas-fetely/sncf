@@ -173,10 +173,10 @@ export function FeriasCLTView({ canManage, isAdmin }: Props) {
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Períodos Ativos", value: totalPeriodos, color: "text-blue-600 bg-blue-50" },
-          { label: "Vencidos", value: vencidos, color: "text-red-600 bg-red-50" },
-          { label: "Em Gozo", value: emGozo, color: "text-green-600 bg-green-50" },
-          { label: "Programadas", value: programadas, color: "text-orange-600 bg-orange-50" },
+          { label: "Períodos Ativos", value: totalPeriodos, color: "text-info bg-info/10" },
+          { label: "Vencidos", value: vencidos, color: "text-destructive bg-destructive/10" },
+          { label: "Em Gozo", value: emGozo, color: "text-success bg-success/10" },
+          { label: "Programadas", value: programadas, color: "text-warning bg-warning/10" },
         ].map((k) => (
           <Card key={k.label}>
             <CardContent className="flex items-center gap-3 p-3">
@@ -185,7 +185,7 @@ export function FeriasCLTView({ canManage, isAdmin }: Props) {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">{k.label}</p>
-                <p className="text-lg font-bold">{k.value}</p>
+                <p className="text-lg font-medium">{k.value}</p>
               </div>
             </CardContent>
           </Card>
@@ -245,7 +245,7 @@ export function FeriasCLTView({ canManage, isAdmin }: Props) {
                     <TableCell className="text-center">{p.dias_direito}</TableCell>
                     <TableCell className="text-center">{p.dias_gozados}</TableCell>
                     <TableCell className="text-center">{p.dias_vendidos}</TableCell>
-                    <TableCell className="text-center font-semibold">{p.saldo}</TableCell>
+                    <TableCell className="text-center font-medium">{p.saldo}</TableCell>
                     <TableCell><Badge variant={st.variant}>{st.label}</Badge></TableCell>
                     <TableCell>
                       {(p.programacoes || []).length > 0 ? (
@@ -263,12 +263,12 @@ export function FeriasCLTView({ canManage, isAdmin }: Props) {
                                 )}
                                 {canManage && pr.status === "programada" && (
                                   <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => atualizarStatusMut.mutate({ id: pr.id, status: "aprovada" })}>
-                                    <Check className="h-3 w-3 text-green-600" />
+                                    <Check className="h-3 w-3 text-success" />
                                   </Button>
                                 )}
                                 {canManage && (pr.status === "programada" || pr.status === "aprovada") && (
                                   <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => atualizarStatusMut.mutate({ id: pr.id, status: "cancelada" })}>
-                                    <X className="h-3 w-3 text-red-600" />
+                                    <X className="h-3 w-3 text-destructive" />
                                   </Button>
                                 )}
                                 {isAdmin && (

@@ -194,7 +194,7 @@ export default function ReguaEtapas() {
         const lista = porPerfil[perfil];
         return (
           <section key={perfil} className="space-y-2">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
               {PERFIL_LABEL[perfil]} · {lista.length} etapa{lista.length !== 1 ? "s" : ""}
             </h3>
             <div className="rounded-md border">

@@ -66,11 +66,11 @@ interface PreviaXml {
 const CLASSIF: Record<string, { label: string; className: string }> = {
   mercadoria: {
     label: "Mercadoria",
-    className: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+    className: "border-success/40 bg-success text-success",
   },
   possivel: {
     label: "Possível mercadoria",
-    className: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400",
+    className: "border-warning/40 bg-warning text-warning",
   },
   nao_mercadoria: {
     label: "Provavelmente não é mercadoria",
@@ -161,7 +161,7 @@ export default function LancarNfXmlTab({ pedidoId, fornecedorId, onGravado }: Pr
 
   if (!fornecedorId) {
     return (
-      <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+      <div className="rounded-md border border-warning/40 bg-warning p-3 text-sm">
         Este pedido não tem fornecedor vinculado. Sem fornecedor não dá para buscar as NFs
         capturadas por XML — use a aba <b>Digitar manualmente</b>.
       </div>
@@ -262,7 +262,7 @@ export default function LancarNfXmlTab({ pedidoId, fornecedorId, onGravado }: Pr
                   </TableCell>
                   <TableCell>
                     {r.ja_lancada ? (
-                      <Badge variant="outline" className="border-amber-500/40 text-amber-700 dark:text-amber-400">
+                      <Badge variant="outline" className="border-warning/40 text-warning">
                         Já lançada
                       </Badge>
                     ) : (
@@ -277,7 +277,7 @@ export default function LancarNfXmlTab({ pedidoId, fornecedorId, onGravado }: Pr
       </div>
 
       {selecionada?.ja_lancada && (
-        <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-sm">
+        <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning p-2 text-sm">
           <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
           <span>
             Esta NF já foi lançada. Gravar de novo <b>atualiza</b> a NF existente (idempotente), não
@@ -305,7 +305,7 @@ export default function LancarNfXmlTab({ pedidoId, fornecedorId, onGravado }: Pr
           </div>
 
           {previa.nf_existe && (
-            <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-sm">
+            <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning p-2 text-sm">
               <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
               <span>
                 Já existe NF com esse número e série. A gravação vai <b>atualizar</b> a NF
@@ -331,7 +331,7 @@ export default function LancarNfXmlTab({ pedidoId, fornecedorId, onGravado }: Pr
             </div>
             <div>
               <div className="text-xs text-muted-foreground">Divergência</div>
-              <div className={divergente ? "font-semibold text-destructive" : "font-medium"}>
+              <div className={divergente ? "font-medium text-destructive" : "font-medium"}>
                 {Number(previa.divergencia ?? 0).toFixed(2)}
               </div>
             </div>
@@ -344,7 +344,7 @@ export default function LancarNfXmlTab({ pedidoId, fornecedorId, onGravado }: Pr
           )}
 
           {Number(previa.linhas_sem_depara ?? 0) > 0 && (
-            <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-sm space-y-1">
+            <div className="rounded-md border border-warning/40 bg-warning p-2 text-sm space-y-1">
               <div>
                 {previa.linhas_sem_depara} linha(s) com código sem de-para para SKU. Isso não impede
                 gravar a NF — só deixa a alocação em SKU pendente.

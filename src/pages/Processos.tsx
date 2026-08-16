@@ -32,8 +32,8 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const STATUS_COR: Record<string, string> = {
-  vigente: "bg-green-600/10 text-green-700 border-green-600/30",
-  em_revisao: "bg-amber-500/10 text-amber-700 border-amber-500/30",
+  vigente: "bg-success text-success border-success/40",
+  em_revisao: "bg-warning text-warning border-warning/40",
   rascunho: "bg-muted text-muted-foreground border-muted-foreground/20",
   arquivado: "bg-muted/50 text-muted-foreground border-muted-foreground/20",
 };
@@ -119,7 +119,7 @@ export default function Processos() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
             <FileText className="h-6 w-6 text-primary" />
             Processos Fetely
           </h1>
@@ -134,7 +134,7 @@ export default function Processos() {
               onClick={() => navigate("/processos/importar")}
               className="gap-1.5"
             >
-              <Sparkles className="h-3.5 w-3.5 text-purple-500" />
+              <Sparkles className="h-3.5 w-3.5 text-info" />
               Importar de PDF
             </Button>
             <Button onClick={() => navigate("/processos/novo/editar")} className="gap-2">
@@ -272,7 +272,7 @@ export default function Processos() {
           <CardContent className="p-12 text-center space-y-3">
             <AlertCircle className="h-10 w-10 text-muted-foreground mx-auto" />
             <div>
-              <h3 className="font-semibold">Nenhum processo encontrado</h3>
+              <h3 className="font-medium">Nenhum processo encontrado</h3>
               <p className="text-sm text-muted-foreground mt-1">
                 {filtrosAtivos > 0
                   ? "Tente ajustar os filtros."
@@ -300,7 +300,7 @@ export default function Processos() {
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold leading-tight truncate">{p.nome}</h3>
+                    <h3 className="font-medium leading-tight truncate">{p.nome}</h3>
                     {p.area_nome && (
                       <p className="text-[11px] text-muted-foreground mt-0.5">{p.area_nome}</p>
                     )}
@@ -368,7 +368,7 @@ export default function Processos() {
                   </span>
                   <div className="flex items-center gap-2 shrink-0">
                     {p.sugestoes_pendentes > 0 && (
-                      <span className="inline-flex items-center gap-0.5 text-amber-700">
+                      <span className="inline-flex items-center gap-0.5 text-warning">
                         <AlertCircle className="h-2.5 w-2.5" />
                         {p.sugestoes_pendentes} sug.
                       </span>

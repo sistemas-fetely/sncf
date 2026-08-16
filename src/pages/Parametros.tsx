@@ -518,7 +518,7 @@ export default function Parametros() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Parâmetros</h1>
+        <h1 className="text-2xl font-medium tracking-tight">Parâmetros</h1>
         <p className="text-muted-foreground text-sm mt-1">
           Gerencie as opções disponíveis nas listas de cadastro
         </p>
@@ -904,7 +904,7 @@ export default function Parametros() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmCLevel} className="bg-orange-600 text-white hover:bg-orange-700">
+            <AlertDialogAction onClick={handleConfirmCLevel} className="bg-warning text-white hover:bg-warning">
               Confirmar
             </AlertDialogAction>
           </AlertDialogFooter>

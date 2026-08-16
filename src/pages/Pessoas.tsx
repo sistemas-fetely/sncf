@@ -172,7 +172,7 @@ export default function Pessoas() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Pessoas</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Pessoas</h1>
           <p className="text-muted-foreground text-sm mt-1">
             Cadastro unificado de pessoas e seus vínculos com a Fetely
           </p>
@@ -202,19 +202,19 @@ export default function Pessoas() {
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-4">
         <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Users className="h-5 w-5" /></div>
-          <div><p className="text-2xl font-bold">{totalPessoas}</p><p className="text-xs text-muted-foreground">Total de pessoas</p></div>
+          <div><p className="text-2xl font-medium">{totalPessoas}</p><p className="text-xs text-muted-foreground">Total de pessoas</p></div>
         </CardContent></Card>
         <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success/10 text-success"><UserCheck className="h-5 w-5" /></div>
-          <div><p className="text-2xl font-bold">{totalAtivos}</p><p className="text-xs text-muted-foreground">Ativos</p></div>
+          <div><p className="text-2xl font-medium">{totalAtivos}</p><p className="text-xs text-muted-foreground">Ativos</p></div>
         </CardContent></Card>
         <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-info/10 text-info"><Building2 className="h-5 w-5" /></div>
-          <div><p className="text-2xl font-bold">{totalCLT}</p><p className="text-xs text-muted-foreground">CLT</p></div>
+          <div><p className="text-2xl font-medium">{totalCLT}</p><p className="text-xs text-muted-foreground">CLT</p></div>
         </CardContent></Card>
         <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10 text-warning"><Briefcase className="h-5 w-5" /></div>
-          <div><p className="text-2xl font-bold">{totalPJ}</p><p className="text-xs text-muted-foreground">PJ</p></div>
+          <div><p className="text-2xl font-medium">{totalPJ}</p><p className="text-xs text-muted-foreground">PJ</p></div>
         </CardContent></Card>
       </div>
 
@@ -272,12 +272,12 @@ export default function Pessoas() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="font-semibold">Nome</TableHead>
-                  <TableHead className="font-semibold">Tipo</TableHead>
-                  <TableHead className="font-semibold hidden md:table-cell">Cargo</TableHead>
-                  <TableHead className="font-semibold hidden lg:table-cell">Centro de Custo</TableHead>
-                  <TableHead className="font-semibold">Status</TableHead>
-                  <TableHead className="font-semibold hidden lg:table-cell">Início</TableHead>
+                  <TableHead className="font-medium">Nome</TableHead>
+                  <TableHead className="font-medium">Tipo</TableHead>
+                  <TableHead className="font-medium hidden md:table-cell">Cargo</TableHead>
+                  <TableHead className="font-medium hidden lg:table-cell">Centro de Custo</TableHead>
+                  <TableHead className="font-medium">Status</TableHead>
+                  <TableHead className="font-medium hidden lg:table-cell">Início</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
@@ -292,7 +292,7 @@ export default function Pessoas() {
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
                           <AvatarImage src={p.foto_url || undefined} alt={p.nome} className="object-cover" />
-                          <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">{initials(p.nome)}</AvatarFallback>
+                          <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">{initials(p.nome)}</AvatarFallback>
                         </Avatar>
                         <span className="font-medium text-sm">{p.nome}</span>
                         {p.incompleto && (
@@ -301,7 +301,7 @@ export default function Pessoas() {
                               <TooltipTrigger asChild>
                                 <Badge
                                   variant="outline"
-                                  className="border-warning/40 bg-warning/10 text-warning gap-1 h-5 px-1.5 text-[10px] font-semibold"
+                                  className="border-warning/40 bg-warning/10 text-warning gap-1 h-5 px-1.5 text-[10px] font-medium"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <AlertTriangle className="h-3 w-3" />
@@ -317,8 +317,8 @@ export default function Pessoas() {
                     <TableCell>
                       {p.tipo_vinculo ? (
                         <Badge className={p.tipo_vinculo === "CLT"
-                          ? "bg-info text-info-foreground hover:bg-info/90 font-bold border-0"
-                          : "bg-warning text-warning-foreground hover:bg-warning/90 font-bold border-0"}>
+                          ? "bg-info text-info-foreground hover:bg-info/90 font-medium border-0"
+                          : "bg-warning text-warning-foreground hover:bg-warning/90 font-medium border-0"}>
                           {p.tipo_vinculo}
                         </Badge>
                       ) : <span className="text-xs text-muted-foreground">—</span>}

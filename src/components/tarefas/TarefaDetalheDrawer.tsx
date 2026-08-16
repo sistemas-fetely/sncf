@@ -69,20 +69,20 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_BADGE_CLASS: Record<string, string> = {
-  pendente: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30",
-  em_andamento: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30",
-  aguardando_terceiro: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30",
-  concluida: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30",
+  pendente: "bg-warning text-warning border-warning/40",
+  em_andamento: "bg-info text-info border-info/40",
+  aguardando_terceiro: "bg-warning text-warning border-warning/40",
+  concluida: "bg-success text-success border-success/40",
   cancelada: "bg-muted text-muted-foreground border-border",
 };
 
 const TIPO_ICON: Record<string, { Icon: typeof Plus; cls: string }> = {
   criacao: { Icon: Plus, cls: "text-muted-foreground bg-muted" },
-  status_change: { Icon: ArrowRight, cls: "text-blue-600 bg-blue-500/10" },
-  comentario: { Icon: MessageSquare, cls: "text-emerald-700 bg-emerald-500/10" },
-  delegacao: { Icon: UserPlus, cls: "text-purple-600 bg-purple-500/10" },
-  conclusao: { Icon: CheckCircle, cls: "text-emerald-600 bg-emerald-500/10" },
-  reativacao: { Icon: RotateCcw, cls: "text-amber-600 bg-amber-500/10" },
+  status_change: { Icon: ArrowRight, cls: "text-info bg-info" },
+  comentario: { Icon: MessageSquare, cls: "text-success bg-success" },
+  delegacao: { Icon: UserPlus, cls: "text-info bg-info" },
+  conclusao: { Icon: CheckCircle, cls: "text-success bg-success" },
+  reativacao: { Icon: RotateCcw, cls: "text-warning bg-warning" },
   edicao: { Icon: Pencil, cls: "text-muted-foreground bg-muted" },
 };
 
@@ -268,7 +268,7 @@ export function TarefaDetalheDrawer({ tarefa, open, onOpenChange, onAtualizada, 
                 </Badge>
               )}
               {tarefa.prioridade === "alta" && (
-                <Badge className="bg-orange-500 hover:bg-orange-500/90 gap-1">
+                <Badge className="bg-warning hover:bg-warning gap-1">
                   <Flag className="h-3 w-3" /> Alta
                 </Badge>
               )}
@@ -292,7 +292,7 @@ export function TarefaDetalheDrawer({ tarefa, open, onOpenChange, onAtualizada, 
               {tarefa.status === "em_andamento" && (
                 <>
                   <Button size="sm" onClick={handleAguardando} disabled={executandoAcao}
-                    variant="outline" className="gap-1.5 border-amber-500/40 text-amber-700 hover:bg-amber-500/10">
+                    variant="outline" className="gap-1.5 border-warning/40 text-warning hover:bg-warning">
                     <PauseCircle className="h-3.5 w-3.5" /> Aguardando
                   </Button>
                 </>

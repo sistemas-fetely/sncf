@@ -281,9 +281,9 @@ function PreAprovacaoCard({
   onConfirmar: () => void;
 }) {
   return (
-    <Card className="border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-800">
+    <Card className="border-success/40 bg-success/10">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2 text-emerald-800 dark:text-emerald-200">
+        <CardTitle className="text-base flex items-center gap-2 text-success">
           <Sparkles className="h-4 w-4" />
           Pré-aprovado pela regra "{payload?.regra_nome ?? "regra desconhecida"}"
         </CardTitle>
@@ -291,18 +291,18 @@ function PreAprovacaoCard({
       <CardContent className="space-y-4">
         <div className="space-y-2 text-sm">
           <div>
-            <p className="text-xs font-medium text-emerald-900/70 dark:text-emerald-200/70 uppercase tracking-wide">
+            <p className="text-xs font-medium text-success uppercase tracking-wide">
               Parecer sugerido
             </p>
-            <p className="text-emerald-900 dark:text-emerald-100 whitespace-pre-wrap">
+            <p className="text-success whitespace-pre-wrap">
               {payload?.parecer_sugerido || "—"}
             </p>
           </div>
           <div>
-            <p className="text-xs font-medium text-emerald-900/70 dark:text-emerald-200/70 uppercase tracking-wide">
+            <p className="text-xs font-medium text-success uppercase tracking-wide">
               Condição sugerida
             </p>
-            <p className="text-emerald-900 dark:text-emerald-100">
+            <p className="text-success">
               {resumirCondicao(payload?.condicao_sugerida)}
             </p>
           </div>
@@ -312,7 +312,7 @@ function PreAprovacaoCard({
           <Button
             onClick={onConfirmar}
             disabled={loading}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+            className="bg-success hover:bg-success text-white gap-2"
           >
             {loading ? (
               <>
@@ -324,7 +324,7 @@ function PreAprovacaoCard({
               </>
             )}
           </Button>
-          <p className="text-xs text-emerald-900/70 dark:text-emerald-200/70">
+          <p className="text-xs text-success">
             Você ainda pode decidir manualmente nos botões abaixo se preferir.
           </p>
         </div>

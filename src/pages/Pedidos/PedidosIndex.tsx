@@ -30,7 +30,7 @@ export default function PedidosIndex() {
     <div className="space-y-4 p-4">
       {/* Header */}
       <div className="flex flex-row items-center justify-between">
-        <h1 className="text-2xl font-semibold">Casa dos Pedidos</h1>
+        <h1 className="text-2xl font-medium">Casa dos Pedidos</h1>
         <ExportarPedidosButton />
       </div>
 

@@ -97,15 +97,15 @@ const ALL_PAGES: PageItem[] = [
 ];
 
 const PILAR_COLORS: Record<string, string> = {
-  sncf: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
-  people: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
-  ti: "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20",
-  admin: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
-  financas: "bg-teal-500/10 text-teal-700 dark:text-teal-400 border-teal-500/20",
-  marca: "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20",
-  credito: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-500/20",
-  sops: "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20",
-  comercial: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
+  sncf: "bg-success text-success border-success/40",
+  people: "bg-info text-info border-info/40",
+  ti: "bg-info text-info border-info/40",
+  admin: "bg-warning text-warning border-warning/40",
+  financas: "bg-success text-success border-success/40",
+  marca: "bg-destructive text-destructive border-destructive/40",
+  credito: "bg-info text-info border-info/40",
+  sops: "bg-warning text-warning border-warning/40",
+  comercial: "bg-warning text-warning border-warning/40",
   
 };
 
@@ -355,7 +355,7 @@ export function CommandPalette({ open, onOpenChange }: Props) {
               return (
                 <div
                   key={`h-${i}`}
-                  className="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground bg-muted/30"
+                  className="px-4 py-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground bg-muted/30"
                 >
                   {item.label}
                 </div>
@@ -394,11 +394,11 @@ export function CommandPalette({ open, onOpenChange }: Props) {
                       void toggleFavorito(page.rota, page.titulo, page.pilar);
                     }}
                     className={`shrink-0 p-1 rounded hover:bg-background/80 ${
-                      fav ? "text-amber-400" : "text-muted-foreground/20 hover:text-amber-400"
+                      fav ? "text-warning" : "text-muted-foreground/20 hover:text-warning"
                     }`}
                     aria-label={fav ? "Remover dos favoritos" : "Adicionar aos favoritos"}
                   >
-                    <Star className={`h-3.5 w-3.5 ${fav ? "fill-amber-400" : ""}`} />
+                    <Star className={`h-3.5 w-3.5 ${fav ? "fill-warning" : ""}`} />
                   </button>
                 </button>
               );

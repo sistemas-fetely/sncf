@@ -259,7 +259,7 @@ export default function TarefasDoTime() {
         <Card>
           <CardContent className="p-8 text-center">
             <ShieldAlert className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-            <h2 className="text-lg font-semibold">Acesso restrito</h2>
+            <h2 className="text-lg font-medium">Acesso restrito</h2>
             <p className="text-sm text-muted-foreground mt-1">
               Apenas gestores diretos e administradores de RH podem acessar esta tela.
             </p>
@@ -275,7 +275,7 @@ export default function TarefasDoTime() {
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-3xl font-bold tracking-tight" style={{ color: "#1A4A3A" }}>
+            <h1 className="text-3xl font-medium tracking-tight" style={{ color: "#1A4A3A" }}>
               Tarefas do Time
             </h1>
             <BadgePredictor tamanho="md" />
@@ -287,25 +287,25 @@ export default function TarefasDoTime() {
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card><CardContent className="p-4">
-          <p className="text-2xl font-bold">{kpis.totalSubs}</p>
+          <p className="text-2xl font-medium">{kpis.totalSubs}</p>
           <p className="text-xs text-muted-foreground">Subordinados</p>
         </CardContent></Card>
         <Card><CardContent className="p-4">
-          <p className="text-2xl font-bold">{kpis.ativas}</p>
+          <p className="text-2xl font-medium">{kpis.ativas}</p>
           <p className="text-xs text-muted-foreground">Tarefas ativas</p>
         </CardContent></Card>
         <Card><CardContent className="p-4">
-          <p className="text-2xl font-bold text-destructive">{kpis.atrasadas}</p>
+          <p className="text-2xl font-medium text-destructive">{kpis.atrasadas}</p>
           <p className="text-xs text-muted-foreground">Atrasadas</p>
         </CardContent></Card>
         <Card className={kpis.legais > 0 ? "border-destructive bg-destructive/5" : ""}>
           <CardContent className="p-4">
-            <p className="text-2xl font-bold text-destructive">{kpis.legais}</p>
+            <p className="text-2xl font-medium text-destructive">{kpis.legais}</p>
             <p className="text-xs text-muted-foreground">Legais atrasadas</p>
           </CardContent>
         </Card>
         <Card><CardContent className="p-4">
-          <p className="text-2xl font-bold">{kpis.media}</p>
+          <p className="text-2xl font-medium">{kpis.media}</p>
           <p className="text-xs text-muted-foreground">Média/pessoa</p>
         </CardContent></Card>
       </div>
@@ -364,7 +364,7 @@ export default function TarefasDoTime() {
                   <div className="flex items-center justify-between flex-wrap gap-3">
                     <div className="flex items-center gap-3">
                       <div
-                        className="flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold text-white"
+                        className="flex h-10 w-10 items-center justify-center rounded-full text-xs font-medium text-white"
                         style={{ backgroundColor: "#1A4A3A" }}
                       >
                         {initials(sub.nome)}
@@ -404,7 +404,7 @@ export default function TarefasDoTime() {
                         </Badge>
                       )}
                       {sobrecarregado && (
-                        <Badge className="bg-amber-500 hover:bg-amber-500/90 gap-1">
+                        <Badge className="bg-warning hover:bg-warning gap-1">
                           <AlertTriangle className="h-3 w-3" /> Sobrecarga
                         </Badge>
                       )}
@@ -425,7 +425,7 @@ export default function TarefasDoTime() {
                             tarefa.esta_atrasada
                               ? "bg-destructive/5 border-destructive/30"
                               : tarefa.bloqueante
-                              ? "bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900"
+                              ? "bg-warning/10 border-warning/40"
                               : "bg-muted/30 border-border",
                           )}
                         >
@@ -436,7 +436,7 @@ export default function TarefasDoTime() {
                                 <Badge variant="destructive" className="text-[10px]">⚠ Legal</Badge>
                               )}
                               {tarefa.status === "em_andamento" && (
-                                <Badge className="text-[10px] bg-blue-500 hover:bg-blue-500/90">Em andamento</Badge>
+                                <Badge className="text-[10px] bg-info hover:bg-info">Em andamento</Badge>
                               )}
                               {tarefa.esta_atrasada && (
                                 <Badge variant="destructive" className="text-[10px]">

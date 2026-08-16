@@ -344,7 +344,7 @@ export default function Onboarding() {
 
     return (
       <div className="p-4 max-w-lg mx-auto space-y-6">
-        <h1 className="text-xl font-bold">Meu Onboarding</h1>
+        <h1 className="text-xl font-medium">Meu Onboarding</h1>
         {loading ? (
           <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
         ) : myTarefas.length === 0 ? (
@@ -420,7 +420,7 @@ export default function Onboarding() {
     <TooltipProvider>
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold">Onboarding</h1>
+        <h1 className="text-2xl font-medium">Onboarding</h1>
         <Select value={filter} onValueChange={setFilter}>
           <SelectTrigger className="w-48">
             <SelectValue />
@@ -438,7 +438,7 @@ export default function Onboarding() {
           <CardContent className="p-4 flex items-center gap-3">
             <Clock className="h-8 w-8 text-primary" />
             <div>
-              <p className="text-2xl font-bold">{totalAtivos}</p>
+              <p className="text-2xl font-medium">{totalAtivos}</p>
               <p className="text-xs text-muted-foreground">Em andamento</p>
             </div>
           </CardContent>
@@ -447,7 +447,7 @@ export default function Onboarding() {
           <CardContent className="p-4 flex items-center gap-3">
             <TrendingUp className="h-8 w-8 text-info" />
             <div>
-              <p className="text-2xl font-bold">{percConclusaoGeral}%</p>
+              <p className="text-2xl font-medium">{percConclusaoGeral}%</p>
               <p className="text-xs text-muted-foreground">Conclusão geral</p>
             </div>
           </CardContent>
@@ -456,7 +456,7 @@ export default function Onboarding() {
           <CardContent className="p-4 flex items-center gap-3">
             <AlertTriangle className="h-8 w-8 text-warning" />
             <div>
-              <p className="text-2xl font-bold">{totalAtrasadas}</p>
+              <p className="text-2xl font-medium">{totalAtrasadas}</p>
               <p className="text-xs text-muted-foreground">Tarefas atrasadas</p>
             </div>
           </CardContent>
@@ -465,7 +465,7 @@ export default function Onboarding() {
           <CardContent className="p-4 flex items-center gap-3">
             <CheckCircle2 className="h-8 w-8 text-success" />
             <div>
-              <p className="text-2xl font-bold">{concluidosMes}</p>
+              <p className="text-2xl font-medium">{concluidosMes}</p>
               <p className="text-xs text-muted-foreground">Concluídos este mês</p>
             </div>
           </CardContent>
@@ -503,7 +503,7 @@ export default function Onboarding() {
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center justify-between gap-4">
                     <div className="min-w-0">
-                      <p className="font-semibold truncate">{cl.nome}</p>
+                      <p className="font-medium truncate">{cl.nome}</p>
                       <p className="text-sm text-muted-foreground truncate">{cl.cargo} · {cl.departamento}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">

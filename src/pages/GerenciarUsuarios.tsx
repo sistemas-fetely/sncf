@@ -456,7 +456,7 @@ export default function GerenciarUsuarios() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Gerenciar Usuários</h1>
+          <h1 className="text-2xl font-medium">Gerenciar Usuários</h1>
           <p className="text-sm text-muted-foreground">Cadastrar, ativar/inativar e gerenciar perfis de acesso</p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -640,38 +640,38 @@ export default function GerenciarUsuarios() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <Card className="border-l-[3px] border-l-blue-500">
+        <Card className="border-l-[3px] border-l-info/40">
           <CardContent className="p-3">
             <p className="text-xs text-muted-foreground uppercase">Total</p>
-            <p className="text-2xl font-bold flex items-center gap-2">
-              <Users className="h-5 w-5 text-blue-500" />
+            <p className="text-2xl font-medium flex items-center gap-2">
+              <Users className="h-5 w-5 text-info" />
               {profiles.length}
             </p>
           </CardContent>
         </Card>
-        <Card className="border-l-[3px] border-l-emerald-500">
+        <Card className="border-l-[3px] border-l-success/40">
           <CardContent className="p-3">
             <p className="text-xs text-muted-foreground uppercase">Ativos</p>
-            <p className="text-2xl font-bold flex items-center gap-2">
-              <UserCheck className="h-5 w-5 text-emerald-500" />
+            <p className="text-2xl font-medium flex items-center gap-2">
+              <UserCheck className="h-5 w-5 text-success" />
               {approvedCount}
             </p>
           </CardContent>
         </Card>
-        <Card className="border-l-[3px] border-l-amber-500">
+        <Card className="border-l-[3px] border-l-warning/40">
           <CardContent className="p-3">
             <p className="text-xs text-muted-foreground uppercase">Pendentes</p>
-            <p className="text-2xl font-bold flex items-center gap-2">
-              <UserX className="h-5 w-5 text-amber-500" />
+            <p className="text-2xl font-medium flex items-center gap-2">
+              <UserX className="h-5 w-5 text-warning" />
               {pendingCount}
             </p>
           </CardContent>
         </Card>
-        <Card className="border-l-[3px] border-l-red-500">
+        <Card className="border-l-[3px] border-l-destructive/40">
           <CardContent className="p-3">
             <p className="text-xs text-muted-foreground uppercase">Inativos</p>
-            <p className="text-2xl font-bold flex items-center gap-2">
-              <ShieldAlert className="h-5 w-5 text-red-500" />
+            <p className="text-2xl font-medium flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-destructive" />
               {bannedCount}
             </p>
           </CardContent>
@@ -827,7 +827,7 @@ export default function GerenciarUsuarios() {
                         <p className="text-sm font-medium flex items-center gap-1.5 mt-0.5">
                           <LinkIcon className="h-3.5 w-3.5 text-primary" />
                           {currentLink.nome}
-                          <Badge variant="outline" className={`text-[10px] ml-1 ${currentLink.tipo === "CLT" ? "border-blue-300 text-blue-700" : "border-emerald-300 text-emerald-700"}`}>
+                          <Badge variant="outline" className={`text-[10px] ml-1 ${currentLink.tipo === "CLT" ? "border-info/40 text-info" : "border-success/40 text-success"}`}>
                             {currentLink.tipo}
                           </Badge>
                         </p>
@@ -975,7 +975,7 @@ function ContasSemPerfilTab({ profileUserIds }: { profileUserIds: Set<string> })
           </div>
         ) : fantasmas.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-10 text-muted-foreground">
-            <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+            <CheckCircle2 className="h-8 w-8 text-success" />
             <p>Nenhuma conta sem perfil. Tudo limpo.</p>
           </div>
         ) : (

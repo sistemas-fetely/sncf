@@ -103,7 +103,7 @@ export function InboxFilas() {
                     <div className="flex items-start justify-between gap-2">
                       <span
                         className={cn(
-                          "text-2xl font-bold tabular-nums leading-none",
+                          "text-2xl font-medium tabular-nums leading-none",
                           ehCritica && "text-destructive",
                           ehAlta && "text-warning",
                           zerada && "text-muted-foreground"

@@ -63,7 +63,7 @@ export function GestaoTabelasPreco({ transportadoraId }: { transportadoraId: str
                   <td className="px-3 py-2 text-right tabular-nums">{v.total_zonas}</td>
                   <td className="px-3 py-2 text-center">
                     {v.ativo ? (
-                      <Badge className="bg-emerald-600 hover:bg-emerald-600">Ativa</Badge>
+                      <Badge className="bg-success hover:bg-success">Ativa</Badge>
                     ) : (
                       <Badge variant="secondary">Inativa</Badge>
                     )}

@@ -326,7 +326,7 @@ export function ImportarTabelaPrecoDialog({
             {zonas.length > 0 && (
               <>
                 <div className="flex items-center gap-3 text-sm">
-                  <Badge className="bg-emerald-600 hover:bg-emerald-600">{validas} válidas</Badge>
+                  <Badge className="bg-success hover:bg-success">{validas} válidas</Badge>
                   {comErro > 0 && (
                     <Badge variant="destructive">
                       <AlertCircle className="h-3 w-3 mr-1" /> {comErro} com erro

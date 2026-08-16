@@ -38,9 +38,9 @@ function formatTempoCasa(dataAdmissao: string) {
 function statusBadge(status: string | null) {
   if (!status) return null;
   const map: Record<string, { label: string; className: string }> = {
-    ativo: { label: "🟢 Ativo", className: "bg-green-100 text-green-800 border-green-200" },
-    ferias: { label: "🟠 Férias", className: "bg-orange-100 text-orange-800 border-orange-200" },
-    afastado: { label: "⚫ Afastado", className: "bg-gray-100 text-gray-800 border-gray-200" },
+    ativo: { label: "🟢 Ativo", className: "bg-success/10 text-success border-success/40" },
+    ferias: { label: "🟠 Férias", className: "bg-warning/10 text-warning border-warning/40" },
+    afastado: { label: "⚫ Afastado", className: "bg-muted/10 text-muted-foreground border-border/40" },
   };
   const s = map[status] || { label: status, className: "" };
   return <Badge variant="outline" className={s.className}>{s.label}</Badge>;
@@ -116,14 +116,14 @@ export function OrgNodeDrawer({ node, open, onClose, allNodes, onEditPosition }:
               <AvatarFallback className="text-lg">{node.nome_display ? getInitials(node.nome_display) : "?"}</AvatarFallback>
             </Avatar>
             <div className="text-center">
-              <h3 className="text-lg font-semibold">{node.nome_display || "Posição Vazia"}</h3>
+              <h3 className="text-lg font-medium">{node.nome_display || "Posição Vazia"}</h3>
               <p className="text-sm text-muted-foreground">{node.titulo_cargo}</p>
               <p className="text-xs text-muted-foreground">{node.departamento}{node.area ? ` · ${node.area}` : ""}</p>
             </div>
             <div className="flex gap-2">
               {node.vinculo && <Badge variant={node.vinculo === "CLT" ? "default" : "secondary"}>{node.vinculo}</Badge>}
               {node.status === "vaga_aberta" && <Badge variant="outline" className="border-dashed">⚪ Vaga Aberta</Badge>}
-              {node.status === "previsto" && <Badge variant="outline" className="border-dashed border-green-400 text-green-700">🔵 Previsto</Badge>}
+              {node.status === "previsto" && <Badge variant="outline" className="border-dashed border-success/40 text-success">🔵 Previsto</Badge>}
               {statusBadge(node.status_pessoal)}
             </div>
             {canManage && (
@@ -280,7 +280,7 @@ export function OrgNodeDrawer({ node, open, onClose, allNodes, onEditPosition }:
                     <div className="flex gap-1 shrink-0">
                       {n.vinculo && <Badge variant="outline" className="text-[9px] h-4">{n.vinculo}</Badge>}
                       {n.id_pai && <Badge variant="outline" className="text-[9px] h-4 text-muted-foreground">vinculado</Badge>}
-                      {!n.id_pai && <Badge variant="outline" className="text-[9px] h-4 border-dashed text-orange-600">solto</Badge>}
+                      {!n.id_pai && <Badge variant="outline" className="text-[9px] h-4 border-dashed text-warning">solto</Badge>}
                     </div>
                   </button>
                 ))}

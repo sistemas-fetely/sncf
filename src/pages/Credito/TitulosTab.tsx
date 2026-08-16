@@ -128,7 +128,7 @@ function ReincidenteBadge({ tituloId }: { tituloId: string }) {
   const count = data.filter((h) => h.evento === "reemissao_aplicada" || h.evento === "prorrogacao_confirmada").length;
   if (count < 2) return null;
   return (
-    <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800 text-[10px]">
+    <Badge variant="outline" className="border-warning/40 bg-warning/10 text-warning text-[10px]">
       Reincidente
     </Badge>
   );
@@ -223,13 +223,13 @@ function MotivoRejeicaoSafra({ codigo }: { codigo: string }) {
   });
   if (!data) {
     return (
-      <div className="text-xs text-red-700">
+      <div className="text-xs text-destructive">
         Rejeição {codigo}
       </div>
     );
   }
   return (
-    <div className="text-xs text-red-700 space-y-0.5">
+    <div className="text-xs text-destructive space-y-0.5">
       <div>Rejeição {codigo} — {data.descricao}</div>
       {data.observacao && (
         <div className="text-[11px] text-muted-foreground">{data.observacao}</div>
@@ -251,9 +251,9 @@ function KpiCard({
 }) {
   const toneCls =
     tone === "danger"
-      ? "border-red-300 text-red-700"
+      ? "border-destructive/40 text-destructive"
       : tone === "warn"
-      ? "border-amber-300 text-amber-700"
+      ? "border-warning/40 text-warning"
       : "border-border";
   return (
     <button
@@ -277,7 +277,7 @@ function KpiCard({
       ) : (
         <div className="text-xs text-muted-foreground">{label}</div>
       )}
-      <div className="text-lg font-semibold mt-1">{qtd}</div>
+      <div className="text-lg font-medium mt-1">{qtd}</div>
       <div className="text-xs text-muted-foreground mt-0.5">{formatBRL(valor)}</div>
     </button>
   );
@@ -425,7 +425,7 @@ function LinhaTitulo({
       </TableCell>
       <TableCell className={cn("text-sm", PRAZO_CLASSE_TEXTO[t.eixo_prazo] ?? "")}>
         {formatDateBR(t.data_vencimento_atual)}
-        {t.dias_atraso > 0 && <div className="text-xs text-red-600">há {t.dias_atraso}d</div>}
+        {t.dias_atraso > 0 && <div className="text-xs text-destructive">há {t.dias_atraso}d</div>}
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">{liquid}</TableCell>
       <TableCell className="text-right font-medium">{formatBRL(t.valor_efetivo)}</TableCell>
@@ -465,7 +465,7 @@ function LinhaGrupo({
           </span>
         </div>
         {regerado && (
-          <div className="text-[10px] text-amber-700 pl-5">título regerado</div>
+          <div className="text-[10px] text-warning pl-5">título regerado</div>
         )}
       </TableCell>
       <TableCell>
@@ -499,16 +499,16 @@ function LinhaGrupo({
           ))}
         </div>
       </TableCell>
-      <TableCell className={cn("text-sm", g.atrasoMax > 0 && "text-red-700 font-medium")}>
+      <TableCell className={cn("text-sm", g.atrasoMax > 0 && "text-destructive font-medium")}>
         {g.proximoVencimento ? formatDateBR(g.proximoVencimento) : "—"}
-        {g.atrasoMax > 0 && <div className="text-xs text-red-600">há {g.atrasoMax}d</div>}
+        {g.atrasoMax > 0 && <div className="text-xs text-destructive">há {g.atrasoMax}d</div>}
         {!g.proximoVencimento && (
           <div className="text-[10px] text-muted-foreground">nada em aberto</div>
         )}
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">—</TableCell>
       <TableCell className="text-right">
-        <div className="font-semibold">{formatBRL(g.totalVisivel)}</div>
+        <div className="font-medium">{formatBRL(g.totalVisivel)}</div>
         <div className="text-[10px] text-muted-foreground">
           {g.ocultos > 0 ? `+${g.ocultos} fora do filtro` : "visível"}
           {g.encerradosVisiveis > 0
@@ -924,15 +924,15 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
                     </Badge>
                   )}
                 </div>
-                <SheetDescription className="text-2xl font-semibold text-foreground pt-2">
+                <SheetDescription className="text-2xl font-medium text-foreground pt-2">
                   {formatBRL(detalhe.valor_efetivo)}
                 </SheetDescription>
               </SheetHeader>
 
               {detalhe.inconsistencia_pagamento && (
-                <Alert className="mt-4 border-red-300 bg-red-50">
-                  <AlertTriangle className="h-4 w-4 !text-red-700" />
-                  <AlertDescription className="text-xs text-red-900">
+                <Alert className="mt-4 border-destructive/40 bg-destructive/10">
+                  <AlertTriangle className="h-4 w-4 !text-destructive" />
+                  <AlertDescription className="text-xs text-destructive">
                     ⚠ Inconsistência: este título tem data de pagamento registrada mas não está marcado como pago.
                     Verifique com o financeiro antes de qualquer ação.
                   </AlertDescription>
@@ -940,9 +940,9 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
               )}
 
               {detalhe.pausa_regua_automatica && (
-                <Alert className="mt-4 border-amber-300 bg-amber-50">
-                  <AlertTriangle className="h-4 w-4 !text-amber-700" />
-                  <AlertDescription className="text-xs text-amber-900 flex items-center justify-between gap-2">
+                <Alert className="mt-4 border-warning/40 bg-warning/10">
+                  <AlertTriangle className="h-4 w-4 !text-warning" />
+                  <AlertDescription className="text-xs text-warning flex items-center justify-between gap-2">
                     <span>Régua pausada — título fora da fila automática.</span>
                     <Button
                       size="sm"
@@ -1077,8 +1077,8 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
                         fallback={detalhe.boleto_enviado_em}
                       />
                       {detalhe.boleto_status === "baixa_solicitada" && detalhe.reemissao_nova_data && (
-                        <Alert className="border-amber-300 bg-amber-50 text-amber-900">
-                          <AlertTriangle className="h-4 w-4 !text-amber-700" />
+                        <Alert className="border-warning/40 bg-warning/10 text-warning">
+                          <AlertTriangle className="h-4 w-4 !text-warning" />
                           <AlertDescription className="text-xs space-y-2">
                             <div>
                               <span className="font-medium">Reemissão agendada</span> — novo vencimento{" "}
@@ -1107,15 +1107,15 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
                         </div>
                       )}
                       {detalhe.prorrogacao_nova_data && (
-                        <Alert className="border-amber-200 bg-amber-50">
-                          <AlertDescription className="text-amber-800 text-xs">
+                        <Alert className="border-warning/40 bg-warning/10">
+                          <AlertDescription className="text-warning text-xs">
                             Prorrogação para {formatDateBR(detalhe.prorrogacao_nova_data)} pendente
                             {detalhe.prorrogacao_solicitada_em
                               ? " — remessa já enviada ao banco."
                               : " — aguardando geração de remessa."}
                             {!detalhe.prorrogacao_solicitada_em && (
                               <button
-                                className="ml-2 underline text-amber-700 text-xs"
+                                className="ml-2 underline text-warning text-xs"
                                 onClick={async () => {
                                   const { data, error } = await (supabase as any).rpc(
                                     "cancelar_prorrogacao_boleto",
@@ -1179,9 +1179,9 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
                         </Button>
                       </div>
                     ) : (
-                      <Alert className="border-amber-300 bg-amber-50">
-                        <AlertTriangle className="h-4 w-4 !text-amber-700" />
-                        <AlertDescription className="text-xs text-amber-900">
+                      <Alert className="border-warning/40 bg-warning/10">
+                        <AlertTriangle className="h-4 w-4 !text-warning" />
+                        <AlertDescription className="text-xs text-warning">
                           Sem link de pagamento — informe o link no detalhe da cobrança para habilitar o envio ao cliente.
                         </AlertDescription>
                       </Alert>
@@ -1220,7 +1220,7 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
                       {preNF && !isTerminal && (
                         <Button
                           variant="outline"
-                          className="border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800"
+                          className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
                           onClick={() => setCancelandoPedido(detalhe)}
                         >
                           Cancelar pedido (afeta pedido inteiro)
@@ -1231,7 +1231,7 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
                       {posNF && (
                         <Button
                           variant="outline"
-                          className="border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800"
+                          className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
                           onClick={() => setDevolvendo(detalhe)}
                         >
                           Registrar devolução total (pedido inteiro)
@@ -1242,7 +1242,7 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
                       {posNF && (
                         <Button
                           variant="outline"
-                          className="border-amber-300 text-amber-800 hover:bg-amber-50 hover:text-amber-900"
+                          className="border-warning/40 text-warning hover:bg-warning/10 hover:text-warning"
                           onClick={() => setDevolvendoParcial(detalhe)}
                         >
                           Devolução parcial (parte do valor)
@@ -1254,7 +1254,7 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
                         const btn = (
                           <Button
                             variant="outline"
-                            className="border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800"
+                            className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
                             disabled={!podePerda}
                             onClick={() => podePerda && setBaixandoPerda(detalhe)}
                           >
@@ -1584,7 +1584,7 @@ function BadgeConciliacaoExtrato({ tituloId, statusReal }: { tituloId: string; s
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Badge className="bg-green-700 text-white hover:bg-green-700">Conciliado</Badge>
+            <Badge className="bg-success text-white hover:bg-success">Conciliado</Badge>
           </TooltipTrigger>
           <TooltipContent>Liquidação batida com o extrato bancário</TooltipContent>
         </Tooltip>

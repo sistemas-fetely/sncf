@@ -90,11 +90,11 @@ function BadgeStatus({ status }: { status: string | null }) {
   const s = status ?? "";
   const cls =
     s === "ok"
-      ? "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-800"
+      ? "bg-success/10 text-success border-success/40"
       : s === "divergente"
-        ? "bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800"
+        ? "bg-warning/10 text-warning border-warning/40"
         : s === "fatura_sem_lancado"
-          ? "bg-red-100 text-red-800 border-red-300 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800"
+          ? "bg-destructive/10 text-destructive border-destructive/40"
           : s === "ajuste"
             ? "bg-muted text-muted-foreground border-border"
             : "bg-muted text-muted-foreground border-border";
@@ -360,8 +360,8 @@ function FaturasB2B({ transportadoraId }: { transportadoraId: string }) {
                                   className={cn(
                                     "px-3 py-1.5 text-right tabular-nums",
                                     l.diferenca != null && Math.abs(l.diferenca) > 0.009 && "font-medium",
-                                    l.diferenca != null && l.diferenca > 0.009 && "text-amber-700 dark:text-amber-300",
-                                    l.diferenca != null && l.diferenca < -0.009 && "text-red-700 dark:text-red-300",
+                                    l.diferenca != null && l.diferenca > 0.009 && "text-warning",
+                                    l.diferenca != null && l.diferenca < -0.009 && "text-destructive",
                                   )}
                                 >
                                   {l.diferenca == null ? "—" : formatBRL(l.diferenca)}
@@ -389,16 +389,16 @@ function FaturasB2B({ transportadoraId }: { transportadoraId: string }) {
 function KpiCard({ label, value, tone }: { label: string; value: string; tone?: "ok" | "warn" | "danger" }) {
   const valueCls =
     tone === "ok"
-      ? "text-emerald-700 dark:text-emerald-300"
+      ? "text-success"
       : tone === "warn"
-        ? "text-amber-700 dark:text-amber-300"
+        ? "text-warning"
         : tone === "danger"
-          ? "text-red-700 dark:text-red-300"
+          ? "text-destructive"
           : "";
   return (
     <div className="rounded-lg border bg-card p-3">
       <div className="text-[11px] text-muted-foreground uppercase tracking-wide">{label}</div>
-      <div className={cn("mt-1 text-lg font-semibold tabular-nums", valueCls)}>{value}</div>
+      <div className={cn("mt-1 text-lg font-medium tabular-nums", valueCls)}>{value}</div>
     </div>
   );
 }
@@ -488,7 +488,7 @@ function FaturasB2C({ carrier }: { carrier: "Correios" | "Frenet" }) {
       </div>
 
       {erro && (
-        <div className="rounded-md border border-red-200 bg-red-50 text-red-800 text-xs p-2 dark:bg-red-950/40 dark:text-red-200 dark:border-red-900">
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 text-destructive text-xs p-2">
           Erro: {erro}
         </div>
       )}
@@ -571,7 +571,7 @@ function FaturasB2C({ carrier }: { carrier: "Correios" | "Frenet" }) {
                   <td className="px-3 py-1.5">
                     {l.rastreio_status ? (
                       l.rastreio_entregue ? (
-                        <Badge variant="outline" className="border-emerald-300 text-emerald-700 dark:text-emerald-300">
+                        <Badge variant="outline" className="border-success/40 text-success">
                           entregue
                         </Badge>
                       ) : (

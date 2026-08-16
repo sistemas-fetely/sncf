@@ -219,8 +219,8 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
 
             {(modalidade === 2 || modalidade === 3) && (
               <>
-                <Alert className="border-amber-300 bg-amber-50">
-                  <AlertDescription className="text-xs text-amber-900">
+                <Alert className="border-warning/40 bg-warning/10">
+                  <AlertDescription className="text-xs text-warning">
                     O título original será encerrado como{" "}
                     <b>cancelado_recuperacao</b> e não poderá receber pagamentos. Se houver
                     boleto registrado, a baixa será solicitada automaticamente ao banco.
@@ -293,7 +293,7 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
 
                 <div className="space-y-1.5">
                   <Label className="text-xs">
-                    Justificativa <span className="text-red-600">*</span>
+                    Justificativa <span className="text-destructive">*</span>
                   </Label>
                   <Textarea
                     value={justificativa}

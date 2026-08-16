@@ -47,7 +47,7 @@ export default function MeusAcessos() {
   return (
     <div className="container mx-auto py-8 max-w-4xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
+        <h1 className="text-2xl font-medium flex items-center gap-2">
           <ShieldCheck className="h-6 w-6 text-primary" />
           Acessos ao meu salário
         </h1>
@@ -81,7 +81,7 @@ export default function MeusAcessos() {
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm">
-                    <span className="font-semibold">
+                    <span className="font-medium">
                       {a.ator_nome || "(usuário removido)"}
                     </span>{" "}
                     consultou em contexto{" "}

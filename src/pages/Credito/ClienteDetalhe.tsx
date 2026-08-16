@@ -116,7 +116,7 @@ export default function ClienteDetalhe() {
       {parceiro?.bandeira_vermelha && parceiro?.bandeira_vermelha_motivo && (
         <Card className="border-destructive/50 bg-destructive/5">
           <CardContent className="pt-6 space-y-2">
-            <p className="text-sm font-semibold text-destructive">
+            <p className="text-sm font-medium text-destructive">
               Motivo da bandeira vermelha
             </p>
             <p className="text-sm">{parceiro.bandeira_vermelha_motivo}</p>
@@ -385,7 +385,7 @@ function Linha({
   return (
     <div className="flex justify-between gap-4">
       <span className="text-muted-foreground">{label}</span>
-      <span className={destaque ? "font-semibold text-destructive" : "font-medium"}>
+      <span className={destaque ? "font-medium text-destructive" : "font-medium"}>
         {value ?? "—"}
       </span>
     </div>

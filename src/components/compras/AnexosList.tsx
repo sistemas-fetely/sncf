@@ -114,7 +114,7 @@ export function AnexosList({ pedidoId, anexos, onChange, onRemoverPendente, read
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <h3 className="text-sm font-semibold">Anexos (opcional)</h3>
+        <h3 className="text-sm font-medium">Anexos (opcional)</h3>
         <Badge variant="secondary">
           {anexos.length} {anexos.length === 1 ? "arquivo" : "arquivos"}
         </Badge>

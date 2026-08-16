@@ -320,7 +320,7 @@ export function NovaVagaDialog({ open, onOpenChange }: Props) {
                     onClick={() => setNumVagas(v => Math.max(1, v - 1))}>
                     −
                   </button>
-                  <span className="text-lg font-semibold w-8 text-center">{numVagas}</span>
+                  <span className="text-lg font-medium w-8 text-center">{numVagas}</span>
                   <button type="button"
                     className="w-8 h-8 rounded-full border flex items-center justify-center text-lg font-medium hover:bg-muted transition-colors"
                     onClick={() => setNumVagas(v => v + 1)}>
@@ -445,13 +445,13 @@ export function NovaVagaDialog({ open, onOpenChange }: Props) {
                 style={{ backgroundColor: "#FEF2F2", borderColor: "#FCA5A5" }}>
                 <span style={{ fontSize: 16 }}>🚫</span>
                 <div className="space-y-1">
-                  <p className="text-xs font-semibold text-red-700">
+                  <p className="text-xs font-medium text-destructive">
                     Vaga duplicada — não é possível criar
                   </p>
-                  <p className="text-xs text-red-600">
+                  <p className="text-xs text-destructive">
                     {errosDuplicata[0]}
                   </p>
-                  <p className="text-xs text-red-500 mt-1">
+                  <p className="text-xs text-destructive mt-1">
                     Se precisar de mais posições, edite a vaga existente
                     e aumente o número de vagas.
                   </p>
@@ -690,7 +690,7 @@ export function NovaVagaDialog({ open, onOpenChange }: Props) {
                     .map(s => (
                       <button key={s.id} type="button"
                         onClick={() => setSkillsDesejadas([...skillsDesejadas, s.skill])}
-                        className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition-colors cursor-pointer border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100">
+                        className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition-colors cursor-pointer border-info/40 text-info bg-info/10 hover:bg-info/10">
                         + {s.skill}
                       </button>
                     ))}
@@ -758,7 +758,7 @@ export function NovaVagaDialog({ open, onOpenChange }: Props) {
                       .map(f => (
                         <button key={f.id} type="button"
                           onClick={() => setFerramentasSelecionadas([...ferramentasSelecionadas, f.ferramenta])}
-                          className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition-colors cursor-pointer border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100">
+                          className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition-colors cursor-pointer border-info/40 text-info bg-info/10 hover:bg-info/10">
                           + {f.ferramenta}
                         </button>
                       ))}
@@ -844,7 +844,7 @@ export function NovaVagaDialog({ open, onOpenChange }: Props) {
                           const max = (cargoMatch as any)[`faixa_${tipo}_${fk.toLowerCase()}_max`];
                           return (
                             <div key={fk} className="flex items-center text-xs gap-2">
-                              <span className="font-semibold w-8">{fk}</span>
+                              <span className="font-medium w-8">{fk}</span>
                               <span className="text-muted-foreground w-28">· {labels[i]}</span>
                               <span>R$ {Number(min || 0).toLocaleString("pt-BR")} – R$ {Number(max || 0).toLocaleString("pt-BR")}</span>
                             </div>

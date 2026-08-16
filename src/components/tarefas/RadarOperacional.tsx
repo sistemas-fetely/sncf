@@ -76,7 +76,7 @@ export function RadarOperacional() {
       <CardContent className="p-4">
         <div className="flex items-center gap-2 mb-3">
           <Radar className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-bold tracking-wide">
+          <h3 className="text-sm font-medium tracking-wide">
             Radar do seu time
           </h3>
           <Badge variant="outline" className="ml-auto text-[10px]">
@@ -99,7 +99,7 @@ export function RadarOperacional() {
                     <span className="h-1.5 w-1.5 rounded-full bg-destructive animate-pulse" />
                   )}
                 </div>
-                <p className="text-2xl font-bold">{ind.valor}</p>
+                <p className="text-2xl font-medium">{ind.valor}</p>
                 <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
                   {ind.label}
                 </p>

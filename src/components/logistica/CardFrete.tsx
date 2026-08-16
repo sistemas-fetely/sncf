@@ -31,7 +31,7 @@ export function statusBadge(
         const label = txt.length > 28 ? txt.slice(0, 27) + "…" : txt;
         return {
           label,
-          cls: "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800",
+          cls: "bg-warning/10 text-warning border-warning/40",
           title: txt,
         };
       }
@@ -57,7 +57,7 @@ export function tooltipResgate(frete: FreteRow): string | undefined {
 export function pctClass(pct: number | null | undefined) {
   if (pct == null) return "bg-muted text-muted-foreground";
   if (pct <= 15) return "bg-muted text-muted-foreground";
-  if (pct <= 30) return "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300";
+  if (pct <= 30) return "bg-warning/10 text-warning";
   return "bg-destructive/15 text-destructive";
 }
 

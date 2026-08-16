@@ -34,7 +34,7 @@ export default function AguardandoAprovacao() {
             <Clock className="h-7 w-7 text-primary" />
           </div>
           <div className="text-center">
-            <h1 className="text-2xl font-bold">Aguardando Aprovação</h1>
+            <h1 className="text-2xl font-medium">Aguardando Aprovação</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Sua conta está pendente de aprovação
             </p>

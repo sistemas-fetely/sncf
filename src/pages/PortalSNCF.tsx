@@ -122,7 +122,7 @@ export default function PortalSNCF() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2 mb-0.5">
-              <h3 className="text-base font-bold truncate">{sistema.nome}</h3>
+              <h3 className="text-base font-medium truncate">{sistema.nome}</h3>
               {isExternal(sistema) && accessible && (
                 <ExternalLink className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
               )}
@@ -146,7 +146,7 @@ export default function PortalSNCF() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight mb-2" style={{ color: "#1a3d2b" }}>
+        <h1 className="text-3xl font-medium tracking-tight mb-2" style={{ color: "#1a3d2b" }}>
           Gesto não se delega. 💚
         </h1>
         <p className="text-lg md:text-xl font-medium text-foreground/80">
@@ -180,7 +180,7 @@ export default function PortalSNCF() {
               <ClipboardList className="h-6 w-6 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-bold" style={{ color: "#1A4A3A" }}>Minhas Tarefas</h2>
+              <h2 className="text-lg font-medium" style={{ color: "#1A4A3A" }}>Minhas Tarefas</h2>
               <p className="text-xs text-muted-foreground">
                 {totalPendentes > 0
                   ? `${totalPendentes} pendente${totalPendentes > 1 ? "s" : ""} · radar operacional`
@@ -205,7 +205,7 @@ export default function PortalSNCF() {
               <MessageCircle className="h-6 w-6" />
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-bold">Fala Fetely</h2>
+              <h2 className="text-lg font-medium">Fala Fetely</h2>
               <p className="text-xs text-muted-foreground">Pergunta, sugere, descobre.</p>
             </div>
             <Sparkles className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -218,7 +218,7 @@ export default function PortalSNCF() {
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Star className="h-4 w-4 text-muted-foreground" />
-            <h3 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">
+            <h3 className="text-xs uppercase tracking-wide text-muted-foreground font-medium">
               Atalhos pra você
             </h3>
           </div>
@@ -263,7 +263,7 @@ export default function PortalSNCF() {
             <div className="space-y-6">
               {internos.length > 0 && (
                 <div className="space-y-3">
-                  <h3 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">
+                  <h3 className="text-xs uppercase tracking-wide text-muted-foreground font-medium">
                     Sistemas
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -273,7 +273,7 @@ export default function PortalSNCF() {
               )}
               {externos.length > 0 && (
                 <div className="space-y-3">
-                  <h3 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">
+                  <h3 className="text-xs uppercase tracking-wide text-muted-foreground font-medium">
                     Sistemas externos
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

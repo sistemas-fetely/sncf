@@ -136,8 +136,8 @@ export function OrgAnalyticView({ flat, filters }: Props) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KPICard icon={<Users className="h-5 w-5 text-primary" />} label="Total de Pessoas" value={`${stats.totalPessoas}`} detail={`${stats.cltCount} CLT · ${stats.pjCount} PJ`} />
         <KPICard icon={<Building2 className="h-5 w-5 text-primary" />} label="Departamentos Ativos" value={`${stats.departamentosAtivos}`} detail="Com colaboradores" />
-        <KPICard icon={<CircleDot className="h-5 w-5 text-orange-500" />} label="Vagas em Aberto" value={`${stats.vagasAbertas}`} detail="Posições disponíveis" />
-        <KPICard icon={<BarChart3 className="h-5 w-5 text-violet-500" />} label="Span of Control" value={stats.avgSpan} detail="Benchmark: 4–6" />
+        <KPICard icon={<CircleDot className="h-5 w-5 text-warning" />} label="Vagas em Aberto" value={`${stats.vagasAbertas}`} detail="Posições disponíveis" />
+        <KPICard icon={<BarChart3 className="h-5 w-5 text-info" />} label="Span of Control" value={stats.avgSpan} detail="Benchmark: 4–6" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -221,7 +221,7 @@ export function OrgAnalyticView({ flat, filters }: Props) {
                       <td className="py-1.5 font-medium">{g.nome}</td>
                       <td className="py-1.5 text-muted-foreground">{g.cargo}</td>
                       <td className="py-1.5 text-center">
-                        <span className={g.span > 8 ? "text-destructive font-bold" : g.span < 2 ? "text-orange-500 font-bold" : ""}>
+                        <span className={g.span > 8 ? "text-destructive font-medium" : g.span < 2 ? "text-warning font-medium" : ""}>
                           {g.diretos}
                         </span>
                       </td>
@@ -262,21 +262,21 @@ export function OrgAnalyticView({ flat, filters }: Props) {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center">
                 <p className="text-xs text-muted-foreground">Custo Total Mensal</p>
-                <p className="text-lg font-bold text-foreground">{fmtBRL(stats.custoTotal)}</p>
+                <p className="text-lg font-medium text-foreground">{fmtBRL(stats.custoTotal)}</p>
               </div>
               <div className="text-center">
                 <p className="text-xs text-muted-foreground">Custo Médio/Colaborador</p>
-                <p className="text-lg font-bold text-foreground">{fmtBRL(stats.custoMedio)}</p>
+                <p className="text-lg font-medium text-foreground">{fmtBRL(stats.custoMedio)}</p>
               </div>
               <div className="text-center">
                 <p className="text-xs text-muted-foreground">Custo CLT</p>
-                <p className="text-lg font-bold text-foreground">
+                <p className="text-lg font-medium text-foreground">
                   {fmtBRL(stats.custoClt)}
                 </p>
               </div>
               <div className="text-center">
                 <p className="text-xs text-muted-foreground">Custo PJ</p>
-                <p className="text-lg font-bold text-foreground">
+                <p className="text-lg font-medium text-foreground">
                   {fmtBRL(stats.custoPj)}
                 </p>
               </div>
@@ -308,7 +308,7 @@ function KPICard({ icon, label, value, detail }: { icon: React.ReactNode; label:
         <div className="flex items-start gap-3">
           <div className="p-2 rounded-lg bg-accent/50">{icon}</div>
           <div>
-            <p className="text-2xl font-bold">{value}</p>
+            <p className="text-2xl font-medium">{value}</p>
             <p className="text-xs font-medium text-muted-foreground">{label}</p>
             <p className="text-[10px] text-muted-foreground">{detail}</p>
           </div>

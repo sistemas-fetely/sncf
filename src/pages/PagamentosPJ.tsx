@@ -110,7 +110,7 @@ export default function PagamentosPJ() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Pagamentos PJ</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Pagamentos PJ</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Histórico de pagamentos anteriores. Novos lançamentos são feitos em{" "}
             <strong>Contas a Pagar</strong>.
@@ -122,19 +122,19 @@ export default function PagamentosPJ() {
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-4">
         <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><CreditCard className="h-5 w-5" /></div>
-          <div><p className="text-2xl font-bold">{pagamentos.length}</p><p className="text-xs text-muted-foreground">Total</p></div>
+          <div><p className="text-2xl font-medium">{pagamentos.length}</p><p className="text-xs text-muted-foreground">Total</p></div>
         </CardContent></Card>
         <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10 text-warning"><CreditCard className="h-5 w-5" /></div>
-          <div><p className="text-2xl font-bold">{totalPendentes}</p><p className="text-xs text-muted-foreground">Pendentes</p></div>
+          <div><p className="text-2xl font-medium">{totalPendentes}</p><p className="text-xs text-muted-foreground">Pendentes</p></div>
         </CardContent></Card>
         <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success/10 text-success"><CreditCard className="h-5 w-5" /></div>
-          <div><p className="text-2xl font-bold">R$ {totalValorPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p><p className="text-xs text-muted-foreground">Total Pago</p></div>
+          <div><p className="text-2xl font-medium">R$ {totalValorPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p><p className="text-xs text-muted-foreground">Total Pago</p></div>
         </CardContent></Card>
         <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10 text-warning"><CreditCard className="h-5 w-5" /></div>
-          <div><p className="text-2xl font-bold">R$ {totalValorPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p><p className="text-xs text-muted-foreground">A Pagar</p></div>
+          <div><p className="text-2xl font-medium">R$ {totalValorPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p><p className="text-xs text-muted-foreground">A Pagar</p></div>
         </CardContent></Card>
       </div>
 
@@ -166,14 +166,14 @@ export default function PagamentosPJ() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="font-semibold">Contrato</TableHead>
-                  <TableHead className="font-semibold hidden md:table-cell">Nº NF</TableHead>
-                  <TableHead className="font-semibold hidden md:table-cell">Competência</TableHead>
-                  <TableHead className="font-semibold">Data Prevista</TableHead>
-                  <TableHead className="font-semibold hidden md:table-cell">Data Pgto</TableHead>
-                  <TableHead className="font-semibold">Valor</TableHead>
-                  <TableHead className="font-semibold hidden lg:table-cell">Forma</TableHead>
-                  <TableHead className="font-semibold">Status</TableHead>
+                  <TableHead className="font-medium">Contrato</TableHead>
+                  <TableHead className="font-medium hidden md:table-cell">Nº NF</TableHead>
+                  <TableHead className="font-medium hidden md:table-cell">Competência</TableHead>
+                  <TableHead className="font-medium">Data Prevista</TableHead>
+                  <TableHead className="font-medium hidden md:table-cell">Data Pgto</TableHead>
+                  <TableHead className="font-medium">Valor</TableHead>
+                  <TableHead className="font-medium hidden lg:table-cell">Forma</TableHead>
+                  <TableHead className="font-medium">Status</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>

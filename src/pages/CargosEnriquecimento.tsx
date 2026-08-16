@@ -165,10 +165,10 @@ export default function CargosEnriquecimento() {
 
   const statusConfig: Record<string, { label: string; className: string }> = {
     pendente: { label: "Pendente", className: "bg-muted text-muted-foreground" },
-    processando: { label: "Processando...", className: "bg-blue-100 text-blue-700 animate-pulse" },
+    processando: { label: "Processando...", className: "bg-info/10 text-info animate-pulse" },
     enriquecido: { label: "Enriquecido", className: "bg-[#D8F3DC] text-[#1A4A3A]" },
     completo: { label: "Já completo", className: "bg-muted text-muted-foreground" },
-    erro: { label: "Erro", className: "bg-red-100 text-red-700" },
+    erro: { label: "Erro", className: "bg-destructive/10 text-destructive" },
   };
 
   return (
@@ -179,7 +179,7 @@ export default function CargosEnriquecimento() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">Enriquecimento em lote</h1>
+          <h1 className="text-2xl font-medium">Enriquecimento em lote</h1>
           <p className="text-sm text-muted-foreground">
             A IA preenche missão, skills e faixas salariais para cada cargo
           </p>
@@ -190,13 +190,13 @@ export default function CargosEnriquecimento() {
       <div className="grid grid-cols-4 gap-4">
         {[
           { label: "Total", value: counts.total, cor: "text-foreground" },
-          { label: "Pendentes", value: counts.pendentes, cor: "text-amber-600" },
+          { label: "Pendentes", value: counts.pendentes, cor: "text-warning" },
           { label: "Enriquecidos", value: counts.enriquecidos, cor: "text-[#1A4A3A]" },
-          { label: "Erros", value: counts.erros, cor: "text-red-600" },
+          { label: "Erros", value: counts.erros, cor: "text-destructive" },
         ].map(m => (
           <div key={m.label} className="rounded-lg border p-4 text-center">
             <p className="text-xs text-muted-foreground">{m.label}</p>
-            <p className={`text-2xl font-bold ${m.cor}`}>{m.value}</p>
+            <p className={`text-2xl font-medium ${m.cor}`}>{m.value}</p>
           </div>
         ))}
       </div>
@@ -298,10 +298,10 @@ export default function CargosEnriquecimento() {
 
       {/* Erros detalhados */}
       {erros.length > 0 && (
-        <div className="space-y-2 p-4 rounded-lg bg-red-50 border border-red-200">
-          <p className="text-sm font-medium text-red-800">Erros registrados</p>
+        <div className="space-y-2 p-4 rounded-lg bg-destructive/10 border border-destructive/40">
+          <p className="text-sm font-medium text-destructive">Erros registrados</p>
           {erros.map((e, i) => (
-            <p key={i} className="text-xs text-red-600">
+            <p key={i} className="text-xs text-destructive">
               <span className="font-medium">{e.nome}:</span> {e.erro}
             </p>
           ))}

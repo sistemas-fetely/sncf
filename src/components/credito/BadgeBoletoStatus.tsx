@@ -11,42 +11,42 @@ const MAP: Record<string, StatusMap> = {
   },
   remessa_gerada: {
     label: "Remessa gerada",
-    className: "bg-amber-50 text-amber-700 border border-amber-200",
+    className: "bg-warning/10 text-warning border border-warning/40",
     icon: <FileText className="h-3 w-3" />,
   },
   registrado: {
     label: "Registrado",
-    className: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+    className: "bg-success/10 text-success border border-success/40",
     icon: <CheckCircle2 className="h-3 w-3" />,
   },
   rejeitado: {
     label: "Rejeitado",
-    className: "bg-red-50 text-red-700 border border-red-200",
+    className: "bg-destructive/10 text-destructive border border-destructive/40",
     icon: <XCircle className="h-3 w-3" />,
   },
   vencido: {
     label: "Vencido",
-    className: "bg-red-100 text-red-800 border border-red-300",
+    className: "bg-destructive/10 text-destructive border border-destructive/40",
     icon: <AlertTriangle className="h-3 w-3" />,
   },
   pago_manual: {
     label: "Pago (manual)",
-    className: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+    className: "bg-success/10 text-success border border-success/40",
     icon: <CheckCircle2 className="h-3 w-3" />,
   },
   pago_banco: {
     label: "Pago (banco)",
-    className: "bg-emerald-100 text-emerald-800 border border-emerald-300",
+    className: "bg-success/10 text-success border border-success/40",
     icon: <CheckCircle2 className="h-3 w-3" />,
   },
   baixa_solicitada: {
     label: "Baixa solicitada",
-    className: "bg-amber-50 text-muted-foreground border border-amber-200",
+    className: "bg-warning/10 text-muted-foreground border border-warning/40",
     icon: <Clock className="h-3 w-3" />,
   },
   baixa_remessa_gerada: {
     label: "Baixa em remessa",
-    className: "bg-purple-100 text-purple-800 border border-purple-300",
+    className: "bg-info/10 text-info border border-info/40",
     icon: <Clock className="h-3 w-3" />,
   },
   baixado_banco: {

@@ -121,7 +121,7 @@ export default function Colaboradores() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Colaboradores</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Colaboradores</h1>
           <p className="text-muted-foreground text-sm mt-1">
             Gerenciamento de colaboradores CLT e PJ
           </p>
@@ -139,7 +139,7 @@ export default function Colaboradores() {
               <Users className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{colaboradores.length}</p>
+              <p className="text-2xl font-medium">{colaboradores.length}</p>
               <p className="text-xs text-muted-foreground">Total</p>
             </div>
           </CardContent>
@@ -150,7 +150,7 @@ export default function Colaboradores() {
               <UserCheck className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{totalAtivos}</p>
+              <p className="text-2xl font-medium">{totalAtivos}</p>
               <p className="text-xs text-muted-foreground">Ativos</p>
             </div>
           </CardContent>
@@ -161,7 +161,7 @@ export default function Colaboradores() {
               <Briefcase className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{totalInativos}</p>
+              <p className="text-2xl font-medium">{totalInativos}</p>
               <p className="text-xs text-muted-foreground">Inativos</p>
             </div>
           </CardContent>
@@ -172,7 +172,7 @@ export default function Colaboradores() {
               <DollarSign className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-lg font-bold">{fmtBRL(totalCustoMensal)}</p>
+              <p className="text-lg font-medium">{fmtBRL(totalCustoMensal)}</p>
               <p className="text-xs text-muted-foreground">Custo mensal (salário + encargos)</p>
             </div>
           </CardContent>
@@ -221,14 +221,14 @@ export default function Colaboradores() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="font-semibold">Nome</TableHead>
-                  <TableHead className="font-semibold">Cargo</TableHead>
-                  <TableHead className="font-semibold hidden md:table-cell">Departamento</TableHead>
-                  <TableHead className="font-semibold">Contrato</TableHead>
-                  <TableHead className="font-semibold">Status</TableHead>
-                   <TableHead className="font-semibold hidden lg:table-cell">Admissão</TableHead>
-                   <TableHead className="font-semibold hidden lg:table-cell text-right">Salário</TableHead>
-                   <TableHead className="font-semibold hidden xl:table-cell text-right">Sal. + Encargos</TableHead>
+                  <TableHead className="font-medium">Nome</TableHead>
+                  <TableHead className="font-medium">Cargo</TableHead>
+                  <TableHead className="font-medium hidden md:table-cell">Departamento</TableHead>
+                  <TableHead className="font-medium">Contrato</TableHead>
+                  <TableHead className="font-medium">Status</TableHead>
+                   <TableHead className="font-medium hidden lg:table-cell">Admissão</TableHead>
+                   <TableHead className="font-medium hidden lg:table-cell text-right">Salário</TableHead>
+                   <TableHead className="font-medium hidden xl:table-cell text-right">Sal. + Encargos</TableHead>
                    <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
@@ -252,7 +252,7 @@ export default function Colaboradores() {
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8">
                             <AvatarImage src={c.foto_url || undefined} alt={c.nome_completo} className="object-cover" />
-                            <AvatarFallback className="bg-muted text-foreground text-xs font-semibold">
+                            <AvatarFallback className="bg-muted text-foreground text-xs font-medium">
                               {initials(c.nome_completo)}
                             </AvatarFallback>
                           </Avatar>

@@ -221,7 +221,7 @@ export default function DocumentacaoDetalhe() {
               <Input
                 value={titulo}
                 onChange={(e) => setTitulo(e.target.value)}
-                className="text-xl font-bold"
+                className="text-xl font-medium"
                 placeholder="Título"
               />
               <Input
@@ -232,7 +232,7 @@ export default function DocumentacaoDetalhe() {
             </>
           ) : (
             <>
-              <h1 className="text-2xl font-bold tracking-tight">{doc.titulo}</h1>
+              <h1 className="text-2xl font-medium tracking-tight">{doc.titulo}</h1>
               {doc.descricao && <p className="text-muted-foreground">{doc.descricao}</p>}
             </>
           )}

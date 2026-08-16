@@ -12,7 +12,7 @@ function getInitials(name: string) {
 }
 
 function getBorderColor(node: PosicaoNode) {
-  if (node.vinculo === "PJ") return "border-purple-500";
+  if (node.vinculo === "PJ") return "border-info/40";
   return "border-primary";
 }
 
@@ -69,7 +69,7 @@ function PersonCard({ node, highlight, label }: { node: PosicaoNode; highlight?:
       </Avatar>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <p className="text-sm font-semibold truncate">{node.nome_display || node.titulo_cargo}</p>
+          <p className="text-sm font-medium truncate">{node.nome_display || node.titulo_cargo}</p>
           {label && (
             <Badge variant="outline" className="text-[9px] h-4 px-1.5 shrink-0 bg-primary/10 text-primary border-0">
               {label}
@@ -201,7 +201,7 @@ export function OrgBranchView({ colaboradorId, contratoPjId }: Props) {
                 <ArrowDown className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{current.subordinados_totais}</p>
+                <p className="text-2xl font-medium">{current.subordinados_totais}</p>
                 <p className="text-xs text-muted-foreground">Colaboradores abaixo na hierarquia</p>
               </div>
             </div>
@@ -226,7 +226,7 @@ export function OrgBranchView({ colaboradorId, contratoPjId }: Props) {
                     <AvatarFallback className="text-xs">{getInitials(node.nome_display)}</AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold truncate">{node.nome_display}</p>
+                    <p className="text-sm font-medium truncate">{node.nome_display}</p>
                     <p className="text-xs text-muted-foreground truncate">{node.titulo_cargo}</p>
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
