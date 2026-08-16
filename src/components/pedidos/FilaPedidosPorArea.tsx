@@ -985,14 +985,9 @@ function CelulaPagamento({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <p
-            className={cn(
-              "text-[11px] font-medium truncate",
-              liberacao.tom === "ok" ? "text-success" : "text-warning"
-            )}
-          >
+          <Selo estado={liberacao.tom === "ok" ? "success" : "warning"}>
             {liberacao.rotulo}
-          </p>
+          </Selo>
         </TooltipTrigger>
         <TooltipContent>
           <div className="max-w-[320px] space-y-1">
