@@ -190,8 +190,12 @@ export async function parsearFaturaItauPdf(
   }
 
   let cartaoNumeroFinal: string | null = null;
-  const mConta = textoCompleto.match(/Numero da conta\s+\S*?(\d{4})\s*$/m);
-  if (mConta) cartaoNumeroFinal = mConta[1];
+  const linhaConta = linhas.find((l) => l.texto.includes("Numero da conta"));
+  const mMascara = (linhaConta?.texto ?? textoCompleto).match(
+    /\d{4}[.\s]+[X\d]{4}[.\s]+[X\d]{4}[.\s]+(\d{4})/,
+  );
+  if (mMascara) cartaoNumeroFinal = mMascara[1];
+
 
   const mDoc = textoCompleto.match(/Número do Documento\s+(\S+)/);
   const numeroDocumento = mDoc ? mDoc[1] : null;
