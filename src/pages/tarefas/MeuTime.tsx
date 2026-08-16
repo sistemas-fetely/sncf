@@ -54,8 +54,10 @@ export default function MeuTime() {
   const { data: entregues } = useTarefasEntreguesDoTime(userIds);
   const { data: pessoas } = usePessoasSistema();
 
+  /** fail-loud: id vindo da RPC que não está em v_pessoas_sistema aparece identificado, não escondido */
   const nomeDe = (id: string | null) =>
-    pessoas?.find((p) => p.id === id)?.nome ?? "Sem responsável";
+    pessoas?.find((p) => p.id === id)?.nome ??
+    (id ? `Sem cadastro ativo (${id.slice(0, 8)})` : "Sem responsável");
   const avatarDe = (id: string | null) =>
     pessoas?.find((p) => p.id === id)?.avatar_url ?? null;
 
