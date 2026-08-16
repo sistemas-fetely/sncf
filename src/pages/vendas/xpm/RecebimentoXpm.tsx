@@ -161,6 +161,14 @@ export default function RecebimentoXpm() {
       toast.error("Informe o nº do Termo");
       return;
     }
+    if (!dataRecebimento) {
+      toast.error("Informe a data de recebimento do termo");
+      return;
+    }
+    if (!centro) {
+      toast.error("Selecione o Centro de distribuição");
+      return;
+    }
     if (!file) {
       toast.error("Selecione o arquivo .xlsx do Termo");
       return;
@@ -174,6 +182,8 @@ export default function RecebimentoXpm() {
       const fd = new FormData();
       fd.append("file", file);
       fd.append("termo", termo.trim());
+      fd.append("data_recebimento", dataRecebimento);
+      fd.append("centro", centro);
 
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ingerir-termo-xpm`,
