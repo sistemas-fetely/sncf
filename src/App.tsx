@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RotaGate } from "@/components/RotaGate";
 import { PrimeiroAcessoOverlay } from "@/components/PrimeiroAcessoOverlay";
+import { PainelTarefasGlobal } from "@/components/tarefas/PainelTarefasGlobal";
 
 // Layouts — importados diretamente (não lazy) para evitar Suspense na raiz e soluço de navegação.
 // Layouts são pequenos (~30-80L cada) e não justificam code-splitting.
@@ -274,6 +275,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <PrimeiroAcessoOverlay />
+          <PainelTarefasGlobal />
           <Routes>
             {/* Public routes (Suspense boundary via PublicLayout — R-01) */}
             <Route element={<PublicLayout />}>
