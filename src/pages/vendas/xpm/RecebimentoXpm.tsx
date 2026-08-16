@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,9 +15,13 @@ import { SincronizacaoEstoqueShopify } from "@/components/acervo/SincronizacaoEs
 import { PageShell } from "@/components/layout/PageShell";
 type IngestResult = {
   termo: string;
-  contagens?: number;
-  movimentos?: number;
-  tarefas?: number;
+  linhas_termo: number;
+  entradas_cobertas: number;
+  entradas_excesso: number;
+  entradas_avarias: number;
+  tarefas: number;
+  linhas_sem_nf: number;
+  skus_sem_custo: number;
 };
 
 type AmostraLinha = { sku: string; de: number | null; para: number | null; classe: string };
@@ -36,6 +40,8 @@ export default function RecebimentoXpm() {
   const [pedidoRef, setPedidoRef] = useState<string>("");
   const [gerando, setGerando] = useState(false);
   const [termo, setTermo] = useState("");
+  const [dataRecebimento, setDataRecebimento] = useState("");
+  const [centro, setCentro] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [ingerindo, setIngerindo] = useState(false);
   const [resultado, setResultado] = useState<IngestResult | null>(null);
@@ -47,6 +53,27 @@ export default function RecebimentoXpm() {
   const [gravandoPesos, setGravandoPesos] = useState(false);
   const [previa, setPrevia] = useState<PesosResult | null>(null);
   const [permitirSobrescrita, setPermitirSobrescrita] = useState(false);
+
+  type CentroOpt = { codigo: string; nome: string };
+  const centrosQ = useQuery({
+    queryKey: ["centros-distribuicao-ativos"],
+    queryFn: async (): Promise<CentroOpt[]> => {
+      const { data, error } = await supabase
+        .from("centro_distribuicao")
+        .select("codigo, nome")
+        .eq("ativo", true)
+        .order("ordem");
+      if (error) throw error;
+      return (data ?? []) as CentroOpt[];
+    },
+  });
+
+  useEffect(() => {
+    if (!centro && centrosQ.data && centrosQ.data.length > 0) {
+      const padrao = centrosQ.data.find((c) => c.codigo === "XPM-SC");
+      setCentro(padrao ? padrao.codigo : centrosQ.data[0].codigo);
+    }
+  }, [centrosQ.data, centro]);
 
   type PedidoOpt = {
     numero_pedido: string;
@@ -141,6 +168,14 @@ export default function RecebimentoXpm() {
       toast.error("Informe o nº do Termo");
       return;
     }
+    if (!dataRecebimento) {
+      toast.error("Informe a data de recebimento do termo");
+      return;
+    }
+    if (!centro) {
+      toast.error("Selecione o Centro de distribuição");
+      return;
+    }
     if (!file) {
       toast.error("Selecione o arquivo .xlsx do Termo");
       return;
@@ -154,6 +189,8 @@ export default function RecebimentoXpm() {
       const fd = new FormData();
       fd.append("file", file);
       fd.append("termo", termo.trim());
+      fd.append("data_recebimento", dataRecebimento);
+      fd.append("centro", centro);
 
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ingerir-termo-xpm`,
@@ -318,6 +355,35 @@ export default function RecebimentoXpm() {
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="data-recebimento">Data de recebimento</Label>
+              <p className="text-xs text-muted-foreground">data do termo — não é a data de hoje</p>
+              <Input
+                id="data-recebimento"
+                type="date"
+                value={dataRecebimento}
+                onChange={(e) => setDataRecebimento(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="centro">Centro</Label>
+              <Select
+                value={centro}
+                onValueChange={setCentro}
+                disabled={centrosQ.isLoading}
+              >
+                <SelectTrigger id="centro">
+                  <SelectValue placeholder={centrosQ.isLoading ? "Carregando…" : "Selecione um centro"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {(centrosQ.data ?? []).map((c) => (
+                    <SelectItem key={c.codigo} value={c.codigo}>
+                      {c.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="arquivo">Arquivo (.xlsx)</Label>
               <Input
                 id="arquivo"
@@ -326,21 +392,51 @@ export default function RecebimentoXpm() {
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               />
             </div>
-            <Button onClick={handleIngerir} disabled={!termo || !file || ingerindo} className="gap-2">
+            <Button onClick={handleIngerir} disabled={!termo || !dataRecebimento || !centro || !file || ingerindo} className="gap-2">
               {ingerindo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
               Ingerir Termo
             </Button>
 
             {resultado && (
-              <div className="mt-4 rounded-md border bg-muted/30 p-4 space-y-2">
+              <div className="mt-4 rounded-md border bg-muted/30 p-4 space-y-3">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <CheckCircle2 className="h-4 w-4 text-success" />
                   Termo {resultado.termo} ingerido
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {resultado.contagens ?? 0} SKUs contados, {resultado.movimentos ?? 0} movimentos de entrada,{" "}
-                  {resultado.tarefas ?? 0} tarefas de divergência geradas.
-                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                  <div className="rounded-md bg-muted/50 p-2">
+                    <span className="block text-xs text-muted-foreground">Linhas no termo</span>
+                    <span className="font-medium">{resultado.linhas_termo ?? 0}</span>
+                  </div>
+                  <div className="rounded-md bg-muted/50 p-2">
+                    <span className="block text-xs text-muted-foreground">Entradas cobertas</span>
+                    <span className="font-medium text-success">{resultado.entradas_cobertas ?? 0}</span>
+                  </div>
+                  <div className="rounded-md bg-muted/50 p-2">
+                    <span className="block text-xs text-muted-foreground">Excesso</span>
+                    <span className="font-medium text-warning">{resultado.entradas_excesso ?? 0}</span>
+                  </div>
+                  <div className="rounded-md bg-muted/50 p-2">
+                    <span className="block text-xs text-muted-foreground">Avarias</span>
+                    <span className="font-medium text-destructive">{resultado.entradas_avarias ?? 0}</span>
+                  </div>
+                  <div className="rounded-md bg-muted/50 p-2">
+                    <span className="block text-xs text-muted-foreground">Tarefas</span>
+                    <span className="font-medium">{resultado.tarefas ?? 0}</span>
+                  </div>
+                  <div className="rounded-md bg-muted/50 p-2">
+                    <span className="block text-xs text-muted-foreground">Sem NF</span>
+                    <span className={`font-medium ${(resultado.linhas_sem_nf ?? 0) > 0 ? "text-warning" : ""}`}>
+                      {resultado.linhas_sem_nf ?? 0}
+                    </span>
+                  </div>
+                  <div className="rounded-md bg-muted/50 p-2">
+                    <span className="block text-xs text-muted-foreground">SKUs sem custo</span>
+                    <span className={`font-medium ${(resultado.skus_sem_custo ?? 0) > 0 ? "text-warning" : ""}`}>
+                      {resultado.skus_sem_custo ?? 0}
+                    </span>
+                  </div>
+                </div>
                 {(resultado.tarefas ?? 0) > 0 && (
                   <Button asChild size="sm" variant="outline">
                     <Link to="/tarefas?origem=estoque">Ver tarefas</Link>

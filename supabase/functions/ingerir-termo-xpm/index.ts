@@ -1,17 +1,36 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import * as XLSX from "https://esm.sh/xlsx@0.18.5";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
-const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 const num = (x: any) => { const n = parseFloat(String(x ?? "").replace(",", ".")); return isNaN(n) ? 0 : n; };
 
+const campos = ["file", "termo", "data_recebimento", "centro"];
+const required = (form: FormData) => {
+  for (const c of campos) {
+    const v = form.get(c);
+    if (!v || String(v).trim() === "") return c;
+  }
+  return null;
+};
+
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     const form = await req.formData();
+    const missing = required(form);
+    if (missing) {
+      return new Response(
+        JSON.stringify({ error: `${missing} é obrigatório` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const file = form.get("file") as File;
-    const termo = String(form.get("termo") || "").trim();
-    if (!file || !termo) return new Response(JSON.stringify({ error: "file e termo obrigatórios" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+    const termo = String(form.get("termo")).trim();
+    const dataRecebimento = String(form.get("data_recebimento")).trim();
+    const centro = String(form.get("centro")).trim();
+
     const buf = new Uint8Array(await file.arrayBuffer());
     const wb = XLSX.read(buf, { type: "array" });
     let rows: any[] = [];
@@ -31,10 +50,15 @@ serve(async (req) => {
     }
     if (!rows.length) throw new Error("Nenhuma linha de conferência (DECLARADO/RECEBIDO) encontrada no arquivo.");
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const { data, error } = await supabase.rpc("ingerir_termo_conferencia", { p_termo: termo, p_rows: rows });
+    const { data, error } = await supabase.rpc("ingerir_termo_conferencia", {
+      p_termo: termo,
+      p_rows: rows,
+      p_data_recebimento: dataRecebimento,
+      p_centro_codigo: centro,
+    });
     if (error) throw new Error(error.message);
-    return new Response(JSON.stringify(data), { headers: { ...cors, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
-    return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
