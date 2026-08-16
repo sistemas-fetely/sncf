@@ -785,7 +785,7 @@ export default function ExpedicoesXpm() {
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="max-w-[1300px] mx-auto px-4 md:px-8 py-8 space-y-6">
+      <PageShell>
         <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
           <div className="space-y-1">
             <h1 className="text-2xl font-medium tracking-tight">Expedições XPM</h1>
@@ -1101,7 +1101,7 @@ export default function ExpedicoesXpm() {
             )}
           </CardContent>
         </Card>
-      </div>
+      </PageShell>
     </TooltipProvider>
   );
 }

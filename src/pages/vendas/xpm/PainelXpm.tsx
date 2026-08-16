@@ -21,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PageShell } from "@/components/layout/PageShell";
 
 type CicloXpm = {
   codigo: string;
@@ -317,28 +318,28 @@ export default function PainelXpm() {
 
   if (cicloQ.isError) {
     return (
-      <div className="max-w-[1300px] mx-auto px-4 md:px-8 py-8">
+      <PageShell>
         <Card className="border-destructive">
           <CardContent className="pt-6 text-sm text-destructive">
             {(cicloQ.error as Error)?.message ?? "Erro ao carregar o ciclo das expedições"}
           </CardContent>
         </Card>
-      </div>
+      </PageShell>
     );
   }
 
   if (cicloQ.isLoading) {
     return (
-      <div className="max-w-[1300px] mx-auto px-4 md:px-8 py-8 space-y-4">
+      <PageShell>
         {Array.from({ length: 8 }).map((_, i) => (
           <Skeleton key={i} className="h-16 w-full" />
         ))}
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="max-w-[1300px] mx-auto px-4 md:px-8 py-8 space-y-6">
+    <PageShell>
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
         <div className="space-y-1">
           <h1 className="text-2xl font-medium tracking-tight">Painel XPM</h1>
@@ -795,6 +796,6 @@ export default function PainelXpm() {
         A XPM registra horário real apenas em Solicitado, Embarcado e Expedido. Separação, conferência e
         nota fiscal entram em lote e não têm carimbo próprio — por isso não há tempo por etapa.
       </p>
-    </div>
+    </PageShell>
   );
 }
