@@ -37,7 +37,7 @@ export function AplicarTemplateDialog({ template, aberto, onOpenChange }: Props)
   const [projetoDestino, setProjetoDestino] = useState<string | null>(null);
 
   const ehChecklist = template?.tipo === "checklist";
-  const projetosAtivos = useMemo(() => (projetos ?? []).filter((p) => p.status === "ativo"), [projetos]);
+
 
   useEffect(() => {
     if (!aberto) return;
