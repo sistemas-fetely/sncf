@@ -6,10 +6,10 @@
  * 2. Usuário revisa preview
  * 3. Chama salvarFaturaCartao() que:
  *    - Faz upload do PDF/CSV no bucket faturas-cartao
- *    - Cria registro em faturas_cartao
- *    - Cria N registros em fatura_cartao_lancamentos
- *    - Cria 1 conta_pagar_receber vinculada (a fatura como conta a pagar)
+ *    - Importa cabeçalho + lançamentos em uma transação só via RPC
+ *      fn_fatura_cartao_importar (atomicidade: cabeçalho sem filhos = rollback)
  */
+
 import { supabase } from "@/integrations/supabase/client";
 import type { FaturaParsed, LancamentoFaturaParsed } from "./parser-fatura-cartao";
 
