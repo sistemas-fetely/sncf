@@ -1,3 +1,5 @@
+export type TipoVinculoCodigo = "CLT" | "PJ" | "PRESTADOR" | "SOCIO";
+
 export interface PosicaoRaw {
   id: string;
   titulo_cargo: string;
@@ -28,7 +30,7 @@ export interface ColaboradorVinculado {
   data_admissao: string;
   salario_base: number;
   status: string;
-  tipo_contrato: string;
+  tipo_contrato: TipoVinculoCodigo;
   cargo: string;
   departamento: string;
 }
@@ -55,11 +57,11 @@ export interface PosicaoNode extends PosicaoRaw {
   // display helpers
   nome_display: string;
   foto_url: string | null;
-  vinculo: "CLT" | "PJ" | null;
+  vinculo: TipoVinculoCodigo | null;
   status_pessoal: string | null;
 }
 
-export type ViewMode = "visual" | "sintetico" | "analitico";
+export type ViewMode = "visual" | "sintetico" | "analitico" | "lista";
 
 export interface OrgFilters {
   search: string;

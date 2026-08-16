@@ -10649,7 +10649,15 @@ export type Database = {
           vigencia_fim?: string | null
           vigencia_inicio?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "encargos_parametros_tipo_vinculo_fkey"
+            columns: ["tipo_vinculo"]
+            isOneToOne: false
+            referencedRelation: "tipos_vinculo"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       entrega_estado_dim: {
         Row: {
