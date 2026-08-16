@@ -339,7 +339,7 @@ export default function ConciliacaoCadastro() {
   const anyLoading = resumoQ.isFetching || skuQ.isFetching || espelhoQ.isFetching;
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 animate-casa-fade-in">
+    <PageShell variant="dados" className="animate-casa-fade-in">
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
@@ -723,7 +723,7 @@ export default function ConciliacaoCadastro() {
           </section>
         </TabsContent>
       </Tabs>
-    </div>
+    </PageShell>
   );
 }
 

@@ -90,17 +90,17 @@ export default function AguardandoPagamentoDetalhe() {
 
   if (pedidoQ.isLoading || titulosQ.isLoading) {
     return (
-      <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 space-y-4">
+      <PageShell variant="dados"><div className="space-y-4">
         <Skeleton className="h-20 w-full" />
         <Skeleton className="h-32 w-full" />
         <Skeleton className="h-64 w-full" />
-      </div>
+    </div></PageShell>
     );
   }
 
   if (!pedidoQ.data) {
     return (
-      <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8">
+      <PageShell variant="dados">
         <Alert variant="destructive">
           <AlertDescription>Pedido não encontrado.</AlertDescription>
         </Alert>
@@ -111,7 +111,7 @@ export default function AguardandoPagamentoDetalhe() {
         >
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
-      </div>
+    </PageShell>
     );
   }
 
@@ -156,7 +156,7 @@ export default function AguardandoPagamentoDetalhe() {
   };
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 space-y-6 animate-casa-fade-in">
+    <PageShell variant="dados" className="animate-casa-fade-in">
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
@@ -375,6 +375,6 @@ export default function AguardandoPagamentoDetalhe() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }
