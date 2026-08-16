@@ -260,11 +260,10 @@ export function PipelineHorizontal({
 
 
         {/* Cards por fase */}
-        {fases.map(({ estagio, qtd, sla }) => {
+        {fases.map(({ estagio, qtd, sla, tipo_sla }) => {
           const isAtivo = estagioAtivo === estagio;
           const temPedidos = qtd > 0;
-          const bgSuave = ESTAGIO_BG_SUAVE[estagio] || "bg-card";
-          const textCor = ESTAGIO_TEXT_COR[estagio] || "text-foreground";
+          const ap = aparenciaCard(estagio, sla, tipo_sla);
 
           return (
             <button
@@ -276,37 +275,30 @@ export function PipelineHorizontal({
                 "group relative flex-1 flex flex-col items-center justify-center rounded-md border py-2 px-1 transition-all duration-200 min-w-0",
                 "gold-border-hover focus-visible:outline-none",
                 isAtivo
-                  ? "gold-border bg-gold-soft shadow-sm"
+                  ? "gold-border bg-gold-soft shadow-sm ring-1 ring-gold"
                   : temPedidos
-                  ? `${bgSuave} border-transparent`
-                  : `${bgSuave} border-transparent opacity-40`
+                  ? ap.caixa
+                  : cn(ap.caixa, "opacity-40")
               )}
             >
-              {/* Borda superior colorida */}
-              <div
-                className={cn(
-                  "absolute top-0 left-0 right-0 h-0.5 rounded-t-md",
-                  ESTAGIO_CORES[estagio]
-                )}
-              />
-
               {/* Ícone */}
-              <span className={cn("mb-0.5", textCor)}>
+              <span className={cn("mb-0.5", ap.numero)}>
                 {ESTAGIO_ICONES[estagio]}
               </span>
 
               {/* Label */}
-              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide truncate max-w-full">
+              <span className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wide truncate max-w-full">
+                {ap.espera && <PauseCircle className="h-3 w-3 shrink-0" />}
                 {ESTAGIO_LABELS_CURTO[estagio]}
               </span>
 
               {/* Número */}
-              <span className={cn("text-lg font-medium tabular-nums", textCor)}>
+              <span className={cn("text-lg font-medium tabular-nums", ap.numero)}>
                 {qtd}
               </span>
 
               {/* SLA */}
-              {sla > 0 && (
+              {ap.selo && sla > 0 && (
                 <span className="absolute top-1 right-1 inline-flex items-center gap-0.5 rounded-full bg-destructive/10 text-destructive text-[10px] font-medium px-1.5 py-0.5">
                   <AlertTriangle className="h-2.5 w-2.5" />
                   {sla}
