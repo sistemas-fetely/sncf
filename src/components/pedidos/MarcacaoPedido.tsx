@@ -55,7 +55,7 @@ interface Props {
 export function MarcacaoBadge({ marcacao }: { marcacao: string | null }) {
   if (!marcacao) return null;
   return (
-    <Badge variant="outline" className="text-[10px] gap-1 border-warning/60 text-warning bg-warning/60">
+    <Badge variant="outline" className="text-[10px] gap-1 border-warning/60 text-warning bg-warning/10">
       <Tag className="h-2.5 w-2.5" />
       {marcacao}
     </Badge>

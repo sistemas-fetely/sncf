@@ -1418,7 +1418,7 @@ export default function PedidoDetalhe() {
       )}
 
       {adiantadoVivo > 0.01 && (
-        <div className="mx-6 mb-3 flex items-start gap-2 rounded-lg border border-success/40 bg-success/70 p-3 text-success">
+        <div className="mx-6 mb-3 flex items-start gap-2 rounded-lg border border-success/40 bg-success/10 p-3 text-success">
           <Wallet className="h-4 w-4 shrink-0 mt-0.5" />
           <p className="text-sm">
             {adiantamentoPedido?.cobre_pedido_inteiro ? (
@@ -2258,7 +2258,7 @@ export default function PedidoDetalhe() {
               const hasDelta            = Math.abs(deltaLiquido) > 0.01;
 
               return (
-                <Card className="border-warning/70 flex-1 flex flex-col bg-warning/30 lg:order-2">
+                <Card className="border-warning/70 flex-1 flex flex-col bg-warning/10 lg:order-2">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm font-medium flex items-center gap-2">
                       <History className="h-4 w-4 text-warning" />
@@ -2346,7 +2346,7 @@ export default function PedidoDetalhe() {
                     </div>
 
                 {temOrigemConsolidada && (
-                  <div className="mt-3 rounded-md border border-warning/60 bg-warning/50 p-3 space-y-2">
+                  <div className="mt-3 rounded-md border border-warning/60 bg-warning/10 p-3 space-y-2">
                     <div className="text-[10px] uppercase tracking-wide text-warning font-medium">
                       Segunda origem — consolidado de outro pedido
                     </div>

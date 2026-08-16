@@ -888,7 +888,7 @@ export default function ConvitesCadastro() {
 
                 {/* Returned comment if devolvido */}
                 {reviewTarget.dados_preenchidos?._comentario_rh && (
-                  <Card className="border-warning/40 bg-warning/50">
+                  <Card className="border-warning/40 bg-warning/10">
                     <CardContent className="p-4">
                       <h4 className="text-sm font-medium text-warning mb-1">Comentário do RH (devolução)</h4>
                       <p className="text-sm">{reviewTarget.dados_preenchidos._comentario_rh}</p>
@@ -1300,7 +1300,7 @@ export default function ConvitesCadastro() {
                       </p>
                     )}
                     {showSalaryField && (
-                      <div className="rounded-lg border border-warning/40 bg-warning/50 p-4 space-y-4">
+                      <div className="rounded-lg border border-warning/40 bg-warning/10 p-4 space-y-4">
                         <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2"><Lock className="h-3.5 w-3.5" /> Dados Sensíveis</h3>
                         <div>
                           <Label className="flex items-center gap-2">

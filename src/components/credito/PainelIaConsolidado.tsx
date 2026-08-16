@@ -39,7 +39,7 @@ export function PainelIaConsolidado({
 
   if (!iaJson || !iaProcessadaEm) {
     return (
-      <Card className="border-warning/40 bg-warning/40">
+      <Card className="border-warning/40 bg-warning/10">
         <CardContent className="p-6 flex items-start gap-3">
           <AlertTriangle className="h-5 w-5 text-warning mt-0.5" />
           <div className="space-y-1">
