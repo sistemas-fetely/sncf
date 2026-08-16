@@ -3,8 +3,9 @@ import { Outlet } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { TarefasSidebar } from "@/components/TarefasSidebar";
 import { CommandPaletteProvider } from "@/components/navegacao/CommandPaletteProvider";
-import { SinoTarefas } from "@/components/tarefas/SinoTarefas";
+import { SinoNotificacoes } from "@/components/shared/SinoNotificacoes";
 import { rodarManutencaoTarefas } from "@/hooks/tarefas/useNotificacoesTarefas";
+
 
 export default function TarefasLayout() {
   const rodou = useRef(false);
@@ -24,9 +25,10 @@ export default function TarefasLayout() {
           <header className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b bg-card/80 px-3 backdrop-blur-sm">
             <SidebarTrigger className="-ml-1" />
             <div className="ml-auto">
-              <SinoTarefas />
+              <SinoNotificacoes />
             </div>
           </header>
+
           <main className="relative flex-1 overflow-auto">
             <Suspense
               fallback={
