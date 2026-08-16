@@ -15,9 +15,13 @@ import { SincronizacaoEstoqueShopify } from "@/components/acervo/SincronizacaoEs
 import { PageShell } from "@/components/layout/PageShell";
 type IngestResult = {
   termo: string;
-  contagens?: number;
-  movimentos?: number;
-  tarefas?: number;
+  linhas_termo: number;
+  entradas_cobertas: number;
+  entradas_excesso: number;
+  entradas_avarias: number;
+  tarefas: number;
+  linhas_sem_nf: number;
+  skus_sem_custo: number;
 };
 
 type AmostraLinha = { sku: string; de: number | null; para: number | null; classe: string };
