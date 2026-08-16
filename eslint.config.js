@@ -22,6 +22,7 @@ export default tseslint.config(
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
       // ===== ERRO CEGO — proibe o idioma que produz "[object Object]" =====
+      // ===== SISTEMA VISUAL Fetely — guardiao das regras de cor/peso/largura =====
       "no-restricted-syntax": [
         "error",
         {
@@ -35,6 +36,24 @@ export default tseslint.config(
             "CallExpression[callee.name='String'][arguments.length=1] > Identifier.arguments[name=/^(e|err|error|ex|erro)$/]",
           message:
             "ERRO CEGO: String(erro) produz \"[object Object]\". Use formatError(e) de @/lib/format-error.",
+        },
+        {
+          selector:
+            "JSXAttribute[name.name='className'] Literal[value=/\\b(text|bg|border|ring|divide|from|via|to|fill|stroke)-(red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|slate|gray|zinc|neutral|stone)-(50|[1-9]00|950)\\b/]",
+          message:
+            "SISTEMA VISUAL §2: cor crua do Tailwind e proibida. Use token semantico (success, warning, destructive, info, muted, primary, gold). Cor crua quebra o modo escuro e compete com o dourado da marca.",
+        },
+        {
+          selector:
+            "JSXAttribute[name.name='className'] Literal[value=/\\bfont-(semibold|bold|extrabold|black)\\b/]",
+          message:
+            "SISTEMA VISUAL §5: so existem dois pesos, 400 (font-normal) e 500 (font-medium).",
+        },
+        {
+          selector:
+            "JSXAttribute[name.name='className'] Literal[value=/(^|\\s)(container|max-w-(4xl|5xl|6xl|7xl))(\\s|$)/]",
+          message:
+            "SISTEMA VISUAL §7: pagina nao declara largura propria. Use <PageShell variant='dados'|'leitura'|'foco'>.",
         },
       ],
     },
@@ -156,6 +175,32 @@ export default tseslint.config(
     ],
     rules: {
       "no-restricted-syntax": "warn",
+    },
+  },
+  {
+    // Areas ja convertidas ao Sistema Visual — aqui a regra e ERRO, nao aviso.
+    files: [
+      "src/components/layout/**/*.tsx",
+      "src/components/logistica/**/*.tsx",
+      "src/components/organograma/**/*.tsx",
+      "src/pages/logistica/**/*.tsx",
+      "src/pages/vendas/GestaoPedidos.tsx",
+      "src/pages/Organograma.tsx",
+      "src/components/ui/selo.tsx",
+      "src/components/ui/tabela-fetely.tsx",
+      "src/components/ui/celula-dinheiro.tsx",
+    ],
+    rules: {
+      "no-restricted-syntax": "error",
+    },
+  },
+  {
+    // Conversao visual em andamento: GestaoPedidos ainda usa `any` para views
+    // nao tipadas. Mantendo a regra desligada neste arquivo para nao misturar
+    // refatoracao de tipos com a mudanca de apresentacao.
+    files: ["src/pages/vendas/GestaoPedidos.tsx"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
     },
   },
 );
