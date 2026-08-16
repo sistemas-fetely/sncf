@@ -138,10 +138,10 @@ Deno.serve(async (req) => {
       },
     ];
 
-    // Flash vem primeiro para testar timeout: se passar, era tempo; se falhar igual, é chave ou gateway.
+    // Pro primeiro porque flash inventou valor de lançamento em fatura real (16/08); flash fica como reserva para quando o pro não responder.
     const tentativas: { model: string }[] = [
-      { model: "google/gemini-2.5-flash" },
       { model: "google/gemini-2.5-pro" },
+      { model: "google/gemini-2.5-flash" },
     ];
 
     let aiResponse: Response | null = null;

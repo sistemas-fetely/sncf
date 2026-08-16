@@ -301,6 +301,12 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
     .filter((l) => l.tipo !== "pagamento")
     .reduce((s, l) => s + l.valor, 0);
 
+  const divergencia =
+    parsed?.valor_total != null && totalCalculado != null
+      ? Math.abs(parsed.valor_total - totalCalculado)
+      : 0;
+  const totalDivergente = divergencia > 0.02;
+
   const qtdEstornos = parsed?.lancamentos.filter((l) => l.tipo === "estorno").length || 0;
   const qtdInternacionais =
     parsed?.lancamentos.filter((l) => l.natureza === "INTERNACIONAL").length || 0;
