@@ -868,24 +868,24 @@ export default function RecrutamentoDetalhe() {
 
   if (vagaLoading) {
     return (
-      <div className="p-6 space-y-4">
+      <PageShell variant="dados"><div className="space-y-4">
         <Skeleton className="h-8 w-64" />
         <div className="grid grid-cols-[30%_70%] gap-6">
           <Skeleton className="h-96" />
           <Skeleton className="h-96" />
         </div>
-      </div>
+    </div></PageShell>
     );
   }
 
   if (!vaga) {
     return (
-      <div className="p-6 text-center">
+      <PageShell variant="dados"><div className="text-center">
         <p className="text-muted-foreground">Vaga não encontrada.</p>
         <Button variant="outline" className="mt-4" onClick={() => navigate("/recrutamento")}>
           <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
         </Button>
-      </div>
+    </div></PageShell>
     );
   }
 
@@ -894,7 +894,7 @@ export default function RecrutamentoDetalhe() {
   ) || [];
 
   return (
-    <div className="flex flex-col h-full -m-6 overflow-hidden">
+    <PageShell variant="dados" className="flex flex-col h-full overflow-hidden">
       <div className="px-6 pt-4">
         <div className="rounded-md border border-warning/40 bg-warning/10 px-4 py-2 text-xs">
           <strong className="text-warning">Fluxo de contratação desativado nesta tela.</strong>{" "}
@@ -3745,6 +3745,6 @@ function ModuloOferta({
           </Button>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

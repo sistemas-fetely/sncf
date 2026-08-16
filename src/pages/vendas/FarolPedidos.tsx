@@ -289,7 +289,7 @@ function AbaB2B() {
   );
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-serif">Farol de Pedidos</h1>
         <p className="text-sm text-muted-foreground">
@@ -702,7 +702,7 @@ function AbaB2C() {
   const chipPipe = "inline-flex items-center rounded-md border bg-background px-2 py-1 text-[12px]";
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-serif">Farol de Pedidos · B2C</h1>
         <p className="text-sm text-muted-foreground">
@@ -949,7 +949,7 @@ export default function FarolPedidos() {
   const [aba, setAba] = useState<"b2b" | "b2c">("b2b");
 
   return (
-    <div>
+    <PageShell variant="dados">
       <div className="flex gap-1 border-b px-6 pt-4">
         {(["b2b", "b2c"] as const).map((t) => (
           <button
@@ -966,6 +966,6 @@ export default function FarolPedidos() {
         ))}
       </div>
       {aba === "b2b" ? <AbaB2B /> : <AbaB2C />}
-    </div>
+    </PageShell>
   );
 }
