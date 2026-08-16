@@ -301,6 +301,12 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
     .filter((l) => l.tipo !== "pagamento")
     .reduce((s, l) => s + l.valor, 0);
 
+  const divergencia =
+    parsed?.valor_total != null && totalCalculado != null
+      ? Math.abs(parsed.valor_total - totalCalculado)
+      : 0;
+  const totalDivergente = divergencia > 0.02;
+
   const qtdEstornos = parsed?.lancamentos.filter((l) => l.tipo === "estorno").length || 0;
   const qtdInternacionais =
     parsed?.lancamentos.filter((l) => l.natureza === "INTERNACIONAL").length || 0;
@@ -408,11 +414,16 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
               </div>
 
               {/* Resumo destacado */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                 <ResumoCard
-                  label="Valor total"
-                  valor={formatBRL(totalCalculado || 0)}
+                  label="Total da fatura"
+                  valor={parsed.valor_total != null ? formatBRL(parsed.valor_total) : "—"}
                   highlight
+                />
+                <ResumoCard
+                  label="Soma dos lançamentos"
+                  valor={formatBRL(totalCalculado || 0)}
+                  error={totalDivergente}
                 />
                 <ResumoCard
                   label="Lançamentos"
@@ -478,6 +489,18 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
                   />
                 </div>
               </div>
+
+              {totalDivergente && (
+                <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <span>
+                    A soma dos lançamentos não bate com o total impresso na fatura. Diferença de{" "}
+                    {formatBRL(divergencia)}. Isso quase sempre significa que a leitura do PDF errou
+                    uma linha — importar assim grava despesa com valor errado. Tente ler o arquivo de
+                    novo antes de importar.
+                  </span>
+                </div>
+              )}
 
               {/* Lista compacta de lançamentos */}
               <div className="rounded-md border overflow-hidden">
@@ -646,7 +669,12 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
             </Button>
             <Button
               onClick={handleSalvar}
-              disabled={!cartaoId || !dataVencimento || (cartoes && cartoes.length === 0)}
+              disabled={
+                !cartaoId ||
+                !dataVencimento ||
+                (cartoes && cartoes.length === 0) ||
+                totalDivergente
+              }
               className="gap-2 bg-admin hover:bg-admin-accent text-admin-foreground"
             >
               Importar fatura
@@ -664,20 +692,38 @@ function ResumoCard({
   valor,
   sub,
   highlight,
+  error,
 }: {
   label: string;
   valor: string;
   sub?: string;
   highlight?: boolean;
+  error?: boolean;
 }) {
   return (
     <div
       className={`rounded-md border p-2.5 ${
-        highlight ? "bg-admin/10 border-admin/30" : "bg-muted/20"
+        error
+          ? "bg-destructive/10 border-destructive/30"
+          : highlight
+          ? "bg-admin/10 border-admin/30"
+          : "bg-muted/20"
       }`}
     >
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className={`text-lg font-bold ${highlight ? "text-admin" : ""}`}>{valor}</p>
+      <p
+        className={`text-[10px] uppercase tracking-wide ${
+          error ? "text-destructive" : "text-muted-foreground"
+        }`}
+      >
+        {label}
+      </p>
+      <p
+        className={`text-lg font-bold ${
+          error ? "text-destructive" : highlight ? "text-admin" : ""
+        }`}
+      >
+        {valor}
+      </p>
       {sub && <p className="text-[10px] text-muted-foreground mt-0.5">{sub}</p>}
     </div>
   );
