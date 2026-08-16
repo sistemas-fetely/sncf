@@ -9514,31 +9514,37 @@ export type Database = {
       }
       departamentos: {
         Row: {
+          area_negocio: string | null
           ativo: boolean
           created_at: string
           id: string
           nome: string
           ordem: number | null
+          perfil_area_codigo: string | null
           role_responsavel: Database["public"]["Enums"]["app_role"] | null
           unidade_id: string | null
           updated_at: string
         }
         Insert: {
+          area_negocio?: string | null
           ativo?: boolean
           created_at?: string
           id?: string
           nome: string
           ordem?: number | null
+          perfil_area_codigo?: string | null
           role_responsavel?: Database["public"]["Enums"]["app_role"] | null
           unidade_id?: string | null
           updated_at?: string
         }
         Update: {
+          area_negocio?: string | null
           ativo?: boolean
           created_at?: string
           id?: string
           nome?: string
           ordem?: number | null
+          perfil_area_codigo?: string | null
           role_responsavel?: Database["public"]["Enums"]["app_role"] | null
           unidade_id?: string | null
           updated_at?: string
@@ -15929,6 +15935,7 @@ export type Database = {
       }
       importacao_nf_linha_sku: {
         Row: {
+          base_rateio: string | null
           confirmado_em: string | null
           confirmado_por: string | null
           criado_em: string
@@ -15941,6 +15948,7 @@ export type Database = {
           valor_rateado: number | null
         }
         Insert: {
+          base_rateio?: string | null
           confirmado_em?: string | null
           confirmado_por?: string | null
           criado_em?: string
@@ -15953,6 +15961,7 @@ export type Database = {
           valor_rateado?: number | null
         }
         Update: {
+          base_rateio?: string | null
           confirmado_em?: string | null
           confirmado_por?: string | null
           criado_em?: string
