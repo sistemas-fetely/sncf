@@ -37,30 +37,30 @@ function useInboxFilas() {
 
 function BadgeFila({ fila }: { fila: FilaInbox }) {
   if (fila.erro) {
-    return <Badge variant="destructive" className="text-[10px]">erro</Badge>;
+    return <Badge variant="destructive" className="text-[11px]">erro</Badge>;
   }
   const total = fila.total ?? 0;
   if (total === 0) {
     return (
-      <Badge variant="outline" className="text-[10px] text-muted-foreground border-muted">
+      <Badge variant="outline" className="text-[11px] text-muted-foreground border-muted">
         0
       </Badge>
     );
   }
   if (fila.severidade === "critica") {
-    return <Badge variant="destructive" className="text-[10px]">{total}</Badge>;
+    return <Badge variant="destructive" className="text-[11px]">{total}</Badge>;
   }
   if (fila.severidade === "alta") {
     return (
-      <Badge className="text-[10px] border-0 bg-warning text-white hover:bg-warning/90">
+      <Badge className="text-[11px] border-0 bg-warning text-warning-foreground hover:bg-warning/90">
         {total}
       </Badge>
     );
   }
   if (fila.severidade === "baixa") {
-    return <Badge variant="outline" className="text-[10px]">{total}</Badge>;
+    return <Badge variant="outline" className="text-[11px]">{total}</Badge>;
   }
-  return <Badge variant="secondary" className="text-[10px]">{total}</Badge>;
+  return <Badge variant="secondary" className="text-[11px]">{total}</Badge>;
 }
 
 export function FilasOperacao() {
@@ -100,7 +100,7 @@ export function FilasOperacao() {
           <ListChecks className="h-4 w-4 text-muted-foreground" />
           Filas da operação
           {!isLoading && !isError && (
-            <Badge variant="secondary" className="ml-auto text-[10px]">
+            <Badge variant="secondary" className="ml-auto text-[11px]">
               {totalGeral} item{totalGeral !== 1 ? "s" : ""}
             </Badge>
           )}
@@ -139,7 +139,7 @@ export function FilasOperacao() {
           !isError &&
           grupos.map((grupo) => (
             <div key={grupo.nome} className="space-y-1">
-              <p className="text-[10px] uppercase tracking-widest font-medium text-muted-foreground px-1">
+              <p className="text-[11px] uppercase tracking-widest font-medium text-muted-foreground px-1">
                 {grupo.nome}
               </p>
               <div className="rounded-lg border divide-y">
