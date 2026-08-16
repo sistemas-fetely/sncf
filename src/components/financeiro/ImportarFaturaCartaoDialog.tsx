@@ -204,7 +204,22 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
         }
         resultado = parseCsvItau(texto);
       } else if (ext === "pdf" || f.type === "application/pdf") {
-        resultado = await parsearPDFFatura(f);
+        // Determinístico primeiro: lê a camada de texto do PDF e só devolve
+        // resultado se a soma dos lançamentos fechar com o total impresso.
+        // null = não tem certeza -> a IA assume, como sempre foi.
+        try {
+          const viaTexto = await parsearFaturaItauPdf(f);
+          if (viaTexto) {
+            resultado = viaTexto;
+            console.info("Fatura lida pelo parser determinístico Itaú (sem IA).");
+          } else {
+            console.info("Parser determinístico não fechou; caindo para a leitura por IA.");
+            resultado = await parsearPDFFatura(f);
+          }
+        } catch (e) {
+          console.warn("Parser determinístico Itaú falhou; caindo para a leitura por IA.", e);
+          resultado = await parsearPDFFatura(f);
+        }
       } else {
         throw new Error(
           `Arquivo "${f.name}" não é fatura de cartão. Aceito aqui: PDF ou CSV da fatura.`,
