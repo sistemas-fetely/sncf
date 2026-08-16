@@ -702,6 +702,7 @@ export function FilaPedidosPorArea({
                       );
                       const diasNaFase = risco?.dias_na_fase;
                       const totalDias = Math.floor((p.idade_minutos ?? 0) / 1440);
+                      const relogio = relogioMap?.get(p.id);
                       return (
                         <div>
                           <p className={cn(slaEstourado && "text-destructive font-medium")}>
@@ -710,6 +711,11 @@ export function FilaPedidosPorArea({
                           <p className="text-[11px] text-muted-foreground">
                             pedido {totalDias === 0 ? "<1d" : `${totalDias}d`}
                           </p>
+                          {relogio && relogio.dias_espera > 0 && (
+                            <p className="text-[11px] text-muted-foreground">
+                              {relogio.dias_nossos}d nossos
+                            </p>
+                          )}
                         </div>
                       );
                     })()}
