@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -472,7 +473,7 @@ export default function ConciliacaoDespesas() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-[1400px]">
+    <PageShell>
       <div>
         <h1 className="text-2xl font-medium flex items-center gap-2">
           <GitCompare className="h-6 w-6 text-admin" />
@@ -1127,6 +1128,6 @@ export default function ConciliacaoDespesas() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   );
 }

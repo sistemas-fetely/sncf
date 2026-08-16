@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { exportarParceirosXlsx, importarParceirosXlsx, type LookupMaps } from "@/lib/parceiros/excel-io";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
@@ -385,7 +386,7 @@ export default function Parceiros() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <PageShell>
       <input
         ref={fileInputRef}
         type="file"
@@ -731,6 +732,6 @@ export default function Parceiros() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   );
 }

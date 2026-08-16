@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useMemo, useState, useEffect, Fragment } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, Link } from "react-router-dom";
@@ -501,7 +502,7 @@ export default function AnaliseDespesas() {
   const insightAtual = mesSel ? insightCache[mesSel] : null;
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
+    <PageShell>
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
           <BarChart3 className="h-5 w-5" />
@@ -1247,7 +1248,7 @@ export default function AnaliseDespesas() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }
 

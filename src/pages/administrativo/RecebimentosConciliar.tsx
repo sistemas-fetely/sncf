@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -229,7 +230,7 @@ export default function RecebimentosConciliar() {
   const listaOrfaos = orfaos || [];
 
   return (
-    <div className="p-6 space-y-6">
+    <PageShell>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
@@ -323,7 +324,7 @@ export default function RecebimentosConciliar() {
           await invalidar();
         }}
       />
-    </div>
+    </PageShell>
   );
 }
 

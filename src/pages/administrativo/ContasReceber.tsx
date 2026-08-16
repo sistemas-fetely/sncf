@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -220,7 +221,7 @@ function AtalhosPeriodo({ onPick }: { onPick: (de: string, ate: string) => void 
 
 export default function ContasReceber() {
   return (
-    <div className="space-y-6 p-6">
+    <PageShell>
       <div className="flex items-center gap-3">
         <ArrowDownToLine className="h-7 w-7 text-admin" />
         <div className="flex-1">
@@ -245,7 +246,7 @@ export default function ContasReceber() {
           <AbaB2C />
         </TabsContent>
       </Tabs>
-    </div>
+    </PageShell>
   );
 }
 

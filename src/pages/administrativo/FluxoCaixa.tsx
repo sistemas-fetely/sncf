@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -245,7 +246,7 @@ export default function FluxoCaixa() {
   const mostrarForaDaCurva = totalCcFornecedor > 0 || totalFaturasAbertas > 0;
 
   return (
-    <div className="p-6 space-y-6">
+    <PageShell>
       {/* HEADER */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
@@ -625,6 +626,6 @@ export default function FluxoCaixa() {
           </Card>
         </>
       )}
-    </div>
+    </PageShell>
   );
 }

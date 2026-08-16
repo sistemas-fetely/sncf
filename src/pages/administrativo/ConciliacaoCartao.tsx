@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { Fragment, useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -284,7 +285,7 @@ function AbaConciliarExtrato() {
 
 export default function ConciliacaoCartao() {
   return (
-    <div className="p-6 space-y-6 max-w-[1400px]">
+    <PageShell>
       <div>
         <h1 className="text-2xl font-medium flex items-center gap-2">
           <CreditCard className="h-6 w-6 text-admin" />
@@ -312,7 +313,7 @@ export default function ConciliacaoCartao() {
           <AbaConciliarExtrato />
         </TabsContent>
       </Tabs>
-    </div>
+    </PageShell>
   );
 }
 

@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -228,7 +229,7 @@ export default function Compromissos() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <PageShell>
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
@@ -563,6 +564,6 @@ export default function Compromissos() {
         aberto={dialogParceladoAberto}
         onFechar={() => setDialogParceladoAberto(false)}
       />
-    </div>
+    </PageShell>
   );
 }

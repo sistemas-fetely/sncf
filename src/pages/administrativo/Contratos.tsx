@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -379,7 +380,7 @@ export default function Contratos() {
   ).length;
 
   return (
-    <div className="container mx-auto py-6 max-w-7xl space-y-6">
+    <PageShell>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -720,7 +721,7 @@ export default function Contratos() {
         contrato={contratoDetalhes}
         onClose={() => setContratoDetalhes(null)}
       />
-    </div>
+    </PageShell>
   );
 }
 

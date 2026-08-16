@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -246,7 +247,7 @@ export default function PainelFinanceiroConta() {
   );
 
   return (
-    <div className="space-y-6 p-6">
+    <PageShell>
       <div>
         <h1 className="text-2xl font-medium">Vencimentos x Cliente</h1>
         <p className="text-sm text-muted-foreground">
@@ -419,6 +420,6 @@ export default function PainelFinanceiroConta() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

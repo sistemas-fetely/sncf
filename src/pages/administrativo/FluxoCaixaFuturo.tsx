@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -243,7 +244,7 @@ export default function FluxoCaixaFuturo() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <PageShell>
       <div>
         <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
           <TrendingUp className="h-6 w-6 text-admin" />
@@ -704,6 +705,6 @@ export default function FluxoCaixaFuturo() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   );
 }

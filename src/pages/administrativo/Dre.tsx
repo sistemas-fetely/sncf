@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useMemo, useState } from "react";
 import { AlertTriangle, ChevronDown, ChevronRight, Info, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -274,7 +275,7 @@ export default function Dre() {
   );
 
   return (
-    <div className="p-6 space-y-4 max-w-[1400px]">
+    <PageShell>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-medium">DRE — Demonstração do Resultado</h1>
@@ -461,6 +462,6 @@ export default function Dre() {
           </div>
         </SheetContent>
       </Sheet>
-    </div>
+    </PageShell>
   );
 }

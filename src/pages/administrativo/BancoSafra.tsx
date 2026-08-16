@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -1328,7 +1329,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <PageShell>
       <div>
         <h1 className="text-2xl font-medium flex items-center gap-2">
           <Landmark className="h-6 w-6" />
@@ -1937,6 +1938,6 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       </Dialog>
 
       <RetornoSafraPainel />
-    </div>
+    </PageShell>
   );
 }

@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -189,7 +190,7 @@ export default function ContasBancarias() {
   const totalSaldo = ativas.reduce((s, c) => s + Number(c.saldo_atual || 0), 0);
 
   return (
-    <div className="space-y-6 p-6">
+    <PageShell>
       {/* Header contas */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -555,6 +556,6 @@ export default function ContasBancarias() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   );
 }

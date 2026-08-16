@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -386,7 +387,7 @@ export default function Conciliacao() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <PageShell>
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-2">
@@ -1220,6 +1221,6 @@ export default function Conciliacao() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

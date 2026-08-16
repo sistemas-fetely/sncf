@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -284,7 +285,7 @@ export default function Produtos() {
   const totalCols = 12;
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 animate-casa-fade-in">
+    <PageShell className="animate-casa-fade-in">
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
@@ -687,7 +688,7 @@ export default function Produtos() {
         onClose={() => setSkuAberto(null)}
         onInvalidate={() => qc.invalidateQueries({ queryKey: ["vw_produto_cockpit"] })}
       />
-    </div>
+    </PageShell>
   );
 }
 

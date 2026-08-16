@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -322,7 +323,7 @@ export default function InvestimentoLancamento() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <PageShell>
       <div>
         <h1 className="text-2xl font-medium">Investimento de Lançamento</h1>
         <p className="text-sm text-muted-foreground">
@@ -776,6 +777,6 @@ export default function InvestimentoLancamento() {
         onClose={closeDrawer}
         onSaved={closeDrawer}
       />
-    </div>
+    </PageShell>
   );
 }

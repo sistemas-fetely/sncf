@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
@@ -545,7 +546,7 @@ export default function FluxoCompetencia() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <PageShell>
       <div>
         <h1 className="flex items-center gap-2 text-2xl font-medium tracking-tight">
           <ArrowLeftRight className="h-6 w-6 text-gold" />
@@ -1145,6 +1146,6 @@ export default function FluxoCompetencia() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

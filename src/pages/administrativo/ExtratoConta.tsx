@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -253,7 +254,7 @@ export default function ExtratoConta() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <PageShell>
       {/* Cabeçalho */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-2">
@@ -606,6 +607,6 @@ export default function ExtratoConta() {
       )}
 
       <ExtratoLinhaSheet linha={detalhe} onClose={() => setDetalhe(null)} />
-    </div>
+    </PageShell>
   );
 }

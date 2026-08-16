@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { addMonths, format, isAfter, isBefore, parseISO, startOfMonth } from "date-fns";
@@ -256,7 +257,7 @@ export default function FluxoFuturoInvestimento() {
   }, [eventos]);
 
   return (
-    <div className="space-y-6 p-6">
+    <PageShell>
       <div>
         <h1 className="text-2xl font-medium">Fluxo Futuro de Investimento</h1>
         <p className="text-sm text-muted-foreground">
@@ -511,6 +512,6 @@ export default function FluxoFuturoInvestimento() {
         filtro={drawerFiltro}
         eventos={eventosDrawer}
       />
-    </div>
+    </PageShell>
   );
 }

@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -317,7 +318,7 @@ export default function PlanoDeContas() {
   const isSearching = busca.trim().length > 0;
 
   return (
-    <div className="p-6 space-y-6">
+    <PageShell>
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
@@ -457,6 +458,6 @@ export default function PlanoDeContas() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   );
 }

@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useMemo, useState, type ComponentProps } from "react";
 import { getStatusCprMeta, STATUS_CPR_VALIDOS } from "@/lib/financeiro/status-cpr";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -392,7 +393,7 @@ export default function ContasPagar() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <PageShell>
       {/* Header sticky */}
       <div className="sticky top-0 z-20 bg-background -mx-6 -mt-6 px-6 pt-6 pb-4 border-b space-y-4 backdrop-blur">
         <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -734,7 +735,7 @@ export default function ContasPagar() {
         }}
         initialData={initialDataNovaConta}
       />
-    </div>
+    </PageShell>
   );
 }
 

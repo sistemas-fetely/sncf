@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, Navigate, useSearchParams } from "react-router-dom";
@@ -535,7 +536,7 @@ export default function DashboardFinanceiro() {
   const hojeBadge = new Date().toLocaleDateString("pt-BR");
 
   return (
-    <div className="p-6 animate-casa-fade-in">
+    <PageShell className="animate-casa-fade-in">
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
@@ -1045,6 +1046,6 @@ export default function DashboardFinanceiro() {
           </div>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

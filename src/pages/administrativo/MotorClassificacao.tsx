@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, ArrowLeft, BarChart3, CheckCircle, Layers, Loader2, Zap } from "lucide-react";
@@ -93,7 +94,7 @@ export default function MotorClassificacao() {
   }));
 
   return (
-    <div className="container mx-auto py-6 space-y-6 max-w-7xl">
+    <PageShell>
       <div className="flex items-start justify-between gap-4">
         <div>
           <Button
@@ -238,6 +239,6 @@ export default function MotorClassificacao() {
           </Card>
         </>
       )}
-    </div>
+    </PageShell>
   );
 }
