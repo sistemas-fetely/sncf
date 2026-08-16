@@ -258,6 +258,21 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
     },
   });
 
+  const provisoesQ = useQuery({
+    queryKey: ["provisoes-pedido", pedido.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("provisao_recebimento")
+        .select("id, numero_parcela, valor, data_prevista, tipo_pagamento, eh_portao, status, pago_em, link_pagamento, pix_txid")
+        .eq("pedido_id", pedido.id)
+        .neq("status", "cancelada")
+        .order("numero_parcela", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+    enabled: !!pedido.id,
+  });
+
   const emailLogQ = useQuery({
     queryKey: ["cobranca-email-log", pedido.id],
     queryFn: async () => {
