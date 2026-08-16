@@ -9,6 +9,7 @@ import { OrgAnalyticView } from "@/components/organograma/OrgAnalyticView";
 import { OrgNodeDrawer } from "@/components/organograma/OrgNodeDrawer";
 import { OrgPosicaoModal } from "@/components/organograma/OrgPosicaoModal";
 import { OrgMoveConfirmDialog } from "@/components/organograma/OrgMoveConfirmDialog";
+import { OrgListaView } from "@/components/organograma/OrgListaView";
 import type { ViewMode, OrgFilters, PosicaoNode } from "@/types/organograma";
 
 function filterTree(nodes: PosicaoNode[], filters: OrgFilters): PosicaoNode[] {
