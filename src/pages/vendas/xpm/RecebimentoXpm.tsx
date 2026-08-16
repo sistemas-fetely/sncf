@@ -40,6 +40,8 @@ export default function RecebimentoXpm() {
   const [pedidoRef, setPedidoRef] = useState<string>("");
   const [gerando, setGerando] = useState(false);
   const [termo, setTermo] = useState("");
+  const [dataRecebimento, setDataRecebimento] = useState("");
+  const [centro, setCentro] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [ingerindo, setIngerindo] = useState(false);
   const [resultado, setResultado] = useState<IngestResult | null>(null);
@@ -51,6 +53,20 @@ export default function RecebimentoXpm() {
   const [gravandoPesos, setGravandoPesos] = useState(false);
   const [previa, setPrevia] = useState<PesosResult | null>(null);
   const [permitirSobrescrita, setPermitirSobrescrita] = useState(false);
+
+  type CentroOpt = { codigo: string; nome: string };
+  const centrosQ = useQuery({
+    queryKey: ["centros-distribuicao-ativos"],
+    queryFn: async (): Promise<CentroOpt[]> => {
+      const { data, error } = await supabase
+        .from("centro_distribuicao")
+        .select("codigo, nome")
+        .eq("ativo", true)
+        .order("ordem");
+      if (error) throw error;
+      return (data ?? []) as CentroOpt[];
+    },
+  });
 
   type PedidoOpt = {
     numero_pedido: string;
