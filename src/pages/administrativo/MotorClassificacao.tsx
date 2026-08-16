@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, ArrowLeft, BarChart3, CheckCircle, Layers, Loader2, Zap } from "lucide-react";
@@ -93,7 +94,7 @@ export default function MotorClassificacao() {
   }));
 
   return (
-    <div className="container mx-auto py-6 space-y-6 max-w-7xl">
+    <PageShell>
       <div className="flex items-start justify-between gap-4">
         <div>
           <Button
@@ -104,7 +105,7 @@ export default function MotorClassificacao() {
           >
             <ArrowLeft className="h-4 w-4" /> Voltar para NFs Stage
           </Button>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
             <BarChart3 className="h-6 w-6 text-admin" />
             Motor de Classificação
           </h1>
@@ -221,7 +222,7 @@ export default function MotorClassificacao() {
                             <TableCell className="font-mono text-xs text-muted-foreground">
                               {f.fornecedor_cnpj}
                             </TableCell>
-                            <TableCell className="text-right font-semibold">
+                            <TableCell className="text-right font-medium">
                               {f.qtd_a_revisar}
                             </TableCell>
                             <TableCell className="text-right">
@@ -238,6 +239,6 @@ export default function MotorClassificacao() {
           </Card>
         </>
       )}
-    </div>
+    </PageShell>
   );
 }

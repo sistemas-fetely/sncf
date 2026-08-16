@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -108,7 +109,7 @@ function KpiCard({
         return {
           border: negativo ? ROSA_FETELY : VERDE_FETELY,
           icon: negativo ? ROSA_FETELY : VERDE_FETELY,
-          text: negativo ? "text-rose-600" : "text-emerald-700",
+          text: negativo ? "text-destructive" : "text-success",
         };
       }
       case "planejamento":
@@ -124,7 +125,7 @@ function KpiCard({
           <Icon className="h-3.5 w-3.5" style={{ color: config.icon }} />
           {label}
         </div>
-        <div className={cn("text-xl font-bold tabular-nums", config.text)}>
+        <div className={cn("text-xl font-medium tabular-nums", config.text)}>
           {formatBRL(valor)}
         </div>
       </CardContent>
@@ -153,7 +154,7 @@ function MiniKpis({
       <span>Saldo: <strong className="text-foreground">{formatBRL(saldo)}</strong></span>
       <span>
         Saving:{" "}
-        <strong className={cn(saving > 0 ? "text-emerald-700" : saving < 0 ? "text-rose-600" : "text-foreground")}>
+        <strong className={cn(saving > 0 ? "text-success" : saving < 0 ? "text-destructive" : "text-foreground")}>
           {formatBRL(saving)}
         </strong>
       </span>
@@ -308,10 +309,10 @@ export default function InvestimentoLancamento() {
 
   function getSaudeRowClass(l: LinhaKpi): string {
     const base = l.valor_fechado ?? l.valor_inicial;
-    if (l.saldo < 0) return "bg-red-50 hover:bg-red-100 border-l-4 border-red-500";
+    if (l.saldo < 0) return "bg-destructive/10 hover:bg-destructive/10 border-l-4 border-destructive/40";
     if (base > 0 && l.valor_pago / base >= 0.85)
-      return "bg-amber-50 hover:bg-amber-100 border-l-4 border-amber-500";
-    if (l.valor_fechado !== null) return "bg-emerald-50/40 hover:bg-emerald-100/60";
+      return "bg-warning/10 hover:bg-warning/10 border-l-4 border-warning/40";
+    if (l.valor_fechado !== null) return "bg-success/10 hover:bg-success/10";
     return "hover:bg-muted/50";
   }
 
@@ -322,9 +323,9 @@ export default function InvestimentoLancamento() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <PageShell>
       <div>
-        <h1 className="text-2xl font-bold">Investimento de Lançamento</h1>
+        <h1 className="text-2xl font-medium">Investimento de Lançamento</h1>
         <p className="text-sm text-muted-foreground">
           Acompanhamento de orçamento inicial, valores fechados e realizados das frentes
           de investimento de lançamento da Fetely.
@@ -391,10 +392,10 @@ export default function InvestimentoLancamento() {
                 )}
                 style={{ backgroundColor: bg, color: textColor }}
               >
-                <div className="text-xs font-semibold uppercase tracking-wide opacity-90 truncate">
+                <div className="text-xs font-medium uppercase tracking-wide opacity-90 truncate">
                   {f.nome}
                 </div>
-                <div className="text-base font-bold tabular-nums mt-1 truncate">
+                <div className="text-base font-medium tabular-nums mt-1 truncate">
                   {formatBRL(total)}
                 </div>
                 {(() => {
@@ -417,13 +418,13 @@ export default function InvestimentoLancamento() {
                       <div className="mt-1.5 space-y-0 text-[11px]">
                         <div className="flex items-center justify-between">
                           <span className="opacity-80">Realizado</span>
-                          <span className="font-semibold tabular-nums">
+                          <span className="font-medium tabular-nums">
                             {percRealizadoLocal === null ? "—" : `${percRealizadoLocal}%`}
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="opacity-80">Comprometido</span>
-                          <span className="font-semibold tabular-nums">
+                          <span className="font-medium tabular-nums">
                             {percTotalComprometido === null ? "—" : `${percTotalComprometido}%`}
                           </span>
                         </div>
@@ -545,7 +546,7 @@ export default function InvestimentoLancamento() {
                   </button>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-base inline-flex items-center">
+                      <h3 className="font-medium text-base inline-flex items-center">
                         {f.nome}
                         <PctBadge value={f.total_inicial} base={totalGeralInicial} />
                       </h3>
@@ -708,8 +709,8 @@ export default function InvestimentoLancamento() {
                                             <td
                                               className={cn(
                                                 "px-2 py-2 text-right tabular-nums",
-                                                l.saving > 0 && "text-emerald-700",
-                                                l.saving < 0 && "text-rose-600",
+                                                l.saving > 0 && "text-success",
+                                                l.saving < 0 && "text-destructive",
                                               )}
                                             >
                                               {formatBRL(l.saving)}
@@ -723,9 +724,9 @@ export default function InvestimentoLancamento() {
                                                   className={cn(
                                                     "tabular-nums",
                                                     perc <= 50 && "text-muted-foreground",
-                                                    perc > 50 && perc <= 85 && "text-blue-700 border-blue-300",
-                                                    perc > 85 && perc <= 100 && "text-amber-700 border-amber-300 bg-amber-50",
-                                                    perc > 100 && "text-red-700 border-red-400 bg-red-50",
+                                                    perc > 50 && perc <= 85 && "text-info border-info/40",
+                                                    perc > 85 && perc <= 100 && "text-warning border-warning/40 bg-warning/10",
+                                                    perc > 100 && "text-destructive border-destructive/40 bg-destructive/10",
                                                   )}
                                                 >
                                                   {perc}%{perc > 100 && " ⚠️"}
@@ -776,6 +777,6 @@ export default function InvestimentoLancamento() {
         onClose={closeDrawer}
         onSaved={closeDrawer}
       />
-    </div>
+    </PageShell>
   );
 }

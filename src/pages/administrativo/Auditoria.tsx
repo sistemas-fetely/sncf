@@ -8,6 +8,7 @@
  * Fontes: vw_auditoria_achado (aba Achados) e vw_auditoria_painel (aba Painel).
  * Escrita SEMPRE por RPC — nunca UPDATE direto no achado.
  */
+import { PageShell } from "@/components/layout/PageShell";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AchadosTab from "@/components/auditoria/AchadosTab";
@@ -22,11 +23,11 @@ export default function Auditoria() {
   const ultimaExecucaoEm = execucoes.data?.[0]?.iniciado_em ?? null;
 
   return (
-    <div className="mx-auto max-w-[1500px] space-y-6 p-6">
+    <PageShell>
       <div className="flex items-start gap-3">
         <ShieldAlert className="mt-1 h-6 w-6 text-muted-foreground" />
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Auditoria</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Auditoria</h1>
           <p className="text-sm text-muted-foreground">
             O motor acha; o humano trata. Cada monitoria é uma regra com SQL versionado.
           </p>
@@ -56,6 +57,6 @@ export default function Auditoria() {
           />
         </TabsContent>
       </Tabs>
-    </div>
+    </PageShell>
   );
 }

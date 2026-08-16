@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, Navigate, useSearchParams } from "react-router-dom";
@@ -98,29 +99,29 @@ function HeroCompetencia({
               Resultado da competência
             </div>
             <div
-              className={`text-3xl font-bold tracking-tight tabular-nums leading-tight ${
-                resultado >= 0 ? "text-white" : "text-rose-200"
+              className={`text-3xl font-medium tracking-tight tabular-nums leading-tight ${
+                resultado >= 0 ? "text-white" : "text-destructive"
               }`}
             >
               {formatBRL(resultado)}
             </div>
           </div>
           <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium backdrop-blur">
-            <span className={`h-2 w-2 rounded-full ${resultado >= 0 ? "bg-emerald-400" : "bg-rose-400"}`} />
+            <span className={`h-2 w-2 rounded-full ${resultado >= 0 ? "bg-success" : "bg-destructive"}`} />
             {mesNomeStr(comp)}
           </div>
         </div>
         <div className="flex items-center gap-5 md:gap-6">
           <div>
             <div className="text-[10px] uppercase tracking-wider text-white/60">Receita faturada</div>
-            <div className="flex items-center gap-1 text-sm font-semibold text-emerald-200 tabular-nums">
+            <div className="flex items-center gap-1 text-sm font-medium text-success tabular-nums">
               <ArrowUpRight className="h-3.5 w-3.5" />
               {formatBRL(receita)}
             </div>
           </div>
           <div>
             <div className="text-[10px] uppercase tracking-wider text-white/60">Despesa operacional</div>
-            <div className="flex items-center gap-1 text-sm font-semibold text-rose-200 tabular-nums">
+            <div className="flex items-center gap-1 text-sm font-medium text-destructive tabular-nums">
               <ArrowDownRight className="h-3.5 w-3.5" />
               {formatBRL(despesa)}
             </div>
@@ -141,7 +142,7 @@ function MetricCard({
   accent?: string; alert?: boolean; hint?: string;
 }) {
   return (
-    <div className={`rounded-xl border bg-card p-5 shadow-sm transition-all hover:shadow-md ${alert ? "border-rose-200 bg-rose-50/30" : ""}`}>
+    <div className={`rounded-xl border bg-card p-5 shadow-sm transition-all hover:shadow-md ${alert ? "border-destructive/40 bg-destructive/10" : ""}`}>
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
           {label}
@@ -163,16 +164,16 @@ function MetricCard({
           <Icon className="h-4 w-4" style={{ color: accent }} />
         </div>
       </div>
-      <div className="mt-3 text-2xl font-bold tracking-tight tabular-nums">{value}</div>
+      <div className="mt-3 text-2xl font-medium tracking-tight tabular-nums">{value}</div>
       {sub && <div className="mt-1 text-xs text-muted-foreground">{sub}</div>}
       {delta !== undefined && delta !== null && (
         <div className="mt-2 flex items-center gap-1 text-xs">
           {delta.valor >= 0 ? (
-            <ArrowUpRight className="h-3 w-3 text-emerald-600" />
+            <ArrowUpRight className="h-3 w-3 text-success" />
           ) : (
-            <ArrowDownRight className="h-3 w-3 text-rose-600" />
+            <ArrowDownRight className="h-3 w-3 text-destructive" />
           )}
-          <span className={`font-medium ${delta.valor >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+          <span className={`font-medium ${delta.valor >= 0 ? "text-success" : "text-destructive"}`}>
             {delta.valor > 0 ? "+" : ""}{delta.valor.toFixed(1)}%
           </span>
           <span className="text-muted-foreground">{delta.rotulo}</span>
@@ -194,7 +195,7 @@ function ChartCard({
     <div className="rounded-xl border bg-card p-5 shadow-sm">
       <div className="mb-4 flex items-start justify-between">
         <div>
-          <div className="text-sm font-semibold">{title}</div>
+          <div className="text-sm font-medium">{title}</div>
           {subtitle && <div className="mt-0.5 text-xs text-muted-foreground">{subtitle}</div>}
         </div>
         {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
@@ -213,15 +214,15 @@ function Insight({
   tipo?: "info" | "alerta" | "sucesso";
 }) {
   const cores = {
-    info: { bg: "bg-blue-50", border: "border-blue-200", icon: "text-blue-600", titulo: "text-blue-900", desc: "text-blue-700" },
-    alerta: { bg: "bg-amber-50", border: "border-amber-200", icon: "text-amber-600", titulo: "text-amber-900", desc: "text-amber-700" },
-    sucesso: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600", titulo: "text-emerald-900", desc: "text-emerald-700" },
+    info: { bg: "bg-info/10", border: "border-info/40", icon: "text-info", titulo: "text-info", desc: "text-info" },
+    alerta: { bg: "bg-warning/10", border: "border-warning/40", icon: "text-warning", titulo: "text-warning", desc: "text-warning" },
+    sucesso: { bg: "bg-success/10", border: "border-success/40", icon: "text-success", titulo: "text-success", desc: "text-success" },
   }[tipo];
   return (
     <div className={`flex gap-3 rounded-lg border p-3 ${cores.bg} ${cores.border}`}>
       <Icon className={`h-5 w-5 shrink-0 ${cores.icon}`} />
       <div className="min-w-0">
-        <div className={`text-sm font-semibold ${cores.titulo}`}>{titulo}</div>
+        <div className={`text-sm font-medium ${cores.titulo}`}>{titulo}</div>
         <div className={`mt-0.5 text-xs ${cores.desc}`}>{descricao}</div>
       </div>
     </div>
@@ -520,12 +521,12 @@ export default function DashboardFinanceiro() {
     if (!active || !payload?.length) return null;
     return (
       <div className="rounded-lg border bg-popover p-3 shadow-md">
-        <div className="mb-1 text-xs font-semibold">{label}</div>
+        <div className="mb-1 text-xs font-medium">{label}</div>
         {payload.map((p: any, i: number) => (
           <div key={i} className="flex items-center gap-2 text-xs" style={{ color: p.color }}>
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: p.color }} />
             <span>{p.name}:</span>
-            <span className="font-mono font-semibold">{formatBRL(p.value)}</span>
+            <span className="font-mono font-medium">{formatBRL(p.value)}</span>
           </div>
         ))}
       </div>
@@ -535,7 +536,7 @@ export default function DashboardFinanceiro() {
   const hojeBadge = new Date().toLocaleDateString("pt-BR");
 
   return (
-    <div className="p-6 animate-casa-fade-in">
+    <PageShell className="animate-casa-fade-in">
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
@@ -555,7 +556,7 @@ export default function DashboardFinanceiro() {
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="min-w-[86px] text-center text-sm font-semibold tabular-nums">
+            <span className="min-w-[86px] text-center text-sm font-medium tabular-nums">
               {comp ? mesNomeStr(comp) : "—"}
             </span>
             <Button
@@ -739,7 +740,7 @@ export default function DashboardFinanceiro() {
                                 <span className="font-medium">{rotuloForma(f.forma)}</span>
                               </div>
                               <div className="flex items-center gap-3">
-                                <span className="font-mono text-xs font-semibold tabular-nums">{formatBRL(f.valor)}</span>
+                                <span className="font-mono text-xs font-medium tabular-nums">{formatBRL(f.valor)}</span>
                                 <span className="w-12 text-right text-xs text-muted-foreground tabular-nums">{f.pct.toFixed(1)}%</span>
                               </div>
                             </div>
@@ -768,14 +769,14 @@ export default function DashboardFinanceiro() {
                         <div className="flex items-center justify-between text-sm">
                           <span className="font-medium">À vista</span>
                           <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs font-semibold tabular-nums">{formatBRL(formasData?.aVista ?? 0)}</span>
+                            <span className="font-mono text-xs font-medium tabular-nums">{formatBRL(formasData?.aVista ?? 0)}</span>
                             <span className="w-12 text-right text-xs text-muted-foreground tabular-nums">{pctAVista.toFixed(0)}%</span>
                           </div>
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span className="font-medium">A prazo</span>
                           <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs font-semibold tabular-nums">{formatBRL(formasData?.aPrazo ?? 0)}</span>
+                            <span className="font-mono text-xs font-medium tabular-nums">{formatBRL(formasData?.aPrazo ?? 0)}</span>
                             <span className="w-12 text-right text-xs text-muted-foreground tabular-nums">{pctAPrazo.toFixed(0)}%</span>
                           </div>
                         </div>
@@ -825,7 +826,7 @@ export default function DashboardFinanceiro() {
                             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: COR_CATEGORIAS[i % COR_CATEGORIAS.length] }} />
                             <span className="flex-1 truncate">{c.nome}</span>
                             <span className="text-xs text-muted-foreground tabular-nums">{pct.toFixed(0)}%</span>
-                            <span className="w-24 text-right font-mono text-xs font-semibold tabular-nums">{formatBRL(c.valor)}</span>
+                            <span className="w-24 text-right font-mono text-xs font-medium tabular-nums">{formatBRL(c.valor)}</span>
                           </div>
                         );
                       })}
@@ -850,7 +851,7 @@ export default function DashboardFinanceiro() {
                         <div key={f.nome}>
                           <div className="mb-1 flex items-center justify-between text-sm">
                             <span className="truncate font-medium">{f.nome}</span>
-                            <span className="font-mono text-xs font-semibold tabular-nums">{formatBRL(f.valor)}</span>
+                            <span className="font-mono text-xs font-medium tabular-nums">{formatBRL(f.valor)}</span>
                           </div>
                           <div className="h-2 overflow-hidden rounded-full bg-muted">
                             <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: VERDE }} />
@@ -868,7 +869,7 @@ export default function DashboardFinanceiro() {
             <div className="rounded-xl border bg-card p-5 shadow-sm">
               <div className="mb-4 flex items-center gap-2">
                 <Sparkles className="h-4 w-4" style={{ color: ROSA }} />
-                <div className="text-sm font-semibold">Insights da competência</div>
+                <div className="text-sm font-medium">Insights da competência</div>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
                 {(linha?.resultado_competencia ?? 0) < 0 && (
@@ -928,7 +929,7 @@ export default function DashboardFinanceiro() {
         <div className="rounded-2xl border bg-muted/20 p-5">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
-              <div className="flex items-center gap-2 text-sm font-semibold">
+              <div className="flex items-center gap-2 text-sm font-medium">
                 <CalendarDays className="h-4 w-4" style={{ color: VERDE }} />
                 Posição de hoje
               </div>
@@ -1033,7 +1034,7 @@ export default function DashboardFinanceiro() {
                             </td>
                             <td className="py-3">{c.parceiros_comerciais?.razao_social ?? "—"}</td>
                             <td className="py-3 max-w-xs truncate text-muted-foreground">{c.descricao}</td>
-                            <td className="py-3 text-right font-mono font-semibold tabular-nums">{formatBRL(c.valor)}</td>
+                            <td className="py-3 text-right font-mono font-medium tabular-nums">{formatBRL(c.valor)}</td>
                           </tr>
                         );
                       })}
@@ -1045,6 +1046,6 @@ export default function DashboardFinanceiro() {
           </div>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

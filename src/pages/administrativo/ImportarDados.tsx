@@ -88,7 +88,7 @@ export default function ImportarDados() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+        <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
           <Upload className="h-6 w-6 text-admin" />
           Importar Dados
         </h1>
@@ -173,7 +173,7 @@ export default function ImportarDados() {
 
       {/* Importadores de NF */}
       <div>
-        <h2 className="text-lg font-semibold mb-1">Importar NFs</h2>
+        <h2 className="text-lg font-medium mb-1">Importar NFs</h2>
         <p className="text-sm text-muted-foreground mb-3">
           Selecione XMLs ou PDFs. NFs vão para o stage onde poderão ser processadas,
           classificadas e vinculadas a Contas a Pagar.

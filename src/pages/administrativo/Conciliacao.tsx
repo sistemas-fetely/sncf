@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -372,25 +373,25 @@ export default function Conciliacao() {
   const parcialmenteConciliados = itens.filter((i) => i.tipo === "parcialmente_conciliado").length;
 
   function nivelBadge(nivel: number) {
-    if (nivel <= 2) return "bg-emerald-100 text-emerald-800";
-    if (nivel === 3) return "bg-amber-100 text-amber-800";
+    if (nivel <= 2) return "bg-success/10 text-success";
+    if (nivel === 3) return "bg-warning/10 text-warning";
     return "bg-muted text-muted-foreground";
   }
 
   function corNivel(nivel: number | undefined | null): string {
     if (!nivel) return "";
-    if (nivel === 1) return "border-l-4 border-l-emerald-500 bg-emerald-50/20";
-    if (nivel === 2) return "border-l-4 border-l-yellow-400 bg-yellow-50/20";
-    if (nivel === 3) return "border-l-4 border-l-orange-400 bg-orange-50/20";
-    return "border-l-4 border-l-red-400 bg-red-50/20";
+    if (nivel === 1) return "border-l-4 border-l-success/40 bg-success/10";
+    if (nivel === 2) return "border-l-4 border-l-warning/40 bg-warning/10";
+    if (nivel === 3) return "border-l-4 border-l-warning/40 bg-warning/10";
+    return "border-l-4 border-l-destructive/40 bg-destructive/10";
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <PageShell>
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold flex items-center gap-2">
+          <h1 className="text-2xl font-medium flex items-center gap-2">
             <ArrowLeftRight className="h-6 w-6" />
             Conciliação Bancária
           </h1>
@@ -446,13 +447,13 @@ export default function Conciliacao() {
           {(completos + parciais + semMov + parcialmenteConciliados) > 0 && (
             <div className="flex flex-wrap items-center gap-2">
               {completos > 0 && (
-                <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 gap-1">
+                <Badge className="bg-success/10 text-success hover:bg-success/10 gap-1">
                   <CheckCircle2 className="h-3 w-3" />
                   {completos} pronto{completos !== 1 ? "s" : ""} para conciliar
                 </Badge>
               )}
               {parciais > 0 && (
-                <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 gap-1">
+                <Badge className="bg-warning/10 text-warning hover:bg-warning/10 gap-1">
                   <Clock className="h-3 w-3" />
                   {parciais} parcial{parciais !== 1 ? "is" : ""}
                 </Badge>
@@ -464,7 +465,7 @@ export default function Conciliacao() {
                 </Badge>
               )}
               {parcialmenteConciliados > 0 && (
-                <Badge variant="outline" className="gap-1 border-blue-300 text-blue-800">
+                <Badge variant="outline" className="gap-1 border-info/40 text-info">
                   <Clock className="h-3 w-3" />
                   {parcialmenteConciliados} parcialmente conciliado{parcialmenteConciliados !== 1 ? "s" : ""}
                 </Badge>
@@ -475,7 +476,7 @@ export default function Conciliacao() {
           {/* Lotes */}
           {lotes.length > 0 && (
             <div className="space-y-2">
-              <h2 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
+              <h2 className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
                 <Layers className="h-4 w-4" /> Lotes
               </h2>
               {lotes.map((lote) => {
@@ -493,7 +494,7 @@ export default function Conciliacao() {
                     <div className="flex items-center justify-between gap-4 p-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-semibold text-sm">Lote {lote.numero_lote}</p>
+                          <p className="font-medium text-sm">Lote {lote.numero_lote}</p>
                           <span className="text-muted-foreground text-xs">·</span>
                           <span className="text-xs text-muted-foreground">
                             {lote.qtd_planilhas} pagamentos
@@ -506,11 +507,11 @@ export default function Conciliacao() {
                         )}
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
-                        <span className="font-semibold text-sm">{formatBRL(lote.soma)}</span>
+                        <span className="font-medium text-sm">{formatBRL(lote.soma)}</span>
                         {isCompleto && todasMovs && lote.ofx_sugerido && (
                           <Button
                             size="sm"
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
+                            className="bg-success hover:bg-success text-white gap-1"
                             disabled={vincularLoteMutation.isPending}
                             onClick={() =>
                               vincularLoteMutation.mutate({
@@ -639,7 +640,7 @@ export default function Conciliacao() {
           {itens.length > 0 && (
             <div className="space-y-2">
               {lotes.length > 0 && (
-                <h2 className="text-sm font-semibold text-muted-foreground">Avulsos</h2>
+                <h2 className="text-sm font-medium text-muted-foreground">Avulsos</h2>
               )}
               {itens.map((item) => {
                 const isCompleto = item.tipo === "completo";
@@ -649,7 +650,7 @@ export default function Conciliacao() {
                     key={item.planilha_id}
                     className={`rounded-lg border bg-card p-3 transition-colors ${
                       item.tipo === "parcialmente_conciliado"
-                        ? "border-l-4 border-l-blue-500 bg-blue-50/20"
+                        ? "border-l-4 border-l-info/40 bg-info/10"
                         : corNivel(item.mov_sugerida?.nivel)
                     }`}
                   >
@@ -659,7 +660,7 @@ export default function Conciliacao() {
                         <p className="font-medium text-sm truncate">{item.nome_favorecido ?? "—"}</p>
                         {item.tipo === "parcialmente_conciliado" && (
                           <div className="flex items-center gap-2 mt-1 flex-wrap">
-                            <Badge className="text-[9px] bg-blue-100 text-blue-800 hover:bg-blue-100">
+                            <Badge className="text-[9px] bg-info/10 text-info hover:bg-info/10">
                               Parcial · {formatBRL(item.valor_ja_vinculado ?? 0)} de {formatBRL(item.valor_pago)}
                             </Badge>
                             <span className="text-[10px] text-muted-foreground">
@@ -711,11 +712,11 @@ export default function Conciliacao() {
 
                       {/* Ação */}
                       <div className="flex items-center gap-2 justify-end shrink-0">
-                        <span className="font-semibold text-sm">{formatBRL(item.valor_pago)}</span>
+                        <span className="font-medium text-sm">{formatBRL(item.valor_pago)}</span>
                         {isCompleto && item.mov_sugerida && item.ofx_sugerido && (
                           <Button
                             size="sm"
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
+                            className="bg-success hover:bg-success text-white gap-1"
                             disabled={vincularMutation.isPending}
                             onClick={() =>
                               vincularMutation.mutate({
@@ -736,7 +737,7 @@ export default function Conciliacao() {
                         {isParcial && item.mov_sugerida && (
                           <Button
                             size="sm"
-                            className="bg-amber-500 hover:bg-amber-600 text-white gap-1"
+                            className="bg-warning hover:bg-warning text-white gap-1"
                             disabled={vincularMutation.isPending}
                             onClick={() =>
                               vincularMutation.mutate({
@@ -756,7 +757,7 @@ export default function Conciliacao() {
                         {item.tipo === "parcialmente_conciliado" && (
                           <>
                             <Button size="sm" variant="outline"
-                              className="gap-1 border-blue-300 text-blue-800 hover:bg-blue-50"
+                              className="gap-1 border-info/40 text-info hover:bg-info/10"
                               onClick={() => { setMultiVinculoAberto(item); setMovsSelecionadas([]); }}>
                               <Layers className="h-3.5 w-3.5" /> Selecionar movs
                             </Button>
@@ -779,7 +780,7 @@ export default function Conciliacao() {
                         {item.tipo === "sem_mov" && item.ofx_sugerido && (
                           <Button
                             size="sm"
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
+                            className="bg-success hover:bg-success text-white gap-1"
                             disabled={conciliarFaturaMutation.isPending}
                             onClick={() => setConfirmacaoAberta(item)}
                           >
@@ -832,11 +833,11 @@ export default function Conciliacao() {
                                   <div className="flex items-center gap-2 shrink-0">
                                     <span className="font-mono">{formatBRL(m.valor)}</span>
                                     {m.pg_em ? (
-                                      <Badge variant="outline" className="text-[9px] border-emerald-300 text-emerald-700 bg-emerald-50">
+                                      <Badge variant="outline" className="text-[9px] border-success/40 text-success bg-success/10">
                                         Conciliado
                                       </Badge>
                                     ) : (
-                                      <Badge variant="outline" className="text-[9px] border-amber-300 text-amber-700 bg-amber-50">
+                                      <Badge variant="outline" className="text-[9px] border-warning/40 text-warning bg-warning/10">
                                         Aguardando OFX
                                       </Badge>
                                     )}
@@ -860,7 +861,7 @@ export default function Conciliacao() {
                 Aguardando OFX ({aguardandoOfx.length})
               </p>
               {aguardandoOfx.map((item) => (
-                <div key={item.planilha_id} className="border rounded-md p-3 flex items-center justify-between gap-4 border-l-4 border-l-amber-400 bg-amber-50/20">
+                <div key={item.planilha_id} className="border rounded-md p-3 flex items-center justify-between gap-4 border-l-4 border-l-warning/40 bg-warning/10">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{item.nome_favorecido ?? "—"}</p>
                     <p className="text-xs text-muted-foreground">
@@ -908,7 +909,7 @@ export default function Conciliacao() {
                 OFX sem planilha ({ofxOrfao.length})
               </p>
               {ofxOrfao.map((item) => (
-                <div key={item.ofx_id} className="border rounded-md p-3 flex items-center justify-between gap-4 border-l-4 border-l-slate-300">
+                <div key={item.ofx_id} className="border rounded-md p-3 flex items-center justify-between gap-4 border-l-4 border-l-border/40">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{item.descricao}</p>
                     <p className="text-xs text-muted-foreground">
@@ -1007,15 +1008,15 @@ export default function Conciliacao() {
           <div className="p-3 rounded-lg border space-y-1.5">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Selecionadas</span>
-              <span className={`font-mono font-semibold ${somaMovsSelecionadas === valorPlanilhaAberta ? "text-emerald-600" : ""}`}>
+              <span className={`font-mono font-medium ${somaMovsSelecionadas === valorPlanilhaAberta ? "text-success" : ""}`}>
                 {formatBRL(somaMovsSelecionadas)} / {formatBRL(valorPlanilhaAberta)}
               </span>
             </div>
             <div className="w-full bg-muted rounded-full h-1.5">
               <div
                 className={`h-1.5 rounded-full transition-all ${
-                  somaMovsSelecionadas > valorPlanilhaAberta ? "bg-red-500" :
-                  somaMovsSelecionadas === valorPlanilhaAberta ? "bg-emerald-500" : "bg-primary"
+                  somaMovsSelecionadas > valorPlanilhaAberta ? "bg-destructive" :
+                  somaMovsSelecionadas === valorPlanilhaAberta ? "bg-success" : "bg-primary"
                 }`}
                 style={{ width: `${valorPlanilhaAberta > 0 ? Math.min(100, (somaMovsSelecionadas / valorPlanilhaAberta) * 100) : 0}%` }}
               />
@@ -1039,18 +1040,18 @@ export default function Conciliacao() {
                       prev.includes(mov.id) ? prev.filter((id) => id !== mov.id) : [...prev, mov.id]
                     )}
                     className={`p-3 rounded border cursor-pointer text-xs flex items-start justify-between gap-2 ${
-                      selecionada ? "border-emerald-400 bg-emerald-50/30" : "hover:bg-muted/50"
+                      selecionada ? "border-success/40 bg-success/10" : "hover:bg-muted/50"
                     }`}
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate">{mov.fornecedor_cliente ?? mov.descricao ?? "—"}</p>
+                      <p className="font-medium truncate">{mov.fornecedor_cliente ?? mov.descricao ?? "—"}</p>
                       <p className="text-muted-foreground text-[10px] truncate">{mov.cpr_descricao ?? "—"}</p>
                       <p className="text-muted-foreground text-[10px]">{mov.data_transacao ? formatDateBR(mov.data_transacao) : "—"}</p>
                       {mov.forma_pagamento_nome && (
                         <div className="flex items-center gap-1 mt-0.5">
                           <span className="text-[10px] text-muted-foreground">{mov.forma_pagamento_nome}</span>
                           {mov.fatura_vencimento && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-info/10 text-info">
                               venc {formatDateBR(mov.fatura_vencimento)}
                             </span>
                           )}
@@ -1058,8 +1059,8 @@ export default function Conciliacao() {
                       )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="font-mono font-bold">{formatBRL(Math.abs(Number(mov.valor || 0)))}</span>
-                      {selecionada && <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
+                      <span className="font-mono font-medium">{formatBRL(Math.abs(Number(mov.valor || 0)))}</span>
+                      {selecionada && <CheckCircle2 className="h-4 w-4 text-success" />}
                     </div>
                   </div>
                 );
@@ -1093,7 +1094,7 @@ export default function Conciliacao() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Link2 className="h-5 w-5 text-emerald-600" />
+              <Link2 className="h-5 w-5 text-success" />
               Vincular à Fatura de Cartão
             </DialogTitle>
           </DialogHeader>
@@ -1101,23 +1102,23 @@ export default function Conciliacao() {
             <div className="space-y-4 py-2">
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-md border p-3 space-y-1 text-sm">
-                  <p className="text-[10px] font-semibold uppercase text-muted-foreground">Planilha Itaú</p>
-                  <p className="font-semibold">{confirmacaoAberta.nome_favorecido ?? "—"}</p>
-                  <p className="font-mono font-bold text-base">{formatBRL(confirmacaoAberta.valor_pago)}</p>
+                  <p className="text-[10px] font-medium uppercase text-muted-foreground">Planilha Itaú</p>
+                  <p className="font-medium">{confirmacaoAberta.nome_favorecido ?? "—"}</p>
+                  <p className="font-mono font-medium text-base">{formatBRL(confirmacaoAberta.valor_pago)}</p>
                   <p className="text-xs text-muted-foreground">{confirmacaoAberta.data_pagamento ? formatDateBR(confirmacaoAberta.data_pagamento) : "—"}</p>
                 </div>
                 {confirmacaoAberta.ofx_sugerido && (
                   <div className="rounded-md border p-3 space-y-1 text-sm bg-muted/20">
-                    <p className="text-[10px] font-semibold uppercase text-muted-foreground">OFX detectado</p>
+                    <p className="text-[10px] font-medium uppercase text-muted-foreground">OFX detectado</p>
                     <p className="font-medium truncate">{confirmacaoAberta.ofx_sugerido.descricao}</p>
-                    <p className="font-mono font-bold text-base">{formatBRL(confirmacaoAberta.ofx_sugerido.valor)}</p>
+                    <p className="font-mono font-medium text-base">{formatBRL(confirmacaoAberta.ofx_sugerido.valor)}</p>
                     <p className="text-xs text-muted-foreground">{formatDateBR(confirmacaoAberta.ofx_sugerido.data_transacao)}</p>
                   </div>
                 )}
               </div>
 
               <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase text-muted-foreground">Selecione a fatura que este pagamento está quitando:</p>
+                <p className="text-xs font-medium uppercase text-muted-foreground">Selecione a fatura que este pagamento está quitando:</p>
                 {!faturasDisponiveis ? (
                   <div className="flex justify-center py-4">
                     <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -1137,25 +1138,25 @@ export default function Conciliacao() {
                             f.ja_vinculada
                               ? "opacity-50 cursor-not-allowed bg-muted/20"
                               : isSelecionada
-                                ? "border-emerald-500 bg-emerald-50/60"
+                                ? "border-success/40 bg-success/10"
                                 : destaqueExato
-                                  ? "border-emerald-400 bg-emerald-50/30 hover:bg-emerald-50/60"
+                                  ? "border-success/40 bg-success/10 hover:bg-success/10"
                                   : "hover:bg-muted/50"
                           }`}
                         >
                           <div className="flex justify-between items-start gap-3">
                             <div className="min-w-0 flex-1">
-                              <p className="font-semibold truncate">{f.cartao_nome}</p>
+                              <p className="font-medium truncate">{f.cartao_nome}</p>
                               <p className="text-muted-foreground truncate">{f.parceiros}</p>
                               <p className="text-[10px] text-muted-foreground mt-0.5">Vence {formatDateBR(f.data_vencimento)} · {f.qtd_lancamentos} lançamentos</p>
                             </div>
                             <div className="flex flex-col items-end gap-1 shrink-0">
-                              <p className={`font-mono font-bold ${destaqueExato ? "text-emerald-700" : ""}`}>{formatBRL(f.valor_total)}</p>
+                              <p className={`font-mono font-medium ${destaqueExato ? "text-success" : ""}`}>{formatBRL(f.valor_total)}</p>
                               {destaqueExato && (
-                                <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[9px]">valor exato</Badge>
+                                <Badge className="bg-success hover:bg-success text-white text-[9px]">valor exato</Badge>
                               )}
                               {f.ja_vinculada && <Badge variant="outline" className="text-[9px]">já vinculada</Badge>}
-                              {isSelecionada && <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
+                              {isSelecionada && <CheckCircle2 className="h-4 w-4 text-success" />}
                             </div>
                           </div>
                         </div>
@@ -1171,7 +1172,7 @@ export default function Conciliacao() {
               Cancelar
             </Button>
             <Button
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-success hover:bg-success text-white gap-2"
               disabled={conciliarFaturaMutation.isPending || !faturaSelecionada}
               onClick={() => {
                 if (!confirmacaoAberta || !faturaSelecionada) return;
@@ -1192,15 +1193,15 @@ export default function Conciliacao() {
       {/* Seção de itens conciliados */}
       {itensConciliados && itensConciliados.length > 0 && (
         <div className="space-y-2 pt-4 border-t">
-          <h2 className="text-sm font-semibold flex items-center gap-2 text-emerald-700">
+          <h2 className="text-sm font-medium flex items-center gap-2 text-success">
             <CheckCircle2 className="h-4 w-4" />
             Conciliados ({itensConciliados.length})
           </h2>
           <div className="space-y-1">
             {itensConciliados.map((item) => (
-              <div key={item.id} className="rounded-md border border-emerald-200 bg-emerald-50/30 p-3 text-xs flex items-center justify-between gap-4">
+              <div key={item.id} className="rounded-md border border-success/40 bg-success/10 p-3 text-xs flex items-center justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate">{item.nome_favorecido ?? "—"}</p>
+                  <p className="font-medium truncate">{item.nome_favorecido ?? "—"}</p>
                   <p className="text-muted-foreground text-[10px]">{item.cnpj_favorecido}</p>
                   {item.ofx_transacoes_stage && (
                     <p className="text-muted-foreground text-[10px] truncate mt-0.5">
@@ -1209,9 +1210,9 @@ export default function Conciliacao() {
                   )}
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="font-mono font-bold">{formatBRL(item.valor_pago)}</p>
+                  <p className="font-mono font-medium">{formatBRL(item.valor_pago)}</p>
                   <p className="text-[10px] text-muted-foreground">{item.data_pagamento ? formatDateBR(item.data_pagamento) : "—"}</p>
-                  <Badge variant="outline" className="text-[9px] border-emerald-400 text-emerald-700 bg-emerald-50 mt-0.5">
+                  <Badge variant="outline" className="text-[9px] border-success/40 text-success bg-success/10 mt-0.5">
                     Conciliado ✓
                   </Badge>
                 </div>
@@ -1220,6 +1221,6 @@ export default function Conciliacao() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

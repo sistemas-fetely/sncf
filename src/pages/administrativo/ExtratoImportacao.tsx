@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -1141,9 +1142,9 @@ export default function ExtratoImportacao() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl">
+    <PageShell>
       <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
+        <h1 className="text-2xl font-medium flex items-center gap-2">
           <Upload className="h-6 w-6 text-admin" />
           Importar Extratos
         </h1>
@@ -1156,7 +1157,7 @@ export default function ExtratoImportacao() {
       {/* 1 — EXTRATOS */}
       <div className="space-y-2">
         <div>
-          <h2 className="text-lg font-semibold">1. Extratos</h2>
+          <h2 className="text-lg font-medium">1. Extratos</h2>
           <p className="text-xs text-muted-foreground">
             OFX (Itaú/Safra) e planilhas de lançamento. Linhas de saldo são identificadas pela
             dimensão de fontes e vão para o saldo diário, não para movimentações.
@@ -1212,7 +1213,7 @@ export default function ExtratoImportacao() {
       {/* 2 — RELATÓRIOS AUXILIARES */}
       <div className="space-y-2">
         <div>
-          <h2 className="text-lg font-semibold">2. Relatórios auxiliares</h2>
+          <h2 className="text-lg font-medium">2. Relatórios auxiliares</h2>
           <p className="text-xs text-muted-foreground">
             Pagamentos Itaú, SafraPay, Mercado Pago, Safra PIX e as duas fontes de cobrança do Safra.
             Estes arquivos primeiro tentam enriquecer a linha que já existe no extrato — só criam
@@ -1223,7 +1224,7 @@ export default function ExtratoImportacao() {
         <Card>
           <CardContent className="pt-6 space-y-4">
             <div className="space-y-1 text-xs text-muted-foreground">
-              <div className="text-sm font-semibold text-foreground">Cobrança Safra</div>
+              <div className="text-sm font-medium text-foreground">Cobrança Safra</div>
               <div>
                 <span className="font-medium text-foreground">Recebimentos - Instruções 2ª via</span>{" "}
                 (.xlsx): papel de <span className="font-medium">conferência</span>. Alimenta apenas a
@@ -1297,7 +1298,7 @@ export default function ExtratoImportacao() {
 
             {resultados.length > 0 && (
               <div className="rounded-md border divide-y text-xs">
-                <div className="px-3 py-2 font-semibold">Parser escolhido por arquivo</div>
+                <div className="px-3 py-2 font-medium">Parser escolhido por arquivo</div>
                 {resultados.map((r, i) => (
                   <div key={`${r.arquivo}-${i}`} className="px-3 py-2 space-y-0.5">
                     <div className="flex items-center gap-2">
@@ -1328,7 +1329,7 @@ export default function ExtratoImportacao() {
 
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-semibold">Pagamentos Itaú (Consulta de Pagamentos)</h3>
+            <h3 className="text-sm font-medium">Pagamentos Itaú (Consulta de Pagamentos)</h3>
             <p className="text-xs text-muted-foreground">
               Enriquece débitos anônimos (PAG TIT) do extrato cruzando data + valor + conta.
             </p>
@@ -1353,7 +1354,7 @@ export default function ExtratoImportacao() {
       {/* 3 — FATURAS DE CARTÃO */}
       <div className="space-y-2">
         <div>
-          <h2 className="text-lg font-semibold">3. Faturas de cartão</h2>
+          <h2 className="text-lg font-medium">3. Faturas de cartão</h2>
           <p className="text-xs text-muted-foreground">
             Fatura de cartão é despesa de cartão, não movimento de conta corrente — por isso vai
             para outro destino (faturas de cartão e seus lançamentos), e não para o extrato.
@@ -1389,7 +1390,7 @@ export default function ExtratoImportacao() {
 
 
       <div>
-        <h2 className="text-lg font-semibold mb-2">Histórico de importações</h2>
+        <h2 className="text-lg font-medium mb-2">Histórico de importações</h2>
         <Card>
           <CardContent className="p-0">
             <Table>
@@ -1456,6 +1457,6 @@ export default function ExtratoImportacao() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PageShell>
   );
 }

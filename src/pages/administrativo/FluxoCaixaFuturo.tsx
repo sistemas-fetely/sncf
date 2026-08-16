@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -116,12 +117,12 @@ const ORIGEM_BADGE: Record<
 > = {
   parcelado: {
     label: "Parcelado",
-    className: "bg-violet-50 text-violet-700 border-violet-300",
+    className: "bg-info/10 text-info border-info/40",
     Icon: CreditCard,
   },
   recorrente: {
     label: "Recorrente",
-    className: "bg-blue-50 text-blue-700 border-blue-300",
+    className: "bg-info/10 text-info border-info/40",
     Icon: Repeat,
   },
 };
@@ -243,9 +244,9 @@ export default function FluxoCaixaFuturo() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <PageShell>
       <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+        <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
           <TrendingUp className="h-6 w-6 text-admin" />
           Fluxo de Caixa Futuro
         </h1>
@@ -261,7 +262,7 @@ export default function FluxoCaixaFuturo() {
             <p className="text-xs text-muted-foreground flex items-center gap-1.5">
               <Calculator className="h-3 w-3 text-admin" /> Total previsto
             </p>
-            <p className="text-2xl font-bold text-admin">{formatBRL(totalPrevisto)}</p>
+            <p className="text-2xl font-medium text-admin">{formatBRL(totalPrevisto)}</p>
             <p className="text-[10px] text-muted-foreground">
               em {parcelas?.length || 0} parcela(s) firmada(s)
             </p>
@@ -270,9 +271,9 @@ export default function FluxoCaixaFuturo() {
         <Card>
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <Calendar className="h-3 w-3 text-amber-700" /> Próximo mês
+              <Calendar className="h-3 w-3 text-warning" /> Próximo mês
             </p>
-            <p className="text-2xl font-bold text-amber-700">
+            <p className="text-2xl font-medium text-warning">
               {proximoMes ? formatBRL(proximoMes.valor_total) : "—"}
             </p>
             <p className="text-[10px] text-muted-foreground">
@@ -283,9 +284,9 @@ export default function FluxoCaixaFuturo() {
         <Card>
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <Sparkles className="h-3 w-3 text-violet-600" /> Compromissos ativos
+              <Sparkles className="h-3 w-3 text-info" /> Compromissos ativos
             </p>
-            <p className="text-2xl font-bold text-violet-700">{compromissosAtivos.length}</p>
+            <p className="text-2xl font-medium text-info">{compromissosAtivos.length}</p>
             <p className="text-[10px] text-muted-foreground">
               {compromissosQuitados.length} já quitado(s)
             </p>
@@ -297,7 +298,7 @@ export default function FluxoCaixaFuturo() {
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-semibold flex items-center gap-2">
+            <h2 className="text-base font-medium flex items-center gap-2">
               <Calendar className="h-4 w-4 text-admin" />
               Próximos meses
             </h2>
@@ -334,13 +335,13 @@ export default function FluxoCaixaFuturo() {
                         className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-90" : ""}`}
                       />
                       <div className="flex-1">
-                        <div className="font-semibold text-sm">{g.mes_label}</div>
+                        <div className="font-medium text-sm">{g.mes_label}</div>
                         <div className="text-xs text-muted-foreground">
                           {g.qtd_parcelas} parcela{g.qtd_parcelas === 1 ? "" : "s"}
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-lg font-bold font-mono text-admin">
+                        <div className="text-lg font-medium font-mono text-admin">
                           {formatBRL(g.valor_total)}
                         </div>
                       </div>
@@ -409,7 +410,7 @@ export default function FluxoCaixaFuturo() {
       <Card>
         <CardContent className="pt-6 space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold flex items-center gap-2">
+            <h2 className="text-base font-medium flex items-center gap-2">
               <Layers className="h-4 w-4 text-admin" />
               Compromissos ativos
             </h2>
@@ -417,7 +418,7 @@ export default function FluxoCaixaFuturo() {
 
           {/* Seção Parcelados */}
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold flex items-center gap-2 text-violet-700">
+            <h3 className="text-sm font-medium flex items-center gap-2 text-info">
               <CreditCard className="h-4 w-4" />
               Parcelados em andamento ({compromissosAtivos.length})
             </h3>
@@ -474,7 +475,7 @@ export default function FluxoCaixaFuturo() {
                             {c.parcelas_pagas}/{c.qtd_parcelas}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right font-mono text-sm font-bold">
+                        <TableCell className="text-right font-mono text-sm font-medium">
                           {formatBRL(c.valor_total)}
                         </TableCell>
                       </TableRow>
@@ -487,7 +488,7 @@ export default function FluxoCaixaFuturo() {
 
           {/* Seção Recorrentes */}
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold flex items-center gap-2 text-blue-700">
+            <h3 className="text-sm font-medium flex items-center gap-2 text-info">
               <Repeat className="h-4 w-4" />
               Recorrentes ativos ({(recorrentes || []).length})
             </h3>
@@ -538,7 +539,7 @@ export default function FluxoCaixaFuturo() {
                         <TableCell className="text-xs text-muted-foreground">
                           {r.data_fim ? `até ${formatDateBR(r.data_fim)}` : "Sem fim"}
                         </TableCell>
-                        <TableCell className="text-right font-mono text-sm font-bold">
+                        <TableCell className="text-right font-mono text-sm font-medium">
                           {formatBRL(r.valor)}
                         </TableCell>
                       </TableRow>
@@ -572,45 +573,45 @@ export default function FluxoCaixaFuturo() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                 <div className="rounded-md border p-2 bg-muted/30">
                   <p className="text-muted-foreground">Valor total</p>
-                  <p className="text-base font-bold font-mono">
+                  <p className="text-base font-medium font-mono">
                     {formatBRL(compromissoDetalhado.valor_total)}
                   </p>
                 </div>
                 <div className="rounded-md border p-2 bg-muted/30">
                   <p className="text-muted-foreground">Parcela</p>
-                  <p className="text-base font-bold font-mono">
+                  <p className="text-base font-medium font-mono">
                     {formatBRL(compromissoDetalhado.valor_parcela)}
                   </p>
                 </div>
                 <div className="rounded-md border p-2 bg-muted/30">
                   <p className="text-muted-foreground">Total parcelas</p>
-                  <p className="text-base font-bold">{compromissoDetalhado.qtd_parcelas}</p>
+                  <p className="text-base font-medium">{compromissoDetalhado.qtd_parcelas}</p>
                 </div>
                 <div className="rounded-md border p-2 bg-muted/30">
                   <p className="text-muted-foreground">Pagas / Previstas</p>
-                  <p className="text-base font-bold">
+                  <p className="text-base font-medium">
                     {compromissoDetalhado.parcelas_pagas} / {compromissoDetalhado.parcelas_previstas}
                   </p>
                 </div>
               </div>
 
               {compromissoDetalhado.origem === "cartao" && (
-                <div className="rounded-md border p-3 bg-blue-50/50 text-xs">
-                  <p className="flex items-center gap-1.5 font-semibold text-blue-800">
+                <div className="rounded-md border p-3 bg-info/10 text-xs">
+                  <p className="flex items-center gap-1.5 font-medium text-info">
                     <CreditCard className="h-3.5 w-3.5" />
                     Compromisso de cartão de crédito
                   </p>
-                  <p className="text-blue-700 mt-1">
+                  <p className="text-info mt-1">
                     Cartão: <strong>{compromissoDetalhado.conta_bancaria?.nome_exibicao || "—"}</strong>
                   </p>
-                  <p className="text-blue-700">
+                  <p className="text-info">
                     Compra detectada em: <strong>{formatDateBR(compromissoDetalhado.data_compra)}</strong>
                   </p>
                 </div>
               )}
 
               <div>
-                <p className="text-xs font-semibold mb-2">
+                <p className="text-xs font-medium mb-2">
                   Parcelas previstas ({parcelasDoCompromisso.length})
                 </p>
                 {parcelasDoCompromisso.length === 0 ? (
@@ -704,6 +705,6 @@ export default function FluxoCaixaFuturo() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   );
 }

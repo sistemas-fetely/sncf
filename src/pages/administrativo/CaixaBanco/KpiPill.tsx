@@ -40,34 +40,34 @@ export default function KpiPill({
       activeBg: "bg-admin text-admin-foreground border-admin",
     },
     amber: {
-      bg: "bg-amber-50",
-      text: "text-amber-700",
-      border: "border-amber-200",
-      activeBg: "bg-amber-600 text-white border-amber-600",
+      bg: "bg-warning/10",
+      text: "text-warning",
+      border: "border-warning/40",
+      activeBg: "bg-warning text-white border-warning/40",
     },
     emerald: {
-      bg: "bg-emerald-50",
-      text: "text-emerald-700",
-      border: "border-emerald-200",
-      activeBg: "bg-emerald-600 text-white border-emerald-600",
+      bg: "bg-success/10",
+      text: "text-success",
+      border: "border-success/40",
+      activeBg: "bg-success text-white border-success/40",
     },
     blue: {
-      bg: "bg-blue-50",
-      text: "text-blue-700",
-      border: "border-blue-200",
-      activeBg: "bg-blue-600 text-white border-blue-600",
+      bg: "bg-info/10",
+      text: "text-info",
+      border: "border-info/40",
+      activeBg: "bg-info text-white border-info/40",
     },
     gray: {
-      bg: "bg-gray-50",
-      text: "text-gray-700",
-      border: "border-gray-200",
-      activeBg: "bg-gray-700 text-white border-gray-700",
+      bg: "bg-muted/10",
+      text: "text-muted-foreground",
+      border: "border-border/40",
+      activeBg: "bg-muted text-white border-border/40",
     },
     violet: {
-      bg: "bg-violet-50",
-      text: "text-violet-700",
-      border: "border-violet-200",
-      activeBg: "bg-violet-600 text-white border-violet-600",
+      bg: "bg-info/10",
+      text: "text-info",
+      border: "border-info/40",
+      activeBg: "bg-info text-white border-info/40",
     },
   };
   const c = colorMap[color];
@@ -84,7 +84,7 @@ export default function KpiPill({
         {icon}
         {label}
       </div>
-      <div className="text-2xl font-bold leading-tight mt-0.5">{count}</div>
+      <div className="text-2xl font-medium leading-tight mt-0.5">{count}</div>
       {description && <div className="text-[9px] opacity-75 mt-0.5">{description}</div>}
     </button>
   );

@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -253,7 +254,7 @@ export default function ExtratoConta() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <PageShell>
       {/* Cabeçalho */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-2">
@@ -266,7 +267,7 @@ export default function ExtratoConta() {
             <ArrowLeft className="h-3.5 w-3.5" />
             Contas bancárias
           </Button>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
+          <h1 className="text-2xl font-medium flex items-center gap-2">
             <Landmark className="h-6 w-6 text-admin" />
             {nomeConta}
           </h1>
@@ -297,7 +298,7 @@ export default function ExtratoConta() {
             <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
               Entradas
             </p>
-            <p className="text-2xl font-bold text-success">{formatBRL(totais.entradas)}</p>
+            <p className="text-2xl font-medium text-success">{formatBRL(totais.entradas)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -305,7 +306,7 @@ export default function ExtratoConta() {
             <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
               Saídas
             </p>
-            <p className="text-2xl font-bold text-destructive">{formatBRL(totais.saidas)}</p>
+            <p className="text-2xl font-medium text-destructive">{formatBRL(totais.saidas)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -313,7 +314,7 @@ export default function ExtratoConta() {
             <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
               Líquido
             </p>
-            <p className="text-2xl font-bold">{formatBRL(totais.liquido)}</p>
+            <p className="text-2xl font-medium">{formatBRL(totais.liquido)}</p>
           </CardContent>
         </Card>
       </div>
@@ -606,6 +607,6 @@ export default function ExtratoConta() {
       )}
 
       <ExtratoLinhaSheet linha={detalhe} onClose={() => setDetalhe(null)} />
-    </div>
+    </PageShell>
   );
 }

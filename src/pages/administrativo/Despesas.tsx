@@ -9,6 +9,7 @@
  * Nota de campo: a v2 não expõe `numero_documento` nem `tipo_documento` —
  * a coluna "Nº doc" foi removida e a busca passou a cobrir CNPJ do fornecedor.
  */
+import { PageShell } from "@/components/layout/PageShell";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -255,7 +256,7 @@ export default function Despesas() {
   const COLSPAN = 9;
 
   return (
-    <div className="p-6 space-y-6">
+    <PageShell>
       <div>
         <h1 className="text-2xl font-serif text-foreground">Despesas</h1>
         <p className="text-sm text-muted-foreground">
@@ -308,20 +309,20 @@ export default function Despesas() {
         </Card>
         <Card
           className={cn(
-            kpis.aClassificarN > 0 && "border-amber-400 bg-amber-50/50",
+            kpis.aClassificarN > 0 && "border-warning/40 bg-warning/10",
           )}
         >
           <CardContent className="p-4">
             <div className="text-xs uppercase tracking-wide text-muted-foreground flex items-center gap-1">
               A classificar
               {kpis.aClassificarN > 0 && (
-                <AlertCircle className="h-3 w-3 text-amber-600" />
+                <AlertCircle className="h-3 w-3 text-warning" />
               )}
             </div>
             <div
               className={cn(
                 "text-2xl font-serif mt-1",
-                kpis.aClassificarN > 0 ? "text-amber-700" : "text-emerald-700",
+                kpis.aClassificarN > 0 ? "text-warning" : "text-success",
               )}
             >
               {kpis.aClassificarN}
@@ -451,7 +452,7 @@ export default function Despesas() {
                         {r.plano_codigo} — {r.plano_nome ?? ""}
                       </span>
                     ) : (
-                      <Badge variant="outline" className="border-amber-500 text-amber-600">
+                      <Badge variant="outline" className="border-warning/40 text-warning">
                         sem plano
                       </Badge>
                     )}
@@ -511,6 +512,6 @@ export default function Despesas() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

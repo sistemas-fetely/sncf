@@ -170,9 +170,9 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  nao_vinculada: "bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-200",
-  parcial: "bg-blue-100 text-blue-800 hover:bg-blue-100 border-blue-200",
-  vinculada: "bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border-emerald-200",
+  nao_vinculada: "bg-warning/10 text-warning hover:bg-warning/10 border-warning/40",
+  parcial: "bg-info/10 text-info hover:bg-info/10 border-info/40",
+  vinculada: "bg-success/10 text-success hover:bg-success/10 border-success/40",
 };
 
 const FONTE_LABELS: Record<string, string> = {
@@ -188,7 +188,7 @@ function DocIndicator({ label, tem }: { label: string; tem: boolean }) {
       <div
         className={cn(
           "w-2 h-2 rounded-full",
-          tem ? "bg-emerald-500" : "bg-rose-500",
+          tem ? "bg-success" : "bg-destructive",
         )}
       />
       <span className={tem ? "text-foreground" : "text-muted-foreground"}>
@@ -1113,7 +1113,7 @@ export default function NFsStage() {
       <div className="sticky top-0 z-10 bg-background px-6 pt-6 pb-3 border-b space-y-4 backdrop-blur">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
               <Layers className="h-6 w-6 text-admin" />
               NFs aguardando vínculo
             </h1>
@@ -1159,7 +1159,7 @@ export default function NFsStage() {
               <Button
                 variant="outline"
                 onClick={aceitarTodasSugestoes}
-                className="gap-2 border-violet-300 text-violet-700 hover:bg-violet-50"
+                className="gap-2 border-info/40 text-info hover:bg-info/10"
               >
                 <Sparkles className="h-4 w-4" />
                 Aplicar {sugestoesDisponiveis} sugestão{sugestoesDisponiveis === 1 ? "" : "ões"} automática{sugestoesDisponiveis === 1 ? "" : "s"}
@@ -1397,7 +1397,7 @@ export default function NFsStage() {
                 size="sm"
                 onClick={() => confirmarRevisao(Array.from(selecionadas))}
                 disabled={confirmandoRevisao}
-                className="gap-1 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                className="gap-1 border-success/40 text-success hover:bg-success/10"
                 title="Marcar as selecionadas como revisadas"
               >
                 {confirmandoRevisao ? (
@@ -1432,7 +1432,7 @@ export default function NFsStage() {
                   setUniformizarOpen(true);
                 }}
                 disabled={selecionadas.size < 2 || uniformizando}
-                className="gap-1 border-violet-300 text-violet-700 hover:bg-violet-50"
+                className="gap-1 border-info/40 text-info hover:bg-info/10"
                 title="Igualar plano de contas e centro de custo de todas as selecionadas"
               >
                 <Wand2 className="h-4 w-4" />
@@ -1583,7 +1583,7 @@ export default function NFsStage() {
                             nf.revisao_origem === "motor" ? (
                               <Badge
                                 variant="outline"
-                                className="text-[9px] py-0 h-4 border-blue-300 text-blue-700 bg-blue-50"
+                                className="text-[9px] py-0 h-4 border-info/40 text-info bg-info/10"
                                 title="Classificada automaticamente — padrão confirmado por você anteriormente"
                               >
                                 Motor
@@ -1591,7 +1591,7 @@ export default function NFsStage() {
                             ) : (
                               <Badge
                                 variant="outline"
-                                className="text-[9px] py-0 h-4 border-emerald-300 text-emerald-700 bg-emerald-50"
+                                className="text-[9px] py-0 h-4 border-success/40 text-success bg-success/10"
                               >
                                 Revisada
                               </Badge>
@@ -1599,7 +1599,7 @@ export default function NFsStage() {
                           ) : (
                             <Badge
                               variant="outline"
-                              className="text-[9px] py-0 h-4 border-amber-300 text-amber-700 bg-amber-50"
+                              className="text-[9px] py-0 h-4 border-warning/40 text-warning bg-warning/10"
                             >
                               A revisar
                             </Badge>
@@ -1622,7 +1622,7 @@ export default function NFsStage() {
 
                             {nf.categoria_sugerida_ia && nf.plano_contas_id && (
                               <Sparkles
-                                className="h-3 w-3 text-purple-500 shrink-0"
+                                className="h-3 w-3 text-info shrink-0"
                                 aria-label="Categoria sugerida pela IA — revise e confirme"
                               />
                             )}
@@ -1630,10 +1630,10 @@ export default function NFsStage() {
                               const conf = sugestao.confianca || 0;
                               const corBadge =
                                 conf >= 80
-                                  ? "border-emerald-400 text-emerald-700 bg-emerald-50"
+                                  ? "border-success/40 text-success bg-success/10"
                                   : conf >= 50
-                                    ? "border-amber-400 text-amber-700 bg-amber-50"
-                                    : "border-violet-300 text-violet-700 bg-violet-50";
+                                    ? "border-warning/40 text-warning bg-warning/10"
+                                    : "border-info/40 text-info bg-info/10";
                               const labelConf = conf >= 80 ? "Alta" : conf >= 50 ? "Média" : "Baixa";
                               return (
                                 <Button
@@ -1655,7 +1655,7 @@ export default function NFsStage() {
                           <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
                             {mapCategorias[nf.plano_contas_id] || "—"}
                             {nf.categoria_sugerida_ia && (
-                              <Sparkles className="h-3 w-3 text-purple-500" />
+                              <Sparkles className="h-3 w-3 text-info" />
                             )}
                           </span>
                         ) : (
@@ -1756,7 +1756,7 @@ export default function NFsStage() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-7 w-7 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
+                                  className="h-7 w-7 text-success hover:text-success hover:bg-success/10"
                                   onClick={() => confirmarRevisao([nf.id])}
                                   disabled={confirmandoRevisao}
                                   title="Confirmar revisão"
@@ -1770,7 +1770,7 @@ export default function NFsStage() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-7 w-7 text-blue-700 hover:text-blue-800 hover:bg-blue-50"
+                                  className="h-7 w-7 text-info hover:text-info hover:bg-info/10"
                                   onClick={() => setPlanoDoc(nf)}
                                   title="Plano de pagamento"
                                 >
@@ -2017,7 +2017,7 @@ export default function NFsStage() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Wand2 className="h-4 w-4 text-violet-600" />
+              <Wand2 className="h-4 w-4 text-info" />
               Uniformizar classificação
             </DialogTitle>
             <DialogDescription>
@@ -2028,11 +2028,11 @@ export default function NFsStage() {
 
           <div className="space-y-3 py-2">
             {combosSelecionadas.combos.length === 0 ? (
-              <div className="rounded-md border bg-amber-50 border-amber-200 p-3 text-sm text-amber-800">
+              <div className="rounded-md border bg-warning/10 border-warning/40 p-3 text-sm text-warning">
                 Nenhuma das selecionadas tem classificação. Classifique ao menos uma NF antes de uniformizar.
               </div>
             ) : combosSelecionadas.combos.length === 1 && combosSelecionadas.semClass === 0 ? (
-              <div className="rounded-md border bg-emerald-50 border-emerald-200 p-3 text-sm text-emerald-800">
+              <div className="rounded-md border bg-success/10 border-success/40 p-3 text-sm text-success">
                 Todas as selecionadas já compartilham a mesma classificação — nada a uniformizar.
               </div>
             ) : (
@@ -2056,7 +2056,7 @@ export default function NFsStage() {
                         className={cn(
                           "flex items-start gap-3 rounded-md border p-3 cursor-pointer transition-colors",
                           uniformizarEscolha === c.key
-                            ? "border-violet-500 bg-violet-50"
+                            ? "border-info/40 bg-info/10"
                             : "border-border hover:bg-muted/50",
                         )}
                       >
@@ -2099,7 +2099,7 @@ export default function NFsStage() {
                 !uniformizarEscolha ||
                 combosSelecionadas.combos.length === 0
               }
-              className="bg-violet-600 text-white hover:bg-violet-700"
+              className="bg-info text-white hover:bg-info"
             >
               {uniformizando && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Aplicar a todas ({selecionadas.size})
@@ -2206,34 +2206,34 @@ function KpiPill({ label, count, color, active, onClick, icon, description }: Kp
       activeBg: "bg-admin text-admin-foreground border-admin",
     },
     amber: {
-      bg: "bg-amber-50",
-      text: "text-amber-700",
-      border: "border-amber-200",
-      activeBg: "bg-amber-600 text-white border-amber-600",
+      bg: "bg-warning/10",
+      text: "text-warning",
+      border: "border-warning/40",
+      activeBg: "bg-warning text-white border-warning/40",
     },
     emerald: {
-      bg: "bg-emerald-50",
-      text: "text-emerald-700",
-      border: "border-emerald-200",
-      activeBg: "bg-emerald-600 text-white border-emerald-600",
+      bg: "bg-success/10",
+      text: "text-success",
+      border: "border-success/40",
+      activeBg: "bg-success text-white border-success/40",
     },
     blue: {
-      bg: "bg-blue-50",
-      text: "text-blue-700",
-      border: "border-blue-200",
-      activeBg: "bg-blue-600 text-white border-blue-600",
+      bg: "bg-info/10",
+      text: "text-info",
+      border: "border-info/40",
+      activeBg: "bg-info text-white border-info/40",
     },
     gray: {
-      bg: "bg-gray-50",
-      text: "text-gray-700",
-      border: "border-gray-200",
-      activeBg: "bg-gray-700 text-white border-gray-700",
+      bg: "bg-muted/10",
+      text: "text-muted-foreground",
+      border: "border-border/40",
+      activeBg: "bg-muted text-white border-border/40",
     },
     violet: {
-      bg: "bg-violet-50",
-      text: "text-violet-700",
-      border: "border-violet-200",
-      activeBg: "bg-violet-600 text-white border-violet-600",
+      bg: "bg-info/10",
+      text: "text-info",
+      border: "border-info/40",
+      activeBg: "bg-info text-white border-info/40",
     },
   };
   const c = colorMap[color];
@@ -2251,7 +2251,7 @@ function KpiPill({ label, count, color, active, onClick, icon, description }: Kp
         {icon}
         {label}
       </div>
-      <div className="text-2xl font-bold leading-tight mt-0.5">{count}</div>
+      <div className="text-2xl font-medium leading-tight mt-0.5">{count}</div>
       {description && (
         <div className="text-[9px] opacity-75 mt-0.5">{description}</div>
       )}

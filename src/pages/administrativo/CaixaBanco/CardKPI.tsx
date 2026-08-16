@@ -32,37 +32,37 @@ export function CardKPIDuplo({
   const pctTem = total > 0 ? Math.round((qtdTem / total) * 100) : 0;
   const pctFalta = total > 0 ? Math.round((qtdFalta / total) * 100) : 0;
   return (
-    <div className="border border-emerald-300 bg-emerald-50/30 rounded-lg overflow-hidden">
+    <div className="border border-success/40 bg-success/10 rounded-lg overflow-hidden">
       <div className="px-3 pt-1.5 pb-0.5 flex items-center gap-1.5">
-        <Icone className="h-3.5 w-3.5 text-emerald-700" />
-        <span className="text-[11px] font-medium text-emerald-900">{titulo}</span>
+        <Icone className="h-3.5 w-3.5 text-success" />
+        <span className="text-[11px] font-medium text-success">{titulo}</span>
       </div>
-      <div className="grid grid-cols-2 divide-x divide-emerald-200">
+      <div className="grid grid-cols-2 divide-x divide-success/40">
         <button
           type="button"
           onClick={onClickTem}
           className={`px-3 py-1.5 text-left transition-colors ${
             ativoTem
-              ? "bg-emerald-100 ring-2 ring-inset ring-emerald-500"
-              : "hover:bg-emerald-50"
+              ? "bg-success/10 ring-2 ring-inset ring-success"
+              : "hover:bg-success/10"
           }`}
         >
-          <div className="text-[10px] text-emerald-700 font-medium">Tem</div>
-          <div className="text-lg font-bold text-emerald-900 leading-tight">{pctTem}%</div>
-          <div className="text-[10px] text-emerald-700">{qtdTem}/{total}</div>
+          <div className="text-[10px] text-success font-medium">Tem</div>
+          <div className="text-lg font-medium text-success leading-tight">{pctTem}%</div>
+          <div className="text-[10px] text-success">{qtdTem}/{total}</div>
         </button>
         <button
           type="button"
           onClick={onClickFalta}
           className={`px-3 py-1.5 text-left transition-colors ${
             ativoFalta
-              ? "bg-rose-100 ring-2 ring-inset ring-rose-500"
-              : "hover:bg-rose-50/60"
+              ? "bg-destructive/10 ring-2 ring-inset ring-destructive"
+              : "hover:bg-destructive/10"
           }`}
         >
-          <div className="text-[10px] text-rose-700 font-medium">Falta</div>
-          <div className="text-lg font-bold text-rose-900 leading-tight">{pctFalta}%</div>
-          <div className="text-[10px] text-rose-700">{qtdFalta}/{total}</div>
+          <div className="text-[10px] text-destructive font-medium">Falta</div>
+          <div className="text-lg font-medium text-destructive leading-tight">{pctFalta}%</div>
+          <div className="text-[10px] text-destructive">{qtdFalta}/{total}</div>
         </button>
       </div>
     </div>
@@ -87,28 +87,28 @@ export function CardKPI({
   icone?: LucideIcon;
 }) {
   const corBase: Record<string, string> = {
-    red: "bg-red-50/70 border-red-200",
-    amber: "bg-amber-50/70 border-amber-200",
-    blue: "bg-blue-50/70 border-blue-200",
-    purple: "bg-purple-50/70 border-purple-200",
-    teal: "bg-teal-50/70 border-teal-200",
-    fetely: "bg-emerald-50/70 border-emerald-200",
+    red: "bg-destructive/10 border-destructive/40",
+    amber: "bg-warning/10 border-warning/40",
+    blue: "bg-info/10 border-info/40",
+    purple: "bg-info/10 border-info/40",
+    teal: "bg-success/10 border-success/40",
+    fetely: "bg-success/10 border-success/40",
   };
   const corAtivo: Record<string, string> = {
-    red: "bg-red-100 border-red-400 ring-2 ring-red-200",
-    amber: "bg-amber-100 border-amber-400 ring-2 ring-amber-200",
-    blue: "bg-blue-100 border-blue-400 ring-2 ring-blue-200",
-    purple: "bg-purple-100 border-purple-400 ring-2 ring-purple-200",
-    teal: "bg-teal-100 border-teal-400 ring-2 ring-teal-200",
-    fetely: "bg-emerald-100 border-emerald-400 ring-2 ring-emerald-200",
+    red: "bg-destructive/10 border-destructive/40 ring-2 ring-destructive",
+    amber: "bg-warning/10 border-warning/40 ring-2 ring-warning",
+    blue: "bg-info/10 border-info/40 ring-2 ring-info",
+    purple: "bg-info/10 border-info/40 ring-2 ring-info",
+    teal: "bg-success/10 border-success/40 ring-2 ring-success",
+    fetely: "bg-success/10 border-success/40 ring-2 ring-success",
   };
   const textMap: Record<string, string> = {
-    red: "text-red-700",
-    amber: "text-amber-700",
-    blue: "text-blue-700",
-    purple: "text-purple-700",
-    teal: "text-teal-700",
-    fetely: "text-emerald-700",
+    red: "text-destructive",
+    amber: "text-warning",
+    blue: "text-info",
+    purple: "text-info",
+    teal: "text-success",
+    fetely: "text-success",
   };
   return (
     <Card
@@ -130,7 +130,7 @@ export function CardKPI({
         </CardTitle>
       </CardHeader>
       <CardContent className="pb-2 px-3">
-        <div className={cn("text-lg font-bold", textMap[cor])}>{valor}</div>
+        <div className={cn("text-lg font-medium", textMap[cor])}>{valor}</div>
         <div className="text-[10px] text-muted-foreground mt-0.5">{sublinha}</div>
       </CardContent>
     </Card>

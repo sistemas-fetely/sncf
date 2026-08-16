@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -472,9 +473,9 @@ export default function ConciliacaoDespesas() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-[1400px]">
+    <PageShell>
       <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
+        <h1 className="text-2xl font-medium flex items-center gap-2">
           <GitCompare className="h-6 w-6 text-admin" />
           Conciliar Despesas
         </h1>
@@ -487,26 +488,26 @@ export default function ConciliacaoDespesas() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card><CardContent className="p-4">
           <div className="text-xs text-muted-foreground">Débitos sem destino</div>
-          <div className="text-2xl font-bold">{totalFuros}</div>
+          <div className="text-2xl font-medium">{totalFuros}</div>
           <div className="text-xs text-muted-foreground mt-1">{formatBRL(valorTotal)}</div>
         </CardContent></Card>
         <Card><CardContent className="p-4">
           <div className="text-xs text-muted-foreground">Com sugestão</div>
-          <div className="text-2xl font-bold text-emerald-600">{comSugestao.length}</div>
+          <div className="text-2xl font-medium text-success">{comSugestao.length}</div>
           <div className="text-xs text-muted-foreground mt-1">{formatBRL(valorComSug)}</div>
         </CardContent></Card>
-        <Card className="border-amber-300/60 bg-amber-50/40 dark:bg-amber-950/10">
+        <Card className="border-warning/40 bg-warning/10">
           <CardContent className="p-4">
             <div className="text-xs text-muted-foreground flex items-center gap-1">
               <AlertTriangle className="h-3 w-3" /> Furos sem sugestão
             </div>
-            <div className="text-2xl font-bold text-amber-700 dark:text-amber-500">{semSugestao.length}</div>
+            <div className="text-2xl font-medium text-warning">{semSugestao.length}</div>
             <div className="text-xs text-muted-foreground mt-1">{formatBRL(valorSemSug)}</div>
           </CardContent>
         </Card>
         <Card><CardContent className="p-4">
           <div className="text-xs text-muted-foreground">% explicável</div>
-          <div className="text-2xl font-bold">{pctExplicavel.toFixed(1)}%</div>
+          <div className="text-2xl font-medium">{pctExplicavel.toFixed(1)}%</div>
           <div className="text-xs text-muted-foreground mt-1">com sugestão / total</div>
         </CardContent></Card>
       </div>
@@ -524,10 +525,10 @@ export default function ConciliacaoDespesas() {
       {aba === "sugestao" && (
         <>
           {seguros.length > 0 && (
-            <Card className="border-emerald-300/60 bg-emerald-50/40 dark:bg-emerald-950/10">
+            <Card className="border-success/40 bg-success/10">
               <CardContent className="p-4 flex items-center justify-between gap-4 flex-wrap">
                 <div className="flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5 text-emerald-600" />
+                  <ShieldCheck className="h-5 w-5 text-success" />
                   <div>
                     <div className="font-medium text-sm">
                       {seguros.length} matches seguros (score ≥ 5)
@@ -578,7 +579,7 @@ export default function ConciliacaoDespesas() {
                     <div>
                       <span className="font-medium">{nSelecionadas} selecionadas</span>
                       <span className="text-muted-foreground"> · soma </span>
-                      <span className="font-mono font-semibold">{formatBRL(somaSelecionadas)}</span>
+                      <span className="font-mono font-medium">{formatBRL(somaSelecionadas)}</span>
                     </div>
                     <Button
                       size="sm"
@@ -645,7 +646,7 @@ export default function ConciliacaoDespesas() {
                                   {f.descricao || "—"}
                                 </div>
                                 <div className="flex items-center gap-2 mt-1">
-                                  <span className="font-mono font-semibold">{formatBRL(valorDebito)}</span>
+                                  <span className="font-mono font-medium">{formatBRL(valorDebito)}</span>
                                   {f.tipo_meio && <Badge variant="outline" className="text-[10px]">{f.tipo_meio}</Badge>}
                                 </div>
                               </TableCell>
@@ -656,20 +657,20 @@ export default function ConciliacaoDespesas() {
                                 )}
                                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                                   {valorDoc != null && (
-                                    <span className="font-mono font-semibold">{formatBRL(valorDoc)}</span>
+                                    <span className="font-mono font-medium">{formatBRL(valorDoc)}</span>
                                   )}
                                   {dataDoc && (
                                     <span className="text-muted-foreground">{formatDateBR(dataDoc)}</span>
                                   )}
                                   {delta != null && (
                                     bate ? (
-                                      <Badge className="text-[10px] bg-emerald-600 hover:bg-emerald-600">
+                                      <Badge className="text-[10px] bg-success hover:bg-success">
                                         valor bate
                                       </Badge>
                                     ) : (
                                       <Badge
                                         variant="outline"
-                                        className="text-[10px] border-amber-400 text-amber-700 dark:text-amber-500"
+                                        className="text-[10px] border-warning/40 text-warning"
                                       >
                                         Δ {formatBRL(delta)}
                                       </Badge>
@@ -686,13 +687,13 @@ export default function ConciliacaoDespesas() {
                                   {f.fonte_sugestao === "cpr" && cprMap.get(f.id)?.situacao_pagamento === "parcial" && (
                                     <Badge
                                       variant="outline"
-                                      className="text-[10px] border-blue-400 text-blue-700 dark:text-blue-400"
+                                      className="text-[10px] border-info/40 text-info"
                                     >
                                       Título parcialmente pago
                                     </Badge>
                                   )}
                                   {seguro && (
-                                    <Badge className="text-[10px] bg-emerald-600 hover:bg-emerald-600 gap-1">
+                                    <Badge className="text-[10px] bg-success hover:bg-success gap-1">
                                       <ShieldCheck className="h-3 w-3" /> seguro
                                     </Badge>
                                   )}
@@ -837,7 +838,7 @@ export default function ConciliacaoDespesas() {
                             {diasSol !== null && (
                               <Badge
                                 variant="outline"
-                                className="text-[10px] mt-1 gap-1 border-amber-400 text-amber-700 dark:text-amber-500"
+                                className="text-[10px] mt-1 gap-1 border-warning/40 text-warning"
                                 title={f.doc_solicitado_nota || undefined}
                               >
                                 <Clock className="h-2.5 w-2.5" />
@@ -904,7 +905,7 @@ export default function ConciliacaoDespesas() {
                       );
                     })}
                     {furosFiltrados.length > 0 && (
-                      <TableRow className="bg-muted/40 font-semibold">
+                      <TableRow className="bg-muted/40 font-medium">
                         <TableCell colSpan={4} className="text-xs">Total</TableCell>
                         <TableCell className="font-mono text-right">{formatBRL(totalFiltrado)}</TableCell>
                         <TableCell colSpan={2} />
@@ -971,13 +972,13 @@ export default function ConciliacaoDespesas() {
                 <div className="grid grid-cols-2 gap-2">
                   <div className="rounded border p-2">
                     <div className="text-[10px] uppercase text-muted-foreground">Disponível na movimentação</div>
-                    <div className="font-mono font-semibold">{formatBRL(disponivel)}</div>
+                    <div className="font-mono font-medium">{formatBRL(disponivel)}</div>
                   </div>
                   <div className="rounded border p-2">
                     <div className="text-[10px] uppercase text-muted-foreground">Saldo do título</div>
-                    <div className="font-mono font-semibold">{formatBRL(saldoTitulo)}</div>
+                    <div className="font-mono font-medium">{formatBRL(saldoTitulo)}</div>
                     {c?.situacao_pagamento === "parcial" && (
-                      <div className="text-[10px] text-blue-700 dark:text-blue-400">parcialmente pago</div>
+                      <div className="text-[10px] text-info">parcialmente pago</div>
                     )}
                   </div>
                 </div>
@@ -1081,7 +1082,7 @@ export default function ConciliacaoDespesas() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               Soma:{" "}
-              <span className="font-mono font-semibold">
+              <span className="font-mono font-medium">
                 {formatBRL(
                   comSugestao
                     .filter((f) => selecionadas.has(f.id))
@@ -1112,7 +1113,7 @@ export default function ConciliacaoDespesas() {
           <AlertDialogHeader>
             <AlertDialogTitle>Abater em conta corrente</AlertDialogTitle>
             <AlertDialogDescription>
-              Abater <span className="font-mono font-semibold">{formatBRL(Number(abaterAlvo?.valor || 0))}</span> em conta corrente do fornecedor? O débito sai da fila amarrado ao fornecedor, sem vínculo a NF específica.
+              Abater <span className="font-mono font-medium">{formatBRL(Number(abaterAlvo?.valor || 0))}</span> em conta corrente do fornecedor? O débito sai da fila amarrado ao fornecedor, sem vínculo a NF específica.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1127,6 +1128,6 @@ export default function ConciliacaoDespesas() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   );
 }

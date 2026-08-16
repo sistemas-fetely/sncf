@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -143,7 +144,7 @@ function KpiCard({
       style={alert ? { borderColor: accent, borderWidth: 1.5 } : undefined}
     >
       <div className="flex items-center justify-between">
-        <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
         <div
           className="rounded-md p-1.5"
           style={{ background: alert ? `${accent}15` : VERDE_LIGHT }}
@@ -152,10 +153,10 @@ function KpiCard({
         </div>
       </div>
       <div className="mt-2">
-        <p className="text-2xl font-semibold" style={alert ? { color: accent } : undefined}>
+        <p className="text-2xl font-medium" style={alert ? { color: accent } : undefined}>
           {value}
         </p>
-        {sub && <p className="text-xs text-slate-500 mt-0.5">{sub}</p>}
+        {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
       </div>
     </div>
   );
@@ -354,10 +355,10 @@ export default function Contratos() {
   });
 
   function statusBadge(s: string) {
-    if (s === "vigente") return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Vigente</Badge>;
+    if (s === "vigente") return <Badge className="bg-success/10 text-success hover:bg-success/10">Vigente</Badge>;
     if (s === "encerrado") return <Badge variant="secondary">Encerrado</Badge>;
     if (s === "futuro") return <Badge variant="outline">Futuro</Badge>;
-    if (s === "suspenso") return <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">Suspenso</Badge>;
+    if (s === "suspenso") return <Badge className="bg-warning/10 text-warning hover:bg-warning/10">Suspenso</Badge>;
     if (s === "rascunho") return <Badge variant="outline">Rascunho</Badge>;
     return <Badge>{s}</Badge>;
   }
@@ -366,7 +367,7 @@ export default function Contratos() {
     if (!active || !payload?.length) return null;
     return (
       <div className="rounded-md border bg-white p-2 shadow-md">
-        <p className="text-xs text-slate-500">{label}</p>
+        <p className="text-xs text-muted-foreground">{label}</p>
         <p className="text-sm font-medium" style={{ color: VERDE }}>
           {formatBRL(payload[0].value)}
         </p>
@@ -379,19 +380,19 @@ export default function Contratos() {
   ).length;
 
   return (
-    <div className="container mx-auto py-6 max-w-7xl space-y-6">
+    <PageShell>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Contratos</h1>
-          <p className="text-sm text-slate-500 mt-1">Gestão de compromissos e recorrência</p>
+          <h1 className="text-2xl font-medium">Contratos</h1>
+          <p className="text-sm text-muted-foreground mt-1">Gestão de compromissos e recorrência</p>
         </div>
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setMostrarBanner(!mostrarBanner)}
-            className="text-slate-500 text-xs"
+            className="text-muted-foreground text-xs"
           >
             <Info className="h-3.5 w-3.5 mr-1.5" />
             Como criar
@@ -410,7 +411,7 @@ export default function Contratos() {
       </div>
 
       {mostrarBanner && (
-        <div className="rounded-lg border bg-slate-50 p-3 text-sm text-slate-600">
+        <div className="rounded-lg border bg-muted/10 p-3 text-sm text-muted-foreground">
           Os contratos nascem do GED. Crie uma pasta/projeto, suba os documentos e clique em{" "}
           <span className="font-medium">"Gerar contrato com IA"</span>.
         </div>
@@ -464,10 +465,10 @@ export default function Contratos() {
       <div className="rounded-lg border bg-card p-5">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-sm font-semibold">Comprometimento por mês</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Parcelas que vencem nos próximos 6 meses</p>
+            <h3 className="text-sm font-medium">Comprometimento por mês</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">Parcelas que vencem nos próximos 6 meses</p>
           </div>
-          <CalendarClock className="h-4 w-4 text-slate-400" />
+          <CalendarClock className="h-4 w-4 text-muted-foreground" />
         </div>
         <div className="h-56">
           <ResponsiveContainer width="100%" height="100%">
@@ -495,12 +496,12 @@ export default function Contratos() {
       {/* Filtros */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por número, projeto, parceiro ou tipo..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            className="pl-9 border-slate-200"
+            className="pl-9 border-border/40"
           />
         </div>
         <Select value={filtroStatus} onValueChange={setFiltroStatus}>
@@ -529,12 +530,12 @@ export default function Contratos() {
       {/* Tabela */}
       <div className="rounded-lg border bg-card overflow-hidden">
         {isLoading && (
-          <div className="text-center py-12 text-sm text-slate-500">Carregando contratos...</div>
+          <div className="text-center py-12 text-sm text-muted-foreground">Carregando contratos...</div>
         )}
         {!isLoading && contratosFiltrados.length === 0 && (
           <div className="text-center py-12">
-            <FileSignature className="h-10 w-10 mx-auto mb-3 text-slate-300" />
-            <p className="text-sm text-slate-500">
+            <FileSignature className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
               {contratos.length === 0 ? "Nenhum contrato cadastrado." : "Nenhum contrato com esses filtros."}
             </p>
           </div>
@@ -563,7 +564,7 @@ export default function Contratos() {
                 return (
                   <TableRow
                     key={c.id}
-                    className="cursor-pointer hover:bg-slate-50"
+                    className="cursor-pointer hover:bg-muted/10"
                     onClick={() => setContratoDetalhes(c)}
                   >
                     <TableCell>
@@ -578,7 +579,7 @@ export default function Contratos() {
                       <div>
                         <p className="font-medium text-sm">{c.pasta_nome}</p>
                         {c.parceiro_nome && (
-                          <p className="text-xs text-slate-500">{c.parceiro_nome}</p>
+                          <p className="text-xs text-muted-foreground">{c.parceiro_nome}</p>
                         )}
                       </div>
                     </TableCell>
@@ -627,12 +628,12 @@ export default function Contratos() {
                           )}
                         </div>
                       ) : (
-                        <span className="text-slate-400">—</span>
+                        <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>
                     <TableCell className="text-xs">
                       <p>{formatDateBR(c.vigencia_inicio)}</p>
-                      <p className="text-slate-500">→ {c.vigencia_fim ? formatDateBR(c.vigencia_fim) : "sem fim"}</p>
+                      <p className="text-muted-foreground">→ {c.vigencia_fim ? formatDateBR(c.vigencia_fim) : "sem fim"}</p>
                     </TableCell>
                     <TableCell>{statusBadge(c.status)}</TableCell>
                     <TableCell className="text-right">
@@ -645,7 +646,7 @@ export default function Contratos() {
                             navigate(`/administrativo-fetely/ged?pasta=${c.pasta_id}`);
                           }}
                           title="Abrir no GED"
-                          className="text-slate-400 hover:text-slate-700"
+                          className="text-muted-foreground hover:text-muted-foreground"
                         >
                           <FolderOpen className="h-4 w-4" />
                         </Button>
@@ -657,7 +658,7 @@ export default function Contratos() {
                             setContratoParaExcluir(c);
                           }}
                           title="Excluir contrato"
-                          className="hover:bg-rose-50"
+                          className="hover:bg-destructive/10"
                           style={{ color: "#fca5a5" }}
                           onMouseEnter={(e) => (e.currentTarget.style.color = ROSA)}
                           onMouseLeave={(e) => (e.currentTarget.style.color = "#fca5a5")}
@@ -688,7 +689,7 @@ export default function Contratos() {
                   Contrato <span className="font-mono font-medium">{contratoParaExcluir?.numero}</span> —{" "}
                   <span className="font-medium">{contratoParaExcluir?.pasta_nome}</span>.
                 </p>
-                <p className="text-amber-700">
+                <p className="text-warning">
                   ⚠️ Parcelas removidas. Despesas já lançadas em Contas a Pagar são mantidas, perdem o vínculo.
                 </p>
               </div>
@@ -720,7 +721,7 @@ export default function Contratos() {
         contrato={contratoDetalhes}
         onClose={() => setContratoDetalhes(null)}
       />
-    </div>
+    </PageShell>
   );
 }
 
@@ -772,10 +773,10 @@ function ContratoDetalheDrawer({
 
   function statusCPRBadge(status: string) {
     const cls: Record<string, string> = {
-      aprovado: "bg-blue-100 text-blue-800 border-blue-300",
-      enviado_para_pagamento: "bg-amber-100 text-amber-800 border-amber-300",
-      cancelado: "bg-slate-100 text-slate-500 border-slate-300",
-      aberto: "bg-slate-100 text-slate-700 border-slate-300",
+      aprovado: "bg-info/10 text-info border-info/40",
+      enviado_para_pagamento: "bg-warning/10 text-warning border-warning/40",
+      cancelado: "bg-muted/10 text-muted-foreground border-border/40",
+      aberto: "bg-muted/10 text-muted-foreground border-border/40",
     };
     const label: Record<string, string> = {
       aprovado: "Aprovado",
@@ -784,7 +785,7 @@ function ContratoDetalheDrawer({
       aberto: "Aberto",
     };
     return (
-      <Badge variant="outline" className={cls[status] ?? "bg-slate-100 text-slate-700 border-slate-300"}>
+      <Badge variant="outline" className={cls[status] ?? "bg-muted/10 text-muted-foreground border-border/40"}>
         {label[status] ?? status}
       </Badge>
     );
@@ -807,17 +808,17 @@ function ContratoDetalheDrawer({
         <div className="grid grid-cols-3 gap-3 mt-6">
           <div className="rounded-lg border p-3">
             <p className="text-xs text-muted-foreground">Comprometido</p>
-            <p className="text-lg font-semibold">{formatBRL(totalComprometido)}</p>
+            <p className="text-lg font-medium">{formatBRL(totalComprometido)}</p>
             <p className="text-xs text-muted-foreground">parcelas geradas</p>
           </div>
           <div className="rounded-lg border p-3">
             <p className="text-xs text-muted-foreground">Pago</p>
-            <p className="text-lg font-semibold">{formatBRL(totalPago)}</p>
+            <p className="text-lg font-medium">{formatBRL(totalPago)}</p>
             <p className="text-xs text-muted-foreground">enviado p/ pagamento</p>
           </div>
           <div className="rounded-lg border p-3">
             <p className="text-xs text-muted-foreground">Extras</p>
-            <p className="text-lg font-semibold">{formatBRL(totalExtras)}</p>
+            <p className="text-lg font-medium">{formatBRL(totalExtras)}</p>
             <p className="text-xs text-muted-foreground">{cprsExtras.length} lançamentos</p>
           </div>
         </div>
@@ -825,7 +826,7 @@ function ContratoDetalheDrawer({
         {/* Parcelas */}
         <div className="mt-6">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold">Parcelas</h3>
+            <h3 className="text-sm font-medium">Parcelas</h3>
             <span className="text-xs text-muted-foreground">{parcelas.length} parcelas</span>
           </div>
           <div className="space-y-2">
@@ -851,7 +852,7 @@ function ContratoDetalheDrawer({
                     {cpr ? (
                       statusCPRBadge(cpr.status)
                     ) : (
-                      <Badge variant="outline" className="bg-slate-50 text-slate-500 border-slate-300">
+                      <Badge variant="outline" className="bg-muted/10 text-muted-foreground border-border/40">
                         Sem CPR
                       </Badge>
                     )}
@@ -1199,14 +1200,14 @@ function NovoContratoDialog({
             { n: 3, label: "Confirmar" },
           ].map((s, i) => (
             <div key={s.n} className="flex items-center gap-2">
-              {i > 0 && <span className="text-slate-300">›</span>}
+              {i > 0 && <span className="text-muted-foreground">›</span>}
               <span
                 className={
                   etapa === s.n
-                    ? "font-semibold text-emerald-700"
+                    ? "font-medium text-success"
                     : etapa > s.n
-                    ? "text-emerald-600"
-                    : "text-slate-400"
+                    ? "text-success"
+                    : "text-muted-foreground"
                 }
               >
                 {s.n}. {s.label}
@@ -1227,7 +1228,7 @@ function NovoContratoDialog({
               />
               <div className="border rounded-md max-h-72 overflow-y-auto divide-y">
                 {parceirosFiltrados.length === 0 && (
-                  <div className="p-4 text-sm text-slate-500">
+                  <div className="p-4 text-sm text-muted-foreground">
                     Nenhum parceiro encontrado. Cadastre em Parceiros Comerciais primeiro.
                   </div>
                 )}
@@ -1236,11 +1237,11 @@ function NovoContratoDialog({
                     key={p.id}
                     onClick={() => setParceiroId(p.id)}
                     className={`px-3 py-2.5 cursor-pointer text-sm hover:bg-muted/50 ${
-                      parceiroId === p.id ? "bg-emerald-50 border-l-2 border-l-emerald-500" : ""
+                      parceiroId === p.id ? "bg-success/10 border-l-2 border-l-success/40" : ""
                     }`}
                   >
                     <p className="font-medium">{p.razao_social}</p>
-                    {p.cnpj && <p className="text-xs text-slate-500">{p.cnpj}</p>}
+                    {p.cnpj && <p className="text-xs text-muted-foreground">{p.cnpj}</p>}
                   </div>
                 ))}
               </div>
@@ -1300,15 +1301,15 @@ function NovoContratoDialog({
                 {arquivo ? (
                   <div>
                     <p className="font-medium text-sm">{arquivo.name}</p>
-                    <p className="text-xs text-slate-500 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       {(arquivo.size / 1024).toFixed(0)} KB — clique para trocar
                     </p>
                   </div>
                 ) : (
                   <div>
-                    <Upload className="h-8 w-8 mx-auto mb-2 text-slate-400" />
+                    <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                     <p className="text-sm font-medium">Clique para selecionar o PDF do contrato</p>
-                    <p className="text-xs text-slate-500 mt-1">A IA analisa e preenche os dados automaticamente</p>
+                    <p className="text-xs text-muted-foreground mt-1">A IA analisa e preenche os dados automaticamente</p>
                   </div>
                 )}
               </div>
@@ -1336,7 +1337,7 @@ function NovoContratoDialog({
                       onClick={() => setPastaGedId(p.id)}
                       className={`px-3 py-2.5 cursor-pointer text-sm hover:bg-muted/50 flex items-center justify-between ${
                         pastaGedId === p.id
-                          ? "bg-emerald-50 border-l-2 border-l-emerald-500"
+                          ? "bg-success/10 border-l-2 border-l-success/40"
                           : ""
                       }`}
                     >
@@ -1353,7 +1354,7 @@ function NovoContratoDialog({
             )}
 
             {processandoIA && (
-              <div className="flex items-center justify-center gap-2 text-sm text-slate-600">
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Analisando documentos com IA...
               </div>
@@ -1398,12 +1399,12 @@ function NovoContratoDialog({
         {etapa === 3 && (
           <div className="space-y-4">
             {dadosIA?.confianca === "baixa" && (
-              <div className="rounded-md bg-amber-50 border border-amber-200 p-2.5 text-xs text-amber-800">
+              <div className="rounded-md bg-warning/10 border border-warning/40 p-2.5 text-xs text-warning">
                 ⚠️ IA com baixa confiança — verifique os dados antes de confirmar.
               </div>
             )}
             {dadosIA?.resumo_ia && (
-              <div className="rounded-md bg-slate-50 border p-2.5 text-xs text-slate-600">
+              <div className="rounded-md bg-muted/10 border p-2.5 text-xs text-muted-foreground">
                 {dadosIA.resumo_ia}
               </div>
             )}

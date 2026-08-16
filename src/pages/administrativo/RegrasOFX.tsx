@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -197,10 +198,10 @@ export default function RegrasOFX() {
   })();
 
   return (
-    <div className="p-6 space-y-6 max-w-5xl mx-auto">
+    <PageShell>
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold flex items-center gap-2">
+          <h1 className="text-2xl font-medium flex items-center gap-2">
             <Zap className="h-6 w-6" />
             Regras automáticas OFX
           </h1>
@@ -429,6 +430,6 @@ export default function RegrasOFX() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

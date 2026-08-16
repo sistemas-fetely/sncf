@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useMemo, useState, type ComponentProps } from "react";
 import { getStatusCprMeta, STATUS_CPR_VALIDOS } from "@/lib/financeiro/status-cpr";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -392,7 +393,7 @@ export default function ContasPagar() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <PageShell>
       {/* Header sticky */}
       <div className="sticky top-0 z-20 bg-background -mx-6 -mt-6 px-6 pt-6 pb-4 border-b space-y-4 backdrop-blur">
         <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -404,7 +405,7 @@ export default function ContasPagar() {
               <ArrowUpFromLine className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Contas a Pagar</h1>
+              <h1 className="text-2xl font-medium">Contas a Pagar</h1>
               <p className="text-sm text-muted-foreground">
                 Vencimentos a parceiros — abertos, pagos e atrasados.
               </p>
@@ -433,8 +434,8 @@ export default function ContasPagar() {
             label="Para agir"
             count={kpis.para_agir.count}
             valor={kpis.para_agir.valor}
-            color="text-orange-600"
-            border="border-orange-300"
+            color="text-warning"
+            border="border-warning/40"
             active={kpiFilter === "para_agir"}
             onClick={() => setKpiFilter(kpiFilter === "para_agir" ? null : "para_agir")}
           />
@@ -443,8 +444,8 @@ export default function ContasPagar() {
             label="Atrasadas"
             count={kpis.atrasadas.count}
             valor={kpis.atrasadas.valor}
-            color="text-red-600"
-            border="border-red-300"
+            color="text-destructive"
+            border="border-destructive/40"
             active={kpiFilter === "atrasadas"}
             onClick={() => setKpiFilter(kpiFilter === "atrasadas" ? null : "atrasadas")}
           />
@@ -453,8 +454,8 @@ export default function ContasPagar() {
             label="Enviado para Pagamento"
             count={kpis.aguardando.count}
             valor={kpis.aguardando.valor}
-            color="text-teal-600"
-            border="border-teal-300"
+            color="text-success"
+            border="border-success/40"
             active={kpiFilter === "aguardando"}
             onClick={() => setKpiFilter(kpiFilter === "aguardando" ? null : "aguardando")}
           />
@@ -463,8 +464,8 @@ export default function ContasPagar() {
             label="Pendência de dados"
             count={kpis.pendencia.count}
             valor={kpis.pendencia.valor}
-            color="text-amber-600"
-            border="border-amber-300"
+            color="text-warning"
+            border="border-warning/40"
             active={kpiFilter === "pendencia"}
             onClick={() => setKpiFilter(kpiFilter === "pendencia" ? null : "pendencia")}
           />
@@ -548,7 +549,7 @@ export default function ContasPagar() {
           ) : filtrados.length === 0 ? (
             <div className="p-12 text-center">
               <PackageOpen className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-              <h3 className="font-semibold mb-1">Nenhuma conta encontrada</h3>
+              <h3 className="font-medium mb-1">Nenhuma conta encontrada</h3>
               <p className="text-sm text-muted-foreground">
                 {temFiltroAtivo
                   ? "Tente ajustar os filtros."
@@ -618,7 +619,7 @@ export default function ContasPagar() {
                       <TableCell
                         className={cn(
                           "whitespace-nowrap",
-                          atrasada && "text-red-600 font-medium",
+                          atrasada && "text-destructive font-medium",
                         )}
                       >
                         {formatDateBR(c.data_vencimento)}
@@ -652,7 +653,7 @@ export default function ContasPagar() {
                         ) : (
                           <Badge
                             variant="outline"
-                            className="text-[9px] border-amber-400 text-amber-700"
+                            className="text-[9px] border-warning/40 text-warning"
                           >
                             Sem categoria
                           </Badge>
@@ -677,7 +678,7 @@ export default function ContasPagar() {
                           {c.situacao_pagamento === "parcial" && (
                             <Badge
                               variant="outline"
-                              className="text-[9px] border-blue-400 text-blue-700 dark:text-blue-400"
+                              className="text-[9px] border-info/40 text-info"
                             >
                               Parcialmente pago
                             </Badge>
@@ -734,7 +735,7 @@ export default function ContasPagar() {
         }}
         initialData={initialDataNovaConta}
       />
-    </div>
+    </PageShell>
   );
 }
 
@@ -771,7 +772,7 @@ function KpiCard({
         </div>
         <div className="min-w-0">
           <div className="text-xs text-muted-foreground truncate">{label}</div>
-          <div className="text-2xl font-bold leading-tight">{count}</div>
+          <div className="text-2xl font-medium leading-tight">{count}</div>
           <div className="text-xs text-muted-foreground font-mono">{formatBRL(valor)}</div>
         </div>
       </CardContent>
@@ -856,8 +857,8 @@ function ContaCorrenteFornecedorRow({ r }: { r: CcFornecedor }) {
           {r.ultimo_pagamento ? ` · último ${formatDateBR(r.ultimo_pagamento)}` : ""})
         </div>
         <div className={cn(
-          "text-right font-mono font-semibold whitespace-nowrap min-w-[110px]",
-          saldo > 0 ? "text-amber-600" : "text-emerald-600",
+          "text-right font-mono font-medium whitespace-nowrap min-w-[110px]",
+          saldo > 0 ? "text-warning" : "text-success",
         )}>
           {formatBRL(saldo)}
         </div>
@@ -893,7 +894,7 @@ function ContaCorrenteFornecedorRow({ r }: { r: CcFornecedor }) {
                       variant="outline"
                       className={cn(
                         "text-[10px] px-1.5 py-0",
-                        isDoc ? "border-amber-500 text-amber-600" : "border-emerald-500 text-emerald-600",
+                        isDoc ? "border-warning/40 text-warning" : "border-success/40 text-success",
                       )}
                     >
                       {isDoc ? "+ documento" : "− abatimento"}
@@ -903,7 +904,7 @@ function ContaCorrenteFornecedorRow({ r }: { r: CcFornecedor }) {
                     </div>
                     <div className={cn(
                       "font-mono whitespace-nowrap min-w-[100px] text-right",
-                      val >= 0 ? "text-amber-600" : "text-emerald-600",
+                      val >= 0 ? "text-warning" : "text-success",
                     )}>
                       {val >= 0 ? "+" : "−"}{formatBRL(Math.abs(val))}
                     </div>
@@ -916,8 +917,8 @@ function ContaCorrenteFornecedorRow({ r }: { r: CcFornecedor }) {
               <div className="px-3 py-2 flex items-center justify-between text-xs bg-muted/40">
                 <span className="font-medium">Saldo devedor</span>
                 <span className={cn(
-                  "font-mono font-semibold",
-                  saldoFinal > 0 ? "text-amber-600" : "text-emerald-600",
+                  "font-mono font-medium",
+                  saldoFinal > 0 ? "text-warning" : "text-success",
                 )}>
                   {formatBRL(saldoFinal)}
                 </span>
@@ -950,7 +951,7 @@ function ContasCorrentesFornecedorCard() {
     <Card>
       <CardContent className="p-4 space-y-2">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-sm">Contas correntes de fornecedor</h3>
+          <h3 className="font-medium text-sm">Contas correntes de fornecedor</h3>
           <span className="text-xs text-muted-foreground">{data.length} fornecedor{data.length === 1 ? "" : "es"}</span>
         </div>
         <div className="divide-y">

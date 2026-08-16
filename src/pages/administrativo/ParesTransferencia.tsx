@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -83,9 +84,9 @@ export default function ParesTransferencia() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-[1400px]">
+    <PageShell>
       <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
+        <h1 className="text-2xl font-medium flex items-center gap-2">
           <ArrowLeftRight className="h-6 w-6 text-admin" />
           Pares de Transferência Sugeridos
         </h1>
@@ -160,6 +161,6 @@ export default function ParesTransferencia() {
           </Table>
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

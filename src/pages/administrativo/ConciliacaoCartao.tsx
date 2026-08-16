@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/layout/PageShell";
 import { Fragment, useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -58,9 +59,9 @@ const STATUS_LABEL: Record<Status, string> = {
 };
 
 const STATUS_CLASS: Record<Status, string> = {
-  exato: "bg-emerald-100 text-emerald-800 border-emerald-300",
-  ajuste_provavel: "bg-amber-100 text-amber-800 border-amber-300",
-  divergente: "bg-red-100 text-red-800 border-red-300",
+  exato: "bg-success/10 text-success border-success/40",
+  ajuste_provavel: "bg-warning/10 text-warning border-warning/40",
+  divergente: "bg-destructive/10 text-destructive border-destructive/40",
   sem_candidato: "bg-muted text-muted-foreground border-border",
 };
 
@@ -206,7 +207,7 @@ function AbaConciliarExtrato() {
                           {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                         </TableCell>
                         <TableCell className="whitespace-nowrap text-sm">{formatDateBR(s.ofx_data)}</TableCell>
-                        <TableCell className="font-mono font-semibold whitespace-nowrap">{formatBRL(s.ofx_valor)}</TableCell>
+                        <TableCell className="font-mono font-medium whitespace-nowrap">{formatBRL(s.ofx_valor)}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className="text-xs">{s.bandeira || "—"}</Badge>
                         </TableCell>
@@ -284,9 +285,9 @@ function AbaConciliarExtrato() {
 
 export default function ConciliacaoCartao() {
   return (
-    <div className="p-6 space-y-6 max-w-[1400px]">
+    <PageShell>
       <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
+        <h1 className="text-2xl font-medium flex items-center gap-2">
           <CreditCard className="h-6 w-6 text-admin" />
           Conciliação de Cartão
         </h1>
@@ -312,7 +313,7 @@ export default function ConciliacaoCartao() {
           <AbaConciliarExtrato />
         </TabsContent>
       </Tabs>
-    </div>
+    </PageShell>
   );
 }
 
@@ -369,8 +370,8 @@ const FORCA_LABEL: Record<Forca, string> = {
 };
 
 const FORCA_CLASS: Record<Forca, string> = {
-  exato: "bg-emerald-100 text-emerald-800 border-emerald-300",
-  aproximado: "bg-amber-100 text-amber-800 border-amber-300",
+  exato: "bg-success/10 text-success border-success/40",
+  aproximado: "bg-warning/10 text-warning border-warning/40",
   fraco: "bg-muted text-muted-foreground border-border",
 };
 
@@ -563,7 +564,7 @@ function AbaVincularVendas() {
 
         {/* Seção A */}
         {!isLoading && !isError && (
-          <Card className="border-emerald-500/40">
+          <Card className="border-success/40">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">
                 Prontas para vincular · {lote.length} vendas · {formatBRL(soma(lote))}
@@ -639,7 +640,7 @@ function AbaVincularVendas() {
                             <Badge variant="outline" className="text-xs">{c.produto || "—"}</Badge>
                           </TableCell>
                           <TableCell className="text-sm tabular-nums">{c.parcelas_safrapay}x</TableCell>
-                          <TableCell className="font-mono font-semibold tabular-nums whitespace-nowrap">
+                          <TableCell className="font-mono font-medium tabular-nums whitespace-nowrap">
                             {formatBRL(Number(c.valor_bruto))}
                           </TableCell>
                           <TableCell>
@@ -694,7 +695,7 @@ function AbaVincularVendas() {
 
         {/* Seção B */}
         {!isLoading && !isError && (
-          <Card className="border-amber-500/50">
+          <Card className="border-warning/40">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">
                 Precisam de decisão · {decidir.length} vendas · {formatBRL(soma(decidir))}
@@ -746,7 +747,7 @@ function AbaVincularVendas() {
                             )}
                           </TableCell>
                           <TableCell className="text-sm tabular-nums">{v.melhor.parcelas_safrapay}x</TableCell>
-                          <TableCell className="font-mono font-semibold tabular-nums whitespace-nowrap">
+                          <TableCell className="font-mono font-medium tabular-nums whitespace-nowrap">
                             {formatBRL(Number(v.melhor.valor_bruto))}
                           </TableCell>
                           <TableCell className="tabular-nums whitespace-nowrap">
@@ -895,7 +896,7 @@ function AbaVincularVendas() {
                       <TableRow key={v.nsu}>
                         <TableCell className="font-mono text-xs whitespace-nowrap">{v.nsu}</TableCell>
                         <TableCell className="text-sm whitespace-nowrap">{formatDateBR(c.data_venda)}</TableCell>
-                        <TableCell className="font-mono font-semibold tabular-nums whitespace-nowrap">
+                        <TableCell className="font-mono font-medium tabular-nums whitespace-nowrap">
                           {formatBRL(Number(c.valor_bruto))}
                         </TableCell>
                         <TableCell>
@@ -986,14 +987,14 @@ function AbaVincularVendas() {
                   <p className="text-xs text-muted-foreground">Venda SafraPay</p>
                   <p className="font-mono text-xs">{alvo.nsu}</p>
                   <p>{formatDateBR(alvo.data_venda)}</p>
-                  <p className="font-mono tabular-nums font-semibold">{formatBRL(Number(alvo.valor_bruto))}</p>
+                  <p className="font-mono tabular-nums font-medium">{formatBRL(Number(alvo.valor_bruto))}</p>
                   <p className="tabular-nums">{alvo.parcelas_safrapay}x</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Pedido</p>
                   <p className="font-mono text-xs">{alvo.pedido_ref}</p>
                   <p className="truncate">{alvo.cliente || "—"}</p>
-                  <p className="font-mono tabular-nums font-semibold">{formatBRL(Number(alvo.total_titulos ?? 0))}</p>
+                  <p className="font-mono tabular-nums font-medium">{formatBRL(Number(alvo.total_titulos ?? 0))}</p>
                   <p className="tabular-nums">{alvo.parcelas_no_sistema ?? "—"}x</p>
                 </div>
                 <div className="col-span-2 text-xs">Δ <Delta c={alvo} /></div>
