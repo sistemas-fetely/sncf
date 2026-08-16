@@ -46,6 +46,119 @@ interface GrupoPessoa {
   atrasadas: number;
 }
 
+/** Bloco da pessoa — igual ao que já existia, agora reutilizado na árvore. */
+function BlocoPessoa({
+  g,
+  hoje,
+  agregado,
+}: {
+  g: GrupoPessoa;
+  hoje: string;
+  agregado?: { pessoas: number; abertas: number };
+}) {
+  return (
+    <Card>
+      <CardContent className="space-y-3 p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <Avatar className="h-8 w-8">
+            {g.avatar && <AvatarImage src={g.avatar} alt={g.nome} />}
+            <AvatarFallback className="text-[11px]">{iniciais(g.nome)}</AvatarFallback>
+          </Avatar>
+          <span className="text-sm font-medium">{g.nome}</span>
+          <span className="text-xs text-muted-foreground">
+            {g.tarefas.length} {g.tarefas.length === 1 ? "aberta" : "abertas"}
+          </span>
+          {g.atrasadas > 0 && (
+            <span className="flex items-center gap-1 text-xs font-medium text-destructive">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {g.atrasadas} atrasada{g.atrasadas === 1 ? "" : "s"}
+            </span>
+          )}
+          {agregado && agregado.pessoas > 0 && (
+            <Badge variant="outline" className="text-[11px] font-medium">
+              time: {agregado.pessoas} {agregado.pessoas === 1 ? "pessoa" : "pessoas"} ·{" "}
+              {agregado.abertas} {agregado.abertas === 1 ? "aberta" : "abertas"}
+            </Badge>
+          )}
+        </div>
+
+        {g.tarefas.length === 0 ? (
+          <p className="text-xs text-muted-foreground">nenhuma tarefa aberta</p>
+        ) : (
+          <div className="space-y-2">
+            {g.tarefas.map((t) => (
+              <TarefaItem key={t.id} tarefa={t} atrasada={!!t.data_limite && t.data_limite < hoje} />
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Nó da árvore. Recursão à prova de ciclo via Set de visitados. */
+function NoTime({
+  userId,
+  grupos,
+  filhosPorGestor,
+  hoje,
+  visitados,
+}: {
+  userId: string;
+  grupos: Map<string, GrupoPessoa>;
+  filhosPorGestor: Map<string, string[]>;
+  hoje: string;
+  visitados: Set<string>;
+}) {
+  if (visitados.has(userId)) return null;
+  const proximos = new Set(visitados);
+  proximos.add(userId);
+
+  const g = grupos.get(userId);
+  if (!g) return null;
+
+  const filhos = filhosPorGestor.get(userId) ?? [];
+
+  // agregado do time abaixo desta pessoa, sem repetir id (ciclo)
+  const contados = new Set<string>([userId]);
+  let pessoasTime = 0;
+  let abertasTime = 0;
+  const pilha = [...filhos];
+  while (pilha.length > 0) {
+    const id = pilha.pop()!;
+    if (contados.has(id)) continue;
+    contados.add(id);
+    pessoasTime += 1;
+    abertasTime += grupos.get(id)?.tarefas.length ?? 0;
+    for (const f of filhosPorGestor.get(id) ?? []) pilha.push(f);
+  }
+
+  return (
+    <div className="space-y-2">
+      <BlocoPessoa
+        g={g}
+        hoje={hoje}
+        agregado={pessoasTime > 0 ? { pessoas: pessoasTime, abertas: abertasTime } : undefined}
+      />
+      {filhos.length > 0 && (
+        <div className="ml-6 space-y-2 border-l border-border pl-4">
+          {filhos.map((f) => (
+            <NoTime
+              key={f}
+              userId={f}
+              grupos={grupos}
+              filhosPorGestor={filhosPorGestor}
+              hoje={hoje}
+              visitados={proximos}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 export default function MeuTime() {
   const hoje = hojeISO();
   const [pessoaFiltro, setPessoaFiltro] = useState<string>("todas");
