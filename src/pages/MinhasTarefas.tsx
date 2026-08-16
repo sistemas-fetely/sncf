@@ -1,3 +1,4 @@
+import { PageTitle } from "@/components/layout/PageTitle";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -765,18 +766,15 @@ export default function MinhasTarefas() {
 
   return (
     <PageShell>
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight">Inbox</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Visão unificada de todas as suas pendências
-          </p>
-        </div>
-        <Button className="gap-2" onClick={() => setNovaTarefaOpen(true)}>
-          <Plus className="h-4 w-4" /> Nova Tarefa
-        </Button>
-      </div>
+      <PageTitle
+        titulo="Inbox"
+        estado="Visão unificada de todas as suas pendências"
+        acoes={
+          <Button className="gap-2" onClick={() => setNovaTarefaOpen(true)}>
+            <Plus className="h-4 w-4" /> Nova Tarefa
+          </Button>
+        }
+      />
 
       {/* Radar operacional — indicadores que migraram do Dash Op */}
       <RadarOperacional />
@@ -830,8 +828,7 @@ export default function MinhasTarefas() {
                       e.stopPropagation();
                       navigate(p.link);
                     }}
-                    style={p.prioridade === "urgente" ? { backgroundColor: "#1A4A3A" } : undefined}
-                    className={p.prioridade === "urgente" ? "text-white hover:opacity-90" : ""}
+                    className={p.prioridade === "urgente" ? "bg-destructive text-white hover:opacity-90" : ""}
                   >
                     {p.botaoTexto}
                   </Button>

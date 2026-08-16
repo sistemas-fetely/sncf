@@ -1,3 +1,4 @@
+import { PageTitle } from "@/components/layout/PageTitle";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -257,6 +258,7 @@ export default function TarefasDoTime() {
   if (!podeAcessar) {
     return (
       <PageShell>
+        <PageTitle titulo="Tarefas do time" estado="Acesso restrito" />
         <Card>
           <CardContent className="p-8 text-center">
             <ShieldAlert className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
@@ -272,18 +274,11 @@ export default function TarefasDoTime() {
 
   return (
     <PageShell>
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-3xl font-medium tracking-tight" style={{ color: "#1A4A3A" }}>
-              Tarefas do Time
-            </h1>
-            <BadgePredictor tamanho="md" />
-          </div>
-          <p className="text-muted-foreground mt-1">Visão das tarefas dos seus subordinados</p>
-        </div>
-      </div>
+      <PageTitle
+        titulo="Tarefas do time"
+        estado="Visão das tarefas dos seus subordinados"
+        acoes={<BadgePredictor tamanho="md" />}
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -365,8 +360,7 @@ export default function TarefasDoTime() {
                   <div className="flex items-center justify-between flex-wrap gap-3">
                     <div className="flex items-center gap-3">
                       <div
-                        className="flex h-10 w-10 items-center justify-center rounded-full text-xs font-medium text-white"
-                        style={{ backgroundColor: "#1A4A3A" }}
+                        className="flex h-10 w-10 items-center justify-center rounded-full bg-success text-xs font-medium text-white"
                       >
                         {initials(sub.nome)}
                       </div>
