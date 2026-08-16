@@ -94,7 +94,7 @@ export function AplicarTemplateDialog({ template, aberto, onOpenChange }: Props)
           {ehChecklist ? (
             <div className="space-y-1.5">
               <Label>Projeto de destino</Label>
-              {projetosAtivos.length === 0 ? (
+              {projetos && projetos.length === 0 ? (
                 <div className="rounded-md border border-border bg-muted/50 p-3 text-sm">
                   <p className="font-medium">Nenhum projeto ativo</p>
                   <p className="text-muted-foreground">
@@ -109,12 +109,13 @@ export function AplicarTemplateDialog({ template, aberto, onOpenChange }: Props)
                   <SelectTrigger><SelectValue placeholder="Selecione um projeto" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value={SEM_VALOR}>Selecione um projeto</SelectItem>
-                    {projetosAtivos.map((p) => (
+                    {(projetos ?? []).map((p) => (
                       <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               )}
+
             </div>
           ) : (
             <div className="space-y-1.5">
