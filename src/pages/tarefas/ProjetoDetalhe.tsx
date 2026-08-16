@@ -14,6 +14,7 @@ import { SalvarProjetoComoTemplateDialog } from "@/components/tarefas/templates/
 import { SAUDE_CLASSE, SAUDE_ROTULO, useProjeto } from "@/hooks/tarefas/useProjetosTarefas";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PageTitle } from "@/components/layout/PageTitle";
 export default function ProjetoDetalhe() {
   const { id } = useParams<{ id: string }>();
   const { data: projeto, isLoading, error } = useProjeto(id ?? null);
@@ -38,29 +39,34 @@ export default function ProjetoDetalhe() {
         </p>
       )}
 
-      <header className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <span
           className="h-10 w-10 shrink-0 rounded-xl"
           style={{ backgroundColor: projeto?.cor ?? "hsl(var(--muted))" }}
         />
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-2xl font-medium tracking-tight">
-            {isLoading ? "Carregando…" : projeto?.nome}
-          </h1>
-          <p className="truncate text-sm text-muted-foreground">
-            {projeto?.responsavel_id ? nomePessoa(projeto.responsavel_id) : "Sem responsável"}
-            {projeto?.data_fim_prevista ? ` · fim previsto ${projeto.data_fim_prevista.slice(0, 10).split("-").reverse().join("/")}` : ""}
-          </p>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => setSalvarTemplate(true)}>
-          <Save className="mr-1 h-3.5 w-3.5" /> Salvar como template
-        </Button>
-        {projeto && (
-          <Badge variant="outline" className={cn("text-[10px]", SAUDE_CLASSE[projeto.saude])}>
-            {SAUDE_ROTULO[projeto.saude]}
-          </Badge>
-        )}
-      </header>
+        <PageTitle
+          className="min-w-0 flex-1"
+          titulo={isLoading ? "Carregando…" : projeto?.nome ?? ""}
+          estado={
+            <>
+              {projeto?.responsavel_id ? nomePessoa(projeto.responsavel_id) : "Sem responsável"}
+              {projeto?.data_fim_prevista ? ` · fim previsto ${projeto.data_fim_prevista.slice(0, 10).split("-").reverse().join("/")}` : ""}
+            </>
+          }
+          acoes={
+            <>
+              <Button variant="outline" size="sm" onClick={() => setSalvarTemplate(true)}>
+                <Save className="mr-1 h-3.5 w-3.5" /> Salvar como template
+              </Button>
+              {projeto && (
+                <Badge variant="outline" className={cn("text-[10px]", SAUDE_CLASSE[projeto.saude])}>
+                  {SAUDE_ROTULO[projeto.saude]}
+                </Badge>
+              )}
+            </>
+          }
+        />
+      </div>
 
       <Tabs defaultValue="board">
         <TabsList>

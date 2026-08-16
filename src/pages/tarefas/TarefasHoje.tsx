@@ -7,6 +7,8 @@ import { QuickAddTarefa } from "@/components/tarefas/QuickAddTarefa";
 import { InboxFilas } from "@/components/tarefas/InboxFilas";
 import { TarefaItem } from "@/components/tarefas/TarefaItem";
 import {
+import { PageTitle } from "@/components/layout/PageTitle";
+import { PageShell } from "@/components/layout/PageShell";
   useTarefasConcluidas, useTarefasContadores, useTarefasHoje,
   useTarefasProximos7, useTarefasSemData, type Tarefa,
 } from "@/hooks/tarefas/useTarefas";
@@ -40,13 +42,11 @@ export default function TarefasHoje() {
   const vazioHoje = !hoje.isLoading && atrasadas.length === 0 && doDia.length === 0;
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6 p-6">
-      <header>
-        <h1 className="text-2xl font-medium tracking-tight">Hoje</h1>
-        <p className="text-sm text-muted-foreground">
-          {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
-        </p>
-      </header>
+    <PageShell variant="leitura">
+      <PageTitle
+        titulo="Hoje"
+        estado={format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
+      />
 
       <Card>
         <CardContent className="pt-4">
@@ -129,6 +129,6 @@ export default function TarefasHoje() {
           )}
         </TabsContent>
       </Tabs>
-    </div>
+    </PageShell>
   );
 }
