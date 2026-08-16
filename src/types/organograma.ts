@@ -55,7 +55,7 @@ export interface PosicaoNode extends PosicaoRaw {
   // display helpers
   nome_display: string;
   foto_url: string | null;
-  vinculo: "CLT" | "PJ" | null;
+  vinculo: TipoVinculoCodigo | null;
   status_pessoal: string | null;
 }
 
