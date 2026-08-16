@@ -122,7 +122,11 @@ export default function Templates() {
                     <SelectItem value="checklist">Checklist</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  Projeto cria um novo projeto com as tarefas. Checklist adiciona as tarefas a um projeto já existente.
+                </p>
               </div>
+
             </div>
           )}
           <DialogFooter>
