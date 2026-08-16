@@ -377,6 +377,18 @@ export function FilaPedidosPorArea({
 
   const { data: liberacaoMap } = useLiberacaoExpedicaoLote(pedidoIdsSaida);
 
+  // Liberação: filtro aplicado depois que o mapa existe (hook acima depende dos ids).
+  const linhasFiltradas = useMemo(() => {
+    if (liberacaoFilter === "todas") return linhas;
+    return linhas.filter((p) => {
+      const lib = liberacaoMap?.get(p.id);
+      if (!lib) return false;
+      return liberacaoFilter === "liberado" ? lib.liberado : !lib.liberado;
+    });
+  }, [linhas, liberacaoMap, liberacaoFilter]);
+
+
+
 
 
   const { data: msgPendentes } = useQuery({
