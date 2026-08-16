@@ -10,8 +10,7 @@ interface PosicaoInsert {
   filial?: string | null;
   status: string;
   id_pai?: string | null;
-  colaborador_id?: string | null;
-  contrato_pj_id?: string | null;
+  vinculo_id?: string | null;
   salario_previsto?: number | null;
   centro_custo?: string | null;
 }
@@ -24,7 +23,7 @@ export function useCreatePosicao() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (data: PosicaoInsert) => {
-      const { error } = await supabase.from("posicoes").insert(data as any);
+      const { error } = await supabase.from("posicoes").insert(data);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -41,12 +40,22 @@ export function useUpdatePosicao() {
     mutationFn: async ({ id, ...data }: PosicaoUpdate) => {
       // If it's a virtual node, create a real position instead
       if (id.startsWith("virtual-")) {
-        const { error } = await supabase.from("posicoes").insert({
-          ...data,
-        } as any);
+        const insertData: PosicaoInsert = {
+          titulo_cargo: data.titulo_cargo ?? "Sem cargo",
+          departamento: data.departamento ?? "Geral",
+          nivel_hierarquico: data.nivel_hierarquico ?? 1,
+          status: data.status ?? "ocupado",
+          id_pai: data.id_pai ?? null,
+          area: data.area ?? null,
+          filial: data.filial ?? null,
+          vinculo_id: data.vinculo_id ?? null,
+          salario_previsto: data.salario_previsto ?? null,
+          centro_custo: data.centro_custo ?? null,
+        };
+        const { error } = await supabase.from("posicoes").insert(insertData);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("posicoes").update(data as any).eq("id", id);
+        const { error } = await supabase.from("posicoes").update(data).eq("id", id);
         if (error) throw error;
       }
     },
@@ -81,27 +90,25 @@ export function useMovePosicao() {
       // Resolve parent: if virtual, create a real position first
       let resolvedParentId = newParentId;
       if (newParentId && newParentId.startsWith("virtual-")) {
-        const isParentColab = newParentId.startsWith("virtual-clt-");
-        const parentRealId = newParentId.replace("virtual-clt-", "").replace("virtual-pj-", "");
+        const parentRealId = newParentId.replace("virtual-", "");
 
         // Check if a position already exists for this person
-        const existingCol = isParentColab ? "colaborador_id" : "contrato_pj_id";
         const { data: existing } = await supabase
           .from("posicoes")
           .select("id")
-          .eq(existingCol, parentRealId)
+          .eq("vinculo_id", parentRealId)
           .limit(1);
 
         if (existing && existing.length > 0) {
           resolvedParentId = existing[0].id;
         } else {
-          const parentInsert: any = {
+          const parentInsert: PosicaoInsert = {
             titulo_cargo: parentNode?.titulo_cargo || "Sem cargo",
             departamento: parentNode?.departamento || "Geral",
             nivel_hierarquico: parentNode?.nivel_hierarquico || 1,
             status: "ocupado",
             id_pai: null,
-            ...(isParentColab ? { colaborador_id: parentRealId } : { contrato_pj_id: parentRealId }),
+            vinculo_id: parentRealId,
           };
           const { data: newParent, error: parentErr } = await supabase
             .from("posicoes")
@@ -114,32 +121,30 @@ export function useMovePosicao() {
       }
 
       if (id.startsWith("virtual-")) {
-        const isColab = id.startsWith("virtual-clt-");
-        const realId = id.replace("virtual-clt-", "").replace("virtual-pj-", "");
+        const realId = id.replace("virtual-", "");
 
         // Check if a position already exists for this person
-        const existingCol = isColab ? "colaborador_id" : "contrato_pj_id";
         const { data: existing } = await supabase
           .from("posicoes")
           .select("id")
-          .eq(existingCol, realId)
+          .eq("vinculo_id", realId)
           .limit(1);
 
         if (existing && existing.length > 0) {
           // Update existing position's parent
           const { error } = await supabase
             .from("posicoes")
-            .update({ id_pai: resolvedParentId } as any)
+            .update({ id_pai: resolvedParentId })
             .eq("id", existing[0].id);
           if (error) throw error;
         } else {
-          const insert: any = {
+          const insert: PosicaoInsert = {
             titulo_cargo: node?.titulo_cargo || "Sem cargo",
             departamento: node?.departamento || "Geral",
             nivel_hierarquico: node?.nivel_hierarquico || 1,
             status: "ocupado",
             id_pai: resolvedParentId,
-            ...(isColab ? { colaborador_id: realId } : { contrato_pj_id: realId }),
+            vinculo_id: realId,
           };
           const { error } = await supabase.from("posicoes").insert(insert);
           if (error) throw error;
@@ -147,7 +152,7 @@ export function useMovePosicao() {
       } else {
         const { error } = await supabase
           .from("posicoes")
-          .update({ id_pai: resolvedParentId } as any)
+          .update({ id_pai: resolvedParentId })
           .eq("id", id);
         if (error) throw error;
       }
