@@ -1,4 +1,4 @@
-import { Search, Filter, RotateCcw, Plus, List } from "lucide-react";
+import { Search, Filter, RotateCcw, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,7 @@ export function OrgToolbar({ viewMode, onViewModeChange, filters, onFiltersChang
               <TabsTrigger value="visual">🌳 Visual</TabsTrigger>
               <TabsTrigger value="sintetico">📋 Sintético</TabsTrigger>
               <TabsTrigger value="analitico">📊 Analítico</TabsTrigger>
-              <TabsTrigger value="lista"><List className="h-3.5 w-3.5 mr-1" />Lista</TabsTrigger>
+              <TabsTrigger value="lista">📄 Lista</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
