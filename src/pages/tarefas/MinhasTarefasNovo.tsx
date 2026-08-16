@@ -10,6 +10,7 @@ import { QuickAddTarefa } from "@/components/tarefas/QuickAddTarefa";
 import { useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
 import { STATUS_ABERTOS, type Tarefa, type TarefaStatus } from "@/hooks/tarefas/useTarefas";
 import { STATUS_ROTULO } from "@/components/tarefas/detalhe/comuns";
+import { PageTitle } from "@/components/layout/PageTitle";
 
 const CAMPOS =
   "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id,data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,acao_url,ordem,criado_em" as const;
@@ -52,12 +53,10 @@ export default function MinhasTarefasNovo() {
 
   return (
     <PageShell variant="dados">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-medium tracking-tight">Minhas Tarefas</h1>
-        <p className="text-sm text-muted-foreground">
-          Tudo sob sua responsabilidade, agrupado por projeto.
-        </p>
-      </header>
+      <PageTitle
+        titulo="Minhas tarefas"
+        estado="Tudo sob sua responsabilidade, agrupado por projeto."
+      />
 
       <Card>
         <CardContent className="pt-4">

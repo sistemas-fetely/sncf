@@ -15,6 +15,7 @@ import {
   usePessoasDoTime, useTarefasAbertasDoTime, useTarefasEntreguesDoTime,
 } from "@/hooks/tarefas/useTarefasDoTime";
 import type { Tarefa, TarefaPrioridade } from "@/hooks/tarefas/useTarefas";
+import { PageTitle } from "@/components/layout/PageTitle";
 
 const PRIORIDADES: { valor: TarefaPrioridade; rotulo: string }[] = [
   { valor: "urgente", rotulo: "Urgente" },
@@ -114,12 +115,10 @@ export default function MeuTime() {
 
   return (
     <PageShell>
-      <header className="space-y-1">
-        <h1 className="text-2xl font-medium tracking-tight">Meu time</h1>
-        <p className="text-sm text-muted-foreground">
-          Tarefas de quem reporta a você. Para a empresa toda, veja Carga.
-        </p>
-      </header>
+      <PageTitle
+        titulo="Meu time"
+        estado="Tarefas de quem reporta a você. Para a empresa toda, veja Carga."
+      />
 
       {erroTime && (
         <Card>

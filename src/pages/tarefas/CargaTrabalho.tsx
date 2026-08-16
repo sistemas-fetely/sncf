@@ -11,6 +11,7 @@ import { TarefaDetalhePainel } from "@/components/tarefas/detalhe/TarefaDetalheP
 import { PRIORIDADE_ROTULO, STATUS_ROTULO } from "@/components/tarefas/detalhe/comuns";
 import { PageShell } from "@/components/layout/PageShell";
 import {
+import { PageTitle } from "@/components/layout/PageTitle";
   CLASSE_TOM, tomDaCarga, useCargaDetalhe, useCargaSemanal, usePodeEditarCapacidade,
   useSalvarCapacidade, type CargaSemana,
 } from "@/hooks/tarefas/useCargaTrabalho";
@@ -73,13 +74,10 @@ export default function CargaTrabalho() {
 
   return (
     <PageShell>
-      <header className="space-y-1">
-        <h1 className="text-2xl font-medium tracking-tight">Carga de trabalho</h1>
-        <p className="text-sm text-muted-foreground">
-          Estimativas das próximas {SEMANAS} semanas contra a capacidade de cada pessoa.
-          Clique numa célula para ver o que compõe o número.
-        </p>
-      </header>
+      <PageTitle
+        titulo="Carga de trabalho"
+        estado={`Estimativas das próximas ${SEMANAS} semanas contra a capacidade de cada pessoa. Clique numa célula para ver o que compõe o número.`}
+      />
 
       {error ? (
         <p className="text-sm text-destructive">

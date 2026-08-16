@@ -9,6 +9,7 @@ import { useNomePessoa } from "@/components/tarefas/detalhe/comuns";
 import { NovoProjetoDialog } from "@/components/tarefas/projetos/NovoProjetoDialog";
 import { PageShell } from "@/components/layout/PageShell";
 import {
+import { PageTitle } from "@/components/layout/PageTitle";
   SAUDE_CLASSE, SAUDE_ROTULO, useContagemAbertasPorProjeto, useProjetosLista,
 } from "@/hooks/tarefas/useProjetosTarefas";
 
@@ -20,17 +21,15 @@ export default function ProjetosGrid() {
 
   return (
     <PageShell>
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-medium tracking-tight">Projetos</h1>
-          <p className="text-sm text-muted-foreground">
-            Onde o trabalho ganha seção, responsável e prazo.
-          </p>
-        </div>
-        <Button onClick={() => setNovo(true)}>
-          <Plus className="mr-1 h-4 w-4" /> Novo projeto
-        </Button>
-      </header>
+      <PageTitle
+        titulo="Projetos"
+        estado="Onde o trabalho ganha seção, responsável e prazo."
+        acoes={
+          <Button onClick={() => setNovo(true)}>
+            <Plus className="mr-1 h-4 w-4" /> Novo projeto
+          </Button>
+        }
+      />
 
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando projetos…</p>
