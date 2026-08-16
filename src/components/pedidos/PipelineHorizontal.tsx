@@ -275,7 +275,7 @@ export function PipelineHorizontal({
                 "group relative flex-1 flex flex-col items-center justify-center rounded-md border py-2 px-1 transition-all duration-200 min-w-0",
                 "gold-border-hover focus-visible:outline-none",
                 isAtivo
-                  ? "gold-border bg-gold-soft shadow-sm ring-1 ring-gold"
+                  ? "gold-border bg-gold-soft shadow-sm"
                   : temPedidos
                   ? ap.caixa
                   : cn(ap.caixa, "opacity-40")
