@@ -621,6 +621,44 @@ export default function CadastroPedidoCompra() {
                           "—"
                         )}
                       </TableCell>
+                      {(() => {
+                        const s = saldoPorPedido.get(Number(p.id));
+                        const aReceber = Number(s?.saldo_a_receber ?? 0);
+                        return (
+                          <>
+                            <TableCell>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-sm">
+                                  {rotuloFaseCalculada(s?.fase_calculada)}
+                                </span>
+                                {s?.divergencia_status && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <AlertTriangle
+                                          className="h-4 w-4 shrink-0 text-warning"
+                                          aria-label={s.divergencia_status}
+                                        />
+                                      </TooltipTrigger>
+                                      <TooltipContent>{s.divergencia_status}</TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell
+                              className={
+                                aReceber > 0
+                                  ? "text-right tabular-nums text-warning"
+                                  : "text-right tabular-nums text-muted-foreground"
+                              }
+                            >
+                              {aReceber > 0 ? new Intl.NumberFormat("pt-BR").format(aReceber) : "0"}
+                            </TableCell>
+                          </>
+                        );
+                      })()}
+
                       <TableCell className="text-right">
                         <Button
                           variant="ghost"
