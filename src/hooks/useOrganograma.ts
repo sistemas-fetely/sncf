@@ -163,7 +163,25 @@ export function useOrganograma() {
       if (posRes.error) throw posRes.error;
       if (vincRes.error) throw vincRes.error;
 
-      const vinculos = ((vincRes.data || []) as unknown as VinculoRaw[]).map(mapVinculoToColaborador);
+      let apareceCodigos: Set<string> | null = null;
+      if (tipoRes.error || !tipoRes.data || tipoRes.data.length === 0) {
+        console.warn(
+          "organograma: tipos_vinculo não carregou; filtro de aparece_organograma será ignorado",
+          tipoRes.error,
+        );
+      } else {
+        apareceCodigos = new Set(
+          (tipoRes.data as { codigo: string; aparece_organograma: boolean }[])
+            .filter((t) => t.aparece_organograma)
+            .map((t) => t.codigo),
+        );
+      }
+
+      const vinculosRaw = (vincRes.data || []) as unknown as VinculoRaw[];
+      const vinculosFiltrados = apareceCodigos
+        ? vinculosRaw.filter((v) => apareceCodigos!.has(v.tipo_vinculo))
+        : vinculosRaw;
+      const vinculos = vinculosFiltrados.map(mapVinculoToColaborador);
 
       const tree = buildTree(
         (posRes.data || []) as unknown as PosicaoRaw[],
