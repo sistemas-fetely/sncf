@@ -414,11 +414,16 @@ export function ImportarFaturaCartaoDialog({ open, onOpenChange, onSuccess }: Pr
               </div>
 
               {/* Resumo destacado */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                 <ResumoCard
-                  label="Valor total"
-                  valor={formatBRL(totalCalculado || 0)}
+                  label="Total da fatura"
+                  valor={parsed.valor_total != null ? formatBRL(parsed.valor_total) : "—"}
                   highlight
+                />
+                <ResumoCard
+                  label="Soma dos lançamentos"
+                  valor={formatBRL(totalCalculado || 0)}
+                  error={totalDivergente}
                 />
                 <ResumoCard
                   label="Lançamentos"
