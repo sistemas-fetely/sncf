@@ -86,42 +86,8 @@ export async function salvarFaturaCartao(
     //  Lançamentos viram conta a pagar individualmente quando operador clica "Criar despesa".)
     const valorTotal = parsed.valor_total || calcularTotalLancamentos(parsed.lancamentos);
 
-    // 5. Criar fatura
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: faturaCriada, error: errFatura } = await (supabase as any)
-      .from("faturas_cartao")
-      .insert({
-        cartao_id,
-        conta_bancaria_id: cartao?.conta_bancaria_id ?? null,
-        periodo_inicio: parsed.periodo_inicio,
-        periodo_fim: parsed.periodo_fim,
-        data_emissao: parsed.data_emissao,
-        data_vencimento,
-        valor_total: valorTotal,
-        valor_total_calculado: calcularTotalLancamentos(parsed.lancamentos),
-        valor_pagamento_anterior: parsed.valor_pagamento_anterior,
-        valor_saldo_atraso: parsed.valor_saldo_atraso || 0,
-        numero_documento: parsed.numero_documento,
-        status: "aberta",
-        conta_pagar_id: null, // doutrina nova: fatura não nasce ligada a conta totalizadora
-        pdf_storage_path: storagePath,
-        pdf_nome_original: nomeOriginal,
-        fonte_importacao: parsed.formato.startsWith("csv") ? "csv" : "pdf",
-        importacao_lote_id: loteId,
-        observacao: observacao || null,
-        criado_por: user?.id || null,
-      })
-      .select("id")
-      .single();
-
-    if (errFatura) {
-      throw new Error(`Erro ao criar fatura: ${errFatura.message}`);
-    }
-    const faturaId = faturaCriada.id as string;
-
-    // 6. Criar lançamentos em batch
+    // 5. Importar fatura (cabeçalho + lançamentos) em uma transação só via RPC
     const linhasLancamentos = parsed.lancamentos.map((l) => ({
-      fatura_id: faturaId,
       data_compra: l.data_compra,
       descricao: l.descricao,
       descricao_normalizada: normalizar(l.descricao),
@@ -138,26 +104,41 @@ export async function salvarFaturaCartao(
       ramo_estabelecimento: l.ramo_estabelecimento,
       num_autorizacao: l.num_autorizacao,
       cnpj_estabelecimento: l.cnpj_estabelecimento,
-      parceiro_id: null,
-      plano_contas_id: null,
-      status: "pendente",
       linha_original_csv: l.linha_original_csv,
     }));
 
-    let idsLancamentosCriados: string[] = [];
-    if (linhasLancamentos.length > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: lancsCriados, error: errLanc } = await (supabase as any)
-        .from("fatura_cartao_lancamentos")
-        .insert(linhasLancamentos)
-        .select("id");
-      if (errLanc) {
-        console.error("Erro ao criar lançamentos:", errLanc);
-        // Não rollback aqui - fatura ja existe; usuário pode reprocessar
-      } else {
-        idsLancamentosCriados = (lancsCriados || []).map((x: { id: string }) => x.id);
-      }
+    const { data: res, error: errImport } = await supabase.rpc(
+      "fn_fatura_cartao_importar",
+      {
+        p_fatura: {
+          cartao_id,
+          conta_bancaria_id: cartao?.conta_bancaria_id ?? null,
+          periodo_inicio: parsed.periodo_inicio,
+          periodo_fim: parsed.periodo_fim,
+          data_emissao: parsed.data_emissao,
+          data_vencimento,
+          valor_total: valorTotal,
+          valor_pagamento_anterior: parsed.valor_pagamento_anterior,
+          valor_saldo_atraso: parsed.valor_saldo_atraso || 0,
+          numero_documento: parsed.numero_documento,
+          pdf_storage_path: storagePath,
+          pdf_nome_original: nomeOriginal,
+          fonte_importacao: parsed.formato.startsWith("csv") ? "csv" : "pdf",
+          importacao_lote_id: loteId,
+          observacao: observacao || null,
+          criado_por: user?.id || null,
+        },
+        p_lancamentos: linhasLancamentos,
+      },
+    );
+    if (errImport) throw new Error(`Erro ao importar fatura: ${errImport.message}`);
+    const linha = Array.isArray(res) ? res[0] : res;
+    if (!linha?.fatura_id) {
+      throw new Error("A importação da fatura não retornou identificador. Nada foi gravado.");
     }
+    const faturaId = linha.fatura_id as string;
+    const idsLancamentosCriados: string[] = [];
+
 
     // === FASE B: DESATIVADA ===
     // Gerador automático de parcelas previstas foi desligado.
