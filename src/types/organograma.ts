@@ -59,7 +59,7 @@ export interface PosicaoNode extends PosicaoRaw {
   status_pessoal: string | null;
 }
 
-export type ViewMode = "visual" | "sintetico" | "analitico";
+export type ViewMode = "visual" | "sintetico" | "analitico" | "lista";
 
 export interface OrgFilters {
   search: string;
