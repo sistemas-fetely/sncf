@@ -67,8 +67,10 @@ export default function TarefasHoje() {
         </TabsList>
 
         <TabsContent value="hoje" className="space-y-6 pt-4">
+          <InboxFilas />
+
           {vazioHoje ? (
-            <Vazio texto="Nada para hoje. Use a caixa acima para capturar uma tarefa — dá para escrever tudo numa linha." />
+            <Vazio texto="Nenhuma tarefa sua para hoje. Use a caixa acima para capturar uma tarefa — dá para escrever tudo numa linha." />
           ) : (
             <>
               {atrasadas.length > 0 && (
