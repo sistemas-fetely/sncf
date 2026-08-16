@@ -35386,6 +35386,7 @@ export type Database = {
       }
       tipos_vinculo: {
         Row: {
+          aparece_em_pessoas: boolean
           aparece_organograma: boolean
           ativo: boolean
           codigo: string
@@ -35399,6 +35400,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          aparece_em_pessoas?: boolean
           aparece_organograma?: boolean
           ativo?: boolean
           codigo: string
@@ -35412,6 +35414,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          aparece_em_pessoas?: boolean
           aparece_organograma?: boolean
           ativo?: boolean
           codigo?: string
