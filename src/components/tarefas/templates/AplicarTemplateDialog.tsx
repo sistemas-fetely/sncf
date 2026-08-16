@@ -38,8 +38,8 @@ export function AplicarTemplateDialog({ template, aberto, onOpenChange }: Props)
 
   const ehChecklist = template?.tipo === "checklist";
 
-
   useEffect(() => {
+
     if (!aberto) return;
     setNome(template?.nome ?? "");
     setDataInicio(hojeISO());
