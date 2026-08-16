@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { usePedidosFila } from "@/hooks/pedidos/usePedidosFila";
 import { usePedidoRisco, usePedidoRiscoFaixas, RISCO_COR_TOKEN } from "@/hooks/pedidos/usePedidoRisco";
+import { usePedidoRelogio } from "@/hooks/pedidos/usePedidoRelogio";
 import type { PedidoRisco } from "@/hooks/pedidos/usePedidoRisco";
 import { usePedidosEntregaLote } from "@/hooks/pedidos/usePedidoEntrega";
 import { useLiberacaoExpedicaoLote, type LiberacaoExpedicao } from "@/hooks/pedidos/useLiberacaoExpedicao";
@@ -158,6 +159,7 @@ export function FilaPedidosPorArea({
 
   // Farol de risco — fonte única: vw_pedido_risco + dimensão pedido_risco_faixa.
   const { data: riscoMap } = usePedidoRisco();
+  const { data: relogioMap } = usePedidoRelogio();
   const { data: faixas } = usePedidoRiscoFaixas();
 
   const termoBusca = buscaDebounced.trim();
