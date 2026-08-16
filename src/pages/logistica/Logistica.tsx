@@ -6,6 +6,8 @@ import { VisaoGeralLogistica } from "@/components/logistica/VisaoGeralLogistica"
 import { EntregasControle } from "@/components/logistica/EntregasControle";
 import { cn } from "@/lib/utils";
 import { nomeExibicao } from "@/lib/parceiros/nome";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageTitle } from "@/components/layout/PageTitle";
 
 export default function Logistica() {
   const { data: transportadoras = [], isLoading } = useTransportadorasLogistica();
@@ -16,11 +18,16 @@ export default function Logistica() {
   const isRastreio = ativaId === "rastreio";
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-6xl space-y-4">
-      <div className="flex items-center gap-2">
-        <Truck className="h-6 w-6 text-gold" />
-        <h1 className="font-serif text-2xl">Logística</h1>
-      </div>
+    <PageShell>
+      <PageTitle
+        titulo="Logística"
+        icone={Truck}
+        estado={
+          isLoading
+            ? "carregando transportadoras…"
+            : `${transportadoras.length} ${transportadoras.length === 1 ? "transportadora" : "transportadoras"}`
+        }
+      />
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12 text-muted-foreground">
