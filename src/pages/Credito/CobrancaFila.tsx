@@ -194,9 +194,9 @@ function GerarRemessaModal({
           {validacoes.map((v) => (
             <div key={v.titulo_id} className="flex items-start gap-3 p-3 rounded-md border">
               {v.valido ? (
-                <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+                <CheckCircle2 className="h-4 w-4 text-success mt-0.5 shrink-0" />
               ) : (
-                <XCircle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
+                <XCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
               )}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium">{v.parceiro_nome}</p>
@@ -205,7 +205,7 @@ function GerarRemessaModal({
                   {formatBRL(v.valor_bruto)} · venc {fmtDate(v.data_vencimento)}
                 </p>
                 {!v.valido && v.motivo_bloqueio && (
-                  <p className="text-xs text-red-600 mt-1">{v.motivo_bloqueio}</p>
+                  <p className="text-xs text-destructive mt-1">{v.motivo_bloqueio}</p>
                 )}
               </div>
             </div>
