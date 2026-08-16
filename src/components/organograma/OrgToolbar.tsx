@@ -43,7 +43,7 @@ export function OrgToolbar({ viewMode, onViewModeChange, filters, onFiltersChang
               <TabsTrigger value="visual">🌳 Visual</TabsTrigger>
               <TabsTrigger value="sintetico">📋 Sintético</TabsTrigger>
               <TabsTrigger value="analitico">📊 Analítico</TabsTrigger>
-              <TabsTrigger value="lista"><List className="h-3.5 w-3.5 mr-1" />Lista</TabsTrigger>
+              <TabsTrigger value="lista">📄 Lista</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
