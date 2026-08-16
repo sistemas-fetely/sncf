@@ -167,7 +167,7 @@ export default function PrevisaoRecebimentos() {
     <TooltipProvider>
       <div className="p-6 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
             <ArrowDownToLine className="h-6 w-6 text-admin" />
             Previsão de Recebimentos
           </h1>
@@ -184,11 +184,11 @@ export default function PrevisaoRecebimentos() {
             <HelpCircle className="h-4 w-4 text-admin mt-0.5 shrink-0" />
             <div className="space-y-1">
               <p>
-                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300 mr-1">Firme</Badge>
+                <Badge variant="outline" className="bg-success/10 text-success border-success/40 mr-1">Firme</Badge>
                 Título com NF emitida — entrada quase certa.
               </p>
               <p>
-                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 mr-1">Condicional</Badge>
+                <Badge variant="outline" className="bg-warning/10 text-warning border-warning/40 mr-1">Condicional</Badge>
                 Pré-NF — esse caixa só entra <em>se a NF for emitida</em>. Tratado como cenário, não como caixa firmado.
               </p>
             </div>
@@ -198,10 +198,10 @@ export default function PrevisaoRecebimentos() {
         {/* KPIs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <KpiCard
-            icon={<AlertTriangle className="h-3 w-3 text-rose-600" />}
+            icon={<AlertTriangle className="h-3 w-3 text-destructive" />}
             label="Atrasado"
             k={kAtraso}
-            accent="text-rose-700"
+            accent="text-destructive"
             sub="liquidação prevista já passou"
           />
           <KpiCard
@@ -211,22 +211,22 @@ export default function PrevisaoRecebimentos() {
             accent="text-admin"
           />
           <KpiCard
-            icon={<Calendar className="h-3 w-3 text-amber-700" />}
+            icon={<Calendar className="h-3 w-3 text-warning" />}
             label="Próximos 60 dias"
             k={k60}
-            accent="text-amber-700"
+            accent="text-warning"
           />
           <KpiCard
-            icon={<Calendar className="h-3 w-3 text-violet-700" />}
+            icon={<Calendar className="h-3 w-3 text-info" />}
             label="Próximos 90 dias"
             k={k90}
-            accent="text-violet-700"
+            accent="text-info"
           />
           <KpiCard
-            icon={<Wallet className="h-3 w-3 text-emerald-700" />}
+            icon={<Wallet className="h-3 w-3 text-success" />}
             label="Total previsto"
             k={kTotal}
-            accent="text-emerald-700"
+            accent="text-success"
             big
           />
         </div>
@@ -235,7 +235,7 @@ export default function PrevisaoRecebimentos() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-semibold flex items-center gap-2">
+              <h2 className="text-base font-medium flex items-center gap-2">
                 <TrendingDown className="h-4 w-4 text-admin" />
                 Previsão de entrada por mês
               </h2>
@@ -290,7 +290,7 @@ export default function PrevisaoRecebimentos() {
         <Card>
           <CardContent className="pt-6 space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-3">
-              <h2 className="text-base font-semibold flex items-center gap-2">
+              <h2 className="text-base font-medium flex items-center gap-2">
                 <Receipt className="h-4 w-4 text-admin" />
                 Títulos previstos
               </h2>
@@ -349,7 +349,7 @@ export default function PrevisaoRecebimentos() {
                         key={r.id}
                         className={
                           r.condicional
-                            ? "bg-amber-50/40 [background-image:repeating-linear-gradient(45deg,transparent_0,transparent_6px,hsl(40_90%_70%/0.08)_6px,hsl(40_90%_70%/0.08)_12px)]"
+                            ? "bg-warning/10 [background-image:repeating-linear-gradient(45deg,transparent_0,transparent_6px,hsl(40_90%_70%/0.08)_6px,hsl(40_90%_70%/0.08)_12px)]"
                             : ""
                         }
                       >
@@ -373,7 +373,7 @@ export default function PrevisaoRecebimentos() {
                               <TooltipTrigger asChild>
                                 <Badge
                                   variant="outline"
-                                  className="text-[10px] bg-amber-50 text-amber-700 border-amber-300"
+                                  className="text-[10px] bg-warning/10 text-warning border-warning/40"
                                 >
                                   Condicional
                                 </Badge>
@@ -386,7 +386,7 @@ export default function PrevisaoRecebimentos() {
                           ) : (
                             <Badge
                               variant="outline"
-                              className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-300"
+                              className="text-[10px] bg-success/10 text-success border-success/40"
                             >
                               Firme
                             </Badge>
@@ -436,16 +436,16 @@ function KpiCard({
         <p className="text-xs text-muted-foreground flex items-center gap-1.5">
           {icon} {label}
         </p>
-        <p className={`${big ? "text-2xl" : "text-xl"} font-bold ${accent}`}>
+        <p className={`${big ? "text-2xl" : "text-xl"} font-medium ${accent}`}>
           {formatBRL(k.total)}
         </p>
         <div className="text-[10px] text-muted-foreground mt-1 space-y-0.5">
           <div className="flex justify-between gap-2">
-            <span className="text-emerald-700">Firme</span>
+            <span className="text-success">Firme</span>
             <span className="font-mono">{formatBRL(k.firme)}</span>
           </div>
           <div className="flex justify-between gap-2">
-            <span className="text-amber-700">Condicional</span>
+            <span className="text-warning">Condicional</span>
             <span className="font-mono">{formatBRL(k.cond)}</span>
           </div>
           {sub && <div className="italic pt-0.5">{sub}</div>}

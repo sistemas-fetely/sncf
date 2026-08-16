@@ -199,9 +199,9 @@ export default function FluxoCaixa() {
 
   // Cor do menor saldo
   const menorSaldoCor =
-    indicadores.menorSaldo < 0 ? "text-red-700"
-    : indicadores.menorSaldo < indicadores.saldoHoje * 0.1 ? "text-amber-700"
-    : "text-green-700";
+    indicadores.menorSaldo < 0 ? "text-destructive"
+    : indicadores.menorSaldo < indicadores.saldoHoje * 0.1 ? "text-warning"
+    : "text-success";
 
   // Frase CFO — causalmente honesta
   const temBacklog = indicadores.vencidoSaidas > 0;
@@ -226,9 +226,9 @@ export default function FluxoCaixa() {
     frase = `No cenário conservador, seu caixa permanece positivo nos próximos ${horizonte} dias. Menor folga: ${formatBRL(indicadores.menorSaldo)} em ${formatDateBR(indicadores.menorSaldoData)}.`;
   }
   const fraseClasses =
-    fraseTone === "verde" ? "bg-green-50 text-green-900 border-green-200"
-    : fraseTone === "ambar" ? "bg-amber-50 text-amber-900 border-amber-200"
-    : "bg-red-50 text-red-900 border-red-200";
+    fraseTone === "verde" ? "bg-success/10 text-success border-success/40"
+    : fraseTone === "ambar" ? "bg-warning/10 text-warning border-warning/40"
+    : "bg-destructive/10 text-destructive border-destructive/40";
 
   const runwayIndefinido = temBacklog && indicadores.runwayDias === 0;
 
@@ -249,7 +249,7 @@ export default function FluxoCaixa() {
       {/* HEADER */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
             <TrendingUp className="h-6 w-6 text-admin" />
             Fluxo de Caixa
           </h1>
@@ -286,7 +286,7 @@ export default function FluxoCaixa() {
 
       {error ? (
         <Card>
-          <CardContent className="py-8 text-sm text-red-700">
+          <CardContent className="py-8 text-sm text-destructive">
             Erro ao carregar projeção: {(error as Error).message}
           </CardContent>
         </Card>
@@ -306,7 +306,7 @@ export default function FluxoCaixa() {
                 <CardTitle className="text-sm text-muted-foreground font-medium">Saldo hoje</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-mono font-semibold tabular-nums">{formatBRL(indicadores.saldoHoje)}</div>
+                <div className="text-3xl font-mono font-medium tabular-nums">{formatBRL(indicadores.saldoHoje)}</div>
                 <div className="text-xs text-muted-foreground mt-1">ponto de partida</div>
                 {contas.length > 0 && (
                   <div className="mt-3 pt-3 border-t space-y-1">
@@ -314,7 +314,7 @@ export default function FluxoCaixa() {
                       const d = diasDesde(c.updated_at);
                       const desatualizada = d != null && d > 7;
                       return (
-                        <div key={c.id} className={`flex items-center justify-between text-xs ${desatualizada ? "text-amber-700" : "text-muted-foreground"}`}>
+                        <div key={c.id} className={`flex items-center justify-between text-xs ${desatualizada ? "text-warning" : "text-muted-foreground"}`}>
                           <span className="truncate mr-2">{c.nome_exibicao || "—"}</span>
                           <span className="font-mono tabular-nums whitespace-nowrap">
                             {formatBRL(Number(c.saldo_atual || 0))}
@@ -328,7 +328,7 @@ export default function FluxoCaixa() {
                       <span className="font-mono tabular-nums">{formatBRL(somaContas)}</span>
                     </div>
                     {algumaContaDesatualizada && (
-                      <div className="text-[11px] text-amber-700 mt-2 leading-snug">
+                      <div className="text-[11px] text-warning mt-2 leading-snug">
                         Saldo de alguma conta com mais de 7 dias sem atualização — o ponto de partida pode não refletir a realidade. Se souber o saldo correto, use o override acima.
                       </div>
                     )}
@@ -343,17 +343,17 @@ export default function FluxoCaixa() {
               </CardHeader>
               <CardContent>
                 {indicadores.runwayDias == null ? (
-                  <div className="text-3xl font-mono font-semibold tabular-nums text-green-700">Positivo no horizonte</div>
+                  <div className="text-3xl font-mono font-medium tabular-nums text-success">Positivo no horizonte</div>
                 ) : runwayIndefinido ? (
                   <>
-                    <div className="text-3xl font-mono font-semibold tabular-nums text-amber-700">indefinido</div>
+                    <div className="text-3xl font-mono font-medium tabular-nums text-warning">indefinido</div>
                     <div className="text-xs text-muted-foreground mt-1 leading-snug">
                       Backlog vencido em D+0 impede projetar runway. Repactue ou liquide o vencido primeiro para ter uma projeção honesta.
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className="text-3xl font-mono font-semibold tabular-nums text-red-700">
+                    <div className="text-3xl font-mono font-medium tabular-nums text-destructive">
                       fura em {indicadores.runwayDias} dias
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">{formatDateBR(indicadores.runwayData)}</div>
@@ -367,7 +367,7 @@ export default function FluxoCaixa() {
                 <CardTitle className="text-sm text-muted-foreground font-medium">Menor saldo projetado</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className={`text-3xl font-mono font-semibold tabular-nums ${menorSaldoCor}`}>
+                <div className={`text-3xl font-mono font-medium tabular-nums ${menorSaldoCor}`}>
                   {formatBRL(indicadores.menorSaldo)}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">em {formatDateBR(indicadores.menorSaldoData)} (conservador)</div>
@@ -397,11 +397,11 @@ export default function FluxoCaixa() {
                       const p = payload[0].payload as typeof grafico[number];
                       return (
                         <div className="rounded-md border bg-background p-2 text-xs shadow-sm">
-                          <div className="font-semibold mb-1">{formatDateBR(p.diaISO)}</div>
+                          <div className="font-medium mb-1">{formatDateBR(p.diaISO)}</div>
                           <div>Otimista: <span className="font-mono">{formatBRL(p.saldo_otimista)}</span></div>
                           <div>Conservador: <span className="font-mono">{formatBRL(p.saldo_conservador)}</span></div>
-                          <div className="text-green-700">Entradas dia: <span className="font-mono">{formatBRL(p.entradas_dia)}</span></div>
-                          <div className="text-red-700">Saídas dia: <span className="font-mono">{formatBRL(p.saidas_dia)}</span></div>
+                          <div className="text-success">Entradas dia: <span className="font-mono">{formatBRL(p.entradas_dia)}</span></div>
+                          <div className="text-destructive">Saídas dia: <span className="font-mono">{formatBRL(p.saidas_dia)}</span></div>
                         </div>
                       );
                     }}
@@ -423,7 +423,7 @@ export default function FluxoCaixa() {
                 <CardTitle className="text-sm text-muted-foreground font-medium">Maior pico de caixa</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-mono font-semibold tabular-nums" style={{ color: COR_SALDO }}>
+                <div className="text-2xl font-mono font-medium tabular-nums" style={{ color: COR_SALDO }}>
                   {formatBRL(indicadores.maiorPico)}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
@@ -436,7 +436,7 @@ export default function FluxoCaixa() {
                 <CardTitle className="text-sm text-muted-foreground font-medium">Total a receber ({horizonte}d)</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-mono font-semibold tabular-nums" style={{ color: COR_POSITIVO }}>
+                <div className="text-2xl font-mono font-medium tabular-nums" style={{ color: COR_POSITIVO }}>
                   {formatBRL(indicadores.totalEntradas)}
                 </div>
               </CardContent>
@@ -446,7 +446,7 @@ export default function FluxoCaixa() {
                 <CardTitle className="text-sm text-muted-foreground font-medium">Total a pagar ({horizonte}d)</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-mono font-semibold tabular-nums" style={{ color: COR_NEGATIVO }}>
+                <div className="text-2xl font-mono font-medium tabular-nums" style={{ color: COR_NEGATIVO }}>
                   {formatBRL(indicadores.totalSaidas)}
                 </div>
               </CardContent>
@@ -455,12 +455,12 @@ export default function FluxoCaixa() {
 
           {/* KPIs BACKLOG × A VENCER */}
           <div className={`grid grid-cols-1 gap-4 ${indicadores.previstas > 0 ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
-            <Card className={indicadores.vencidoSaidas > 0 ? "border-amber-300" : ""}>
+            <Card className={indicadores.vencidoSaidas > 0 ? "border-warning/40" : ""}>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm text-muted-foreground font-medium">Vencido a pagar (em D+0)</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className={`text-2xl font-mono font-semibold tabular-nums ${indicadores.vencidoSaidas > 0 ? "text-amber-700" : ""}`}>
+                <div className={`text-2xl font-mono font-medium tabular-nums ${indicadores.vencidoSaidas > 0 ? "text-warning" : ""}`}>
                   {formatBRL(indicadores.vencidoSaidas)}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
@@ -473,7 +473,7 @@ export default function FluxoCaixa() {
                 <CardTitle className="text-sm text-muted-foreground font-medium">A pagar a vencer ({horizonte}d)</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-mono font-semibold tabular-nums" style={{ color: COR_NEGATIVO }}>
+                <div className="text-2xl font-mono font-medium tabular-nums" style={{ color: COR_NEGATIVO }}>
                   {formatBRL(indicadores.aVencerSaidas)}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
@@ -487,7 +487,7 @@ export default function FluxoCaixa() {
                   <CardTitle className="text-sm text-muted-foreground font-medium">Parcelas previstas</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-mono font-semibold tabular-nums">
+                  <div className="text-2xl font-mono font-medium tabular-nums">
                     {formatBRL(indicadores.previstas)}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
@@ -612,7 +612,7 @@ export default function FluxoCaixa() {
                           <TableCell className="text-right font-mono tabular-nums whitespace-nowrap">
                             {formatBRL(e.valor)}
                           </TableCell>
-                          <TableCell className={`text-right font-mono tabular-nums whitespace-nowrap ${e.saldoConservador < 0 ? "text-red-700" : ""}`}>
+                          <TableCell className={`text-right font-mono tabular-nums whitespace-nowrap ${e.saldoConservador < 0 ? "text-destructive" : ""}`}>
                             {formatBRL(e.saldoConservador)}
                           </TableCell>
                         </TableRow>

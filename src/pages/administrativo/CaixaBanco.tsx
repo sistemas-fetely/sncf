@@ -416,7 +416,7 @@ export default function CaixaBanco() {
       <div className="sticky top-0 z-20 bg-background px-6 pt-6 pb-3 border-b backdrop-blur">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
               <PieChart className="h-6 w-6 text-admin" />
               Gerencial
             </h1>
@@ -463,7 +463,7 @@ export default function CaixaBanco() {
             <Card>
               <CardContent className="p-4">
                 <div className="text-xs text-muted-foreground">Total do período</div>
-                <div className="text-2xl font-bold font-mono mt-1">
+                <div className="text-2xl font-medium font-mono mt-1">
                   {formatBRL(kpis.total)}
                 </div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">
@@ -476,7 +476,7 @@ export default function CaixaBanco() {
               <Card key={g.chave}>
                 <CardContent className="p-4">
                   <div className="text-xs text-muted-foreground">{g.label}</div>
-                  <div className="text-2xl font-bold font-mono mt-1">
+                  <div className="text-2xl font-medium font-mono mt-1">
                     {formatBRL(g.valor)}
                   </div>
                   <div
@@ -494,7 +494,7 @@ export default function CaixaBanco() {
                   {labelMesLongo(mesCorrente)}
                   <Hourglass className="h-3 w-3" />
                 </div>
-                <div className="text-2xl font-bold font-mono mt-1">
+                <div className="text-2xl font-medium font-mono mt-1">
                   {formatBRL(totalCorrente)}
                 </div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">
@@ -505,18 +505,18 @@ export default function CaixaBanco() {
                 </div>
               </CardContent>
             </Card>
-            <Card className={cn(kpis.pctCompletas < 100 && "border-amber-300 bg-amber-50/50")}>
+            <Card className={cn(kpis.pctCompletas < 100 && "border-warning/40 bg-warning/10")}>
               <CardContent className="p-4">
                 <div className="text-xs text-muted-foreground flex items-center gap-1">
                   Classificação completa
                   {kpis.pctCompletas < 100 && (
-                    <AlertCircle className="h-3 w-3 text-amber-600" />
+                    <AlertCircle className="h-3 w-3 text-warning" />
                   )}
                 </div>
                 <div
                   className={cn(
-                    "text-2xl font-bold mt-1",
-                    kpis.pctCompletas < 100 ? "text-amber-700" : "text-emerald-700",
+                    "text-2xl font-medium mt-1",
+                    kpis.pctCompletas < 100 ? "text-warning" : "text-success",
                   )}
                 >
                   {kpis.pctCompletas}%
@@ -576,14 +576,14 @@ export default function CaixaBanco() {
                     return (
                       <TableRow
                         key={row.chave}
-                        className={cn(row.alerta && "bg-amber-50/60")}
+                        className={cn(row.alerta && "bg-warning/10")}
                       >
                         <TableCell>
                           <button
                             className="text-left font-medium hover:underline flex items-center gap-2"
                             onClick={() => abrirDrill(row.chave, row.nome, null)}
                           >
-                            <span className={cn(row.alerta && "text-amber-700")}>
+                            <span className={cn(row.alerta && "text-warning")}>
                               {row.nome}
                             </span>
                             <span className="text-[11px] text-muted-foreground font-normal">
@@ -610,8 +610,8 @@ export default function CaixaBanco() {
                         })}
                         <TableCell
                           className={cn(
-                            "text-right font-mono font-semibold border-l",
-                            row.alerta && "text-amber-700",
+                            "text-right font-mono font-medium border-l",
+                            row.alerta && "text-warning",
                           )}
                         >
                           {formatBRL(row.total)}
@@ -623,7 +623,7 @@ export default function CaixaBanco() {
                     );
                   })}
                   {/* Total geral */}
-                  <TableRow className="bg-muted/70 font-semibold border-t-2">
+                  <TableRow className="bg-muted/70 font-medium border-t-2">
                     <TableCell>Total geral</TableCell>
                     {competencias.map((c) => (
                       <TableCell key={c} className="text-right font-mono">
@@ -656,7 +656,7 @@ export default function CaixaBanco() {
               </SheetTitle>
               <SheetDescription>
                 {drillItens.length} despesa{drillItens.length === 1 ? "" : "s"} ·{" "}
-                <span className="font-mono font-semibold">{formatBRL(drillTotal)}</span>
+                <span className="font-mono font-medium">{formatBRL(drillTotal)}</span>
               </SheetDescription>
             </SheetHeader>
             <div className="mt-4 border rounded-md">

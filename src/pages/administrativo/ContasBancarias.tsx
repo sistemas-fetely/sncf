@@ -193,7 +193,7 @@ export default function ContasBancarias() {
       {/* Header contas */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
+          <h1 className="text-2xl font-medium flex items-center gap-2">
             <Landmark className="h-6 w-6 text-admin" />
             Contas Bancárias
           </h1>
@@ -216,7 +216,7 @@ export default function ContasBancarias() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{formatBRL(totalSaldo)}</p>
+            <p className="text-2xl font-medium">{formatBRL(totalSaldo)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -226,7 +226,7 @@ export default function ContasBancarias() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{ativas.length}</p>
+            <p className="text-2xl font-medium">{ativas.length}</p>
           </CardContent>
         </Card>
       </div>
@@ -334,7 +334,7 @@ export default function ContasBancarias() {
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
                       Saldo atual
                     </p>
-                    <p className="text-lg font-bold">
+                    <p className="text-lg font-medium">
                       {formatBRL(Number(c.saldo_atual || 0))}
                     </p>
                   </div>
@@ -389,7 +389,7 @@ export default function ContasBancarias() {
       <div className="pt-6 border-t space-y-4">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-xl font-bold flex items-center gap-2">
+            <h2 className="text-xl font-medium flex items-center gap-2">
               <CreditCard className="h-5 w-5 text-admin" />
               Cartões de Crédito
             </h2>
@@ -477,7 +477,7 @@ export default function ContasBancarias() {
                 </CardHeader>
                 <CardContent className="space-y-1">
                   <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Limite</p>
-                  <p className="text-lg font-bold">{formatBRL(Number(c.limite || 0))}</p>
+                  <p className="text-lg font-medium">{formatBRL(Number(c.limite || 0))}</p>
                   {c.dia_fechamento && c.dia_vencimento && (
                     <p className="text-xs text-muted-foreground pt-1">
                       Fecha dia {c.dia_fechamento} · Vence dia {c.dia_vencimento}

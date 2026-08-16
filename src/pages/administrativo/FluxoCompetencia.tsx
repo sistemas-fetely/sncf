@@ -97,9 +97,9 @@ function situacaoDe(t: CicloTituloRow, hoje: string): Situacao {
 }
 
 const SITUACAO_CLASSE: Record<Situacao, string> = {
-  pago: "border-emerald-500/40 bg-emerald-500/10 text-emerald-600",
+  pago: "border-success/40 bg-success text-success",
   aberto: "border-destructive/40 bg-destructive/10 text-destructive",
-  futuro: "border-sky-500/40 bg-sky-500/10 text-sky-600",
+  futuro: "border-info/40 bg-info text-info",
   cancelado: "border-muted bg-muted text-muted-foreground",
   devolvido: "border-muted bg-muted text-muted-foreground",
 };
@@ -123,12 +123,12 @@ function eloClasse(elo: string | null | undefined): string {
     case "caixa_confirmado":
     case "haver":
     case "haver_com_lastro":
-      return "border-emerald-500/40 bg-emerald-500/10 text-emerald-600";
+      return "border-success/40 bg-success text-success";
     case "previsto":
-      return "border-sky-500/40 bg-sky-500/10 text-sky-600";
+      return "border-info/40 bg-info text-info";
     case "previsto_vencido":
     case "aguarda_safrapay":
-      return "border-amber-500/40 bg-amber-500/10 text-amber-600";
+      return "border-warning/40 bg-warning text-warning";
     case "pago_sem_rastro":
     case "haver_sem_lastro":
       return "border-destructive/40 bg-destructive/10 text-destructive";
@@ -547,7 +547,7 @@ export default function FluxoCompetencia() {
   return (
     <div className="space-y-6 p-6">
       <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
+        <h1 className="flex items-center gap-2 text-2xl font-medium tracking-tight">
           <ArrowLeftRight className="h-6 w-6 text-gold" />
           Fluxo &amp; Competência
         </h1>
@@ -635,7 +635,7 @@ export default function FluxoCompetencia() {
             <CardTitle className="text-sm font-medium text-muted-foreground">PAGO</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold tabular-nums">{fmtBRL(kpis.pago)}</p>
+            <p className="text-2xl font-medium tabular-nums">{fmtBRL(kpis.pago)}</p>
             <p className="text-xs text-muted-foreground">título com data de pagamento</p>
             <QuebraTipos linhas={kpis.pagas} />
           </CardContent>
@@ -646,7 +646,7 @@ export default function FluxoCompetencia() {
             <CardTitle className="text-sm font-medium text-muted-foreground">ABERTO</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className={cn("text-2xl font-bold tabular-nums", kpis.aberto > 0 && "text-destructive")}>
+            <p className={cn("text-2xl font-medium tabular-nums", kpis.aberto > 0 && "text-destructive")}>
               {fmtBRL(kpis.aberto)}
             </p>
             <p className="text-xs text-muted-foreground">vencido e sem pagamento</p>
@@ -659,19 +659,19 @@ export default function FluxoCompetencia() {
             <CardTitle className="text-sm font-medium text-muted-foreground">FUTURO</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold tabular-nums">{fmtBRL(kpis.futuro)}</p>
+            <p className="text-2xl font-medium tabular-nums">{fmtBRL(kpis.futuro)}</p>
             <p className="text-xs text-muted-foreground">previsto pela régua de recebimento</p>
             <QuebraTipos linhas={kpis.futuras} />
           </CardContent>
         </Card>
 
         {kpis.safrapay > 0 && (
-          <Card className="border-amber-500/50">
+          <Card className="border-warning/40">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Aguarda SafraPay</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold tabular-nums">{fmtBRL(kpis.safrapay)}</p>
+              <p className="text-2xl font-medium tabular-nums">{fmtBRL(kpis.safrapay)}</p>
               <p className="text-xs text-muted-foreground">
                 liquidação de cartão ainda não importada
               </p>
@@ -759,22 +759,22 @@ export default function FluxoCompetencia() {
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell className="font-semibold">Total</TableCell>
-                <TableCell className="text-right font-semibold tabular-nums">
+                <TableCell className="font-medium">Total</TableCell>
+                <TableCell className="text-right font-medium tabular-nums">
                   {fmtBRL(totaisMensal.competencia)}
                 </TableCell>
-                <TableCell className="text-right font-semibold tabular-nums">
+                <TableCell className="text-right font-medium tabular-nums">
                   {fmtBRL(totaisMensal.caixa)}
                 </TableCell>
                 <TableCell
                   className={cn(
-                    "text-right font-semibold tabular-nums",
+                    "text-right font-medium tabular-nums",
                     totaisMensal.competencia - totaisMensal.caixa < 0 && "text-destructive",
                   )}
                 >
                   {fmtBRL(totaisMensal.competencia - totaisMensal.caixa)}
                 </TableCell>
-                <TableCell className="text-right font-semibold tabular-nums">
+                <TableCell className="text-right font-medium tabular-nums">
                   {fmtBRL(totaisMensal.previsto)}
                 </TableCell>
               </TableRow>
@@ -916,7 +916,7 @@ export default function FluxoCompetencia() {
                             {fmtBRL(p.aberto)}
                           </TableCell>
                           <TableCell className="text-right tabular-nums">{fmtBRL(p.futuro)}</TableCell>
-                          <TableCell className="text-right font-semibold tabular-nums">{fmtBRL(p.total)}</TableCell>
+                          <TableCell className="text-right font-medium tabular-nums">{fmtBRL(p.total)}</TableCell>
                         </TableRow>
                         {aberto && (
                           <TableRow>
@@ -973,7 +973,7 @@ export default function FluxoCompetencia() {
                                               <p className="flex items-center gap-1 text-xs">
                                                 {fmtData(t.mov_data)} ·{" "}
                                                 <span className="tabular-nums">{fmtBRL(t.mov_valor)}</span>
-                                                {t.mov_conciliado && <Check className="h-3 w-3 text-emerald-600" />}
+                                                {t.mov_conciliado && <Check className="h-3 w-3 text-success" />}
                                               </p>
                                               {t.mov_conta && (
                                                 <p className="text-xs text-muted-foreground">{t.mov_conta}</p>
@@ -999,14 +999,14 @@ export default function FluxoCompetencia() {
                 </TableBody>
                 <TableFooter>
                   <TableRow>
-                    <TableCell colSpan={5} className="font-semibold">Total</TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">{totaisPedidos.titulos}</TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">{fmtBRL(totaisPedidos.pago)}</TableCell>
-                    <TableCell className={cn("text-right font-semibold tabular-nums", totaisPedidos.aberto > 0 && "text-destructive")}>
+                    <TableCell colSpan={5} className="font-medium">Total</TableCell>
+                    <TableCell className="text-right font-medium tabular-nums">{totaisPedidos.titulos}</TableCell>
+                    <TableCell className="text-right font-medium tabular-nums">{fmtBRL(totaisPedidos.pago)}</TableCell>
+                    <TableCell className={cn("text-right font-medium tabular-nums", totaisPedidos.aberto > 0 && "text-destructive")}>
                       {fmtBRL(totaisPedidos.aberto)}
                     </TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">{fmtBRL(totaisPedidos.futuro)}</TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">{fmtBRL(totaisPedidos.total)}</TableCell>
+                    <TableCell className="text-right font-medium tabular-nums">{fmtBRL(totaisPedidos.futuro)}</TableCell>
+                    <TableCell className="text-right font-medium tabular-nums">{fmtBRL(totaisPedidos.total)}</TableCell>
                   </TableRow>
                 </TableFooter>
               </Table>
@@ -1113,7 +1113,7 @@ export default function FluxoCompetencia() {
                             <p className="flex items-center gap-1 text-xs">
                               {fmtData(r.mov_data)} ·{" "}
                               <span className="tabular-nums">{fmtBRL(r.mov_valor)}</span>
-                              {r.mov_conciliado && <Check className="h-3 w-3 text-emerald-600" />}
+                              {r.mov_conciliado && <Check className="h-3 w-3 text-success" />}
                             </p>
                             {r.mov_conta && (
                               <p className="text-xs text-muted-foreground">{r.mov_conta}</p>
@@ -1130,12 +1130,12 @@ export default function FluxoCompetencia() {
                 </TableBody>
                 <TableFooter>
                   <TableRow>
-                    <TableCell colSpan={8} className="font-semibold">Total</TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">
+                    <TableCell colSpan={8} className="font-medium">Total</TableCell>
+                    <TableCell className="text-right font-medium tabular-nums">
                       {fmtBRL(totaisTitulos.valor)}
                     </TableCell>
                     <TableCell colSpan={3} />
-                    <TableCell className="font-semibold tabular-nums">
+                    <TableCell className="font-medium tabular-nums">
                       {fmtBRL(totaisTitulos.mov)}
                     </TableCell>
                   </TableRow>

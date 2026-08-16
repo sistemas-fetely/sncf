@@ -22,7 +22,7 @@ export default function AdminPlaceholder({
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+        <h1 className="text-2xl font-medium tracking-tight">{title}</h1>
         <p className="text-muted-foreground text-sm mt-1">{description}</p>
       </div>
       <Card className="border-admin/20">
@@ -31,7 +31,7 @@ export default function AdminPlaceholder({
             <Icon className="h-8 w-8 text-admin" />
           </div>
           <div className="text-center max-w-md">
-            <p className="text-lg font-semibold">🏗️ Módulo em construção</p>
+            <p className="text-lg font-medium">🏗️ Módulo em construção</p>
             <p className="text-sm text-muted-foreground mt-2">
               {detalhes || "Esta tela faz parte do esqueleto do Pilar Administrativo. A funcionalidade será implementada nas próximas fases."}
             </p>

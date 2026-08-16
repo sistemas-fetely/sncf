@@ -224,7 +224,7 @@ export default function ContasReceber() {
       <div className="flex items-center gap-3">
         <ArrowDownToLine className="h-7 w-7 text-admin" />
         <div className="flex-1">
-          <h1 className="text-2xl font-semibold">Recebíveis</h1>
+          <h1 className="text-2xl font-medium">Recebíveis</h1>
           <p className="text-sm text-muted-foreground">
             Recebíveis B2B por parcela — somente títulos faturados, com NF emitida. Para todos os
             títulos, ver Cobrança em Controladoria. Valor efetivo inclui juros e desconto. Somente
@@ -738,7 +738,7 @@ function AbaB2B() {
     return (
       <TableRow
         key={t.id}
-        className={atrasado ? "bg-red-50/40" : aninhada ? "bg-muted/10" : undefined}
+        className={atrasado ? "bg-destructive/10" : aninhada ? "bg-muted/10" : undefined}
       >
         <TableCell className={aninhada ? "pl-10" : undefined}>
           <div className="font-mono text-xs">{t.numero_titulo ?? "—"}</div>
@@ -769,7 +769,7 @@ function AbaB2B() {
             {formatMeio(t.meio_pagamento)}
           </Badge>
         </TableCell>
-        <TableCell className={atrasado ? "text-red-700 font-medium text-sm" : "text-sm"}>
+        <TableCell className={atrasado ? "text-destructive font-medium text-sm" : "text-sm"}>
           {formatDateBR(t.data_vencimento)}
         </TableCell>
         <TableCell className="text-sm">
@@ -892,10 +892,10 @@ function AbaB2B() {
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-emerald-700">Conciliado</CardTitle>
+              <CardTitle className="text-sm text-success">Conciliado</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold tabular-nums text-emerald-700">
+              <div className="text-2xl font-medium tabular-nums text-success">
                 {formatBRL(kpis.conciliado)}
               </div>
               <p className="text-xs text-muted-foreground">
@@ -903,12 +903,12 @@ function AbaB2B() {
               </p>
             </CardContent>
           </Card>
-          <Card className="border-amber-500/50">
+          <Card className="border-warning/40">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-amber-700">Compensado a conciliar</CardTitle>
+              <CardTitle className="text-sm text-warning">Compensado a conciliar</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold tabular-nums text-amber-700">
+              <div className="text-2xl font-medium tabular-nums text-warning">
                 {formatBRL(kpis.compensado)}
               </div>
               <p className="text-xs text-muted-foreground">
@@ -934,7 +934,7 @@ function AbaB2B() {
               <CardTitle className="text-sm">A vencer</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold tabular-nums">
+              <div className="text-2xl font-medium tabular-nums">
                 {formatBRL(kpis.aVencer)}
               </div>
               <p className="text-xs text-muted-foreground">
@@ -948,7 +948,7 @@ function AbaB2B() {
               <CardTitle className="text-sm text-destructive">Inadimplência</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold tabular-nums text-destructive">
+              <div className="text-2xl font-medium tabular-nums text-destructive">
                 {formatBRL(kpis.inadimplencia)}
               </div>
               <p className="text-xs text-muted-foreground">
@@ -959,10 +959,10 @@ function AbaB2B() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-cyan-700">A vencer em 30 dias</CardTitle>
+              <CardTitle className="text-sm text-info">A vencer em 30 dias</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold tabular-nums text-cyan-700">
+              <div className="text-2xl font-medium tabular-nums text-info">
                 {formatBRL(kpis.vence30)}
               </div>
             </CardContent>
@@ -972,7 +972,7 @@ function AbaB2B() {
               <CardTitle className="text-sm">Total no período</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold tabular-nums">{formatBRL(kpis.total)}</div>
+              <div className="text-2xl font-medium tabular-nums">{formatBRL(kpis.total)}</div>
               <p className="text-xs text-muted-foreground">
                 {kpis.totalQtd} títulos · devolvidos e cancelados fora
               </p>
@@ -986,11 +986,11 @@ function AbaB2B() {
               {desvioRegua ? (
                 <>
                   <div
-                    className={`text-2xl font-semibold tabular-nums ${
+                    className={`text-2xl font-medium tabular-nums ${
                       Math.abs(desvioRegua.media) > 5
                         ? "text-destructive"
                         : Math.abs(desvioRegua.media) > 2
-                        ? "text-amber-700"
+                        ? "text-warning"
                         : ""
                     }`}
                   >
@@ -1009,7 +1009,7 @@ function AbaB2B() {
                   </p>
                 </>
               ) : (
-                <div className="text-2xl font-semibold text-muted-foreground">—</div>
+                <div className="text-2xl font-medium text-muted-foreground">—</div>
               )}
             </CardContent>
           </Card>
@@ -1027,10 +1027,10 @@ function AbaB2B() {
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-blue-700">Total a receber</CardTitle>
+              <CardTitle className="text-sm text-info">Total a receber</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold tabular-nums text-blue-700">
+              <div className="text-2xl font-medium tabular-nums text-info">
                 {formatBRL(kpis.aberto)}
               </div>
               <p className="text-xs text-muted-foreground">
@@ -1041,40 +1041,40 @@ function AbaB2B() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-amber-600">1–7 dias</CardTitle>
+              <CardTitle className="text-sm text-warning">1–7 dias</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold tabular-nums text-amber-600">
+              <div className="text-2xl font-medium tabular-nums text-warning">
                 {formatBRL(aging.f1_7)}
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-orange-600">8–30 dias</CardTitle>
+              <CardTitle className="text-sm text-warning">8–30 dias</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold tabular-nums text-orange-600">
+              <div className="text-2xl font-medium tabular-nums text-warning">
                 {formatBRL(aging.f8_30)}
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-red-600">31–60 dias</CardTitle>
+              <CardTitle className="text-sm text-destructive">31–60 dias</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold tabular-nums text-red-600">
+              <div className="text-2xl font-medium tabular-nums text-destructive">
                 {formatBRL(aging.f31_60)}
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-red-800">+60 dias</CardTitle>
+              <CardTitle className="text-sm text-destructive">+60 dias</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold tabular-nums text-red-800">
+              <div className="text-2xl font-medium tabular-nums text-destructive">
                 {formatBRL(aging.f60)}
               </div>
             </CardContent>
@@ -1103,7 +1103,7 @@ function AbaB2B() {
                       {" · "}
                       <span
                         className={
-                          comparativo.variacao >= 0 ? "text-green-700" : "text-destructive"
+                          comparativo.variacao >= 0 ? "text-success" : "text-destructive"
                         }
                       >
                         {comparativo.variacao >= 0 ? "+" : ""}
@@ -1360,14 +1360,14 @@ function AbaB2B() {
                             {rotuloMesCurto(l.mes)}
                           </TableHead>
                         ))}
-                        <TableHead className="text-right font-semibold">Total</TableHead>
+                        <TableHead className="text-right font-medium">Total</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {(
                         [
                           { rotulo: "Títulos", campo: "titulos", moeda: false, cor: "" },
-                          { rotulo: "Recebido", campo: "recebido", moeda: true, cor: "text-green-700" },
+                          { rotulo: "Recebido", campo: "recebido", moeda: true, cor: "text-success" },
                           { rotulo: "Em aberto", campo: "aberto", moeda: true, cor: "" },
                           { rotulo: "Atrasado", campo: "atrasado", moeda: true, cor: "text-destructive" },
                           { rotulo: "Total", campo: "total", moeda: true, cor: "" },
@@ -1377,11 +1377,11 @@ function AbaB2B() {
                         return (
                           <TableRow
                             key={linha.campo}
-                            className={isTotal ? "font-semibold bg-muted/40" : undefined}
+                            className={isTotal ? "font-medium bg-muted/40" : undefined}
                           >
                             <TableCell
                               className={`sticky left-0 bg-background z-10 font-medium ${
-                                isTotal ? "font-semibold" : ""
+                                isTotal ? "font-medium" : ""
                               }`}
                             >
                               {linha.rotulo}
@@ -1403,7 +1403,7 @@ function AbaB2B() {
                                 </TableCell>
                               );
                             })}
-                            <TableCell className="text-right tabular-nums font-semibold">
+                            <TableCell className="text-right tabular-nums font-medium">
                               {linha.moeda
                                 ? (totalMensal[linha.campo] as number) > 0
                                   ? formatBRL(totalMensal[linha.campo] as number)
@@ -1438,7 +1438,7 @@ function AbaB2B() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-xl font-semibold tabular-nums">{formatBRL(i.total)}</div>
+                <div className="text-xl font-medium tabular-nums">{formatBRL(i.total)}</div>
               </CardContent>
             </Card>
           ))}
@@ -1533,7 +1533,7 @@ function AbaB2B() {
                                   {g.titulos[0].total_parcelas ?? g.titulos.length}
                                 </div>
                                 {g.ocultos > 0 && (
-                                  <div className="text-[10px] text-amber-700 pl-5">
+                                  <div className="text-[10px] text-warning pl-5">
                                     +{g.ocultos} fora do filtro
                                   </div>
                                 )}
@@ -1571,7 +1571,7 @@ function AbaB2B() {
                                 {g.proximoVencimento ? formatDateBR(g.proximoVencimento) : "—"}
                               </TableCell>
                               <TableCell className="text-sm">—</TableCell>
-                              <TableCell className="text-right font-semibold tabular-nums">
+                              <TableCell className="text-right font-medium tabular-nums">
                                 {formatBRL(g.total)}
                                 <div className="text-[10px] text-muted-foreground">
                                   {g.ocultos > 0
@@ -1902,16 +1902,16 @@ function AbaB2C() {
             <CardTitle className="text-sm">Bruto Shopify</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold tabular-nums">{formatBRL(kpis.bruto)}</div>
+            <div className="text-2xl font-medium tabular-nums">{formatBRL(kpis.bruto)}</div>
             <p className="text-xs text-muted-foreground">{base.length} pedidos</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-green-700">Líquido recebido</CardTitle>
+            <CardTitle className="text-sm text-success">Líquido recebido</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold tabular-nums text-green-700">
+            <div className="text-2xl font-medium tabular-nums text-success">
               {formatBRL(kpis.liquido)}
             </div>
           </CardContent>
@@ -1922,19 +1922,19 @@ function AbaB2C() {
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline gap-2">
-              <div className="text-2xl font-semibold tabular-nums">{formatBRL(kpis.taxa)}</div>
+              <div className="text-2xl font-medium tabular-nums">{formatBRL(kpis.taxa)}</div>
               <span className="text-xs text-muted-foreground tabular-nums">
                 {kpis.pct.toFixed(2)}%
               </span>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-amber-500/50">
+        <Card className="border-warning/40">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Faturado sem recebimento</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold tabular-nums text-amber-700">
+            <div className="text-2xl font-medium tabular-nums text-warning">
               {formatBRL(kpiFuro.total)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -1964,7 +1964,7 @@ function AbaB2C() {
                         {rotuloMesCurto(l.mes)}
                       </TableHead>
                     ))}
-                    <TableHead className="text-right font-semibold">Total</TableHead>
+                    <TableHead className="text-right font-medium">Total</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1972,7 +1972,7 @@ function AbaB2C() {
                     [
                       { rotulo: "Pedidos", moeda: false, cor: "" },
                       { rotulo: "Bruto", moeda: true, cor: "" },
-                      { rotulo: "Líquido", moeda: true, cor: "text-green-700" },
+                      { rotulo: "Líquido", moeda: true, cor: "text-success" },
                       { rotulo: "Taxa", moeda: true, cor: "" },
                     ] as const
                   ).map((linha) => {
@@ -2002,7 +2002,7 @@ function AbaB2C() {
                             </TableCell>
                           );
                         })}
-                        <TableCell className="text-right tabular-nums font-semibold">
+                        <TableCell className="text-right tabular-nums font-medium">
                           {linha.moeda
                             ? valorDe(totalMensalB2c) > 0
                               ? formatBRL(valorDe(totalMensalB2c))
@@ -2021,7 +2021,7 @@ function AbaB2C() {
       </Card>
 
       <div className="space-y-1">
-        <Card className="border-amber-500/50">
+        <Card className="border-warning/40">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Faturado × Recebido</CardTitle>
           </CardHeader>
@@ -2069,7 +2069,7 @@ function AbaB2C() {
                       d !== null && d > 20
                         ? "text-destructive"
                         : d !== null && d >= 14
-                          ? "text-amber-700"
+                          ? "text-warning"
                           : "";
                     return (
                       <TableRow key={r.pedido_ref ?? Math.random()}>
@@ -2091,7 +2091,7 @@ function AbaB2C() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    <TableRow className="font-semibold">
+                    <TableRow className="font-medium">
                       <TableCell colSpan={5}>Total</TableCell>
                       <TableCell className="text-right tabular-nums">
                         {formatBRL(kpiFuro.total)}
@@ -2129,7 +2129,7 @@ function AbaB2C() {
                       <TableCell className="text-right tabular-nums">
                         {formatBRL(Number(r.bruto_shopify ?? 0))}
                       </TableCell>
-                      <TableCell className="text-right tabular-nums text-green-700">
+                      <TableCell className="text-right tabular-nums text-success">
                         {formatBRL(Number(r.liquido_mp ?? 0))}
                       </TableCell>
                     </TableRow>
@@ -2182,7 +2182,7 @@ function AbaB2C() {
                         >
                           {formatBRL(delta)}
                         </TableCell>
-                        <TableCell className="text-right tabular-nums text-green-700">
+                        <TableCell className="text-right tabular-nums text-success">
                           {formatBRL(Number(r.liquido_mp ?? 0))}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
@@ -2198,7 +2198,7 @@ function AbaB2C() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    <TableRow className="font-semibold">
+                    <TableRow className="font-medium">
                       <TableCell colSpan={6}>Total</TableCell>
                       <TableCell className="text-right tabular-nums">
                         {formatBRL(
@@ -2310,7 +2310,7 @@ function AbaB2C() {
                         <Badge variant="outline">{r.financial_status ?? "—"}</Badge>
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{formatBRL(bruto)}</TableCell>
-                      <TableCell className="text-right tabular-nums text-green-700">
+                      <TableCell className="text-right tabular-nums text-success">
                         {formatBRL(liq)}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">

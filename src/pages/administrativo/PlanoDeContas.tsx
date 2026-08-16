@@ -320,7 +320,7 @@ export default function PlanoDeContas() {
     <div className="p-6 space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
             <ListTree className="h-6 w-6 text-admin" />
             Plano de Contas
           </h1>
@@ -376,7 +376,7 @@ export default function PlanoDeContas() {
                 <Upload className="h-8 w-8 text-admin" />
               </div>
               <div className="max-w-md">
-                <p className="text-lg font-semibold">Sem plano de contas cadastrado</p>
+                <p className="text-lg font-medium">Sem plano de contas cadastrado</p>
                 <p className="text-sm text-muted-foreground mt-2">
                   Crie sua primeira categoria ou sincronize com o Bling.
                 </p>

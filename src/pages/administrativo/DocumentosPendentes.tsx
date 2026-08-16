@@ -141,9 +141,9 @@ function PillStatus({
   onClick?: () => void;
 }) {
   const cores = {
-    ok: "bg-emerald-50 border-emerald-300 text-emerald-700",
-    falta: "bg-red-50 border-red-300 text-red-700",
-    na: "bg-zinc-50 border-zinc-200 text-zinc-500",
+    ok: "bg-success/10 border-success/40 text-success",
+    falta: "bg-destructive/10 border-destructive/40 text-destructive",
+    na: "bg-muted/10 border-border/40 text-muted-foreground",
   }[estado];
   const sinal = estado === "ok" ? "✓" : estado === "falta" ? "!" : "—";
   const isClickable = !!onClick;
@@ -304,10 +304,10 @@ type Remessa = {
 };
 
 const STATUS_CONTA_BG: Record<string, string> = {
-  enviado_para_pagamento: "bg-amber-50/40",
-  cancelado: "bg-rose-50/40",
-  aprovado: "bg-amber-50/40",
-  aberto: "bg-blue-50/40",
+  enviado_para_pagamento: "bg-warning/10",
+  cancelado: "bg-destructive/10",
+  aprovado: "bg-warning/10",
+  aberto: "bg-info/10",
 };
 
 const STATUS_CONTA_LABEL: Record<string, string> = {
@@ -428,14 +428,14 @@ export default function DocumentosPendentes() {
       const totalValor = remessas.reduce((s, r) => s + (r.total_valor || 0), 0);
       const ultima = remessas[0];
       return {
-        principal: { label: "Remessas no período", valor: String(remessas.length), icon: Send, cor: "text-emerald-600" },
-        secundario1: { label: "Contas remetidas", valor: String(totalContas), icon: CheckCircle2, cor: "text-blue-600" },
-        secundario2: { label: "Valor total", valor: formatBRL(totalValor), icon: Package, cor: "text-purple-600" },
+        principal: { label: "Remessas no período", valor: String(remessas.length), icon: Send, cor: "text-success" },
+        secundario1: { label: "Contas remetidas", valor: String(totalContas), icon: CheckCircle2, cor: "text-info" },
+        secundario2: { label: "Valor total", valor: formatBRL(totalValor), icon: Package, cor: "text-info" },
         secundario3: {
           label: "Última remessa",
           valor: ultima ? formatDateBR(ultima.enviada_em.slice(0, 10)) : "—",
           icon: History,
-          cor: "text-orange-600",
+          cor: "text-warning",
         },
       };
     }
@@ -449,19 +449,19 @@ export default function DocumentosPendentes() {
 
     if (aba === "cobrar") {
       return {
-        principal: { label: "Contas a cobrar", valor: String(totalContas), icon: AlertCircle, cor: "text-red-600" },
-        secundario1: { label: "Fornecedores", valor: String(totalFornecedores), icon: Users, cor: "text-blue-600" },
-        secundario2: { label: "Valor pendente", valor: formatBRL(totalValor), icon: Package, cor: "text-amber-600" },
-        secundario3: { label: "Mais antigo", valor: maisAntigo + " dias", icon: Clock, cor: "text-orange-600" },
+        principal: { label: "Contas a cobrar", valor: String(totalContas), icon: AlertCircle, cor: "text-destructive" },
+        secundario1: { label: "Fornecedores", valor: String(totalFornecedores), icon: Users, cor: "text-info" },
+        secundario2: { label: "Valor pendente", valor: formatBRL(totalValor), icon: Package, cor: "text-warning" },
+        secundario3: { label: "Mais antigo", valor: maisAntigo + " dias", icon: Clock, cor: "text-warning" },
       };
     }
 
     // pronto
     return {
-      principal: { label: "Prontas pra enviar", valor: String(totalContas), icon: Send, cor: "text-amber-600" },
-      secundario1: { label: "Fornecedores", valor: String(totalFornecedores), icon: Users, cor: "text-blue-600" },
-      secundario2: { label: "Valor pronto", valor: formatBRL(totalValor), icon: Package, cor: "text-emerald-600" },
-      secundario3: { label: "Mais antigo", valor: maisAntigo + " dias", icon: Clock, cor: "text-orange-600" },
+      principal: { label: "Prontas pra enviar", valor: String(totalContas), icon: Send, cor: "text-warning" },
+      secundario1: { label: "Fornecedores", valor: String(totalFornecedores), icon: Users, cor: "text-info" },
+      secundario2: { label: "Valor pronto", valor: formatBRL(totalValor), icon: Package, cor: "text-success" },
+      secundario3: { label: "Mais antigo", valor: maisAntigo + " dias", icon: Clock, cor: "text-warning" },
     };
   }, [aba, grupos, remessas]);
 
@@ -636,7 +636,7 @@ export default function DocumentosPendentes() {
       <div className="px-6 pt-6 pb-3 border-b bg-background/95 backdrop-blur sticky top-0 z-20 space-y-4">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
               <FileWarning className="h-6 w-6 text-admin" />
               Documentos
             </h1>
@@ -679,7 +679,7 @@ export default function DocumentosPendentes() {
                     <p className="text-xs text-muted-foreground">{k.label}</p>
                     <Icon className={cn("h-3.5 w-3.5", k.cor)} />
                   </div>
-                  <p className="text-2xl font-bold mt-1">{k.valor}</p>
+                  <p className="text-2xl font-medium mt-1">{k.valor}</p>
                 </CardContent>
               </Card>
             );
@@ -748,7 +748,7 @@ export default function DocumentosPendentes() {
             ) : grupos.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
-                  <CheckCircle2 className="h-12 w-12 mx-auto mb-3 text-emerald-600" />
+                  <CheckCircle2 className="h-12 w-12 mx-auto mb-3 text-success" />
                   <p className="font-medium">
                     {aba === "cobrar" ? "Nada pra cobrar" : "Nada pronto pra enviar"}
                   </p>
@@ -867,7 +867,7 @@ export default function DocumentosPendentes() {
                               {r.tem_cancelada && (
                                 <Badge
                                   variant="outline"
-                                  className="text-[9px] border-amber-400 text-amber-700 bg-amber-50 gap-1"
+                                  className="text-[9px] border-warning/40 text-warning bg-warning/10 gap-1"
                                 >
                                   <AlertTriangle className="h-3 w-3" />
                                   Cancelada após envio
@@ -875,7 +875,7 @@ export default function DocumentosPendentes() {
                               )}
                               <Badge
                                 variant="outline"
-                                className="text-[9px] border-zinc-300 text-zinc-600"
+                                className="text-[9px] border-border/40 text-muted-foreground"
                               >
                                 {r.metodo === "manual_download" ? "Manual" : "Sistema"}
                               </Badge>
@@ -914,7 +914,7 @@ export default function DocumentosPendentes() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setRemessaParaDesfazer(r)}
-                                className="text-xs gap-1 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                                className="text-xs gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
                               >
                                 <RotateCcw className="h-3.5 w-3.5" />
                                 Desfazer remessa
@@ -960,7 +960,7 @@ export default function DocumentosPendentes() {
               </Button>
               <Button
                 onClick={() => setEnviarSistemaOpen(true)}
-                className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="gap-2 bg-success hover:bg-success text-white"
               >
                 <Send className="h-4 w-4" />
                 Enviar pelo sistema
@@ -1057,7 +1057,7 @@ export default function DocumentosPendentes() {
             <AlertDialogAction
               onClick={confirmarDesfazerRemessa}
               disabled={desfazendo}
-              className="bg-rose-600 hover:bg-rose-700"
+              className="bg-destructive hover:bg-destructive"
             >
               {desfazendo ? "Desfazendo..." : "Sim, desfazer"}
             </AlertDialogAction>
@@ -1116,7 +1116,7 @@ function RemessaContas({
             key={it.plano_contas_id}
             className={cn(
               "px-3 py-2 text-xs flex items-center gap-3 cursor-pointer hover:bg-muted/40",
-              cancelada && "bg-rose-50/40",
+              cancelada && "bg-destructive/10",
             )}
             onClick={() => onAbrirConta(it.plano_contas_id)}
           >
@@ -1131,7 +1131,7 @@ function RemessaContas({
             {cancelada && (
               <Badge
                 variant="outline"
-                className="text-[9px] border-rose-400 text-rose-700 bg-rose-50 gap-1"
+                className="text-[9px] border-destructive/40 text-destructive bg-destructive/10 gap-1"
               >
                 <AlertTriangle className="h-3 w-3" />
                 Cancelada
@@ -1181,7 +1181,7 @@ function ItemLinha({
         className={cn(
           "px-4 py-2 flex items-center gap-3 hover:bg-muted/30",
           bgClass,
-          isSelected && "bg-emerald-50/60",
+          isSelected && "bg-success/10",
         )}
       >
         {aba === "pronto" && (

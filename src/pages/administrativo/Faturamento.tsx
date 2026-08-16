@@ -97,7 +97,7 @@ function KpiCard({ label, value, sub, alerta, className }: {
         <CardTitle className="text-xs font-medium text-muted-foreground">{label}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className={cn("text-2xl font-bold tabular-nums", alerta && "text-destructive")}>{value}</div>
+        <div className={cn("text-2xl font-medium tabular-nums", alerta && "text-destructive")}>{value}</div>
         {sub && <div className="text-xs text-muted-foreground mt-1 tabular-nums">{sub}</div>}
       </CardContent>
     </Card>
@@ -176,8 +176,8 @@ function CascataCard({ agg, componente }: { agg: CascataAgg; componente: Compone
                 <TableRow
                   key={l.label}
                   className={cn(
-                    (l.tipo === "subtotal" || l.tipo === "resultado") && "bg-muted/40 font-semibold",
-                    l.tipo === "resultado" && "font-bold text-base",
+                    (l.tipo === "subtotal" || l.tipo === "resultado") && "bg-muted/40 font-medium",
+                    l.tipo === "resultado" && "font-medium text-base",
                     negativo && "text-destructive",
                   )}
                 >
@@ -321,7 +321,7 @@ export default function Faturamento() {
   if (errMensal) {
     return (
       <div className="space-y-4">
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+        <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
           <Receipt className="h-6 w-6 text-gold" /> Faturamento
         </h1>
         <Card className="border-destructive/50">
@@ -336,7 +336,7 @@ export default function Faturamento() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+        <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
           <Receipt className="h-6 w-6 text-gold" />
           Faturamento
         </h1>
@@ -508,19 +508,19 @@ export default function Faturamento() {
 
       {/* A resolver */}
       {resolver.total > 0 && (
-        <Card className="border-amber-500/50">
+        <Card className="border-warning/40">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertTriangle className="h-4 w-4 text-warning" />
               A resolver
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="grid gap-3 md:grid-cols-4 text-sm">
-              <div><div className="text-xs text-muted-foreground">NFs com canal divergente do CFOP</div><div className="text-xl font-semibold tabular-nums">{fmtInt(resolver.divergencia)}</div></div>
-              <div><div className="text-xs text-muted-foreground">NFs de venda sem pedido vinculado</div><div className="text-xl font-semibold tabular-nums">{fmtInt(resolver.semPedido)}</div></div>
-              <div><div className="text-xs text-muted-foreground">Itens sem custo</div><div className="text-xl font-semibold tabular-nums">{fmtInt(resolver.semCusto)}</div></div>
-              <div><div className="text-xs text-muted-foreground">Itens com CFOP não classificado</div><div className="text-xl font-semibold tabular-nums">{fmtInt(resolver.cfopOrfao)}</div></div>
+              <div><div className="text-xs text-muted-foreground">NFs com canal divergente do CFOP</div><div className="text-xl font-medium tabular-nums">{fmtInt(resolver.divergencia)}</div></div>
+              <div><div className="text-xs text-muted-foreground">NFs de venda sem pedido vinculado</div><div className="text-xl font-medium tabular-nums">{fmtInt(resolver.semPedido)}</div></div>
+              <div><div className="text-xs text-muted-foreground">Itens sem custo</div><div className="text-xl font-medium tabular-nums">{fmtInt(resolver.semCusto)}</div></div>
+              <div><div className="text-xs text-muted-foreground">Itens com CFOP não classificado</div><div className="text-xl font-medium tabular-nums">{fmtInt(resolver.cfopOrfao)}</div></div>
             </div>
             <p className="text-xs text-muted-foreground pt-1">
               Contadores de leitura. A correção não acontece aqui — o dado se conserta na origem e este
@@ -766,7 +766,7 @@ function AbaNfs({
                           {avisos.length > 0 && (
                             <Badge
                               variant="outline"
-                              className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 px-1"
+                              className="border-warning/40 bg-warning text-warning px-1"
                               title={avisos.join(" · ")}
                             >
                               <AlertTriangle className="h-3 w-3" />
@@ -815,7 +815,7 @@ function AbaNfs({
                     </TableRow>
                   );
                 })}
-                <TableRow className="font-semibold bg-muted/40">
+                <TableRow className="font-medium bg-muted/40">
                   <TableCell colSpan={7}>Total</TableCell>
                   <TableCell className="text-right text-xs tabular-nums">{fmtInt(total.unidades)}</TableCell>
                   <TableCell className="text-right text-xs tabular-nums">{fmtBRL(total.receita)}</TableCell>
@@ -1001,7 +1001,7 @@ function AbaProduto({
                           {r.sku ?? "—"}
                           {avisos.length > 0 && (
                             <span title={avisos.join(" · ")}>
-                              <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+                              <AlertTriangle className="h-3.5 w-3.5 text-warning" />
                             </span>
                           )}
                         </div>
@@ -1025,7 +1025,7 @@ function AbaProduto({
                     </TableRow>
                   );
                 })}
-                <TableRow className="font-semibold bg-muted/40">
+                <TableRow className="font-medium bg-muted/40">
                   <TableCell colSpan={3}>Total</TableCell>
                   <TableCell className="text-right text-xs tabular-nums">{fmtInt(total.unidades)}</TableCell>
                   <TableCell />

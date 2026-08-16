@@ -395,7 +395,7 @@ export default function Parceiros() {
       />
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
             <Users className="h-6 w-6 text-admin" />
             Parceiros Comerciais
           </h1>
@@ -449,7 +449,7 @@ export default function Parceiros() {
                     <CardTitle className="text-xs font-normal text-muted-foreground">Total ativos</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{kpis.total}</div>
+                    <div className="text-2xl font-medium">{kpis.total}</div>
                   </CardContent>
                 </Card>
                 <Card>
@@ -457,7 +457,7 @@ export default function Parceiros() {
                     <CardTitle className="text-xs font-normal text-muted-foreground">Fornecedores</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-[#8B1A2F]">{kpis.fornecedores}</div>
+                    <div className="text-2xl font-medium text-[#8B1A2F]">{kpis.fornecedores}</div>
                   </CardContent>
                 </Card>
                 <Card>
@@ -465,7 +465,7 @@ export default function Parceiros() {
                     <CardTitle className="text-xs font-normal text-muted-foreground">Clientes</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-[#1A4A3A]">{kpis.clientes}</div>
+                    <div className="text-2xl font-medium text-[#1A4A3A]">{kpis.clientes}</div>
                   </CardContent>
                 </Card>
                 <Card
@@ -476,7 +476,7 @@ export default function Parceiros() {
                     <CardTitle className="text-xs font-normal text-muted-foreground">Sem categoria</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-warning">{kpis.semCategoria}</div>
+                    <div className="text-2xl font-medium text-warning">{kpis.semCategoria}</div>
                   </CardContent>
                 </Card>
                 <Card
@@ -487,7 +487,7 @@ export default function Parceiros() {
                     <CardTitle className="text-xs font-normal text-muted-foreground">Sem centro de custo</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-warning">{kpis.semCentroCusto}</div>
+                    <div className="text-2xl font-medium text-warning">{kpis.semCentroCusto}</div>
                   </CardContent>
                 </Card>
                 <Card
@@ -498,7 +498,7 @@ export default function Parceiros() {
                     <CardTitle className="text-xs font-normal text-muted-foreground">Sem meio de pagamento</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-warning">{kpis.semMeioPgto}</div>
+                    <div className="text-2xl font-medium text-warning">{kpis.semMeioPgto}</div>
                   </CardContent>
                 </Card>
               </div>
@@ -605,7 +605,7 @@ export default function Parceiros() {
                                   <div className="font-medium flex items-center gap-2">
                                     {p.razao_social}
                                     {(p as any).origem === "auto_cartao" && !p.cnpj && (
-                                      <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-700 dark:text-amber-400">
+                                      <Badge variant="outline" className="text-[10px] border-warning/40 text-warning">
                                         CNPJ pendente
                                       </Badge>
                                     )}
@@ -622,7 +622,7 @@ export default function Parceiros() {
                                     {tipoLabel === "ambos" ? "Forn. + Cliente" : tipoLabel}
                                   </Badge>
                                   {tipos.includes("prestador_pj") && (
-                                    <Badge className="bg-purple-100 text-purple-700 border-0">
+                                    <Badge className="bg-info/10 text-info border-0">
                                       Prestador PJ
                                     </Badge>
                                   )}
@@ -651,7 +651,7 @@ export default function Parceiros() {
                                 {p.forma_pagamento_padrao_id && formaPgtoNomeMap.get(p.forma_pagamento_padrao_id) ? (
                                   <span>{formaPgtoNomeMap.get(p.forma_pagamento_padrao_id)}</span>
                                 ) : (
-                                  <span className="text-xs text-amber-600">— faltando</span>
+                                  <span className="text-xs text-warning">— faltando</span>
                                 )}
                               </TableCell>
                               <TableCell onClick={(e) => e.stopPropagation()}>

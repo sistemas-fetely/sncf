@@ -163,10 +163,10 @@ function formatDateBR(iso: string | null | undefined) {
 }
 
 const CURVA_STYLE: Record<string, string> = {
-  A: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
-  B: "bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/20",
+  A: "bg-success text-success border-success/40",
+  B: "bg-info text-info border-info/40",
   C: "bg-muted text-muted-foreground border-border",
-  sem_venda: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
+  sem_venda: "bg-warning text-warning border-warning/40",
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -468,8 +468,8 @@ export default function Produtos() {
                   const cobertura = p.cobertura_dias;
                   const coberturaClass =
                     cobertura == null ? "text-muted-foreground"
-                      : cobertura < 30 ? "text-red-600 dark:text-red-400 font-medium"
-                        : cobertura < 60 ? "text-amber-600 dark:text-amber-400"
+                      : cobertura < 30 ? "text-destructive font-medium"
+                        : cobertura < 60 ? "text-warning"
                           : "text-muted-foreground";
                   const curva = (p.curva ?? "") as string;
                   return (
@@ -483,7 +483,7 @@ export default function Produtos() {
                         <div className="flex items-center gap-1.5">
                           <div className="font-medium leading-tight">{p.nome_comercial ?? "—"}</div>
                           {virtual <= 0 && (
-                            <Badge variant="outline" className="text-[10px] px-1 py-0 h-5 border-red-300 text-red-700 bg-red-100 dark:bg-red-900/40 dark:text-red-400 dark:border-red-700">
+                            <Badge variant="outline" className="text-[10px] px-1 py-0 h-5 border-destructive/40 text-destructive bg-destructive/10">
                               Sem Estoque
                             </Badge>
                           )}
@@ -509,29 +509,29 @@ export default function Produtos() {
                           <div className="flex items-center justify-end gap-1.5">
                             <span>{formatBRL(p.custo)}</span>
                             {p.custo_status === "interino" && (
-                              <Badge variant="outline" className="text-[10px] px-1 py-0 bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">int.</Badge>
+                              <Badge variant="outline" className="text-[10px] px-1 py-0 bg-warning text-warning border-warning/40">int.</Badge>
                             )}
                             {p.custo_status === "ausente" && (
-                              <Badge variant="outline" className="text-[10px] px-1 py-0 bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20">s/ custo</Badge>
+                              <Badge variant="outline" className="text-[10px] px-1 py-0 bg-destructive text-destructive border-destructive/40">s/ custo</Badge>
                             )}
                           </div>
                         )}
                       </TableCell>
                       <TableCell className={cn(
                         "text-right tabular-nums",
-                        p.abaixo_piso_b2b && "text-red-600 dark:text-red-400 font-medium",
+                        p.abaixo_piso_b2b && "text-destructive font-medium",
                       )}>
                         {formatPctRatio(p.resultado_pct_b2b)}
                       </TableCell>
                       <TableCell className={cn(
                         "text-right tabular-nums",
-                        p.abaixo_piso_b2c && "text-red-600 dark:text-red-400 font-medium",
+                        p.abaixo_piso_b2c && "text-destructive font-medium",
                       )}>
                         {formatPctRatio(p.resultado_pct_b2c)}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
                         <div className="flex items-center justify-end gap-1.5">
-                          <span className={cn(virtual < 0 && "text-red-600 dark:text-red-400 font-medium")}>
+                          <span className={cn(virtual < 0 && "text-destructive font-medium")}>
                             {formatNum(virtual)}
                           </span>
                           <Tooltip>
@@ -539,7 +539,7 @@ export default function Produtos() {
                               <span
                                 className={cn(
                                   "h-2 w-2 rounded-full inline-block",
-                                  p.tem_razao ? "bg-emerald-500" : "bg-amber-500",
+                                  p.tem_razao ? "bg-success" : "bg-warning",
                                 )}
                                 aria-hidden
                               />
@@ -576,7 +576,7 @@ export default function Produtos() {
                           {p.preco_divergente_bling && (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                                <AlertTriangle className="h-4 w-4 text-warning" />
                               </TooltipTrigger>
                               <TooltipContent className="text-xs">
                                 FOP {formatBRL(p.preco_b2c)} · Bling {formatBRL(p.preco_no_bling)}
@@ -586,7 +586,7 @@ export default function Produtos() {
                           {Number(p.un_perdidas ?? 0) > 0 && (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                                <XCircle className="h-4 w-4 text-destructive" />
                               </TooltipTrigger>
                               <TooltipContent className="text-xs">
                                 {formatNum(p.un_perdidas)} un de venda perdida · {formatBRL(p.receita_perdida)}
@@ -714,7 +714,7 @@ function FaixaBloco({
   return (
     <div className="rounded-md border bg-card px-4 py-3 min-w-0">
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className={cn(faixaFontClass(valor), "font-semibold tabular-nums leading-none mt-1", valorClass)}>{valor}</div>
+      <div className={cn(faixaFontClass(valor), "font-medium tabular-nums leading-none mt-1", valorClass)}>{valor}</div>
       <div className="text-xs text-muted-foreground mt-1 leading-tight">{contexto}</div>
     </div>
   );
@@ -748,7 +748,7 @@ function FaixaCarteira({ resumo, isLoading }: { resumo: CarteiraResumo | null | 
       />
       <FaixaBloco
         label="Venda perdida"
-        valorClass="text-red-600 dark:text-red-400"
+        valorClass="text-destructive"
         valor={formatBRL(perdida)}
         contexto={
           <div className="space-y-0.5">
@@ -764,7 +764,7 @@ function FaixaCarteira({ resumo, isLoading }: { resumo: CarteiraResumo | null | 
       />
       <FaixaBloco
         label="Sem venda"
-        valorClass={semVenda > 0 ? "text-amber-600 dark:text-amber-400" : undefined}
+        valorClass={semVenda > 0 ? "text-warning" : undefined}
         valor={formatNum(semVenda)}
         contexto={<>de {formatNum(resumo.skus_ativos)} ativos</>}
       />
@@ -773,20 +773,20 @@ function FaixaCarteira({ resumo, isLoading }: { resumo: CarteiraResumo | null | 
         valor={formatBRL(capitalTotal)}
         contexto={
           <div className="space-y-0.5">
-            <div className="text-emerald-600 dark:text-emerald-400">{formatBRL(resumo.capital_lastreado)} lastreado</div>
-            <div className="text-amber-600 dark:text-amber-400">{formatBRL(resumo.capital_fragil)} frágil</div>
+            <div className="text-success">{formatBRL(resumo.capital_lastreado)} lastreado</div>
+            <div className="text-warning">{formatBRL(resumo.capital_fragil)} frágil</div>
           </div>
         }
       />
       <FaixaBloco
         label="Capital sem giro"
-        valorClass={capSemVenda > 0 ? "text-red-600 dark:text-red-400" : undefined}
+        valorClass={capSemVenda > 0 ? "text-destructive" : undefined}
         valor={formatBRL(capSemVenda)}
         contexto="preso em SKU que nunca vendeu"
       />
       <FaixaBloco
         label="Pré-venda"
-        valorClass={preVenda > 0 ? "text-sky-600 dark:text-sky-400" : undefined}
+        valorClass={preVenda > 0 ? "text-info" : undefined}
         valor={<>{formatNum(preVenda)} <span className="text-base text-muted-foreground">SKUs</span></>}
         contexto={<>{formatNum(aguardandoProduto)} un vendidas aguardando mercadoria</>}
       />
@@ -967,7 +967,7 @@ Solicitado por: SNCF · Cockpit de Produto · ${hoje}`;
 
             {/* 1. Cadastro (FOP) */}
             <Secao titulo="Cadastro (FOP)">
-              <div className="rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-800 dark:text-amber-300 mb-3 flex items-start justify-between gap-3">
+              <div className="rounded-md border border-warning/40 bg-warning px-3 py-2 text-xs text-warning mb-3 flex items-start justify-between gap-3">
                 <span>Cadastro e preço são do FOP. Correções devem ser feitas lá e refletem aqui automaticamente.</span>
                 <Button size="sm" variant="outline" onClick={copiarSolicitacao} className="shrink-0 h-7 gap-1.5">
                   <Copy className="h-3 w-3" />
@@ -1022,28 +1022,28 @@ Solicitado por: SNCF · Cockpit de Produto · ${hoje}`;
                   <span className="inline-flex items-center gap-2">
                     {row?.custo != null ? formatBRL(row.custo) : ou(null)}
                     {row?.custo_status === "interino" && (
-                      <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">int.</Badge>
+                      <Badge variant="outline" className="text-[10px] bg-warning text-warning border-warning/40">int.</Badge>
                     )}
                     {row?.custo_status === "ausente" && (
-                      <Badge variant="outline" className="text-[10px] bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20">s/ custo</Badge>
+                      <Badge variant="outline" className="text-[10px] bg-destructive text-destructive border-destructive/40">s/ custo</Badge>
                     )}
                   </span>
                 </Field>
                 <Field label="Margem B2B">
-                  <span className={cn(row?.abaixo_piso_b2b && "text-red-600 dark:text-red-400 font-medium")}>
+                  <span className={cn(row?.abaixo_piso_b2b && "text-destructive font-medium")}>
                     {formatPctRatio(row?.resultado_pct_b2b)}
                     {row?.abaixo_piso_b2b && <span className="text-xs ml-1">(abaixo do piso)</span>}
                   </span>
                 </Field>
                 <Field label="Margem B2C">
-                  <span className={cn(row?.abaixo_piso_b2c && "text-red-600 dark:text-red-400 font-medium")}>
+                  <span className={cn(row?.abaixo_piso_b2c && "text-destructive font-medium")}>
                     {formatPctRatio(row?.resultado_pct_b2c)}
                     {row?.abaixo_piso_b2c && <span className="text-xs ml-1">(abaixo do piso)</span>}
                   </span>
                 </Field>
               </div>
               {row?.preco_divergente_bling && (
-                <div className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+                <div className="mt-3 rounded-md border border-warning/40 bg-warning px-3 py-2 text-xs text-warning">
                   Preço divergente: FOP {row.preco_b2c != null ? formatBRL(row.preco_b2c) : "—"} · Bling {row.preco_no_bling != null ? formatBRL(row.preco_no_bling) : "—"}. A correção é no FOP.
                 </div>
               )}
@@ -1063,7 +1063,7 @@ Solicitado por: SNCF · Cockpit de Produto · ${hoje}`;
                   <Field label="Dias sem vender">{row.dias_sem_vender != null ? `${row.dias_sem_vender} dias` : ou(null)}</Field>
                   <Field label="Un / dia">{row.un_por_dia != null ? formatNum(row.un_por_dia, 2) : ou(null)}</Field>
                   <Field label="Venda perdida" className="col-span-2">
-                    <span className={cn(Number(row.un_perdidas ?? 0) > 0 && "text-red-600 dark:text-red-400 font-medium")}>
+                    <span className={cn(Number(row.un_perdidas ?? 0) > 0 && "text-destructive font-medium")}>
                       {formatNum(row.un_perdidas)} un · {formatBRL(row.receita_perdida ?? 0)}
                     </span>
                   </Field>
@@ -1072,7 +1072,7 @@ Solicitado por: SNCF · Cockpit de Produto · ${hoje}`;
                   </Field>
                   {Number(row.reservado_aguardando_produto ?? 0) > 0 && (
                     <Field label="Aguardando produto" className="col-span-2">
-                      <span className="text-sky-600 dark:text-sky-400">{formatNum(row.reservado_aguardando_produto)} un</span>
+                      <span className="text-info">{formatNum(row.reservado_aguardando_produto)} un</span>
                     </Field>
                   )}
                 </div>
@@ -1085,15 +1085,15 @@ Solicitado por: SNCF · Cockpit de Produto · ${hoje}`;
                 <Field label="Base">{formatNum(row?.estoque_base)}</Field>
                 <Field label="Reservado">{formatNum(row?.reservado)}</Field>
                 <Field label="Virtual">
-                  <span className={cn((row?.estoque_virtual ?? 0) < 0 && "text-red-600 dark:text-red-400 font-medium")}>
+                  <span className={cn((row?.estoque_virtual ?? 0) < 0 && "text-destructive font-medium")}>
                     {formatNum(row?.estoque_virtual)}
                   </span>
                 </Field>
                 <Field label="Fonte">
                   {row?.tem_razao ? (
-                    <span className="text-emerald-700 dark:text-emerald-400">Razão SNCF</span>
+                    <span className="text-success">Razão SNCF</span>
                   ) : (
-                    <span className="text-amber-700 dark:text-amber-400">Saldo Bling — não lastreado</span>
+                    <span className="text-warning">Saldo Bling — não lastreado</span>
                   )}
                 </Field>
                 <Field label="Status">{ou(row?.status_venda)}</Field>
@@ -1126,7 +1126,7 @@ Solicitado por: SNCF · Cockpit de Produto · ${hoje}`;
                         <TableRow key={i}>
                           <TableCell className="text-xs py-1.5">{formatDateBRShort(m.data_mov)}</TableCell>
                           <TableCell className="text-xs py-1.5">{m.tipo ?? "—"}</TableCell>
-                          <TableCell className={cn("text-xs py-1.5 text-right tabular-nums", (m.quantidade ?? 0) < 0 && "text-red-600 dark:text-red-400")}>
+                          <TableCell className={cn("text-xs py-1.5 text-right tabular-nums", (m.quantidade ?? 0) < 0 && "text-destructive")}>
                             {formatNum(m.quantidade)}
                           </TableCell>
                           <TableCell className="text-xs py-1.5">{m.origem ?? "—"}</TableCell>

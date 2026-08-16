@@ -127,10 +127,10 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  aberta: "bg-amber-100 text-amber-800 border-amber-200",
-  paga: "bg-blue-100 text-blue-800 border-blue-200",
-  conciliada: "bg-emerald-100 text-emerald-800 border-emerald-200",
-  cancelada: "bg-gray-100 text-gray-700 border-gray-200",
+  aberta: "bg-warning/10 text-warning border-warning/40",
+  paga: "bg-info/10 text-info border-info/40",
+  conciliada: "bg-success/10 text-success border-success/40",
+  cancelada: "bg-muted/10 text-muted-foreground border-border/40",
 };
 
 const TIPO_LANC_LABELS: Record<string, string> = {
@@ -503,7 +503,7 @@ export default function FaturasCartao() {
       <div className="px-6 pt-6 pb-3 border-b bg-background/95 backdrop-blur sticky top-0 z-20 space-y-4">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
               <CreditCard className="h-6 w-6 text-admin" />
               Faturas de Cartão
             </h1>
@@ -525,9 +525,9 @@ export default function FaturasCartao() {
         {/* KPIs financeiros agregados */}
         {totals.modoFocado && totals.faturaFocada && (
           <div className="flex items-center justify-between text-xs px-1 -mb-1">
-            <div className="text-amber-700 font-medium">
+            <div className="text-warning font-medium">
               📌 Mostrando dados de:{" "}
-              <span className="font-semibold">
+              <span className="font-medium">
                 {totals.faturaFocada.cartao?.nome || "fatura"}
               </span>
               {" — venc "}
@@ -564,7 +564,7 @@ export default function FaturasCartao() {
                     <div className="flex items-center gap-2">
                       <CreditCard className="h-4 w-4 text-admin shrink-0" />
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-semibold truncate">
+                        <div className="text-sm font-medium truncate">
                           {cartao.nome}
                         </div>
                         <div className="text-[10px] text-muted-foreground truncate">
@@ -586,7 +586,7 @@ export default function FaturasCartao() {
                         <div className="text-[9px] uppercase tracking-wide text-muted-foreground">
                           Comprometido
                         </div>
-                        <div className="text-xs font-semibold font-mono text-amber-700">
+                        <div className="text-xs font-medium font-mono text-warning">
                           {formatBRL(comprometido)}
                         </div>
                       </div>
@@ -594,7 +594,7 @@ export default function FaturasCartao() {
                         <div className="text-[9px] uppercase tracking-wide text-muted-foreground">
                           Disponível
                         </div>
-                        <div className="text-xs font-semibold font-mono text-emerald-700">
+                        <div className="text-xs font-medium font-mono text-success">
                           {formatBRL(disponivel)}
                         </div>
                       </div>
@@ -606,10 +606,10 @@ export default function FaturasCartao() {
                           className={cn(
                             "h-full transition-all",
                             percentUsado > 90
-                              ? "bg-red-500"
+                              ? "bg-destructive"
                               : percentUsado > 70
-                                ? "bg-amber-500"
-                                : "bg-emerald-500",
+                                ? "bg-warning"
+                                : "bg-success",
                           )}
                           style={{ width: `${Math.min(100, percentUsado)}%` }}
                         />
@@ -626,12 +626,12 @@ export default function FaturasCartao() {
           {/* CARD FATURA MÊS ATUAL */}
           <Card
             className={cn(
-              "bg-amber-50/50 border-amber-200 transition",
+              "bg-warning/10 border-warning/40 transition",
               totals.mesAtual.faturaId &&
-                "cursor-pointer hover:shadow-md hover:border-amber-400",
+                "cursor-pointer hover:shadow-md hover:border-warning/40",
               totals.mesAtual.faturaId &&
                 faturaExpanded === totals.mesAtual.faturaId &&
-                "ring-2 ring-amber-400",
+                "ring-2 ring-warning",
             )}
             onClick={() => {
               if (!totals.mesAtual.faturaId) return;
@@ -647,16 +647,16 @@ export default function FaturasCartao() {
                 <span className="text-base">📑</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold">Fatura mês atual</span>
+                    <span className="text-sm font-medium">Fatura mês atual</span>
                     {totals.mesAtual.status && (
                       <Badge
                         variant="outline"
                         className={cn(
                           "text-[10px] uppercase",
-                          totals.mesAtual.status === "paga" && "bg-emerald-50 text-emerald-700 border-emerald-300",
-                          totals.mesAtual.status === "aberta" && "bg-amber-50 text-amber-700 border-amber-300",
-                          totals.mesAtual.status === "conciliada" && "bg-blue-50 text-blue-700 border-blue-300",
-                          totals.mesAtual.status === "cancelada" && "bg-zinc-50 text-zinc-600 border-zinc-300"
+                          totals.mesAtual.status === "paga" && "bg-success/10 text-success border-success/40",
+                          totals.mesAtual.status === "aberta" && "bg-warning/10 text-warning border-warning/40",
+                          totals.mesAtual.status === "conciliada" && "bg-info/10 text-info border-info/40",
+                          totals.mesAtual.status === "cancelada" && "bg-muted/10 text-muted-foreground border-border/40"
                         )}
                       >
                         {totals.mesAtual.status}
@@ -679,7 +679,7 @@ export default function FaturasCartao() {
                   <div className="text-[10px] text-muted-foreground uppercase">
                     Total
                   </div>
-                  <div className="text-sm font-bold">
+                  <div className="text-sm font-medium">
                     {formatBRL(totals.mesAtual.total)}
                   </div>
                 </div>
@@ -687,7 +687,7 @@ export default function FaturasCartao() {
                   <div className="text-[10px] text-muted-foreground uppercase">
                     Vinculado
                   </div>
-                  <div className="text-sm font-bold text-emerald-700">
+                  <div className="text-sm font-medium text-success">
                     {formatBRL(totals.mesAtual.vinculado)}
                   </div>
                 </div>
@@ -695,15 +695,15 @@ export default function FaturasCartao() {
                   <div className="text-[10px] text-muted-foreground uppercase">
                     Falta
                   </div>
-                  <div className="text-sm font-bold text-red-700">
+                  <div className="text-sm font-medium text-destructive">
                     {formatBRL(totals.mesAtual.naoVinculado)}
                   </div>
                 </div>
               </div>
               <div className="mt-2">
-                <div className="h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+                <div className="h-1.5 bg-muted/10 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-emerald-500 transition-all"
+                    className="h-full bg-success transition-all"
                     style={{
                       width: `${
                         totals.mesAtual.total > 0
@@ -730,12 +730,12 @@ export default function FaturasCartao() {
           {/* CARD FATURA MÊS ANTERIOR */}
           <Card
             className={cn(
-              "bg-zinc-50 border-zinc-200 transition",
+              "bg-muted/10 border-border/40 transition",
               totals.mesAnterior.faturaId &&
-                "cursor-pointer hover:shadow-md hover:border-zinc-400",
+                "cursor-pointer hover:shadow-md hover:border-border/40",
               totals.mesAnterior.faturaId &&
                 faturaExpanded === totals.mesAnterior.faturaId &&
-                "ring-2 ring-zinc-400",
+                "ring-2 ring-border",
             )}
             onClick={() => {
               if (!totals.mesAnterior.faturaId) return;
@@ -751,16 +751,16 @@ export default function FaturasCartao() {
                 <span className="text-base">🗂</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold">Fatura mês anterior</span>
+                    <span className="text-sm font-medium">Fatura mês anterior</span>
                     {totals.mesAnterior.status && (
                       <Badge
                         variant="outline"
                         className={cn(
                           "text-[10px] uppercase",
-                          totals.mesAnterior.status === "paga" && "bg-emerald-50 text-emerald-700 border-emerald-300",
-                          totals.mesAnterior.status === "aberta" && "bg-amber-50 text-amber-700 border-amber-300",
-                          totals.mesAnterior.status === "conciliada" && "bg-blue-50 text-blue-700 border-blue-300",
-                          totals.mesAnterior.status === "cancelada" && "bg-zinc-50 text-zinc-600 border-zinc-300"
+                          totals.mesAnterior.status === "paga" && "bg-success/10 text-success border-success/40",
+                          totals.mesAnterior.status === "aberta" && "bg-warning/10 text-warning border-warning/40",
+                          totals.mesAnterior.status === "conciliada" && "bg-info/10 text-info border-info/40",
+                          totals.mesAnterior.status === "cancelada" && "bg-muted/10 text-muted-foreground border-border/40"
                         )}
                       >
                         {totals.mesAnterior.status}
@@ -787,7 +787,7 @@ export default function FaturasCartao() {
                   <div className="text-[10px] text-muted-foreground uppercase">
                     Total
                   </div>
-                  <div className="text-sm font-bold">
+                  <div className="text-sm font-medium">
                     {formatBRL(totals.mesAnterior.total)}
                   </div>
                 </div>
@@ -795,7 +795,7 @@ export default function FaturasCartao() {
                   <div className="text-[10px] text-muted-foreground uppercase">
                     Vinculado
                   </div>
-                  <div className="text-sm font-bold text-emerald-700">
+                  <div className="text-sm font-medium text-success">
                     {formatBRL(totals.mesAnterior.vinculado)}
                   </div>
                 </div>
@@ -803,15 +803,15 @@ export default function FaturasCartao() {
                   <div className="text-[10px] text-muted-foreground uppercase">
                     Falta
                   </div>
-                  <div className="text-sm font-bold text-red-700">
+                  <div className="text-sm font-medium text-destructive">
                     {formatBRL(totals.mesAnterior.naoVinculado)}
                   </div>
                 </div>
               </div>
               <div className="mt-2">
-                <div className="h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+                <div className="h-1.5 bg-muted/10 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-emerald-500 transition-all"
+                    className="h-full bg-success transition-all"
                     style={{
                       width: `${
                         totals.mesAnterior.total > 0
@@ -961,27 +961,27 @@ export default function FaturasCartao() {
                           )}
                         </TableCell>
                         <TableCell className="text-right whitespace-nowrap">
-                          <div className="font-mono text-base font-semibold">{formatBRL(f.valor_total)}</div>
+                          <div className="font-mono text-base font-medium">{formatBRL(f.valor_total)}</div>
                         </TableCell>
                         <TableCell className="whitespace-nowrap text-sm">
                           {(f.qtd_conciliados || 0) > 0 && (
-                            <div className="text-emerald-700">
+                            <div className="text-success">
                               Conciliado: <span className="font-mono">{formatBRL(f.valor_conciliado || 0)}</span>
                             </div>
                           )}
                           {(f.qtd_pendentes || 0) > 0 && (
-                            <div className="text-amber-700">
+                            <div className="text-warning">
                               Pendente: <span className="font-mono">{formatBRL(f.valor_pendente || 0)}</span>
                             </div>
                           )}
                         </TableCell>
                         <TableCell className="text-center">
                           <div className="flex flex-col items-center gap-1">
-                            <div className="text-base font-semibold">{f.qtd_lancamentos || 0}</div>
+                            <div className="text-base font-medium">{f.qtd_lancamentos || 0}</div>
                             {(f.qtd_pendentes || 0) > 0 && (
                               <Badge
                                 variant="outline"
-                                className="text-[9px] py-0 px-1 h-4 border-amber-300 text-amber-700"
+                                className="text-[9px] py-0 px-1 h-4 border-warning/40 text-warning"
                               >
                                 {f.qtd_pendentes} pend
                               </Badge>
@@ -1053,7 +1053,7 @@ export default function FaturasCartao() {
                           <TableCell colSpan={9} className="bg-muted/20 p-0">
                             <div className="p-4">
                               <div className="flex items-center justify-between mb-2">
-                                <p className="text-xs font-semibold flex items-center gap-2">
+                                <p className="text-xs font-medium flex items-center gap-2">
                                   <ArrowDownToLine className="h-3.5 w-3.5" />
                                   Lançamentos detalhados
                                 </p>
@@ -1067,7 +1067,7 @@ export default function FaturasCartao() {
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      className="h-7 text-xs gap-1 border-violet-300 text-violet-700 hover:bg-violet-50"
+                                      className="h-7 text-xs gap-1 border-info/40 text-info hover:bg-info/10"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         aplicarTodasSugestoes();
@@ -1128,7 +1128,7 @@ export default function FaturasCartao() {
                                                 </Badge>
                                               )}
                                               {l.natureza === "INTERNACIONAL" && (
-                                                <Globe className="h-3 w-3 text-blue-600" />
+                                                <Globe className="h-3 w-3 text-info" />
                                               )}
                                             </div>
                                             {l.natureza === "INTERNACIONAL" &&
@@ -1141,7 +1141,7 @@ export default function FaturasCartao() {
                                           </td>
                                           <td
                                             className={`px-2 py-1.5 text-right font-mono whitespace-nowrap ${
-                                              l.valor < 0 ? "text-emerald-700" : ""
+                                              l.valor < 0 ? "text-success" : ""
                                             }`}
                                           >
                                             {formatBRL(l.valor)}
@@ -1182,7 +1182,7 @@ export default function FaturasCartao() {
                                                   <Button
                                                     size="sm"
                                                     variant="outline"
-                                                    className="h-7 text-[9px] gap-1 border-violet-300 text-violet-700 hover:bg-violet-50 px-1.5 shrink-0"
+                                                    className="h-7 text-[9px] gap-1 border-info/40 text-info hover:bg-info/10 px-1.5 shrink-0"
                                                     onClick={() =>
                                                       alterarCategoriaLanc(l.id, sug.plano_contas_id)
                                                     }
@@ -1201,11 +1201,11 @@ export default function FaturasCartao() {
                                               className={
                                                 "text-[9px] py-0 px-1 h-4 " +
                                                 (l.tipo === "estorno"
-                                                  ? "border-emerald-300 text-emerald-700"
+                                                  ? "border-success/40 text-success"
                                                   : l.tipo === "iof"
-                                                    ? "border-amber-300 text-amber-700"
+                                                    ? "border-warning/40 text-warning"
                                                     : l.tipo === "pagamento"
-                                                      ? "border-blue-300 text-blue-700"
+                                                      ? "border-info/40 text-info"
                                                       : "")
                                               }
                                             >
@@ -1297,31 +1297,31 @@ function KpiPill({ label, count, color, active, onClick, icon, description }: Kp
       bg: "bg-admin/5",
       text: "text-admin",
       border: "border-admin/20",
-      activeBg: "bg-red-50 text-red-700 border-red-300",
+      activeBg: "bg-destructive/10 text-destructive border-destructive/40",
     },
     amber: {
-      bg: "bg-amber-50",
-      text: "text-amber-700",
-      border: "border-amber-200",
-      activeBg: "bg-amber-50 text-amber-700 border-amber-300",
+      bg: "bg-warning/10",
+      text: "text-warning",
+      border: "border-warning/40",
+      activeBg: "bg-warning/10 text-warning border-warning/40",
     },
     emerald: {
-      bg: "bg-emerald-50",
-      text: "text-emerald-700",
-      border: "border-emerald-200",
-      activeBg: "bg-emerald-50 text-emerald-700 border-emerald-300",
+      bg: "bg-success/10",
+      text: "text-success",
+      border: "border-success/40",
+      activeBg: "bg-success/10 text-success border-success/40",
     },
     blue: {
-      bg: "bg-blue-50",
-      text: "text-blue-700",
-      border: "border-blue-200",
-      activeBg: "bg-blue-50 text-blue-700 border-blue-300",
+      bg: "bg-info/10",
+      text: "text-info",
+      border: "border-info/40",
+      activeBg: "bg-info/10 text-info border-info/40",
     },
     gray: {
-      bg: "bg-gray-50",
-      text: "text-gray-700",
-      border: "border-gray-200",
-      activeBg: "bg-gray-100 text-gray-800 border-gray-400",
+      bg: "bg-muted/10",
+      text: "text-muted-foreground",
+      border: "border-border/40",
+      activeBg: "bg-muted/10 text-muted-foreground border-border/40",
     },
   };
   const c = colorMap[color];
@@ -1338,7 +1338,7 @@ function KpiPill({ label, count, color, active, onClick, icon, description }: Kp
         {icon}
         {label}
       </div>
-      <div className="text-2xl font-bold leading-tight mt-0.5">{count}</div>
+      <div className="text-2xl font-medium leading-tight mt-0.5">{count}</div>
       {description && (
         <div className="text-[9px] opacity-75 mt-0.5">{description}</div>
       )}
@@ -1401,7 +1401,7 @@ function LimiteInlineEdit({ cartaoId, valor }: { cartaoId: string; valor: number
         }}
         disabled={salvando}
         placeholder="0,00"
-        className="text-xs font-semibold font-mono w-full px-1 py-0 border border-input rounded outline-none focus:ring-1 focus:ring-primary bg-background"
+        className="text-xs font-medium font-mono w-full px-1 py-0 border border-input rounded outline-none focus:ring-1 focus:ring-primary bg-background"
       />
     );
   }
@@ -1410,7 +1410,7 @@ function LimiteInlineEdit({ cartaoId, valor }: { cartaoId: string; valor: number
     <button
       type="button"
       onClick={() => setEditando(true)}
-      className="text-xs font-semibold font-mono hover:underline cursor-pointer text-left block w-full"
+      className="text-xs font-medium font-mono hover:underline cursor-pointer text-left block w-full"
       title="Clique para editar"
     >
       {formatBRL(valor)}

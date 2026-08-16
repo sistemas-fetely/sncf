@@ -77,8 +77,8 @@ function fmtCompact(n: number): string {
 function heatBg(atual: number, anterior: number): string {
   if (!anterior || !atual) return "";
   const d = (atual - anterior) / Math.abs(anterior);
-  if (d > 0.2) return "bg-rose-500/10";
-  if (d < -0.2) return "bg-emerald-500/10";
+  if (d > 0.2) return "bg-destructive";
+  if (d < -0.2) return "bg-success";
   return "";
 }
 
@@ -507,7 +507,7 @@ export default function AnaliseDespesas() {
           <BarChart3 className="h-5 w-5" />
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight">Análise de Despesas · Notas Fiscais</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Análise de Despesas · Notas Fiscais</h1>
           <p className="text-sm text-muted-foreground">Cobre apenas despesas com NF (porta fiscal), por competência de emissão. A visão consolidada de todas as origens está no Gerencial.</p>
         </div>
         <Button variant="outline" size="sm" onClick={exportarMes} disabled={!mesSel || !linhasMes.length}>
@@ -535,7 +535,7 @@ export default function AnaliseDespesas() {
           <CardContent className="p-4 flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
             <div>
-              <p className="font-semibold text-destructive">Erro ao carregar análise</p>
+              <p className="font-medium text-destructive">Erro ao carregar análise</p>
               <p className="text-sm text-muted-foreground mt-1">{(error as Error).message}</p>
             </div>
           </CardContent>
@@ -555,12 +555,12 @@ export default function AnaliseDespesas() {
                 <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
                   <Building2 className="h-3.5 w-3.5" /> Despesa Operacional
                 </div>
-                <div className="mt-2 text-2xl font-bold tabular-nums">{formatBRL(opAtual)}</div>
+                <div className="mt-2 text-2xl font-medium tabular-nums">{formatBRL(opAtual)}</div>
                 <div className="mt-2 flex items-center gap-2 text-sm">
                   {deltaOpMes === null ? (
                     <span className="text-muted-foreground">— vs mês anterior</span>
                   ) : (
-                    <span className={`inline-flex items-center gap-1 font-medium ${deltaOpMes <= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                    <span className={`inline-flex items-center gap-1 font-medium ${deltaOpMes <= 0 ? "text-success" : "text-destructive"}`}>
                       {deltaOpMes <= 0 ? <ArrowDown className="h-3.5 w-3.5" /> : <ArrowUp className="h-3.5 w-3.5" />}
                       {fmtPct(Math.abs(deltaOpMes))}
                     </span>
@@ -578,7 +578,7 @@ export default function AnaliseDespesas() {
                 <div className="flex items-center gap-2 text-xs uppercase tracking-wider" style={{ color: COR_CAPEX }}>
                   <Package className="h-3.5 w-3.5" /> CAPEX
                 </div>
-                <div className="mt-2 text-2xl font-bold tabular-nums">{formatBRL(totaisMes.capex)}</div>
+                <div className="mt-2 text-2xl font-medium tabular-nums">{formatBRL(totaisMes.capex)}</div>
                 <p className="mt-2 text-xs text-muted-foreground">Investimentos — fora do operacional</p>
               </CardContent>
             </Card>
@@ -588,18 +588,18 @@ export default function AnaliseDespesas() {
                 <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
                   <Receipt className="h-3 w-3" /> Impostos
                 </div>
-                <div className="mt-2 text-xl font-semibold tabular-nums text-muted-foreground">{formatBRL(totaisMes.imposto)}</div>
+                <div className="mt-2 text-xl font-medium tabular-nums text-muted-foreground">{formatBRL(totaisMes.imposto)}</div>
               </CardContent>
             </Card>
 
             <Card className="card-shadow">
               <CardContent className="p-4">
                 <div className="text-xs uppercase tracking-wider text-muted-foreground">Classificado</div>
-                <div className="mt-2 text-2xl font-bold tabular-nums">{fmtPct(classifMes.pct)}</div>
+                <div className="mt-2 text-2xl font-medium tabular-nums">{fmtPct(classifMes.pct)}</div>
                 <div className="mt-2 text-xs text-muted-foreground">
                   {classifMes.naoClass > 0 ? (
                     <span className="inline-flex items-center gap-1">
-                      <AlertTriangle className="h-3 w-3 text-amber-600" />
+                      <AlertTriangle className="h-3 w-3 text-warning" />
                       {classifMes.naoClass} não classificada(s) —
                       <Link to="/administrativo-fetely/nfs-stage" className="underline text-primary">revisar</Link>
                     </span>
@@ -621,7 +621,7 @@ export default function AnaliseDespesas() {
               <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
                 <Landmark className="h-3.5 w-3.5" /> Cobertura de conciliação
               </div>
-              <div className="mt-1 text-3xl font-bold tabular-nums">{fmtPct(coberturaMes.pctValor)}</div>
+              <div className="mt-1 text-3xl font-medium tabular-nums">{fmtPct(coberturaMes.pctValor)}</div>
               <p className="mt-1 text-xs text-muted-foreground">
                 <span className="tabular-nums">{formatBRL(coberturaMes.valorConc)}</span> de <span className="tabular-nums">{formatBRL(coberturaMes.valorTotal)}</span> já bateram com um débito bancário
                 {coberturaMes.countTotal > 0 && (
@@ -652,7 +652,7 @@ export default function AnaliseDespesas() {
       <Card className="card-shadow">
         <CardContent className="p-4">
           <div className="mb-3">
-            <h2 className="text-lg font-semibold">Matriz Grupo × Meses</h2>
+            <h2 className="text-lg font-medium">Matriz Grupo × Meses</h2>
             <p className="text-xs text-muted-foreground">
               Bloco operacional. Heatmap compara cada célula com o mês anterior da mesma linha. Clique no cabeçalho de um mês para selecioná-lo.
             </p>
@@ -742,7 +742,7 @@ export default function AnaliseDespesas() {
                   })}
                 </tbody>
                 <tfoot>
-                  <tr className="border-t-2 font-semibold">
+                  <tr className="border-t-2 font-medium">
                     <td className="sticky left-0 bg-background"></td>
                     <td className="py-2 px-2 sticky left-8 bg-background">Total operacional</td>
                     {meses.map((m) => {
@@ -767,9 +767,9 @@ export default function AnaliseDespesas() {
               {/* CAPEX */}
               {matrizCapex.length > 0 && (
                 <div className="mt-6">
-                  <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: COR_CAPEX }}>
+                  <h3 className="text-sm font-medium mb-2 flex items-center gap-2" style={{ color: COR_CAPEX }}>
                     <Package className="h-4 w-4" /> CAPEX
-                    <Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-700">fora do operacional</Badge>
+                    <Badge variant="outline" className="text-[10px] border-warning/40 text-warning">fora do operacional</Badge>
                   </h3>
                   <table className="w-full text-xs">
                     <thead className="border-b">
@@ -812,7 +812,7 @@ export default function AnaliseDespesas() {
               {/* IMPOSTOS */}
               {matrizImpostos.length > 0 && (
                 <div className="mt-6">
-                  <h3 className="text-sm font-semibold mb-2 flex items-center gap-2 text-muted-foreground">
+                  <h3 className="text-sm font-medium mb-2 flex items-center gap-2 text-muted-foreground">
                     <Receipt className="h-4 w-4" /> Impostos
                   </h3>
                   <table className="w-full text-xs">
@@ -854,12 +854,12 @@ export default function AnaliseDespesas() {
               )}
 
               {totaisMes.nao_classificado > 0 && (
-                <div className="mt-4 rounded-md bg-amber-500/10 border border-amber-500/30 p-3 flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-amber-800 text-sm">
+                <div className="mt-4 rounded-md bg-warning border border-warning/40 p-3 flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-warning text-sm">
                     <AlertTriangle className="h-4 w-4" />
-                    Não classificado no mês: <span className="font-semibold tabular-nums">{formatBRL(totaisMes.nao_classificado)}</span>
+                    Não classificado no mês: <span className="font-medium tabular-nums">{formatBRL(totaisMes.nao_classificado)}</span>
                   </span>
-                  <Button variant="link" size="sm" onClick={() => navigate("/administrativo-fetely/nfs-stage")} className="h-auto p-0 text-amber-800">
+                  <Button variant="link" size="sm" onClick={() => navigate("/administrativo-fetely/nfs-stage")} className="h-auto p-0 text-warning">
                     Revisar em NFs Stage →
                   </Button>
                 </div>
@@ -873,7 +873,7 @@ export default function AnaliseDespesas() {
       <Card className="card-shadow">
         <CardContent className="p-4">
           <div className="mb-3">
-            <h2 className="text-lg font-semibold">Matriz Centro de Custo × Meses</h2>
+            <h2 className="text-lg font-medium">Matriz Centro de Custo × Meses</h2>
             <p className="text-xs text-muted-foreground">
               Bloco operacional. Quanto cada área consome por mês. Heatmap compara com o mês anterior da mesma linha.
             </p>
@@ -925,7 +925,7 @@ export default function AnaliseDespesas() {
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr className="border-t-2 font-semibold">
+                  <tr className="border-t-2 font-medium">
                     <td className="py-2 px-2 sticky left-0 bg-background">Total operacional</td>
                     {meses.map((m) => {
                       const v = matrizCentro.totaisPorMes[m] ?? 0;
@@ -955,7 +955,7 @@ export default function AnaliseDespesas() {
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
             <div>
-              <h2 className="text-lg font-semibold">Evolução mensal</h2>
+              <h2 className="text-lg font-medium">Evolução mensal</h2>
               <p className="text-xs text-muted-foreground">
                 {modoGrafico === "empilhado"
                   ? "Operacional empilhado por grupo · CAPEX em série separada"
@@ -1050,7 +1050,7 @@ export default function AnaliseDespesas() {
       <Card className="card-shadow">
         <CardContent className="p-4">
           <div className="mb-3">
-            <h2 className="text-lg font-semibold">O que mudou</h2>
+            <h2 className="text-lg font-medium">O que mudou</h2>
             <p className="text-xs text-muted-foreground">
               {mesAnteriorKey
                 ? `${fmtMesLabel(mesSel + "-01")} vs ${fmtMesLabel(mesAnteriorKey + "-01")} — contas folha do operacional (Δ ≥ R$ 100)`
@@ -1060,21 +1060,21 @@ export default function AnaliseDespesas() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <ListaMovimento
               titulo="Maiores aumentos"
-              icon={<TrendingUp className="h-4 w-4 text-rose-600" />}
+              icon={<TrendingUp className="h-4 w-4 text-destructive" />}
               itens={oQueMudou.aumentos}
               vazio="Sem aumentos relevantes"
               positivo={false}
             />
             <ListaMovimento
               titulo="Maiores quedas"
-              icon={<TrendingDown className="h-4 w-4 text-emerald-600" />}
+              icon={<TrendingDown className="h-4 w-4 text-success" />}
               itens={oQueMudou.quedas}
               vazio="Sem quedas relevantes"
               positivo={true}
             />
             <ListaSimples
               titulo="Gastos novos"
-              icon={<PlusCircle className="h-4 w-4 text-blue-600" />}
+              icon={<PlusCircle className="h-4 w-4 text-info" />}
               itens={oQueMudou.novos}
               vazio="Nenhum gasto novo"
             />
@@ -1093,7 +1093,7 @@ export default function AnaliseDespesas() {
         <CardContent className="p-4">
           <div className="mb-3 flex items-center justify-between flex-wrap gap-2">
             <div>
-              <h2 className="text-lg font-semibold flex items-center gap-2">
+              <h2 className="text-lg font-medium flex items-center gap-2">
                 <Users className="h-4 w-4" /> Top fornecedores do mês
               </h2>
               <p className="text-xs text-muted-foreground">
@@ -1119,7 +1119,7 @@ export default function AnaliseDespesas() {
       <Card className="card-shadow">
         <CardContent className="p-4">
           <div className="mb-3">
-            <h2 className="text-lg font-semibold">Qualidade da classificação</h2>
+            <h2 className="text-lg font-medium">Qualidade da classificação</h2>
             <p className="text-xs text-muted-foreground">
               Como o mês foi classificado — automação vs revisão humana
             </p>
@@ -1133,12 +1133,12 @@ export default function AnaliseDespesas() {
                 <>
                   <div className="flex h-3 rounded-full overflow-hidden bg-muted">
                     <div
-                      className="bg-blue-500"
+                      className="bg-info"
                       style={{ width: `${(qualidadeMes.motor / qualidadeMes.total) * 100}%` }}
                       title={`Motor: ${qualidadeMes.motor}`}
                     />
                     <div
-                      className="bg-amber-500"
+                      className="bg-warning"
                       style={{ width: `${(qualidadeMes.humano / qualidadeMes.total) * 100}%` }}
                       title={`Humano: ${qualidadeMes.humano}`}
                     />
@@ -1150,12 +1150,12 @@ export default function AnaliseDespesas() {
                   </div>
                   <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
                     <div className="flex items-center gap-1.5">
-                      <Bot className="h-3.5 w-3.5 text-blue-500" />
+                      <Bot className="h-3.5 w-3.5 text-info" />
                       <span className="tabular-nums font-medium">{qualidadeMes.motor}</span>
                       <span className="text-muted-foreground">motor · {fmtPct((qualidadeMes.motor / qualidadeMes.total) * 100)}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <UserIcon className="h-3.5 w-3.5 text-amber-500" />
+                      <UserIcon className="h-3.5 w-3.5 text-warning" />
                       <span className="tabular-nums font-medium">{qualidadeMes.humano}</span>
                       <span className="text-muted-foreground">humano · {fmtPct((qualidadeMes.humano / qualidadeMes.total) * 100)}</span>
                     </div>
@@ -1170,13 +1170,13 @@ export default function AnaliseDespesas() {
             </div>
             <div className="rounded-lg border p-4">
               <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Cobertura de classificação</div>
-              <div className="text-3xl font-bold tabular-nums">{fmtPct(classifMes.pct)}</div>
+              <div className="text-3xl font-medium tabular-nums">{fmtPct(classifMes.pct)}</div>
               <p className="text-xs text-muted-foreground mt-1">
                 {classifMes.total - classifMes.naoClass} de {classifMes.total} NFs classificadas
               </p>
               {classifMes.naoClass > 0 ? (
                 <div className="mt-3 text-xs">
-                  <span className="text-amber-700">
+                  <span className="text-warning">
                     {classifMes.naoClass} não classificada{classifMes.naoClass > 1 ? "s" : ""} —
                   </span>
                   <Link to="/administrativo-fetely/nfs-stage" className="ml-1 underline text-primary">
@@ -1184,7 +1184,7 @@ export default function AnaliseDespesas() {
                   </Link>
                 </div>
               ) : (
-                <p className="mt-3 text-xs text-emerald-700">Todas as linhas do mês estão classificadas</p>
+                <p className="mt-3 text-xs text-success">Todas as linhas do mês estão classificadas</p>
               )}
             </div>
           </div>
@@ -1197,7 +1197,7 @@ export default function AnaliseDespesas() {
           <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4" style={{ color: "#1A4A3A" }} />
-              <h2 className="text-lg font-semibold">Análise com IA</h2>
+              <h2 className="text-lg font-medium">Análise com IA</h2>
             </div>
             {insightAtual ? (
               <Button size="sm" variant="outline" onClick={() => analisarComIA(true)} disabled={insightLoading}>
@@ -1258,7 +1258,7 @@ function ListaMovimento({
     <div className="rounded-lg border p-3">
       <div className="flex items-center gap-2 mb-2">
         {icon}
-        <h3 className="text-sm font-semibold">{titulo}</h3>
+        <h3 className="text-sm font-medium">{titulo}</h3>
       </div>
       {itens.length === 0 ? (
         <p className="text-xs text-muted-foreground py-3 text-center">{vazio}</p>
@@ -1269,7 +1269,7 @@ function ListaMovimento({
               <span className="truncate" title={m.nome}>{m.nome}</span>
               <span className="tabular-nums text-right shrink-0">
                 <span className="font-medium">{formatBRL(m.valorAtual)}</span>
-                <span className={`ml-2 ${positivo ? "text-emerald-600" : "text-rose-600"}`}>
+                <span className={`ml-2 ${positivo ? "text-success" : "text-destructive"}`}>
                   {m.delta > 0 ? "+" : ""}{formatBRL(m.delta)}
                   {m.deltaPct !== null && ` (${m.deltaPct > 0 ? "+" : ""}${fmtPct(m.deltaPct)})`}
                 </span>
@@ -1289,7 +1289,7 @@ function ListaSimples({
     <div className="rounded-lg border p-3">
       <div className="flex items-center gap-2 mb-2">
         {icon}
-        <h3 className="text-sm font-semibold">{titulo}</h3>
+        <h3 className="text-sm font-medium">{titulo}</h3>
       </div>
       {itens.length === 0 ? (
         <p className="text-xs text-muted-foreground py-3 text-center">{vazio}</p>
@@ -1350,11 +1350,11 @@ function TopFornecedoresTable({
                 <td className="text-right py-1.5 px-2 tabular-nums text-muted-foreground hidden sm:table-cell">{f.count}</td>
                 <td className="text-right py-1.5 px-2">
                   {dominante === "motor" ? (
-                    <Badge variant="outline" className="text-[10px] border-blue-500/40 text-blue-700">
+                    <Badge variant="outline" className="text-[10px] border-info/40 text-info">
                       <Bot className="h-3 w-3 mr-1" /> Motor
                     </Badge>
                   ) : dominante === "humano" ? (
-                    <Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-700">
+                    <Badge variant="outline" className="text-[10px] border-warning/40 text-warning">
                       <UserIcon className="h-3 w-3 mr-1" /> Humano
                     </Badge>
                   ) : (

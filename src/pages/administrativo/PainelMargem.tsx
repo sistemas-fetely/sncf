@@ -171,7 +171,7 @@ export default function PainelMargem() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+        <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
           <Percent className="h-6 w-6 text-gold" />
           Painel de Margem
         </h1>
@@ -191,7 +191,7 @@ export default function PainelMargem() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={cn("text-2xl font-bold", kpis.abaixoB2B > 0 && "text-destructive")}>
+            <div className={cn("text-2xl font-medium", kpis.abaixoB2B > 0 && "text-destructive")}>
               {kpis.abaixoB2B}
             </div>
           </CardContent>
@@ -204,7 +204,7 @@ export default function PainelMargem() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={cn("text-2xl font-bold", kpis.abaixoB2C > 0 && "text-destructive")}>
+            <div className={cn("text-2xl font-medium", kpis.abaixoB2C > 0 && "text-destructive")}>
               {kpis.abaixoB2C}
             </div>
           </CardContent>
@@ -214,7 +214,7 @@ export default function PainelMargem() {
             <CardTitle className="text-xs font-medium text-muted-foreground">Margem média B2B</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{fmtPct(kpis.mediaB2B)}</div>
+            <div className="text-2xl font-medium">{fmtPct(kpis.mediaB2B)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -222,7 +222,7 @@ export default function PainelMargem() {
             <CardTitle className="text-xs font-medium text-muted-foreground">Margem média B2C</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{fmtPct(kpis.mediaB2C)}</div>
+            <div className="text-2xl font-medium">{fmtPct(kpis.mediaB2C)}</div>
           </CardContent>
         </Card>
       </div>

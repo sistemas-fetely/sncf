@@ -66,9 +66,9 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_BADGE: Record<string, string> = {
-  pago: "bg-green-100 text-green-800 hover:bg-green-100",
+  pago: "bg-success/10 text-success hover:bg-success/10",
   em_aberto: "bg-muted text-foreground hover:bg-muted",
-  atrasado: "bg-red-100 text-red-800 hover:bg-red-100",
+  atrasado: "bg-destructive/10 text-destructive hover:bg-destructive/10",
 };
 
 function FaixaCell({ value, className }: { value: number | null; className?: string }) {
@@ -233,7 +233,7 @@ export default function PainelFinanceiroConta() {
       variant="ghost"
       size="sm"
       onClick={() => toggleSort(k)}
-      className="h-7 -mr-2 px-2 font-semibold"
+      className="h-7 -mr-2 px-2 font-medium"
     >
       {label}
       <ArrowUpDown
@@ -248,7 +248,7 @@ export default function PainelFinanceiroConta() {
   return (
     <div className="space-y-6 p-6">
       <div>
-        <h1 className="text-2xl font-bold">Vencimentos x Cliente</h1>
+        <h1 className="text-2xl font-medium">Vencimentos x Cliente</h1>
         <p className="text-sm text-muted-foreground">
           Quanto cada cliente deve e há quanto tempo — recebíveis B2B (somente com NF), por aging.
         </p>
@@ -262,7 +262,7 @@ export default function PainelFinanceiroConta() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono">
+            <div className="text-2xl font-medium font-mono">
               {isLoading ? <Skeleton className="h-8 w-32" /> : formatBRL(kpis.total)}
             </div>
           </CardContent>
@@ -273,7 +273,7 @@ export default function PainelFinanceiroConta() {
             <AlertTriangle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono text-destructive">
+            <div className="text-2xl font-medium font-mono text-destructive">
               {isLoading ? <Skeleton className="h-8 w-32" /> : formatBRL(kpis.vencido)}
             </div>
           </CardContent>
@@ -284,7 +284,7 @@ export default function PainelFinanceiroConta() {
             <Percent className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono">
+            <div className="text-2xl font-medium font-mono">
               {isLoading ? (
                 <Skeleton className="h-8 w-20" />
               ) : (
@@ -382,15 +382,15 @@ export default function PainelFinanceiroConta() {
                         <TableCell>
                           <div className="font-medium">{r.cliente ?? "—"}</div>
                         </TableCell>
-                        <TableCell className="text-right font-mono font-semibold">
+                        <TableCell className="text-right font-mono font-medium">
                           {formatBRL(num(r.total_a_receber))}
                         </TableCell>
                         <FaixaCell value={r.faixa_a_vencer} className="text-foreground" />
-                        <FaixaCell value={r.faixa_1_7} className="text-yellow-700" />
-                        <FaixaCell value={r.faixa_8_30} className="text-orange-600" />
-                        <FaixaCell value={r.faixa_31_60} className="text-red-600" />
-                        <FaixaCell value={r.faixa_60_mais} className="text-red-900" />
-                        <TableCell className="text-right font-mono font-semibold text-destructive">
+                        <FaixaCell value={r.faixa_1_7} className="text-warning" />
+                        <FaixaCell value={r.faixa_8_30} className="text-warning" />
+                        <FaixaCell value={r.faixa_31_60} className="text-destructive" />
+                        <FaixaCell value={r.faixa_60_mais} className="text-destructive" />
+                        <TableCell className="text-right font-mono font-medium text-destructive">
                           {formatBRL(num(r.total_vencido))}
                         </TableCell>
                         <TableCell
@@ -398,7 +398,7 @@ export default function PainelFinanceiroConta() {
                             "text-right font-mono",
                             atraso === 0
                               ? "text-muted-foreground"
-                              : "text-destructive font-semibold",
+                              : "text-destructive font-medium",
                           )}
                         >
                           {atraso}

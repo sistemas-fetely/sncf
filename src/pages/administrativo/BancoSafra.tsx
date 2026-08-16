@@ -95,18 +95,18 @@ type TitulosBoleto = {
 };
 
 const BOLETO_STATUS_CFG: Record<string, { label: string; cls: string }> = {
-  pendente: { label: "Pendente", cls: "bg-gray-100 text-gray-600" },
-  remessa_gerada: { label: "Remessa gerada", cls: "bg-yellow-100 text-yellow-800" },
-  registrado: { label: "Registrado", cls: "bg-blue-100 text-blue-800" },
-  pago_manual: { label: "Pago (manual)", cls: "bg-emerald-100 text-emerald-800" },
-  pago_banco: { label: "Pago (Safra)", cls: "bg-green-700 text-white" },
-  rejeitado: { label: "Rejeitado", cls: "bg-red-100 text-red-800" },
-  vencido: { label: "Vencido", cls: "bg-orange-100 text-orange-800" },
-  baixa_solicitada: { label: "Baixa pendente", cls: "bg-orange-200 text-orange-900" },
-  baixa_remessa_gerada: { label: "Baixa em remessa", cls: "bg-purple-100 text-purple-800" },
+  pendente: { label: "Pendente", cls: "bg-muted/10 text-muted-foreground" },
+  remessa_gerada: { label: "Remessa gerada", cls: "bg-warning/10 text-warning" },
+  registrado: { label: "Registrado", cls: "bg-info/10 text-info" },
+  pago_manual: { label: "Pago (manual)", cls: "bg-success/10 text-success" },
+  pago_banco: { label: "Pago (Safra)", cls: "bg-success text-white" },
+  rejeitado: { label: "Rejeitado", cls: "bg-destructive/10 text-destructive" },
+  vencido: { label: "Vencido", cls: "bg-warning/10 text-warning" },
+  baixa_solicitada: { label: "Baixa pendente", cls: "bg-warning/15 text-warning" },
+  baixa_remessa_gerada: { label: "Baixa em remessa", cls: "bg-info/10 text-info" },
   // Existe no CHECK do banco desde sempre e nunca esteve aqui: caía no fallback
   // cinza sem rótulo. São os títulos devolvidos cuja baixa o Safra já confirmou.
-  baixado_banco: { label: "Baixado (Safra)", cls: "bg-slate-200 text-slate-700" },
+  baixado_banco: { label: "Baixado (Safra)", cls: "bg-muted/15 text-muted-foreground" },
 };
 
 
@@ -130,9 +130,9 @@ function classificarAtencao(b: TitulosBoleto, hojeIso: string): Atencao {
 }
 
 const ATENCAO_CFG: Record<Exclude<Atencao, "nenhuma">, { label: string; cls: string; barra: string }> = {
-  emitir:   { label: "a emitir",   cls: "bg-amber-100 text-amber-900 hover:bg-amber-100",   barra: "bg-amber-500" },
-  reemitir: { label: "a reemitir", cls: "bg-orange-100 text-orange-900 hover:bg-orange-100", barra: "bg-orange-500" },
-  vencido:  { label: "vencido",    cls: "bg-red-100 text-red-800 hover:bg-red-100",          barra: "bg-red-500" },
+  emitir:   { label: "a emitir",   cls: "bg-warning/10 text-warning hover:bg-warning/10",   barra: "bg-warning" },
+  reemitir: { label: "a reemitir", cls: "bg-warning/10 text-warning hover:bg-warning/10", barra: "bg-warning" },
+  vencido:  { label: "vencido",    cls: "bg-destructive/10 text-destructive hover:bg-destructive/10",          barra: "bg-destructive" },
 };
 
 /** Dias entre hoje e a data (negativo = já passou). */
@@ -260,7 +260,7 @@ function BotaoEmailBoleto({ boleto }: { boleto: any }) {
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className="inline-flex items-center text-green-600">
+            <span className="inline-flex items-center text-success">
               <MailCheck className="h-4 w-4" />
             </span>
           </TooltipTrigger>
@@ -1069,7 +1069,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
           const cfg =
             BOLETO_STATUS_CFG[b.boleto_status || ""] || {
               label: b.boleto_status || "—",
-              cls: "bg-gray-100 text-gray-600",
+              cls: "bg-muted/10 text-muted-foreground",
             };
           const vencido = b.boleto_status === "vencido";
           const editavel = b.boleto_status === "pendente";
@@ -1079,11 +1079,11 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
           return (
             <TableRow
               key={b.id}
-              className={pendentePassado ? "bg-red-50/60 border-l-2 border-l-red-400" : ""}
+              className={pendentePassado ? "bg-destructive/10 border-l-2 border-l-red-400" : ""}
             >
-              <TableCell className={vencido || pendentePassado ? "text-red-700 font-medium" : ""}>
+              <TableCell className={vencido || pendentePassado ? "text-destructive font-medium" : ""}>
                 {pendentePassado && (
-                  <Badge className="mb-1 bg-red-100 text-red-800 hover:bg-red-100 text-[10px]">
+                  <Badge className="mb-1 bg-destructive/10 text-destructive hover:bg-destructive/10 text-[10px]">
                     Vencimento no passado
                   </Badge>
                 )}
@@ -1142,7 +1142,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                       <TooltipTrigger asChild>
                         <span className="inline-flex items-center gap-1.5">
                           {formatDateBR(b.data_vencimento_atual)}
-                          <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
+                          <AlertCircle className="h-3.5 w-3.5 text-warning" />
                         </span>
                       </TooltipTrigger>
                       <TooltipContent>Para alterar, solicite a baixa primeiro</TooltipContent>
@@ -1330,7 +1330,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold flex items-center gap-2">
+        <h1 className="text-2xl font-medium flex items-center gap-2">
           <Landmark className="h-6 w-6" />
           Banco Safra
         </h1>
@@ -1368,7 +1368,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                       onClick={() => l.filtro && setFiltroKpi(ativo ? null : l.filtro)}
                       className={`flex min-w-0 flex-1 items-baseline gap-2 text-left text-sm ${
                         l.filtro == null ? "cursor-default" : "hover:underline"
-                      } ${l.tom === "vermelho" ? "text-destructive" : l.tom === "ambar" ? "text-amber-700" : ""}`}
+                      } ${l.tom === "vermelho" ? "text-destructive" : l.tom === "ambar" ? "text-warning" : ""}`}
                     >
                       <span className="truncate">{l.texto}</span>
                       {l.valor != null && (
@@ -1413,7 +1413,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         <button
           type="button"
           onClick={() => setFiltroKpi(filtroKpi === "registrados" ? null : "registrados")}
-          className={`hover:underline ${filtroKpi === "registrados" ? "font-semibold text-foreground" : ""}`}
+          className={`hover:underline ${filtroKpi === "registrados" ? "font-medium text-foreground" : ""}`}
         >
           {boletosKpis.registrados} registrados
         </button>
@@ -1421,7 +1421,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         <button
           type="button"
           onClick={() => setFiltroKpi(filtroKpi === "pagos_mes" ? null : "pagos_mes")}
-          className={`hover:underline ${filtroKpi === "pagos_mes" ? "font-semibold text-foreground" : ""}`}
+          className={`hover:underline ${filtroKpi === "pagos_mes" ? "font-medium text-foreground" : ""}`}
         >
           {boletosKpis.pagosMes} pagos no mês
         </button>
@@ -1535,7 +1535,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                           {g.atencaoLista.map((x) => (
                             <Badge
                               key={x.tipo}
-                              className={`shrink-0 text-[10px] font-semibold ${ATENCAO_CFG[x.tipo].cls}`}
+                              className={`shrink-0 text-[10px] font-medium ${ATENCAO_CFG[x.tipo].cls}`}
                             >
                               {x.qtd} {ATENCAO_CFG[x.tipo].label} · {formatBRL(x.valor)}
                             </Badge>
@@ -1577,7 +1577,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                                 {sp.atencaoLista.map((x) => (
                                   <Badge
                                     key={x.tipo}
-                                    className={`text-[10px] font-semibold ${ATENCAO_CFG[x.tipo].cls}`}
+                                    className={`text-[10px] font-medium ${ATENCAO_CFG[x.tipo].cls}`}
                                   >
                                     {x.qtd} {ATENCAO_CFG[x.tipo].label}
                                   </Badge>
@@ -1641,7 +1641,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
           </DialogHeader>
 
           {pendentesPassado.length > 0 && (
-            <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 flex gap-2">
+            <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning flex gap-2">
               <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
               <div>
                 <strong>{pendentesPassado.length}</strong> título(s) com vencimento no passado ficaram fora da seleção — ajuste as datas para incluí-los em outra remessa.
@@ -1729,7 +1729,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                       const passado = !!b.data_vencimento_atual && b.data_vencimento_atual < hojeIso;
                       const marcado = selecionados.has(b.id);
                       return (
-                        <TableRow key={b.id} className={passado ? "bg-red-50/60" : ""}>
+                        <TableRow key={b.id} className={passado ? "bg-destructive/10" : ""}>
                           <TableCell className="pl-6">
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -1759,11 +1759,11 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                               ) : null}
                             </div>
                           </TableCell>
-                          <TableCell className={`w-[120px] ${passado ? "text-red-700 font-medium" : ""}`}>
+                          <TableCell className={`w-[120px] ${passado ? "text-destructive font-medium" : ""}`}>
                             <div className="flex flex-wrap items-center gap-1">
                               <span className="whitespace-nowrap">{formatDateBR(b.data_vencimento_atual)}</span>
                               {passado && (
-                                <Badge variant="outline" className="border-red-300 text-red-700 text-[10px]">
+                                <Badge variant="outline" className="border-destructive/40 text-destructive text-[10px]">
                                   Vencimento no passado
                                 </Badge>
                               )}

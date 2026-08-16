@@ -89,16 +89,16 @@ const PERIODICIDADE_LABEL: Record<string, string> = {
 };
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
-  ativo: { label: "Ativo", className: "bg-emerald-100 text-emerald-800 border-emerald-300" },
-  pausado: { label: "Pausado", className: "bg-amber-100 text-amber-800 border-amber-300" },
+  ativo: { label: "Ativo", className: "bg-success/10 text-success border-success/40" },
+  pausado: { label: "Pausado", className: "bg-warning/10 text-warning border-warning/40" },
   encerrado: { label: "Encerrado", className: "bg-muted text-muted-foreground" },
   cancelado: { label: "Cancelado", className: "bg-muted text-muted-foreground" },
 };
 
 const ORIGEM_ICON: Record<string, { icon: typeof CreditCard; label: string; cor: string }> = {
-  cartao: { icon: CreditCard, label: "Cartão", cor: "text-violet-600" },
-  boleto: { icon: FileText, label: "Boleto", cor: "text-amber-600" },
-  manual: { icon: FileText, label: "Manual", cor: "text-slate-600" },
+  cartao: { icon: CreditCard, label: "Cartão", cor: "text-info" },
+  boleto: { icon: FileText, label: "Boleto", cor: "text-warning" },
+  manual: { icon: FileText, label: "Manual", cor: "text-muted-foreground" },
 };
 
 // =====================================================
@@ -232,7 +232,7 @@ export default function Compromissos() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
+          <h1 className="text-2xl font-medium flex items-center gap-2">
             <Repeat className="h-6 w-6 text-primary" />
             Contratos Recorrentes
           </h1>
@@ -510,7 +510,7 @@ export default function Compromissos() {
                               </div>
                               <div className="w-full bg-muted h-1.5 rounded-full overflow-hidden">
                                 <div
-                                  className="bg-emerald-500 h-full"
+                                  className="bg-success h-full"
                                   style={{ width: `${progresso}%` }}
                                 />
                               </div>

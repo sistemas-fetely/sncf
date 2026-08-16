@@ -389,8 +389,8 @@ export default function ConfiguracaoIntegracao() {
     if (!config?.ativo) return <Badge variant="outline">Desconectado</Badge>;
     if (config.ultima_sync_status === "erro") return <Badge variant="destructive">Erro</Badge>;
     if (config.ultima_sync_status === "parcial")
-      return <Badge className="bg-amber-500 hover:bg-amber-500">Parcial</Badge>;
-    return <Badge className="bg-emerald-600 hover:bg-emerald-600">Conectado</Badge>;
+      return <Badge className="bg-warning hover:bg-warning">Parcial</Badge>;
+    return <Badge className="bg-success hover:bg-success">Conectado</Badge>;
   };
 
   if (isLoading) {
@@ -404,7 +404,7 @@ export default function ConfiguracaoIntegracao() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+        <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
           <Settings2 className="h-6 w-6 text-admin" />
           Integrações
         </h1>
@@ -606,12 +606,12 @@ export default function ConfiguracaoIntegracao() {
                           {emExec ? (
                             <Badge variant="outline"><Loader2 className="h-3 w-3 mr-1 animate-spin" />Sincronizando</Badge>
                           ) : cur.ultima_data_corte ? (
-                            <Badge className="bg-emerald-600 hover:bg-emerald-600">
+                            <Badge className="bg-success hover:bg-success">
                               <CheckCircle2 className="h-3 w-3 mr-1" />
                               {formatDistanceToNow(new Date(cur.ultima_data_corte), { addSuffix: true, locale: ptBR })}
                             </Badge>
                           ) : cur.ultima_pagina > 0 ? (
-                            <Badge className="bg-amber-500 hover:bg-amber-500">
+                            <Badge className="bg-warning hover:bg-warning">
                               <AlertCircle className="h-3 w-3 mr-1" />Pausada
                             </Badge>
                           ) : (
@@ -656,12 +656,12 @@ export default function ConfiguracaoIntegracao() {
               </Table>
 
               {syncResult && (
-                <div className="p-3 rounded-lg border bg-emerald-50 dark:bg-emerald-950/30 text-sm">
-                  <div className="font-medium text-emerald-900 dark:text-emerald-200">
+                <div className="p-3 rounded-lg border bg-success/10 text-sm">
+                  <div className="font-medium text-success">
                     ✅ {syncResult.criados} novos | {syncResult.atualizados} atualizados | {syncResult.erros} erros · {syncResult.duracao_ms}ms
                   </div>
                   {syncResult.detalhes && (
-                    <div className="text-xs text-emerald-700 dark:text-emerald-400 mt-1 font-mono">
+                    <div className="text-xs text-success mt-1 font-mono">
                       {syncResult.detalhes}
                     </div>
                   )}
@@ -740,7 +740,7 @@ export default function ConfiguracaoIntegracao() {
                         <TableCell className="text-xs">{l.tipo}</TableCell>
                         <TableCell>
                           {l.status === "sucesso" && (
-                            <Badge className="bg-emerald-600 hover:bg-emerald-600">
+                            <Badge className="bg-success hover:bg-success">
                               <CheckCircle2 className="h-3 w-3 mr-1" /> Sucesso
                             </Badge>
                           )}
@@ -750,7 +750,7 @@ export default function ConfiguracaoIntegracao() {
                             </Badge>
                           )}
                           {l.status === "parcial" && (
-                            <Badge className="bg-amber-500 hover:bg-amber-500">
+                            <Badge className="bg-warning hover:bg-warning">
                               <AlertCircle className="h-3 w-3 mr-1" /> Parcial
                             </Badge>
                           )}
@@ -850,12 +850,12 @@ export default function ConfiguracaoIntegracao() {
                           <p className="text-xs text-muted-foreground truncate">{fin.email}</p>
                           <div className="flex items-center gap-1 mt-1">
                             {recebePagamento && (
-                              <Badge className="bg-blue-600 hover:bg-blue-600 text-xs">
+                              <Badge className="bg-info hover:bg-info text-xs">
                                 Pagamento
                               </Badge>
                             )}
                             {recebeFiscal && (
-                              <Badge className="bg-emerald-600 hover:bg-emerald-600 text-xs">
+                              <Badge className="bg-success hover:bg-success text-xs">
                                 Fiscal
                               </Badge>
                             )}

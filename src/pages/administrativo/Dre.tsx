@@ -59,8 +59,8 @@ function Valor({ v }: { v: number | null | undefined }) {
 }
 
 const CORES_SEV: Record<string, string> = {
-  verde: "border-emerald-300 text-emerald-700 bg-emerald-50",
-  laranja: "border-amber-300 text-amber-700 bg-amber-50",
+  verde: "border-success/40 text-success bg-success/10",
+  laranja: "border-warning/40 text-warning bg-warning/10",
   vermelho: "border-destructive/40 text-destructive bg-destructive/10",
 };
 
@@ -189,7 +189,7 @@ export default function Dre() {
       <TableRow
         key={l.codigo}
         className={cn(
-          subtotal && "bg-muted/50 font-semibold",
+          subtotal && "bg-muted/50 font-medium",
           clicavel && "cursor-pointer hover:bg-muted/40",
         )}
         onClick={
@@ -277,7 +277,7 @@ export default function Dre() {
     <div className="p-6 space-y-4 max-w-[1400px]">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">DRE — Demonstração do Resultado</h1>
+          <h1 className="text-2xl font-medium">DRE — Demonstração do Resultado</h1>
           <p className="text-xs text-muted-foreground mt-1">
             dados de {fmtDataHora(refreshQ.data?.refreshed_em)}
           </p>
@@ -296,7 +296,7 @@ export default function Dre() {
           {mesEmCurso && (
             <Badge
               variant="outline"
-              className="font-normal border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+              className="font-normal border-warning/40 bg-warning text-warning"
             >
               mês em curso — parcial
             </Badge>
@@ -415,7 +415,7 @@ export default function Dre() {
               </span>
             </div>
             {drillDivergente && (
-              <div className="flex items-center gap-1.5 text-xs text-amber-700">
+              <div className="flex items-center gap-1.5 text-xs text-warning">
                 <AlertTriangle className="h-3.5 w-3.5" />
                 soma dos lançamentos difere do valor da linha
               </div>

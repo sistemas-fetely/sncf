@@ -63,7 +63,7 @@ export default function PedidosVenda() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+        <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
           <ShoppingCart className="h-6 w-6 text-admin" />
           Pedidos de Venda
         </h1>
@@ -78,7 +78,7 @@ export default function PedidosVenda() {
             <CardTitle className="text-xs font-medium text-muted-foreground">Total de pedidos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totais.qtd}</div>
+            <div className="text-2xl font-medium">{totais.qtd}</div>
           </CardContent>
         </Card>
         <Card>
@@ -86,7 +86,7 @@ export default function PedidosVenda() {
             <CardTitle className="text-xs font-medium text-muted-foreground">Valor total</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{fmtBRL(totais.valor)}</div>
+            <div className="text-2xl font-medium">{fmtBRL(totais.valor)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -94,7 +94,7 @@ export default function PedidosVenda() {
             <CardTitle className="text-xs font-medium text-muted-foreground">Ticket médio</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{fmtBRL(totais.ticket)}</div>
+            <div className="text-2xl font-medium">{fmtBRL(totais.ticket)}</div>
           </CardContent>
         </Card>
       </div>

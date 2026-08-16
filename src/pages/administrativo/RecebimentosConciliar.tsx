@@ -105,19 +105,19 @@ function detectarMeio(descricao: string | null): Meio {
 
 
 const MEIO_BADGE: Record<Meio, { label: string; className: string }> = {
-  pix: { label: "PIX", className: "bg-blue-100 text-blue-800 hover:bg-blue-100" },
-  cartao: { label: "Cartão", className: "bg-purple-100 text-purple-800 hover:bg-purple-100" },
-  cobranca: { label: "Cobrança", className: "bg-gray-100 text-gray-700 hover:bg-gray-100" },
+  pix: { label: "PIX", className: "bg-info/10 text-info hover:bg-info/10" },
+  cartao: { label: "Cartão", className: "bg-info/10 text-info hover:bg-info/10" },
+  cobranca: { label: "Cobrança", className: "bg-muted/10 text-muted-foreground hover:bg-muted/10" },
   outro: { label: "Outro", className: "bg-muted text-muted-foreground hover:bg-muted" },
 };
 
 const NIVEL_CONFIG: Record<string, { label: string; cor: string }> = {
-  titulo_na_descricao: { label: "Nº título no extrato", cor: "bg-violet-100 text-violet-800" },
-  referencia_pedido: { label: "Ref. pedido", cor: "bg-blue-100 text-blue-800" },
-  cnpj_e_valor: { label: "CNPJ + valor", cor: "bg-sky-100 text-sky-800" },
-  cnpj: { label: "CNPJ", cor: "bg-cyan-100 text-cyan-800" },
-  valor_exato: { label: "Valor exato", cor: "bg-green-100 text-green-800" },
-  proximidade: { label: "Proximidade", cor: "bg-amber-100 text-amber-800" },
+  titulo_na_descricao: { label: "Nº título no extrato", cor: "bg-info/10 text-info" },
+  referencia_pedido: { label: "Ref. pedido", cor: "bg-info/10 text-info" },
+  cnpj_e_valor: { label: "CNPJ + valor", cor: "bg-info/10 text-info" },
+  cnpj: { label: "CNPJ", cor: "bg-info/10 text-info" },
+  valor_exato: { label: "Valor exato", cor: "bg-success/10 text-success" },
+  proximidade: { label: "Proximidade", cor: "bg-warning/10 text-warning" },
 };
 
 function NivelBadge({ nivel, score }: { nivel: string; score: number }) {
@@ -157,10 +157,10 @@ const GRUPO_LABEL: Record<StatusGrupo, string> = {
 };
 
 const GRUPO_BADGE: Record<StatusGrupo, string> = {
-  a_receber: "bg-blue-100 text-blue-800 hover:bg-blue-100",
-  vencido: "bg-red-100 text-red-800 hover:bg-red-100",
-  pago: "bg-green-100 text-green-800 hover:bg-green-100",
-  cancelado: "bg-gray-100 text-gray-700 hover:bg-gray-100",
+  a_receber: "bg-info/10 text-info hover:bg-info/10",
+  vencido: "bg-destructive/10 text-destructive hover:bg-destructive/10",
+  pago: "bg-success/10 text-success hover:bg-success/10",
+  cancelado: "bg-muted/10 text-muted-foreground hover:bg-muted/10",
 };
 
 const QUERY_KEY = ["recebimentos-conciliar-creditos"];
@@ -232,7 +232,7 @@ export default function RecebimentosConciliar() {
     <div className="p-6 space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
             <ArrowDownToLine className="h-6 w-6 text-admin" />
             Conciliação de recebimento
           </h1>
@@ -273,7 +273,7 @@ export default function RecebimentosConciliar() {
                   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-admin-muted">
                     <Inbox className="h-8 w-8 text-admin" />
                   </div>
-                  <p className="text-lg font-semibold">Nenhum crédito de extrato sem dono.</p>
+                  <p className="text-lg font-medium">Nenhum crédito de extrato sem dono.</p>
                 </div>
               ) : (
                 <div className="border rounded-md overflow-x-auto">
@@ -372,7 +372,7 @@ function RowCredito({
           {diasSemConciliar != null ? (
             <span
               className={
-                diasSemConciliar >= 15 ? "text-red-700 font-medium" : "text-muted-foreground"
+                diasSemConciliar >= 15 ? "text-destructive font-medium" : "text-muted-foreground"
               }
             >
               {diasSemConciliar} dia(s)
@@ -394,7 +394,7 @@ function RowCredito({
 
 
 
-        <TableCell className="text-right font-mono whitespace-nowrap text-green-700">
+        <TableCell className="text-right font-mono whitespace-nowrap text-success">
           {formatBRL(Number(credito.valor || 0))}
         </TableCell>
         <TableCell className="text-right">
@@ -471,7 +471,7 @@ function LinhaTitulo({
       <TableCell className="text-right font-mono whitespace-nowrap">
         <div className="flex items-center justify-end gap-2">
           {exato && (
-            <Badge className="bg-green-100 text-green-800 hover:bg-green-100 gap-1">
+            <Badge className="bg-success/10 text-success hover:bg-success/10 gap-1">
               <CheckCircle2 className="h-3 w-3" />
               valor exato
             </Badge>
@@ -686,7 +686,7 @@ function PainelUnico({
     <div className="space-y-4">
       {altos.length > 0 && (
         <div>
-          <div className="text-xs font-semibold text-muted-foreground mb-2">
+          <div className="text-xs font-medium text-muted-foreground mb-2">
             Candidatos ({altos.length})
           </div>
           <div className="border rounded-md bg-background">
@@ -714,7 +714,7 @@ function PainelUnico({
 
       {pagos.length > 0 && (
         <div>
-          <div className="text-xs font-semibold text-muted-foreground mb-2">
+          <div className="text-xs font-medium text-muted-foreground mb-2">
             Baixados manualmente — aguardando batimento ({pagos.length})
           </div>
           <div className="border rounded-md bg-background">
@@ -766,7 +766,7 @@ function PainelUnico({
           <button
             type="button"
             onClick={() => setMostrarDivergentes((v) => !v)}
-            className="flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground mb-2"
+            className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground mb-2"
           >
             {mostrarDivergentes ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
             Outros candidatos (score baixo) — {baixos.length}
@@ -957,10 +957,10 @@ function BlocoSobra({
   }
 
   return (
-    <Card className="border-amber-500/50">
+    <Card className="border-warning/40">
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertTriangle className="h-4 w-4 text-warning" />
           Crédito maior que o título
         </CardTitle>
       </CardHeader>
@@ -970,7 +970,7 @@ function BlocoSobra({
         </p>
 
         <div className="space-y-2">
-          <Label className="text-xs font-semibold text-muted-foreground">Título a quitar</Label>
+          <Label className="text-xs font-medium text-muted-foreground">Título a quitar</Label>
           <RadioGroup value={tituloId ?? ""} onValueChange={(v) => setTituloId(v)}>
             {candidatos.map((c) => {
               const s = valorCredito - Number(c.valor_atual || 0);
@@ -985,7 +985,7 @@ function BlocoSobra({
                   <span className="ml-auto text-sm tabular-nums">
                     {formatBRL(Number(c.valor_atual || 0))}
                   </span>
-                  <span className="text-sm tabular-nums text-amber-700">sobra {formatBRL(s)}</span>
+                  <span className="text-sm tabular-nums text-warning">sobra {formatBRL(s)}</span>
                 </label>
               );
             })}
@@ -995,22 +995,22 @@ function BlocoSobra({
         <div className="grid grid-cols-3 gap-3">
           <div>
             <div className="text-xs text-muted-foreground">Crédito no banco</div>
-            <div className="text-lg font-semibold tabular-nums">{formatBRL(valorCredito)}</div>
+            <div className="text-lg font-medium tabular-nums">{formatBRL(valorCredito)}</div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Título a quitar</div>
-            <div className="text-lg font-semibold tabular-nums">{formatBRL(valorTitulo)}</div>
+            <div className="text-lg font-medium tabular-nums">{formatBRL(valorTitulo)}</div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Sobra a destinar</div>
-            <div className="text-lg font-semibold tabular-nums text-amber-700">
+            <div className="text-lg font-medium tabular-nums text-warning">
               {formatBRL(sobra)}
             </div>
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label className="text-xs font-semibold text-muted-foreground">Destino da sobra</Label>
+          <Label className="text-xs font-medium text-muted-foreground">Destino da sobra</Label>
           <RadioGroup
             value={destinoEfetivo}
             onValueChange={(v) => setDestino(v as "haver_novo" | "haver_existente")}
@@ -1065,7 +1065,7 @@ function BlocoSobra({
         </div>
 
         <div className="space-y-1">
-          <Label className="text-xs font-semibold text-muted-foreground">Nota (obrigatória)</Label>
+          <Label className="text-xs font-medium text-muted-foreground">Nota (obrigatória)</Label>
           <Textarea
             value={nota}
             onChange={(e) => setNota(e.target.value)}
@@ -1151,7 +1151,7 @@ function PainelBoleto({
 
   return (
     <div className="space-y-2">
-      <div className="text-xs font-semibold text-muted-foreground">
+      <div className="text-xs font-medium text-muted-foreground">
         Crédito de cobrança — confirme o título liquidado pelo banco (CNAB já baixou, aqui só carimba conciliado)
       </div>
       <div className="border rounded-md bg-background">
@@ -1315,10 +1315,10 @@ function PainelCesta({
 
       <div className="flex items-center justify-between gap-4 bg-background border rounded-md px-4 py-3 sticky bottom-0">
         <div className="text-sm">
-          Selecionados: <span className="font-semibold">{qtd}</span>
+          Selecionados: <span className="font-medium">{qtd}</span>
           {" · "}
           Soma:{" "}
-          <span className={`font-mono font-semibold ${bate ? "text-green-700" : "text-red-600"}`}>
+          <span className={`font-mono font-medium ${bate ? "text-success" : "text-destructive"}`}>
             {formatBRL(soma)}
           </span>
           {" / Crédito: "}
@@ -1464,7 +1464,7 @@ function DivergenciasCobrancaSection() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <CardTitle className="text-base flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertTriangle className="h-4 w-4 text-warning" />
           Divergências de cobrança (boletos)
         </CardTitle>
         <div className="flex items-center gap-2">
@@ -1522,7 +1522,7 @@ function DivergenciasCobrancaSection() {
                       <TableCell className="whitespace-nowrap">{formatDateBR(d.dia)}</TableCell>
                       <TableCell className="text-right font-mono">{formatBRL(Number(d.valor_extrato || 0))}</TableCell>
                       <TableCell className="text-right font-mono">{formatBRL(Number(d.soma_sinteticas || 0))}</TableCell>
-                      <TableCell className={`text-right font-mono font-semibold ${diff !== 0 ? "text-red-600" : ""}`}>
+                      <TableCell className={`text-right font-mono font-medium ${diff !== 0 ? "text-destructive" : ""}`}>
                         {formatBRL(diff)}
                       </TableCell>
                       <TableCell className="text-right">{qtd}</TableCell>

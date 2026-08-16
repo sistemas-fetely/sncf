@@ -299,7 +299,7 @@ export default function GED() {
       <aside className="w-64 border-r bg-muted/30 flex flex-col">
         <div className="p-4 border-b">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="font-semibold flex items-center gap-2">
+            <h2 className="font-medium flex items-center gap-2">
               <FolderArchive className="h-5 w-5" />
               GED
             </h2>
@@ -1096,12 +1096,12 @@ function ItemUploadCard({
       );
     if (item.status === "lendo_ia")
       return (
-        <Badge variant="outline" className="gap-1 bg-blue-50 text-blue-700">
+        <Badge variant="outline" className="gap-1 bg-info/10 text-info">
           <Loader2 className="h-3 w-3 animate-spin" /> Lendo com IA
         </Badge>
       );
     if (item.status === "pronto")
-      return <Badge className="bg-green-100 text-green-700">Pronto</Badge>;
+      return <Badge className="bg-success/10 text-success">Pronto</Badge>;
     if (item.status === "salvando")
       return (
         <Badge variant="outline" className="gap-1">
@@ -1109,7 +1109,7 @@ function ItemUploadCard({
         </Badge>
       );
     if (item.status === "salvo")
-      return <Badge className="bg-emerald-100 text-emerald-800">✓ Salvo</Badge>;
+      return <Badge className="bg-success/10 text-success">✓ Salvo</Badge>;
     if (item.status === "erro")
       return <Badge variant="destructive">Erro</Badge>;
     return null;
@@ -1150,7 +1150,7 @@ function ItemUploadCard({
       {expandido && podeEditar && (
         <div className="border-t p-3 space-y-3 bg-muted/20">
           {item.dadosIA?.resumo && (
-            <div className="text-xs bg-blue-50 border border-blue-200 rounded p-2 text-blue-700">
+            <div className="text-xs bg-info/10 border border-info/40 rounded p-2 text-info">
               <strong>IA:</strong> {item.dadosIA.resumo}
             </div>
           )}
@@ -1345,18 +1345,18 @@ function DocumentoDetalheSheet({
             </div>
 
             {documento.resumo_ia && (
-              <div className="rounded-lg bg-blue-50 border border-blue-200 p-3">
-                <div className="flex items-center gap-2 font-medium text-blue-800 text-sm mb-1">
+              <div className="rounded-lg bg-info/10 border border-info/40 p-3">
+                <div className="flex items-center gap-2 font-medium text-info text-sm mb-1">
                   <Info className="h-4 w-4" />
                   Resumo IA
                 </div>
-                <p className="text-sm text-blue-700">{documento.resumo_ia}</p>
+                <p className="text-sm text-info">{documento.resumo_ia}</p>
               </div>
             )}
 
             {documento.classificacao_ia?.pontos_principais?.length > 0 && (
-              <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3">
-                <div className="flex items-center gap-2 font-medium text-yellow-800 text-sm mb-2">
+              <div className="rounded-lg bg-warning/10 border border-warning/40 p-3">
+                <div className="flex items-center gap-2 font-medium text-warning text-sm mb-2">
                   <AlertTriangle className="h-4 w-4" />
                   Pontos principais
                 </div>
@@ -1365,7 +1365,7 @@ function DocumentoDetalheSheet({
                     (p: string, i: number) => (
                       <li
                         key={i}
-                        className="text-xs text-yellow-700 flex gap-2"
+                        className="text-xs text-warning flex gap-2"
                       >
                         <span>•</span>
                         <span>{p}</span>

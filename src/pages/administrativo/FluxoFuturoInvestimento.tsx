@@ -49,8 +49,8 @@ function KpiCard({
         </div>
         <div
           className={cn(
-            "text-xl font-bold tabular-nums",
-            tone === "warn" ? "text-amber-700" : "text-foreground",
+            "text-xl font-medium tabular-nums",
+            tone === "warn" ? "text-warning" : "text-foreground",
           )}
         >
           {formatBRL(valor)}
@@ -258,7 +258,7 @@ export default function FluxoFuturoInvestimento() {
   return (
     <div className="space-y-6 p-6">
       <div>
-        <h1 className="text-2xl font-bold">Fluxo Futuro de Investimento</h1>
+        <h1 className="text-2xl font-medium">Fluxo Futuro de Investimento</h1>
         <p className="text-sm text-muted-foreground">
           Projeção de saídas de caixa por frente de investimento. Combina CPRs lançados ainda
           não pagos + linhas planejadas com data prevista.
@@ -321,11 +321,11 @@ export default function FluxoFuturoInvestimento() {
           {alertasInfo.qtdVencidas > 0 && (
             <button
               onClick={() => abrirDrill({ tipo: "vencido" })}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-red-300 bg-red-50 hover:bg-red-100 transition text-left"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-destructive/40 bg-destructive/10 hover:bg-destructive/10 transition text-left"
             >
-              <AlertCircle className="h-5 w-5 text-red-600 shrink-0" />
+              <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
               <div className="flex-1 text-sm">
-                <strong className="text-red-700">{alertasInfo.qtdVencidas}</strong>{" "}
+                <strong className="text-destructive">{alertasInfo.qtdVencidas}</strong>{" "}
                 {alertasInfo.qtdVencidas === 1 ? "linha vencida" : "linhas vencidas"} (
                 {formatBRL(vencidoTotal)}) sem CPR pago — ação necessária
               </div>
@@ -334,11 +334,11 @@ export default function FluxoFuturoInvestimento() {
           {alertasInfo.qtdSemData > 0 && (
             <button
               onClick={() => abrirDrill({ tipo: "sem_data" })}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 transition text-left"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-warning/40 bg-warning/10 hover:bg-warning/10 transition text-left"
             >
-              <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+              <AlertTriangle className="h-5 w-5 text-warning shrink-0" />
               <div className="flex-1 text-sm">
-                <strong className="text-amber-700">{alertasInfo.qtdSemData}</strong>{" "}
+                <strong className="text-warning">{alertasInfo.qtdSemData}</strong>{" "}
                 {alertasInfo.qtdSemData === 1 ? "linha sem data prevista" : "linhas sem data prevista"} (
                 {formatBRL(semDataTotal)}) — totaliza mas não aparece no fluxo temporal
               </div>
@@ -370,7 +370,7 @@ export default function FluxoFuturoInvestimento() {
                       Frente
                     </th>
                     {hasVencido && (
-                      <th className="text-right px-3 py-2 font-medium text-red-700">
+                      <th className="text-right px-3 py-2 font-medium text-destructive">
                         Vencidos ⚠️
                       </th>
                     )}
@@ -379,7 +379,7 @@ export default function FluxoFuturoInvestimento() {
                         {lbl}
                       </th>
                     ))}
-                    <th className="text-right px-3 py-2 font-medium text-amber-700">
+                    <th className="text-right px-3 py-2 font-medium text-warning">
                       Sem data ⚠️
                     </th>
                     <th className="text-right px-3 py-2 font-medium bg-muted/60">TOTAL</th>
@@ -396,7 +396,7 @@ export default function FluxoFuturoInvestimento() {
                           className={cn(
                             "text-right px-3 py-2 tabular-nums",
                             (r.buckets.vencido || 0) > 0 &&
-                              "text-red-700 font-medium cursor-pointer hover:underline",
+                              "text-destructive font-medium cursor-pointer hover:underline",
                           )}
                           onClick={() =>
                             (r.buckets.vencido || 0) > 0 &&
@@ -441,7 +441,7 @@ export default function FluxoFuturoInvestimento() {
                         className={cn(
                           "text-right px-3 py-2 tabular-nums",
                           (r.buckets.sem_data || 0) > 0 &&
-                            "text-amber-700 cursor-pointer hover:underline",
+                            "text-warning cursor-pointer hover:underline",
                         )}
                         onClick={() =>
                           (r.buckets.sem_data || 0) > 0 &&
@@ -456,33 +456,33 @@ export default function FluxoFuturoInvestimento() {
                       >
                         {r.buckets.sem_data ? formatBRL(r.buckets.sem_data) : "—"}
                       </td>
-                      <td className="text-right px-3 py-2 tabular-nums font-semibold bg-muted/40">
+                      <td className="text-right px-3 py-2 tabular-nums font-medium bg-muted/40">
                         {formatBRL(r.total)}
                       </td>
                     </tr>
                   ))}
                   {/* Total */}
                   <tr className="border-t-2" style={{ backgroundColor: "#1A4A3A" }}>
-                    <td className="px-3 py-2.5 font-bold text-white sticky left-0 z-10" style={{ backgroundColor: "#1A4A3A" }}>
+                    <td className="px-3 py-2.5 font-medium text-white sticky left-0 z-10" style={{ backgroundColor: "#1A4A3A" }}>
                       TOTAL
                     </td>
                     {hasVencido && (
-                      <td className="text-right px-3 py-2.5 tabular-nums font-bold text-white">
+                      <td className="text-right px-3 py-2.5 tabular-nums font-medium text-white">
                         {colTotais.vencido ? formatBRL(colTotais.vencido) : "—"}
                       </td>
                     )}
                     {mesesKeys.map((k) => (
                       <td
                         key={k}
-                        className="text-right px-3 py-2.5 tabular-nums font-bold text-white"
+                        className="text-right px-3 py-2.5 tabular-nums font-medium text-white"
                       >
                         {colTotais[k] ? formatBRL(colTotais[k]) : "—"}
                       </td>
                     ))}
-                    <td className="text-right px-3 py-2.5 tabular-nums font-bold text-white">
+                    <td className="text-right px-3 py-2.5 tabular-nums font-medium text-white">
                       {colTotais.sem_data ? formatBRL(colTotais.sem_data) : "—"}
                     </td>
-                    <td className="text-right px-3 py-2.5 tabular-nums font-bold text-white">
+                    <td className="text-right px-3 py-2.5 tabular-nums font-medium text-white">
                       {formatBRL(colTotais.total)}
                     </td>
                   </tr>
