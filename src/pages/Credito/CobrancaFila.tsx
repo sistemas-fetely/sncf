@@ -947,7 +947,7 @@ function RemessasSafraTab() {
               return (
                 <Fragment key={r.id}>
                   <TableRow
-                    className={esquecida ? "bg-amber-50/60 hover:bg-amber-50" : undefined}
+                    className={esquecida ? "bg-warning/5 hover:bg-warning/10" : undefined}
                     title={
                       esquecida
                         ? "Gerada e nunca marcada como enviada — o arquivo subiu no SafraNet?"
