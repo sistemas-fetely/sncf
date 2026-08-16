@@ -61866,6 +61866,8 @@ export type Database = {
       tarefas_meu_time: {
         Args: never
         Returns: {
+          gestor_user_id: string
+          nivel: number
           user_id: string
         }[]
       }
