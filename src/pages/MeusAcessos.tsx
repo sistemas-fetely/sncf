@@ -6,6 +6,7 @@ import { ShieldCheck, UserCheck, Users } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+import { PageShell } from "@/components/layout/PageShell";
 interface AcessoSalario {
   id: string;
   ator_user_id: string | null;
@@ -45,7 +46,7 @@ export default function MeusAcessos() {
   });
 
   return (
-    <div className="container mx-auto py-8 max-w-4xl space-y-6">
+    <PageShell>
       <div>
         <h1 className="text-2xl font-medium flex items-center gap-2">
           <ShieldCheck className="h-6 w-6 text-primary" />
@@ -106,6 +107,6 @@ export default function MeusAcessos() {
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

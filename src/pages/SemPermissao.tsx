@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
 import { AcessoBloqueado } from "@/components/AcessoBloqueado";
 
+import { PageShell } from "@/components/layout/PageShell";
 const SLUG_PARA_ROTA: Record<string, string> = {
   "tela.credito":       "/credito",
   "tela.pedidos":       "/pedidos",
@@ -34,11 +35,11 @@ export default function SemPermissao() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <PageShell className="flex min-h-screen items-center justify-center bg-background">
       <AcessoBloqueado
         tipo="sem-permissao"
         onVoltar={handleVoltar}
       />
-    </div>
+    </PageShell>
   );
 }

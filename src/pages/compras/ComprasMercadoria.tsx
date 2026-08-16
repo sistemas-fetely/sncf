@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CadastroPedidoCompra from "@/pages/compras/CadastroPedidoCompra";
 import DeParaFornecedor from "@/pages/compras/DeParaFornecedor";
 
+import { PageShell } from "@/components/layout/PageShell";
 interface AbaMercadoria {
   value: string;
   label: string;
@@ -33,7 +34,7 @@ export default function ComprasMercadoria() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <PageShell>
       <div className="flex items-center gap-3">
         <div
           className="p-2 rounded-lg flex items-center justify-center"
@@ -63,6 +64,6 @@ export default function ComprasMercadoria() {
           </TabsContent>
         ))}
       </Tabs>
-    </div>
+    </PageShell>
   );
 }

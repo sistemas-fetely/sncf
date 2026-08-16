@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ArrowLeft, Sparkles, Pause, Play, RefreshCw } from "lucide-react";
 
+import { PageShell } from "@/components/layout/PageShell";
 const DELAY_MS = 3500;
 
 export default function CargosEnriquecimento() {
@@ -172,7 +173,7 @@ export default function CargosEnriquecimento() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <PageShell>
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate("/cargos")}>
@@ -307,6 +308,6 @@ export default function CargosEnriquecimento() {
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

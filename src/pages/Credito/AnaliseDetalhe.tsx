@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, XCircle, AlertCircle, ArrowLeft } from "lucide-react";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 
+import { PageShell } from "@/components/layout/PageShell";
 export default function AnaliseDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -39,7 +40,7 @@ export default function AnaliseDetalhe() {
     };
 
     return (
-      <div className="max-w-3xl mx-auto px-4 md:px-8 py-8 animate-casa-fade-in">
+      <PageShell className="md:px-8 animate-casa-fade-in">
         <CasaPageHeader
           breadcrumb={[
             { label: "Casa", to: "/" },
@@ -110,7 +111,7 @@ export default function AnaliseDetalhe() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </PageShell>
     );
   }
 

@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { humanizeError } from "@/lib/errorMessages";
 import { SmartBackButton } from "@/components/SmartBackButton";
 
+import { PageShell } from "@/components/layout/PageShell";
 interface CustoLinha {
   vinculo_id: string;
   pessoa_id: string;
@@ -144,7 +145,7 @@ export default function CustoPessoas() {
   }, [linhas]);
 
   return (
-    <div className="p-6 space-y-6">
+    <PageShell>
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-medium flex items-center gap-2">
@@ -292,6 +293,6 @@ export default function CustoPessoas() {
           </Card>
         </>
       )}
-    </div>
+    </PageShell>
   );
 }

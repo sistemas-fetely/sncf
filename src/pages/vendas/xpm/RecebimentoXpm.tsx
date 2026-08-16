@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Download, Upload, FileSpreadsheet, Loader2, CheckCircle2, Scale } from "lucide-react";
 import { SincronizacaoEstoqueShopify } from "@/components/acervo/SincronizacaoEstoqueShopify";
 
+import { PageShell } from "@/components/layout/PageShell";
 type IngestResult = {
   termo: string;
   contagens?: number;
@@ -256,7 +257,7 @@ export default function RecebimentoXpm() {
 
 
   return (
-    <div className="max-w-[1100px] mx-auto px-4 md:px-8 py-8 space-y-6">
+    <PageShell className="md:px-8">
       <header className="space-y-1">
         <h1 className="text-2xl font-medium tracking-tight">Recebimento XPM</h1>
         <p className="text-sm text-muted-foreground">
@@ -486,6 +487,6 @@ export default function RecebimentoXpm() {
 
       <SincronizacaoEstoqueShopify />
 
-    </div>
+    </PageShell>
   );
 }

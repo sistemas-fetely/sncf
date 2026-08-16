@@ -13,6 +13,7 @@ import { SelectDepartamentoHierarquico } from "@/components/shared/SelectDeparta
 import { useTemplates } from "@/hooks/useTemplates";
 import { toast } from "sonner";
 
+import { PageShell } from "@/components/layout/PageShell";
 const NIVEIS = [
   { value: "jr", label: "Júnior" },
   { value: "pl", label: "Pleno" },
@@ -273,7 +274,7 @@ export default function CargoForm() {
   });
 
   return (
-    <div className="p-6 space-y-6 max-w-2xl">
+    <PageShell>
       <div className="flex items-center gap-3">
         <SmartBackButton fallback="/admin/cargos" fallbackLabel="Cargos" />
         <h1 className="text-2xl font-medium">{isNovo ? "Novo Cargo" : "Editar Cargo"}</h1>
@@ -478,6 +479,6 @@ export default function CargoForm() {
           {salvar.isPending ? "Salvando..." : isNovo ? "Criar cargo" : "Salvar alterações"}
         </Button>
       </div>
-    </div>
+    </PageShell>
   );
 }

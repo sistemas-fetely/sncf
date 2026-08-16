@@ -31,6 +31,7 @@ import { humanizeError } from "@/lib/errorMessages";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+import { PageShell } from "@/components/layout/PageShell";
 const STATUS_COR: Record<string, string> = {
   vigente: "bg-success text-success border-success/40",
   em_revisao: "bg-warning text-warning border-warning/40",
@@ -115,7 +116,7 @@ export default function Processos() {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-5">
+    <PageShell>
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
@@ -448,6 +449,6 @@ function FiltroSelect({
           ))}
         </SelectContent>
       </Select>
-    </div>
+    </PageShell>
   );
 }

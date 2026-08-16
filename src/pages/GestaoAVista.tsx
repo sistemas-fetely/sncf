@@ -2,9 +2,10 @@ import { Tv, Sparkles } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
+import { PageShell } from "@/components/layout/PageShell";
 export default function GestaoAVista() {
   return (
-    <div className="space-y-8 max-w-4xl">
+    <PageShell>
       <div className="space-y-3">
         <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10">
           <Tv className="h-8 w-8 text-primary" />
@@ -53,6 +54,6 @@ export default function GestaoAVista() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

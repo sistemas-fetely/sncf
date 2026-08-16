@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/table";
 import { Upload, Loader2, AlertTriangle, CheckCircle2, PackageX, RefreshCw } from "lucide-react";
 
+import { PageShell } from "@/components/layout/PageShell";
 type ConciliacaoApi = {
   sku: string;
   nome_comercial: string | null;
@@ -298,7 +299,7 @@ export default function EstoqueXpm() {
   }
 
   return (
-    <div className="max-w-[1300px] mx-auto px-4 md:px-8 py-8 space-y-6">
+    <PageShell className="md:px-8">
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
         <div className="space-y-1">
           <h1 className="text-2xl font-medium tracking-tight">Estoque XPM</h1>
@@ -672,6 +673,6 @@ export default function EstoqueXpm() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

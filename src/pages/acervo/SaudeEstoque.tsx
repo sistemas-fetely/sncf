@@ -16,6 +16,7 @@ import { SortableTableHead, type SortState, ordenarPor } from "@/components/shar
 import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RefreshCw, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+import { PageShell } from "@/components/layout/PageShell";
 interface OnboardingProgresso {
   skus_ativos: number;
   com_razao: number;
@@ -274,7 +275,7 @@ export default function SaudeEstoque() {
   const seguro = !!onboarding?.seguro_desligar_bling;
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 animate-casa-fade-in">
+    <PageShell className="md:px-8 animate-casa-fade-in">
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
@@ -689,7 +690,7 @@ export default function SaudeEstoque() {
           </Table>
         </div>
       </section>
-    </div>
+    </PageShell>
   );
 }
 

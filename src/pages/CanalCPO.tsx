@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessageCircle, ArrowRight } from "lucide-react";
 
+import { PageShell } from "@/components/layout/PageShell";
 const DATA_FMT = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
 });
@@ -92,7 +93,7 @@ export default function CanalCPO() {
   const lista = filtro === "pendentes" ? pendentes : conversas;
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-4">
+    <PageShell>
       <div>
         <div className="flex items-center gap-2">
           <MessageCircle className="h-5 w-5" style={{ color: "#185FA5" }} />
@@ -190,6 +191,6 @@ export default function CanalCPO() {
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

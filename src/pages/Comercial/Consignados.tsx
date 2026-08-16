@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Search, Loader2, AlertTriangle, ChevronRight } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 
+import { PageShell } from "@/components/layout/PageShell";
 interface ParceiroConsignado {
   id: string;
   razao_social: string;
@@ -92,7 +93,7 @@ export default function Consignados() {
   const isError = parceirosQ.isError || contaQ.isError;
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto">
+    <PageShell className="md:p-8">
       <CasaPageHeader
         breadcrumb={[{ label: "Comercial" }, { label: "Consignados" }]}
         title="Consignados"
@@ -182,6 +183,6 @@ export default function Consignados() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

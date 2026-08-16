@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Plus, ArrowUpDown, ArrowUp, ArrowDown, Search } from "lucide-react";
 import { apelidoParceiro, parceiroCombina } from "@/lib/parceiros/nome";
 
+import { PageShell } from "@/components/layout/PageShell";
 const fmtBRL = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
@@ -169,7 +170,7 @@ export default function CreditoClientesIndex() {
   const loading = resumosQ.isLoading || haveresQ.isLoading || parceirosAllQ.isLoading;
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 space-y-6 animate-casa-fade-in">
+    <PageShell className="md:px-8 animate-casa-fade-in">
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
@@ -318,7 +319,7 @@ export default function CreditoClientesIndex() {
         onOpenChange={setCriarHaverOpen}
         parceiroId={null}
       />
-    </div>
+    </PageShell>
   );
 }
 

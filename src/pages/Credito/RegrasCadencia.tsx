@@ -33,6 +33,7 @@ import {
 import { formatBRL } from "@/lib/format-currency";
 import type { RegraCadencia, RegraCadenciaCriterio } from "@/types/credito";
 
+import { PageShell } from "@/components/layout/PageShell";
 const PERFIL_LABEL: Record<string, string> = {
   novo_entrada: "Novo",
   novo_qualificado: "Novo qualif.",
@@ -80,7 +81,7 @@ export default function RegrasCadencia() {
   };
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 animate-casa-fade-in">
+    <PageShell className="md:px-8 animate-casa-fade-in">
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
@@ -210,6 +211,6 @@ export default function RegrasCadencia() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   );
 }

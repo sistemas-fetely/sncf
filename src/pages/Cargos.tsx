@@ -26,6 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+import { PageShell } from "@/components/layout/PageShell";
 const nivelLabels: Record<string, string> = {
   jr: "Júnior", pl: "Pleno", sr: "Sênior",
   coordenacao: "Coordenação", especialista: "Especialista", c_level: "C-Level",
@@ -280,7 +281,7 @@ export default function Cargos() {
   }, [cargos, search, filtroDepartamento, filtroTipo]);
 
   return (
-    <div className="space-y-6 p-6">
+    <PageShell>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-medium text-foreground">Cargos e Salários</h1>
@@ -441,6 +442,6 @@ export default function Cargos() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   );
 }

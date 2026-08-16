@@ -56,6 +56,7 @@ import { PedidoStatusBadge } from "@/components/compras/PedidoStatusBadge";
 import { PedidoCompraDialog } from "@/components/compras/PedidoCompraDialog";
 import type { PedidoCompraFull, PedidoCompraStatus } from "@/lib/compras/types";
 
+import { PageShell } from "@/components/layout/PageShell";
 const fmtBRL = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
 
@@ -146,7 +147,7 @@ export default function Compras() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <PageShell>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -509,7 +510,7 @@ export default function Compras() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   );
 }
 

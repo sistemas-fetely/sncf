@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/tooltip";
 import { ChevronDown, ChevronRight, Loader2, RefreshCw, AlertTriangle } from "lucide-react";
 
+import { PageShell } from "@/components/layout/PageShell";
 type ExpedicaoXpm = {
   codigo: string;
   data_expedicao: string | null;
@@ -545,7 +546,7 @@ function LinhaExpandida({ exp, fases }: { exp: ExpedicaoXpm; fases: Map<number, 
   });
 
   return (
-    <div className="bg-muted/30 p-4 space-y-4">
+    <PageShell className="bg-muted/30">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
         <div>
           <div className="text-xs text-muted-foreground">Transportadora</div>
@@ -657,7 +658,7 @@ function LinhaExpandida({ exp, fases }: { exp: ExpedicaoXpm; fases: Map<number, 
           </div>
         )}
       </div>
-    </div>
+    </PageShell>
   );
 }
 

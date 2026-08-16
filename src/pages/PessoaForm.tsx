@@ -20,6 +20,7 @@ import VinculoExtrasSection from "@/components/pessoas/VinculoExtrasSection";
 import VinculoFinanceiroPJSection from "@/components/pessoas/VinculoFinanceiroPJSection";
 import VinculoPagamentosPJSection from "@/components/pessoas/VinculoPagamentosPJSection";
 
+import { PageShell } from "@/components/layout/PageShell";
 type Dim = { id: string; nome: string; codigo?: string };
 
 interface PessoaForm {
@@ -372,7 +373,7 @@ export default function PessoaForm() {
   if (loading) return <div className="p-6 text-muted-foreground">Carregando...</div>;
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <PageShell>
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate("/pessoas")}><ArrowLeft className="h-4 w-4" /></Button>
         <div className="flex-1">
@@ -596,6 +597,6 @@ export default function PessoaForm() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   );
 }

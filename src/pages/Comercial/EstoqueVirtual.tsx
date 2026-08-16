@@ -24,6 +24,7 @@ import {
 } from "@/lib/estoque/status-venda";
 import { DetalheEstoqueSkuSheet } from "@/components/estoque/DetalheEstoqueSkuSheet";
 
+import { PageShell } from "@/components/layout/PageShell";
 interface EstoqueRede {
   sku: string;
   nome_comercial: string | null;
@@ -271,7 +272,7 @@ export default function EstoqueVirtual() {
   const pageRange = buildPageRange(paginaAtual, totalPaginas);
 
   return (
-    <div className="max-w-[1500px] mx-auto px-4 md:px-8 py-8 animate-casa-fade-in">
+    <PageShell className="md:px-8 animate-casa-fade-in">
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
@@ -699,6 +700,6 @@ function StatPill({
         </div>
         {sublabel && <span className="text-[10px] text-muted-foreground">{sublabel}</span>}
       </div>
-    </div>
+    </PageShell>
   );
 }

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 
+import { PageShell } from "@/components/layout/PageShell";
 interface Importacao {
   id: string;
   importado_por_nome: string | null;
@@ -57,7 +58,7 @@ export default function HistoricoImportacoesPDF() {
   }, [filtroStatus]);
 
   return (
-    <div className="container mx-auto py-6 space-y-5 max-w-5xl">
+    <PageShell>
       <div>
         <div className="flex items-center gap-2 mb-1">
           <Sparkles className="h-5 w-5 text-info" />
@@ -151,6 +152,6 @@ export default function HistoricoImportacoesPDF() {
           })}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

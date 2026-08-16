@@ -34,6 +34,7 @@ import { NovaTarefaDialog } from "@/components/tarefas/NovaTarefaDialog";
 import { TarefaDetalheDrawer, type TarefaDrawer } from "@/components/tarefas/TarefaDetalheDrawer";
 
 
+import { PageShell } from "@/components/layout/PageShell";
 interface Tarefa {
   id: string;
   tipo_processo: string;
@@ -763,7 +764,7 @@ export default function MinhasTarefas() {
   };
 
   return (
-    <div className="space-y-6 p-6 max-w-7xl mx-auto">
+    <PageShell>
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
@@ -1165,6 +1166,6 @@ export default function MinhasTarefas() {
         onOpenChange={(open) => { if (!open) setDrawerTarefa(null); }}
         onAtualizada={() => void loadTarefas()}
       />
-    </div>
+    </PageShell>
   );
 }

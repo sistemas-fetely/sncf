@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
+import { PageShell } from "@/components/layout/PageShell";
 function formatDate(iso: string | null | undefined) {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -85,7 +86,7 @@ function SkeletonRow() {
 
 export default function NfsDeVenda() {
   return (
-    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 animate-casa-fade-in">
+    <PageShell className="md:px-8 animate-casa-fade-in">
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
@@ -99,7 +100,7 @@ export default function NfsDeVenda() {
       <div className="mt-4">
         <AbaNFs />
       </div>
-    </div>
+    </PageShell>
   );
 }
 

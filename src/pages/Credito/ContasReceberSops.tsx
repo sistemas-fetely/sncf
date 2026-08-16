@@ -38,6 +38,7 @@ import { useEnviarEmailCobranca } from "@/hooks/credito/useEnviarEmailCobranca";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { BaixaManualDialog } from "@/components/credito/BaixaManualDialog";
 
+import { PageShell } from "@/components/layout/PageShell";
 type Titulo = {
   id: string;
   numero_titulo: string | null;
@@ -281,7 +282,7 @@ export default function ContasReceberSops() {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <PageShell>
       <div className="flex items-center gap-3">
         <ArrowDownToLine className="h-7 w-7 text-admin" />
         <div>
@@ -603,6 +604,6 @@ export default function ContasReceberSops() {
           onClose={() => setTituloBaixa(null)}
         />
       )}
-    </div>
+    </PageShell>
   );
 }

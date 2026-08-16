@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Settings2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
+import { PageShell } from "@/components/layout/PageShell";
 const TABS_VALIDAS = ["analise", "decisao", "decididas"];
 
 export default function CreditoIndex() {
@@ -23,7 +24,7 @@ export default function CreditoIndex() {
   };
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8 animate-casa-fade-in">
+    <PageShell className="md:px-8 animate-casa-fade-in">
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
@@ -77,6 +78,6 @@ export default function CreditoIndex() {
           <TabsContent value="decididas"><FilaPorEstagio estagio="decididas" /></TabsContent>
         </Tabs>
       </div>
-    </div>
+    </PageShell>
   );
 }
