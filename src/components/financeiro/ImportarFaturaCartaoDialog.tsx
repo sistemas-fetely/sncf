@@ -45,6 +45,7 @@ import {
   parsearPDFFatura,
   salvarFaturaCartao,
 } from "@/lib/financeiro/fatura-cartao-handler";
+import { parsearFaturaItauPdf } from "@/lib/financeiro/parser-fatura-itau-pdf";
 import { formatError, rawMessage } from "@/lib/format-error";
 import { BlocoErroBoundary } from "@/components/BlocoErroBoundary";
 
