@@ -739,7 +739,7 @@ function AbaB2B() {
     return (
       <TableRow
         key={t.id}
-        className={atrasado ? "bg-destructive/40" : aninhada ? "bg-muted/10" : undefined}
+        className={atrasado ? "bg-destructive/10" : aninhada ? "bg-muted/10" : undefined}
       >
         <TableCell className={aninhada ? "pl-10" : undefined}>
           <div className="font-mono text-xs">{t.numero_titulo ?? "—"}</div>

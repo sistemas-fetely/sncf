@@ -421,7 +421,7 @@ export default function FilaRevisaoIADialog({ open, onClose }: Props) {
                               {c.similares.map((s) => (
                                 <div
                                   key={s.conta_id}
-                                  className="text-[11px] bg-info/50 rounded px-2 py-1.5"
+                                  className="text-[11px] bg-info/10 rounded px-2 py-1.5"
                                 >
                                   <div className="flex items-start justify-between gap-2">
                                     <div className="min-w-0 flex-1">

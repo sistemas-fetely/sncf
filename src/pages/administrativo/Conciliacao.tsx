@@ -1138,7 +1138,7 @@ export default function Conciliacao() {
                             f.ja_vinculada
                               ? "opacity-50 cursor-not-allowed bg-muted/20"
                               : isSelecionada
-                                ? "border-success/40 bg-success/60"
+                                ? "border-success/40 bg-success/10"
                                 : destaqueExato
                                   ? "border-success/40 bg-success/30 hover:bg-success/60"
                                   : "hover:bg-muted/50"

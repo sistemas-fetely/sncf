@@ -309,7 +309,7 @@ export default function Despesas() {
         </Card>
         <Card
           className={cn(
-            kpis.aClassificarN > 0 && "border-warning/40 bg-warning/50",
+            kpis.aClassificarN > 0 && "border-warning/40 bg-warning/10",
           )}
         >
           <CardContent className="p-4">

@@ -1100,7 +1100,7 @@ export default function CobrancaDetalhe() {
               </Label>
             </div>
             {haverDisponivel && (
-              <div className="space-y-1 ml-auto rounded-md border bg-success/50 p-3">
+              <div className="space-y-1 ml-auto rounded-md border bg-success/10 p-3">
                 <p className="text-xs font-medium">Crédito do cliente (haver)</p>
                 <p className="text-sm font-medium">{fmtBRL.format(haverSaldo)}</p>
                 <p className="text-xs text-muted-foreground">disponível na conta do cliente</p>
