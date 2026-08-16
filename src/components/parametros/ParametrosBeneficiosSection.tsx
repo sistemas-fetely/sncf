@@ -191,7 +191,7 @@ export default function ParametrosBeneficiosSection() {
                       <span className="font-medium text-sm">{b.beneficio}</span>
                       {b.tipo && <Badge variant="outline" className="text-[10px]">{b.tipo}</Badge>}
                       {b.ativo ? (
-                        <Badge variant="secondary" className="text-[10px] bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">Ativo</Badge>
+                        <Badge variant="secondary" className="text-[10px] bg-success/10 text-success">Ativo</Badge>
                       ) : (
                         <Badge variant="secondary" className="text-[10px]">Inativo</Badge>
                       )}

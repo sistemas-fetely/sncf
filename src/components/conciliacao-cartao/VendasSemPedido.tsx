@@ -187,7 +187,7 @@ export default function VendasSemPedido() {
 
   return (
     <Collapsible open={aberto} onOpenChange={setAberto}>
-      <Card className="border-amber-500/40">
+      <Card className="border-warning/40">
         <CollapsibleTrigger asChild>
           <CardHeader className="pb-3 cursor-pointer">
             <CardTitle className="text-base flex items-center gap-2">

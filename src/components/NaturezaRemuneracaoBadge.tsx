@@ -15,7 +15,7 @@ const CONFIG: Record<NaturezaRemuneracao, { label: string; className: string }> 
   },
   pro_labore: {
     label: "Pró-labore",
-    className: "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20",
+    className: "bg-info text-info border-info/40",
   },
   distribuicao_lucros: {
     label: "Distribuição",
@@ -27,11 +27,11 @@ const CONFIG: Record<NaturezaRemuneracao, { label: string; className: string }> 
   },
   bonus: {
     label: "Bônus",
-    className: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-300 border-yellow-500/20",
+    className: "bg-warning text-warning border-warning/40",
   },
   comissao: {
     label: "Comissão",
-    className: "bg-pink-500/10 text-pink-700 dark:text-pink-300 border-pink-500/20",
+    className: "bg-info text-info border-info/40",
   },
 };
 

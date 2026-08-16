@@ -55,7 +55,7 @@ export function ConviteDadosPessoaisCLT({ dados, editing, updateField }: Props) 
         <CardHeader><CardTitle className="text-lg">Dados Pessoais</CardTitle></CardHeader>
         <CardContent className="space-y-6">
           <div>
-            <h4 className="text-sm font-semibold text-muted-foreground mb-3">Informações Pessoais</h4>
+            <h4 className="text-sm font-medium text-muted-foreground mb-3">Informações Pessoais</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="md:col-span-2 lg:col-span-3"><Field label="Nome Completo" value={dados.nome_completo} /></div>
               <Field label="CPF" value={dados.cpf} />
@@ -71,7 +71,7 @@ export function ConviteDadosPessoaisCLT({ dados, editing, updateField }: Props) 
             </div>
           </div>
           <div>
-            <h4 className="text-sm font-semibold text-muted-foreground mb-3">Endereço</h4>
+            <h4 className="text-sm font-medium text-muted-foreground mb-3">Endereço</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Field label="CEP" value={dados.cep} />
               <div className="lg:col-span-2"><Field label="Logradouro" value={dados.logradouro} /></div>
@@ -83,7 +83,7 @@ export function ConviteDadosPessoaisCLT({ dados, editing, updateField }: Props) 
             </div>
           </div>
           <div>
-            <h4 className="text-sm font-semibold text-muted-foreground mb-3">Contato</h4>
+            <h4 className="text-sm font-medium text-muted-foreground mb-3">Contato</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Field label="Telefone" value={dados.telefone} />
               <Field label="Email Pessoal" value={dados.email_pessoal} />
@@ -101,7 +101,7 @@ export function ConviteDadosPessoaisCLT({ dados, editing, updateField }: Props) 
       <CardHeader><CardTitle className="text-lg">Dados Pessoais</CardTitle></CardHeader>
       <CardContent className="space-y-6">
         <div>
-          <h4 className="text-sm font-semibold text-muted-foreground mb-3">Informações Pessoais</h4>
+          <h4 className="text-sm font-medium text-muted-foreground mb-3">Informações Pessoais</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="md:col-span-2 lg:col-span-3">
               <Label className="text-xs text-muted-foreground">Nome Completo *</Label>
@@ -178,7 +178,7 @@ export function ConviteDadosPessoaisCLT({ dados, editing, updateField }: Props) 
         </div>
 
         <div>
-          <h4 className="text-sm font-semibold text-muted-foreground mb-3">Endereço</h4>
+          <h4 className="text-sm font-medium text-muted-foreground mb-3">Endereço</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <Label className="text-xs text-muted-foreground">CEP</Label>
@@ -220,7 +220,7 @@ export function ConviteDadosPessoaisCLT({ dados, editing, updateField }: Props) 
         </div>
 
         <div>
-          <h4 className="text-sm font-semibold text-muted-foreground mb-3">Contato</h4>
+          <h4 className="text-sm font-medium text-muted-foreground mb-3">Contato</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label className="text-xs text-muted-foreground">Telefone</Label>

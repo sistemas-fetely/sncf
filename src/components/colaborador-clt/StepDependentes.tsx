@@ -20,7 +20,7 @@ export function StepDependentes() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Dependentes</h3>
+        <h3 className="text-lg font-medium">Dependentes</h3>
         <Button
           type="button"
           variant="outline"

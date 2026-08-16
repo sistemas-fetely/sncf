@@ -142,7 +142,7 @@ export function DrawerUsuario({ userId, open, onOpenChange }: Props) {
               <div className="flex items-start gap-4">
                 <Avatar className="h-16 w-16">
                   {fotoUrl && <AvatarImage src={fotoUrl} alt={nome} className="object-cover" />}
-                  <AvatarFallback className="bg-primary/10 text-primary text-base font-semibold">
+                  <AvatarFallback className="bg-primary/10 text-primary text-base font-medium">
                     {iniciais}
                   </AvatarFallback>
                 </Avatar>

@@ -52,7 +52,7 @@ export default function MinhasTarefasNovo() {
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 p-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">Minhas Tarefas</h1>
+        <h1 className="text-2xl font-medium tracking-tight">Minhas Tarefas</h1>
         <p className="text-sm text-muted-foreground">
           Tudo sob sua responsabilidade, agrupado por projeto.
         </p>
@@ -85,7 +85,7 @@ export default function MinhasTarefasNovo() {
       <div className="space-y-6">
         {grupos.map(([chave, lista]) => (
           <section key={chave} className="space-y-2">
-            <h2 className="text-sm font-semibold text-muted-foreground">
+            <h2 className="text-sm font-medium text-muted-foreground">
               {nomeProjeto(chave)} · {lista.length}
             </h2>
             <div className="space-y-2">

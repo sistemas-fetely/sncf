@@ -55,7 +55,7 @@ export function StepDadosPessoaisPJ() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold mb-4">Dados Pessoais do Prestador</h3>
+        <h3 className="text-lg font-medium mb-4">Dados Pessoais do Prestador</h3>
         <div className="flex flex-col md:flex-row gap-6 mb-4">
           <FotoUpload
             value={watch("foto_url")}
@@ -140,7 +140,7 @@ export function StepDadosPessoaisPJ() {
       </div>
 
       <div>
-        <h3 className="text-lg font-semibold mb-4">Endereço</h3>
+        <h3 className="text-lg font-medium mb-4">Endereço</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <Label htmlFor="cep">CEP</Label>
@@ -185,7 +185,7 @@ export function StepDadosPessoaisPJ() {
 
       <div>
         <div className="mb-4">
-          <h3 className="text-lg font-semibold">Contato</h3>
+          <h3 className="text-lg font-medium">Contato</h3>
           <p className="text-xs text-muted-foreground mt-1">
             <strong>Email:</strong> contato oficial do CNPJ (para NFs, cobranças).{" "}
             <strong>Email Pessoal:</strong> privado, para contato humano e backup.
@@ -242,7 +242,7 @@ export function StepDadosPessoaisPJ() {
       </div>
 
       <div>
-        <h3 className="text-lg font-semibold mb-4">Dados da Empresa</h3>
+        <h3 className="text-lg font-medium mb-4">Dados da Empresa</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
             <Label htmlFor="cnpj">CNPJ *</Label>

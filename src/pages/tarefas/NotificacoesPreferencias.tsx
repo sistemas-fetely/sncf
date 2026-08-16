@@ -23,7 +23,7 @@ export default function NotificacoesPreferencias() {
   return (
     <div className="mx-auto w-full max-w-3xl space-y-5 p-4 sm:p-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">Notificações</h1>
+        <h1 className="text-2xl font-medium tracking-tight">Notificações</h1>
         <p className="text-sm text-muted-foreground">
           Escolha o que aparece no sino e o que entra no <strong>resumo diário por e-mail</strong> —
           nunca um e-mail por evento. Você nunca é notificado da sua própria ação.
@@ -39,7 +39,7 @@ export default function NotificacoesPreferencias() {
       ) : (
         <Card>
           <CardContent className="divide-y p-0">
-            <div className="flex items-center gap-3 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="flex items-center gap-3 px-4 py-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               <span className="flex-1">Tipo</span>
               <span className="w-16 text-center">No sino</span>
               <span className="w-20 text-center">Resumo</span>

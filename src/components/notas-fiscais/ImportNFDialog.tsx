@@ -245,7 +245,7 @@ export default function ImportNFDialog({ open, onClose, contratos, onSuccess }: 
 
         {step === "review" && (
           <div className="space-y-4 py-2">
-            <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 rounded-md px-3 py-2">
+            <div className="flex items-center gap-2 text-sm text-success bg-success/10 rounded-md px-3 py-2">
               <CheckCircle2 className="h-4 w-4" />
               Dados extraídos com sucesso! Revise e ajuste antes de salvar.
             </div>
@@ -264,7 +264,7 @@ export default function ImportNFDialog({ open, onClose, contratos, onSuccess }: 
                   </SelectContent>
                 </Select>
                 {extracted?.razao_social_prestador && !form.contrato_id && (
-                  <p className="text-xs text-amber-600 mt-1">
+                  <p className="text-xs text-warning mt-1">
                     Prestador identificado: {extracted.razao_social_prestador} — selecione o contrato manualmente
                   </p>
                 )}

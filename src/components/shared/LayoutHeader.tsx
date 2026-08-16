@@ -53,7 +53,7 @@ export function LayoutHeader({ icon: Icon, nome, iconColor }: LayoutHeaderProps)
         className="h-4 w-4 text-muted-foreground"
         style={iconColor ? { color: iconColor } : undefined}
       />
-      <h1 className="text-sm font-semibold">{nome}</h1>
+      <h1 className="text-sm font-medium">{nome}</h1>
 
       <div className="ml-auto flex items-center gap-1">
         <RecentesEFavoritos />

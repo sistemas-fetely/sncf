@@ -25,7 +25,7 @@ export function WizardStepsPJ({ currentStep }: WizardStepsPJProps) {
             <div className="flex flex-col items-center gap-1.5">
               <div
                 className={cn(
-                  "flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-colors",
+                  "flex h-9 w-9 items-center justify-center rounded-full text-sm font-medium transition-colors",
                   isCompleted && "bg-primary text-primary-foreground",
                   isCurrent && "bg-primary text-primary-foreground ring-4 ring-primary/20",
                   !isCompleted && !isCurrent && "bg-muted text-muted-foreground"

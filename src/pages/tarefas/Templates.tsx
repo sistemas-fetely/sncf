@@ -30,7 +30,7 @@ export default function Templates() {
     <div className="mx-auto w-full max-w-5xl space-y-5 p-4 sm:p-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">Templates</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Templates</h1>
           <p className="text-sm text-muted-foreground">
             Roteiros de projeto e checklists prontos para aplicar com datas calculadas.
           </p>

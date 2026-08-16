@@ -42,7 +42,7 @@ export default function TarefasHoje() {
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 p-6">
       <header>
-        <h1 className="text-2xl font-bold tracking-tight">Hoje</h1>
+        <h1 className="text-2xl font-medium tracking-tight">Hoje</h1>
         <p className="text-sm text-muted-foreground">
           {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
         </p>
@@ -75,7 +75,7 @@ export default function TarefasHoje() {
             <>
               {atrasadas.length > 0 && (
                 <section className="space-y-2">
-                  <h2 className="text-sm font-semibold text-destructive">
+                  <h2 className="text-sm font-medium text-destructive">
                     Atrasadas ({atrasadas.length})
                   </h2>
                   <Lista tarefas={atrasadas} atrasada />
@@ -83,7 +83,7 @@ export default function TarefasHoje() {
               )}
               {doDia.length > 0 && (
                 <section className="space-y-2">
-                  <h2 className="text-sm font-semibold">Hoje ({doDia.length})</h2>
+                  <h2 className="text-sm font-medium">Hoje ({doDia.length})</h2>
                   <Lista tarefas={doDia} />
                 </section>
               )}
@@ -94,7 +94,7 @@ export default function TarefasHoje() {
         <TabsContent value="proximos" className="space-y-5 pt-4">
           {(proximos.data ?? []).map((dia) => (
             <section key={dia.data} className="space-y-2">
-              <h2 className="text-sm font-semibold capitalize">
+              <h2 className="text-sm font-medium capitalize">
                 {format(parseISO(dia.data), "EEEE, d 'de' MMMM", { locale: ptBR })}
               </h2>
               {dia.tarefas.length === 0 ? (
@@ -120,7 +120,7 @@ export default function TarefasHoje() {
           ) : (
             (concluidas.data ?? []).map((dia) => (
               <section key={dia.data} className="space-y-2">
-                <h2 className="text-sm font-semibold capitalize">
+                <h2 className="text-sm font-medium capitalize">
                   {format(parseISO(dia.data), "EEEE, d 'de' MMMM", { locale: ptBR })}
                 </h2>
                 <Lista tarefas={dia.tarefas} />

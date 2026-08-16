@@ -40,7 +40,7 @@ function LinhaCopiavel({ label, value }: { label: string; value?: string | null 
           className="text-muted-foreground hover:text-foreground transition-colors"
           title="Copiar"
         >
-          {copiado ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+          {copiado ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
         </button>
       </span>
     </div>
@@ -56,7 +56,7 @@ export function DadosPagadorCard({ parceiro }: { parceiro: Parceiro }) {
 
   return (
     <div className="mt-3">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">
+      <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground mb-2">
         Dados para cadastro no banco
       </p>
       <LinhaCopiavel label="Razão social" value={parceiro.razao_social} />

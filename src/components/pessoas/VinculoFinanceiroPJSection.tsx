@@ -78,11 +78,11 @@ export default function VinculoFinanceiroPJSection({ vinculoId }: Props) {
             <div className="grid grid-cols-2 gap-4">
               <div className="rounded-md border p-3">
                 <div className="text-xs text-muted-foreground">Quantidade de NFs</div>
-                <div className="text-xl font-semibold">{rows.length}</div>
+                <div className="text-xl font-medium">{rows.length}</div>
               </div>
               <div className="rounded-md border p-3">
                 <div className="text-xs text-muted-foreground">Valor total</div>
-                <div className="text-xl font-semibold">{fmtBRL(total)}</div>
+                <div className="text-xl font-medium">{fmtBRL(total)}</div>
               </div>
             </div>
 

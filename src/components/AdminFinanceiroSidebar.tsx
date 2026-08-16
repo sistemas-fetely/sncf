@@ -104,7 +104,7 @@ export function AdminFinanceiroSidebar() {
                     <span>{item.title}</span>
                     <span className="flex items-center gap-1">
                       {item.dot && (
-                        <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                        <span className="h-2 w-2 rounded-full bg-success" />
                       )}
                       {item.badge && (
                         <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-admin/30 text-admin">
@@ -131,7 +131,7 @@ export function AdminFinanceiroSidebar() {
           </div>
           {!collapsed && (
             <div className="flex flex-col">
-              <span className="text-sm font-bold tracking-tight text-admin">ADM Fetely</span>
+              <span className="text-sm font-medium tracking-tight text-admin">ADM Fetely</span>
               <span className="text-[11px] text-sidebar-muted">Pilar Administrativo</span>
             </div>
           )}
@@ -146,7 +146,7 @@ export function AdminFinanceiroSidebar() {
         <div className="mx-4 border-t border-sidebar-border/40" />
         <SidebarGroup>
           {!collapsed && (
-            <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-semibold mb-1 px-4">
+            <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4">
               Tudo à Vista
             </SidebarGroupLabel>
           )}
@@ -156,7 +156,7 @@ export function AdminFinanceiroSidebar() {
         <div className="mx-4 border-t border-sidebar-border/40" />
         <SidebarGroup>
           {!collapsed && (
-            <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-semibold mb-1 px-4">
+            <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4">
               Atalhos
             </SidebarGroupLabel>
           )}
@@ -199,7 +199,7 @@ export function AdminFinanceiroSidebar() {
         <div className="mx-4 border-t border-sidebar-border/40" />
         <SidebarGroup>
           {!collapsed && (
-            <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-semibold mb-1 px-4">
+            <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4">
               Financeiro
             </SidebarGroupLabel>
           )}
@@ -209,7 +209,7 @@ export function AdminFinanceiroSidebar() {
         <div className="mx-4 border-t border-sidebar-border/40" />
         <SidebarGroup>
           {!collapsed && (
-            <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-semibold mb-1 px-4">
+            <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4">
               Caixa e Banco
             </SidebarGroupLabel>
           )}
@@ -219,7 +219,7 @@ export function AdminFinanceiroSidebar() {
         <div className="mx-4 border-t border-sidebar-border/40" />
         <SidebarGroup>
           {!collapsed && (
-            <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-semibold mb-1 px-4">
+            <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4">
               Configurações Financeiro
             </SidebarGroupLabel>
           )}
@@ -231,7 +231,7 @@ export function AdminFinanceiroSidebar() {
         {!collapsed && (
           <div className="space-y-2">
             <div className="flex items-center gap-3 rounded-xl bg-sidebar-accent/60 p-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-admin-foreground shadow-sm bg-admin">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-medium text-admin-foreground shadow-sm bg-admin">
                 {initials}
               </div>
               <div className="flex flex-col min-w-0">

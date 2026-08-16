@@ -98,7 +98,7 @@ export function AdministrativoSidebar() {
   const renderGroup = (label: string, items: MenuItem[]) => (
     <SidebarGroup>
       {!collapsed && (
-        <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-semibold mb-1 px-4">
+        <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4">
           {label}
         </SidebarGroupLabel>
       )}
@@ -120,7 +120,7 @@ export function AdministrativoSidebar() {
           </div>
           {!collapsed && (
             <div className="flex flex-col">
-              <span className="text-sm font-bold text-sidebar-foreground tracking-tight">Administrativo Fetély</span>
+              <span className="text-sm font-medium text-sidebar-foreground tracking-tight">Administrativo Fetély</span>
               <span className="text-[11px] text-sidebar-muted">BackOffice da empresa</span>
             </div>
           )}

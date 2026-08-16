@@ -29,7 +29,7 @@ export class BlocoErroBoundary extends Component<Props, Estado> {
     if (!this.state.erro) return this.props.children;
     return (
       <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 space-y-2">
-        <p className="text-sm font-semibold flex items-center gap-2 text-destructive">
+        <p className="text-sm font-medium flex items-center gap-2 text-destructive">
           <AlertTriangle className="h-4 w-4" />
           {this.props.titulo || "Este bloco falhou"}
         </p>

@@ -33,7 +33,7 @@ export function StepDadosPessoais() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold mb-4">Informações Pessoais</h3>
+        <h3 className="text-lg font-medium mb-4">Informações Pessoais</h3>
         <div className="flex flex-col md:flex-row gap-6 mb-4">
           <FotoUpload
             value={watch("foto_url")}
@@ -120,7 +120,7 @@ export function StepDadosPessoais() {
       </div>
 
       <div>
-        <h3 className="text-lg font-semibold mb-4">Endereço</h3>
+        <h3 className="text-lg font-medium mb-4">Endereço</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <Label htmlFor="cep">CEP</Label>
@@ -166,7 +166,7 @@ export function StepDadosPessoais() {
 
       <div>
         <div className="mb-4">
-          <h3 className="text-lg font-semibold">Dados pessoais de contato</h3>
+          <h3 className="text-lg font-medium">Dados pessoais de contato</h3>
           <p className="text-xs text-muted-foreground mt-1">
             Uso privado — para contato pessoal, emergências e comunicações não oficiais.
             Estes dados <strong>não</strong> são usados para acesso ao sistema.

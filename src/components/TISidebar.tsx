@@ -70,7 +70,7 @@ export function TISidebar() {
           </div>
           {!collapsed && (
             <div className="flex flex-col">
-              <span className="text-sm font-bold text-sidebar-foreground tracking-tight">TI Fetély</span>
+              <span className="text-sm font-medium text-sidebar-foreground tracking-tight">TI Fetély</span>
               <span className="text-[11px] text-sidebar-muted">Gestão de TI</span>
             </div>
           )}
@@ -121,7 +121,7 @@ export function TISidebar() {
         {grupos.map((g) => (
           <SidebarGroup key={g.chave}>
             {!collapsed && (
-              <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-semibold mb-1 px-4">
+              <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4">
                 {g.label}
               </SidebarGroupLabel>
             )}
@@ -137,7 +137,7 @@ export function TISidebar() {
           <div className="space-y-2">
             <div className="flex items-center gap-3 rounded-xl bg-sidebar-accent/60 p-3">
               <div
-                className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white shadow-sm"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-medium text-white shadow-sm"
                 style={{ backgroundColor: TI_COLOR }}
               >
                 {initials}

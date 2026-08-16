@@ -285,7 +285,7 @@ export function CadastroColaboradorCLT() {
     <FormProvider {...methods}>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Novo Colaborador CLT</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Novo Colaborador CLT</h1>
           <p className="text-muted-foreground text-sm mt-1">Preencha os dados para cadastrar um novo colaborador</p>
         </div>
 

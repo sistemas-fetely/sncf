@@ -115,8 +115,8 @@ export function FeedbackNegativoDialog({
           </div>
 
           {podeEnsinar && respostaEsperada.trim() && (
-            <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-lg">
-              <p className="text-xs text-emerald-800">
+            <div className="bg-success/10 border border-success/40 p-3 rounded-lg">
+              <p className="text-xs text-success">
                 💡 Sua sugestão de resposta será enviada para a equipe de RH revisar e potencialmente adicionar à Base de Conhecimento do Fala Fetely.
               </p>
             </div>

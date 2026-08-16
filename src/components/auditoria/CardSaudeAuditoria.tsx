@@ -80,7 +80,7 @@ function BarraEixo({
           {nome} · {Math.round((eixo.peso ?? 0) * 100)}%
         </span>
         {avaliavel ? (
-          <span className={`text-xs font-semibold tabular-nums ${FAIXA_TEXTO[faixa]}`}>
+          <span className={`text-xs font-medium tabular-nums ${FAIXA_TEXTO[faixa]}`}>
             {num(eixo.nota)}
           </span>
         ) : (
@@ -175,7 +175,7 @@ export default function CardSaudeAuditoria() {
               <div className="flex items-start gap-2">
                 <AlertTriangle className="mt-0.5 h-5 w-5 text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-semibold text-muted-foreground">
+                  <p className="text-sm font-medium text-muted-foreground">
                     Saúde não confiável
                   </p>
                   <p className="text-xs text-muted-foreground">
@@ -188,7 +188,7 @@ export default function CardSaudeAuditoria() {
               <div className="grid items-center gap-5 md:grid-cols-[220px_1fr]">
                 <div>
                   <div className="flex items-end gap-1">
-                    <span className={`text-4xl font-semibold tabular-nums ${FAIXA_TEXTO[faixa]}`}>
+                    <span className={`text-4xl font-medium tabular-nums ${FAIXA_TEXTO[faixa]}`}>
                       {num(data.nota)}
                     </span>
                     <span className="pb-1 text-xs text-muted-foreground">/100</span>
@@ -236,14 +236,14 @@ export default function CardSaudeAuditoria() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-md border p-3">
                   <p className="text-xs text-muted-foreground">Dinheiro (60% do eixo)</p>
-                  <p className="text-lg font-semibold tabular-nums">{num(g.dinheiro)}</p>
+                  <p className="text-lg font-medium tabular-nums">{num(g.dinheiro)}</p>
                   <p className="text-xs text-muted-foreground">
                     Valor vivo: {formatBRL(Number(data.contexto.valor_vivo || 0))}
                   </p>
                 </div>
                 <div className="rounded-md border p-3">
                   <p className="text-xs text-muted-foreground">Severidade (40% do eixo)</p>
-                  <p className="text-lg font-semibold tabular-nums">{num(g.severidade)}</p>
+                  <p className="text-lg font-medium tabular-nums">{num(g.severidade)}</p>
                   <p className="text-xs text-muted-foreground">
                     Penalidade: {num(g.penalidade_pontos)} pontos
                   </p>

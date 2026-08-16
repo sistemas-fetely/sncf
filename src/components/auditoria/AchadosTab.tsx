@@ -117,13 +117,13 @@ export default function AchadosTab({
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Achados vivos</p>
-            <p className="text-2xl font-semibold tabular-nums">{kpis.vivos}</p>
+            <p className="text-2xl font-medium tabular-nums">{kpis.vivos}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Bloqueantes</p>
-            <p className="text-2xl font-semibold tabular-nums text-destructive">
+            <p className="text-2xl font-medium tabular-nums text-destructive">
               {kpis.bloqueantes}
             </p>
           </CardContent>
@@ -131,7 +131,7 @@ export default function AchadosTab({
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Valor dos vivos</p>
-            <p className="text-2xl font-semibold tabular-nums">{formatBRL(kpis.valor)}</p>
+            <p className="text-2xl font-medium tabular-nums">{formatBRL(kpis.valor)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -235,7 +235,7 @@ export default function AchadosTab({
         <Card className="border-success/40 bg-success/5">
           <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
             <CheckCircle2 className="h-10 w-10 text-success" />
-            <p className="text-lg font-semibold text-success">Nenhum achado vivo</p>
+            <p className="text-lg font-medium text-success">Nenhum achado vivo</p>
             <p className="text-sm text-muted-foreground">
               Com os filtros atuais, não há nada pendente de tratamento. Boa notícia.
             </p>

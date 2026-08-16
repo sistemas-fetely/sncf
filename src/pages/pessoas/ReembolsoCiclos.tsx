@@ -75,7 +75,7 @@ export default function ReembolsoCiclos() {
     <div className="p-6 space-y-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
             <CalendarRange className="h-6 w-6" />
             Ciclos e pagamentos
           </h1>
@@ -168,7 +168,7 @@ export default function ReembolsoCiclos() {
                     ) : (
                       <ChevronRight className="h-4 w-4" />
                     )}
-                    <span className="text-base font-semibold">{c.referencia}</span>
+                    <span className="text-base font-medium">{c.referencia}</span>
                     <Badge
                       className={cn(
                         c.estado === "aberto"
@@ -189,7 +189,7 @@ export default function ReembolsoCiclos() {
                     <span className="text-muted-foreground">
                       Pagamento previsto {formatarData(c.data_pagamento_prevista)}
                     </span>
-                    <span className="font-semibold tabular-nums">
+                    <span className="font-medium tabular-nums">
                       {formatarBRL(c.total_aprovado)}
                     </span>
                     <span className="text-muted-foreground">

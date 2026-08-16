@@ -196,11 +196,11 @@ export default function SolicitacaoDrawer({ solicitacaoId, onOpenChange }: Props
               <div className="flex flex-wrap items-center gap-3 text-sm">
                 <BadgeEstado estado={solicitacao.estado} />
                 <span className="text-muted-foreground">Solicitado</span>
-                <span className="font-semibold tabular-nums">
+                <span className="font-medium tabular-nums">
                   {formatarBRL(solicitacao.valor_solicitado)}
                 </span>
                 <span className="text-muted-foreground">Aprovado</span>
-                <span className="font-semibold tabular-nums">
+                <span className="font-medium tabular-nums">
                   {formatarBRL(solicitacao.valor_aprovado)}
                 </span>
                 {solicitacao.encaminhado_para_compras && (
@@ -214,7 +214,7 @@ export default function SolicitacaoDrawer({ solicitacaoId, onOpenChange }: Props
               {/* Pendências */}
               <Card className="card-shadow">
                 <CardContent className="space-y-4 py-4">
-                  <h3 className="text-sm font-semibold">Pendências</h3>
+                  <h3 className="text-sm font-medium">Pendências</h3>
 
                   {apontamentosQ.isError && (
                     <BlocoErro
@@ -276,7 +276,7 @@ export default function SolicitacaoDrawer({ solicitacaoId, onOpenChange }: Props
               {/* Itens */}
               <Card className="card-shadow">
                 <CardContent className="py-4 space-y-3">
-                  <h3 className="text-sm font-semibold">Itens</h3>
+                  <h3 className="text-sm font-medium">Itens</h3>
                   <div className="rounded-md border">
                     <Table>
                       <TableHeader>
@@ -429,14 +429,14 @@ function SecaoApontamentos({
   if (lista.length === 0) return null;
   return (
     <div className="space-y-2">
-      <p className={cn("text-xs font-semibold uppercase tracking-wide", tom)}>
+      <p className={cn("text-xs font-medium uppercase tracking-wide", tom)}>
         {titulo} ({lista.length})
       </p>
       {lista.map((a) => (
         <div key={a.id} className="rounded-md border p-3">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-xs">{a.regra_codigo}</span>
-            <span className="text-sm font-semibold">{a.rotulo ?? a.regra_codigo}</span>
+            <span className="text-sm font-medium">{a.rotulo ?? a.regra_codigo}</span>
             {a.item_id && (
               <Badge variant="outline" className="text-xs">
                 Item {seqPorItem.get(a.item_id) ?? "?"}
@@ -621,7 +621,7 @@ function BlocoComprovantes({
   return (
     <Card className="card-shadow">
       <CardContent className="space-y-4 py-4">
-        <h3 className="flex items-center gap-2 text-sm font-semibold">
+        <h3 className="flex items-center gap-2 text-sm font-medium">
           <Paperclip className="h-4 w-4" /> Comprovantes
         </h3>
 
@@ -651,7 +651,7 @@ function BlocoComprovantes({
                   <Badge variant="outline">Item {i.seq ?? idx + 1}</Badge>
                   <span>{i.categoria_id ? nomeCategoria.get(i.categoria_id) ?? "—" : "—"}</span>
                   <span className="text-muted-foreground">{formatarData(i.data_despesa)}</span>
-                  <span className="font-semibold tabular-nums">
+                  <span className="font-medium tabular-nums">
                     {formatarBRL(i.valor_solicitado)}
                   </span>
                   <span className="text-muted-foreground">
@@ -755,7 +755,7 @@ function AnexoSolicitacao({
         destaque && "border-warning/50 bg-warning/10",
       )}
     >
-      <div className="flex items-center gap-2 text-xs font-semibold">
+      <div className="flex items-center gap-2 text-xs font-medium">
         {rotulo}
         {destaque && (
           <span className="flex items-center gap-1 font-normal text-warning">
@@ -873,7 +873,7 @@ function VisualizadorDialog({
             </div>
 
             <div className="space-y-2 text-sm md:order-2 order-1">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Conferir contra
               </p>
               <p>
@@ -882,7 +882,7 @@ function VisualizadorDialog({
               </p>
               <p>
                 <span className="text-muted-foreground">Valor </span>
-                <span className="font-semibold tabular-nums">
+                <span className="font-medium tabular-nums">
                   {aberto.dados.valor == null ? "—" : formatarBRL(aberto.dados.valor)}
                 </span>
               </p>

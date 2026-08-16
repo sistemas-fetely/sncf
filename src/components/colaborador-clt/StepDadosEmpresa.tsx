@@ -40,7 +40,7 @@ export function StepDadosEmpresa() {
       {/* Dados Corporativos */}
       <div>
         <div className="mb-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
+          <h3 className="text-lg font-medium flex items-center gap-2">
             🏢 Dados corporativos
           </h3>
           <p className="text-xs text-muted-foreground mt-1">
@@ -122,7 +122,7 @@ export function StepDadosEmpresa() {
       {/* Acesso aos Sistemas — dinâmico como equipamentos */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
+          <h3 className="text-lg font-medium flex items-center gap-2">
             🔐 Acesso aos Sistemas
           </h3>
           <Button
@@ -260,7 +260,7 @@ export function StepDadosEmpresa() {
       {/* Equipamentos */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
+          <h3 className="text-lg font-medium flex items-center gap-2">
             💻 Equipamentos
           </h3>
           <Button

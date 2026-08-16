@@ -38,11 +38,11 @@ export const TIPO_CONTROLE_LABELS: Record<TipoControle, string> = {
 };
 
 export const TIPO_CONTROLE_BADGE: Record<TipoControle, string> = {
-  holding_formal: "bg-blue-100 text-blue-800 hover:bg-blue-100",
-  mesmo_dono: "bg-purple-100 text-purple-800 hover:bg-purple-100",
-  controle_indireto: "bg-cyan-100 text-cyan-800 hover:bg-cyan-100",
-  agrupamento_operacional: "bg-amber-100 text-amber-800 hover:bg-amber-100",
-  outro: "bg-gray-100 text-gray-800 hover:bg-gray-100",
+  holding_formal: "bg-info/10 text-info hover:bg-info/10",
+  mesmo_dono: "bg-info/10 text-info hover:bg-info/10",
+  controle_indireto: "bg-info/10 text-info hover:bg-info/10",
+  agrupamento_operacional: "bg-warning/10 text-warning hover:bg-warning/10",
+  outro: "bg-muted/10 text-muted-foreground hover:bg-muted/10",
 };
 
 // ==========================================================================

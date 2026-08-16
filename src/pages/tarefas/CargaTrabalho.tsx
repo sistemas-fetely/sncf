@@ -73,7 +73,7 @@ export default function CargaTrabalho() {
   return (
     <div className="mx-auto w-full max-w-7xl space-y-5 p-4 sm:p-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">Carga de trabalho</h1>
+        <h1 className="text-2xl font-medium tracking-tight">Carga de trabalho</h1>
         <p className="text-sm text-muted-foreground">
           Estimativas das próximas {SEMANAS} semanas contra a capacidade de cada pessoa.
           Clique numa célula para ver o que compõe o número.
@@ -98,16 +98,16 @@ export default function CargaTrabalho() {
           <table className="w-full min-w-[900px] text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/50">
-                <th className="w-[240px] px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <th className="w-[240px] px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                   Pessoa
                 </th>
-                <th className="w-[120px] px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <th className="w-[120px] px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                   Capacidade
                 </th>
                 {semanas.map((s) => (
                   <th
                     key={iso(s)}
-                    className="px-2 py-2 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+                    className="px-2 py-2 text-center text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
                   >
                     {format(s, "dd/MM", { locale: ptBR })}
                   </th>
@@ -165,7 +165,7 @@ export default function CargaTrabalho() {
                             CLASSE_TOM[tom]
                           )}
                         >
-                          <span className="block text-sm font-semibold">
+                          <span className="block text-sm font-medium">
                             {c.horas.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}h
                           </span>
                           <span className="block text-[10px] opacity-80">{pct}%</span>

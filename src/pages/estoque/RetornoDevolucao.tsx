@@ -76,15 +76,15 @@ export default function RetornoDevolucao() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
         <div className="rounded-md border bg-card p-4">
           <div className="text-xs text-muted-foreground">Pedidos aguardando conferência</div>
-          <div className="text-2xl font-semibold tabular-nums">{formatNum(pedidos.length)}</div>
+          <div className="text-2xl font-medium tabular-nums">{formatNum(pedidos.length)}</div>
         </div>
         <div className="rounded-md border bg-card p-4">
           <div className="text-xs text-muted-foreground">Unidades pendentes</div>
-          <div className="text-2xl font-semibold tabular-nums">{formatNum(totalUnidades)}</div>
+          <div className="text-2xl font-medium tabular-nums">{formatNum(totalUnidades)}</div>
         </div>
         <div className="rounded-md border bg-card p-4">
           <div className="text-xs text-muted-foreground">Custo parado</div>
-          <div className="text-2xl font-semibold tabular-nums">{formatBRL(totalValor)}</div>
+          <div className="text-2xl font-medium tabular-nums">{formatBRL(totalValor)}</div>
         </div>
       </div>
 

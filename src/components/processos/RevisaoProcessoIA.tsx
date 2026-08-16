@@ -251,10 +251,10 @@ export function RevisaoProcessoIA({ resultadoIa, importacaoId, onCancel }: Props
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <Badge variant="secondary" className="gap-1 mb-2">
-            <Sparkles className="h-3 w-3 text-purple-500" />
+            <Sparkles className="h-3 w-3 text-info" />
             Sugerido pela IA — revise antes de salvar
           </Badge>
-          <h1 className="text-2xl font-bold tracking-tight">Revisão do processo</h1>
+          <h1 className="text-2xl font-medium tracking-tight">Revisão do processo</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Ajuste o que precisar. O processo será salvo como rascunho.
           </p>

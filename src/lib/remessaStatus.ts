@@ -16,14 +16,14 @@ export interface RemessaStatusMeta {
 }
 
 export const REMESSA_STATUS: Record<string, RemessaStatusMeta> = {
-  aguardando_definicao: { label: "Aguardando definição", badge: "bg-gray-100 text-gray-700", dot: "bg-gray-400" },
-  aguardando_estoque: { label: "Aguardando estoque", badge: "bg-yellow-100 text-yellow-800", dot: "bg-yellow-500" },
-  pronta_para_envio: { label: "Pronta para envio", badge: "bg-blue-100 text-blue-800", dot: "bg-blue-500" },
-  enviada_bling: { label: "Enviada ao Bling", badge: "bg-purple-100 text-purple-800", dot: "bg-purple-500" },
-  faturada: { label: "Faturada", badge: "bg-green-100 text-green-800", dot: "bg-green-500" },
-  em_transporte: { label: "Em transporte", badge: "bg-indigo-100 text-indigo-800", dot: "bg-indigo-500" },
-  entregue: { label: "Entregue", badge: "bg-emerald-100 text-emerald-800", dot: "bg-emerald-500" },
-  cancelada: { label: "Cancelada", badge: "bg-red-100 text-red-800", dot: "bg-red-500" },
+  aguardando_definicao: { label: "Aguardando definição", badge: "bg-muted/10 text-muted-foreground", dot: "bg-muted" },
+  aguardando_estoque: { label: "Aguardando estoque", badge: "bg-warning/10 text-warning", dot: "bg-warning" },
+  pronta_para_envio: { label: "Pronta para envio", badge: "bg-info/10 text-info", dot: "bg-info" },
+  enviada_bling: { label: "Enviada ao Bling", badge: "bg-info/10 text-info", dot: "bg-info" },
+  faturada: { label: "Faturada", badge: "bg-success/10 text-success", dot: "bg-success" },
+  em_transporte: { label: "Em transporte", badge: "bg-info/10 text-info", dot: "bg-info" },
+  entregue: { label: "Entregue", badge: "bg-success/10 text-success", dot: "bg-success" },
+  cancelada: { label: "Cancelada", badge: "bg-destructive/10 text-destructive", dot: "bg-destructive" },
 };
 
 export function remessaStatusMeta(status: string | null | undefined): RemessaStatusMeta {

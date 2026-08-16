@@ -526,7 +526,7 @@ function PilarBloco({
       {aberto && (
         <div className="border-t bg-muted/10">
           {/* Header colunas */}
-          <div className="grid grid-cols-[1fr_60px_60px_60px_60px] gap-2 px-4 py-2 text-[10px] uppercase tracking-wide text-muted-foreground font-semibold border-b">
+          <div className="grid grid-cols-[1fr_60px_60px_60px_60px] gap-2 px-4 py-2 text-[10px] uppercase tracking-wide text-muted-foreground font-medium border-b">
             <span>Permissão</span>
             <span className="text-center">Ver</span>
             <span className="text-center">Criar</span>
@@ -548,7 +548,7 @@ function PilarBloco({
                     <Badge variant="outline" className="text-[9px] py-0 px-1">LGPD</Badge>
                   )}
                   {p.feature_em_teste && (
-                    <Badge variant="outline" className="text-[9px] py-0 px-1 bg-amber-50">BETA</Badge>
+                    <Badge variant="outline" className="text-[9px] py-0 px-1 bg-warning/10">BETA</Badge>
                   )}
                   {p.tipo === "tela" && (
                     <span className="text-[9px] text-muted-foreground/60">tela</span>

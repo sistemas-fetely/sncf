@@ -119,7 +119,7 @@ export default function SlaXpm() {
   return (
     <div className="max-w-[1100px] mx-auto px-4 md:px-8 py-8 space-y-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">SLA da XPM por canal</h1>
+        <h1 className="text-2xl font-medium tracking-tight">SLA da XPM por canal</h1>
         <p className="text-sm text-muted-foreground">
           Meta de horas do ciclo de expedição, definida pela Fetely. O relógio do cliente conta hora
           corrida; o da XPM desconta fim de semana.

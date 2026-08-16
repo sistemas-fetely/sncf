@@ -33,8 +33,8 @@ interface EntradaRow {
 }
 
 const ORIGEM_META: Record<string, { label: string; classe: string }> = {
-  portao: { label: "Portão", classe: "border-sky-300 text-sky-700 dark:text-sky-400" },
-  split: { label: "Herdado de split", classe: "border-amber-300 text-amber-700 dark:text-amber-400" },
+  portao: { label: "Portão", classe: "border-info/40 text-info" },
+  split: { label: "Herdado de split", classe: "border-warning/40 text-warning" },
   migracao: { label: "Migração", classe: "border-border text-muted-foreground" },
 };
 
@@ -136,19 +136,19 @@ export default function EntradasRecebidas() {
         <Card>
           <CardContent className="p-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Total em aberto</p>
-            <p className="text-2xl font-semibold">{formatBRL(totalAberto)}</p>
+            <p className="text-2xl font-medium">{formatBRL(totalAberto)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Pedidos com entrada</p>
-            <p className="text-2xl font-semibold">{qtdPedidos}</p>
+            <p className="text-2xl font-medium">{qtdPedidos}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Já cobrem o pedido inteiro</p>
-            <p className="text-2xl font-semibold">{qtdCobrindoTudo}</p>
+            <p className="text-2xl font-medium">{qtdCobrindoTudo}</p>
           </CardContent>
         </Card>
       </div>
@@ -230,11 +230,11 @@ export default function EntradasRecebidas() {
                       <TableCell className="text-sm">{r.forma_pagamento ?? "—"}</TableCell>
                       <TableCell className="text-sm">{formatDateBR(r.recebido_em)}</TableCell>
                       <TableCell className="text-right text-sm">{formatBRL(r.valor)}</TableCell>
-                      <TableCell className="text-right font-semibold">{formatBRL(r.saldo)}</TableCell>
+                      <TableCell className="text-right font-medium">{formatBRL(r.saldo)}</TableCell>
                       <TableCell className="text-right text-sm">
                         {r.pct_pago === null ? "—" : `${Math.round(r.pct_pago)}%`}
                         {r.cobre_pedido_inteiro && (
-                          <Badge variant="outline" className="ml-2 text-[9px] h-4 px-1 border-emerald-500 text-emerald-700 dark:text-emerald-400">
+                          <Badge variant="outline" className="ml-2 text-[9px] h-4 px-1 border-success/40 text-success">
                             integral
                           </Badge>
                         )}

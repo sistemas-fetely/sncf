@@ -103,7 +103,7 @@ export function PedidosDoParceiroSection({ parceiroId }: { parceiroId: string })
                     <TableCell className="text-sm">
                       {formatarData(p.data_pedido, p.recebido_em)}
                     </TableCell>
-                    <TableCell className="font-semibold tabular-nums">
+                    <TableCell className="font-medium tabular-nums">
                       {fmtBRL.format(Number(p.valor_liquido || 0))}
                     </TableCell>
                     <TableCell>

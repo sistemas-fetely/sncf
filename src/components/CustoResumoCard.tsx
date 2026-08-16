@@ -18,9 +18,9 @@ interface CustoResumoProps {
 
 function CustoLine({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className={`flex items-center justify-between py-1.5 ${highlight ? "font-semibold text-primary" : ""}`}>
+    <div className={`flex items-center justify-between py-1.5 ${highlight ? "font-medium text-primary" : ""}`}>
       <span className="text-sm text-muted-foreground">{label}</span>
-      <span className={`text-sm ${highlight ? "text-primary font-bold" : "font-medium"}`}>{value}</span>
+      <span className={`text-sm ${highlight ? "text-primary font-medium" : "font-medium"}`}>{value}</span>
     </div>
   );
 }
@@ -76,17 +76,17 @@ export function CustoResumoCard({ tipo, salarioBase, dependentesIRRF = 0 }: Cust
       </CardHeader>
       <CardContent className="space-y-0">
         {/* Proventos */}
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Salário</p>
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Salário</p>
         <CustoLine label="Salário Base" value={fmt(salarioBase)} />
         
         <Separator className="my-2" />
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Descontos do Empregado</p>
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Descontos do Empregado</p>
         <CustoLine label={`INSS Empregado`} value={`- ${fmt(inss)}`} />
         <CustoLine label={`IRRF`} value={`- ${fmt(irrf)}`} />
         <CustoLine label="Salário Líquido (est.)" value={fmt(Math.max(salarioLiquido, 0))} highlight />
 
         <Separator className="my-2" />
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
           <Calculator className="h-3 w-3 inline mr-1" />
           Encargos do Empregador
         </p>
@@ -95,7 +95,7 @@ export function CustoResumoCard({ tipo, salarioBase, dependentesIRRF = 0 }: Cust
         <CustoLine label="Total Encargos" value={fmt(totalEncargos)} />
 
         <Separator className="my-2" />
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
           <TrendingUp className="h-3 w-3 inline mr-1" />
           Provisões Mensais
         </p>

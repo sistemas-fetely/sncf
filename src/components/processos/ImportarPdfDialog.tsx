@@ -99,7 +99,7 @@ export function ImportarPdfDialog({ open, onOpenChange, onProcessoUnico, onMulti
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-purple-500" />
+            <Sparkles className="h-4 w-4 text-info" />
             Importar processo de PDF
           </DialogTitle>
           <DialogDescription>

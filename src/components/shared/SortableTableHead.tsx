@@ -71,7 +71,7 @@ export function SortableTableHead<TColumn extends string>({
         className={cn(
           "flex items-center gap-1.5 w-full hover:text-foreground transition-colors",
           alinha,
-          ativo ? "text-foreground font-semibold" : "text-muted-foreground",
+          ativo ? "text-foreground font-medium" : "text-muted-foreground",
         )}
       >
         <span>{children}</span>

@@ -33,7 +33,7 @@ export function TermoUsoDialog({ open, onOpenChange, versao }: Props) {
         <ScrollArea className="flex-1 pr-4">
           <div className="space-y-5 text-sm text-foreground">
             <section>
-              <h3 className="font-semibold mb-1">1. O que é este termo</h3>
+              <h3 className="font-medium mb-1">1. O que é este termo</h3>
               <p className="text-muted-foreground leading-relaxed">
                 Este termo define as regras de uso do <strong>Fetély</strong> e
                 dos sistemas associados pela Fetely Comércio Importação e Exportação Ltda.
@@ -43,7 +43,7 @@ export function TermoUsoDialog({ open, onOpenChange, versao }: Props) {
             </section>
 
             <section>
-              <h3 className="font-semibold mb-1">2. Uso aceitável</h3>
+              <h3 className="font-medium mb-1">2. Uso aceitável</h3>
               <p className="text-muted-foreground leading-relaxed">Você se compromete a:</p>
               <ul className="list-disc list-inside text-muted-foreground space-y-1 mt-1 ml-2">
                 <li>Acessar o sistema apenas para atividades relacionadas ao seu trabalho na Fetely</li>
@@ -55,7 +55,7 @@ export function TermoUsoDialog({ open, onOpenChange, versao }: Props) {
             </section>
 
             <section>
-              <h3 className="font-semibold mb-1">3. Confidencialidade</h3>
+              <h3 className="font-medium mb-1">3. Confidencialidade</h3>
               <p className="text-muted-foreground leading-relaxed">
                 Todas as informações acessadas via Fetély são <strong>confidenciais</strong>,
                 incluindo (sem limitação): dados pessoais de colaboradores, salários, benefícios,
@@ -66,7 +66,7 @@ export function TermoUsoDialog({ open, onOpenChange, versao }: Props) {
             </section>
 
             <section>
-              <h3 className="font-semibold mb-1">4. Proteção de Dados Pessoais (LGPD)</h3>
+              <h3 className="font-medium mb-1">4. Proteção de Dados Pessoais (LGPD)</h3>
               <p className="text-muted-foreground leading-relaxed">
                 A Fetely trata seus dados pessoais de acordo com a Lei 13.709/2018 (LGPD), e você
                 tem direito a: acessar seus dados, corrigi-los, solicitar exclusão quando aplicável,
@@ -77,7 +77,7 @@ export function TermoUsoDialog({ open, onOpenChange, versao }: Props) {
             </section>
 
             <section>
-              <h3 className="font-semibold mb-1">5. Monitoramento e auditoria</h3>
+              <h3 className="font-medium mb-1">5. Monitoramento e auditoria</h3>
               <p className="text-muted-foreground leading-relaxed">
                 <strong>Todas as ações realizadas no sistema são registradas</strong> para fins de
                 auditoria, compliance e segurança. Isso inclui acessos, consultas, alterações e
@@ -87,7 +87,7 @@ export function TermoUsoDialog({ open, onOpenChange, versao }: Props) {
             </section>
 
             <section>
-              <h3 className="font-semibold mb-1">6. Ativos corporativos</h3>
+              <h3 className="font-medium mb-1">6. Ativos corporativos</h3>
               <p className="text-muted-foreground leading-relaxed">
                 Seu email corporativo, sistemas e equipamentos fornecidos pela Fetely são
                 <strong> ativos da empresa</strong>. Na saída de colaborador, esses acessos são revogados
@@ -96,7 +96,7 @@ export function TermoUsoDialog({ open, onOpenChange, versao }: Props) {
             </section>
 
             <section>
-              <h3 className="font-semibold mb-1">7. Consequências do descumprimento</h3>
+              <h3 className="font-medium mb-1">7. Consequências do descumprimento</h3>
               <p className="text-muted-foreground leading-relaxed">
                 O descumprimento deste termo pode resultar em medidas disciplinares previstas
                 em lei e nas normas internas da Fetely, incluindo revogação de acessos, advertência
@@ -106,7 +106,7 @@ export function TermoUsoDialog({ open, onOpenChange, versao }: Props) {
             </section>
 
             <section>
-              <h3 className="font-semibold mb-1">8. Atualizações</h3>
+              <h3 className="font-medium mb-1">8. Atualizações</h3>
               <p className="text-muted-foreground leading-relaxed">
                 Este termo pode ser atualizado. Versões anteriores ficam arquivadas e você será
                 solicitado a aceitar a nova versão quando necessário. A versão vigente é exibida

@@ -19,11 +19,11 @@ export interface SituacaoMeta {
 
 export const TOM_CLASSES: Record<TomSituacao, string> = {
   neutro: "bg-muted text-foreground border-0",
-  info: "bg-sky-100 text-sky-900 dark:bg-sky-900/30 dark:text-sky-200 border-0",
+  info: "bg-info/10 text-info border-0",
   positivo:
-    "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200 border-0",
+    "bg-success/10 text-success border-0",
   alerta:
-    "bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200 border-0",
+    "bg-warning/10 text-warning border-0",
   critico: "bg-destructive text-destructive-foreground border-0",
 };
 
