@@ -56,7 +56,7 @@ function StatCardMini({
   const toneCls =
     tone === "success" ? "bg-success/10 text-success"
     : tone === "info" ? "bg-info/10 text-info"
-    : tone === "warning" ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+    : tone === "warning" ? "bg-warning/10 text-warning"
     : tone === "destructive" ? "bg-destructive/10 text-destructive"
     : "bg-primary/10 text-primary";
   return (
@@ -66,7 +66,7 @@ function StatCardMini({
       </div>
       <div className="min-w-0">
         <div className="text-xs text-muted-foreground truncate">{label}</div>
-        <div className="text-lg font-semibold leading-tight truncate">{value}</div>
+        <div className="text-lg font-medium leading-tight truncate">{value}</div>
         {hint ? <div className="text-[11px] text-muted-foreground leading-snug break-words">{hint}</div> : null}
       </div>
     </div>
@@ -374,16 +374,16 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
     : canal === "b2b" ? "B2B" : canal === "b2c" ? "B2C" : "Total";
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       {/* P&L */}
-      <section className="space-y-4">
+      <section className="space-y-3">
         <div className="flex items-center gap-2">
-          <DollarSign className="h-5 w-5 text-primary" />
-          <h2 className="text-base font-semibold">P&L da Logística</h2>
+          <DollarSign className="h-4 w-4 text-primary" />
+          <h2 className="text-[15px] font-medium">P&L da Logística</h2>
           <span className="text-xs text-muted-foreground">Receita cobrada × custo real · escopo: {canalLabel}</span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2">
           <StatCardMini
             label="Receita de frete"
             value={BRL.format(totais.receita)}
@@ -399,9 +399,6 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
             tone={margemNeg ? "destructive" : "success"}
             hint="= subsídio que a Fetely banca"
           />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <StatCardMini label="% recuperação" value={`${totais.pctRec.toFixed(1)}%`} icon={Percent} tone={totais.pctRec >= 100 ? "success" : "warning"} hint="receita ÷ custo" />
           <StatCardMini label="Frete cobrado/NF" value={`${totais.pctNf.toFixed(2)}%`} icon={Percent} tone="info" hint="sobre NFs com frete" />
           {(() => {
@@ -418,11 +415,11 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
                   <div className="text-xs text-muted-foreground truncate">Peso do subsídio</div>
                   <div className="flex flex-col gap-0.5 mt-0.5">
                     <div className="leading-tight">
-                      <span className="text-base font-semibold">{pctTotal}%</span>{" "}
+                      <span className="text-base font-medium">{pctTotal}%</span>{" "}
                       <span className="text-[11px] text-muted-foreground">do faturamento total</span>
                     </div>
                     <div className="leading-tight">
-                      <span className="text-base font-semibold">{pctNfs}%</span>{" "}
+                      <span className="text-base font-medium">{pctNfs}%</span>{" "}
                       <span className="text-[11px] text-muted-foreground">das NFs com frete</span>
                     </div>
                   </div>
@@ -438,7 +435,7 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
             {serieMensal.length === 0 ? (
               <div className="text-sm text-muted-foreground py-8 text-center">Sem dados de P&L.</div>
             ) : (
-              <div style={{ width: "100%", height: 320 }}>
+              <div style={{ width: "100%", height: 240 }}>
                 <ResponsiveContainer>
                   <ComposedChart data={serieMensal} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -484,7 +481,7 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
                           <div className="flex items-center gap-2">
                             <span>{r.transportadora}</span>
                             {r.receita_sem_custo ? (
-                              <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                              <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-warning/10 text-warning">
                                 sem custo rastreado
                               </span>
                             ) : null}
@@ -643,7 +640,7 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <div className="text-xs text-muted-foreground mb-1">Custo por UF (R$)</div>
-                    <div style={{ width: "100%", height: 300 }}>
+                    <div style={{ width: "100%", height: 220 }}>
                       <ResponsiveContainer>
                         <BarChart data={custoPorUf} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -659,7 +656,7 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground mb-1">Fretes por UF (qtd)</div>
-                    <div style={{ width: "100%", height: 300 }}>
+                    <div style={{ width: "100%", height: 220 }}>
                       <ResponsiveContainer>
                         <BarChart data={custoPorUf} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -681,10 +678,10 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
       </section>
 
       {/* KPIs operacionais */}
-      <section className="space-y-4">
+      <section className="space-y-3">
         <div className="flex items-center gap-2">
-          <Truck className="h-5 w-5 text-primary" />
-          <h2 className="text-base font-semibold">KPIs operacionais</h2>
+          <Truck className="h-4 w-4 text-primary" />
+          <h2 className="text-[15px] font-medium">KPIs operacionais</h2>
           <span className="text-xs text-muted-foreground">Baseado nos rastreios importados</span>
         </div>
 
@@ -750,7 +747,7 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
                         <TableCell className="text-right tabular-nums">{NUM.format(r.total)}</TableCell>
                         <TableCell className="text-right tabular-nums">
                           {r.onTimePct != null ? (
-                            <span className={cn(r.onTimePct >= 90 ? "text-success" : r.onTimePct >= 75 ? "text-amber-700 dark:text-amber-300" : "text-destructive")}>
+                            <span className={cn(r.onTimePct >= 90 ? "text-success" : r.onTimePct >= 75 ? "text-warning" : "text-destructive")}>
                               {r.onTimePct.toFixed(1)}%
                             </span>
                           ) : <span className="text-muted-foreground">—</span>}
@@ -788,7 +785,7 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
             {mixTransp.length === 0 ? (
               <div className="text-sm text-muted-foreground py-8 text-center">Sem rastreios ainda.</div>
             ) : (
-              <div style={{ width: "100%", height: 280 }}>
+              <div style={{ width: "100%", height: 240 }}>
                 <ResponsiveContainer>
                   <BarChart data={mixTransp} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
