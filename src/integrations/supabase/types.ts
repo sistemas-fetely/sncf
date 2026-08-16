@@ -7410,7 +7410,7 @@ export type Database = {
           sku: string
         }
         Insert: {
-          centro_id?: string
+          centro_id: string
           classe?: string
           condicao?: string
           criado_em?: string
@@ -17329,6 +17329,7 @@ export type Database = {
           doc_numero: string | null
           doc_tipo: string | null
           id: string
+          importacao_pedido_id: number | null
           motivo: string | null
           obs: string | null
           origem: string
@@ -17341,7 +17342,7 @@ export type Database = {
         }
         Insert: {
           centro_custo_id?: string | null
-          centro_id?: string
+          centro_id: string
           classe?: string
           condicao?: string
           criado_em?: string
@@ -17351,6 +17352,7 @@ export type Database = {
           doc_numero?: string | null
           doc_tipo?: string | null
           id?: string
+          importacao_pedido_id?: number | null
           motivo?: string | null
           obs?: string | null
           origem: string
@@ -17373,6 +17375,7 @@ export type Database = {
           doc_numero?: string | null
           doc_tipo?: string | null
           id?: string
+          importacao_pedido_id?: number | null
           motivo?: string | null
           obs?: string | null
           origem?: string
@@ -17425,6 +17428,34 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "estoque_condicao"
             referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_pedido"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_contradicao_fase"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_invoice_conferencia"
+            referencedColumns: ["importacao_pedido_id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_pedido_detalhe"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacao_estoque_motivo_fkey"
@@ -40619,9 +40650,12 @@ export type Database = {
         Row: {
           aritmetica_ok: boolean | null
           criado_em: string
+          data_termo: string | null
           descricao: string | null
           id: string
+          importacao_pedido_id: number | null
           lote: string | null
+          nf_id: number | null
           nf_numero: string | null
           qtd_declarada: number
           qtd_excesso: number
@@ -40638,9 +40672,12 @@ export type Database = {
         Insert: {
           aritmetica_ok?: boolean | null
           criado_em?: string
+          data_termo?: string | null
           descricao?: string | null
           id?: string
+          importacao_pedido_id?: number | null
           lote?: string | null
+          nf_id?: number | null
           nf_numero?: string | null
           qtd_declarada?: number
           qtd_excesso?: number
@@ -40657,9 +40694,12 @@ export type Database = {
         Update: {
           aritmetica_ok?: boolean | null
           criado_em?: string
+          data_termo?: string | null
           descricao?: string | null
           id?: string
+          importacao_pedido_id?: number | null
           lote?: string | null
+          nf_id?: number | null
           nf_numero?: string | null
           qtd_declarada?: number
           qtd_excesso?: number
@@ -40674,6 +40714,48 @@ export type Database = {
           validade_serie?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "xpm_termo_linha_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_pedido"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_contradicao_fase"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_invoice_conferencia"
+            referencedColumns: ["importacao_pedido_id"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_pedido_detalhe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_nf"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_pedido_conferencia_nf"
+            referencedColumns: ["nf_id"]
+          },
           {
             foreignKeyName: "xpm_termo_linha_sku_fkey"
             columns: ["sku"]
@@ -60708,7 +60790,12 @@ export type Database = {
         Returns: Json
       }
       ingerir_termo_conferencia: {
-        Args: { p_rows: Json; p_termo: string }
+        Args: {
+          p_centro_codigo?: string
+          p_data_recebimento: string
+          p_rows: Json
+          p_termo: string
+        }
         Returns: Json
       }
       iniciar_compra_pedido: { Args: { p_pedido_id: string }; Returns: Json }
