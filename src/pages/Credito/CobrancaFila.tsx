@@ -17,6 +17,7 @@ import CreditoClientesIndex from "@/pages/Credito/CreditoClientesIndex";
 import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
 import { useTitulosCobranca } from "@/hooks/credito/useTitulosCobranca";
 import { useReguaFilaHoje } from "@/hooks/credito/useReguaFila";
+import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageTitle } from "@/components/layout/PageTitle";
 import { Selo } from "@/components/ui/selo";
