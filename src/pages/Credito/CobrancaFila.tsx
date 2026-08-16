@@ -331,17 +331,17 @@ function ImportarRetornoModal({
         ) : (
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
-              <div className="p-4 rounded-md border bg-emerald-50 text-center">
-                <p className="text-2xl font-semibold text-emerald-700">{resultado.confirmados}</p>
-                <p className="text-xs text-emerald-700">Confirmados</p>
+              <div className="p-4 rounded-md border bg-success/10 text-center">
+                <p className="text-2xl font-medium tabular-nums text-success">{resultado.confirmados}</p>
+                <p className="text-xs text-success">Confirmados</p>
               </div>
-              <div className="p-4 rounded-md border bg-red-50 text-center">
-                <p className="text-2xl font-semibold text-red-700">{resultado.rejeitados}</p>
-                <p className="text-xs text-red-700">Rejeitados</p>
+              <div className="p-4 rounded-md border bg-destructive/10 text-center">
+                <p className="text-2xl font-medium tabular-nums text-destructive">{resultado.rejeitados}</p>
+                <p className="text-xs text-destructive">Rejeitados</p>
               </div>
-              <div className="p-4 rounded-md border bg-blue-50 text-center">
-                <p className="text-2xl font-semibold text-blue-700">{resultado.emails_enviados}</p>
-                <p className="text-xs text-blue-700">E-mails enviados</p>
+              <div className="p-4 rounded-md border bg-info/10 text-center">
+                <p className="text-2xl font-medium tabular-nums text-info">{resultado.emails_enviados}</p>
+                <p className="text-xs text-info">E-mails enviados</p>
               </div>
             </div>
 
