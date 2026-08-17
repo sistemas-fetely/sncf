@@ -110,8 +110,8 @@ export function TISidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        )}
         <div className="mx-4 border-t border-sidebar-border/40" />
+
 
         {soltos.length > 0 && (
           <SidebarGroup>
