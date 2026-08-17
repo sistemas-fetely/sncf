@@ -18,6 +18,7 @@ import {
   parsearPlanilhaMercadoria,
   linhasParaTexto,
   type ResultadoParseMercadoria,
+  type CabecalhoPlanilha,
 } from "@/lib/compras/templatePedidoMercadoria";
 
 type Modo = "substituir" | "adicionar";
@@ -27,7 +28,10 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   temTextoAtual: boolean;
   onImportar: (texto: string, modo: Modo) => void;
+  /** Chamado só quando a planilha traz a aba Cabecalho preenchida. */
+  onImportarCabecalho?: (cab: CabecalhoPlanilha) => void;
 }
+
 
 export default function ImportarLinhasMercadoriaDialog({
   open,
