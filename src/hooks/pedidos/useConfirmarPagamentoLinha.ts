@@ -90,6 +90,8 @@ export function useConfirmarPagamentoLinha() {
         ["pedido-detalhe", res.pedido_id],
         ["pedido-portao-provisorio", res.pedido_id],
         ["provisoes-pedido", res.pedido_id],
+        ["plano-aberto-pedido", res.pedido_id],
+        ["provisao-portao-pendente", res.pedido_id],
         ["pedidos-fila"],
         ["pedidos-pipeline"],
         ["contas-receber-titulos"],
