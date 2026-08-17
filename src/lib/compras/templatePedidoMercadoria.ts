@@ -7,6 +7,8 @@ import ExcelJS from "exceljs";
 // ============================================================================
 
 const NOME_ABA_ITENS = "Itens";
+const NOME_ABA_LINHAS = "Linhas";
+const NOME_ABA_CABECALHO = "Cabecalho";
 const NOME_ABA_INSTRUCOES = "Instruções";
 const MAX_LINHAS = 1000;
 const VERDE_FETELY = "FF1A4A3A";
@@ -17,6 +19,24 @@ const COLUNAS = {
   quantidade: ["quantidade", "qtd"],
   preco: ["preco_unitario", "preco unitario", "preco", "preço unitário"],
 } as const;
+
+/** Campos da aba Cabecalho, na ordem em que aparecem no template. */
+export const CAMPOS_CABECALHO = [
+  "numero_pedido",
+  "modalidade",
+  "moeda",
+  "fornecedor",
+  "centro_destino",
+  "status",
+  "referencia_fornecedor",
+  "data_pedido",
+  "prazo_entrega_acordado",
+  "condicao_pagamento",
+  "observacao",
+] as const;
+
+export type CampoCabecalho = (typeof CAMPOS_CABECALHO)[number];
+export type CabecalhoPlanilha = Partial<Record<CampoCabecalho, string>>;
 
 export interface LinhaMercadoriaValida {
   linhaPlanilha: number;
@@ -35,7 +55,10 @@ export interface ResultadoParseMercadoria {
   erroGlobal: string | null;
   validas: LinhaMercadoriaValida[];
   invalidas: LinhaMercadoriaInvalida[];
+  /** Preenchido só quando a planilha traz a aba Cabecalho com algum valor. */
+  cabecalho: CabecalhoPlanilha | null;
 }
+
 
 function normalizar(s: string): string {
   return s
