@@ -5,6 +5,9 @@ import { ptBR } from "date-fns/locale";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  PermissaoTelaProvider, usePermissaoTelaContext, AvisoSomenteLeitura,
+} from "@/contexts/PermissaoTelaContext";
 import { QuickAddTarefa } from "@/components/tarefas/QuickAddTarefa";
 import { InboxFilas } from "@/components/tarefas/InboxFilas";
 import { TarefaItem } from "@/components/tarefas/TarefaItem";
@@ -28,8 +31,17 @@ function Lista({ tarefas, atrasada }: { tarefas: Tarefa[]; atrasada?: boolean })
 }
 
 export default function TarefasHoje() {
+  return (
+    <PermissaoTelaProvider slug="tela.tarefas">
+      <TarefasHojeConteudo />
+    </PermissaoTelaProvider>
+  );
+}
+
+function TarefasHojeConteudo() {
   const { user } = useAuth();
   const userId = user?.id;
+  const { podeCriar, podeEditar } = usePermissaoTelaContext();
 
   const hoje = useTarefasHoje(userId);
   const proximos = useTarefasProximos7(userId);
@@ -48,11 +60,15 @@ export default function TarefasHoje() {
         estado={format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
       />
 
-      <Card>
-        <CardContent className="pt-4">
-          <QuickAddTarefa />
-        </CardContent>
-      </Card>
+      {!podeEditar && <AvisoSomenteLeitura />}
+
+      {podeCriar && (
+        <Card>
+          <CardContent className="pt-4">
+            <QuickAddTarefa />
+          </CardContent>
+        </Card>
+      )}
 
       <Tabs defaultValue="hoje">
         <TabsList>
