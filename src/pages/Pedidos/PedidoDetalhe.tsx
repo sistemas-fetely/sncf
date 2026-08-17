@@ -85,6 +85,11 @@ import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock
 import { useFreteComparativo } from "@/hooks/pedidos/useFreteComparativo";
 import { CompararTransportadorasDialog } from "@/components/pedidos/dialogs/CompararTransportadorasDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { transicoesPara } from "@/lib/pedidoTransicoes";
+import { useTransicionarPedido } from "@/hooks/pedidos/useTransicionarPedido";
+import { SplitPedidoDialog } from "@/components/pedidos/dialogs/SplitPedidoDialog";
 import { AtencaoPedidoDialog } from "@/components/pedidos/dialogs/AtencaoPedidoDialog";
 import { useLimparAtencao } from "@/hooks/pedidos/useAtencaoPedido";
 import { toast } from "@/hooks/use-toast";
@@ -136,16 +141,34 @@ function Linha({ label, value, destaque }: { label: string; value?: string | num
   );
 }
 
-function ListaItensComEstoque({ itens, pedidoId }: { itens: any[]; pedidoId: string }) {
+/**
+ * RESERVA-NASCE-DA-PRE-SEPARACAO: a partir da pré-separação a peça já está
+ * reservada para o pedido, então tag de lastro vira ruído — nesses estágios
+ * não mostramos faixa, badge nem fundo de linha.
+ */
+const ESTAGIOS_JA_RESERVADO = [
+  "pre_separacao",
+  "em_separacao",
+  "pre_faturamento",
+  "pre_faturado",
+  "faturado",
+  "em_transporte",
+  "entregue",
+];
+
+function ListaItensComEstoque({ itens, pedidoId, estagio }: { itens: any[]; pedidoId: string; estagio?: string | null }) {
   const coberturaQ = useCoberturaItens([pedidoId]);
   const coberturaMap = coberturaQ.data ?? new Map<string, CoberturaItem>();
   useEffect(() => {
     if (coberturaQ.error) toastSonner.error((coberturaQ.error as Error).message);
   }, [coberturaQ.error]);
 
-  const problemas = itens
-    .map((i: any) => coberturaMap.get(i.id)?.cobertura)
-    .filter((c) => c === "parcial" || c === "descoberto" || c === "sem_lastro");
+  const jaReservado = ESTAGIOS_JA_RESERVADO.includes(estagio ?? "");
+  const problemas = jaReservado
+    ? []
+    : itens
+        .map((i: any) => coberturaMap.get(i.id)?.cobertura)
+        .filter((c) => c === "parcial" || c === "descoberto" || c === "sem_lastro");
   const temDescoberto = problemas.some((c) => c === "descoberto" || c === "sem_lastro");
   return (
     <>
@@ -165,7 +188,7 @@ function ListaItensComEstoque({ itens, pedidoId }: { itens: any[]; pedidoId: str
       {itens.length === 0
         ? <p className="text-sm text-muted-foreground text-center py-6">Itens ainda não importados.</p>
         : itens.map((item: any) => {
-            const cob = coberturaMap.get(item.id);
+            const cob = jaReservado ? undefined : coberturaMap.get(item.id);
             const rotulo = cob ? rotuloCobertura(cob.cobertura, cob.qtd_coberta, cob.quantidade) : null;
             const descoberto = cob?.cobertura === "descoberto" || cob?.cobertura === "sem_lastro";
             const parcial = cob?.cobertura === "parcial";
@@ -665,6 +688,116 @@ function BotaoSplitPedidoInline({ pedido, estagio }: { pedido: any; estagio: str
     />
   );
 }
+
+/**
+ * Descida manual para pré-separação. A guarda do banco (RESERVA-NASCE-DA-PRE-SEPARACAO)
+ * bloqueia quando falta lastro; aqui o operador vê o que falta e escolhe entre
+ * dividir a remessa (caminho correto na maioria dos casos) ou forçar com motivo.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function AcaoDescerPreSeparacao({ pedido, estagio }: { pedido: any; estagio: EstagioPedido }) {
+  const transicionar = useTransicionarPedido();
+  const [motivo, setMotivo] = useState("");
+  const [splitOpen, setSplitOpen] = useState(false);
+  const falta = transicionar.faltaLastro;
+
+  const fechar = () => {
+    setMotivo("");
+    transicionar.limparFaltaLastro();
+  };
+
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="outline"
+        className="w-full gap-1.5"
+        disabled={transicionar.isPending}
+        onClick={() =>
+          transicionar.mutate({ pedido_id: pedido.id, para_estagio: "pre_separacao" })
+        }
+      >
+        {transicionar.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Package className="h-4 w-4" />}
+        Descer para pré-separação
+      </Button>
+
+      <AlertDialog open={!!falta} onOpenChange={(v) => { if (!v) fechar(); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sem lastro para pré-separação</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <p>
+                  A reserva de estoque nasce na pré-separação. O pedido não pode descer porque
+                  falta disponível para os itens abaixo.
+                </p>
+                {(falta?.faltantes.length ?? 0) > 0 && (
+                  <ul className="rounded-md bg-muted/50 border p-3 space-y-1 text-xs">
+                    {falta?.faltantes.map((f, i) => (
+                      <li key={i}>{f}</li>
+                    ))}
+                  </ul>
+                )}
+                <p>
+                  O caminho recomendado é <strong>dividir a remessa</strong>, mandando só o que tem lastro.
+                  Se ainda assim quiser forçar, explique o motivo — ele fica{" "}
+                  <strong>registrado no histórico do pedido</strong>.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-2">
+            <Label>Motivo (obrigatório)</Label>
+            <Textarea
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              placeholder="Por que descer sem lastro?"
+              rows={3}
+            />
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={transicionar.isPending}>Cancelar</AlertDialogCancel>
+            <Button
+              variant="outline"
+              disabled={transicionar.isPending}
+              onClick={() => { fechar(); setSplitOpen(true); }}
+            >
+              <Scissors className="h-4 w-4 mr-1.5" />
+              Dividir remessa
+            </Button>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={!motivo.trim() || transicionar.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                transicionar.mutate(
+                  { pedido_id: pedido.id, para_estagio: "pre_separacao", motivo: motivo.trim() },
+                  { onSuccess: () => fechar() },
+                );
+              }}
+            >
+              {transicionar.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+              Forçar mesmo assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <SplitPedidoDialog
+        open={splitOpen}
+        onOpenChange={setSplitOpen}
+        pedido_id={pedido.id}
+        id_externo={pedido.id_externo}
+        valor_liquido={pedido.valor_liquido}
+        valor_bruto={pedido.valor_bruto}
+        estagio_origem={estagio}
+      />
+    </>
+  );
+}
+
 
 
 function AcoesPedidoCobranca({ pedido, parceiro }: { pedido: any; parceiro: any }) {
@@ -2567,7 +2700,7 @@ export default function PedidoDetalhe() {
                 </div>
               </CardHeader>
               <CardContent>
-                <ListaItensComEstoque itens={itens} pedidoId={pedido.id} />
+                <ListaItensComEstoque itens={itens} pedidoId={pedido.id} estagio={estagio} />
               </CardContent>
             </Card>
           </div>
@@ -2605,6 +2738,9 @@ export default function PedidoDetalhe() {
               )}
               {!estagioFinal && estagio === "aguardando_estoque" && (
                 <EnviarParaSeparacaoAcao pedidoId={pedido.id} />
+              )}
+              {!estagioFinal && estagio !== "aguardando_estoque" && transicoesPara(estagio).includes("pre_separacao") && (
+                <AcaoDescerPreSeparacao pedido={pedido} estagio={estagio} />
               )}
               {!estagioFinal && (
                 <BotaoSplitPedidoInline pedido={pedido} estagio={estagio} />
