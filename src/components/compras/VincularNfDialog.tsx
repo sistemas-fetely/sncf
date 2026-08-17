@@ -11,6 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Selo } from "@/components/ui/selo";
+import { EstadoVazio } from "@/components/ui/estado-vazio";
+import { CardIndicador } from "@/components/ui/card-indicador";
+
 import {
   Dialog,
   DialogContent,
@@ -216,9 +219,10 @@ export default function VincularNfDialog({ open, onOpenChange, pedidoId, fornece
             {formatError(candidatasQ.error)}
           </div>
         ) : (candidatasQ.data ?? []).length === 0 ? (
-          <div className="text-sm text-muted-foreground">
-            Nenhuma NF disponível deste fornecedor.
-          </div>
+          <EstadoVazio
+            mensagem="Nenhuma NF deste fornecedor disponível para vincular. Importe a nota na aba “Rateio de NF” ou confira se ela já está neste pedido."
+          />
+
         ) : (
           <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
             {(candidatasQ.data ?? []).map((nf) => {
@@ -275,30 +279,24 @@ export default function VincularNfDialog({ open, onOpenChange, pedidoId, fornece
             ) : previa ? (
               <>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  <div>
-                    <div className="text-xs text-muted-foreground">SKUs no pedido</div>
-                    <div className="text-lg font-medium tabular-nums">
-                      {previa.skus_que_existem_no_pedido ?? 0} de {previa.skus_na_nf ?? 0}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground">SKUs fora do pedido</div>
-                    <div
-                      className={cn(
-                        "text-lg font-medium tabular-nums",
-                        (previa.skus_fora_do_pedido ?? 0) > 0 && "text-warning",
-                      )}
-                    >
-                      {previa.skus_fora_do_pedido ?? 0}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground">Rateios a reapontar</div>
-                    <div className="text-lg font-medium tabular-nums">
-                      {previa.alocacoes_a_reapontar ?? 0}
-                    </div>
-                  </div>
+                  <CardIndicador
+                    compacto
+                    rotulo="SKUs no pedido"
+                    valor={`${previa.skus_que_existem_no_pedido ?? 0} de ${previa.skus_na_nf ?? 0}`}
+                  />
+                  <CardIndicador
+                    compacto
+                    rotulo="SKUs fora do pedido"
+                    valor={previa.skus_fora_do_pedido ?? 0}
+                    tom={(previa.skus_fora_do_pedido ?? 0) > 0 ? "atencao" : "neutro"}
+                  />
+                  <CardIndicador
+                    compacto
+                    rotulo="Rateios a reapontar"
+                    valor={previa.alocacoes_a_reapontar ?? 0}
+                  />
                 </div>
+
 
                 {(previa.skus_fora_do_pedido ?? 0) > 0 && (
                   <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-2 text-xs text-warning">
