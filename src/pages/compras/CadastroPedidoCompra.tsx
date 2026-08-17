@@ -130,6 +130,15 @@ interface PedidoListaRow {
   fase_xpm: number | null;
 }
 
+interface PreviaExclusao {
+  pedido_id: number;
+  numero_pedido: string | null;
+  pode_excluir: boolean;
+  bloqueios: string[] | null;
+  linhas_que_serao_apagadas: number | null;
+  excluido: boolean | null;
+}
+
 interface SaldoPedidoLinha {
   pedido_id: number;
   fase_calculada: string | null;
