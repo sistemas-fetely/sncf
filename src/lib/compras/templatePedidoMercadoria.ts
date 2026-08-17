@@ -178,14 +178,18 @@ export async function gerarTemplatePedidoMercadoria(): Promise<void> {
     "",
     "Como preencher:",
     "",
-    "1. Aba 'Itens' — uma linha por item. Não renomeie nem reordene os cabeçalhos.",
-    "2. codigo_fornecedor — é o código do FORNECEDOR, o mesmo que vem na nota dele.",
+    "1. Aba 'Cabecalho' — uma única linha de dados com os campos do pedido.",
+    "   Fornecedor, centro_destino, modalidade e status são resolvidos por nome ou código.",
+    "   Datas no formato dd/mm/aaaa ou aaaa-mm-dd.",
+    "2. Aba 'Linhas' — uma linha por item. Não renomeie nem reordene os cabeçalhos.",
+    "3. codigo — é o código do FORNECEDOR, o mesmo que vem na nota dele.",
     "   Não é o nosso SKU. O sistema resolve o SKU pelo de-para de fornecedor.",
     "   Se o código não estiver mapeado, a conferência aponta e você cadastra o de-para.",
-    "3. quantidade — número inteiro maior que zero.",
-    "4. preco_unitario — na moeda do pedido. Use ponto ou vírgula como decimal.",
-    "5. Apague as linhas de exemplo antes de importar.",
-    `6. Limite: ${MAX_LINHAS} linhas por planilha.`,
+    "4. quantidade — número inteiro maior que zero.",
+    "5. preco — na moeda do pedido. Use ponto ou vírgula como decimal.",
+    "6. Apague as linhas de exemplo antes de importar.",
+    `7. Limite: ${MAX_LINHAS} linhas por planilha.`,
+
   ];
   instrucoes.forEach((texto, i) => {
     const cell = wsInst.getCell(i + 2, 1);
