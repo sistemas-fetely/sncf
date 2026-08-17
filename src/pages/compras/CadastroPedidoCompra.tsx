@@ -490,7 +490,8 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
       });
       if (error) throw error;
       const raw = Array.isArray(data) ? data[0] : data;
-      setPreviaExclusao((raw ?? null) as PreviaExclusao | null);
+      setPreviaExclusao((raw as unknown as PreviaExclusao | null) ?? null);
+
 
     } catch (e) {
       toast.error(`Não foi possível checar a exclusão: ${formatError(e)}`);
@@ -509,7 +510,8 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
         p_confirmar: true,
       });
       if (error) throw error;
-      const linha = (Array.isArray(data) ? data[0] : data) as PreviaExclusao | null;
+      const linha = (Array.isArray(data) ? data[0] : data) as unknown as PreviaExclusao | null;
+
 
       if (linha && linha.excluido === false) {
         toast.error(
