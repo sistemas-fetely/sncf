@@ -28,6 +28,17 @@ function statusLabel(node: PosicaoNode) {
   if (node.status_pessoal === "afastado") return "Afastado";
   return "Ativo";
 }
+const ICONES_VINCULO: Record<string, string> = {
+  CLT: "💼",
+  PJ: "🔷",
+  PRESTADOR: "🔧",
+  SOCIO: "⭐",
+};
+
+function iconeVinculo(codigo: string | null | undefined): string {
+  if (!codigo) return "▪️";
+  return ICONES_VINCULO[codigo] ?? "▪️";
+}
 
 interface RowProps {
   node: PosicaoNode;
@@ -83,7 +94,7 @@ function TreeRow({ node, expanded, toggleExpand, onNodeClick, canSeeSalary, show
         <td className="py-2 px-3">
           {node.vinculo ? (
             <Badge variant="outline" className="text-[10px] h-5">
-              {node.vinculo === "CLT" ? "💼" : "🔷"} {node.vinculo}
+              {iconeVinculo(node.vinculo)} {node.vinculo}
             </Badge>
           ) : (
             <span className="text-muted-foreground text-sm">—</span>
