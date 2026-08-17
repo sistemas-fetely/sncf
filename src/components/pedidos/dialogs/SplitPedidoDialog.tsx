@@ -71,7 +71,7 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
     queryFn: async (): Promise<ItemPedido[]> => {
       const { data, error } = await (supabase as any)
         .from("pedido_itens")
-        .select("descricao, sku, quantidade, valor_unitario")
+        .select("id, descricao, sku, quantidade, valor_unitario")
         .eq("pedido_id", pedido_id)
         .order("ordem");
       if (error) throw error;
@@ -80,11 +80,18 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
     enabled: open && !!pedido_id,
   });
 
-  const estoqueQ = useEstoqueVirtualPorSkus((itens ?? []).map((it) => it.sku));
-  const estoqueMap = estoqueQ.data ?? new Map<string, number>();
+  const coberturaQ = useCoberturaItens([pedido_id]);
+  const coberturaPorItem = useMemo(() => {
+    const map = new Map<string, CoberturaItem>();
+    for (const [, item] of (coberturaQ.data ?? new Map())) {
+      map.set(item.id, item);
+    }
+    return map;
+  }, [coberturaQ.data]);
+
   useEffect(() => {
-    if (estoqueQ.error) toast.error((estoqueQ.error as Error).message);
-  }, [estoqueQ.error]);
+    if (coberturaQ.error) toast.error((coberturaQ.error as Error).message);
+  }, [coberturaQ.error]);
 
   const getQtdSplit = (sku: string, total: number) =>
     Math.min(Math.max(0, qtdSplit[sku] ?? 0), total);
