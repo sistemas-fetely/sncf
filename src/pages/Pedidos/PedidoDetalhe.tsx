@@ -2698,7 +2698,7 @@ export default function PedidoDetalhe() {
                 </div>
               </CardHeader>
               <CardContent>
-                <ListaItensComEstoque itens={itens} pedidoId={pedido.id} />
+                <ListaItensComEstoque itens={itens} pedidoId={pedido.id} estagio={estagio} />
               </CardContent>
             </Card>
           </div>
@@ -2736,6 +2736,9 @@ export default function PedidoDetalhe() {
               )}
               {!estagioFinal && estagio === "aguardando_estoque" && (
                 <EnviarParaSeparacaoAcao pedidoId={pedido.id} />
+              )}
+              {!estagioFinal && estagio !== "aguardando_estoque" && transicoesPara(estagio).includes("pre_separacao") && (
+                <AcaoDescerPreSeparacao pedido={pedido} estagio={estagio} />
               )}
               {!estagioFinal && (
                 <BotaoSplitPedidoInline pedido={pedido} estagio={estagio} />
