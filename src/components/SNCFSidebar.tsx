@@ -326,7 +326,9 @@ export function SNCFSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-2 space-y-1">
+        {!carregandoVisibilidade && podeVer("/canal-cpo") && (
         <Link
+
           to="/canal-cpo"
           className={`flex items-center gap-3 rounded-xl px-4 py-2.5 mx-1 text-sm transition-all duration-200 ${
             location.pathname.startsWith("/canal-cpo")
