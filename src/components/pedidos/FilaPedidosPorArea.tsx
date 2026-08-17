@@ -61,7 +61,9 @@ const PAGE_SIZE_OPTIONS = ["auto", 50, 100, 200, 500] as const;
 type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
 const DEFAULT_PAGE_SIZE: PageSizeOption = "auto";
 const ROW_HEIGHT = 64; // px aprox (linha de 2 alturas de texto após a fusão de colunas)
-const FOOTER_RESERVE = 80;
+const HEADER_ROW_HEIGHT = 44; // linha de cabecalho da tabela, sticky
+const FOOTER_RESERVE = 112;
+
 
 
 function buildPageRange(current: number, total: number): (number | "…")[] {
@@ -151,18 +153,33 @@ export function FilaPedidosPorArea({
   
 
   useLayoutEffect(() => {
+    const el = tableWrapperRef.current;
+    if (!el) return;
+
     function recompute() {
-      const el = tableWrapperRef.current;
-      if (!el) return;
-      const top = el.getBoundingClientRect().top;
-      const available = window.innerHeight - top - FOOTER_RESERVE;
-      const rows = Math.max(3, Math.floor(available / ROW_HEIGHT));
-      setAutoPageSize(rows);
+      const node = tableWrapperRef.current;
+      if (!node) return;
+      const top = node.getBoundingClientRect().top;
+      const available =
+        window.innerHeight - top - HEADER_ROW_HEIGHT - FOOTER_RESERVE;
+      const rows = Math.min(12, Math.max(3, Math.floor(available / ROW_HEIGHT)));
+      setAutoPageSize((atual) => (atual === rows ? atual : rows));
     }
+
     recompute();
+
+    // O topo da tabela muda quando os cards do pipeline e os filtros
+    // terminam de carregar. Observar o body pega esse deslocamento.
+    const ro = new ResizeObserver(recompute);
+    ro.observe(document.body);
     window.addEventListener("resize", recompute);
-    return () => window.removeEventListener("resize", recompute);
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", recompute);
+    };
   }, []);
+
 
   useEffect(() => {
     const t = setTimeout(() => setBuscaDebounced(busca), 300);
