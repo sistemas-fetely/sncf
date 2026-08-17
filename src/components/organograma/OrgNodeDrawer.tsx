@@ -7,12 +7,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Calendar, Mail, Phone, Users, Briefcase, DollarSign, Pencil, Link2, Search } from "lucide-react";
+import { Mail, Phone, Users, Briefcase, Pencil, Link2, Search } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { differenceInMonths } from "date-fns";
 import { useMovePosicao } from "@/hooks/useOrgMutations";
-import { SalarioMasked } from "@/components/SalarioMasked";
 import type { PosicaoNode } from "@/types/organograma";
 
 interface Props {
