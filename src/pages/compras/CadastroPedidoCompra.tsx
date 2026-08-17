@@ -785,23 +785,65 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                         );
                       })()}
 
+                      <TableCell>{rotuloAtraso(p.prazo_entrega_acordado, p.eta)}</TableCell>
+
+                      <TableCell>
+                        <div className="flex flex-wrap items-center gap-1">
+                          {TIPOS_PENDENCIA.map((t) => {
+                            const pend = pendenciaPorPedido.get(Number(p.id));
+                            const n = pend ? totalPendencia(pend, t.tipo) : 0;
+                            return (
+                              <button
+                                key={t.tipo}
+                                type="button"
+                                title={`${t.rotulo} — ${t.descricao}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  irParaPendencia(t.tipo, p.id);
+                                }}
+                                className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              >
+                                <Selo estado={n > 0 ? "warning" : "muted"}>
+                                  {t.rotuloCurto} {n}
+                                </Selo>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </TableCell>
+
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          title="Editar pedido"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditarId(p.id);
-                          }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            title="Editar pedido"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditarId(p.id);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive"
+                            title="Excluir pedido"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void abrirExclusao(p);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
 
                     </TableRow>
                   ))}
+
                 </TableBody>
               </Table>
               </div>
