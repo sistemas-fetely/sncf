@@ -90,6 +90,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { transicoesPara } from "@/lib/pedidoTransicoes";
 import { useTransicionarPedido } from "@/hooks/pedidos/useTransicionarPedido";
 import { SplitPedidoDialog } from "@/components/pedidos/dialogs/SplitPedidoDialog";
+import { ForcarSemLastroDialog } from "@/components/pedidos/dialogs/ForcarSemLastroDialog";
 import { AtencaoPedidoDialog } from "@/components/pedidos/dialogs/AtencaoPedidoDialog";
 import { useLimparAtencao } from "@/hooks/pedidos/useAtencaoPedido";
 import { toast } from "@/hooks/use-toast";
@@ -697,14 +698,8 @@ function BotaoSplitPedidoInline({ pedido, estagio }: { pedido: any; estagio: str
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function AcaoDescerPreSeparacao({ pedido, estagio }: { pedido: any; estagio: EstagioPedido }) {
   const transicionar = useTransicionarPedido();
-  const [motivo, setMotivo] = useState("");
   const [splitOpen, setSplitOpen] = useState(false);
   const falta = transicionar.faltaLastro;
-
-  const fechar = () => {
-    setMotivo("");
-    transicionar.limparFaltaLastro();
-  };
 
   return (
     <>
@@ -721,69 +716,19 @@ function AcaoDescerPreSeparacao({ pedido, estagio }: { pedido: any; estagio: Est
         Descer para pré-separação
       </Button>
 
-      <AlertDialog open={!!falta} onOpenChange={(v) => { if (!v) fechar(); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Sem lastro para pré-separação</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-3 text-sm">
-                <p>
-                  A reserva de estoque nasce na pré-separação. O pedido não pode descer porque
-                  falta disponível para os itens abaixo.
-                </p>
-                {(falta?.faltantes.length ?? 0) > 0 && (
-                  <ul className="rounded-md bg-muted/50 border p-3 space-y-1 text-xs">
-                    {falta?.faltantes.map((f, i) => (
-                      <li key={i}>{f}</li>
-                    ))}
-                  </ul>
-                )}
-                <p>
-                  O caminho recomendado é <strong>dividir a remessa</strong>, mandando só o que tem lastro.
-                  Se ainda assim quiser forçar, explique o motivo — ele fica{" "}
-                  <strong>registrado no histórico do pedido</strong>.
-                </p>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-
-          <div className="space-y-2">
-            <Label>Motivo (obrigatório)</Label>
-            <Textarea
-              value={motivo}
-              onChange={(e) => setMotivo(e.target.value)}
-              placeholder="Por que descer sem lastro?"
-              rows={3}
-            />
-          </div>
-
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={transicionar.isPending}>Cancelar</AlertDialogCancel>
-            <Button
-              variant="outline"
-              disabled={transicionar.isPending}
-              onClick={() => { fechar(); setSplitOpen(true); }}
-            >
-              <Scissors className="h-4 w-4 mr-1.5" />
-              Dividir remessa
-            </Button>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={!motivo.trim() || transicionar.isPending}
-              onClick={(e) => {
-                e.preventDefault();
-                transicionar.mutate(
-                  { pedido_id: pedido.id, para_estagio: "pre_separacao", motivo: motivo.trim() },
-                  { onSuccess: () => fechar() },
-                );
-              }}
-            >
-              {transicionar.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-              Forçar mesmo assim
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ForcarSemLastroDialog
+        open={!!falta}
+        onOpenChange={(v) => { if (!v) transicionar.limparFaltaLastro(); }}
+        faltantes={falta?.faltantes ?? []}
+        isPending={transicionar.isPending}
+        onDividirRemessa={() => setSplitOpen(true)}
+        onForcar={(motivo) => {
+          transicionar.mutate(
+            { pedido_id: pedido.id, para_estagio: "pre_separacao", motivo },
+            { onSuccess: () => transicionar.limparFaltaLastro() },
+          );
+        }}
+      />
 
       <SplitPedidoDialog
         open={splitOpen}
@@ -797,6 +742,7 @@ function AcaoDescerPreSeparacao({ pedido, estagio }: { pedido: any; estagio: Est
     </>
   );
 }
+
 
 
 

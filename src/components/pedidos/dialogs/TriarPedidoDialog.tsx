@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ArrowRight, Zap, X, GitBranch, Undo2 } from "lucide-react";
 import { useTransicionarPedido } from "@/hooks/pedidos/useTransicionarPedido";
+import { ForcarSemLastroDialog } from "@/components/pedidos/dialogs/ForcarSemLastroDialog";
 import { useRegistrarOperacaoPedido } from "@/hooks/pedidos/useRegistrarOperacaoPedido";
 import { useRotearPedido } from "@/hooks/pedidos/useRotearPedido";
 import { useToast } from "@/hooks/use-toast";
@@ -91,6 +92,12 @@ export function TriarPedidoDialog({
     setOpen(false);
     setAcao(null);
     setMotivo("");
+  };
+
+  const destinoTransicionar = (a: Acao | null): EstagioPedido | null => {
+    if (a === "analise") return "em_analise_credito";
+    if (a === "cancelar") return "cancelado";
+    return null;
   };
 
   return (
@@ -196,6 +203,32 @@ export function TriarPedidoDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <ForcarSemLastroDialog
+        open={!!transicionar.faltaLastro}
+        onOpenChange={(v) => { if (!v) transicionar.limparFaltaLastro(); }}
+        faltantes={transicionar.faltaLastro?.faltantes ?? []}
+        isPending={transicionar.isPending}
+        onForcar={(motivoForcado) => {
+          const destino = destinoTransicionar(acao);
+          if (!destino) return;
+          transicionar.mutate(
+            {
+              pedido_id,
+              para_estagio: destino,
+              motivo: acao === "analise" ? motivoForcado : motivoForcado,
+            },
+            {
+              onSuccess: () => {
+                transicionar.limparFaltaLastro();
+                setOpen(false);
+                setAcao(null);
+                setMotivo("");
+              },
+            },
+          );
+        }}
+      />
     </Dialog>
   );
 }
