@@ -156,11 +156,57 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
         <div className="space-y-1">
           {(() => {
             // Itens do diálogo são locais (sem item_id): a cobertura da view é
-            // consolidada por SKU para casar com a lista em edição.
-            const porSku = new Map<string, CoberturaItem>();
-            for (const c of (coberturaQ.data ?? new Map<string, CoberturaItem>()).values()) {
-              if (c.sku) porSku.set(c.sku, c);
+            // consolidada por SKU para casar com a lista em edição. Quando o mesmo
+            // SKU aparece em linhas distintas, somamos quantidade e qtd_coberta
+            // antes de derivar o status e o rótulo do SKU no pedido.
+            function consolidarPorSku(
+              cobertura: Map<string, CoberturaItem>,
+            ): Map<string, CoberturaItem> {
+              const porSku = new Map<string, CoberturaItem>();
+              const flags = new Map<string, { todosFaturado: boolean; todosSemLastro: boolean }>();
+              for (const c of cobertura.values()) {
+                if (!c.sku) continue;
+                const atual = porSku.get(c.sku);
+                if (!atual) {
+                  porSku.set(c.sku, { ...c });
+                  flags.set(c.sku, {
+                    todosFaturado: c.cobertura === "faturado",
+                    todosSemLastro: c.cobertura === "sem_lastro",
+                  });
+                  continue;
+                }
+                const f = flags.get(c.sku)!;
+                const quantidade = atual.quantidade + c.quantidade;
+                const qtd_coberta = atual.qtd_coberta + c.qtd_coberta;
+                const qtd_descoberta = atual.qtd_descoberta + c.qtd_descoberta;
+                f.todosFaturado = f.todosFaturado && c.cobertura === "faturado";
+                f.todosSemLastro = f.todosSemLastro && c.cobertura === "sem_lastro";
+                let coberturaConsolidada: CoberturaItem["cobertura"];
+                if (f.todosFaturado) {
+                  coberturaConsolidada = "faturado";
+                } else if (qtd_coberta >= quantidade) {
+                  coberturaConsolidada = "coberto";
+                } else if (qtd_coberta > 0) {
+                  coberturaConsolidada = "parcial";
+                } else if (f.todosSemLastro) {
+                  coberturaConsolidada = "sem_lastro";
+                } else {
+                  coberturaConsolidada = "descoberto";
+                }
+                porSku.set(c.sku, {
+                  ...atual,
+                  quantidade,
+                  qtd_coberta,
+                  qtd_descoberta,
+                  cobertura: coberturaConsolidada,
+                });
+              }
+              return porSku;
             }
+
+            const porSku = consolidarPorSku(
+              coberturaQ.data ?? new Map<string, CoberturaItem>(),
+            );
             const coberturaDe = (sku: string | null) => (sku ? porSku.get(sku) : undefined);
             const problemas = itens
               .map((i) => coberturaDe(i.sku)?.cobertura)
