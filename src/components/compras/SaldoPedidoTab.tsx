@@ -32,6 +32,7 @@ export const ROTULO_SITUACAO_SALDO: Record<string, string> = {
 export const ROTULO_FASE_CALCULADA: Record<string, string> = {
   sem_nf: "Sem NF",
   nf_parcial: "NF parcial",
+  fatia_conferida: "Fatia conferida",
   faturado_nao_conferido: "Faturado, não conferido",
   conferido_parcial: "Conferido parcial",
   conferido_total: "Conferido",
@@ -172,7 +173,7 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
                   <div className="mt-0.5 text-sm">{resumo.status_declarado ?? "—"}</div>
                 </div>
                 <div>
-                  <div className="text-[11px] text-muted-foreground">Fase calculada</div>
+                  <div className="text-[11px] text-muted-foreground">Andamento</div>
                   <div className="mt-0.5">
                     <Selo estado="info">{rotuloFaseCalculada(resumo.fase_calculada)}</Selo>
                   </div>

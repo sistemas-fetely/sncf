@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { invalidarCompras } from "@/lib/compras/invalidar";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, AlertTriangle, Link2 } from "lucide-react";
@@ -177,15 +178,8 @@ export default function VincularNfDialog({ open, onOpenChange, pedidoId, fornece
           `${fora} linha(s) ficaram fora do rateio. Resolva na aba "Rateio de NF".`,
         );
       }
-      for (const key of [
-        "pedido-mercadoria-nfs",
-        "pedido-mercadoria-conferencia-nf",
-        "importacao-saldo-pedido",
-        "importacao-saldo-sku",
-        "importacao-saldo-pedido-lista",
-      ]) {
-        qc.invalidateQueries({ queryKey: [key] });
-      }
+      invalidarCompras(qc);
+      qc.invalidateQueries({ queryKey: ["pedido-mercadoria-diag-alocacao"] });
       onOpenChange(false);
     },
     onError: (e) => toast.error(formatError(e)),

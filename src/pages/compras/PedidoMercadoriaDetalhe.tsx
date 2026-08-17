@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import {
   ArrowLeft,
@@ -16,6 +16,8 @@ import {
 
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
+import { invalidarCompras } from "@/lib/compras/invalidar";
+import { toast } from "sonner";
 import { fmtMoeda, VERDE } from "@/lib/compras/lancamento-utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -405,12 +407,62 @@ export default function PedidoMercadoriaDetalhe() {
     };
   }, [linhasQ.data]);
 
+  const qc = useQueryClient();
+
   const naoAlocadas = useMemo(
     () => (confNfQ.data ?? []).filter((r) => r.situacao === "nao_alocado").length,
     [confNfQ.data],
   );
 
+  const nfIds = useMemo(
+    () => (nfsQ.data?.nfs ?? []).map((n) => Number(n.id)).sort((a, b) => a - b),
+    [nfsQ.data],
+  );
 
+  // Diagnostico real: o banco decide se falta de-para ou falta so rodar a alocacao.
+  const diagAlocQ = useQuery({
+    queryKey: ["pedido-mercadoria-diag-alocacao", pedidoId, nfIds.join(",")],
+    enabled: nfIds.length > 0 && naoAlocadas > 0,
+    queryFn: async () => {
+      let sem_depara = 0;
+      let linhas_alocaveis = 0;
+      let servico_sem_destino = 0;
+      for (const nfId of nfIds) {
+        const { data, error } = await (supabase as any).rpc("alocar_nf_linhas", {
+          p_nf_id: nfId,
+          p_confirmar: false,
+        });
+        if (error) throw error;
+        const r = (Array.isArray(data) ? data[0] : data) ?? {};
+        sem_depara += Number(r.sem_depara ?? 0);
+        linhas_alocaveis += Number(r.linhas_alocaveis ?? 0);
+        servico_sem_destino += Number(r.servico_sem_destino ?? 0);
+      }
+      return { sem_depara, linhas_alocaveis, servico_sem_destino };
+    },
+  });
+
+  const alocarAgora = useMutation({
+    mutationFn: async () => {
+      for (const nfId of nfIds) {
+        const { error } = await (supabase as any).rpc("alocar_nf_linhas", {
+          p_nf_id: nfId,
+          p_confirmar: true,
+        });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success("Linhas alocadas.");
+      invalidarCompras(qc);
+      void qc.invalidateQueries({ queryKey: ["pedido-mercadoria-diag-alocacao"] });
+    },
+    onError: (e) => toast.error(formatError(e)),
+  });
+
+
+
+  const diagAloc = diagAlocQ.data ?? null;
 
   const nfLinhasPor = (nfId: number) => (nfsQ.data?.linhas ?? []).filter((l) => l.nf_id === nfId);
   const invLinhasPor = (invId: number) =>
@@ -884,18 +936,54 @@ export default function PedidoMercadoriaDetalhe() {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {naoAlocadas > 0 && (
+                      {naoAlocadas > 0 && diagAloc && diagAloc.sem_depara > 0 && (
                         <div className="flex flex-wrap items-center gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning">
-                          <AlertTriangle className="h-4 w-4 shrink-0" />
+                          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
                           <span>
-                            {naoAlocadas} linha(s) da NF ainda não foram distribuídas em SKU. É o
-                            estado normal enquanto o de-para do fornecedor não estiver preenchido.
+                            {diagAloc.sem_depara} linha(s) sem de-para do fornecedor.
                           </span>
                           <Button variant="outline" size="sm" asChild>
                             <Link to="/compras/mercadoria?aba=de-para">
-                              Preencher de-para <ExternalLink className="h-3 w-3" />
+                              Preencher de-para <ExternalLink className="h-3 w-3" aria-hidden="true" />
                             </Link>
                           </Button>
+                        </div>
+                      )}
+                      {naoAlocadas > 0 &&
+                        diagAloc &&
+                        diagAloc.sem_depara === 0 &&
+                        diagAloc.linhas_alocaveis > 0 && (
+                          <div className="flex flex-wrap items-center gap-2 rounded-md border border-info/40 bg-info/10 p-3 text-sm text-info">
+                            <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                            <span>
+                              {diagAloc.linhas_alocaveis} linha(s) prontas para alocar. O de-para já
+                              está preenchido.
+                            </span>
+                            <Button
+                              size="sm"
+                              onClick={() => alocarAgora.mutate()}
+                              disabled={alocarAgora.isPending}
+                            >
+                              {alocarAgora.isPending && (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                              )}
+                              Alocar agora
+                            </Button>
+                          </div>
+                        )}
+                      {naoAlocadas > 0 && diagAloc && diagAloc.servico_sem_destino > 0 && (
+                        <div className="flex flex-wrap items-center gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning">
+                          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                          <span>
+                            {diagAloc.servico_sem_destino} linha(s) de serviço sem destino. Escolha o
+                            SKU de destino do serviço no de-para do fornecedor.
+                          </span>
+                        </div>
+                      )}
+                      {naoAlocadas > 0 && diagAlocQ.isLoading && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                          Checando o que falta para alocar...
                         </div>
                       )}
                       <div className="overflow-x-auto">
@@ -1078,7 +1166,7 @@ export default function PedidoMercadoriaDetalhe() {
             open={editOpen}
             onOpenChange={setEditOpen}
             pedidoId={pedidoId}
-            onSaved={() => pedidoQ.refetch()}
+            onSaved={() => invalidarCompras(qc)}
           />
 
         </>

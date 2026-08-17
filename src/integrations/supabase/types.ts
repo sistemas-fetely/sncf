@@ -17530,6 +17530,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "movimentacao_estoque_par_transferencia_id_fkey"
+            columns: ["par_transferencia_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_entradas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "movimentacao_estoque_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
@@ -46553,6 +46560,92 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_estoque_entradas: {
+        Row: {
+          centro: string | null
+          centro_nome: string | null
+          classe: string | null
+          condicao: string | null
+          criado_em: string | null
+          custo_unitario: number | null
+          data: string | null
+          doc_numero: string | null
+          doc_tipo: string | null
+          fornecedor: string | null
+          id: string | null
+          importacao_pedido_id: number | null
+          motivo: string | null
+          motivo_rotulo: string | null
+          nf_data: string | null
+          nf_numero: string | null
+          nome_comercial: string | null
+          numero_pedido: string | null
+          obs: string | null
+          origem: string | null
+          quantidade: number | null
+          sku: string | null
+          termo: string | null
+          valor: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimentacao_estoque_classe_fkey"
+            columns: ["classe"]
+            isOneToOne: false
+            referencedRelation: "estoque_classe"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_condicao_fkey"
+            columns: ["condicao"]
+            isOneToOne: false
+            referencedRelation: "estoque_condicao"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_pedido"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_compras_pendencias"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_invoice_conferencia"
+            referencedColumns: ["importacao_pedido_id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_pedido_detalhe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_saldo_pedido"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_motivo_fkey"
+            columns: ["motivo"]
+            isOneToOne: false
+            referencedRelation: "estoque_motivo_movimento"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
       vw_estoque_estimado_parceiro: {
         Row: {
           estoque_estimado: number | null
@@ -49722,14 +49815,20 @@ export type Database = {
       }
       vw_importacao_saldo_pedido: {
         Row: {
+          data_pedido: string | null
+          data_prevista: string | null
+          data_realizada: string | null
+          dias_atraso: number | null
           divergencia_status: string | null
           eta: string | null
           eta_precisao: string | null
+          etd: string | null
           fase_calculada: string | null
           fob_pedido: number | null
           modalidade: string | null
           numero_pedido: string | null
           pedido_id: number | null
+          prazo_entrega_acordado: string | null
           qtd_avarias: number | null
           qtd_conferida: number | null
           qtd_excesso: number | null
@@ -51746,14 +51845,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]

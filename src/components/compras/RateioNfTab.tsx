@@ -1,4 +1,5 @@
 import { Fragment, useMemo, useState } from "react";
+import { invalidarCompras } from "@/lib/compras/invalidar";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -650,10 +651,8 @@ function WorklistNf({ nf, aoVoltar }: { nf: NfPendencia; aoVoltar: () => void })
   }, [todas, busca]);
 
   function invalidar() {
-    void qc.invalidateQueries({ queryKey: ["rateio-nf-worklist", nf.id] });
-    void qc.invalidateQueries({ queryKey: ["rateio-nf-lista"] });
-    void qc.invalidateQueries({ queryKey: ["importacao-saldo-pedido"] });
-    void qc.invalidateQueries({ queryKey: ["importacao-saldo-sku"] });
+    invalidarCompras(qc);
+    void qc.invalidateQueries({ queryKey: ["pedido-mercadoria-diag-alocacao"] });
   }
 
   async function previewAlocar() {

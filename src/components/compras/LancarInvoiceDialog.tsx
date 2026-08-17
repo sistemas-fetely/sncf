@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { invalidarCompras } from "@/lib/compras/invalidar";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, AlertTriangle, CheckCircle2, ExternalLink } from "lucide-react";
@@ -190,10 +191,7 @@ export default function LancarInvoiceDialog({
       toast.success(
         `Invoice ${form.numero} ${acao} — ${d.linhas_gravadas ?? d.linhas ?? 0} linha(s), ${d.linhas_sem_sku ?? 0} sem SKU.`,
       );
-      qc.invalidateQueries({ queryKey: ["pedido-mercadoria-detalhe", pedidoId] });
-      qc.invalidateQueries({ queryKey: ["pedido-mercadoria-invoices", pedidoId] });
-      qc.invalidateQueries({ queryKey: ["pedido-mercadoria-conferencia-inv", pedidoId] });
-      qc.invalidateQueries({ queryKey: ["importacao-pedido-lista"] });
+      invalidarCompras(qc);
       setForm({ ...EMPTY, moeda: (moedaPadrao || "USD").toUpperCase() });
       setTexto("");
       setPrevia(null);

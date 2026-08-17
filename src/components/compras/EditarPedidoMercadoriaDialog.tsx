@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { invalidarCompras } from "@/lib/compras/invalidar";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AlertTriangle, Loader2 } from "lucide-react";
@@ -324,10 +325,8 @@ export default function EditarPedidoMercadoriaDialog({
       toast.success(
         `Pedido ${previa.numero_pedido} atualizado (${previa.total_alteracoes} alteração(ões)).`,
       );
-      qc.invalidateQueries({ queryKey: ["importacao-pedido-lista"] });
-      qc.invalidateQueries({ queryKey: ["importacao-pedido-detalhe"] });
+      invalidarCompras(qc);
       qc.invalidateQueries({ queryKey: ["importacao-pedido-editar", pedidoId] });
-      qc.invalidateQueries({ queryKey: ["importacao-pedido-evento", pedidoId] });
       onSaved?.();
       onOpenChange(false);
     } catch (e) {
