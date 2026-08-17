@@ -126,12 +126,15 @@ export function useSidebarApp(app: string) {
       // grupo sem item não vira cabeçalho órfão
       .filter((b) => b.itens.length > 0)
       .sort((a, b) => a.ordem - b.ordem);
-  }, [query.data, app]);
+  }, [query.data, app, isSuperAdmin, permitidas]);
+
+  const isLoading = query.isLoading || (!isSuperAdmin && isLoadingPerms);
 
   return {
-    blocos,
-    isLoading: query.isLoading,
+    blocos: isLoading ? [] : blocos,
+    isLoading,
     isError: query.isError,
     refetch: query.refetch,
   };
 }
+
