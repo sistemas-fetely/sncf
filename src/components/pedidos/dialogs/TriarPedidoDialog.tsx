@@ -216,7 +216,7 @@ export function TriarPedidoDialog({
             {
               pedido_id,
               para_estagio: destino,
-              motivo: acao === "analise" ? motivoForcado : motivoForcado,
+              motivo: motivoForcado,
             },
             {
               onSuccess: () => {
