@@ -11,6 +11,9 @@ interface Args {
   prova_ref?: string | null;
   data_pagamento: string; // ISO (date ou timestamptz)
   observacao?: string | null;
+  /** Texto pronto de qual meio ainda falta (ex.: "1 parcela de PIX").
+   *  Só alimenta o toast — a régua de portão continua sendo do banco. */
+  falta_label?: string | null;
 }
 
 export interface ConfirmarLinhaResult {
@@ -20,10 +23,14 @@ export interface ConfirmarLinhaResult {
   valor?: number;
   eh_portao?: boolean;
   adiantamento_id?: string | null;
+  /** Parcelas de cartão irmãs quitadas pela mesma captura. */
+  linhas_propagadas?: number;
+  valor_propagado?: number;
   portao_linhas_faltando?: number;
   portao_valor_faltando?: number;
   avancou?: boolean;
 }
+
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -50,28 +57,41 @@ export function useConfirmarPagamentoLinha() {
       return (data ?? { ok: true }) as ConfirmarLinhaResult;
     },
 
-    onSuccess: (res) => {
+    onSuccess: (res, args) => {
       const faltando = res.portao_linhas_faltando ?? 0;
-      if (res.avancou) {
-        toast({
-          title: "Pedido liberado",
-          description: "Todas as linhas de portão estão pagas — o pedido avançou.",
-        });
-      } else if (faltando > 0) {
-        toast({
-          title: "Pagamento registrado",
-          description: `Ainda faltam ${faltando} linha(s) de portão, somando ${fmtBRL.format(
+      const propagadas = res.linhas_propagadas ?? 0;
+
+      const linhas: string[] = [];
+      if (propagadas > 0) {
+        linhas.push(
+          `${propagadas} parcela(s) de cartão confirmadas pela mesma captura${
+            res.valor_propagado ? ` (${fmtBRL.format(Number(res.valor_propagado))})` : ""
+          }.`,
+        );
+      }
+      if (!res.avancou && faltando > 0) {
+        linhas.push(
+          `Ainda faltam ${faltando} linha(s) de portão, somando ${fmtBRL.format(
             Number(res.portao_valor_faltando ?? 0),
           )}.`,
-        });
-      } else {
-        toast({ title: "Pagamento registrado" });
+        );
+        if (args.falta_label) linhas.push(`Falta: ${args.falta_label}`);
       }
+
+      toast({
+        title: res.avancou
+          ? "Portão completo. Pedido liberado para Pré-Separação."
+          : "Pagamento registrado",
+        description: linhas.length ? linhas.join(" ") : undefined,
+      });
+
 
       const keys: (readonly unknown[])[] = [
         ["pedido-detalhe", res.pedido_id],
         ["pedido-portao-provisorio", res.pedido_id],
         ["provisoes-pedido", res.pedido_id],
+        ["plano-aberto-pedido", res.pedido_id],
+        ["provisao-portao-pendente", res.pedido_id],
         ["pedidos-fila"],
         ["pedidos-pipeline"],
         ["contas-receber-titulos"],

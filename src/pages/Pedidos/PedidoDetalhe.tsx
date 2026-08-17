@@ -63,6 +63,8 @@ import { CanalFopTab } from "@/components/pedidos/CanalFopTab";
 import { BotaoEditarPedido } from "@/components/pedidos/BotaoEditarPedido";
 import { EditarItensDialog } from "@/components/pedidos/dialogs/EditarItensDialog";
 import { ConfirmarPortaoPagoDialog } from "@/components/pedidos/dialogs/ConfirmarPortaoPagoDialog";
+import { ConfirmarCapturaCartaoDialog } from "@/components/pedidos/dialogs/ConfirmarCapturaCartaoDialog";
+import { usePlanoAbertoPedido, rotuloMeio } from "@/hooks/pedidos/usePlanoAbertoPedido";
 import { SplitsPedidoSection } from "@/components/pedidos/SplitsPedidoSection";
 import { BotaoSplitPedido } from "@/components/pedidos/BotaoSplitPedido";
 
@@ -703,13 +705,52 @@ function AcaoPrimaria({ pedido, parceiro, estagio, geraTituloReceber }: { pedido
   return null;
 }
 
+/**
+ * AÇÕES em `aguardando_pagamento`. A ação depende do MEIO das linhas abertas:
+ * cartão é captura única (um clique fecha todas as parcelas, propagação no
+ * banco); PIX e boleto seguem linha a linha, com a linha nomeada antes do clique.
+ */
 function AcoesAguardandoPagamento({ pedido }: { pedido: any; geraTituloReceber?: boolean }) {
+  const { data: plano } = usePlanoAbertoPedido(pedido.id);
+
+  const cartao = (plano ?? []).filter((l) => (l.tipo_pagamento ?? "").toLowerCase() === "cartao");
+  const linhaALinha = (plano ?? []).filter((l) =>
+    ["pix", "boleto"].includes((l.tipo_pagamento ?? "").toLowerCase()),
+  );
+
+  const resumoMeios = (linhas: typeof linhaALinha) => {
+    const porMeio = new Map<string, number>();
+    linhas.forEach((l) => {
+      const m = (l.tipo_pagamento ?? "").toLowerCase();
+      porMeio.set(m, (porMeio.get(m) ?? 0) + 1);
+    });
+    return [...porMeio.entries()]
+      .map(([m, n]) => `${n} parcela(s) de ${rotuloMeio(m)}`)
+      .join(", ");
+  };
+
   return (
     <div className="flex flex-col gap-2 w-full">
-      <ConfirmarPortaoPagoDialog pedido_id={pedido.id} />
+      {cartao.length > 0 && (
+        <ConfirmarCapturaCartaoDialog
+          linhas={cartao}
+          faltaLabel={linhaALinha.length ? resumoMeios(linhaALinha) : null}
+        />
+      )}
+      {linhaALinha.length > 0 && (
+        <ConfirmarPortaoPagoDialog
+          pedido_id={pedido.id}
+          meios={["pix", "boleto"]}
+          faltaLabel={cartao.length ? resumoMeios(cartao) : null}
+        />
+      )}
+      {!cartao.length && !linhaALinha.length && (
+        <ConfirmarPortaoPagoDialog pedido_id={pedido.id} />
+      )}
     </div>
   );
 }
+
 
 /**
  * Botão "Enviar para separação" que aparece apenas em pedidos no estágio
