@@ -27,7 +27,7 @@ import { useAtualizarUrgencia } from "@/hooks/pedidos/useAtualizarUrgencia";
 import { useRegistrarEventoPedido } from "@/hooks/pedidos/useRegistrarEventoPedido";
 
 import { isEstagioFinal } from "@/lib/pedidoTransicoes";
-import { useEstoqueVirtualPorSkus, isSemEstoque } from "@/lib/pedidoDestaque";
+import { useCoberturaItens, rotuloCobertura, type CoberturaItem } from "@/lib/pedidoDestaque";
 import { toast as toastSonner } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatDateBR } from "@/lib/format-currency";
@@ -2567,7 +2567,7 @@ export default function PedidoDetalhe() {
                 </div>
               </CardHeader>
               <CardContent>
-                <ListaItensComEstoque itens={itens} />
+                <ListaItensComEstoque itens={itens} pedidoId={pedido.id} />
               </CardContent>
             </Card>
           </div>
