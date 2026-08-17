@@ -87,6 +87,7 @@ import { CompararTransportadorasDialog } from "@/components/pedidos/dialogs/Comp
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { transicoesPara } from "@/lib/pedidoTransicoes";
 import { useTransicionarPedido } from "@/hooks/pedidos/useTransicionarPedido";
 import { SplitPedidoDialog } from "@/components/pedidos/dialogs/SplitPedidoDialog";
 import { AtencaoPedidoDialog } from "@/components/pedidos/dialogs/AtencaoPedidoDialog";
