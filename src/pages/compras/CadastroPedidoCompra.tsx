@@ -745,7 +745,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
 
   // ============================ RENDER ============================
   return (
-    <PageShell>
+    <div className="space-y-4">
 
 
       {/* ============================ LISTA ============================ */}
@@ -755,26 +755,31 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
           <CardTitle className="text-base">Pedidos existentes</CardTitle>
         </CardHeader>
         <CardContent>
-          {pedidosQ.isLoading ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Carregando...
-            </div>
-          ) : pedidosQ.isError ? (
-            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-4 space-y-3">
-              <div className="text-sm font-medium text-destructive">
-                Falha ao carregar os pedidos existentes.
-              </div>
-              <div className="text-xs text-destructive/90 break-words">
-                {formatError(pedidosQ.error)}
-              </div>
-              <Button size="sm" variant="outline" onClick={() => pedidosQ.refetch()}>
-                Tentar de novo
-              </Button>
-            </div>
-          ) : pedidosOrdenados.length === 0 ? (
-            <div className="text-sm text-muted-foreground">Nenhum pedido cadastrado.</div>
-          ) : (
-            <div className="space-y-3">
+          <TabelaFetely
+            carregando={pedidosQ.isLoading}
+            erro={pedidosQ.isError ? formatError(pedidosQ.error) : null}
+            aoTentarNovamente={() => void pedidosQ.refetch()}
+            vazio={{
+              mensagem:
+                "Nenhum pedido de mercadoria cadastrado. Comece pela aba “Novo pedido” — ou baixe o template e importe a planilha do fornecedor.",
+              acao: (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const next = new URLSearchParams();
+                    next.set("aba", "novo");
+                    setParams(next, { replace: false });
+                  }}
+                >
+                  Abrir “Novo pedido”
+                </Button>
+              ),
+            }}
+            total={pedidosOrdenados.length}
+            exibidos={pedidosOrdenados.length}
+            rotulo="pedidos"
+          >
               <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -793,8 +798,8 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                     <TableHead>Fase XPM</TableHead>
                     <TableHead>Fase calculada</TableHead>
                     <TableHead className="text-right">A receber</TableHead>
-                    <TableHead>Atraso</TableHead>
-                    <TableHead>Pendências</TableHead>
+                    <TableHead className="text-right">Atraso</TableHead>
+                    <TableHead className="text-right">Pendências</TableHead>
 
                     <TableHead className="w-20" />
 
@@ -819,18 +824,18 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                       </TableCell>
                       <TableCell>{p.centro ?? "—"}</TableCell>
                       <TableCell>{p.status ?? "—"}</TableCell>
-                      <TableCell>{fmtDate(p.data_pedido)}</TableCell>
-                      <TableCell>{fmtDate(p.etd)}</TableCell>
-                      <TableCell>{fmtDate(p.eta)}</TableCell>
-                      <TableCell className="text-right">{p.linhas ?? 0}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="tabular-nums">{fmtDate(p.data_pedido)}</TableCell>
+                      <TableCell className="tabular-nums">{fmtDate(p.etd)}</TableCell>
+                      <TableCell className="tabular-nums">{fmtDate(p.eta)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{p.linhas ?? 0}</TableCell>
+                      <TableCell className="text-right tabular-nums">
                         {fmtBRL(Number(p.custo_total ?? 0), p.moeda ?? "BRL")}
                       </TableCell>
                       <TableCell>
                         {p.fase_xpm === 2 ? (
-                          <Badge variant="secondary">Fase 2 · com NF</Badge>
+                          <Selo estado="info">Fase 2 · com NF</Selo>
                         ) : p.fase_xpm === 1 ? (
-                          <Badge variant="outline">Fase 1 · sem NF</Badge>
+                          <Selo estado="muted">Fase 1 · sem NF</Selo>
                         ) : (
                           "—"
                         )}
@@ -873,10 +878,12 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                         );
                       })()}
 
-                      <TableCell>{rotuloAtraso(p.prazo_entrega_acordado, p.eta)}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {rotuloAtraso(p.prazo_entrega_acordado, p.eta)}
+                      </TableCell>
 
-                      <TableCell>
-                        <div className="flex flex-wrap items-center gap-1">
+                      <TableCell className="text-right tabular-nums">
+                        <div className="flex flex-wrap items-center justify-end gap-1">
                           {TIPOS_PENDENCIA.map((t) => {
                             const pend = pendenciaPorPedido.get(Number(p.id));
                             const n = pend ? totalPendencia(pend, t.tipo) : 0;
@@ -885,6 +892,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                                 key={t.tipo}
                                 type="button"
                                 title={`${t.rotulo} — ${t.descricao}`}
+                                aria-label={`${t.rotulo}: ${n} no pedido ${p.numero_pedido}`}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   irParaPendencia(t.tipo, p.id);
@@ -907,24 +915,26 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                             size="icon"
                             className="h-7 w-7"
                             title="Editar pedido"
+                            aria-label={`Editar pedido ${p.numero_pedido}`}
                             onClick={(e) => {
                               e.stopPropagation();
                               setEditarId(p.id);
                             }}
                           >
-                            <Pencil className="h-4 w-4" />
+                            <Pencil className="h-4 w-4" aria-hidden="true" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7 text-destructive"
                             title="Excluir pedido"
+                            aria-label={`Excluir pedido ${p.numero_pedido}`}
                             onClick={(e) => {
                               e.stopPropagation();
                               void abrirExclusao(p);
                             }}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" aria-hidden="true" />
                           </Button>
                         </div>
                       </TableCell>
@@ -935,14 +945,13 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                 </TableBody>
               </Table>
               </div>
-            </div>
-
-          )}
+          </TabelaFetely>
 
         </CardContent>
       </Card>
 
       )}
+
 
       {/* ============================ FORMULÁRIO ============================ */}
       {vista === "novo" && (
