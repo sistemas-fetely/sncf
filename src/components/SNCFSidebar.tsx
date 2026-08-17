@@ -237,8 +237,10 @@ export function SNCFSidebar() {
   };
 
   const renderGroup = (label: string, items: MenuItem[]) => {
-    const visible = items.filter((i) => canSee(i.requireRole));
+    if (carregandoVisibilidade) return null;
+    const visible = items.filter((i) => canSee(i.requireRole) && podeVer(i.url));
     if (!visible.length) return null;
+
     return (
       <SidebarGroup>
         {!collapsed && (
