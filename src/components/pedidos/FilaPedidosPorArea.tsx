@@ -669,7 +669,7 @@ export function FilaPedidosPorArea({
                       <p className="text-sm font-normal text-muted-foreground truncate block w-full min-w-0" title={p.parceiro_razao}>{p.parceiro_razao}</p>
                     )}
                     <p
-                      className="text-[11px] text-muted-foreground truncate block w-full min-w-0"
+                      className="text-[11px] text-muted-foreground truncate block w-full min-w-0 leading-tight"
                       title={[
                         p.parceiro_id && apelidoMap?.[p.parceiro_id] ? apelidoMap[p.parceiro_id] : null,
                         p.parceiro_cnpj,
