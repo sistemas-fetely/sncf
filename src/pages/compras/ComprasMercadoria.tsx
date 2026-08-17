@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CadastroPedidoCompra from "@/pages/compras/CadastroPedidoCompra";
 import DeParaFornecedor from "@/pages/compras/DeParaFornecedor";
 import RateioNfTab from "@/components/compras/RateioNfTab";
+import PendenciasTab from "@/components/compras/PendenciasTab";
 
 import { PageShell } from "@/components/layout/PageShell";
 interface AbaMercadoria {
@@ -16,7 +17,13 @@ interface AbaMercadoria {
 // Container de abas para o domínio "Compra de Mercadoria" (importacao_pedido).
 // Abas novas podem ser acrescentadas apenas estendendo o array ABAS.
 const ABAS: AbaMercadoria[] = [
-  { value: "pedidos", label: "Pedidos", render: () => <CadastroPedidoCompra /> },
+  {
+    value: "acompanhamento",
+    label: "Acompanhamento",
+    render: () => <CadastroPedidoCompra vista="acompanhamento" />,
+  },
+  { value: "pendencias", label: "Pendências", render: () => <PendenciasTab /> },
+  { value: "novo", label: "Novo pedido", render: () => <CadastroPedidoCompra vista="novo" /> },
   { value: "de-para", label: "De-para de fornecedor", render: () => <DeParaFornecedor /> },
   { value: "rateio-nf", label: "Rateio de NF", render: () => <RateioNfTab /> },
 ];
