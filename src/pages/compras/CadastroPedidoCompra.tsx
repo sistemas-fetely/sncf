@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { PageShell } from "@/components/layout/PageShell";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -750,7 +752,8 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
 
   // ============================ RENDER ============================
   return (
-    <div className="space-y-4">
+    <PageShell>
+
 
 
       {/* ============================ LISTA ============================ */}
@@ -1356,7 +1359,8 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
           invalidarCompras(qc);
         }}
       />
-    </div>
+    </PageShell>
+
   );
 }
 
