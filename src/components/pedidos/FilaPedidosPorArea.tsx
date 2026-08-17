@@ -368,7 +368,7 @@ export function FilaPedidosPorArea({
     queryFn: async () => {
       const { data: rows, error } = await (supabase as any)
         .from("vw_pedido_aguardando_estoque")
-        .select("pedido_id, dias_esperando, situacao_recebivel, situacao_codigo, falta_linha")
+        .select("pedido_id, dias_esperando, situacao_recebivel, situacao_codigo")
         .in("pedido_id", pedidoIdsAguardando);
       if (error) throw error;
       const m = new Map<
@@ -377,7 +377,6 @@ export function FilaPedidosPorArea({
           dias_esperando: number | null;
           situacao_recebivel: string | null;
           situacao_codigo: string | null;
-          falta_linha: number | null;
         }
       >();
       (rows || []).forEach((r: any) => {
@@ -385,7 +384,6 @@ export function FilaPedidosPorArea({
           dias_esperando: r.dias_esperando,
           situacao_recebivel: r.situacao_recebivel,
           situacao_codigo: r.situacao_codigo,
-          falta_linha: r.falta_linha,
         });
       });
       return m;
