@@ -52857,8 +52857,11 @@ export type Database = {
           itens_parciais: number | null
           itens_total: number | null
           na_fila: boolean | null
+          pct_coberto: number | null
           pedido_id: string | null
+          un_cobertas: number | null
           un_descobertas: number | null
+          un_total: number | null
         }
         Relationships: [
           {

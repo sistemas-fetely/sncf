@@ -40,6 +40,9 @@ export interface CoberturaPedido {
   itens_parciais: number;
   itens_descobertos: number;
   un_descobertas: number;
+  un_total: number;
+  un_cobertas: number;
+  pct_coberto: number;
   cobertura_pedido: "coberto" | "parcial" | "descoberto" | "faturado";
 }
 
@@ -98,7 +101,7 @@ export async function buscarCoberturaPedidos(
   const { data, error } = await (supabase as any)
     .from("vw_pedido_cobertura")
     .select(
-      "pedido_id, id_externo, na_fila, itens_total, itens_cobertos, itens_parciais, itens_descobertos, un_descobertas, cobertura_pedido",
+      "pedido_id, id_externo, na_fila, itens_total, itens_cobertos, itens_parciais, itens_descobertos, un_descobertas, un_total, un_cobertas, pct_coberto, cobertura_pedido",
     )
     .in("pedido_id", ids);
 
@@ -114,6 +117,9 @@ export async function buscarCoberturaPedidos(
       itens_parciais: Number(row.itens_parciais ?? 0),
       itens_descobertos: Number(row.itens_descobertos ?? 0),
       un_descobertas: Number(row.un_descobertas ?? 0),
+      un_total: Number(row.un_total ?? 0),
+      un_cobertas: Number(row.un_cobertas ?? 0),
+      pct_coberto: Number(row.pct_coberto ?? 0),
       cobertura_pedido: row.cobertura_pedido,
     });
   }

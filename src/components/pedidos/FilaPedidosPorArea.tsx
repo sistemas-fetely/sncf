@@ -95,30 +95,52 @@ interface Props {
 
 function CelulaLastro({ cob }: { cob: CoberturaPedido | undefined }) {
   if (!cob) return <span className="text-muted-foreground">—</span>;
-  if (cob.cobertura_pedido === "coberto" || cob.cobertura_pedido === "faturado") {
+  if (cob.cobertura_pedido === "faturado") {
     return <span className="text-muted-foreground">—</span>;
   }
-  const descoberto = cob.cobertura_pedido === "descoberto";
-  const texto = descoberto
-    ? `Sem lastro · ${cob.itens_descobertos} itens`
-    : `Parcial · ${cob.itens_parciais} itens`;
+  const pct = cob.pct_coberto ?? 0;
+  if (pct === 100) {
+    return <span className="text-muted-foreground tabular-nums">100%</span>;
+  }
+  if (pct > 0) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge className="text-[10px] py-0 px-1.5 border-0 bg-warning/10 text-warning tabular-nums">
+              {pct}% · faltam {cob.un_descobertas} un
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="text-xs leading-tight">
+              {cob.un_cobertas} de {cob.un_total} unidades com lastro na fila de reserva.
+            </p>
+            {cob.na_fila === false && (
+              <p className="text-xs leading-tight">
+                Pedido fora da fila de reserva — estágio não reserva estoque.
+              </p>
+            )}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Badge
-            className={cn(
-              "text-[10px] py-0 px-1.5 border-0",
-              descoberto ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning"
-            )}
-          >
-            {texto}
+          <Badge variant="destructive" className="text-[10px] py-0 px-1.5 border-0 tabular-nums">
+            Sem lastro
           </Badge>
         </TooltipTrigger>
         <TooltipContent>
-          <p className="text-xs leading-tight">{cob.un_descobertas} unidade(s) sem lastro na fila de reserva.</p>
+          <p className="text-xs leading-tight">
+            {cob.un_cobertas} de {cob.un_total} unidades com lastro na fila de reserva.
+          </p>
           {cob.na_fila === false && (
-            <p className="text-xs leading-tight">Pedido fora da fila de reserva — estágio não reserva estoque.</p>
+            <p className="text-xs leading-tight">
+              Pedido fora da fila de reserva — estágio não reserva estoque.
+            </p>
           )}
         </TooltipContent>
       </Tooltip>
