@@ -165,6 +165,7 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
                     <tr>
                       <th className="text-left p-2">Produto</th>
                       <th className="text-right p-2 w-16">Total</th>
+                      <th className="text-right p-2 w-16">Com lastro</th>
                       <th className="text-right p-2 w-16">Original</th>
                       <th className="text-right p-2 w-28">Qtd Split</th>
                     </tr>
@@ -173,17 +174,30 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
                     {(itens ?? []).map((it) => {
                       const qSplit = getQtdSplit(it.sku, it.quantidade);
                       const qOrig = it.quantidade - qSplit;
-                      const semEstoque = isSemEstoque(it.sku, estoqueMap);
+                      const cob = coberturaPorItem.get(it.id);
+                      const cobertura = cob?.cobertura ?? null;
+                      const semCobertura = !cobertura;
+                      const descoberto = cobertura === "descoberto" || cobertura === "sem_lastro";
+                      const parcial = cobertura === "parcial";
+                      const rowAlert = descoberto ? "bg-destructive/10" : parcial ? "bg-warning/10" : "";
+                      const lastroClass = descoberto
+                        ? "text-destructive"
+                        : parcial
+                        ? "text-warning"
+                        : "text-muted-foreground";
                       return (
-                        <tr key={it.sku} className={`border-t ${semEstoque ? "bg-destructive/10" : ""}`}>
+                        <tr key={it.id} className={cn("border-t", rowAlert)}>
                           <td className="p-2">
                             <div className="font-medium flex items-center gap-1.5">
-                              {semEstoque && <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />}
+                              {descoberto && <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />}
                               {it.descricao}
                             </div>
                             <div className="text-xs text-muted-foreground">{it.sku}</div>
                           </td>
                           <td className="p-2 text-right">{it.quantidade}</td>
+                          <td className={cn("p-2 text-right", lastroClass)}>
+                            {semCobertura ? "—" : cob.qtd_coberta}
+                          </td>
                           <td className="p-2 text-right">{qOrig}</td>
                           <td className="p-2 text-right">
                             <Input
