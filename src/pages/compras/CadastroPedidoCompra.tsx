@@ -150,6 +150,9 @@ interface SaldoPedidoLinha {
   fase_calculada: string | null;
   saldo_a_receber: number | null;
   divergencia_status: string | null;
+  data_prevista: string | null;
+  data_realizada: string | null;
+  dias_atraso: number | null;
 }
 
 
@@ -224,12 +227,11 @@ const fmtBRL = (v: number, moeda = "BRL") =>
 const fmtDate = (d?: string | null) =>
   d ? format(parseISO(d), "dd/MM/yyyy") : "—";
 
-/** Atraso = ETA depois do prazo acordado. Sem prazo acordado, não há atraso a mostrar. */
-function rotuloAtraso(prazo?: string | null, eta?: string | null) {
-  if (!prazo) return <span className="text-muted-foreground">—</span>;
-  if (!eta) return <span className="text-muted-foreground">—</span>;
-  const dias = differenceInCalendarDays(parseISO(eta), parseISO(prazo));
-  if (dias <= 0) return <span className="text-muted-foreground">Em dia</span>;
+/** Atraso vem pronto de vw_importacao_saldo_pedido — nada é calculado aqui. */
+function rotuloAtraso(diasAtraso?: number | null) {
+  if (diasAtraso == null) return <span className="text-muted-foreground">—</span>;
+  const dias = Number(diasAtraso);
+  if (dias <= 0) return <span className="text-muted-foreground">0</span>;
   return <Selo estado="warning">{dias} {dias === 1 ? "dia" : "dias"}</Selo>;
 }
 
@@ -446,7 +448,9 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("vw_importacao_saldo_pedido")
-        .select("pedido_id, fase_calculada, saldo_a_receber, divergencia_status");
+        .select(
+          "pedido_id, fase_calculada, saldo_a_receber, divergencia_status, data_prevista, data_realizada, dias_atraso",
+        );
       if (error) throw error;
       return (data ?? []) as SaldoPedidoLinha[];
     },
@@ -528,9 +532,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
       toast.success(`Pedido ${excluirAlvo.numero_pedido} excluído.`);
       setExcluirAlvo(null);
       setPreviaExclusao(null);
-      qc.invalidateQueries({ queryKey: ["importacao-pedido-lista"] });
-      qc.invalidateQueries({ queryKey: ["importacao-saldo-pedido-lista"] });
-      qc.invalidateQueries({ queryKey: ["compras-pendencias"] });
+      invalidarCompras(qc);
     } catch (e) {
       toast.error(`Falha ao excluir: ${formatError(e)}`);
     } finally {
@@ -715,7 +717,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
     },
     onSuccess: (data) => {
       toast.success(`Pedido ${data.numero_pedido} gravado (${data.linhas_gravadas} linha(s)).`);
-      qc.invalidateQueries({ queryKey: ["importacao-pedido-lista"] });
+      invalidarCompras(qc);
       setHeader(EMPTY_HEADER);
       setTextoLinhas("");
       setConferencia(null);
@@ -793,12 +795,12 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                     <TableHead>Centro</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Data</TableHead>
-                    <TableHead>ETD</TableHead>
-                    <TableHead>ETA</TableHead>
+                    <TableHead>Previsto</TableHead>
+                    <TableHead>Realizado</TableHead>
                     <TableHead className="text-right">Linhas</TableHead>
                     <TableHead className="text-right">Custo FOB</TableHead>
                     <TableHead>Fase XPM</TableHead>
-                    <TableHead>Fase calculada</TableHead>
+                    <TableHead>Andamento</TableHead>
                     <TableHead className="text-right">A receber</TableHead>
                     <TableHead className="text-right">Atraso</TableHead>
                     <TableHead className="text-right">Pendências</TableHead>
@@ -827,8 +829,12 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                       <TableCell>{p.centro ?? "—"}</TableCell>
                       <TableCell>{p.status ?? "—"}</TableCell>
                       <TableCell className="tabular-nums">{fmtDate(p.data_pedido)}</TableCell>
-                      <TableCell className="tabular-nums">{fmtDate(p.etd)}</TableCell>
-                      <TableCell className="tabular-nums">{fmtDate(p.eta)}</TableCell>
+                      <TableCell className="tabular-nums">
+                        {fmtDate(saldoPorPedido.get(Number(p.id))?.data_prevista)}
+                      </TableCell>
+                      <TableCell className="tabular-nums">
+                        {fmtDate(saldoPorPedido.get(Number(p.id))?.data_realizada)}
+                      </TableCell>
                       <TableCell className="text-right tabular-nums">{p.linhas ?? 0}</TableCell>
                       <TableCell className="text-right tabular-nums">
                         {fmtBRL(Number(p.custo_total ?? 0), p.moeda ?? "BRL")}
@@ -881,7 +887,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                       })()}
 
                       <TableCell className="text-right tabular-nums">
-                        {rotuloAtraso(p.prazo_entrega_acordado, p.eta)}
+                        {rotuloAtraso(saldoPorPedido.get(Number(p.id))?.dias_atraso)}
                       </TableCell>
 
                       <TableCell className="text-right tabular-nums">
@@ -1346,8 +1352,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
         onOpenChange={(v) => !v && setEditarId(null)}
         pedidoId={editarId}
         onSaved={() => {
-          void pedidosQ.refetch();
-          qc.invalidateQueries({ queryKey: ["compras-pendencias"] });
+          invalidarCompras(qc);
         }}
       />
     </div>
