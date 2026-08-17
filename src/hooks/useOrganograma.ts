@@ -2,39 +2,34 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { PosicaoRaw, PosicaoNode, ColaboradorVinculado, TipoVinculoCodigo } from "@/types/organograma";
 
-interface VinculoRaw {
-  id: string;
+interface OcupanteRaw {
+  vinculo_id: string;
+  pessoa_id: string | null;
+  nome: string | null;
+  foto_url: string | null;
   tipo_vinculo: TipoVinculoCodigo;
-  status: string;
-  data_inicio: string;
-  valor_base: number;
-  email_corporativo: string | null;
-  telefone_corporativo: string | null;
+  cargo: string | null;
   departamento_id: string | null;
-  pessoa: {
-    id: string;
-    nome_completo: string;
-    foto_url: string | null;
-    telefone: string | null;
-    email_pessoal: string | null;
-  } | null;
-  cargo: { nome: string | null } | null;
-  departamento: { nome: string | null } | null;
+  departamento: string | null;
+  unidade_id: string | null;
+  unidade: string | null;
+  email_corporativo: string | null;
+  status: string;
 }
 
-function mapVinculoToColaborador(v: VinculoRaw): ColaboradorVinculado {
+function mapOcupanteToColaborador(o: OcupanteRaw): ColaboradorVinculado {
   return {
-    id: v.id,
-    nome_completo: v.pessoa?.nome_completo ?? "",
-    foto_url: v.pessoa?.foto_url ?? null,
-    email_corporativo: v.email_corporativo,
-    telefone: v.telefone_corporativo ?? v.pessoa?.telefone ?? null,
-    data_admissao: v.data_inicio,
-    salario_base: v.valor_base,
-    status: v.status,
-    tipo_contrato: v.tipo_vinculo,
-    cargo: v.cargo?.nome ?? "",
-    departamento: v.departamento?.nome ?? "",
+    id: o.vinculo_id,
+    nome_completo: o.nome ?? "",
+    foto_url: o.foto_url,
+    email_corporativo: o.email_corporativo,
+    telefone: null,
+    data_admissao: null,
+    salario_base: null,
+    status: o.status,
+    tipo_contrato: o.tipo_vinculo,
+    cargo: o.cargo ?? "",
+    departamento: o.departamento ?? "",
   };
 }
 
@@ -145,50 +140,26 @@ export function useOrganograma() {
   return useQuery({
     queryKey: ["organograma"],
     queryFn: async () => {
-      const [posRes, vincRes, tipoRes] = await Promise.all([
+      const [posRes, vincRes] = await Promise.all([
         supabase.rpc("get_organograma_tree"),
         supabase
-          .from("vinculos")
-          .select(`
-            id, tipo_vinculo, status, data_inicio, valor_base,
-            email_corporativo, telefone_corporativo, departamento_id,
-            pessoa:pessoas!vinculos_pessoa_id_fkey ( id, nome_completo, foto_url, telefone, email_pessoal ),
-            cargo:cargos ( nome ),
-            departamento:departamentos ( nome )
-          `)
+          .from("v_organograma_ocupantes")
+          .select("vinculo_id, pessoa_id, nome, foto_url, tipo_vinculo, cargo, departamento_id, departamento, unidade_id, unidade, email_corporativo, status")
           .eq("status", "ativo"),
-        supabase.from("tipos_vinculo").select("codigo, aparece_organograma"),
       ]);
 
       if (posRes.error) throw posRes.error;
       if (vincRes.error) {
         console.warn(
-          "organograma: query de vínculos falhou; desenhando estrutura de posições sem pessoas.",
+          "organograma: query de ocupantes falhou; desenhando estrutura de posições sem pessoas.",
           vincRes.error,
         );
       }
 
-      let apareceCodigos: Set<string> | null = null;
-      if (tipoRes.error || !tipoRes.data || tipoRes.data.length === 0) {
-        console.warn(
-          "organograma: tipos_vinculo não carregou; filtro de aparece_organograma será ignorado",
-          tipoRes.error,
-        );
-      } else {
-        apareceCodigos = new Set(
-          (tipoRes.data as { codigo: string; aparece_organograma: boolean }[])
-            .filter((t) => t.aparece_organograma)
-            .map((t) => t.codigo),
-        );
-      }
-
-      const vinculosRaw = (!vincRes.error && vincRes.data
-        ? vincRes.data
-        : []) as unknown as VinculoRaw[];
-      const vinculosFiltrados = apareceCodigos
-        ? vinculosRaw.filter((v) => apareceCodigos!.has(v.tipo_vinculo))
-        : vinculosRaw;
-      const vinculos = vinculosFiltrados.map(mapVinculoToColaborador);
+      const vinculos = (!vincRes.error && vincRes.data
+        ? (vincRes.data as unknown as OcupanteRaw[])
+        : []
+      ).map(mapOcupanteToColaborador);
 
       const tree = buildTree(
         (posRes.data || []) as unknown as PosicaoRaw[],

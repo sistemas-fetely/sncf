@@ -213,7 +213,8 @@ export default function Pessoas() {
           </Button>
           {isSocio && (
             <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas/socios")}>
-              <Handshake className="h-4 w-4" /> Sócios
+              <Handshake className="h-4 w-4" /> Diretoria
+
             </Button>
           )}
           <Button className="gap-2" onClick={() => navigate("/pessoas/novo")}>
