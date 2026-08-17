@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -12,6 +12,7 @@ import {
   Pencil,
   Download,
   FileSpreadsheet,
+  Trash2,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,6 +60,16 @@ import {
 } from "@/components/ui/tooltip";
 import { rotuloFaseCalculada } from "@/components/compras/SaldoPedidoTab";
 
+import { Selo } from "@/components/ui/selo";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { TIPOS_PENDENCIA, type TipoPendencia } from "@/lib/compras/pendencias";
 import { cn } from "@/lib/utils";
 
 // ============================================================================
@@ -219,8 +230,8 @@ interface LinhaParsed {
 function parsearLinhas(texto: string): LinhaParsed[] {
   const linhas = texto.split(/\r\n|\r|\n/).map((l) => l.trim()).filter(Boolean);
   return linhas.map((l) => {
-    // Aceita TAB ou ponto-e-vírgula. NUNCA vírgula.
-    const partes = l.split(/[\t;]/).map((p) => p.trim()).filter(Boolean);
+    // Aceita TAB, ponto-e-vírgula ou dois-ou-mais espaços. NUNCA vírgula, NUNCA um espaço só.
+    const partes = l.split(/[\t;]|[ ]{2,}/).map((p) => p.trim()).filter(Boolean);
     if (partes.length < 3) {
       return { codigo: l, qtd: NaN, preco: NaN, _erro: "esperado: codigo TAB qtd TAB preco" };
     }
@@ -298,9 +309,20 @@ function FornecedorCombobox({
 // Página
 // ============================================================================
 
-export default function CadastroPedidoCompra() {
+export type VistaCompras = "acompanhamento" | "novo";
+
+export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vista?: VistaCompras }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const [, setParams] = useSearchParams();
+
+  const irParaPendencia = (tipo: TipoPendencia, pedidoId: number) => {
+    const next = new URLSearchParams();
+    next.set("aba", "pendencias");
+    next.set("tipo", tipo);
+    next.set("pedido", String(pedidoId));
+    setParams(next, { replace: false });
+  };
 
   // ---------------- Dimensões ----------------
   const modalidadesQ = useQuery({
@@ -460,7 +482,7 @@ export default function CadastroPedidoCompra() {
       const invalidas = linhasParsed.filter((l) => l._erro);
       if (invalidas.length > 0) {
         throw new Error(
-          `${invalidas.length} linha(s) mal formatada(s). Use TAB ou ponto-e-vírgula entre código, quantidade e preço.`,
+          `${invalidas.length} linha(s) mal formatada(s). Use TAB, ponto-e-vírgula ou dois espaços entre código, quantidade e preço.`,
         );
       }
       const p_linhas = linhasParsed.map((l) => ({
