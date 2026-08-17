@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { invalidarCompras } from "@/lib/compras/invalidar";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, AlertTriangle, CheckCircle2, ExternalLink } from "lucide-react";
@@ -31,7 +32,6 @@ import LancarNfXmlTab from "@/components/compras/LancarNfXmlTab";
 import LancarNfArquivoTab from "@/components/compras/LancarNfArquivoTab";
 
 import { parsearNumero, VERDE } from "@/lib/compras/lancamento-utils";
-import { invalidarCompras } from "@/lib/compras/invalidar";
 
 interface PreviaNf {
   nf_existe?: boolean;

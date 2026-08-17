@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { invalidarCompras } from "@/lib/compras/invalidar";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, AlertTriangle, Link2 } from "lucide-react";
@@ -15,7 +16,6 @@ import { EstadoVazio } from "@/components/ui/estado-vazio";
 import { CardIndicador } from "@/components/ui/card-indicador";
 
 import {
-import { invalidarCompras } from "@/lib/compras/invalidar";
   Dialog,
   DialogContent,
   DialogDescription,

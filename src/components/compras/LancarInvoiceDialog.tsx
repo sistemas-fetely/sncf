@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { invalidarCompras } from "@/lib/compras/invalidar";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, AlertTriangle, CheckCircle2, ExternalLink } from "lucide-react";
@@ -27,7 +28,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { parsearNumero, VERDE } from "@/lib/compras/lancamento-utils";
-import { invalidarCompras } from "@/lib/compras/invalidar";
 
 interface PreviaInvoice {
   invoice_existe?: boolean;

@@ -1,4 +1,5 @@
 import { Fragment, useMemo, useState } from "react";
+import { invalidarCompras } from "@/lib/compras/invalidar";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -37,7 +38,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { invalidarCompras } from "@/lib/compras/invalidar";
 
 const NUM = new Intl.NumberFormat("pt-BR");
 
