@@ -1,6 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Loader2, CheckCircle2 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,12 +16,16 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
   useConfirmarPagamentoLinha,
   type ProvaTipo,
 } from "@/hooks/pedidos/useConfirmarPagamentoLinha";
+import {
+  usePlanoAbertoPedido,
+  rotuloMeio,
+  type LinhaPlanoAberta,
+} from "@/hooks/pedidos/usePlanoAbertoPedido";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -39,10 +42,36 @@ const REF_LABEL: Record<string, string> = {
   ofx: "Identificador no extrato",
 };
 
+function fmtData(iso: string | null | undefined): string {
+  if (!iso) return "sem vencimento";
+  const [a, m, d] = iso.slice(0, 10).split("-");
+  return `${d}/${m}/${a}`;
+}
+
+function descreverLinha(l: {
+  numero_parcela?: number | null;
+  total_parcelas?: number | null;
+  valor: number;
+  tipo_pagamento?: string | null;
+  data_prevista?: string | null;
+}): string {
+  const parcela = l.numero_parcela
+    ? `Parcela ${l.numero_parcela}${l.total_parcelas ? `/${l.total_parcelas}` : ""}`
+    : "Parcela";
+  return [
+    parcela,
+    l.tipo_pagamento ? rotuloMeio(l.tipo_pagamento) : null,
+    fmtBRL.format(l.valor),
+    `vence ${fmtData(l.data_prevista)}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 interface Props {
   pedido_id: string;
   /** Linha do plano (`provisao_recebimento.id`). Quando ausente, o diálogo
-   *  resolve a primeira linha de portão pendente do pedido. */
+   *  lista as linhas de portão pendentes e pede escolha explícita. */
   provisao_id?: string;
   valor?: number | null;
   forma?: string | null;
@@ -50,6 +79,10 @@ interface Props {
   rotulo?: string;
   triggerLabel?: string;
   triggerClassName?: string;
+  /** Restringe as linhas oferecidas a certos meios (ex.: ["pix","boleto"]). */
+  meios?: string[];
+  /** Texto de qual meio ainda falta depois desta confirmação (só toast). */
+  faltaLabel?: string | null;
   /** "padrao" = botão com rótulo. "discreta" = ícone ghost, para linha de tabela. */
   variante?: "padrao" | "discreta";
 }
@@ -63,6 +96,8 @@ export function ConfirmarPortaoPagoDialog({
   rotulo,
   triggerLabel = "Confirmar pagamento",
   triggerClassName,
+  meios,
+  faltaLabel,
   variante = "padrao",
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -72,54 +107,40 @@ export function ConfirmarPortaoPagoDialog({
   const [provaTipo, setProvaTipo] = useState<ProvaTipo>("manual");
   const [provaRef, setProvaRef] = useState<string>("");
   const [observacao, setObservacao] = useState<string>("");
+  const [escolhida, setEscolhida] = useState<string>("");
 
   const { toast } = useToast();
   const confirmar = useConfirmarPagamentoLinha();
 
   // Fallback: consumidores que só conhecem o pedido (fila / detalhe).
-  const pendenteQ = useQuery({
-    queryKey: ["provisao-portao-pendente", pedido_id],
-    enabled: open && !provisao_id && !!pedido_id,
-    queryFn: async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("provisao_recebimento")
-        .select("id, numero_parcela, valor, tipo_pagamento, status, pago_em")
-        .eq("pedido_id", pedido_id)
-        .eq("eh_portao", true)
-        .is("pago_em", null)
-        .order("numero_parcela", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      if (error) throw error;
-      return data as {
-        id: string;
-        numero_parcela: number | null;
-        valor: number | string | null;
-        tipo_pagamento: string | null;
-      } | null;
-    },
-  });
+  const planoQ = usePlanoAbertoPedido(pedido_id, open && !provisao_id);
+
+  const candidatas: LinhaPlanoAberta[] = useMemo(() => {
+    const todas = (planoQ.data ?? []).filter((l) => l.eh_portao !== false);
+    if (!meios?.length) return todas;
+    const set = new Set(meios.map((m) => m.toLowerCase()));
+    return todas.filter((l) => set.has((l.tipo_pagamento ?? "").toLowerCase()));
+  }, [planoQ.data, meios]);
+
+  useEffect(() => {
+    if (provisao_id) return;
+    if (!escolhida && candidatas.length) setEscolhida(candidatas[0].id);
+  }, [candidatas, escolhida, provisao_id]);
 
   const linha = useMemo(() => {
     if (provisao_id) {
       return {
         id: provisao_id,
         numero_parcela: numero_parcela ?? null,
+        total_parcelas: null as number | null,
         valor: Number(valor ?? 0),
         tipo_pagamento: forma ?? null,
+        data_prevista: null as string | null,
       };
     }
-    if (pendenteQ.data) {
-      return {
-        id: pendenteQ.data.id,
-        numero_parcela: pendenteQ.data.numero_parcela,
-        valor: Number(pendenteQ.data.valor ?? 0),
-        tipo_pagamento: pendenteQ.data.tipo_pagamento,
-      };
-    }
-    return null;
-  }, [provisao_id, numero_parcela, valor, forma, pendenteQ.data]);
+    const alvo = candidatas.find((l) => l.id === escolhida) ?? candidatas[0];
+    return alvo ?? null;
+  }, [provisao_id, numero_parcela, valor, forma, candidatas, escolhida]);
 
   const refObrigatoria = provaTipo !== "manual";
   const refFaltando = refObrigatoria && !provaRef.trim();
@@ -141,6 +162,7 @@ export function ConfirmarPortaoPagoDialog({
         prova_ref: refObrigatoria ? provaRef : null,
         data_pagamento: dataPagamento,
         observacao,
+        falta_label: faltaLabel ?? null,
       });
     } catch {
       // O toast de erro já sai de useConfirmarPagamentoLinha — não duplicar.
@@ -151,6 +173,7 @@ export function ConfirmarPortaoPagoDialog({
     setObservacao("");
     setProvaRef("");
     setProvaTipo("manual");
+    setEscolhida("");
     setDataPagamento(new Date().toISOString().slice(0, 10));
   };
 
@@ -170,7 +193,7 @@ export function ConfirmarPortaoPagoDialog({
             title={triggerLabel}
             aria-label={triggerLabel}
           >
-            <CheckCircle2 className="h-4 w-4" />
+            <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
           </Button>
         ) : (
           <Button className={triggerClassName}>{triggerLabel}</Button>
@@ -182,15 +205,11 @@ export function ConfirmarPortaoPagoDialog({
           <DialogTitle>Confirmar pagamento da linha de portão</DialogTitle>
           <DialogDescription>
             {rotulo ??
-              (linha
-                ? `Linha ${linha.numero_parcela ?? "—"}${
-                    linha.tipo_pagamento ? ` · ${linha.tipo_pagamento}` : ""
-                  } · ${fmtBRL.format(linha.valor)}. O pedido só é liberado quando todas as linhas de portão estiverem pagas.`
-                : "Confirma o pagamento de uma linha de portão do plano.")}
+              "Confirmação linha a linha. O pedido só é liberado quando todas as linhas de portão estiverem pagas."}
           </DialogDescription>
         </DialogHeader>
 
-        {!linha && !pendenteQ.isLoading && (
+        {!linha && !planoQ.isLoading && (
           <p className="text-sm text-muted-foreground">
             Nenhuma linha de portão pendente para este pedido.
           </p>
@@ -198,6 +217,29 @@ export function ConfirmarPortaoPagoDialog({
 
         {linha && (
           <div className="space-y-4">
+            {!provisao_id && candidatas.length > 1 ? (
+              <div className="space-y-2">
+                <Label htmlFor="linha-portao">Qual linha confirmar</Label>
+                <Select value={escolhida} onValueChange={setEscolhida}>
+                  <SelectTrigger id="linha-portao">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {candidatas.map((l) => (
+                      <SelectItem key={l.id} value={l.id}>
+                        {descreverLinha(l)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
+
+            <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
+              Você vai confirmar:{" "}
+              <span className="font-medium">{descreverLinha(linha)}</span>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="data-pagamento-portao">Data do pagamento</Label>
               <Input
