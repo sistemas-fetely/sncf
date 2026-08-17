@@ -102,7 +102,7 @@ function TreeRow({ node, expanded, toggleExpand, onNodeClick, canSeeSalary, show
         <td className="py-2 px-3 text-sm text-center">
           <span>{statusIcon(node)} {statusLabel(node)}</span>
         </td>
-        {canSeeSalary && showSalary && (
+        {canSeeSalary && showPrevisto && (
           <td className="py-2 px-3 text-sm text-right font-mono">
             <SalarioMasked
               valor={node.salario_previsto}
@@ -120,7 +120,7 @@ function TreeRow({ node, expanded, toggleExpand, onNodeClick, canSeeSalary, show
           toggleExpand={toggleExpand}
           onNodeClick={onNodeClick}
           canSeeSalary={canSeeSalary}
-          showSalary={showSalary}
+          showPrevisto={showPrevisto}
         />
       ))}
     </>
