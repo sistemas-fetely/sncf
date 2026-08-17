@@ -957,7 +957,7 @@ function LinhaCondicaoPagamento({ p }: { p: PedidoFilaItem }) {
 
   // Condição já contém a forma → só a condição.
   if (frm && cond.includes(frm)) {
-    return <p className="text-[11px] text-muted-foreground truncate">{condTexto}</p>;
+    return <p className="text-[11px] text-muted-foreground truncate leading-tight">{condTexto}</p>;
   }
 
   // Condição menciona um meio diferente do cadastro → destaque na forma.
