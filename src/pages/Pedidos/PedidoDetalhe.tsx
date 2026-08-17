@@ -684,6 +684,114 @@ function BotaoSplitPedidoInline({ pedido, estagio }: { pedido: any; estagio: str
   );
 }
 
+/**
+ * Descida manual para pré-separação. A guarda do banco (RESERVA-NASCE-DA-PRE-SEPARACAO)
+ * bloqueia quando falta lastro; aqui o operador vê o que falta e escolhe entre
+ * dividir a remessa (caminho correto na maioria dos casos) ou forçar com motivo.
+ */
+function AcaoDescerPreSeparacao({ pedido, estagio }: { pedido: any; estagio: EstagioPedido }) {
+  const transicionar = useTransicionarPedido();
+  const [motivo, setMotivo] = useState("");
+  const [splitOpen, setSplitOpen] = useState(false);
+  const falta = transicionar.faltaLastro;
+
+  const fechar = () => {
+    setMotivo("");
+    transicionar.limparFaltaLastro();
+  };
+
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="outline"
+        className="w-full gap-1.5"
+        disabled={transicionar.isPending}
+        onClick={() =>
+          transicionar.mutate({ pedido_id: pedido.id, para_estagio: "pre_separacao" })
+        }
+      >
+        {transicionar.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Package className="h-4 w-4" />}
+        Descer para pré-separação
+      </Button>
+
+      <AlertDialog open={!!falta} onOpenChange={(v) => { if (!v) fechar(); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sem lastro para pré-separação</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <p>
+                  A reserva de estoque nasce na pré-separação. O pedido não pode descer porque
+                  falta disponível para os itens abaixo.
+                </p>
+                {(falta?.faltantes.length ?? 0) > 0 && (
+                  <ul className="rounded-md bg-muted/50 border p-3 space-y-1 text-xs">
+                    {falta?.faltantes.map((f, i) => (
+                      <li key={i}>{f}</li>
+                    ))}
+                  </ul>
+                )}
+                <p>
+                  O caminho recomendado é <strong>dividir a remessa</strong>, mandando só o que tem lastro.
+                  Se ainda assim quiser forçar, explique o motivo — ele fica{" "}
+                  <strong>registrado no histórico do pedido</strong>.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-2">
+            <Label>Motivo (obrigatório)</Label>
+            <Textarea
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              placeholder="Por que descer sem lastro?"
+              rows={3}
+            />
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={transicionar.isPending}>Cancelar</AlertDialogCancel>
+            <Button
+              variant="outline"
+              disabled={transicionar.isPending}
+              onClick={() => { fechar(); setSplitOpen(true); }}
+            >
+              <Scissors className="h-4 w-4 mr-1.5" />
+              Dividir remessa
+            </Button>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={!motivo.trim() || transicionar.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                transicionar.mutate(
+                  { pedido_id: pedido.id, para_estagio: "pre_separacao", motivo: motivo.trim() },
+                  { onSuccess: () => fechar() },
+                );
+              }}
+            >
+              {transicionar.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+              Forçar mesmo assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <SplitPedidoDialog
+        open={splitOpen}
+        onOpenChange={setSplitOpen}
+        pedido_id={pedido.id}
+        id_externo={pedido.id_externo}
+        valor_liquido={pedido.valor_liquido}
+        estagio_origem={estagio}
+      />
+    </>
+  );
+}
+
+
 
 function AcoesPedidoCobranca({ pedido, parceiro }: { pedido: any; parceiro: any }) {
   const navigate = useNavigate();
