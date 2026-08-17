@@ -158,18 +158,24 @@ export function AdministrativoSidebar() {
     );
   };
 
-  const renderGroup = (label: string, items: MenuItem[]) => (
-    <SidebarGroup>
-      {!collapsed && (
-        <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4">
-          {label}
-        </SidebarGroupLabel>
-      )}
-      <SidebarGroupContent>
-        <SidebarMenu>{items.map(renderItem)}</SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
-  );
+  const renderGroup = (label: string, items: MenuItem[]) => {
+    if (carregandoVisibilidade) return null;
+    const visiveis = items.filter((i) => podeVer(i.url));
+    if (!visiveis.length) return null;
+    return (
+      <SidebarGroup>
+        {!collapsed && (
+          <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4">
+            {label}
+          </SidebarGroupLabel>
+        )}
+        <SidebarGroupContent>
+          <SidebarMenu>{visiveis.map(renderItem)}</SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    );
+  };
+
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
