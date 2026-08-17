@@ -27,7 +27,7 @@ import { useAtualizarUrgencia } from "@/hooks/pedidos/useAtualizarUrgencia";
 import { useRegistrarEventoPedido } from "@/hooks/pedidos/useRegistrarEventoPedido";
 
 import { isEstagioFinal } from "@/lib/pedidoTransicoes";
-import { useEstoqueVirtualPorSkus, isSemEstoque } from "@/lib/pedidoDestaque";
+import { useCoberturaItens, rotuloCobertura, type CoberturaItem } from "@/lib/pedidoDestaque";
 import { toast as toastSonner } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatDateBR } from "@/lib/format-currency";
@@ -136,42 +136,62 @@ function Linha({ label, value, destaque }: { label: string; value?: string | num
   );
 }
 
-function ListaItensComEstoque({ itens }: { itens: any[] }) {
-  const estoqueQ = useEstoqueVirtualPorSkus(itens.map((i: any) => i.sku));
-  const estoqueMap = estoqueQ.data ?? new Map<string, number>();
+function ListaItensComEstoque({ itens, pedidoId }: { itens: any[]; pedidoId: string }) {
+  const coberturaQ = useCoberturaItens([pedidoId]);
+  const coberturaMap = coberturaQ.data ?? new Map<string, CoberturaItem>();
   useEffect(() => {
-    if (estoqueQ.error) toastSonner.error((estoqueQ.error as Error).message);
-  }, [estoqueQ.error]);
+    if (coberturaQ.error) toastSonner.error((coberturaQ.error as Error).message);
+  }, [coberturaQ.error]);
 
-  const temSemEstoque = itens.some((i: any) => isSemEstoque(i.sku, estoqueMap));
+  const problemas = itens
+    .map((i: any) => coberturaMap.get(i.id)?.cobertura)
+    .filter((c) => c === "parcial" || c === "descoberto" || c === "sem_lastro");
+  const temDescoberto = problemas.some((c) => c === "descoberto" || c === "sem_lastro");
   return (
     <>
-      {temSemEstoque && (
-        <div className="flex items-center gap-2 rounded-md bg-destructive/10 border border-destructive/40 px-3 py-2 mb-3">
-          <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
-          <p className="text-xs text-destructive">
-            Este pedido contém produto(s) sem estoque — verifique disponibilidade antes de seguir.
+      {problemas.length > 0 && (
+        <div
+          className={cn(
+            "flex items-center gap-2 rounded-md border px-3 py-2 mb-3",
+            temDescoberto ? "bg-destructive/10 border-destructive/40" : "bg-warning/10 border-warning/40"
+          )}
+        >
+          <AlertCircle className={cn("h-4 w-4 shrink-0", temDescoberto ? "text-destructive" : "text-warning")} />
+          <p className={cn("text-xs", temDescoberto ? "text-destructive" : "text-warning")}>
+            {problemas.length} item(ns) sem lastro na fila de reserva — verifique antes de seguir.
           </p>
         </div>
       )}
       {itens.length === 0
         ? <p className="text-sm text-muted-foreground text-center py-6">Itens ainda não importados.</p>
         : itens.map((item: any) => {
-            const semEstoque = isSemEstoque(item.sku, estoqueMap);
+            const cob = coberturaMap.get(item.id);
+            const rotulo = cob ? rotuloCobertura(cob.cobertura, cob.qtd_coberta, cob.quantidade) : null;
+            const descoberto = cob?.cobertura === "descoberto" || cob?.cobertura === "sem_lastro";
+            const parcial = cob?.cobertura === "parcial";
             return (
               <div
                 key={item.id}
                 className={cn(
                   "flex justify-between items-center gap-3 py-2.5 border-b border-border/40 last:border-0 rounded-md px-2 -mx-2",
-                  semEstoque && "bg-destructive/10 border-destructive/40"
+                  descoberto && "bg-destructive/10 border-destructive/40",
+                  parcial && "bg-warning/10 border-warning/40"
                 )}
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium truncate">{item.descricao}</p>
-                    {semEstoque && (
-                      <Badge variant="outline" className="text-[10px] h-5 border-destructive/40 text-destructive bg-destructive/10">
-                        Sem Estoque
+                    {rotulo && (
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "text-[10px] h-5",
+                          descoberto
+                            ? "border-destructive/40 text-destructive bg-destructive/10"
+                            : "border-warning/40 text-warning bg-warning/10"
+                        )}
+                      >
+                        {rotulo}
                       </Badge>
                     )}
                   </div>
@@ -187,6 +207,7 @@ function ListaItensComEstoque({ itens }: { itens: any[] }) {
     </>
   );
 }
+
 
 
 /**
@@ -2546,7 +2567,7 @@ export default function PedidoDetalhe() {
                 </div>
               </CardHeader>
               <CardContent>
-                <ListaItensComEstoque itens={itens} />
+                <ListaItensComEstoque itens={itens} pedidoId={pedido.id} />
               </CardContent>
             </Card>
           </div>
