@@ -35,10 +35,10 @@ interface RowProps {
   toggleExpand: (id: string) => void;
   onNodeClick: (n: PosicaoNode) => void;
   canSeeSalary: boolean;
-  showSalary: boolean;
+  showPrevisto: boolean;
 }
 
-function TreeRow({ node, expanded, toggleExpand, onNodeClick, canSeeSalary, showSalary }: RowProps) {
+function TreeRow({ node, expanded, toggleExpand, onNodeClick, canSeeSalary, showPrevisto }: RowProps) {
   const isExpanded = expanded.has(node.id);
   const hasChildren = node.children.length > 0;
   const indent = node.depth * 24;
