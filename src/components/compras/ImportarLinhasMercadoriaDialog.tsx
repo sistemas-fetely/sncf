@@ -18,6 +18,7 @@ import {
   parsearPlanilhaMercadoria,
   linhasParaTexto,
   type ResultadoParseMercadoria,
+  type CabecalhoPlanilha,
 } from "@/lib/compras/templatePedidoMercadoria";
 
 type Modo = "substituir" | "adicionar";
@@ -27,13 +28,17 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   temTextoAtual: boolean;
   onImportar: (texto: string, modo: Modo) => void;
+  /** Chamado só quando a planilha traz a aba Cabecalho preenchida. */
+  onImportarCabecalho?: (cab: CabecalhoPlanilha) => void;
 }
+
 
 export default function ImportarLinhasMercadoriaDialog({
   open,
   onOpenChange,
   temTextoAtual,
   onImportar,
+  onImportarCabecalho,
 }: Props) {
   const [fileName, setFileName] = useState("");
   const [resultado, setResultado] = useState<ResultadoParseMercadoria | null>(null);
@@ -67,6 +72,7 @@ export default function ImportarLinhasMercadoriaDialog({
         erroGlobal: "Arquivo corrompido ou formato não suportado. Envie um .xlsx ou .xls válido.",
         validas: [],
         invalidas: [],
+        cabecalho: null,
       });
     } finally {
       setCarregando(false);
@@ -80,6 +86,10 @@ export default function ImportarLinhasMercadoriaDialog({
   const confirmar = () => {
     if (!podeConfirmar) return;
     onImportar(linhasParaTexto(validas), modo);
+    if (resultado?.cabecalho && onImportarCabecalho) {
+      onImportarCabecalho(resultado.cabecalho);
+      toast.success("Cabeçalho do pedido preenchido pela planilha.");
+    }
     toast.success(
       `${validas.length} ${validas.length === 1 ? "linha levada" : "linhas levadas"} para o campo de linhas.`,
     );

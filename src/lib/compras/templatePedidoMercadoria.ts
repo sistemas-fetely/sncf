@@ -7,6 +7,8 @@ import ExcelJS from "exceljs";
 // ============================================================================
 
 const NOME_ABA_ITENS = "Itens";
+const NOME_ABA_LINHAS = "Linhas";
+const NOME_ABA_CABECALHO = "Cabecalho";
 const NOME_ABA_INSTRUCOES = "Instruções";
 const MAX_LINHAS = 1000;
 const VERDE_FETELY = "FF1A4A3A";
@@ -17,6 +19,24 @@ const COLUNAS = {
   quantidade: ["quantidade", "qtd"],
   preco: ["preco_unitario", "preco unitario", "preco", "preço unitário"],
 } as const;
+
+/** Campos da aba Cabecalho, na ordem em que aparecem no template. */
+export const CAMPOS_CABECALHO = [
+  "numero_pedido",
+  "modalidade",
+  "moeda",
+  "fornecedor",
+  "centro_destino",
+  "status",
+  "referencia_fornecedor",
+  "data_pedido",
+  "prazo_entrega_acordado",
+  "condicao_pagamento",
+  "observacao",
+] as const;
+
+export type CampoCabecalho = (typeof CAMPOS_CABECALHO)[number];
+export type CabecalhoPlanilha = Partial<Record<CampoCabecalho, string>>;
 
 export interface LinhaMercadoriaValida {
   linhaPlanilha: number;
@@ -35,7 +55,10 @@ export interface ResultadoParseMercadoria {
   erroGlobal: string | null;
   validas: LinhaMercadoriaValida[];
   invalidas: LinhaMercadoriaInvalida[];
+  /** Preenchido só quando a planilha traz a aba Cabecalho com algum valor. */
+  cabecalho: CabecalhoPlanilha | null;
 }
+
 
 function normalizar(s: string): string {
   return s
@@ -82,9 +105,28 @@ export async function gerarTemplatePedidoMercadoria(): Promise<void> {
     bottom: { style: "thin", color: { argb: "FFB5B5B5" } },
   };
 
-  // ---------- Aba ITENS ----------
-  const ws = wb.addWorksheet(NOME_ABA_ITENS, { views: [{ state: "frozen", ySplit: 1 }] });
-  const cabecalhos = ["codigo_fornecedor", "quantidade", "preco_unitario"];
+  // ---------- Aba CABECALHO ----------
+  const wsCab = wb.addWorksheet(NOME_ABA_CABECALHO, {
+    views: [{ state: "frozen", ySplit: 1 }],
+  });
+  CAMPOS_CABECALHO.forEach((campo, i) => {
+    wsCab.getColumn(i + 1).width = Math.max(18, campo.length + 4);
+    const c = wsCab.getRow(1).getCell(i + 1);
+    c.value = campo;
+    c.font = { name: "Arial", bold: true, size: 11, color: { argb: BRANCO } };
+    c.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
+    c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE_FETELY } };
+    c.border = bordaFina;
+  });
+  wsCab.getRow(1).height = 24;
+  for (let col = 1; col <= CAMPOS_CABECALHO.length; col++) {
+    wsCab.getCell(2, col).border = bordaFina;
+  }
+
+  // ---------- Aba LINHAS ----------
+  const ws = wb.addWorksheet(NOME_ABA_LINHAS, { views: [{ state: "frozen", ySplit: 1 }] });
+  const cabecalhos = ["codigo", "quantidade", "preco"];
+
   const larguras = [30, 14, 18];
   larguras.forEach((w, i) => {
     ws.getColumn(i + 1).width = w;
@@ -136,14 +178,18 @@ export async function gerarTemplatePedidoMercadoria(): Promise<void> {
     "",
     "Como preencher:",
     "",
-    "1. Aba 'Itens' — uma linha por item. Não renomeie nem reordene os cabeçalhos.",
-    "2. codigo_fornecedor — é o código do FORNECEDOR, o mesmo que vem na nota dele.",
+    "1. Aba 'Cabecalho' — uma única linha de dados com os campos do pedido.",
+    "   Fornecedor, centro_destino, modalidade e status são resolvidos por nome ou código.",
+    "   Datas no formato dd/mm/aaaa ou aaaa-mm-dd.",
+    "2. Aba 'Linhas' — uma linha por item. Não renomeie nem reordene os cabeçalhos.",
+    "3. codigo — é o código do FORNECEDOR, o mesmo que vem na nota dele.",
     "   Não é o nosso SKU. O sistema resolve o SKU pelo de-para de fornecedor.",
     "   Se o código não estiver mapeado, a conferência aponta e você cadastra o de-para.",
-    "3. quantidade — número inteiro maior que zero.",
-    "4. preco_unitario — na moeda do pedido. Use ponto ou vírgula como decimal.",
-    "5. Apague as linhas de exemplo antes de importar.",
-    `6. Limite: ${MAX_LINHAS} linhas por planilha.`,
+    "4. quantidade — número inteiro maior que zero.",
+    "5. preco — na moeda do pedido. Use ponto ou vírgula como decimal.",
+    "6. Apague as linhas de exemplo antes de importar.",
+    `7. Limite: ${MAX_LINHAS} linhas por planilha.`,
+
   ];
   instrucoes.forEach((texto, i) => {
     const cell = wsInst.getCell(i + 2, 1);
@@ -168,16 +214,55 @@ export async function gerarTemplatePedidoMercadoria(): Promise<void> {
 
 // ============ Leitura (SheetJS) ============
 
+function lerCabecalho(wb: XLSX.WorkBook): CabecalhoPlanilha | null {
+  const nome = wb.SheetNames.find((n) => normalizar(n) === normalizar(NOME_ABA_CABECALHO));
+  if (!nome) return null;
+  const matriz = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[nome], {
+    header: 1,
+    blankrows: false,
+    defval: "",
+  });
+  if (matriz.length < 2) return null;
+  const headers = (matriz[0] as unknown[]).map((h) => String(h ?? ""));
+  const linha = matriz[1] as unknown[];
+  const out: CabecalhoPlanilha = {};
+  for (const campo of CAMPOS_CABECALHO) {
+    const i = acharColuna(headers, [campo, campo.replace(/_/g, " ")]);
+    if (i < 0) continue;
+    const bruto = linha[i];
+    let valor: string;
+    if (bruto instanceof Date) {
+      valor = bruto.toISOString().slice(0, 10);
+    } else {
+      valor = String(bruto ?? "").trim();
+    }
+    if (valor) out[campo] = valor;
+  }
+  return Object.keys(out).length > 0 ? out : null;
+}
+
 export async function parsearPlanilhaMercadoria(file: File): Promise<ResultadoParseMercadoria> {
   const buf = await file.arrayBuffer();
-  const wb = XLSX.read(buf, { type: "array" });
+  const wb = XLSX.read(buf, { type: "array", cellDates: true });
 
-  const nomeAba = wb.SheetNames.includes(NOME_ABA_ITENS)
-    ? NOME_ABA_ITENS
-    : wb.SheetNames.find((n) => n !== NOME_ABA_INSTRUCOES) ?? wb.SheetNames[0];
+  const cabecalho = lerCabecalho(wb);
+
+  const nomeAba =
+    wb.SheetNames.find((n) => n === NOME_ABA_LINHAS) ??
+    (wb.SheetNames.includes(NOME_ABA_ITENS)
+      ? NOME_ABA_ITENS
+      : wb.SheetNames.find(
+          (n) =>
+            n !== NOME_ABA_INSTRUCOES && normalizar(n) !== normalizar(NOME_ABA_CABECALHO),
+        ) ?? wb.SheetNames[0]);
 
   if (!nomeAba) {
-    return { erroGlobal: "A planilha não contém nenhuma aba legível.", validas: [], invalidas: [] };
+    return {
+      erroGlobal: "A planilha não contém nenhuma aba legível.",
+      validas: [],
+      invalidas: [],
+      cabecalho,
+    };
   }
 
   const matriz = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[nomeAba], {
@@ -187,7 +272,7 @@ export async function parsearPlanilhaMercadoria(file: File): Promise<ResultadoPa
   });
 
   if (matriz.length === 0) {
-    return { erroGlobal: "A aba está vazia.", validas: [], invalidas: [] };
+    return { erroGlobal: "A aba está vazia.", validas: [], invalidas: [], cabecalho };
   }
 
   const headers = (matriz[0] as unknown[]).map((h) => String(h ?? ""));
@@ -196,14 +281,15 @@ export async function parsearPlanilhaMercadoria(file: File): Promise<ResultadoPa
   const iPreco = acharColuna(headers, COLUNAS.preco);
 
   const faltando: string[] = [];
-  if (iCod < 0) faltando.push("codigo_fornecedor");
+  if (iCod < 0) faltando.push("codigo");
   if (iQtd < 0) faltando.push("quantidade");
-  if (iPreco < 0) faltando.push("preco_unitario");
+  if (iPreco < 0) faltando.push("preco");
   if (faltando.length) {
     return {
       erroGlobal: `Coluna obrigatória ausente: ${faltando.join(", ")}. Baixe o template novamente e mantenha os cabeçalhos.`,
       validas: [],
       invalidas: [],
+      cabecalho,
     };
   }
 
@@ -221,6 +307,7 @@ export async function parsearPlanilhaMercadoria(file: File): Promise<ResultadoPa
       erroGlobal: `A planilha tem ${naoVazias.length} linhas de dados. O limite é ${MAX_LINHAS}.`,
       validas: [],
       invalidas: [],
+      cabecalho,
     };
   }
 
@@ -253,8 +340,9 @@ export async function parsearPlanilhaMercadoria(file: File): Promise<ResultadoPa
     });
   }
 
-  return { erroGlobal: null, validas, invalidas };
+  return { erroGlobal: null, validas, invalidas, cabecalho };
 }
+
 
 /** Converte linhas válidas no formato que o parser do textarea entende (TAB). */
 export function linhasParaTexto(linhas: LinhaMercadoriaValida[]): string {

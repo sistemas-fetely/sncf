@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -12,12 +12,16 @@ import {
   Pencil,
   Download,
   FileSpreadsheet,
+  Trash2,
 } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { differenceInCalendarDays, format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { apelidoParceiro, nomeCanonico, nomeExibicao } from "@/lib/parceiros/nome";
 import { formatError } from "@/lib/format-error";
-import { gerarTemplatePedidoMercadoria } from "@/lib/compras/templatePedidoMercadoria";
+import {
+  gerarTemplatePedidoMercadoria,
+  type CabecalhoPlanilha,
+} from "@/lib/compras/templatePedidoMercadoria";
 import ImportarLinhasMercadoriaDialog from "@/components/compras/ImportarLinhasMercadoriaDialog";
 import EditarPedidoMercadoriaDialog from "@/components/compras/EditarPedidoMercadoriaDialog";
 
@@ -59,6 +63,22 @@ import {
 } from "@/components/ui/tooltip";
 import { rotuloFaseCalculada } from "@/components/compras/SaldoPedidoTab";
 
+import { Selo } from "@/components/ui/selo";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  SELECT_PENDENCIAS,
+  TIPOS_PENDENCIA,
+  totalPendencia,
+  type PendenciaPedido,
+  type TipoPendencia,
+} from "@/lib/compras/pendencias";
 import { cn } from "@/lib/utils";
 
 // ============================================================================
@@ -100,6 +120,7 @@ interface PedidoListaRow {
   modalidade: string | null;
   moeda: string | null;
   data_pedido: string | null;
+  prazo_entrega_acordado: string | null;
   etd: string | null;
   eta: string | null;
   fornecedor: string | null;
@@ -110,6 +131,15 @@ interface PedidoListaRow {
   kits: number | null;
   custo_total: number | null;
   fase_xpm: number | null;
+}
+
+interface PreviaExclusao {
+  pedido_id: number;
+  numero_pedido: string | null;
+  pode_excluir: boolean;
+  bloqueios: string[] | null;
+  linhas_que_serao_apagadas: number | null;
+  excluido: boolean | null;
 }
 
 interface SaldoPedidoLinha {
@@ -191,6 +221,25 @@ const fmtBRL = (v: number, moeda = "BRL") =>
 const fmtDate = (d?: string | null) =>
   d ? format(parseISO(d), "dd/MM/yyyy") : "—";
 
+/** Atraso = ETA depois do prazo acordado. Sem prazo acordado, não há atraso a mostrar. */
+function rotuloAtraso(prazo?: string | null, eta?: string | null) {
+  if (!prazo) return <span className="text-muted-foreground">—</span>;
+  if (!eta) return <span className="text-muted-foreground">—</span>;
+  const dias = differenceInCalendarDays(parseISO(eta), parseISO(prazo));
+  if (dias <= 0) return <span className="text-muted-foreground">Em dia</span>;
+  return <Selo estado="warning">{dias} {dias === 1 ? "dia" : "dias"}</Selo>;
+}
+
+/** dd/mm/aaaa ou aaaa-mm-dd vindos da planilha viram aaaa-mm-dd para o input date. */
+function normalizarDataPlanilha(v: string): string {
+  const t = v.trim();
+  const br = t.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (br) return `${br[3]}-${br[2]}-${br[1]}`;
+  const iso = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  return "";
+}
+
 const STATUS_ROTULO: Record<string, string> = {
   ok: "OK",
   nao_mapeado: "Não mapeado",
@@ -219,8 +268,8 @@ interface LinhaParsed {
 function parsearLinhas(texto: string): LinhaParsed[] {
   const linhas = texto.split(/\r\n|\r|\n/).map((l) => l.trim()).filter(Boolean);
   return linhas.map((l) => {
-    // Aceita TAB ou ponto-e-vírgula. NUNCA vírgula.
-    const partes = l.split(/[\t;]/).map((p) => p.trim()).filter(Boolean);
+    // Aceita TAB, ponto-e-vírgula ou dois-ou-mais espaços. NUNCA vírgula, NUNCA um espaço só.
+    const partes = l.split(/[\t;]|[ ]{2,}/).map((p) => p.trim()).filter(Boolean);
     if (partes.length < 3) {
       return { codigo: l, qtd: NaN, preco: NaN, _erro: "esperado: codigo TAB qtd TAB preco" };
     }
@@ -298,9 +347,20 @@ function FornecedorCombobox({
 // Página
 // ============================================================================
 
-export default function CadastroPedidoCompra() {
+export type VistaCompras = "acompanhamento" | "novo";
+
+export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vista?: VistaCompras }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const [, setParams] = useSearchParams();
+
+  const irParaPendencia = (tipo: TipoPendencia, pedidoId: number) => {
+    const next = new URLSearchParams();
+    next.set("aba", "pendencias");
+    next.set("tipo", tipo);
+    next.set("pedido", String(pedidoId));
+    setParams(next, { replace: false });
+  };
 
   // ---------------- Dimensões ----------------
   const modalidadesQ = useQuery({
@@ -370,7 +430,7 @@ export default function CadastroPedidoCompra() {
       const { data, error } = await (supabase as any)
         .from("vw_importacao_pedido_detalhe")
         .select(
-          "id, numero_pedido, rocabella_ref, modalidade, moeda, data_pedido, etd, eta, fornecedor, apelido, centro, status, linhas, kits, custo_total, fase_xpm",
+          "id, numero_pedido, rocabella_ref, modalidade, moeda, data_pedido, prazo_entrega_acordado, etd, eta, fornecedor, apelido, centro, status, linhas, kits, custo_total, fase_xpm",
         );
       if (error) throw error;
       return (data ?? []) as PedidoListaRow[];
@@ -394,6 +454,82 @@ export default function CadastroPedidoCompra() {
     (saldoQ.data ?? []).forEach((s) => m.set(Number(s.pedido_id), s));
     return m;
   }, [saldoQ.data]);
+
+  // Pendências por pedido (view pronta — nada e calculado aqui)
+  const pendenciasQ = useQuery({
+    queryKey: ["compras-pendencias"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vw_compras_pendencias" as never)
+        .select(SELECT_PENDENCIAS);
+      if (error) throw error;
+      return (data ?? []) as unknown as PendenciaPedido[];
+    },
+  });
+
+  const pendenciaPorPedido = useMemo(() => {
+    const m = new Map<number, PendenciaPedido>();
+    (pendenciasQ.data ?? []).forEach((r) => m.set(Number(r.pedido_id), r));
+    return m;
+  }, [pendenciasQ.data]);
+
+  // ---------------- Exclusão de pedido ----------------
+  const [excluirAlvo, setExcluirAlvo] = useState<PedidoListaRow | null>(null);
+  const [previaExclusao, setPreviaExclusao] = useState<PreviaExclusao | null>(null);
+  const [checandoExclusao, setChecandoExclusao] = useState(false);
+  const [excluindo, setExcluindo] = useState(false);
+
+  const abrirExclusao = async (p: PedidoListaRow) => {
+    setExcluirAlvo(p);
+    setPreviaExclusao(null);
+    setChecandoExclusao(true);
+    try {
+      const { data, error } = await supabase.rpc("excluir_pedido_importacao" as never, {
+        p_pedido_id: p.id,
+        p_confirmar: false,
+      });
+      if (error) throw error;
+      const linha = Array.isArray(data) ? data[0] : data;
+      setPreviaExclusao(linha as PreviaExclusao);
+    } catch (e) {
+      toast.error(`Não foi possível checar a exclusão: ${formatError(e)}`);
+      setExcluirAlvo(null);
+    } finally {
+      setChecandoExclusao(false);
+    }
+  };
+
+  const confirmarExclusao = async () => {
+    if (!excluirAlvo) return;
+    setExcluindo(true);
+    try {
+      const { data, error } = await supabase.rpc("excluir_pedido_importacao" as never, {
+        p_pedido_id: excluirAlvo.id,
+        p_confirmar: true,
+      });
+      if (error) throw error;
+      const linha = (Array.isArray(data) ? data[0] : data) as PreviaExclusao | null;
+      if (linha && linha.excluido === false) {
+        toast.error(
+          linha.bloqueios?.length
+            ? `Exclusão barrada: ${linha.bloqueios.join(" · ")}`
+            : "O banco não confirmou a exclusão.",
+        );
+        setPreviaExclusao(linha);
+        return;
+      }
+      toast.success(`Pedido ${excluirAlvo.numero_pedido} excluído.`);
+      setExcluirAlvo(null);
+      setPreviaExclusao(null);
+      qc.invalidateQueries({ queryKey: ["importacao-pedido-lista"] });
+      qc.invalidateQueries({ queryKey: ["importacao-saldo-pedido-lista"] });
+      qc.invalidateQueries({ queryKey: ["compras-pendencias"] });
+    } catch (e) {
+      toast.error(`Falha ao excluir: ${formatError(e)}`);
+    } finally {
+      setExcluindo(false);
+    }
+  };
 
 
 
@@ -441,6 +577,67 @@ export default function CadastroPedidoCompra() {
     }));
   };
 
+  // Cabeçalho vindo da planilha: só preenche o que a planilha trouxe.
+  const aplicarCabecalhoPlanilha = (cab: CabecalhoPlanilha) => {
+    const norm = (v: string) =>
+      v
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
+
+    const modalidade = cab.modalidade
+      ? modalidadesQ.data?.find(
+          (m) => norm(m.codigo) === norm(cab.modalidade!) || norm(m.rotulo) === norm(cab.modalidade!),
+        )
+      : undefined;
+    const fornecedor = cab.fornecedor
+      ? parceirosQ.data?.find(
+          (x) =>
+            norm(x.nome_fantasia ?? "") === norm(cab.fornecedor!) ||
+            norm(x.razao_social ?? "") === norm(cab.fornecedor!),
+        )
+      : undefined;
+    const centro = cab.centro_destino
+      ? centrosQ.data?.find(
+          (c) => norm(c.codigo) === norm(cab.centro_destino!) || norm(c.nome) === norm(cab.centro_destino!),
+        )
+      : undefined;
+    const status = cab.status
+      ? statusQ.data?.find((st) => norm(st.codigo) === norm(cab.status!))
+      : undefined;
+
+    const naoResolvidos: string[] = [];
+    if (cab.modalidade && !modalidade) naoResolvidos.push(`modalidade "${cab.modalidade}"`);
+    if (cab.fornecedor && !fornecedor) naoResolvidos.push(`fornecedor "${cab.fornecedor}"`);
+    if (cab.centro_destino && !centro) naoResolvidos.push(`centro "${cab.centro_destino}"`);
+    if (cab.status && !status) naoResolvidos.push(`status "${cab.status}"`);
+
+    setHeader((h) => ({
+      ...h,
+      ...(cab.numero_pedido ? { numero_pedido: cab.numero_pedido } : {}),
+      ...(modalidade ? { modalidade: modalidade.codigo } : {}),
+      ...(cab.moeda ? { moeda: cab.moeda.toUpperCase() } : {}),
+      ...(fornecedor ? { fornecedor_id: fornecedor.id } : {}),
+      ...(centro ? { centro_id: centro.id } : {}),
+      ...(status ? { status_id: String(status.id) } : {}),
+      ...(cab.referencia_fornecedor
+        ? { referencia_fornecedor: cab.referencia_fornecedor }
+        : {}),
+      ...(cab.data_pedido ? { data_pedido: normalizarDataPlanilha(cab.data_pedido) } : {}),
+      ...(cab.prazo_entrega_acordado
+        ? { prazo_entrega_acordado: normalizarDataPlanilha(cab.prazo_entrega_acordado) }
+        : {}),
+      ...(cab.condicao_pagamento ? { condicao_pagamento: cab.condicao_pagamento } : {}),
+      ...(cab.observacao ? { observacao: cab.observacao } : {}),
+    }));
+    setConferencia(null);
+
+    if (naoResolvidos.length > 0) {
+      toast.warning(`Não reconheci: ${naoResolvidos.join(" · ")}. Preencha na mão.`);
+    }
+  };
+
   // SKUs de produto disponíveis (para dropdown de destino de serviço)
   const skusProduto = useMemo(() => {
     if (!conferencia) return [] as { sku: string; produto: string | null }[];
@@ -460,7 +657,7 @@ export default function CadastroPedidoCompra() {
       const invalidas = linhasParsed.filter((l) => l._erro);
       if (invalidas.length > 0) {
         throw new Error(
-          `${invalidas.length} linha(s) mal formatada(s). Use TAB ou ponto-e-vírgula entre código, quantidade e preço.`,
+          `${invalidas.length} linha(s) mal formatada(s). Use TAB, ponto-e-vírgula ou dois espaços entre código, quantidade e preço.`,
         );
       }
       const p_linhas = linhasParsed.map((l) => ({
@@ -547,6 +744,7 @@ export default function CadastroPedidoCompra() {
 
 
       {/* ============================ LISTA ============================ */}
+      {vista === "acompanhamento" && (
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Pedidos existentes</CardTitle>
@@ -590,10 +788,13 @@ export default function CadastroPedidoCompra() {
                     <TableHead>Fase XPM</TableHead>
                     <TableHead>Fase calculada</TableHead>
                     <TableHead className="text-right">A receber</TableHead>
+                    <TableHead>Atraso</TableHead>
+                    <TableHead>Pendências</TableHead>
 
-                    <TableHead className="w-10" />
+                    <TableHead className="w-20" />
 
                   </TableRow>
+
                 </TableHeader>
                 <TableBody>
                   {pedidosOrdenados.map((p) => (
@@ -667,23 +868,65 @@ export default function CadastroPedidoCompra() {
                         );
                       })()}
 
+                      <TableCell>{rotuloAtraso(p.prazo_entrega_acordado, p.eta)}</TableCell>
+
+                      <TableCell>
+                        <div className="flex flex-wrap items-center gap-1">
+                          {TIPOS_PENDENCIA.map((t) => {
+                            const pend = pendenciaPorPedido.get(Number(p.id));
+                            const n = pend ? totalPendencia(pend, t.tipo) : 0;
+                            return (
+                              <button
+                                key={t.tipo}
+                                type="button"
+                                title={`${t.rotulo} — ${t.descricao}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  irParaPendencia(t.tipo, p.id);
+                                }}
+                                className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              >
+                                <Selo estado={n > 0 ? "warning" : "muted"}>
+                                  {t.rotuloCurto} {n}
+                                </Selo>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </TableCell>
+
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          title="Editar pedido"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditarId(p.id);
-                          }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            title="Editar pedido"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditarId(p.id);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive"
+                            title="Excluir pedido"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void abrirExclusao(p);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
 
                     </TableRow>
                   ))}
+
                 </TableBody>
               </Table>
               </div>
@@ -694,7 +937,10 @@ export default function CadastroPedidoCompra() {
         </CardContent>
       </Card>
 
+      )}
+
       {/* ============================ FORMULÁRIO ============================ */}
+      {vista === "novo" && (
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Novo pedido de mercadoria</CardTitle>
@@ -916,8 +1162,9 @@ export default function CadastroPedidoCompra() {
             <Label>Linhas do pedido</Label>
             <p className="text-xs text-muted-foreground">
               Cole no formato <code>código</code> <code>quantidade</code> <code>preço</code>, um
-              por linha. Separadores aceitos: <b>TAB</b> e <b>ponto-e-vírgula</b>. Vírgula é
-              tratada como decimal — não use vírgula como separador de coluna.
+              por linha. Separadores aceitos: <b>TAB</b>, <b>ponto-e-vírgula</b> e{" "}
+              <b>dois ou mais espaços</b>. Um espaço só não separa, porque descrição tem espaço.
+              Vírgula é tratada como decimal — não use vírgula como separador de coluna.
             </p>
             <div className="flex flex-wrap gap-2">
               <Button
@@ -956,20 +1203,28 @@ export default function CadastroPedidoCompra() {
                 onClick={() => conferirMut.mutate()}
               >
                 {conferirMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Conferir
+                Conferir antes de gravar
               </Button>
-              {conferencia && (
+            </div>
+            {conferencia && (
+              <div className="space-y-2">
+                {podeGravar && (
+                  <p className="text-sm text-warning">
+                    A conferência passou, mas o pedido ainda não foi criado. Clique em Gravar
+                    pedido.
+                  </p>
+                )}
                 <Button
                   type="button"
+                  variant={podeGravar ? "default" : "secondary"}
                   disabled={!podeGravar || gravarMut.isPending}
                   onClick={() => gravarMut.mutate()}
-                  style={{ backgroundColor: "#1A4A3A", color: "white" }}
                 >
                   {gravarMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   Gravar pedido
                 </Button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Resultado da conferência */}
@@ -990,10 +1245,13 @@ export default function CadastroPedidoCompra() {
         </CardContent>
       </Card>
 
+      )}
+
       <ImportarLinhasMercadoriaDialog
         open={importOpen}
         onOpenChange={setImportOpen}
         temTextoAtual={textoLinhas.trim().length > 0}
+        onImportarCabecalho={(cab) => aplicarCabecalhoPlanilha(cab)}
         onImportar={(texto, modo) => {
           setTextoLinhas((cur) =>
             modo === "substituir" || !cur.trim() ? texto : `${cur.replace(/\s*$/, "")}\n${texto}`,
@@ -1002,11 +1260,79 @@ export default function CadastroPedidoCompra() {
         }}
       />
 
+      <Dialog
+        open={excluirAlvo !== null}
+        onOpenChange={(v) => {
+          if (!v && !excluindo) {
+            setExcluirAlvo(null);
+            setPreviaExclusao(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir pedido {excluirAlvo?.numero_pedido}</DialogTitle>
+            <DialogDescription>
+              Nada foi apagado ainda. O banco checa primeiro se o pedido pode sair.
+            </DialogDescription>
+          </DialogHeader>
+
+          {checandoExclusao ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Checando o pedido...
+            </div>
+          ) : previaExclusao ? (
+            previaExclusao.pode_excluir ? (
+              <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning">
+                {Number(previaExclusao.linhas_que_serao_apagadas ?? 0)} linha(s) serão apagadas
+                junto com o pedido. Isso não volta atrás.
+              </div>
+            ) : (
+              <div className="space-y-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                <div>Este pedido não pode ser excluído:</div>
+                <ul className="list-disc pl-5">
+                  {(previaExclusao.bloqueios ?? []).map((b, i) => (
+                    <li key={i}>{b}</li>
+                  ))}
+                  {(previaExclusao.bloqueios ?? []).length === 0 && (
+                    <li>O banco recusou a exclusão sem detalhar o motivo.</li>
+                  )}
+                </ul>
+              </div>
+            )
+          ) : null}
+
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              disabled={excluindo}
+              onClick={() => {
+                setExcluirAlvo(null);
+                setPreviaExclusao(null);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!previaExclusao?.pode_excluir || excluindo || checandoExclusao}
+              onClick={() => void confirmarExclusao()}
+            >
+              {excluindo && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Excluir mesmo assim
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <EditarPedidoMercadoriaDialog
         open={editarId != null}
         onOpenChange={(v) => !v && setEditarId(null)}
         pedidoId={editarId}
-        onSaved={() => pedidosQ.refetch()}
+        onSaved={() => {
+          void pedidosQ.refetch();
+          qc.invalidateQueries({ queryKey: ["compras-pendencias"] });
+        }}
       />
     </div>
   );
