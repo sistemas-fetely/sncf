@@ -1006,7 +1006,7 @@ function CelulaPagamento({
             </p>
           </TooltipTrigger>
           <TooltipContent>
-            <p className="text-xs max-w-[280px]">{liberacao.prova_frase}</p>
+            <p className="text-xs max-w-[280px] leading-tight">{liberacao.prova_frase}</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
