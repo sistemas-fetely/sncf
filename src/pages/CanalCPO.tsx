@@ -5,8 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessageCircle, ArrowRight } from "lucide-react";
+import type { EstagioPedido } from "@/types/pedido";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { ESTAGIO_SELO } from "@/components/pedidos/BadgesPedido";
+
 const DATA_FMT = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
 });
@@ -14,21 +17,8 @@ function fmtData(d: string) {
   try { return DATA_FMT.format(new Date(d)); } catch { return d; }
 }
 
-const ESTAGIO_CORES: Record<string, string> = {
-  recebido:           "bg-info/10 text-info",
-  em_analise_credito: "bg-info/10 text-info",
-  cobranca:           "bg-warning/10 text-warning",
-  aguardando_pagamento: "bg-warning/10 text-warning",
-  aguardando_estoque: "bg-warning/10 text-warning",
-  pre_separacao:      "bg-warning/10 text-warning",
-  pre_faturamento:    "bg-warning/10 text-warning",
-  em_separacao:       "bg-muted text-muted-foreground",
-  faturado:           "bg-info/10 text-info",
-  em_transporte:      "bg-info/10 text-info",
-  entregue:           "bg-success/10 text-success",
-};
-
 const ESTAGIO_LABELS: Record<string, string> = {
+
   recebido:           "Recebido",
   em_analise_credito: "Em análise",
   cobranca:           "Cobrança",
@@ -159,10 +149,11 @@ export default function CanalCPO() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-mono text-sm font-medium">{c.idExterno}</span>
                   {c.estagio && (
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${ESTAGIO_CORES[c.estagio] ?? "bg-muted text-muted-foreground"}`}>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${ESTAGIO_SELO[c.estagio as EstagioPedido] ?? "bg-muted text-muted-foreground"}`}>
                       {ESTAGIO_LABELS[c.estagio] ?? c.estagio}
                     </span>
                   )}
+
                   {c.lastTipo === "msg_comercial" && (
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-info text-white">
                       aguardando resposta

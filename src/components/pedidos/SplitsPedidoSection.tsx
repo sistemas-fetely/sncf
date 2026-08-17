@@ -6,20 +6,10 @@ import { Scissors, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ESTAGIO_LABELS, type EstagioPedido } from "@/types/pedido";
 import { useNavigate } from "react-router-dom";
+import { ESTAGIO_SELO } from "@/components/pedidos/BadgesPedido";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
-const ESTAGIO_CORES: Record<string, string> = {
-  aguardando_estoque: "bg-warning/10 text-warning",
-  pre_separacao:      "bg-info/10 text-info",
-  pre_faturamento:    "bg-warning/10 text-warning",
-  cobranca:           "bg-info/10 text-info",
-  em_separacao:       "bg-info/10 text-info",
-  faturado:           "bg-success/10 text-success",
-  em_transporte:      "bg-success/10 text-success",
-  entregue:           "bg-success/10 text-success",
-  cancelado:          "bg-destructive/10 text-destructive",
-};
 
 interface Props {
   pedido_id: string;
@@ -55,8 +45,9 @@ export function SplitsPedidoSection({ pedido_id }: Props) {
       <CardContent className="space-y-3">
         {splits.map((sp: any) => {
           const itens: any[] = Array.isArray(sp.itens_json) ? sp.itens_json : [];
-          const cor = ESTAGIO_CORES[sp.estagio] ?? "bg-muted/10 text-muted-foreground";
+          const cor = ESTAGIO_SELO[sp.estagio as EstagioPedido] ?? "bg-muted text-muted-foreground";
           const label = ESTAGIO_LABELS[sp.estagio as EstagioPedido] ?? sp.estagio;
+
 
           return (
             <div key={sp.id} className="rounded-md border p-3 space-y-2">

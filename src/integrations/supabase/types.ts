@@ -63143,6 +63143,16 @@ export type Database = {
           unidade_nome: string
         }[]
       }
+      usuario_permissoes_telas: {
+        Args: { p_user_id: string }
+        Returns: {
+          pode_apagar: boolean
+          pode_criar: boolean
+          pode_editar: boolean
+          pode_ver: boolean
+          slug: string
+        }[]
+      }
       usuario_pode: {
         Args: { p_acao?: string; p_permissao_slug: string; p_user_id: string }
         Returns: boolean

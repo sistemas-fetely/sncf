@@ -37,6 +37,9 @@
     --warning-foreground: 36 50% 96%;
     --info: 200 50% 40%;
     --info-foreground: 36 50% 96%;
+    --info-strong: 200 55% 24%;
+    --warning-strong: 38 75% 26%;
+
 
     /* Compatibilidade com componentes legados (admin/sidebar/chart) */
     --admin: 350 70% 33%;
@@ -106,6 +109,9 @@
     --warning-foreground: 0 0% 4%;
     --info: 200 50% 50%;
     --info-foreground: 0 0% 4%;
+    --info-strong: 200 60% 78%;
+    --warning-strong: 38 70% 75%;
+
 
     --admin: 350 60% 50%;
     --admin-foreground: 36 38% 96%;
