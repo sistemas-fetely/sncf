@@ -42,11 +42,14 @@ export default {
         warning: {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
+          strong: "hsl(var(--warning-strong))",
         },
         info: {
           DEFAULT: "hsl(var(--info))",
           foreground: "hsl(var(--info-foreground))",
+          strong: "hsl(var(--info-strong))",
         },
+
         admin: {
           DEFAULT: "hsl(var(--admin))",
           foreground: "hsl(var(--admin-foreground))",
