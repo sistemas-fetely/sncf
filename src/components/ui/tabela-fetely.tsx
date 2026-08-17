@@ -84,11 +84,12 @@ export function TabelaFetely({
           )}
         </div>
       ) : semNada ? (
-        <div className="space-y-3 rounded-lg border p-10 text-center">
-          <p className="text-sm text-muted-foreground">{vazio?.mensagem ?? "Nada por aqui ainda."}</p>
-          {vazio?.acao}
-        </div>
+        <EstadoVazio
+          mensagem={vazio?.mensagem ?? "Nada por aqui ainda."}
+          acao={vazio?.acao}
+        />
       ) : filtroVazio ? (
+
         <div className="rounded-lg border p-10 text-center text-sm text-muted-foreground">
           {semResultado ?? "Nenhum resultado para esse filtro."}
         </div>
