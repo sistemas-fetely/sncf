@@ -105,9 +105,28 @@ export async function gerarTemplatePedidoMercadoria(): Promise<void> {
     bottom: { style: "thin", color: { argb: "FFB5B5B5" } },
   };
 
-  // ---------- Aba ITENS ----------
-  const ws = wb.addWorksheet(NOME_ABA_ITENS, { views: [{ state: "frozen", ySplit: 1 }] });
-  const cabecalhos = ["codigo_fornecedor", "quantidade", "preco_unitario"];
+  // ---------- Aba CABECALHO ----------
+  const wsCab = wb.addWorksheet(NOME_ABA_CABECALHO, {
+    views: [{ state: "frozen", ySplit: 1 }],
+  });
+  CAMPOS_CABECALHO.forEach((campo, i) => {
+    wsCab.getColumn(i + 1).width = Math.max(18, campo.length + 4);
+    const c = wsCab.getRow(1).getCell(i + 1);
+    c.value = campo;
+    c.font = { name: "Arial", bold: true, size: 11, color: { argb: BRANCO } };
+    c.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
+    c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE_FETELY } };
+    c.border = bordaFina;
+  });
+  wsCab.getRow(1).height = 24;
+  for (let col = 1; col <= CAMPOS_CABECALHO.length; col++) {
+    wsCab.getCell(2, col).border = bordaFina;
+  }
+
+  // ---------- Aba LINHAS ----------
+  const ws = wb.addWorksheet(NOME_ABA_LINHAS, { views: [{ state: "frozen", ySplit: 1 }] });
+  const cabecalhos = ["codigo", "quantidade", "preco"];
+
   const larguras = [30, 14, 18];
   larguras.forEach((w, i) => {
     ws.getColumn(i + 1).width = w;
