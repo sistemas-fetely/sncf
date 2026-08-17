@@ -731,7 +731,7 @@ export function FilaPedidosPorArea({
                               </Badge>
                             )}
                             {dias != null && (
-                              <span className="text-[11px] text-muted-foreground truncate">
+                              <span className="text-[11px] text-muted-foreground truncate leading-tight">
                                 esperando {dias}d
                               </span>
                             )}
