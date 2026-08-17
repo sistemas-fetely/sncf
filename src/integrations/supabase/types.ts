@@ -8510,6 +8510,13 @@ export type Database = {
             foreignKeyName: "contas_pagar_receber_reembolsa_vinculo_id_fkey"
             columns: ["reembolsa_vinculo_id"]
             isOneToOne: false
+            referencedRelation: "v_organograma_ocupantes"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_receber_reembolsa_vinculo_id_fkey"
+            columns: ["reembolsa_vinculo_id"]
+            isOneToOne: false
             referencedRelation: "vinculos"
             referencedColumns: ["id"]
           },
@@ -27212,6 +27219,13 @@ export type Database = {
             foreignKeyName: "posicoes_vinculo_id_fkey"
             columns: ["vinculo_id"]
             isOneToOne: false
+            referencedRelation: "v_organograma_ocupantes"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "posicoes_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
             referencedRelation: "vinculos"
             referencedColumns: ["id"]
           },
@@ -27376,6 +27390,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "unidades"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posicoes_planejadas_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "v_organograma_ocupantes"
+            referencedColumns: ["vinculo_id"]
           },
           {
             foreignKeyName: "posicoes_planejadas_vinculo_id_fkey"
@@ -29611,6 +29632,13 @@ export type Database = {
             foreignKeyName: "reembolso_lotes_vinculo_id_fkey"
             columns: ["vinculo_id"]
             isOneToOne: false
+            referencedRelation: "v_organograma_ocupantes"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "reembolso_lotes_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
             referencedRelation: "vinculos"
             referencedColumns: ["id"]
           },
@@ -29887,6 +29915,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reembolso_solicitacoes_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "v_organograma_ocupantes"
+            referencedColumns: ["vinculo_id"]
           },
           {
             foreignKeyName: "reembolso_solicitacoes_vinculo_id_fkey"
@@ -38690,6 +38725,13 @@ export type Database = {
             foreignKeyName: "vinculo_beneficios_vinculo_id_fkey"
             columns: ["vinculo_id"]
             isOneToOne: false
+            referencedRelation: "v_organograma_ocupantes"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "vinculo_beneficios_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
             referencedRelation: "vinculos"
             referencedColumns: ["id"]
           },
@@ -38804,6 +38846,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "extras_catalogo"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vinculo_extras_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "v_organograma_ocupantes"
+            referencedColumns: ["vinculo_id"]
           },
           {
             foreignKeyName: "vinculo_extras_vinculo_id_fkey"
@@ -41973,6 +42022,94 @@ export type Database = {
         }
         Relationships: []
       }
+      v_organograma_ocupantes: {
+        Row: {
+          cargo: string | null
+          departamento: string | null
+          departamento_id: string | null
+          email_corporativo: string | null
+          foto_url: string | null
+          nome: string | null
+          pessoa_id: string | null
+          status: string | null
+          tipo_vinculo: string | null
+          unidade: string | null
+          unidade_id: string | null
+          vinculo_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vinculos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vinculos_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vinculos_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vinculos_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_vinculo_pessoa"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vinculos_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organograma"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vinculos_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vinculos_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vinculos_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_reembolso_saneamento"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vinculos_tipo_vinculo_fkey"
+            columns: ["tipo_vinculo"]
+            isOneToOne: false
+            referencedRelation: "tipos_vinculo"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "vinculos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_parceiro_timeline: {
         Row: {
           criado_em: string | null
@@ -43141,6 +43278,13 @@ export type Database = {
           vinculo_id: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "vinculo_beneficios_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "v_organograma_ocupantes"
+            referencedColumns: ["vinculo_id"]
+          },
           {
             foreignKeyName: "vinculo_beneficios_vinculo_id_fkey"
             columns: ["vinculo_id"]
@@ -56591,6 +56735,13 @@ export type Database = {
             foreignKeyName: "reembolso_solicitacoes_vinculo_id_fkey"
             columns: ["vinculo_id"]
             isOneToOne: false
+            referencedRelation: "v_organograma_ocupantes"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "reembolso_solicitacoes_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
             referencedRelation: "vinculos"
             referencedColumns: ["id"]
           },
@@ -58451,6 +58602,13 @@ export type Database = {
           vinculo_id: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "vinculo_beneficios_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "v_organograma_ocupantes"
+            referencedColumns: ["vinculo_id"]
+          },
           {
             foreignKeyName: "vinculo_beneficios_vinculo_id_fkey"
             columns: ["vinculo_id"]
