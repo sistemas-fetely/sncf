@@ -789,6 +789,7 @@ function AcaoDescerPreSeparacao({ pedido, estagio }: { pedido: any; estagio: Est
         pedido_id={pedido.id}
         id_externo={pedido.id_externo}
         valor_liquido={pedido.valor_liquido}
+        valor_bruto={pedido.valor_bruto}
         estagio_origem={estagio}
       />
     </>
