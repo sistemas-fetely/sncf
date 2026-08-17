@@ -224,7 +224,11 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
         carregando={skusQ.isLoading}
         erro={skusQ.isError ? formatError(skusQ.error) : null}
         aoTentarNovamente={() => skusQ.refetch()}
-        vazio={{ mensagem: "Nenhum SKU com saldo apurado neste pedido." }}
+        vazio={{
+          mensagem:
+            "Nenhum SKU com saldo apurado. Vincule uma NF a este pedido para o saldo por SKU aparecer aqui.",
+        }}
+
         semResultado="Nenhum SKU para esse filtro."
         total={todas.length}
         exibidos={filtradas.length}

@@ -189,7 +189,11 @@ function ListaNfs({ aoAbrir }: { aoAbrir: (nf: NfPendencia) => void }) {
       carregando={q.isLoading}
       erro={q.isError ? formatError(q.error) : null}
       aoTentarNovamente={() => q.refetch()}
-      vazio={{ mensagem: "Nenhuma NF de importação lançada ainda." }}
+      vazio={{
+        mensagem:
+          "Nenhuma NF de importação lançada. Importe a nota do fornecedor para ratear as linhas por SKU.",
+      }}
+
       semResultado="Nenhuma NF para essa busca."
       total={todas.length}
       exibidos={filtradas.length}
