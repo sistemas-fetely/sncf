@@ -696,7 +696,7 @@ export function FilaPedidosPorArea({
                     <CelulaLastro cob={coberturaPedidoMap?.get(p.id)} />
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-wrap items-center gap-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5 min-w-0">
                       <EstagioBadge estagio={p.estagio} />
                       {p.estagio === "em_analise_credito" && analiseStages?.get(p.id) === "entrada" && (
                         <Badge className="bg-warning text-white border-0 text-[10px]">
@@ -723,7 +723,6 @@ export function FilaPedidosPorArea({
                             ? "bg-success/10 text-success border-0"
                             : "bg-muted text-foreground border-0";
                         const dias = info.dias_esperando;
-                        const falta = Number(info.falta_linha ?? 0);
                         return (
                           <>
                             {info.situacao_recebivel && (
@@ -732,21 +731,13 @@ export function FilaPedidosPorArea({
                               </Badge>
                             )}
                             {dias != null && (
-                              <span className="text-[11px] text-muted-foreground">
+                              <span className="text-[11px] text-muted-foreground truncate">
                                 esperando {dias}d
-                              </span>
-                            )}
-                            {falta > 0.05 && (
-                              <span className="text-[11px] text-muted-foreground">
-                                · falta {fmtBRL.format(falta)}
                               </span>
                             )}
                           </>
                         );
                       })()}
-                      {p.proxima_acao && (
-                        <span className="text-[11px] text-muted-foreground">· {p.proxima_acao}</span>
-                      )}
                     </div>
                   </TableCell>
 
