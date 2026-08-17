@@ -36,6 +36,7 @@ import { format, parseISO } from "date-fns";
 import { Loader2 } from "lucide-react";
 import { SalarioMasked } from "@/components/SalarioMasked";
 import { nomePessoaPJ } from "@/lib/parceiros/nome";
+import { PageShell } from "@/components/layout/PageShell";
 
 const statusMap: Record<string, string> = {
   rascunho: "Rascunho",
@@ -475,7 +476,7 @@ export default function ContratosPJ() {
   });
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-medium tracking-tight">Contratos PJ</h1>
@@ -779,6 +780,6 @@ export default function ContratosPJ() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   );
 }

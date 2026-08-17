@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { humanizeError } from "@/lib/errorMessages";
 import { useIsSocio } from "@/hooks/useIsSocio";
+import { PageShell } from "@/components/layout/PageShell";
 
 interface PessoaLinha {
   pessoa_id: string;
@@ -187,7 +188,7 @@ export default function Pessoas() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-medium tracking-tight">Pessoas</h1>
@@ -419,6 +420,6 @@ export default function Pessoas() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   );
 }

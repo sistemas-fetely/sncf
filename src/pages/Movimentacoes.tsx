@@ -19,6 +19,7 @@ import {
   useCriarMovimentacao, useAtualizarStatusMovimentacao, useExcluirMovimentacao,
   type MovimentacaoComNome,
 } from "@/hooks/useMovimentacoes";
+import { PageShell } from "@/components/layout/PageShell";
 
 const TIPOS = [
   { value: "promocao", label: "Promoção", icon: TrendingUp },
@@ -150,7 +151,7 @@ export default function Movimentacoes() {
   const fmt = (v: number | null) => v != null ? `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—";
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-medium">Promoções e Movimentações</h1>
@@ -371,6 +372,6 @@ export default function Movimentacoes() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

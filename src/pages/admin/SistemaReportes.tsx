@@ -36,6 +36,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { PageShell } from "@/components/layout/PageShell";
 
 const PRIORIDADE_COR: Record<string, string> = {
   critica: "bg-destructive/10 text-destructive border-destructive/30",
@@ -123,7 +124,7 @@ export default function SistemaReportes() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div>
         <h1 className="text-2xl font-medium flex items-center gap-2">
           <MessageSquareWarning className="h-6 w-6 text-primary" />
@@ -376,6 +377,6 @@ export default function SistemaReportes() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

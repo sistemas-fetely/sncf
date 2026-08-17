@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, Briefcase } from "lucide-react";
 import { FeriasCLTView } from "@/components/ferias/FeriasCLTView";
 import { FeriasPJView } from "@/components/ferias/FeriasPJView";
+import { PageShell } from "@/components/layout/PageShell";
 
 export default function Ferias() {
   const { hasAnyRole, roles } = useAuth();
@@ -15,7 +16,7 @@ export default function Ferias() {
   const defaultTab = showCLT ? "clt" : "pj";
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div>
         <h1 className="text-2xl font-medium">Gestão de Férias</h1>
         <p className="text-muted-foreground">Controle de períodos aquisitivos, programação e recessos</p>
@@ -47,6 +48,6 @@ export default function Ferias() {
           </TabsContent>
         )}
       </Tabs>
-    </div>
+    </PageShell>
   );
 }

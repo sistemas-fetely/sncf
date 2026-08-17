@@ -22,6 +22,7 @@ import {
   useCriarPeriodo, useCriarProgramacao, useAtualizarStatusProgramacao,
   type PeriodoComColaborador,
 } from "@/hooks/useFerias";
+import { PageShell } from "@/components/layout/PageShell";
 
 const STATUS_PERIODO: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   em_aberto: { label: "Em Aberto", variant: "outline" },
@@ -138,7 +139,7 @@ export default function FeriasColaborador() {
   };
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       {/* Header */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate("/ferias")}>
@@ -368,6 +369,6 @@ export default function FeriasColaborador() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

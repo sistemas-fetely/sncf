@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useMeusAtalhos } from "@/hooks/useRegistrarNavegacao";
 import { MuralRotativo } from "@/components/mural/MuralRotativo";
 import { ListaAniversariantesMes } from "@/components/mural/ListaAniversariantesMes";
+import { PageShell } from "@/components/layout/PageShell";
 
 interface Sistema {
   id: string;
@@ -143,7 +144,7 @@ export default function PortalSNCF() {
   };
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       {/* Header */}
       <div>
         <h1 className="text-3xl font-medium tracking-tight mb-2" style={{ color: "#1a3d2b" }}>
@@ -285,6 +286,6 @@ export default function PortalSNCF() {
           );
         })()
       )}
-    </div>
+    </PageShell>
   );
 }

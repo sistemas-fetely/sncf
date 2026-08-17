@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { PageShell } from "@/components/layout/PageShell";
 
 const TI_COLOR = "#3A7D6B";
 
@@ -173,7 +174,7 @@ export default function TIDashboard() {
   ];
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div>
         <h1 className="text-2xl font-medium tracking-tight" style={{ color: TI_COLOR }}>
           TI Fetély — Dashboard
@@ -390,6 +391,6 @@ export default function TIDashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   );
 }

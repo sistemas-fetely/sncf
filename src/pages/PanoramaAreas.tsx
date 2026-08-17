@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { humanizeError } from "@/lib/errorMessages";
+import { PageShell } from "@/components/layout/PageShell";
 
 interface DimensionamentoArea {
   centro_custo_id: string;
@@ -89,7 +90,7 @@ export default function PanoramaAreas() {
   }));
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-medium tracking-tight">Panorama de Áreas</h1>
@@ -216,6 +217,6 @@ export default function PanoramaAreas() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

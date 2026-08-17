@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { BookOpen, Plus, Search, Sparkles, Copy, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { PageShell } from "@/components/layout/PageShell";
 
 const TI_COLOR = "#3A7D6B";
 
@@ -78,7 +79,7 @@ export default function DocumentacaoViva() {
   });
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-medium tracking-tight" style={{ color: TI_COLOR }}>
@@ -214,6 +215,6 @@ export default function DocumentacaoViva() {
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

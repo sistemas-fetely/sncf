@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Send, AlertCircle, CheckCircle2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { PageShell } from "@/components/layout/PageShell";
 
 const TI_COLOR = "#3A7D6B";
 
@@ -161,7 +162,7 @@ export default function TesteEmailTemplate() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <PageShell variant="leitura">
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: TI_COLOR }}>
           <Send className="h-5 w-5 text-white" />
@@ -314,6 +315,6 @@ export default function TesteEmailTemplate() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

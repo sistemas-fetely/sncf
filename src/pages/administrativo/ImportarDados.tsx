@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ImportadorNFs } from "@/components/financeiro/ImportadorNFs";
+import { PageShell } from "@/components/layout/PageShell";
 
 export default function ImportarDados() {
   const [syncing, setSyncing] = useState(false);
@@ -86,7 +87,7 @@ export default function ImportarDados() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div>
         <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
           <Upload className="h-6 w-6 text-admin" />
@@ -193,6 +194,6 @@ export default function ImportarDados() {
         .
       </p>
 
-    </div>
+    </PageShell>
   );
 }

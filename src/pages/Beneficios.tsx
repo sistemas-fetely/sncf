@@ -14,6 +14,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { PageShell } from "@/components/layout/PageShell";
 
 type Row = {
   id: string;
@@ -78,7 +79,7 @@ export default function Beneficios() {
   }, [data]);
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div>
         <h1 className="text-2xl font-medium">Gestão de Benefícios</h1>
         <p className="text-muted-foreground">Benefícios ativos por pessoa</p>
@@ -196,6 +197,6 @@ export default function Beneficios() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

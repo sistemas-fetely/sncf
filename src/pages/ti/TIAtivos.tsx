@@ -17,6 +17,7 @@ import { Plus, MoreHorizontal, Search, Pencil, UserPlus, UserMinus, Trash2, Pack
 import { toast } from "@/hooks/use-toast";
 import TIAtivoForm from "./TIAtivoForm";
 import { useAuth } from "@/contexts/AuthContext";
+import { PageShell } from "@/components/layout/PageShell";
 
 const TI_COLOR = "#3A7D6B";
 
@@ -157,7 +158,7 @@ export default function TIAtivos() {
   });
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-medium tracking-tight" style={{ color: TI_COLOR }}>
@@ -323,6 +324,6 @@ export default function TIAtivos() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   );
 }

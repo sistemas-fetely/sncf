@@ -16,6 +16,7 @@ import { ArrowLeft, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { PageShell } from "@/components/layout/PageShell";
 
 const TI_COLOR = "#3A7D6B";
 
@@ -92,7 +93,7 @@ export default function DocumentacaoForm() {
   };
 
   return (
-    <div className="space-y-6">
+    <PageShell variant="leitura">
       <div className="flex items-center justify-between gap-3">
         <SmartBackButton fallback="/documentacao" fallbackLabel="Documentação" />
         <div className="flex gap-2">
@@ -199,6 +200,6 @@ export default function DocumentacaoForm() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

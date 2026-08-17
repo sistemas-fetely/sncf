@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ShoppingCart, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { PageShell } from "@/components/layout/PageShell";
 
 const fmtBRL = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
@@ -61,7 +62,7 @@ export default function PedidosVenda() {
   }, [filtrados]);
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div>
         <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
           <ShoppingCart className="h-6 w-6 text-admin" />
@@ -150,6 +151,6 @@ export default function PedidosVenda() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

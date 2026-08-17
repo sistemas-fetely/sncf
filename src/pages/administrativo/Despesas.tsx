@@ -9,8 +9,8 @@
  * Nota de campo: a v2 não expõe `numero_documento` nem `tipo_documento` —
  * a coluna "Nº doc" foi removida e a busca passou a cobrir CNPJ do fornecedor.
  */
-import { PageShell } from "@/components/layout/PageShell";
 import { useEffect, useMemo, useState } from "react";
+import { PageShell } from "@/components/layout/PageShell";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";

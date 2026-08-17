@@ -32,6 +32,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { humanizeError } from "@/lib/errorMessages";
 import { PreencherVagaDialog } from "@/components/vagas/PreencherVagaDialog";
+import { PageShell } from "@/components/layout/PageShell";
 
 type StatusVaga = "aberta" | "em_processo" | "preenchida" | "cancelada";
 type StatusFiltro = "vivas" | "todas" | StatusVaga;
@@ -273,7 +274,7 @@ export default function Vagas() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-medium tracking-tight">Vagas</h1>
@@ -614,6 +615,6 @@ export default function Vagas() {
         departamentoNome={preencherTarget?.departamento_id ? depMap.get(preencherTarget.departamento_id) : undefined}
         unidadeNome={preencherTarget?.unidade_id ? uniMap.get(preencherTarget.unidade_id) : undefined}
       />
-    </div>
+    </PageShell>
   );
 }

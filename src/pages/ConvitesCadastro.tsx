@@ -51,6 +51,7 @@ import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { SalarioMasked } from "@/components/SalarioMasked";
+import { PageShell } from "@/components/layout/PageShell";
 
 // ─── Status config ───────────────────────────────────────────────────
 const STATUS_CONFIG: Record<string, { label: string; badge: string; icon: typeof Send }> = {
@@ -606,7 +607,7 @@ export default function ConvitesCadastro() {
   }, [convitesWithStatus, search, funnelFilter, filtroAtrasados]);
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <SystemReadinessBanner />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -1386,6 +1387,6 @@ export default function ConvitesCadastro() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   );
 }

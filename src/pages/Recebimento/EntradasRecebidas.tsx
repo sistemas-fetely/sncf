@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { Search } from "lucide-react";
+import { PageShell } from "@/components/layout/PageShell";
 
 interface EntradaRow {
   id: string;
@@ -125,7 +126,7 @@ export default function EntradasRecebidas() {
   ).size;
 
   return (
-    <div className="space-y-4">
+    <PageShell>
       <CasaPageHeader
         breadcrumb={[{ label: "Casa", to: "/" }, { label: "Recebimento" }, { label: "Entradas Recebidas" }]}
         title="Entradas Recebidas"
@@ -247,6 +248,6 @@ export default function EntradasRecebidas() {
           </Table>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

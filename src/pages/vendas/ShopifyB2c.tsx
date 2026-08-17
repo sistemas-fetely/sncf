@@ -14,6 +14,7 @@ import { Upload, ChevronLeft, ChevronRight, Copy, ExternalLink } from "lucide-re
 import { format } from "date-fns";
 import { ImportarCsvShopifyDialog } from "@/components/shopify/ImportarCsvShopifyDialog";
 import { useShopifyPedidos } from "@/hooks/shopify/useShopifyPedidos";
+import { PageShell } from "@/components/layout/PageShell";
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const PAGE_SIZE = 15;
@@ -75,7 +76,7 @@ export default function ShopifyB2c() {
   const paginados = filtrados.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
 
   return (
-    <div className="space-y-4">
+    <PageShell>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-2xl font-medium tracking-tight">Shopify · B2C</h1>
         <Button variant="outline" onClick={() => setDialogOpen(true)} className="gap-2">
@@ -244,6 +245,6 @@ export default function ShopifyB2c() {
       </div>
 
       <ImportarCsvShopifyDialog open={dialogOpen} onOpenChange={setDialogOpen} />
-    </div>
+    </PageShell>
   );
 }

@@ -39,6 +39,7 @@ import ParametrosUnidadesSection from "@/components/parametros/ParametrosUnidade
 import ParametrosBeneficiosSection from "@/components/parametros/ParametrosBeneficiosSection";
 import ParametrosExtrasSection from "@/components/parametros/ParametrosExtrasSection";
 import ParametrosCondicoesPagamento from "@/components/parametros/ParametrosCondicoesPagamento";
+import { PageShell } from "@/components/layout/PageShell";
 
 interface CategoriaConfig {
   value: string;
@@ -516,7 +517,7 @@ export default function Parametros() {
   }, [CATEGORIAS, allParams, searchTerm]);
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div>
         <h1 className="text-2xl font-medium tracking-tight">Parâmetros</h1>
         <p className="text-muted-foreground text-sm mt-1">
@@ -910,6 +911,6 @@ export default function Parametros() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   );
 }
