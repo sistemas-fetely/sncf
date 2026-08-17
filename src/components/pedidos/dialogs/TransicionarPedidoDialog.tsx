@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { ArrowRight } from "lucide-react";
 import { useTransicionarPedido } from "@/hooks/pedidos/useTransicionarPedido";
+import { ForcarSemLastroDialog } from "@/components/pedidos/dialogs/ForcarSemLastroDialog";
 import { transicoesPara } from "@/lib/pedidoTransicoes";
 import { ESTAGIO_LABELS } from "@/types/pedido";
 import type { EstagioPedido } from "@/types/pedido";
@@ -52,6 +53,8 @@ export function TransicionarPedidoDialog({
     setMotivo("");
     setPara(transicoes[0] || "");
   };
+
+  const destinoAtual = destino_unico ?? (para as EstagioPedido | undefined);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -115,6 +118,27 @@ export function TransicionarPedidoDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <ForcarSemLastroDialog
+        open={!!transicionar.faltaLastro}
+        onOpenChange={(v) => { if (!v) transicionar.limparFaltaLastro(); }}
+        faltantes={transicionar.faltaLastro?.faltantes ?? []}
+        isPending={transicionar.isPending}
+        onForcar={(motivoForcado) => {
+          if (!destinoAtual) return;
+          transicionar.mutate(
+            { pedido_id, para_estagio: destinoAtual, motivo: motivoForcado },
+            {
+              onSuccess: () => {
+                transicionar.limparFaltaLastro();
+                setOpen(false);
+                setMotivo("");
+                setPara(transicoes[0] || "");
+              },
+            },
+          );
+        }}
+      />
     </Dialog>
   );
 }
