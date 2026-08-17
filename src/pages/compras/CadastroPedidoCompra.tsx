@@ -14,10 +14,11 @@ import {
   FileSpreadsheet,
   Trash2,
 } from "lucide-react";
-import { differenceInCalendarDays, format, parseISO } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { apelidoParceiro, nomeCanonico, nomeExibicao } from "@/lib/parceiros/nome";
 import { formatError } from "@/lib/format-error";
+import { invalidarCompras } from "@/lib/compras/invalidar";
 import {
   gerarTemplatePedidoMercadoria,
   type CabecalhoPlanilha,
