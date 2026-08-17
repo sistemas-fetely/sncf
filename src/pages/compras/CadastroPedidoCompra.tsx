@@ -705,10 +705,13 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                     <TableHead>Fase XPM</TableHead>
                     <TableHead>Fase calculada</TableHead>
                     <TableHead className="text-right">A receber</TableHead>
+                    <TableHead>Atraso</TableHead>
+                    <TableHead>Pendências</TableHead>
 
-                    <TableHead className="w-10" />
+                    <TableHead className="w-20" />
 
                   </TableRow>
+
                 </TableHeader>
                 <TableBody>
                   {pedidosOrdenados.map((p) => (
