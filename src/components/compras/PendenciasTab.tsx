@@ -277,7 +277,13 @@ export default function PendenciasTab() {
           carregando={pendenciasQ.isLoading}
           erro={pendenciasQ.error ? (pendenciasQ.error as Error).message : null}
           aoTentarNovamente={() => void pendenciasQ.refetch()}
-          vazio={{ mensagem: `Nenhuma pendência de ${metaTipo.rotulo.toLowerCase()}. Fila limpa.` }}
+          vazio={{
+            mensagem:
+              tipo === "codigos_sem_sku"
+                ? "Nenhum código de fornecedor sem SKU. Quando uma NF trouxer código novo, resolva o de-para na aba “Rateio de NF”."
+                : "Nenhuma linha de NF sem custo. Se alguma nota chegar sem valor de item, vincule o custo na aba “Rateio de NF”.",
+          }}
+
           semResultado="Nenhum pedido para esse filtro."
           total={totalDoTipo > 0 ? pedidosDoTipo.length : 0}
           exibidos={filaPedidos.length}
