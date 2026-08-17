@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  Users, Search, MoreHorizontal, Eye, Edit, Plus, UserCheck, Briefcase, Building2, UserMinus, BarChart3, ClipboardList, AlertTriangle, Wallet, CalendarDays, Network,
+  Users, Search, MoreHorizontal, Eye, Edit, Plus, UserCheck, Briefcase, Building2, UserMinus, BarChart3, ClipboardList, AlertTriangle, Wallet, CalendarDays, Network, Handshake,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { humanizeError } from "@/lib/errorMessages";
+import { useIsSocio } from "@/hooks/useIsSocio";
 
 interface PessoaLinha {
   pessoa_id: string;
@@ -28,7 +29,7 @@ interface PessoaLinha {
   foto_url: string | null;
   cpf: string | null;
   vinculo_id: string | null;
-  tipo_vinculo: "CLT" | "PJ" | null;
+  tipo_vinculo: string | null;
   status: "ativo" | "desligado" | null;
   cargo: string | null;
   departamento: string | null;
@@ -47,6 +48,7 @@ const statusStyles: Record<string, string> = {
 export default function Pessoas() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { data: isSocio } = useIsSocio();
   const tipoFromQuery = searchParams.get("tipo");
 
   const [linhas, setLinhas] = useState<PessoaLinha[]>([]);
@@ -66,12 +68,13 @@ export default function Pessoas() {
   async function fetchData() {
     setLoading(true);
     try {
-      const [{ data: pessoas, error: e1 }, { data: vinculos, error: e2 }, { data: cargos }, { data: deps }, { data: ccs }] = await Promise.all([
+      const [{ data: pessoas, error: e1 }, { data: vinculos, error: e2 }, { data: cargos }, { data: deps }, { data: ccs }, { data: tiposVinculo }] = await Promise.all([
         (supabase as any).from("pessoas").select("id, nome_completo, foto_url, cpf").order("nome_completo"),
         (supabase as any).from("vinculos").select("id, pessoa_id, tipo_vinculo, status, cargo_id, departamento_id, centro_custo_id, data_inicio").order("data_inicio", { ascending: false }),
         (supabase as any).from("cargos").select("id, nome"),
         (supabase as any).from("departamentos").select("id, nome"),
         (supabase as any).from("centros_custo").select("id, codigo, nome").eq("ativo", true).order("nome"),
+        supabase.from("tipos_vinculo").select("codigo, aparece_em_pessoas"),
       ]);
       if (e1) throw e1;
       if (e2) throw e2;
@@ -81,15 +84,30 @@ export default function Pessoas() {
       const ccMap = new Map<string, string>((ccs || []).map((c: any) => [c.id, c.nome]));
       setCentrosCusto((ccs || []) as any[]);
 
+      // DIMENSAO-VIA-TABELA: quem aparece na lista de Pessoas vem de tipos_vinculo.
+      type TipoVinculoDim = { codigo: string; aparece_em_pessoas: boolean };
+      type VinculoLinha = { pessoa_id: string; tipo_vinculo: string; status?: string | null; [k: string]: unknown };
+      const tiposVisiveis = new Set<string>(
+        ((tiposVinculo || []) as TipoVinculoDim[]).filter((t) => t.aparece_em_pessoas).map((t) => t.codigo)
+      );
+      const listaVinculos = (vinculos || []) as VinculoLinha[];
+      const vinculosVisiveis = listaVinculos.filter((v) => tiposVisiveis.has(v.tipo_vinculo));
+      const pessoasOcultas = new Set<string>(
+        listaVinculos.filter((v) => !tiposVisiveis.has(v.tipo_vinculo)).map((v) => v.pessoa_id)
+      );
+
+
       // Escolhe vínculo ativo se existir; senão o mais recente
       const vincPorPessoa = new Map<string, any>();
-      for (const v of (vinculos || []) as any[]) {
+      for (const v of vinculosVisiveis) {
         const atual = vincPorPessoa.get(v.pessoa_id);
         if (!atual) { vincPorPessoa.set(v.pessoa_id, v); continue; }
         if (atual.status !== "ativo" && v.status === "ativo") vincPorPessoa.set(v.pessoa_id, v);
       }
 
-      const rows: PessoaLinha[] = ((pessoas || []) as any[]).map((p) => {
+      const rows: PessoaLinha[] = ((pessoas || []) as any[])
+        .filter((p) => vincPorPessoa.has(p.id) || !pessoasOcultas.has(p.id))
+        .map((p) => {
         const v = vincPorPessoa.get(p.id);
         const cargoResolvido = v?.cargo_id ? cargoMap.get(v.cargo_id) ?? null : null;
         const motivos: string[] = [];
@@ -193,6 +211,11 @@ export default function Pessoas() {
           <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas/organograma")}>
             <Network className="h-4 w-4" /> Organograma
           </Button>
+          {isSocio && (
+            <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas/socios")}>
+              <Handshake className="h-4 w-4" /> Sócios
+            </Button>
+          )}
           <Button className="gap-2" onClick={() => navigate("/pessoas/novo")}>
             <Plus className="h-4 w-4" /> Nova Pessoa
           </Button>
