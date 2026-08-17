@@ -132,3 +132,18 @@ export function useCoberturaPedidos(pedidoIds: (string | null | undefined)[]) {
   });
 }
 
+/**
+ * Rótulo humano da cobertura de um item. `null` = nada a mostrar (item com lastro
+ * ou já faturado — faturado saiu da fila de reserva).
+ */
+export function rotuloCobertura(
+  cobertura: Cobertura | null | undefined,
+  qtdCoberta: number,
+  quantidade: number,
+): string | null {
+  if (!cobertura) return null;
+  if (cobertura === "coberto" || cobertura === "faturado") return null;
+  if (cobertura === "parcial") return `Parcial · ${qtdCoberta} de ${quantidade}`;
+  return "Sem lastro";
+}
+
