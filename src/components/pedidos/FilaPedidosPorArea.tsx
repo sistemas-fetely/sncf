@@ -1016,7 +1016,7 @@ function CelulaPagamento({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Selo estado={liberacao.tom === "ok" ? "success" : "warning"}>
+          <Selo estado={liberacao.tom === "ok" ? "success" : "warning"} className="leading-tight">
             {liberacao.rotulo}
           </Selo>
         </TooltipTrigger>
