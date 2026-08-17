@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageCircle, MoreHorizontal, FileSpreadsheet, Tag, Download, Flame, Loader2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useCoberturaPedidos, type CoberturaPedido } from "@/lib/pedidoDestaque";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -89,6 +90,39 @@ interface Props {
 
 
 
+
+function CelulaLastro({ cob }: { cob: CoberturaPedido | undefined }) {
+  if (!cob) return <span className="text-muted-foreground">—</span>;
+  if (cob.cobertura_pedido === "coberto" || cob.cobertura_pedido === "faturado") {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  const descoberto = cob.cobertura_pedido === "descoberto";
+  const texto = descoberto
+    ? `Sem lastro · ${cob.itens_descobertos} itens`
+    : `Parcial · ${cob.itens_parciais} itens`;
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge
+            className={cn(
+              "text-[10px] py-0 px-1.5 border-0",
+              descoberto ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning"
+            )}
+          >
+            {texto}
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p className="text-xs">{cob.un_descobertas} unidade(s) sem lastro na fila de reserva.</p>
+          {cob.na_fila === false && (
+            <p className="text-xs">Pedido fora da fila de reserva — estágio não reserva estoque.</p>
+          )}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
 
 export function FilaPedidosPorArea({
   area,
@@ -368,6 +402,9 @@ export function FilaPedidosPorArea({
 
   const { data: liberacaoMap } = useLiberacaoExpedicaoLote(pedidoIdsSaida);
 
+  // Coluna Lastro: cobertura por pedido (fila FIFO contra o estoque real do SKU).
+  const { data: coberturaPedidoMap } = useCoberturaPedidos(pedidoIdsSaida);
+
   // Liberação: filtro aplicado depois que o mapa existe (hook acima depende dos ids).
   const linhasFiltradas = useMemo(() => {
     if (liberacaoFilter === "todas") return linhas;
@@ -555,6 +592,7 @@ export function FilaPedidosPorArea({
               <TableHead className="w-[240px]">Pedido</TableHead>
               <TableHead className="w-[150px]">Valor</TableHead>
               <TableHead className="w-[160px]">Pagamento</TableHead>
+              <TableHead className="w-[150px]">Lastro</TableHead>
               <TableHead className="w-[150px]">Estágio</TableHead>
               <TableHead className="w-[220px]">Entrega</TableHead>
               <TableHead className="w-[96px]">Na fase</TableHead>
@@ -565,14 +603,14 @@ export function FilaPedidosPorArea({
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                   Carregando…
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && (!linhas || linhas.length === 0) && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                   Nenhum pedido neste filtro.
                 </TableCell>
               </TableRow>
@@ -655,6 +693,9 @@ export function FilaPedidosPorArea({
                   </TableCell>
                   <TableCell>
                     <CelulaPagamento p={p} liberacao={liberacaoMap?.get(p.id)} />
+                  </TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <CelulaLastro cob={coberturaPedidoMap?.get(p.id)} />
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap items-center gap-1.5">
