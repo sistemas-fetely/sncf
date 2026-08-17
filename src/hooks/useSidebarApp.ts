@@ -57,10 +57,28 @@ export function useSidebarApp(app: string) {
     },
   });
 
+  const { roles } = useAuth();
+  const isSuperAdmin = (roles ?? []).includes("super_admin");
+  const { data: permitidas, isLoading: isLoadingPerms } = usePermissoesDoUsuario();
+
   const blocos = useMemo<BlocoSidebar[]>(() => {
     const linhas = query.data ?? [];
-    const itens = linhas.filter((l) => l.nivel !== "grupo" && l.rota);
+    const navegaveis = linhas.filter((l) => l.nivel !== "grupo" && l.rota);
+
+    // Mesma precedência do RotaGate: super_admin vê tudo; em_construcao e
+    // apenas_super_admin somem; slug passa por temPermissaoTela.
+    const podeVer = (l: LinhaSidebar) => {
+      if (isSuperAdmin) return true;
+      if (l.status === "em_construcao") return false;
+      if (l.apenas_super_admin) return false;
+      if (!l.tela_slug) return true;
+      if (TELAS_PUBLICAS.has(l.tela_slug)) return true;
+      return temPermissaoTela(l.tela_slug, permitidas);
+    };
+
+    const itens = isSuperAdmin ? navegaveis : navegaveis.filter(podeVer);
     const rotas = itens.map((i) => i.rota as string);
+
 
     // `end` derivado da árvore: rota que é prefixo de outra rota do mesmo app
     // precisa de match exato, senão fica destacada junto com as filhas.
