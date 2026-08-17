@@ -139,6 +139,8 @@ export function SNCFSidebar() {
   const collapsed = state === "collapsed";
   const { user, profile, signOut, roles } = useAuth();
   const location = useLocation();
+  const { podeVer, isLoading: carregandoVisibilidade } = useVisibilidadeMenuFixo();
+
 
   const initials = profile?.full_name
     ? profile.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
