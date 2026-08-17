@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
+import { CardIndicador } from "@/components/ui/card-indicador";
 import { Button } from "@/components/ui/button";
 import { Selo } from "@/components/ui/selo";
 import { TabelaFetely } from "@/components/ui/tabela-fetely";
@@ -223,7 +223,11 @@ export default function PendenciasTab() {
           carregando={xpmQ.isLoading || pendenciasQ.isLoading}
           erro={xpmQ.error ? (xpmQ.error as Error).message : null}
           aoTentarNovamente={() => void xpmQ.refetch()}
-          vazio={{ mensagem: "Nenhuma ficha XPM incompleta. Tudo declarado por aqui." }}
+          vazio={{
+            mensagem:
+              "Nenhuma ficha XPM incompleta. Quando faltar NCM, peso líquido, código de barras ou quantidade, o item cai aqui para você declarar.",
+          }}
+
           semResultado="Nenhum item para esse filtro."
           total={xpmQ.data?.length ?? 0}
           exibidos={itensXpm.length}
