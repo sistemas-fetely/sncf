@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, PackagePlus } from "lucide-react";
 
@@ -317,9 +317,8 @@ export default function EntradasEstoque() {
               {lotes.map((lote) => {
                 const expandido = aberto === lote.chave;
                 return (
-                  <>
+                  <Fragment key={lote.chave}>
                     <TableRow
-                      key={lote.chave}
                       className="cursor-pointer"
                       onClick={() => setAberto(expandido ? null : lote.chave)}
                     >
@@ -350,7 +349,7 @@ export default function EntradasEstoque() {
                       <TableCell className="text-right tabular-nums">{formatBRL(lote.valor)}</TableCell>
                     </TableRow>
                     {expandido && (
-                      <TableRow key={`${lote.chave}-skus`}>
+                      <TableRow>
                         <TableCell colSpan={11} className="bg-muted/30 p-0">
                           <div className="overflow-x-auto p-3">
                             <Table>
@@ -397,7 +396,7 @@ export default function EntradasEstoque() {
                         </TableCell>
                       </TableRow>
                     )}
-                  </>
+                  </Fragment>
                 );
               })}
             </TableBody>
