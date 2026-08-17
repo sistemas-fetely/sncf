@@ -192,17 +192,6 @@ export function OrgNodeDrawer({ node, open, onClose, allNodes, onEditPosition }:
               {node.area && <InfoRow label="Área" value={node.area} />}
               {node.filial && <InfoRow label="Filial" value={node.filial} />}
               {node.centro_custo && <InfoRow label="Centro de custo" value={node.centro_custo} />}
-              {canSeeSalary && node.salario_previsto && (
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground"><DollarSign className="h-4 w-4" /></span>
-                  <span className="text-muted-foreground min-w-[100px]">Salário previsto:</span>
-                  <SalarioMasked
-                    valor={node.salario_previsto}
-                    userId={(node.colaborador as any)?.user_id || (node.contrato_pj as any)?.user_id || null}
-                    contexto="organograma"
-                  />
-                </div>
-              )}
             </TabsContent>
           </Tabs>
         </SheetContent>
