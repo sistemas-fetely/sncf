@@ -38,6 +38,7 @@ export default function ImportarLinhasMercadoriaDialog({
   onOpenChange,
   temTextoAtual,
   onImportar,
+  onImportarCabecalho,
 }: Props) {
   const [fileName, setFileName] = useState("");
   const [resultado, setResultado] = useState<ResultadoParseMercadoria | null>(null);
@@ -71,6 +72,7 @@ export default function ImportarLinhasMercadoriaDialog({
         erroGlobal: "Arquivo corrompido ou formato não suportado. Envie um .xlsx ou .xls válido.",
         validas: [],
         invalidas: [],
+        cabecalho: null,
       });
     } finally {
       setCarregando(false);
@@ -84,6 +86,10 @@ export default function ImportarLinhasMercadoriaDialog({
   const confirmar = () => {
     if (!podeConfirmar) return;
     onImportar(linhasParaTexto(validas), modo);
+    if (resultado?.cabecalho && onImportarCabecalho) {
+      onImportarCabecalho(resultado.cabecalho);
+      toast.success("Cabeçalho do pedido preenchido pela planilha.");
+    }
     toast.success(
       `${validas.length} ${validas.length === 1 ? "linha levada" : "linhas levadas"} para o campo de linhas.`,
     );
