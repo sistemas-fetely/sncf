@@ -161,8 +161,16 @@ export function OrgSyntheticView({ tree, flat, filters, onNodeClick }: Props) {
   // Summary
   const totalPosicoes = flat.length;
   const ocupadas = flat.filter(n => n.status === "ocupado").length;
-  const cltCount = flat.filter(n => n.vinculo === "CLT").length;
-  const pjCount = flat.filter(n => n.vinculo === "PJ").length;
+  const ocupadasPorVinculo = useMemo(() => {
+    const map = new Map<string, number>();
+    flat
+      .filter(n => n.status === "ocupado" && n.vinculo)
+      .forEach(n => map.set(n.vinculo!, (map.get(n.vinculo!) ?? 0) + 1));
+    return [...map.entries()].sort((a, b) => b[1] - a[1]);
+  }, [flat]);
+  const detalheOcupadas = ocupadasPorVinculo.length
+    ? ` (${ocupadasPorVinculo.map(([vinculo, count]) => `${count} ${vinculo}`).join(" · ")})`
+    : "";
   const vagas = flat.filter(n => n.status === "vaga_aberta").length;
   const previstas = flat.filter(n => n.status === "previsto").length;
   const custoPrevisto = flat.reduce((s, n) => s + (n.salario_previsto || 0), 0);
