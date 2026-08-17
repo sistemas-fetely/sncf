@@ -11,7 +11,7 @@ import { Pencil, Plus, Trash2, Loader2, Search, AlertCircle } from "lucide-react
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useEstoqueVirtualPorSkus, isSemEstoque } from "@/lib/pedidoDestaque";
+import { useCoberturaItens, rotuloCobertura, type CoberturaItem } from "@/lib/pedidoDestaque";
 import { usePedidoEdicaoCampo } from "@/hooks/pedidos/usePedidoEdicaoCampo";
 
 interface Item {
@@ -65,10 +65,10 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
 
   const produtosQ = useProdutos(busca);
 
-  const estoqueQ = useEstoqueVirtualPorSkus(itens.map((i) => i.sku));
+  const coberturaQ = useCoberturaItens([pedidoId]);
   useEffect(() => {
-    if (estoqueQ.error) toast.error((estoqueQ.error as Error).message);
-  }, [estoqueQ.error]);
+    if (coberturaQ.error) toast.error((coberturaQ.error as Error).message);
+  }, [coberturaQ.error]);
 
   const salvar = useMutation({
     mutationFn: async () => {
