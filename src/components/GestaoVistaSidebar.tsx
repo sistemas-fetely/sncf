@@ -14,6 +14,7 @@ import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { getHighestRoleLabel } from "@/lib/user-role";
+import { useVisibilidadeMenuFixo } from "@/hooks/useVisibilidadeMenu";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
@@ -41,6 +42,8 @@ export function GestaoVistaSidebar() {
   const { roles } = useAuth();
   const primaryRole = getHighestRoleLabel(roles);
   const location = useLocation();
+  const { podeVer, isLoading: carregandoVisibilidade } = useVisibilidadeMenuFixo();
+  const itensVisiveis = carregandoVisibilidade ? [] : items.filter((i) => podeVer(i.url));
 
   const isItemActive = (url: string, end?: boolean) =>
     end ? location.pathname === url : location.pathname.startsWith(url);
@@ -66,6 +69,7 @@ export function GestaoVistaSidebar() {
 
       <SidebarContent className="px-2 space-y-1">
         {/* Tarefas — acesso direto */}
+        {!carregandoVisibilidade && podeVer("/tarefas") && (
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -85,7 +89,7 @@ export function GestaoVistaSidebar() {
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              {roles.some((r) => ["gestor_direto", "gestor_rh", "admin_rh", "super_admin"].includes(r)) && (
+              {roles.some((r) => ["gestor_direto", "gestor_rh", "admin_rh", "super_admin"].includes(r)) && podeVer("/tarefas/time") && (
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <NavLink
@@ -101,8 +105,10 @@ export function GestaoVistaSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        )}
         <div className="mx-4 border-t border-sidebar-border/40" />
 
+        {itensVisiveis.length > 0 && (
         <SidebarGroup>
           {!collapsed && (
             <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4">
@@ -111,7 +117,7 @@ export function GestaoVistaSidebar() {
           )}
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => {
+              {itensVisiveis.map((item) => {
                 const active = isItemActive(item.url, item.end);
                 return (
                   <SidebarMenuItem key={item.url}>
@@ -135,6 +141,7 @@ export function GestaoVistaSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="p-4 space-y-2">

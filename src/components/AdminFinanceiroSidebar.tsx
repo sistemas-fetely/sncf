@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { getHighestRoleLabel } from "@/lib/user-role";
+import { useVisibilidadeMenuFixo } from "@/hooks/useVisibilidadeMenu";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
@@ -72,6 +73,7 @@ export function AdminFinanceiroSidebar() {
   const collapsed = state === "collapsed";
   const { user, profile, signOut, roles } = useAuth();
   const location = useLocation();
+  const { podeVer, isLoading: carregandoVisibilidade } = useVisibilidadeMenuFixo();
 
   const initials = profile?.full_name
     ? profile.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
@@ -82,9 +84,12 @@ export function AdminFinanceiroSidebar() {
   const isItemActive = (url: string, end?: boolean) =>
     end ? location.pathname === url : location.pathname.startsWith(url);
 
+  const visiveis = (items: MenuItem[]) =>
+    carregandoVisibilidade ? [] : items.filter((i) => podeVer(i.url));
+
   const renderItems = (items: MenuItem[]) => (
     <SidebarMenu>
-      {items.map((item) => {
+      {visiveis(items).map((item) => {
         const active = isItemActive(item.url, item.end);
         return (
           <SidebarMenuItem key={item.url}>
@@ -139,11 +144,14 @@ export function AdminFinanceiroSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-2 space-y-1">
+        {visiveis([dashboardItem]).length > 0 && (
         <SidebarGroup>
           <SidebarGroupContent>{renderItems([dashboardItem])}</SidebarGroupContent>
         </SidebarGroup>
+        )}
 
         <div className="mx-4 border-t border-sidebar-border/40" />
+        {visiveis(tudoAVistaItems).length > 0 && (
         <SidebarGroup>
           {!collapsed && (
             <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4">
@@ -152,8 +160,10 @@ export function AdminFinanceiroSidebar() {
           )}
           <SidebarGroupContent>{renderItems(tudoAVistaItems)}</SidebarGroupContent>
         </SidebarGroup>
+        )}
 
         <div className="mx-4 border-t border-sidebar-border/40" />
+        {!carregandoVisibilidade && podeVer("/tarefas") && (
         <SidebarGroup>
           {!collapsed && (
             <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4">
@@ -179,7 +189,7 @@ export function AdminFinanceiroSidebar() {
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              {roles.some((r) => ["gestor_direto", "gestor_rh", "admin_rh", "super_admin"].includes(r)) && (
+              {roles.some((r) => ["gestor_direto", "gestor_rh", "admin_rh", "super_admin"].includes(r)) && podeVer("/tarefas/time") && (
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <NavLink
@@ -195,8 +205,10 @@ export function AdminFinanceiroSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        )}
 
         <div className="mx-4 border-t border-sidebar-border/40" />
+        {visiveis(financeiroItems).length > 0 && (
         <SidebarGroup>
           {!collapsed && (
             <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4">
@@ -205,8 +217,10 @@ export function AdminFinanceiroSidebar() {
           )}
           <SidebarGroupContent>{renderItems(financeiroItems)}</SidebarGroupContent>
         </SidebarGroup>
+        )}
 
         <div className="mx-4 border-t border-sidebar-border/40" />
+        {visiveis(caixaBancoItems).length > 0 && (
         <SidebarGroup>
           {!collapsed && (
             <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4">
@@ -215,8 +229,10 @@ export function AdminFinanceiroSidebar() {
           )}
           <SidebarGroupContent>{renderItems(caixaBancoItems)}</SidebarGroupContent>
         </SidebarGroup>
+        )}
 
         <div className="mx-4 border-t border-sidebar-border/40" />
+        {visiveis(configFinanceiroItems).length > 0 && (
         <SidebarGroup>
           {!collapsed && (
             <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4">
@@ -225,6 +241,7 @@ export function AdminFinanceiroSidebar() {
           )}
           <SidebarGroupContent>{renderItems(configFinanceiroItems)}</SidebarGroupContent>
         </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="p-4">
