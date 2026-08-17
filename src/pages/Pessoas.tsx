@@ -86,7 +86,7 @@ export default function Pessoas() {
 
       // DIMENSAO-VIA-TABELA: quem aparece na lista de Pessoas vem de tipos_vinculo.
       type TipoVinculoDim = { codigo: string; aparece_em_pessoas: boolean };
-      type VinculoLinha = { pessoa_id: string; tipo_vinculo: string };
+      type VinculoLinha = { pessoa_id: string; tipo_vinculo: string; status?: string | null; [k: string]: unknown };
       const tiposVisiveis = new Set<string>(
         ((tiposVinculo || []) as TipoVinculoDim[]).filter((t) => t.aparece_em_pessoas).map((t) => t.codigo)
       );
