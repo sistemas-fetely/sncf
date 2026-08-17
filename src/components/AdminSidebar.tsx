@@ -7,6 +7,7 @@ import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
+import { useVisibilidadeMenuFixo } from "@/hooks/useVisibilidadeMenu";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
@@ -43,6 +44,7 @@ export function AdminSidebar() {
   const { state } = useSidebar();
   const { roles } = useAuth();
   const collapsed = state === "collapsed";
+  const { podeVer, isLoading: carregandoVisibilidade } = useVisibilidadeMenuFixo();
 
   // ATENCAO: este sidebar e HARDCODED, nao le sncf_navegacao. Toda tela nova de
   // /admin precisa ser declarada NOS DOIS lugares: aqui e em sncf_navegacao
@@ -82,18 +84,23 @@ export function AdminSidebar() {
     );
   };
 
-  const renderGroup = (label: string, items: MenuItem[]) => (
-    <SidebarGroup>
-      {!collapsed && (
-        <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4">
-          {label}
-        </SidebarGroupLabel>
-      )}
-      <SidebarGroupContent>
-        <SidebarMenu>{items.map(renderMenuItem)}</SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
-  );
+  const renderGroup = (label: string, items: MenuItem[]) => {
+    if (carregandoVisibilidade) return null;
+    const visiveis = items.filter((i) => podeVer(i.url));
+    if (!visiveis.length) return null;
+    return (
+      <SidebarGroup>
+        {!collapsed && (
+          <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4">
+            {label}
+          </SidebarGroupLabel>
+        )}
+        <SidebarGroupContent>
+          <SidebarMenu>{visiveis.map(renderMenuItem)}</SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    );
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
@@ -118,6 +125,7 @@ export function AdminSidebar() {
 
       <SidebarContent className="px-2 space-y-1">
         {/* Tarefas — acesso direto */}
+        {!carregandoVisibilidade && podeVer("/tarefas") && (
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -137,7 +145,7 @@ export function AdminSidebar() {
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              {roles.some((r) => ["gestor_direto", "gestor_rh", "admin_rh", "super_admin"].includes(r)) && (
+              {roles.some((r) => ["gestor_direto", "gestor_rh", "admin_rh", "super_admin"].includes(r)) && podeVer("/tarefas/time") && (
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <NavLink
@@ -153,6 +161,7 @@ export function AdminSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        )}
         <div className="mx-4 border-t border-sidebar-border/40" />
         {renderGroup("Pessoas & Acessos", pessoasItems)}
         <div className="mx-4 border-t border-sidebar-border/40" />
