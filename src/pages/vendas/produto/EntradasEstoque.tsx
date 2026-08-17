@@ -103,8 +103,8 @@ export default function EntradasEstoque() {
   const entradasQ = useQuery({
     queryKey: ["estoque-entradas", de, ate],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("vw_estoque_entradas")
+      const { data, error } = await supabase
+        .from("vw_estoque_entradas" as never)
         .select(
           "id, data, doc_tipo, doc_numero, termo, motivo, motivo_rotulo, condicao, classe, centro, centro_nome, sku, nome_comercial, quantidade, custo_unitario, valor, importacao_pedido_id, numero_pedido, nf_numero, nf_data, fornecedor, origem, obs, criado_em",
         )
@@ -113,11 +113,11 @@ export default function EntradasEstoque() {
         .order("data", { ascending: false })
         .limit(5000);
       if (error) throw error;
-      return (data ?? []) as EntradaLinha[];
+      return (data ?? []) as unknown as EntradaLinha[];
     },
   });
 
-  const todas = entradasQ.data ?? [];
+  const todas = useMemo(() => entradasQ.data ?? [], [entradasQ.data]);
 
   const centros = useMemo(() => {
     const m = new Map<string, string>();
