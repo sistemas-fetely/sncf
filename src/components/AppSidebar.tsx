@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
+import { useVisibilidadeMenuFixo } from "@/hooks/useVisibilidadeMenu";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
@@ -101,7 +102,9 @@ interface MenuGroupProps {
 
 function MenuGroup({ label, items, collapsed, userRoles = [] }: MenuGroupProps) {
   const location = useLocation();
+  const { podeVer, isLoading: carregandoVisibilidade } = useVisibilidadeMenuFixo();
   const visibleItems = items.filter((item) => {
+    if (!podeVer(item.url)) return false;
     if (item.requireRole) {
       if (item.requireRole === "__gestor_or_rh__") {
         if (!userRoles.some((r) => ["gestor_direto", "super_admin", "admin_rh", "gestor_rh"].includes(r))) return false;
@@ -114,6 +117,7 @@ function MenuGroup({ label, items, collapsed, userRoles = [] }: MenuGroupProps) 
     return true;
   });
 
+  if (carregandoVisibilidade) return null;
   if (visibleItems.length === 0) return null;
 
   const isItemActive = (url: string) => {
@@ -164,6 +168,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { user, roles, profile, signOut } = useAuth();
+  const { podeVer, isLoading: carregandoVisibilidade } = useVisibilidadeMenuFixo();
 
   const initials = profile?.full_name
     ? profile.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
@@ -193,6 +198,7 @@ export function AppSidebar() {
 
       <SidebarContent className="px-2 space-y-1">
         {/* Tarefas — acesso direto, ferramenta do dia-a-dia */}
+        {!carregandoVisibilidade && podeVer("/tarefas") && (
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -211,7 +217,7 @@ export function AppSidebar() {
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              {roles.some((r) => ["gestor_direto", "gestor_rh", "admin_rh", "super_admin"].includes(r)) && (
+              {roles.some((r) => ["gestor_direto", "gestor_rh", "admin_rh", "super_admin"].includes(r)) && podeVer("/tarefas/time") && (
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <NavLink
@@ -229,6 +235,7 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        )}
         <div className="mx-4 border-t border-sidebar-border/40" />
         <MenuGroup label="Análise" items={analiseItems} collapsed={collapsed} userRoles={roles} />
         <div className="mx-4 border-t border-sidebar-border/40" />

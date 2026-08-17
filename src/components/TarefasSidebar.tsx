@@ -9,6 +9,7 @@ import {
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
+import { useVisibilidadeMenuFixo } from "@/hooks/useVisibilidadeMenu";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarHeader, SidebarMenu, SidebarMenuButton,
@@ -37,6 +38,8 @@ export function TarefasSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const { podeVer, isLoading: carregandoVisibilidade } = useVisibilidadeMenuFixo();
+  const visiveis = carregandoVisibilidade ? [] : itensAtivos.filter((i) => podeVer(i.url!));
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
@@ -57,10 +60,11 @@ export function TarefasSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="space-y-1 px-2">
+        {visiveis.length > 0 && (
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {itensAtivos.map((item) => {
+              {visiveis.map((item) => {
                 const active = location.pathname.startsWith(item.url!);
                 return (
                   <SidebarMenuItem key={item.url}>
@@ -84,6 +88,7 @@ export function TarefasSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        )}
 
       </SidebarContent>
     </Sidebar>

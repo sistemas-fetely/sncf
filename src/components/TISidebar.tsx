@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { getHighestRoleLabel } from "@/lib/user-role";
 import { useMenuApp } from "@/hooks/useMenuApp";
 import { resolverIcone } from "@/config/iconesNavegacao";
+import { useVisibilidadeMenuFixo } from "@/hooks/useVisibilidadeMenu";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
@@ -25,6 +26,7 @@ export function TISidebar() {
   // MENU-VIA-TABELA: grupos, itens, rotulos, icones e ordem vem da
   // sncf_navegacao. Mudar o menu de TI passa a ser UPDATE, sem deploy.
   const { grupos, soltos } = useMenuApp("ti");
+  const { podeVer, isLoading: carregandoVisibilidade } = useVisibilidadeMenuFixo();
 
   const initials = profile?.full_name
     ? profile.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
@@ -92,7 +94,7 @@ export function TISidebar() {
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              {roles.some((r) => ["gestor_direto", "gestor_rh", "admin_rh", "super_admin"].includes(r)) && (
+              {roles.some((r) => ["gestor_direto", "gestor_rh", "admin_rh", "super_admin"].includes(r)) && podeVer("/tarefas/time") && (
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <NavLink
@@ -108,6 +110,7 @@ export function TISidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        )}
         <div className="mx-4 border-t border-sidebar-border/40" />
 
         {soltos.length > 0 && (
