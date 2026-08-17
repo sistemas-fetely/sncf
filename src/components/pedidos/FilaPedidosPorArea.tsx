@@ -743,7 +743,7 @@ export function FilaPedidosPorArea({
 
                   <TableCell>
                     {entregaErro ? (
-                      <p className="text-[11px] text-destructive">
+                      <p className="text-[11px] text-destructive leading-tight">
                         Erro ao carregar entrega/NF: {(entregaErrorObj as Error)?.message || "falha desconhecida"}
                       </p>
                     ) : (
