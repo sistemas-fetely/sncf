@@ -90,6 +90,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { transicoesPara } from "@/lib/pedidoTransicoes";
 import { useTransicionarPedido } from "@/hooks/pedidos/useTransicionarPedido";
 import { SplitPedidoDialog } from "@/components/pedidos/dialogs/SplitPedidoDialog";
+import { ForcarSemLastroDialog } from "@/components/pedidos/dialogs/ForcarSemLastroDialog";
 import { AtencaoPedidoDialog } from "@/components/pedidos/dialogs/AtencaoPedidoDialog";
 import { useLimparAtencao } from "@/hooks/pedidos/useAtencaoPedido";
 import { toast } from "@/hooks/use-toast";
