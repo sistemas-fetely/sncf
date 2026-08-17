@@ -82,7 +82,7 @@ import {
   type TipoPendencia,
 } from "@/lib/compras/pendencias";
 import { cn } from "@/lib/utils";
-import { PageShell } from "@/components/layout/PageShell";
+
 
 // ============================================================================
 // Types

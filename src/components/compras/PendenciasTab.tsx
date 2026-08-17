@@ -193,33 +193,28 @@ export default function PendenciasTab() {
           const ativo = t.tipo === tipo;
           const n = totais[t.tipo];
           return (
-            <button key={t.tipo} type="button" onClick={() => setTipo(t.tipo)} className="text-left">
-              <Card
-                className={cn(
-                  "h-full transition-colors",
-                  ativo ? "border-primary bg-primary/10" : "hover:bg-muted/50",
-                )}
-              >
-                <CardContent className="space-y-1 p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm">{t.rotulo}</span>
-                    {ativo && <Selo estado="info">Selecionado</Selo>}
-                  </div>
-                  <div
-                    className={cn(
-                      "text-2xl tabular-nums",
-                      n > 0 ? "text-warning" : "text-muted-foreground",
-                    )}
-                  >
-                    {pendenciasQ.isLoading ? "—" : n}
-                  </div>
-                  <p className="text-xs text-muted-foreground">{t.descricao}</p>
-                </CardContent>
-              </Card>
+            <button
+              key={t.tipo}
+              type="button"
+              onClick={() => setTipo(t.tipo)}
+              className="text-left"
+              aria-label={`Ver pendências de ${t.rotulo}`}
+              aria-pressed={ativo}
+            >
+              <CardIndicador
+                rotulo={t.rotulo}
+                valor={pendenciasQ.isLoading ? "—" : n}
+                nota={t.descricao}
+                tom={n > 0 ? "atencao" : "neutro"}
+                ativo={ativo}
+                adorno={ativo ? <Selo estado="info">Selecionado</Selo> : undefined}
+                className={cn(!ativo && "hover:bg-muted/50 transition-colors")}
+              />
             </button>
           );
         })}
       </div>
+
 
       {tipo === "ficha_xpm_incompleta" ? (
         <TabelaFetely
