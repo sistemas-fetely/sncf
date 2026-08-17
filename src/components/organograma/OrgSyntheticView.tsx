@@ -220,7 +220,7 @@ export function OrgSyntheticView({ tree, flat, filters, onNodeClick }: Props) {
 
       <div className="flex items-center justify-between text-xs text-muted-foreground px-1 flex-wrap gap-2">
         <span>
-          Total: <strong>{totalPosicoes}</strong> posições · <strong>{ocupadas}</strong> ocupadas ({cltCount} CLT · {pjCount} PJ) · <strong>{vagas}</strong> vagas abertas · <strong>{previstas}</strong> previstas
+          Total: <strong>{totalPosicoes}</strong> posições · <strong>{ocupadas}</strong> ocupadas{detalheOcupadas} · <strong>{vagas}</strong> vagas abertas · <strong>{previstas}</strong> previstas
         </span>
         {canSeeSalary && (
           <span className="flex items-center gap-1.5">
