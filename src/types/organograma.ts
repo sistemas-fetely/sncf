@@ -27,13 +27,14 @@ export interface ColaboradorVinculado {
   foto_url: string | null;
   email_corporativo: string | null;
   telefone: string | null;
-  data_admissao: string;
-  salario_base: number;
+  data_admissao: string | null;
+  salario_base: number | null;
   status: string;
   tipo_contrato: TipoVinculoCodigo;
   cargo: string;
   departamento: string;
 }
+
 
 export interface ContratoPJVinculado {
   id: string;
