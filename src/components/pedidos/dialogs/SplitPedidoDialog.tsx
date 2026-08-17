@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -16,7 +16,8 @@ import {
 import { Loader2, Scissors, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCriarSplit } from "@/hooks/pedidos/useCriarSplit";
-import { useEstoqueVirtualPorSkus, isSemEstoque } from "@/lib/pedidoDestaque";
+import { useCoberturaItens, type CoberturaItem } from "@/lib/pedidoDestaque";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -36,6 +37,7 @@ const ESTAGIO_OPTIONS_ESTOQUE: { value: EstagioSplit; label: string; desc: strin
 ];
 
 interface ItemPedido {
+  id: string;
   descricao: string;
   sku: string;
   quantidade: number;
@@ -69,7 +71,7 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
     queryFn: async (): Promise<ItemPedido[]> => {
       const { data, error } = await (supabase as any)
         .from("pedido_itens")
-        .select("descricao, sku, quantidade, valor_unitario")
+        .select("id, descricao, sku, quantidade, valor_unitario")
         .eq("pedido_id", pedido_id)
         .order("ordem");
       if (error) throw error;
@@ -78,11 +80,18 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
     enabled: open && !!pedido_id,
   });
 
-  const estoqueQ = useEstoqueVirtualPorSkus((itens ?? []).map((it) => it.sku));
-  const estoqueMap = estoqueQ.data ?? new Map<string, number>();
+  const coberturaQ = useCoberturaItens([pedido_id]);
+  const coberturaPorItem = useMemo(() => {
+    const map = new Map<string, CoberturaItem>();
+    for (const [, item] of (coberturaQ.data ?? new Map())) {
+      map.set(item.id, item);
+    }
+    return map;
+  }, [coberturaQ.data]);
+
   useEffect(() => {
-    if (estoqueQ.error) toast.error((estoqueQ.error as Error).message);
-  }, [estoqueQ.error]);
+    if (coberturaQ.error) toast.error((coberturaQ.error as Error).message);
+  }, [coberturaQ.error]);
 
   const getQtdSplit = (sku: string, total: number) =>
     Math.min(Math.max(0, qtdSplit[sku] ?? 0), total);
@@ -156,6 +165,7 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
                     <tr>
                       <th className="text-left p-2">Produto</th>
                       <th className="text-right p-2 w-16">Total</th>
+                      <th className="text-right p-2 w-16">Com lastro</th>
                       <th className="text-right p-2 w-16">Original</th>
                       <th className="text-right p-2 w-28">Qtd Split</th>
                     </tr>
@@ -164,17 +174,30 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
                     {(itens ?? []).map((it) => {
                       const qSplit = getQtdSplit(it.sku, it.quantidade);
                       const qOrig = it.quantidade - qSplit;
-                      const semEstoque = isSemEstoque(it.sku, estoqueMap);
+                      const cob = coberturaPorItem.get(it.id);
+                      const cobertura = cob?.cobertura ?? null;
+                      const semCobertura = !cobertura;
+                      const descoberto = cobertura === "descoberto" || cobertura === "sem_lastro";
+                      const parcial = cobertura === "parcial";
+                      const rowAlert = descoberto ? "bg-destructive/10" : parcial ? "bg-warning/10" : "";
+                      const lastroClass = descoberto
+                        ? "text-destructive"
+                        : parcial
+                        ? "text-warning"
+                        : "text-muted-foreground";
                       return (
-                        <tr key={it.sku} className={`border-t ${semEstoque ? "bg-destructive/10" : ""}`}>
+                        <tr key={it.id} className={cn("border-t", rowAlert)}>
                           <td className="p-2">
                             <div className="font-medium flex items-center gap-1.5">
-                              {semEstoque && <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />}
+                              {descoberto && <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />}
                               {it.descricao}
                             </div>
                             <div className="text-xs text-muted-foreground">{it.sku}</div>
                           </td>
                           <td className="p-2 text-right">{it.quantidade}</td>
+                          <td className={cn("p-2 text-right", lastroClass)}>
+                            {semCobertura ? "—" : cob.qtd_coberta}
+                          </td>
                           <td className="p-2 text-right">{qOrig}</td>
                           <td className="p-2 text-right">
                             <Input
