@@ -21,11 +21,11 @@ import {
 } from "recharts";
 import { cn } from "@/lib/utils";
 import {
-import { PageShell } from "@/components/layout/PageShell";
   useFaturamentoMensal, useFaturamentoNf, useFaturamentoProduto,
   type FaturamentoMensal, type FaturamentoNf, type FaturamentoProduto,
 
 } from "@/hooks/financas/useFaturamento";
+import { PageShell } from "@/components/layout/PageShell";
 
 
 const CANAIS = ["B2B", "B2C", "SEM CANAL"] as const;

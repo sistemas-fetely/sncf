@@ -8,8 +8,8 @@
  * Fontes: vw_auditoria_achado (aba Achados) e vw_auditoria_painel (aba Painel).
  * Escrita SEMPRE por RPC — nunca UPDATE direto no achado.
  */
-import { PageShell } from "@/components/layout/PageShell";
 import { useState } from "react";
+import { PageShell } from "@/components/layout/PageShell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AchadosTab from "@/components/auditoria/AchadosTab";
 import PainelAuditoriaTab from "@/components/auditoria/PainelAuditoriaTab";

@@ -19,10 +19,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-import { PageShell } from "@/components/layout/PageShell";
   useCriarPeriodo, useCriarProgramacao, useAtualizarStatusProgramacao,
   type PeriodoComColaborador,
 } from "@/hooks/useFerias";
+import { PageShell } from "@/components/layout/PageShell";
 
 const STATUS_PERIODO: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   em_aberto: { label: "Em Aberto", variant: "outline" },

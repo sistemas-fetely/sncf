@@ -15,11 +15,11 @@ import { SelectDepartamentoHierarquico } from "@/components/shared/SelectDeparta
 import { SalarioMasked } from "@/components/SalarioMasked";
 import { useCargos } from "@/hooks/useCargos";
 import {
-import { PageShell } from "@/components/layout/PageShell";
   useMovimentacoes, useColaboradoresAtivos, useContratosPJAtivos,
   useCriarMovimentacao, useAtualizarStatusMovimentacao, useExcluirMovimentacao,
   type MovimentacaoComNome,
 } from "@/hooks/useMovimentacoes";
+import { PageShell } from "@/components/layout/PageShell";
 
 const TIPOS = [
   { value: "promocao", label: "Promoção", icon: TrendingUp },
