@@ -114,9 +114,9 @@ function CelulaLastro({ cob }: { cob: CoberturaPedido | undefined }) {
           </Badge>
         </TooltipTrigger>
         <TooltipContent>
-          <p className="text-xs">{cob.un_descobertas} unidade(s) sem lastro na fila de reserva.</p>
+          <p className="text-xs leading-tight">{cob.un_descobertas} unidade(s) sem lastro na fila de reserva.</p>
           {cob.na_fila === false && (
-            <p className="text-xs">Pedido fora da fila de reserva — estágio não reserva estoque.</p>
+            <p className="text-xs leading-tight">Pedido fora da fila de reserva — estágio não reserva estoque.</p>
           )}
         </TooltipContent>
       </Tooltip>
@@ -585,7 +585,7 @@ export function FilaPedidosPorArea({
       <div ref={tableWrapperRef} className="rounded-md border border-border overflow-hidden">
         <Table className="table-fixed">
           <TableHeader>
-            <TableRow>
+            <TableRow className="sticky top-0 z-20 bg-card">
               <TableHead className="w-[56px]">Risco</TableHead>
               <TableHead className="w-[240px]">Pedido</TableHead>
               <TableHead className="w-[150px]">Valor</TableHead>
@@ -618,7 +618,7 @@ export function FilaPedidosPorArea({
               return (
                 <TableRow
                   key={p.id}
-                  className="cursor-pointer"
+                  className="cursor-pointer h-16 [&>td]:py-2 [&>td]:align-middle [&>td]:overflow-hidden"
                   onClick={() => navigate(`/pedidos/${p.id}`)}
                 >
                   <TableCell onClick={(e) => e.stopPropagation()}>
@@ -669,7 +669,7 @@ export function FilaPedidosPorArea({
                       <p className="text-sm font-normal text-muted-foreground truncate block w-full min-w-0" title={p.parceiro_razao}>{p.parceiro_razao}</p>
                     )}
                     <p
-                      className="text-[11px] text-muted-foreground truncate block w-full min-w-0"
+                      className="text-[11px] text-muted-foreground truncate block w-full min-w-0 leading-tight"
                       title={[
                         p.parceiro_id && apelidoMap?.[p.parceiro_id] ? apelidoMap[p.parceiro_id] : null,
                         p.parceiro_cnpj,
@@ -731,7 +731,7 @@ export function FilaPedidosPorArea({
                               </Badge>
                             )}
                             {dias != null && (
-                              <span className="text-[11px] text-muted-foreground truncate">
+                              <span className="text-[11px] text-muted-foreground truncate leading-tight">
                                 esperando {dias}d
                               </span>
                             )}
@@ -743,7 +743,7 @@ export function FilaPedidosPorArea({
 
                   <TableCell>
                     {entregaErro ? (
-                      <p className="text-[11px] text-destructive">
+                      <p className="text-[11px] text-destructive leading-tight">
                         Erro ao carregar entrega/NF: {(entregaErrorObj as Error)?.message || "falha desconhecida"}
                       </p>
                     ) : (
@@ -767,11 +767,11 @@ export function FilaPedidosPorArea({
                           <p className={cn(slaEstourado && "text-destructive font-medium")}>
                             {diasNaFase != null ? `${Math.floor(diasNaFase)}d` : "—"}
                           </p>
-                          <p className="text-[11px] text-muted-foreground">
+                          <p className="text-[11px] text-muted-foreground leading-tight">
                             pedido {totalDias === 0 ? "<1d" : `${totalDias}d`}
                           </p>
                           {relogio && relogio.dias_espera > 0 && (
-                            <p className="text-[11px] text-muted-foreground">
+                            <p className="text-[11px] text-muted-foreground leading-tight">
                               {relogio.dias_nossos}d nossos
                             </p>
                           )}
@@ -957,7 +957,7 @@ function LinhaCondicaoPagamento({ p }: { p: PedidoFilaItem }) {
 
   // Condição já contém a forma → só a condição.
   if (frm && cond.includes(frm)) {
-    return <p className="text-[11px] text-muted-foreground truncate">{condTexto}</p>;
+    return <p className="text-[11px] text-muted-foreground truncate leading-tight">{condTexto}</p>;
   }
 
   // Condição menciona um meio diferente do cadastro → destaque na forma.
@@ -965,7 +965,7 @@ function LinhaCondicaoPagamento({ p }: { p: PedidoFilaItem }) {
 
   return (
     <p
-      className="text-[11px] text-muted-foreground truncate"
+      className="text-[11px] text-muted-foreground truncate leading-tight"
       title={
         divergente
           ? "A condição diz um meio de pagamento e o cadastro diz outro."
@@ -998,7 +998,7 @@ function CelulaPagamento({
           <TooltipTrigger asChild>
             <p
               className={cn(
-                "text-[11px]",
+                "text-[11px] leading-tight",
                 liberacao.prova_tom === "perigo" ? "text-destructive" : "text-warning"
               )}
             >
@@ -1006,7 +1006,7 @@ function CelulaPagamento({
             </p>
           </TooltipTrigger>
           <TooltipContent>
-            <p className="text-xs max-w-[280px]">{liberacao.prova_frase}</p>
+            <p className="text-xs max-w-[280px] leading-tight">{liberacao.prova_frase}</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -1016,18 +1016,18 @@ function CelulaPagamento({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Selo estado={liberacao.tom === "ok" ? "success" : "warning"}>
+          <Selo estado={liberacao.tom === "ok" ? "success" : "warning"} className="leading-tight">
             {liberacao.rotulo}
           </Selo>
         </TooltipTrigger>
         <TooltipContent>
           <div className="max-w-[320px] space-y-1">
-            {liberacao.motivo && <p className="text-xs">{liberacao.motivo}</p>}
+            {liberacao.motivo && <p className="text-xs leading-tight">{liberacao.motivo}</p>}
             {liberacao.prova_frase && (
-              <p className="text-xs opacity-80">{liberacao.prova_frase}</p>
+              <p className="text-xs opacity-80 leading-tight">{liberacao.prova_frase}</p>
             )}
             {p.situacao_rotulo && (
-              <p className="text-xs opacity-80">{p.situacao_rotulo}</p>
+              <p className="text-xs opacity-80 leading-tight">{p.situacao_rotulo}</p>
             )}
           </div>
         </TooltipContent>
