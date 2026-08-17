@@ -30,7 +30,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+import { CardIndicador } from "@/components/ui/card-indicador";
+import { TabelaFetely } from "@/components/ui/tabela-fetely";
+
 import {
   Select,
   SelectContent,
@@ -80,7 +82,7 @@ import {
   type TipoPendencia,
 } from "@/lib/compras/pendencias";
 import { cn } from "@/lib/utils";
-import { PageShell } from "@/components/layout/PageShell";
+
 
 // ============================================================================
 // Types
@@ -745,7 +747,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
 
   // ============================ RENDER ============================
   return (
-    <PageShell>
+    <div className="space-y-4">
 
 
       {/* ============================ LISTA ============================ */}
@@ -755,26 +757,31 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
           <CardTitle className="text-base">Pedidos existentes</CardTitle>
         </CardHeader>
         <CardContent>
-          {pedidosQ.isLoading ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Carregando...
-            </div>
-          ) : pedidosQ.isError ? (
-            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-4 space-y-3">
-              <div className="text-sm font-medium text-destructive">
-                Falha ao carregar os pedidos existentes.
-              </div>
-              <div className="text-xs text-destructive/90 break-words">
-                {formatError(pedidosQ.error)}
-              </div>
-              <Button size="sm" variant="outline" onClick={() => pedidosQ.refetch()}>
-                Tentar de novo
-              </Button>
-            </div>
-          ) : pedidosOrdenados.length === 0 ? (
-            <div className="text-sm text-muted-foreground">Nenhum pedido cadastrado.</div>
-          ) : (
-            <div className="space-y-3">
+          <TabelaFetely
+            carregando={pedidosQ.isLoading}
+            erro={pedidosQ.isError ? formatError(pedidosQ.error) : null}
+            aoTentarNovamente={() => void pedidosQ.refetch()}
+            vazio={{
+              mensagem:
+                "Nenhum pedido de mercadoria cadastrado. Comece pela aba “Novo pedido” — ou baixe o template e importe a planilha do fornecedor.",
+              acao: (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const next = new URLSearchParams();
+                    next.set("aba", "novo");
+                    setParams(next, { replace: false });
+                  }}
+                >
+                  Abrir “Novo pedido”
+                </Button>
+              ),
+            }}
+            total={pedidosOrdenados.length}
+            exibidos={pedidosOrdenados.length}
+            rotulo="pedidos"
+          >
               <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -793,8 +800,8 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                     <TableHead>Fase XPM</TableHead>
                     <TableHead>Fase calculada</TableHead>
                     <TableHead className="text-right">A receber</TableHead>
-                    <TableHead>Atraso</TableHead>
-                    <TableHead>Pendências</TableHead>
+                    <TableHead className="text-right">Atraso</TableHead>
+                    <TableHead className="text-right">Pendências</TableHead>
 
                     <TableHead className="w-20" />
 
@@ -819,18 +826,18 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                       </TableCell>
                       <TableCell>{p.centro ?? "—"}</TableCell>
                       <TableCell>{p.status ?? "—"}</TableCell>
-                      <TableCell>{fmtDate(p.data_pedido)}</TableCell>
-                      <TableCell>{fmtDate(p.etd)}</TableCell>
-                      <TableCell>{fmtDate(p.eta)}</TableCell>
-                      <TableCell className="text-right">{p.linhas ?? 0}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="tabular-nums">{fmtDate(p.data_pedido)}</TableCell>
+                      <TableCell className="tabular-nums">{fmtDate(p.etd)}</TableCell>
+                      <TableCell className="tabular-nums">{fmtDate(p.eta)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{p.linhas ?? 0}</TableCell>
+                      <TableCell className="text-right tabular-nums">
                         {fmtBRL(Number(p.custo_total ?? 0), p.moeda ?? "BRL")}
                       </TableCell>
                       <TableCell>
                         {p.fase_xpm === 2 ? (
-                          <Badge variant="secondary">Fase 2 · com NF</Badge>
+                          <Selo estado="info">Fase 2 · com NF</Selo>
                         ) : p.fase_xpm === 1 ? (
-                          <Badge variant="outline">Fase 1 · sem NF</Badge>
+                          <Selo estado="muted">Fase 1 · sem NF</Selo>
                         ) : (
                           "—"
                         )}
@@ -873,10 +880,12 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                         );
                       })()}
 
-                      <TableCell>{rotuloAtraso(p.prazo_entrega_acordado, p.eta)}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {rotuloAtraso(p.prazo_entrega_acordado, p.eta)}
+                      </TableCell>
 
-                      <TableCell>
-                        <div className="flex flex-wrap items-center gap-1">
+                      <TableCell className="text-right tabular-nums">
+                        <div className="flex flex-wrap items-center justify-end gap-1">
                           {TIPOS_PENDENCIA.map((t) => {
                             const pend = pendenciaPorPedido.get(Number(p.id));
                             const n = pend ? totalPendencia(pend, t.tipo) : 0;
@@ -885,6 +894,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                                 key={t.tipo}
                                 type="button"
                                 title={`${t.rotulo} — ${t.descricao}`}
+                                aria-label={`${t.rotulo}: ${n} no pedido ${p.numero_pedido}`}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   irParaPendencia(t.tipo, p.id);
@@ -907,24 +917,26 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                             size="icon"
                             className="h-7 w-7"
                             title="Editar pedido"
+                            aria-label={`Editar pedido ${p.numero_pedido}`}
                             onClick={(e) => {
                               e.stopPropagation();
                               setEditarId(p.id);
                             }}
                           >
-                            <Pencil className="h-4 w-4" />
+                            <Pencil className="h-4 w-4" aria-hidden="true" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7 text-destructive"
                             title="Excluir pedido"
+                            aria-label={`Excluir pedido ${p.numero_pedido}`}
                             onClick={(e) => {
                               e.stopPropagation();
                               void abrirExclusao(p);
                             }}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" aria-hidden="true" />
                           </Button>
                         </div>
                       </TableCell>
@@ -935,14 +947,13 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                 </TableBody>
               </Table>
               </div>
-            </div>
-
-          )}
+          </TabelaFetely>
 
         </CardContent>
       </Card>
 
       )}
+
 
       {/* ============================ FORMULÁRIO ============================ */}
       {vista === "novo" && (
@@ -1203,11 +1214,11 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
-                variant="secondary"
+                variant="outline"
                 disabled={!headerValido || conferirMut.isPending || !textoLinhas.trim()}
                 onClick={() => conferirMut.mutate()}
               >
-                {conferirMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {conferirMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />}
                 Conferir antes de gravar
               </Button>
             </div>
@@ -1221,15 +1232,15 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                 )}
                 <Button
                   type="button"
-                  variant={podeGravar ? "default" : "secondary"}
                   disabled={!podeGravar || gravarMut.isPending}
                   onClick={() => gravarMut.mutate()}
                 >
-                  {gravarMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {gravarMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />}
                   Gravar pedido
                 </Button>
               </div>
             )}
+
           </div>
 
           {/* Resultado da conferência */}
@@ -1339,7 +1350,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
           qc.invalidateQueries({ queryKey: ["compras-pendencias"] });
         }}
       />
-    </PageShell>
+    </div>
   );
 }
 
@@ -1410,15 +1421,16 @@ function ResultadoConferencia({
 
       {/* Contadores */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <MiniStat label="Linhas produto" value={String(result.linhas_produto)} />
-        <MiniStat label="Linhas serviço" value={String(result.linhas_servico)} />
-        <MiniStat
-          label="Problemas"
-          value={String(result.linhas_com_problema)}
-          tone={result.linhas_com_problema > 0 ? "danger" : "ok"}
+        <CardIndicador compacto rotulo="Linhas produto" valor={result.linhas_produto} />
+        <CardIndicador compacto rotulo="Linhas serviço" valor={result.linhas_servico} />
+        <CardIndicador
+          compacto
+          rotulo="Problemas"
+          valor={result.linhas_com_problema}
+          tom={result.linhas_com_problema > 0 ? "critico" : "neutro"}
         />
-        <MiniStat label="SKUs resultantes" value={String(result.skus_resultantes)} />
-        <MiniStat label="Custo total" value={fmtBRL(result.custo_total, moeda)} />
+        <CardIndicador compacto rotulo="SKUs resultantes" valor={result.skus_resultantes} />
+        <CardIndicador compacto rotulo="Custo total" valor={fmtBRL(result.custo_total, moeda)} />
       </div>
 
       {/* Resolução */}
@@ -1430,85 +1442,97 @@ function ResultadoConferencia({
               to={`/compras/de-para-fornecedor${fornecedorId ? `?fornecedor=${fornecedorId}` : ""}`}
               className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
             >
-              <Link2 className="h-3 w-3" /> Abrir de-para de fornecedor
-              <ExternalLink className="h-3 w-3" />
+              <Link2 className="h-3 w-3" aria-hidden="true" /> Abrir de-para de fornecedor
+              <ExternalLink className="h-3 w-3" aria-hidden="true" />
             </Link>
           )}
         </div>
-        <div className="overflow-x-auto border rounded-md">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-8" />
-                <TableHead>Código</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>SKU</TableHead>
-                <TableHead>Produto</TableHead>
-                <TableHead className="text-right">Qtd</TableHead>
-                <TableHead className="text-right">Preço</TableHead>
-                <TableHead>Destino (serviço)</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {linhasOrdenadas.map((r, idx) => {
-                const problema = r.status !== "ok";
-                return (
-                  <TableRow
-                    key={`${r.codigo}-${idx}`}
-                    className={cn(problema && "bg-destructive/10")}
-                  >
-                    <TableCell>
-                      {problema ? (
-                        <AlertTriangle className="h-4 w-4 text-destructive" />
-                      ) : (
-                        <CheckCircle2 className="h-4 w-4 text-success" />
-                      )}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">{r.codigo}</TableCell>
-                    <TableCell>
-                      <Badge variant={problema ? "destructive" : "secondary"}>
-                        {STATUS_ROTULO[r.status] ?? r.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{r.tipo ?? "—"}</TableCell>
-                    <TableCell className="font-mono text-xs">{r.sku ?? "—"}</TableCell>
-                    <TableCell className="max-w-[220px] truncate">{r.produto ?? "—"}</TableCell>
-                    <TableCell className="text-right">{r.qtd}</TableCell>
-                    <TableCell className="text-right">{fmtBRL(r.preco, moeda)}</TableCell>
-                    <TableCell>
-                      {r.tipo === "servico" ? (
-                        <Select
-                          value={destinoServico[r.codigo] ?? r.sku_destino_servico ?? ""}
-                          onValueChange={(v) => onChangeDestino(r.codigo, v)}
-                        >
-                          <SelectTrigger className="h-8 text-xs">
-                            <SelectValue placeholder="Escolher SKU..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {skusProduto.length === 0 && (
-                              <div className="px-2 py-1 text-xs text-muted-foreground">
-                                Nenhum SKU de produto disponível
-                              </div>
-                            )}
-                            {skusProduto.map((s) => (
-                              <SelectItem key={s.sku} value={s.sku}>
-                                <span className="font-mono text-xs">{s.sku}</span>
-                                {s.produto ? ` — ${s.produto}` : ""}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+        <TabelaFetely
+          total={linhasOrdenadas.length}
+          exibidos={linhasOrdenadas.length}
+          rotulo="linhas"
+          vazio={{
+            mensagem:
+              "Nenhuma linha conferida. Cole as linhas do pedido e clique em “Conferir antes de gravar”.",
+          }}
+        >
+          <div className="overflow-x-auto border rounded-md">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-8" />
+                  <TableHead>Código</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>SKU</TableHead>
+                  <TableHead>Produto</TableHead>
+                  <TableHead className="text-right">Qtd</TableHead>
+                  <TableHead className="text-right">Preço</TableHead>
+                  <TableHead>Destino (serviço)</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {linhasOrdenadas.map((r, idx) => {
+                  const problema = r.status !== "ok";
+                  return (
+                    <TableRow
+                      key={`${r.codigo}-${idx}`}
+                      className={cn(problema && "bg-destructive/10")}
+                    >
+                      <TableCell>
+                        {problema ? (
+                          <AlertTriangle className="h-4 w-4 text-destructive" aria-hidden="true" />
+                        ) : (
+                          <CheckCircle2 className="h-4 w-4 text-success" aria-hidden="true" />
+                        )}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">{r.codigo}</TableCell>
+                      <TableCell>
+                        <Selo estado={problema ? "destructive" : "success"}>
+                          {STATUS_ROTULO[r.status] ?? r.status}
+                        </Selo>
+                      </TableCell>
+                      <TableCell>{r.tipo ?? "—"}</TableCell>
+                      <TableCell className="font-mono text-xs">{r.sku ?? "—"}</TableCell>
+                      <TableCell className="max-w-[220px] truncate">{r.produto ?? "—"}</TableCell>
+                      <TableCell className="text-right tabular-nums">{r.qtd}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {fmtBRL(r.preco, moeda)}
+                      </TableCell>
+                      <TableCell>
+                        {r.tipo === "servico" ? (
+                          <Select
+                            value={destinoServico[r.codigo] ?? r.sku_destino_servico ?? ""}
+                            onValueChange={(v) => onChangeDestino(r.codigo, v)}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="Escolher SKU..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {skusProduto.length === 0 && (
+                                <div className="px-2 py-1 text-xs text-muted-foreground">
+                                  Nenhum SKU de produto disponível
+                                </div>
+                              )}
+                              {skusProduto.map((s) => (
+                                <SelectItem key={s.sku} value={s.sku}>
+                                  <span className="font-mono text-xs">{s.sku}</span>
+                                  {s.produto ? ` — ${s.produto}` : ""}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </TabelaFetely>
         {result.linhas_servico > 0 && (
           <p className="text-xs text-muted-foreground mt-2 italic">
             Custo de serviço entra no custo do produto escolhido, não vira item de estoque.
@@ -1516,60 +1540,51 @@ function ResultadoConferencia({
         )}
       </div>
 
+
       {/* Custo por SKU */}
       {result.custo_por_sku.length > 0 && (
         <div>
           <div className="text-sm font-medium mb-2">Custo por SKU</div>
-          <div className="overflow-x-auto border rounded-md">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>SKU</TableHead>
-                  <TableHead className="text-right">Qtd</TableHead>
-                  <TableHead className="text-right">Custo unitário</TableHead>
-                  <TableHead className="text-right">Custo total</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {result.custo_por_sku.map((r) => (
-                  <TableRow key={r.sku}>
-                    <TableCell className="font-mono text-xs">{r.sku}</TableCell>
-                    <TableCell className="text-right">{r.qtd}</TableCell>
-                    <TableCell className="text-right">
-                      {fmtBRL(r.custo_unitario, moeda)}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {fmtBRL(r.custo_total, moeda)}
-                    </TableCell>
+          <TabelaFetely
+            total={result.custo_por_sku.length}
+            exibidos={result.custo_por_sku.length}
+            rotulo="SKUs"
+            vazio={{
+              mensagem:
+                "Nenhum SKU resultante. Confira se as linhas coladas têm código, quantidade e preço.",
+            }}
+          >
+            <div className="overflow-x-auto border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>SKU</TableHead>
+                    <TableHead className="text-right">Qtd</TableHead>
+                    <TableHead className="text-right">Custo unitário</TableHead>
+                    <TableHead className="text-right">Custo total</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {result.custo_por_sku.map((r) => (
+                    <TableRow key={r.sku}>
+                      <TableCell className="font-mono text-xs">{r.sku}</TableCell>
+                      <TableCell className="text-right tabular-nums">{r.qtd}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {fmtBRL(r.custo_unitario, moeda)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums font-medium">
+                        {fmtBRL(r.custo_total, moeda)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </TabelaFetely>
         </div>
       )}
+
     </div>
   );
 }
 
-function MiniStat({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone?: "ok" | "danger";
-}) {
-  return (
-    <div
-      className={cn(
-        "rounded-md border p-3",
-        tone === "danger" && "border-destructive/40 bg-destructive/10",
-      )}
-    >
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="text-lg font-medium">{value}</div>
-    </div>
-  );
-}

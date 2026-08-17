@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Selo } from "@/components/ui/selo";
 import { CelulaDinheiro } from "@/components/ui/celula-dinheiro";
+import { CardIndicador } from "@/components/ui/card-indicador";
+
 import { TabelaFetely } from "@/components/ui/tabela-fetely";
 import {
   Table,
@@ -78,13 +80,9 @@ function fmtQtd(v: number | null | undefined): string {
 }
 
 function Numero({ rotulo, valor }: { rotulo: string; valor: string }) {
-  return (
-    <div className="rounded-md border p-3">
-      <div className="text-[11px] text-muted-foreground">{rotulo}</div>
-      <div className="mt-0.5 text-base tabular-nums">{valor}</div>
-    </div>
-  );
+  return <CardIndicador compacto rotulo={rotulo} valor={valor} />;
 }
+
 
 export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
   const [busca, setBusca] = useState("");
@@ -226,7 +224,11 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
         carregando={skusQ.isLoading}
         erro={skusQ.isError ? formatError(skusQ.error) : null}
         aoTentarNovamente={() => skusQ.refetch()}
-        vazio={{ mensagem: "Nenhum SKU com saldo apurado neste pedido." }}
+        vazio={{
+          mensagem:
+            "Nenhum SKU com saldo apurado. Vincule uma NF a este pedido para o saldo por SKU aparecer aqui.",
+        }}
+
         semResultado="Nenhum SKU para esse filtro."
         total={todas.length}
         exibidos={filtradas.length}

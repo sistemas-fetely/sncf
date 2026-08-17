@@ -189,7 +189,11 @@ function ListaNfs({ aoAbrir }: { aoAbrir: (nf: NfPendencia) => void }) {
       carregando={q.isLoading}
       erro={q.isError ? formatError(q.error) : null}
       aoTentarNovamente={() => q.refetch()}
-      vazio={{ mensagem: "Nenhuma NF de importação lançada ainda." }}
+      vazio={{
+        mensagem:
+          "Nenhuma NF de importação lançada. Importe a nota do fornecedor para ratear as linhas por SKU.",
+      }}
+
       semResultado="Nenhuma NF para essa busca."
       total={todas.length}
       exibidos={filtradas.length}
@@ -463,7 +467,7 @@ function PainelMapeamento({
                     </Button>
                     <Button
                       size="sm"
-                      variant="default"
+                      variant="outline"
                       disabled={addFamilia}
                       onClick={() => void adicionarFamilia(s.sku)}
                     >
@@ -574,7 +578,12 @@ function PainelMapeamento({
       </div>
 
       <div className="flex justify-end">
-        <Button onClick={() => void salvar()} disabled={salvando || selecionados.length === 0}>
+        <Button
+          variant="secondary"
+          onClick={() => void salvar()}
+          disabled={salvando || selecionados.length === 0}
+        >
+
           {salvando && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
           Salvar de-para
         </Button>
@@ -710,7 +719,11 @@ function WorklistNf({ nf, aoVoltar }: { nf: NfPendencia; aoVoltar: () => void })
         carregando={q.isLoading}
         erro={q.isError ? formatError(q.error) : null}
         aoTentarNovamente={() => q.refetch()}
-        vazio={{ mensagem: "Esta NF não tem itens para mapear." }}
+        vazio={{
+          mensagem:
+            "Esta NF não tem linha pendente de rateio. Todo item já tem de-para e destino — nada a fazer aqui.",
+        }}
+
         semResultado="Nenhum item para essa busca."
         total={todas.length}
         exibidos={filtradas.length}

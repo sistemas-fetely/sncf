@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
+import { CardIndicador } from "@/components/ui/card-indicador";
 import { Button } from "@/components/ui/button";
 import { Selo } from "@/components/ui/selo";
 import { TabelaFetely } from "@/components/ui/tabela-fetely";
@@ -166,7 +166,7 @@ export default function PendenciasTab() {
     );
   }, [xpmQ.data, busca]);
 
-  const metaTipo = TIPOS_PENDENCIA.find((t) => t.tipo === tipo)!;
+  
   const totalDoTipo = totais[tipo];
 
   const seletorPedido = (
@@ -193,33 +193,28 @@ export default function PendenciasTab() {
           const ativo = t.tipo === tipo;
           const n = totais[t.tipo];
           return (
-            <button key={t.tipo} type="button" onClick={() => setTipo(t.tipo)} className="text-left">
-              <Card
-                className={cn(
-                  "h-full transition-colors",
-                  ativo ? "border-primary bg-primary/10" : "hover:bg-muted/50",
-                )}
-              >
-                <CardContent className="space-y-1 p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm">{t.rotulo}</span>
-                    {ativo && <Selo estado="info">Selecionado</Selo>}
-                  </div>
-                  <div
-                    className={cn(
-                      "text-2xl tabular-nums",
-                      n > 0 ? "text-warning" : "text-muted-foreground",
-                    )}
-                  >
-                    {pendenciasQ.isLoading ? "—" : n}
-                  </div>
-                  <p className="text-xs text-muted-foreground">{t.descricao}</p>
-                </CardContent>
-              </Card>
+            <button
+              key={t.tipo}
+              type="button"
+              onClick={() => setTipo(t.tipo)}
+              className="text-left"
+              aria-label={`Ver pendências de ${t.rotulo}`}
+              aria-pressed={ativo}
+            >
+              <CardIndicador
+                rotulo={t.rotulo}
+                valor={pendenciasQ.isLoading ? "—" : n}
+                nota={t.descricao}
+                tom={n > 0 ? "atencao" : "neutro"}
+                ativo={ativo}
+                adorno={ativo ? <Selo estado="info">Selecionado</Selo> : undefined}
+                className={cn(!ativo && "hover:bg-muted/50 transition-colors")}
+              />
             </button>
           );
         })}
       </div>
+
 
       {tipo === "ficha_xpm_incompleta" ? (
         <TabelaFetely
@@ -228,7 +223,11 @@ export default function PendenciasTab() {
           carregando={xpmQ.isLoading || pendenciasQ.isLoading}
           erro={xpmQ.error ? (xpmQ.error as Error).message : null}
           aoTentarNovamente={() => void xpmQ.refetch()}
-          vazio={{ mensagem: "Nenhuma ficha XPM incompleta. Tudo declarado por aqui." }}
+          vazio={{
+            mensagem:
+              "Nenhuma ficha XPM incompleta. Quando faltar NCM, peso líquido, código de barras ou quantidade, o item cai aqui para você declarar.",
+          }}
+
           semResultado="Nenhum item para esse filtro."
           total={xpmQ.data?.length ?? 0}
           exibidos={itensXpm.length}
@@ -278,7 +277,13 @@ export default function PendenciasTab() {
           carregando={pendenciasQ.isLoading}
           erro={pendenciasQ.error ? (pendenciasQ.error as Error).message : null}
           aoTentarNovamente={() => void pendenciasQ.refetch()}
-          vazio={{ mensagem: `Nenhuma pendência de ${metaTipo.rotulo.toLowerCase()}. Fila limpa.` }}
+          vazio={{
+            mensagem:
+              tipo === "codigos_sem_sku"
+                ? "Nenhum código de fornecedor sem SKU. Quando uma NF trouxer código novo, resolva o de-para na aba “Rateio de NF”."
+                : "Nenhuma linha de NF sem custo. Se alguma nota chegar sem valor de item, vincule o custo na aba “Rateio de NF”.",
+          }}
+
           semResultado="Nenhum pedido para esse filtro."
           total={totalDoTipo > 0 ? pedidosDoTipo.length : 0}
           exibidos={filaPedidos.length}

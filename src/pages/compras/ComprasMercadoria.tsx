@@ -44,13 +44,10 @@ export default function ComprasMercadoria() {
   };
 
   return (
-    <PageShell>
+    <PageShell variant="dados">
       <div className="flex items-center gap-3">
-        <div
-          className="p-2 rounded-lg flex items-center justify-center"
-          style={{ backgroundColor: "#1A4A3A" }}
-        >
-          <ShoppingBag className="h-6 w-6 text-white" />
+        <div className="flex items-center justify-center rounded-lg bg-primary p-2">
+          <ShoppingBag className="h-6 w-6 text-primary-foreground" aria-hidden="true" />
         </div>
         <div>
           <h1 className="text-2xl font-medium">Compras de Mercadoria</h1>
@@ -59,6 +56,7 @@ export default function ComprasMercadoria() {
           </p>
         </div>
       </div>
+
 
       <Tabs value={abaAtual} onValueChange={onChange}>
         <TabsList>

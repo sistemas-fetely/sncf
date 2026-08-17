@@ -19,6 +19,8 @@ import { formatError } from "@/lib/format-error";
 import { fmtMoeda, VERDE } from "@/lib/compras/lancamento-utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardIndicador } from "@/components/ui/card-indicador";
+
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -239,13 +241,9 @@ function ErroBloco({
 }
 
 function Stat({ rotulo, valor }: { rotulo: string; valor: React.ReactNode }) {
-  return (
-    <div className="rounded-md border p-3">
-      <div className="text-xs text-muted-foreground">{rotulo}</div>
-      <div className="text-lg font-medium tabular-nums">{valor}</div>
-    </div>
-  );
+  return <CardIndicador compacto rotulo={rotulo} valor={valor} />;
 }
+
 
 // ============================================================================
 // Página
