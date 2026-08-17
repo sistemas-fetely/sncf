@@ -1203,11 +1203,11 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
-                variant="secondary"
+                variant="outline"
                 disabled={!headerValido || conferirMut.isPending || !textoLinhas.trim()}
                 onClick={() => conferirMut.mutate()}
               >
-                {conferirMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {conferirMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />}
                 Conferir antes de gravar
               </Button>
             </div>
@@ -1221,15 +1221,15 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                 )}
                 <Button
                   type="button"
-                  variant={podeGravar ? "default" : "secondary"}
                   disabled={!podeGravar || gravarMut.isPending}
                   onClick={() => gravarMut.mutate()}
                 >
-                  {gravarMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {gravarMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />}
                   Gravar pedido
                 </Button>
               </div>
             )}
+
           </div>
 
           {/* Resultado da conferência */}
