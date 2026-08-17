@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import {
   ArrowLeft,
@@ -16,6 +16,8 @@ import {
 
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
+import { invalidarCompras } from "@/lib/compras/invalidar";
+import { toast } from "sonner";
 import { fmtMoeda, VERDE } from "@/lib/compras/lancamento-utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -405,6 +407,8 @@ export default function PedidoMercadoriaDetalhe() {
     };
   }, [linhasQ.data]);
 
+  const qc = useQueryClient();
+
   const naoAlocadas = useMemo(
     () => (confNfQ.data ?? []).filter((r) => r.situacao === "nao_alocado").length,
     [confNfQ.data],
@@ -457,6 +461,8 @@ export default function PedidoMercadoriaDetalhe() {
   });
 
 
+
+  const diagAloc = diagAlocQ.data ?? null;
 
   const nfLinhasPor = (nfId: number) => (nfsQ.data?.linhas ?? []).filter((l) => l.nf_id === nfId);
   const invLinhasPor = (invId: number) =>
@@ -1160,7 +1166,7 @@ export default function PedidoMercadoriaDetalhe() {
             open={editOpen}
             onOpenChange={setEditOpen}
             pedidoId={pedidoId}
-            onSaved={() => pedidoQ.refetch()}
+            onSaved={() => invalidarCompras(qc)}
           />
 
         </>
