@@ -31,6 +31,7 @@ import LancarNfXmlTab from "@/components/compras/LancarNfXmlTab";
 import LancarNfArquivoTab from "@/components/compras/LancarNfArquivoTab";
 
 import { parsearNumero, VERDE } from "@/lib/compras/lancamento-utils";
+import { invalidarCompras } from "@/lib/compras/invalidar";
 
 interface PreviaNf {
   nf_existe?: boolean;
@@ -198,10 +199,7 @@ export default function LancarNfDialog({ open, onOpenChange, pedidoId, fornecedo
       toast.success(
         `NF ${form.numero} ${acao} — ${d.linhas_gravadas ?? d.linhas ?? 0} linha(s), ${d.linhas_sem_depara ?? 0} sem de-para.`,
       );
-      qc.invalidateQueries({ queryKey: ["pedido-mercadoria-detalhe", pedidoId] });
-      qc.invalidateQueries({ queryKey: ["pedido-mercadoria-nfs", pedidoId] });
-      qc.invalidateQueries({ queryKey: ["pedido-mercadoria-conferencia-nf"] });
-      qc.invalidateQueries({ queryKey: ["importacao-pedido-lista"] });
+      invalidarCompras(qc);
       setForm({ ...EMPTY });
       setTexto("");
       setPrevia(null);

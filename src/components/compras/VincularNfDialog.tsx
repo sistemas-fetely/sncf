@@ -15,6 +15,7 @@ import { EstadoVazio } from "@/components/ui/estado-vazio";
 import { CardIndicador } from "@/components/ui/card-indicador";
 
 import {
+import { invalidarCompras } from "@/lib/compras/invalidar";
   Dialog,
   DialogContent,
   DialogDescription,
@@ -177,15 +178,8 @@ export default function VincularNfDialog({ open, onOpenChange, pedidoId, fornece
           `${fora} linha(s) ficaram fora do rateio. Resolva na aba "Rateio de NF".`,
         );
       }
-      for (const key of [
-        "pedido-mercadoria-nfs",
-        "pedido-mercadoria-conferencia-nf",
-        "importacao-saldo-pedido",
-        "importacao-saldo-sku",
-        "importacao-saldo-pedido-lista",
-      ]) {
-        qc.invalidateQueries({ queryKey: [key] });
-      }
+      invalidarCompras(qc);
+      qc.invalidateQueries({ queryKey: ["pedido-mercadoria-diag-alocacao"] });
       onOpenChange(false);
     },
     onError: (e) => toast.error(formatError(e)),

@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+import { invalidarCompras } from "@/lib/compras/invalidar";
   Table,
   TableBody,
   TableCell,
@@ -324,10 +325,8 @@ export default function EditarPedidoMercadoriaDialog({
       toast.success(
         `Pedido ${previa.numero_pedido} atualizado (${previa.total_alteracoes} alteração(ões)).`,
       );
-      qc.invalidateQueries({ queryKey: ["importacao-pedido-lista"] });
-      qc.invalidateQueries({ queryKey: ["importacao-pedido-detalhe"] });
+      invalidarCompras(qc);
       qc.invalidateQueries({ queryKey: ["importacao-pedido-editar", pedidoId] });
-      qc.invalidateQueries({ queryKey: ["importacao-pedido-evento", pedidoId] });
       onSaved?.();
       onOpenChange(false);
     } catch (e) {
