@@ -85,13 +85,17 @@ export default function Pessoas() {
       setCentrosCusto((ccs || []) as any[]);
 
       // DIMENSAO-VIA-TABELA: quem aparece na lista de Pessoas vem de tipos_vinculo.
+      type TipoVinculoDim = { codigo: string; aparece_em_pessoas: boolean };
+      type VinculoLinha = { pessoa_id: string; tipo_vinculo: string };
       const tiposVisiveis = new Set<string>(
-        ((tiposVinculo || []) as any[]).filter((t) => t.aparece_em_pessoas).map((t) => t.codigo)
+        ((tiposVinculo || []) as TipoVinculoDim[]).filter((t) => t.aparece_em_pessoas).map((t) => t.codigo)
       );
-      const vinculosVisiveis = ((vinculos || []) as any[]).filter((v) => tiposVisiveis.has(v.tipo_vinculo));
+      const listaVinculos = (vinculos || []) as VinculoLinha[];
+      const vinculosVisiveis = listaVinculos.filter((v) => tiposVisiveis.has(v.tipo_vinculo));
       const pessoasOcultas = new Set<string>(
-        ((vinculos || []) as any[]).filter((v) => !tiposVisiveis.has(v.tipo_vinculo)).map((v) => v.pessoa_id)
+        listaVinculos.filter((v) => !tiposVisiveis.has(v.tipo_vinculo)).map((v) => v.pessoa_id)
       );
+
 
       // Escolhe vínculo ativo se existir; senão o mais recente
       const vincPorPessoa = new Map<string, any>();
