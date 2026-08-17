@@ -31,7 +31,7 @@ export function OrgAnalyticView({ flat, filters }: Props) {
     const departamentos = [...new Set(flat.map(n => n.departamento))];
 
     const getCusto = (n: PosicaoNode) =>
-      n.salario_previsto ?? n.colaborador?.salario_base ?? n.contrato_pj?.valor_mensal ?? 0;
+      n.salario_previsto ?? 0;
 
     // Span of control
     const gestores = flat.filter(n => n.subordinados_diretos > 0);
@@ -257,7 +257,12 @@ export function OrgAnalyticView({ flat, filters }: Props) {
       {/* Cost section - role restricted */}
       {canSeeCost && (
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Custo de Estrutura</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Custo previsto das posições</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Baseado no salário previsto da posição. Para custo real, veja Custo de Pessoas.
+            </p>
+          </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center">
