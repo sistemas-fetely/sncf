@@ -1552,24 +1552,3 @@ function ResultadoConferencia({
   );
 }
 
-function MiniStat({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone?: "ok" | "danger";
-}) {
-  return (
-    <div
-      className={cn(
-        "rounded-md border p-3",
-        tone === "danger" && "border-destructive/40 bg-destructive/10",
-      )}
-    >
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="text-lg font-medium">{value}</div>
-    </div>
-  );
-}
