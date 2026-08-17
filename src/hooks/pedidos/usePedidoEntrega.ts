@@ -62,6 +62,7 @@ export interface EntregaLinhaInfo {
   entregue_em: string | null;
   entregue_metodo: string | null;
   transportadora_nome: string | null;
+  transportadora_apelido: string | null;
   data_entrega_transportadora: string | null;
   data_entrega_prevista: string | null;
   prazo_transportadora: string | null;
@@ -78,6 +79,7 @@ export interface EntregaLinhaInfo {
   nf_id: string | null;
   nf_bling_id: string | null;
 }
+
 
 
 /**
@@ -98,7 +100,7 @@ export function usePedidosEntregaLote(pedidoIds: string[]) {
         sb
           .from("vw_pedido_entrega")
           .select(
-            "pedido_id, estagio, transporte_origem, entregue_em, entregue_metodo, transportadora_nome, transportadora_razao, data_entrega_transportadora, data_entrega_prevista, prazo_transportadora, entrega_ocorrencia_texto, entrega_ocorrencia_codigo, entrega_ocorrencia_classe, entrega_ocorrencia_problema",
+            "pedido_id, estagio, transporte_origem, entregue_em, entregue_metodo, transportadora_nome, transportadora_apelido, transportadora_razao, data_entrega_transportadora, data_entrega_prevista, prazo_transportadora, entrega_ocorrencia_texto, entrega_ocorrencia_codigo, entrega_ocorrencia_classe, entrega_ocorrencia_problema",
           )
           .in("pedido_id", ids),
         sb
@@ -167,6 +169,7 @@ export function usePedidosEntregaLote(pedidoIds: string[]) {
           entregue_em: null,
           entregue_metodo: null,
           transportadora_nome: null,
+          transportadora_apelido: null,
           data_entrega_transportadora: null,
           data_entrega_prevista: null,
           prazo_transportadora: null,
@@ -195,6 +198,7 @@ export function usePedidosEntregaLote(pedidoIds: string[]) {
           entregue_em: r.entregue_em ?? null,
           entregue_metodo: r.entregue_metodo ?? null,
           transportadora_nome: r.transportadora_nome ?? r.transportadora_razao ?? null,
+          transportadora_apelido: r.transportadora_apelido ?? null,
           data_entrega_transportadora: r.data_entrega_transportadora ?? null,
           data_entrega_prevista: r.data_entrega_prevista ?? null,
           prazo_transportadora: r.prazo_transportadora ?? null,

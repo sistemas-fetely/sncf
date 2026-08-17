@@ -1002,7 +1002,8 @@ function CelulaPagamento({
   liberacao?: LiberacaoExpedicao;
 }) {
   const provaLine =
-    liberacao?.prova_tom === "alerta" || liberacao?.prova_tom === "perigo" ? (
+    (liberacao?.prova_tom === "alerta" || liberacao?.prova_tom === "perigo") &&
+    liberacao?.nivel_prova !== "sem_prova" ? (
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
