@@ -166,7 +166,7 @@ export default function PendenciasTab() {
     );
   }, [xpmQ.data, busca]);
 
-  const metaTipo = TIPOS_PENDENCIA.find((t) => t.tipo === tipo)!;
+  
   const totalDoTipo = totais[tipo];
 
   const seletorPedido = (
