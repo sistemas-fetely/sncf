@@ -198,6 +198,7 @@ export function AdministrativoSidebar() {
 
       <SidebarContent className="px-2 space-y-1">
         {/* Tarefas — acesso direto */}
+        {!carregandoVisibilidade && podeVer("/tarefas") && (
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -217,7 +218,7 @@ export function AdministrativoSidebar() {
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              {roles.some((r) => ["gestor_direto", "gestor_rh", "admin_rh", "super_admin"].includes(r)) && (
+              {roles.some((r) => ["gestor_direto", "gestor_rh", "admin_rh", "super_admin"].includes(r)) && podeVer("/tarefas/time") && (
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <NavLink
@@ -233,6 +234,8 @@ export function AdministrativoSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        )}
+
         <div className="mx-4 border-t border-sidebar-border/40" />
 
         {renderGroup("Ativos & Patrimônio", patrimonioItems)}
