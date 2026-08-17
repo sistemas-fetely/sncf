@@ -1410,15 +1410,16 @@ function ResultadoConferencia({
 
       {/* Contadores */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <MiniStat label="Linhas produto" value={String(result.linhas_produto)} />
-        <MiniStat label="Linhas serviço" value={String(result.linhas_servico)} />
-        <MiniStat
-          label="Problemas"
-          value={String(result.linhas_com_problema)}
-          tone={result.linhas_com_problema > 0 ? "danger" : "ok"}
+        <CardIndicador compacto rotulo="Linhas produto" valor={result.linhas_produto} />
+        <CardIndicador compacto rotulo="Linhas serviço" valor={result.linhas_servico} />
+        <CardIndicador
+          compacto
+          rotulo="Problemas"
+          valor={result.linhas_com_problema}
+          tom={result.linhas_com_problema > 0 ? "critico" : "neutro"}
         />
-        <MiniStat label="SKUs resultantes" value={String(result.skus_resultantes)} />
-        <MiniStat label="Custo total" value={fmtBRL(result.custo_total, moeda)} />
+        <CardIndicador compacto rotulo="SKUs resultantes" valor={result.skus_resultantes} />
+        <CardIndicador compacto rotulo="Custo total" valor={fmtBRL(result.custo_total, moeda)} />
       </div>
 
       {/* Resolução */}
@@ -1430,91 +1431,104 @@ function ResultadoConferencia({
               to={`/compras/de-para-fornecedor${fornecedorId ? `?fornecedor=${fornecedorId}` : ""}`}
               className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
             >
-              <Link2 className="h-3 w-3" /> Abrir de-para de fornecedor
-              <ExternalLink className="h-3 w-3" />
+              <Link2 className="h-3 w-3" aria-hidden="true" /> Abrir de-para de fornecedor
+              <ExternalLink className="h-3 w-3" aria-hidden="true" />
             </Link>
           )}
         </div>
-        <div className="overflow-x-auto border rounded-md">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-8" />
-                <TableHead>Código</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>SKU</TableHead>
-                <TableHead>Produto</TableHead>
-                <TableHead className="text-right">Qtd</TableHead>
-                <TableHead className="text-right">Preço</TableHead>
-                <TableHead>Destino (serviço)</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {linhasOrdenadas.map((r, idx) => {
-                const problema = r.status !== "ok";
-                return (
-                  <TableRow
-                    key={`${r.codigo}-${idx}`}
-                    className={cn(problema && "bg-destructive/10")}
-                  >
-                    <TableCell>
-                      {problema ? (
-                        <AlertTriangle className="h-4 w-4 text-destructive" />
-                      ) : (
-                        <CheckCircle2 className="h-4 w-4 text-success" />
-                      )}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">{r.codigo}</TableCell>
-                    <TableCell>
-                      <Badge variant={problema ? "destructive" : "secondary"}>
-                        {STATUS_ROTULO[r.status] ?? r.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{r.tipo ?? "—"}</TableCell>
-                    <TableCell className="font-mono text-xs">{r.sku ?? "—"}</TableCell>
-                    <TableCell className="max-w-[220px] truncate">{r.produto ?? "—"}</TableCell>
-                    <TableCell className="text-right">{r.qtd}</TableCell>
-                    <TableCell className="text-right">{fmtBRL(r.preco, moeda)}</TableCell>
-                    <TableCell>
-                      {r.tipo === "servico" ? (
-                        <Select
-                          value={destinoServico[r.codigo] ?? r.sku_destino_servico ?? ""}
-                          onValueChange={(v) => onChangeDestino(r.codigo, v)}
-                        >
-                          <SelectTrigger className="h-8 text-xs">
-                            <SelectValue placeholder="Escolher SKU..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {skusProduto.length === 0 && (
-                              <div className="px-2 py-1 text-xs text-muted-foreground">
-                                Nenhum SKU de produto disponível
-                              </div>
-                            )}
-                            {skusProduto.map((s) => (
-                              <SelectItem key={s.sku} value={s.sku}>
-                                <span className="font-mono text-xs">{s.sku}</span>
-                                {s.produto ? ` — ${s.produto}` : ""}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+        <TabelaFetely
+          total={linhasOrdenadas.length}
+          exibidos={linhasOrdenadas.length}
+          rotulo="linhas"
+          vazio={{
+            mensagem:
+              "Nenhuma linha conferida. Cole as linhas do pedido e clique em “Conferir antes de gravar”.",
+          }}
+        >
+          <div className="overflow-x-auto border rounded-md">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-8" />
+                  <TableHead>Código</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>SKU</TableHead>
+                  <TableHead>Produto</TableHead>
+                  <TableHead className="text-right">Qtd</TableHead>
+                  <TableHead className="text-right">Preço</TableHead>
+                  <TableHead>Destino (serviço)</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {linhasOrdenadas.map((r, idx) => {
+                  const problema = r.status !== "ok";
+                  return (
+                    <TableRow
+                      key={`${r.codigo}-${idx}`}
+                      className={cn(problema && "bg-destructive/10")}
+                    >
+                      <TableCell>
+                        {problema ? (
+                          <AlertTriangle className="h-4 w-4 text-destructive" aria-hidden="true" />
+                        ) : (
+                          <CheckCircle2 className="h-4 w-4 text-success" aria-hidden="true" />
+                        )}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">{r.codigo}</TableCell>
+                      <TableCell>
+                        <Selo estado={problema ? "destructive" : "success"}>
+                          {STATUS_ROTULO[r.status] ?? r.status}
+                        </Selo>
+                      </TableCell>
+                      <TableCell>{r.tipo ?? "—"}</TableCell>
+                      <TableCell className="font-mono text-xs">{r.sku ?? "—"}</TableCell>
+                      <TableCell className="max-w-[220px] truncate">{r.produto ?? "—"}</TableCell>
+                      <TableCell className="text-right tabular-nums">{r.qtd}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {fmtBRL(r.preco, moeda)}
+                      </TableCell>
+                      <TableCell>
+                        {r.tipo === "servico" ? (
+                          <Select
+                            value={destinoServico[r.codigo] ?? r.sku_destino_servico ?? ""}
+                            onValueChange={(v) => onChangeDestino(r.codigo, v)}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="Escolher SKU..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {skusProduto.length === 0 && (
+                                <div className="px-2 py-1 text-xs text-muted-foreground">
+                                  Nenhum SKU de produto disponível
+                                </div>
+                              )}
+                              {skusProduto.map((s) => (
+                                <SelectItem key={s.sku} value={s.sku}>
+                                  <span className="font-mono text-xs">{s.sku}</span>
+                                  {s.produto ? ` — ${s.produto}` : ""}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </TabelaFetely>
         {result.linhas_servico > 0 && (
           <p className="text-xs text-muted-foreground mt-2 italic">
             Custo de serviço entra no custo do produto escolhido, não vira item de estoque.
           </p>
         )}
       </div>
+
 
       {/* Custo por SKU */}
       {result.custo_por_sku.length > 0 && (
