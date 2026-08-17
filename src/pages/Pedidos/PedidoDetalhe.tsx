@@ -183,7 +183,7 @@ function ListaItensComEstoque({ itens, pedidoId, estagio }: { itens: any[]; pedi
       {itens.length === 0
         ? <p className="text-sm text-muted-foreground text-center py-6">Itens ainda não importados.</p>
         : itens.map((item: any) => {
-            const cob = coberturaMap.get(item.id);
+            const cob = jaReservado ? undefined : coberturaMap.get(item.id);
             const rotulo = cob ? rotuloCobertura(cob.cobertura, cob.qtd_coberta, cob.quantidade) : null;
             const descoberto = cob?.cobertura === "descoberto" || cob?.cobertura === "sem_lastro";
             const parcial = cob?.cobertura === "parcial";
