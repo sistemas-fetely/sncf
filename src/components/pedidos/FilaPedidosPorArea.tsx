@@ -618,7 +618,7 @@ export function FilaPedidosPorArea({
               return (
                 <TableRow
                   key={p.id}
-                  className="cursor-pointer"
+                  className="cursor-pointer h-16 [&>td]:py-2 [&>td]:align-middle [&>td]:overflow-hidden"
                   onClick={() => navigate(`/pedidos/${p.id}`)}
                 >
                   <TableCell onClick={(e) => e.stopPropagation()}>
