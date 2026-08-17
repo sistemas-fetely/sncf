@@ -25,7 +25,7 @@ function fmtData(iso: string | null): string {
   return `${d}/${m}/${a}`;
 }
 
-export function rotuloParcela(l: LinhaPlanoAberta, meio?: string): string {
+function rotuloParcela(l: LinhaPlanoAberta, meio?: string): string {
   const parcela = l.numero_parcela
     ? `Parcela ${l.numero_parcela}${l.total_parcelas ? `/${l.total_parcelas}` : ""}`
     : "Parcela";
