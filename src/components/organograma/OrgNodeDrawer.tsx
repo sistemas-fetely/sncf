@@ -7,12 +7,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Calendar, Mail, Phone, Users, Briefcase, DollarSign, Pencil, Link2, Search } from "lucide-react";
+import { Mail, Phone, Users, Briefcase, Pencil, Link2, Search } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { differenceInMonths } from "date-fns";
 import { useMovePosicao } from "@/hooks/useOrgMutations";
-import { SalarioMasked } from "@/components/SalarioMasked";
 import type { PosicaoNode } from "@/types/organograma";
 
 interface Props {
@@ -25,14 +23,6 @@ interface Props {
 
 function getInitials(name: string) {
   return name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
-}
-
-function formatTempoCasa(dataAdmissao: string) {
-  const months = differenceInMonths(new Date(), new Date(dataAdmissao));
-  const years = Math.floor(months / 12);
-  const rem = months % 12;
-  if (years === 0) return `${rem} meses`;
-  return `${years} ano${years > 1 ? "s" : ""} e ${rem} mes${rem !== 1 ? "es" : ""}`;
 }
 
 function statusBadge(status: string | null) {
@@ -61,7 +51,6 @@ function isDescendant(nodeId: string, potentialAncestorId: string, allNodes: Pos
 export function OrgNodeDrawer({ node, open, onClose, allNodes, onEditPosition }: Props) {
   const { hasAnyRole } = useAuth();
   const navigate = useNavigate();
-  const canSeeSalary = hasAnyRole(["super_admin", "gestor_rh", "financeiro"]);
   const canManage = hasAnyRole(["super_admin", "gestor_rh"]);
   const moveMutation = useMovePosicao();
 
@@ -150,18 +139,10 @@ export function OrgNodeDrawer({ node, open, onClose, allNodes, onEditPosition }:
             <TabsContent value="perfil" className="space-y-3 pt-3">
               {node.colaborador && (
                 <>
-                  <InfoRow icon={<Calendar className="h-4 w-4" />} label="Tempo de casa" value={formatTempoCasa(node.colaborador.data_admissao)} />
                   <InfoRow icon={<Mail className="h-4 w-4" />} label="E-mail" value={node.colaborador.email_corporativo || "—"} />
                   <InfoRow icon={<Phone className="h-4 w-4" />} label="Telefone" value={node.colaborador.telefone || "—"} />
-                  <InfoRow icon={<Briefcase className="h-4 w-4" />} label="Vínculo" value="CLT" />
-                  {canSeeSalary && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-muted-foreground"><DollarSign className="h-4 w-4" /></span>
-                      <span className="text-muted-foreground min-w-[100px]">Salário:</span>
-                      <SalarioMasked valor={node.colaborador.salario_base} userId={(node.colaborador as any).user_id || null} contexto="organograma" />
-                    </div>
-                  )}
-                  <Button variant="outline" size="sm" className="w-full mt-3" onClick={() => navigate(`/colaboradores/${node.colaborador!.id}`)}>
+                  <InfoRow icon={<Briefcase className="h-4 w-4" />} label="Vínculo" value={node.colaborador.tipo_contrato || "—"} />
+                  <Button variant="outline" size="sm" className="w-full mt-3" onClick={() => node.colaborador_id && navigate(`/pessoas/${node.colaborador_id}/editar`)} disabled={!node.colaborador_id}>
                     Ver ficha completa
                   </Button>
                 </>
@@ -171,13 +152,6 @@ export function OrgNodeDrawer({ node, open, onClose, allNodes, onEditPosition }:
                   <InfoRow icon={<Mail className="h-4 w-4" />} label="E-mail" value={node.contrato_pj.contato_email || "—"} />
                   <InfoRow icon={<Phone className="h-4 w-4" />} label="Telefone" value={node.contrato_pj.contato_telefone || "—"} />
                   <InfoRow icon={<Briefcase className="h-4 w-4" />} label="Vínculo" value="PJ" />
-                  {canSeeSalary && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-muted-foreground"><DollarSign className="h-4 w-4" /></span>
-                      <span className="text-muted-foreground min-w-[100px]">Valor mensal:</span>
-                      <SalarioMasked valor={node.contrato_pj.valor_mensal} userId={(node.contrato_pj as any).user_id || null} contexto="organograma" />
-                    </div>
-                  )}
                   <Button variant="outline" size="sm" className="w-full mt-3" onClick={() => navigate(`/contratos-pj/${node.contrato_pj!.id}`)}>
                     Ver contrato
                   </Button>
@@ -218,17 +192,6 @@ export function OrgNodeDrawer({ node, open, onClose, allNodes, onEditPosition }:
               {node.area && <InfoRow label="Área" value={node.area} />}
               {node.filial && <InfoRow label="Filial" value={node.filial} />}
               {node.centro_custo && <InfoRow label="Centro de custo" value={node.centro_custo} />}
-              {canSeeSalary && node.salario_previsto && (
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground"><DollarSign className="h-4 w-4" /></span>
-                  <span className="text-muted-foreground min-w-[100px]">Salário previsto:</span>
-                  <SalarioMasked
-                    valor={node.salario_previsto}
-                    userId={(node.colaborador as any)?.user_id || (node.contrato_pj as any)?.user_id || null}
-                    contexto="organograma"
-                  />
-                </div>
-              )}
             </TabsContent>
           </Tabs>
         </SheetContent>
