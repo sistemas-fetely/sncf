@@ -64,6 +64,7 @@ export async function buscarCoberturaItens(
 
   for (const row of data ?? []) {
     mapa.set(row.item_id, {
+      id: row.item_id,
       cobertura: row.cobertura as Cobertura,
       qtd_coberta: Number(row.qtd_coberta ?? 0),
       qtd_descoberta: Number(row.qtd_descoberta ?? 0),
