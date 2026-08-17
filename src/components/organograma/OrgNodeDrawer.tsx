@@ -142,7 +142,7 @@ export function OrgNodeDrawer({ node, open, onClose, allNodes, onEditPosition }:
                   <InfoRow icon={<Mail className="h-4 w-4" />} label="E-mail" value={node.colaborador.email_corporativo || "—"} />
                   <InfoRow icon={<Phone className="h-4 w-4" />} label="Telefone" value={node.colaborador.telefone || "—"} />
                   <InfoRow icon={<Briefcase className="h-4 w-4" />} label="Vínculo" value={node.colaborador.tipo_contrato || "—"} />
-                  <Button variant="outline" size="sm" className="w-full mt-3" onClick={() => node.colaborador_id && navigate(`/pessoas/${node.colaborador_id}/editar`)} disabled={!node.colaborador_id}>
+                  <Button variant="outline" size="sm" className="w-full mt-3" onClick={() => node.colaborador?.pessoa_id && navigate(`/pessoas/${node.colaborador.pessoa_id}/editar`)} disabled={!node.colaborador?.pessoa_id}>
                     Ver ficha completa
                   </Button>
                 </>

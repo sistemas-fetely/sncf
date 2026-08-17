@@ -20,6 +20,7 @@ interface OcupanteRaw {
 function mapOcupanteToColaborador(o: OcupanteRaw): ColaboradorVinculado {
   return {
     id: o.vinculo_id,
+    pessoa_id: o.pessoa_id,
     nome_completo: o.nome ?? "",
     foto_url: o.foto_url,
     email_corporativo: o.email_corporativo,
