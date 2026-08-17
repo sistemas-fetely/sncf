@@ -998,7 +998,7 @@ function CelulaPagamento({
           <TooltipTrigger asChild>
             <p
               className={cn(
-                "text-[11px]",
+                "text-[11px] leading-tight",
                 liberacao.prova_tom === "perigo" ? "text-destructive" : "text-warning"
               )}
             >
