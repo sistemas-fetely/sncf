@@ -1088,8 +1088,9 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
             <Label>Linhas do pedido</Label>
             <p className="text-xs text-muted-foreground">
               Cole no formato <code>código</code> <code>quantidade</code> <code>preço</code>, um
-              por linha. Separadores aceitos: <b>TAB</b> e <b>ponto-e-vírgula</b>. Vírgula é
-              tratada como decimal — não use vírgula como separador de coluna.
+              por linha. Separadores aceitos: <b>TAB</b>, <b>ponto-e-vírgula</b> e{" "}
+              <b>dois ou mais espaços</b>. Um espaço só não separa, porque descrição tem espaço.
+              Vírgula é tratada como decimal — não use vírgula como separador de coluna.
             </p>
             <div className="flex flex-wrap gap-2">
               <Button
@@ -1128,20 +1129,28 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                 onClick={() => conferirMut.mutate()}
               >
                 {conferirMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Conferir
+                Conferir antes de gravar
               </Button>
-              {conferencia && (
+            </div>
+            {conferencia && (
+              <div className="space-y-2">
+                {podeGravar && (
+                  <p className="text-sm text-warning">
+                    A conferência passou, mas o pedido ainda não foi criado. Clique em Gravar
+                    pedido.
+                  </p>
+                )}
                 <Button
                   type="button"
+                  variant={podeGravar ? "default" : "secondary"}
                   disabled={!podeGravar || gravarMut.isPending}
                   onClick={() => gravarMut.mutate()}
-                  style={{ backgroundColor: "#1A4A3A", color: "white" }}
                 >
                   {gravarMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   Gravar pedido
                 </Button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Resultado da conferência */}
@@ -1168,6 +1177,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
         open={importOpen}
         onOpenChange={setImportOpen}
         temTextoAtual={textoLinhas.trim().length > 0}
+        onImportarCabecalho={(cab) => aplicarCabecalhoPlanilha(cab)}
         onImportar={(texto, modo) => {
           setTextoLinhas((cur) =>
             modo === "substituir" || !cur.trim() ? texto : `${cur.replace(/\s*$/, "")}\n${texto}`,
@@ -1176,11 +1186,79 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
         }}
       />
 
+      <Dialog
+        open={excluirAlvo !== null}
+        onOpenChange={(v) => {
+          if (!v && !excluindo) {
+            setExcluirAlvo(null);
+            setPreviaExclusao(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir pedido {excluirAlvo?.numero_pedido}</DialogTitle>
+            <DialogDescription>
+              Nada foi apagado ainda. O banco checa primeiro se o pedido pode sair.
+            </DialogDescription>
+          </DialogHeader>
+
+          {checandoExclusao ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Checando o pedido...
+            </div>
+          ) : previaExclusao ? (
+            previaExclusao.pode_excluir ? (
+              <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning">
+                {Number(previaExclusao.linhas_que_serao_apagadas ?? 0)} linha(s) serão apagadas
+                junto com o pedido. Isso não volta atrás.
+              </div>
+            ) : (
+              <div className="space-y-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                <div>Este pedido não pode ser excluído:</div>
+                <ul className="list-disc pl-5">
+                  {(previaExclusao.bloqueios ?? []).map((b, i) => (
+                    <li key={i}>{b}</li>
+                  ))}
+                  {(previaExclusao.bloqueios ?? []).length === 0 && (
+                    <li>O banco recusou a exclusão sem detalhar o motivo.</li>
+                  )}
+                </ul>
+              </div>
+            )
+          ) : null}
+
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              disabled={excluindo}
+              onClick={() => {
+                setExcluirAlvo(null);
+                setPreviaExclusao(null);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!previaExclusao?.pode_excluir || excluindo || checandoExclusao}
+              onClick={() => void confirmarExclusao()}
+            >
+              {excluindo && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Excluir mesmo assim
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <EditarPedidoMercadoriaDialog
         open={editarId != null}
         onOpenChange={(v) => !v && setEditarId(null)}
         pedidoId={editarId}
-        onSaved={() => pedidosQ.refetch()}
+        onSaved={() => {
+          void pedidosQ.refetch();
+          qc.invalidateQueries({ queryKey: ["compras-pendencias"] });
+        }}
       />
     </div>
   );
