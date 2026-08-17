@@ -1520,34 +1520,45 @@ function ResultadoConferencia({
       {result.custo_por_sku.length > 0 && (
         <div>
           <div className="text-sm font-medium mb-2">Custo por SKU</div>
-          <div className="overflow-x-auto border rounded-md">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>SKU</TableHead>
-                  <TableHead className="text-right">Qtd</TableHead>
-                  <TableHead className="text-right">Custo unitário</TableHead>
-                  <TableHead className="text-right">Custo total</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {result.custo_por_sku.map((r) => (
-                  <TableRow key={r.sku}>
-                    <TableCell className="font-mono text-xs">{r.sku}</TableCell>
-                    <TableCell className="text-right">{r.qtd}</TableCell>
-                    <TableCell className="text-right">
-                      {fmtBRL(r.custo_unitario, moeda)}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {fmtBRL(r.custo_total, moeda)}
-                    </TableCell>
+          <TabelaFetely
+            total={result.custo_por_sku.length}
+            exibidos={result.custo_por_sku.length}
+            rotulo="SKUs"
+            vazio={{
+              mensagem:
+                "Nenhum SKU resultante. Confira se as linhas coladas têm código, quantidade e preço.",
+            }}
+          >
+            <div className="overflow-x-auto border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>SKU</TableHead>
+                    <TableHead className="text-right">Qtd</TableHead>
+                    <TableHead className="text-right">Custo unitário</TableHead>
+                    <TableHead className="text-right">Custo total</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {result.custo_por_sku.map((r) => (
+                    <TableRow key={r.sku}>
+                      <TableCell className="font-mono text-xs">{r.sku}</TableCell>
+                      <TableCell className="text-right tabular-nums">{r.qtd}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {fmtBRL(r.custo_unitario, moeda)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums font-medium">
+                        {fmtBRL(r.custo_total, moeda)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </TabelaFetely>
         </div>
       )}
+
     </div>
   );
 }
