@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -16,7 +16,8 @@ import {
 import { Loader2, Scissors, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCriarSplit } from "@/hooks/pedidos/useCriarSplit";
-import { useEstoqueVirtualPorSkus, isSemEstoque } from "@/lib/pedidoDestaque";
+import { useCoberturaItens, type CoberturaItem } from "@/lib/pedidoDestaque";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
