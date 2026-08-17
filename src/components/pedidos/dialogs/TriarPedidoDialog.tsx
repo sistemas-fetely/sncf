@@ -94,6 +94,12 @@ export function TriarPedidoDialog({
     setMotivo("");
   };
 
+  const destinoTransicionar = (a: Acao | null): EstagioPedido | null => {
+    if (a === "analise") return "em_analise_credito";
+    if (a === "cancelar") return "cancelado";
+    return null;
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -197,6 +203,32 @@ export function TriarPedidoDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <ForcarSemLastroDialog
+        open={!!transicionar.faltaLastro}
+        onOpenChange={(v) => { if (!v) transicionar.limparFaltaLastro(); }}
+        faltantes={transicionar.faltaLastro?.faltantes ?? []}
+        isPending={transicionar.isPending}
+        onForcar={(motivoForcado) => {
+          const destino = destinoTransicionar(acao);
+          if (!destino) return;
+          transicionar.mutate(
+            {
+              pedido_id,
+              para_estagio: destino,
+              motivo: acao === "analise" ? motivoForcado : motivoForcado,
+            },
+            {
+              onSuccess: () => {
+                transicionar.limparFaltaLastro();
+                setOpen(false);
+                setAcao(null);
+                setMotivo("");
+              },
+            },
+          );
+        }}
+      />
     </Dialog>
   );
 }
