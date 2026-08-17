@@ -23,6 +23,7 @@ export interface PosicaoRaw {
 
 export interface ColaboradorVinculado {
   id: string;
+  pessoa_id: string | null;
   nome_completo: string;
   foto_url: string | null;
   email_corporativo: string | null;
