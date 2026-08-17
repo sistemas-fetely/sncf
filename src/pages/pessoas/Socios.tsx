@@ -71,15 +71,16 @@ export default function Socios() {
   return (
     <PageShell>
       <PageTitle
-        titulo="Sócios"
+        titulo="Diretoria"
         icone={Handshake}
-        estado={linhas.length > 0 ? `${linhas.length} sócio(s) com vínculo ativo` : undefined}
+        estado={linhas.length > 0 ? `${linhas.length} ocupante(s) com vínculo ativo` : undefined}
       />
 
       <div className="flex items-center gap-2 rounded-lg border border-info/40 bg-info/10 px-4 py-3 text-sm text-info">
         <Info className="h-4 w-4 shrink-0" />
-        Esta área é visível apenas para os sócios.
+        Esta área é visível apenas para a diretoria.
       </div>
+
 
       <Card className="card-shadow">
         <CardContent className="p-4">
@@ -97,7 +98,8 @@ export default function Socios() {
                 {listaQ.isLoading ? (
                   <TableRow><TableCell colSpan={4} className="py-8 text-center text-muted-foreground">Carregando...</TableCell></TableRow>
                 ) : linhas.length === 0 ? (
-                  <TableRow><TableCell colSpan={4} className="py-8 text-center text-muted-foreground">Nenhum sócio com vínculo ativo.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={4} className="py-8 text-center text-muted-foreground">Nenhum ocupante com vínculo ativo.</TableCell></TableRow>
+
                 ) : linhas.map((s) => (
                   <TableRow
                     key={s.pessoa_id}
