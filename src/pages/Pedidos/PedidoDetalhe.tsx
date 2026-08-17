@@ -85,6 +85,10 @@ import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock
 import { useFreteComparativo } from "@/hooks/pedidos/useFreteComparativo";
 import { CompararTransportadorasDialog } from "@/components/pedidos/dialogs/CompararTransportadorasDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useTransicionarPedido } from "@/hooks/pedidos/useTransicionarPedido";
+import { SplitPedidoDialog } from "@/components/pedidos/dialogs/SplitPedidoDialog";
 import { AtencaoPedidoDialog } from "@/components/pedidos/dialogs/AtencaoPedidoDialog";
 import { useLimparAtencao } from "@/hooks/pedidos/useAtencaoPedido";
 import { toast } from "@/hooks/use-toast";
