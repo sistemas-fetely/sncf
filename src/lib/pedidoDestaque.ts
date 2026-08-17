@@ -23,6 +23,7 @@ import { useQuery } from "@tanstack/react-query";
 export type Cobertura = "coberto" | "parcial" | "descoberto" | "sem_lastro" | "faturado";
 
 export interface CoberturaItem {
+  id: string;
   cobertura: Cobertura;
   qtd_coberta: number;
   qtd_descoberta: number;
