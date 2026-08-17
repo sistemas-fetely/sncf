@@ -139,18 +139,10 @@ export function OrgNodeDrawer({ node, open, onClose, allNodes, onEditPosition }:
             <TabsContent value="perfil" className="space-y-3 pt-3">
               {node.colaborador && (
                 <>
-                  <InfoRow icon={<Calendar className="h-4 w-4" />} label="Tempo de casa" value={formatTempoCasa(node.colaborador.data_admissao)} />
                   <InfoRow icon={<Mail className="h-4 w-4" />} label="E-mail" value={node.colaborador.email_corporativo || "—"} />
                   <InfoRow icon={<Phone className="h-4 w-4" />} label="Telefone" value={node.colaborador.telefone || "—"} />
-                  <InfoRow icon={<Briefcase className="h-4 w-4" />} label="Vínculo" value="CLT" />
-                  {canSeeSalary && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-muted-foreground"><DollarSign className="h-4 w-4" /></span>
-                      <span className="text-muted-foreground min-w-[100px]">Salário:</span>
-                      <SalarioMasked valor={node.colaborador.salario_base} userId={(node.colaborador as any).user_id || null} contexto="organograma" />
-                    </div>
-                  )}
-                  <Button variant="outline" size="sm" className="w-full mt-3" onClick={() => navigate(`/colaboradores/${node.colaborador!.id}`)}>
+                  <InfoRow icon={<Briefcase className="h-4 w-4" />} label="Vínculo" value={node.colaborador.tipo_contrato || "—"} />
+                  <Button variant="outline" size="sm" className="w-full mt-3" onClick={() => node.colaborador_id && navigate(`/pessoas/${node.colaborador_id}/editar`)} disabled={!node.colaborador_id}>
                     Ver ficha completa
                   </Button>
                 </>
