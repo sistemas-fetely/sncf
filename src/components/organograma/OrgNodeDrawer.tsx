@@ -25,14 +25,6 @@ function getInitials(name: string) {
   return name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
 }
 
-function formatTempoCasa(dataAdmissao: string) {
-  const months = differenceInMonths(new Date(), new Date(dataAdmissao));
-  const years = Math.floor(months / 12);
-  const rem = months % 12;
-  if (years === 0) return `${rem} meses`;
-  return `${years} ano${years > 1 ? "s" : ""} e ${rem} mes${rem !== 1 ? "es" : ""}`;
-}
-
 function statusBadge(status: string | null) {
   if (!status) return null;
   const map: Record<string, { label: string; className: string }> = {
