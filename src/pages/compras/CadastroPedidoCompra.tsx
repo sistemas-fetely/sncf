@@ -69,7 +69,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { TIPOS_PENDENCIA, type TipoPendencia } from "@/lib/compras/pendencias";
+import {
+  SELECT_PENDENCIAS,
+  TIPOS_PENDENCIA,
+  totalPendencia,
+  type PendenciaPedido,
+  type TipoPendencia,
+} from "@/lib/compras/pendencias";
 import { cn } from "@/lib/utils";
 
 // ============================================================================
@@ -111,6 +117,7 @@ interface PedidoListaRow {
   modalidade: string | null;
   moeda: string | null;
   data_pedido: string | null;
+  prazo_entrega_acordado: string | null;
   etd: string | null;
   eta: string | null;
   fornecedor: string | null;
@@ -392,7 +399,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
       const { data, error } = await (supabase as any)
         .from("vw_importacao_pedido_detalhe")
         .select(
-          "id, numero_pedido, rocabella_ref, modalidade, moeda, data_pedido, etd, eta, fornecedor, apelido, centro, status, linhas, kits, custo_total, fase_xpm",
+          "id, numero_pedido, rocabella_ref, modalidade, moeda, data_pedido, prazo_entrega_acordado, etd, eta, fornecedor, apelido, centro, status, linhas, kits, custo_total, fase_xpm",
         );
       if (error) throw error;
       return (data ?? []) as PedidoListaRow[];
@@ -416,6 +423,82 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
     (saldoQ.data ?? []).forEach((s) => m.set(Number(s.pedido_id), s));
     return m;
   }, [saldoQ.data]);
+
+  // Pendências por pedido (view pronta — nada e calculado aqui)
+  const pendenciasQ = useQuery({
+    queryKey: ["compras-pendencias"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_compras_pendencias")
+        .select(SELECT_PENDENCIAS);
+      if (error) throw error;
+      return (data ?? []) as PendenciaPedido[];
+    },
+  });
+
+  const pendenciaPorPedido = useMemo(() => {
+    const m = new Map<number, PendenciaPedido>();
+    (pendenciasQ.data ?? []).forEach((r) => m.set(Number(r.pedido_id), r));
+    return m;
+  }, [pendenciasQ.data]);
+
+  // ---------------- Exclusão de pedido ----------------
+  const [excluirAlvo, setExcluirAlvo] = useState<PedidoListaRow | null>(null);
+  const [previaExclusao, setPreviaExclusao] = useState<PreviaExclusao | null>(null);
+  const [checandoExclusao, setChecandoExclusao] = useState(false);
+  const [excluindo, setExcluindo] = useState(false);
+
+  const abrirExclusao = async (p: PedidoListaRow) => {
+    setExcluirAlvo(p);
+    setPreviaExclusao(null);
+    setChecandoExclusao(true);
+    try {
+      const { data, error } = await (supabase as any).rpc("excluir_pedido_importacao", {
+        p_pedido_id: p.id,
+        p_confirmar: false,
+      });
+      if (error) throw error;
+      const linha = Array.isArray(data) ? data[0] : data;
+      setPreviaExclusao(linha as PreviaExclusao);
+    } catch (e) {
+      toast.error(`Não foi possível checar a exclusão: ${formatError(e)}`);
+      setExcluirAlvo(null);
+    } finally {
+      setChecandoExclusao(false);
+    }
+  };
+
+  const confirmarExclusao = async () => {
+    if (!excluirAlvo) return;
+    setExcluindo(true);
+    try {
+      const { data, error } = await (supabase as any).rpc("excluir_pedido_importacao", {
+        p_pedido_id: excluirAlvo.id,
+        p_confirmar: true,
+      });
+      if (error) throw error;
+      const linha = (Array.isArray(data) ? data[0] : data) as PreviaExclusao | null;
+      if (linha && linha.excluido === false) {
+        toast.error(
+          linha.bloqueios?.length
+            ? `Exclusão barrada: ${linha.bloqueios.join(" · ")}`
+            : "O banco não confirmou a exclusão.",
+        );
+        setPreviaExclusao(linha);
+        return;
+      }
+      toast.success(`Pedido ${excluirAlvo.numero_pedido} excluído.`);
+      setExcluirAlvo(null);
+      setPreviaExclusao(null);
+      qc.invalidateQueries({ queryKey: ["importacao-pedido-lista"] });
+      qc.invalidateQueries({ queryKey: ["importacao-saldo-pedido-lista"] });
+      qc.invalidateQueries({ queryKey: ["compras-pendencias"] });
+    } catch (e) {
+      toast.error(`Falha ao excluir: ${formatError(e)}`);
+    } finally {
+      setExcluindo(false);
+    }
+  };
 
 
 
