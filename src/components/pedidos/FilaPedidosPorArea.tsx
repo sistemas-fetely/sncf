@@ -965,7 +965,7 @@ function LinhaCondicaoPagamento({ p }: { p: PedidoFilaItem }) {
 
   return (
     <p
-      className="text-[11px] text-muted-foreground truncate"
+      className="text-[11px] text-muted-foreground truncate leading-tight"
       title={
         divergente
           ? "A condição diz um meio de pagamento e o cadastro diz outro."
