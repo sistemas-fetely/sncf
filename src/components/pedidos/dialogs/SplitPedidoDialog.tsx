@@ -37,6 +37,7 @@ const ESTAGIO_OPTIONS_ESTOQUE: { value: EstagioSplit; label: string; desc: strin
 ];
 
 interface ItemPedido {
+  id: string;
   descricao: string;
   sku: string;
   quantidade: number;
