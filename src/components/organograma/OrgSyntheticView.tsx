@@ -137,7 +137,7 @@ interface Props {
 export function OrgSyntheticView({ tree, flat, filters, onNodeClick }: Props) {
   const { hasAnyRole } = useAuth();
   const canSeeSalary = hasAnyRole(["super_admin", "gestor_rh", "financeiro"]);
-  const [showSalary, setShowSalary] = useState(false);
+  const [showPrevisto, setShowPrevisto] = useState(false);
 
   // Start with first 3 levels expanded
   const [expanded, setExpanded] = useState<Set<string>>(() => {
@@ -165,7 +165,7 @@ export function OrgSyntheticView({ tree, flat, filters, onNodeClick }: Props) {
   const pjCount = flat.filter(n => n.vinculo === "PJ").length;
   const vagas = flat.filter(n => n.status === "vaga_aberta").length;
   const previstas = flat.filter(n => n.status === "previsto").length;
-  const custoTotal = flat.reduce((s, n) => s + (n.salario_previsto || 0), 0);
+  const custoPrevisto = flat.reduce((s, n) => s + (n.salario_previsto || 0), 0);
 
   return (
     <div className="space-y-3">
@@ -175,8 +175,8 @@ export function OrgSyntheticView({ tree, flat, filters, onNodeClick }: Props) {
           <Button variant="outline" size="sm" onClick={collapseAll}>Colapsar tudo</Button>
         </div>
         {canSeeSalary && (
-          <Button variant="ghost" size="sm" onClick={() => setShowSalary(!showSalary)}>
-            {showSalary ? "Ocultar salários" : "Mostrar salários"}
+          <Button variant="ghost" size="sm" onClick={() => setShowPrevisto(!showPrevisto)}>
+            {showPrevisto ? "Ocultar previsto" : "Mostrar previsto"}
           </Button>
         )}
       </div>
@@ -191,7 +191,7 @@ export function OrgSyntheticView({ tree, flat, filters, onNodeClick }: Props) {
               <th className="text-left py-2.5 px-3 font-medium text-muted-foreground">Vínculo</th>
               <th className="text-center py-2.5 px-3 font-medium text-muted-foreground">Equipe</th>
               <th className="text-center py-2.5 px-3 font-medium text-muted-foreground">Status</th>
-              {canSeeSalary && showSalary && <th className="text-right py-2.5 px-3 font-medium text-muted-foreground">Salário</th>}
+              {canSeeSalary && showPrevisto && <th className="text-right py-2.5 px-3 font-medium text-muted-foreground">Previsto</th>}
             </tr>
           </thead>
           <tbody>
@@ -203,7 +203,7 @@ export function OrgSyntheticView({ tree, flat, filters, onNodeClick }: Props) {
                 toggleExpand={toggleExpand}
                 onNodeClick={onNodeClick}
                 canSeeSalary={canSeeSalary}
-                showSalary={showSalary}
+                showPrevisto={showPrevisto}
               />
             ))}
           </tbody>
@@ -215,7 +215,10 @@ export function OrgSyntheticView({ tree, flat, filters, onNodeClick }: Props) {
           Total: <strong>{totalPosicoes}</strong> posições · <strong>{ocupadas}</strong> ocupadas ({cltCount} CLT · {pjCount} PJ) · <strong>{vagas}</strong> vagas abertas · <strong>{previstas}</strong> previstas
         </span>
         {canSeeSalary && (
-          <span>Custo total estimado: <strong>{fmtBRL(custoTotal)}</strong>/mês</span>
+          <span className="flex items-center gap-1.5">
+            Custo previsto das posições: <strong>{fmtBRL(custoPrevisto)}</strong>/mês
+            <span className="text-muted-foreground/70">· Baseado no salário previsto da posição. Para custo real, veja Custo de Pessoas.</span>
+          </span>
         )}
       </div>
     </div>
