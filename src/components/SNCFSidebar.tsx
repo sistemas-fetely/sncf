@@ -359,7 +359,9 @@ export function SNCFSidebar() {
             </span>
           )}
         </Link>
+        )}
         <div className="mx-4 border-t border-sidebar-border/40" />
+
         {renderGroup("Operacional", operacionalItemsFinal)}
         <div className="mx-4 border-t border-sidebar-border/40" />
         {renderGroup("Celebração & Conversa", celebracaoItems)}
