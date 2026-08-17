@@ -16,10 +16,69 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMeuContratoPJ } from "@/hooks/useMinhasNotas";
 import { useBadgesNavegacao } from "@/hooks/useBadgesNavegacao";
 import {
+  usePermissoesDoUsuario,
+  TELAS_PUBLICAS,
+  temPermissaoTela,
+} from "@/hooks/usePermissoesDoUsuario";
+import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
   SidebarHeader, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
+
+/**
+ * Visibilidade de item de menu de lista fixa.
+ * Mesma precedência e MESMOS helpers do RotaGate e do useSidebarApp
+ * (temPermissaoTela / TELAS_PUBLICAS / useAuth().roles). O gate segue sendo a
+ * última linha de defesa — esconder do menu não substitui a tranca.
+ */
+interface RegraNavegacaoMenu {
+  rota: string;
+  tela_slug: string | null;
+  apenas_super_admin: boolean;
+  status: string;
+  ativo: boolean;
+}
+
+function useVisibilidadeMenuFixo() {
+  const { roles } = useAuth();
+  const isSuperAdmin = (roles ?? []).includes("super_admin");
+  const { data: permitidas, isLoading: carregandoPerms } = usePermissoesDoUsuario();
+
+  const { data: regras, isLoading: carregandoNav } = useQuery({
+    queryKey: ["navegacao-visibilidade-menu"],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async (): Promise<Map<string, RegraNavegacaoMenu>> => {
+      const { data, error } = await supabase
+        .from("sncf_navegacao")
+        .select("rota, tela_slug, apenas_super_admin, status, ativo");
+      if (error) throw error;
+      const mapa = new Map<string, RegraNavegacaoMenu>();
+      for (const r of data ?? []) {
+        if (r.rota) mapa.set(r.rota, r as RegraNavegacaoMenu);
+      }
+      return mapa;
+    },
+  });
+
+  const isLoading = carregandoNav || (!isSuperAdmin && carregandoPerms);
+
+  const podeVer = (rota: string) => {
+    if (isSuperAdmin) return true;
+    const r = regras?.get(rota);
+    // Item de menu fora da sncf_navegacao: mostra (sumir em silêncio é pior).
+    if (!r) return true;
+    if (!r.ativo) return false;
+    if (r.status === "em_construcao") return false;
+    if (r.apenas_super_admin) return false;
+    if (!r.tela_slug) return true;
+    if (TELAS_PUBLICAS.has(r.tela_slug)) return true;
+    return temPermissaoTela(r.tela_slug, permitidas);
+  };
+
+  return { podeVer, isLoading };
+}
+
 
 function getIcon(name: string) {
   const pascal = name
@@ -80,6 +139,8 @@ export function SNCFSidebar() {
   const collapsed = state === "collapsed";
   const { user, profile, signOut, roles } = useAuth();
   const location = useLocation();
+  const { podeVer, isLoading: carregandoVisibilidade } = useVisibilidadeMenuFixo();
+
 
   const initials = profile?.full_name
     ? profile.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
@@ -176,8 +237,10 @@ export function SNCFSidebar() {
   };
 
   const renderGroup = (label: string, items: MenuItem[]) => {
-    const visible = items.filter((i) => canSee(i.requireRole));
+    if (carregandoVisibilidade) return null;
+    const visible = items.filter((i) => canSee(i.requireRole) && podeVer(i.url));
     if (!visible.length) return null;
+
     return (
       <SidebarGroup>
         {!collapsed && (
@@ -263,7 +326,9 @@ export function SNCFSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-2 space-y-1">
+        {!carregandoVisibilidade && podeVer("/canal-cpo") && (
         <Link
+
           to="/canal-cpo"
           className={`flex items-center gap-3 rounded-xl px-4 py-2.5 mx-1 text-sm transition-all duration-200 ${
             location.pathname.startsWith("/canal-cpo")
@@ -294,7 +359,9 @@ export function SNCFSidebar() {
             </span>
           )}
         </Link>
+        )}
         <div className="mx-4 border-t border-sidebar-border/40" />
+
         {renderGroup("Operacional", operacionalItemsFinal)}
         <div className="mx-4 border-t border-sidebar-border/40" />
         {renderGroup("Celebração & Conversa", celebracaoItems)}
