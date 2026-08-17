@@ -163,28 +163,32 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
               cobertura: Map<string, CoberturaItem>,
             ): Map<string, CoberturaItem> {
               const porSku = new Map<string, CoberturaItem>();
+              const flags = new Map<string, { todosFaturado: boolean; todosSemLastro: boolean }>();
               for (const c of cobertura.values()) {
                 if (!c.sku) continue;
                 const atual = porSku.get(c.sku);
                 if (!atual) {
                   porSku.set(c.sku, { ...c });
+                  flags.set(c.sku, {
+                    todosFaturado: c.cobertura === "faturado",
+                    todosSemLastro: c.cobertura === "sem_lastro",
+                  });
                   continue;
                 }
+                const f = flags.get(c.sku)!;
                 const quantidade = atual.quantidade + c.quantidade;
                 const qtd_coberta = atual.qtd_coberta + c.qtd_coberta;
                 const qtd_descoberta = atual.qtd_descoberta + c.qtd_descoberta;
-                const todosFaturado = atual.cobertura === "faturado" && c.cobertura === "faturado";
-                const todosSemLastro =
-                  (atual.cobertura === "sem_lastro" || atual.cobertura === "faturado") &&
-                  c.cobertura === "sem_lastro";
+                f.todosFaturado = f.todosFaturado && c.cobertura === "faturado";
+                f.todosSemLastro = f.todosSemLastro && c.cobertura === "sem_lastro";
                 let coberturaConsolidada: CoberturaItem["cobertura"];
-                if (todosFaturado) {
+                if (f.todosFaturado) {
                   coberturaConsolidada = "faturado";
                 } else if (qtd_coberta >= quantidade) {
                   coberturaConsolidada = "coberto";
                 } else if (qtd_coberta > 0) {
                   coberturaConsolidada = "parcial";
-                } else if (todosSemLastro) {
+                } else if (f.todosSemLastro) {
                   coberturaConsolidada = "sem_lastro";
                 } else {
                   coberturaConsolidada = "descoberto";
