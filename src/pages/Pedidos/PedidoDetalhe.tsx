@@ -136,16 +136,34 @@ function Linha({ label, value, destaque }: { label: string; value?: string | num
   );
 }
 
-function ListaItensComEstoque({ itens, pedidoId }: { itens: any[]; pedidoId: string }) {
+/**
+ * RESERVA-NASCE-DA-PRE-SEPARACAO: a partir da pré-separação a peça já está
+ * reservada para o pedido, então tag de lastro vira ruído — nesses estágios
+ * não mostramos faixa, badge nem fundo de linha.
+ */
+const ESTAGIOS_JA_RESERVADO = [
+  "pre_separacao",
+  "em_separacao",
+  "pre_faturamento",
+  "pre_faturado",
+  "faturado",
+  "em_transporte",
+  "entregue",
+];
+
+function ListaItensComEstoque({ itens, pedidoId, estagio }: { itens: any[]; pedidoId: string; estagio?: string | null }) {
   const coberturaQ = useCoberturaItens([pedidoId]);
   const coberturaMap = coberturaQ.data ?? new Map<string, CoberturaItem>();
   useEffect(() => {
     if (coberturaQ.error) toastSonner.error((coberturaQ.error as Error).message);
   }, [coberturaQ.error]);
 
-  const problemas = itens
-    .map((i: any) => coberturaMap.get(i.id)?.cobertura)
-    .filter((c) => c === "parcial" || c === "descoberto" || c === "sem_lastro");
+  const jaReservado = ESTAGIOS_JA_RESERVADO.includes(estagio ?? "");
+  const problemas = jaReservado
+    ? []
+    : itens
+        .map((i: any) => coberturaMap.get(i.id)?.cobertura)
+        .filter((c) => c === "parcial" || c === "descoberto" || c === "sem_lastro");
   const temDescoberto = problemas.some((c) => c === "descoberto" || c === "sem_lastro");
   return (
     <>
