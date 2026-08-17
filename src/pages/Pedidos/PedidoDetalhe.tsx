@@ -694,6 +694,7 @@ function BotaoSplitPedidoInline({ pedido, estagio }: { pedido: any; estagio: str
  * bloqueia quando falta lastro; aqui o operador vê o que falta e escolhe entre
  * dividir a remessa (caminho correto na maioria dos casos) ou forçar com motivo.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function AcaoDescerPreSeparacao({ pedido, estagio }: { pedido: any; estagio: EstagioPedido }) {
   const transicionar = useTransicionarPedido();
   const [motivo, setMotivo] = useState("");
