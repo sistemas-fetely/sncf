@@ -767,7 +767,7 @@ export function FilaPedidosPorArea({
                           <p className={cn(slaEstourado && "text-destructive font-medium")}>
                             {diasNaFase != null ? `${Math.floor(diasNaFase)}d` : "—"}
                           </p>
-                          <p className="text-[11px] text-muted-foreground">
+                          <p className="text-[11px] text-muted-foreground leading-tight">
                             pedido {totalDias === 0 ? "<1d" : `${totalDias}d`}
                           </p>
                           {relogio && relogio.dias_espera > 0 && (
