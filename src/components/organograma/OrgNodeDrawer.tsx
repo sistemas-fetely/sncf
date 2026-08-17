@@ -51,7 +51,6 @@ function isDescendant(nodeId: string, potentialAncestorId: string, allNodes: Pos
 export function OrgNodeDrawer({ node, open, onClose, allNodes, onEditPosition }: Props) {
   const { hasAnyRole } = useAuth();
   const navigate = useNavigate();
-  const canSeeSalary = hasAnyRole(["super_admin", "gestor_rh", "financeiro"]);
   const canManage = hasAnyRole(["super_admin", "gestor_rh"]);
   const moveMutation = useMovePosicao();
 
