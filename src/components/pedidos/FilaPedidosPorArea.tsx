@@ -114,9 +114,9 @@ function CelulaLastro({ cob }: { cob: CoberturaPedido | undefined }) {
           </Badge>
         </TooltipTrigger>
         <TooltipContent>
-          <p className="text-xs">{cob.un_descobertas} unidade(s) sem lastro na fila de reserva.</p>
+          <p className="text-xs leading-tight">{cob.un_descobertas} unidade(s) sem lastro na fila de reserva.</p>
           {cob.na_fila === false && (
-            <p className="text-xs">Pedido fora da fila de reserva — estágio não reserva estoque.</p>
+            <p className="text-xs leading-tight">Pedido fora da fila de reserva — estágio não reserva estoque.</p>
           )}
         </TooltipContent>
       </Tooltip>
