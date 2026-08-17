@@ -18,7 +18,10 @@ import { differenceInCalendarDays, format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { apelidoParceiro, nomeCanonico, nomeExibicao } from "@/lib/parceiros/nome";
 import { formatError } from "@/lib/format-error";
-import { gerarTemplatePedidoMercadoria } from "@/lib/compras/templatePedidoMercadoria";
+import {
+  gerarTemplatePedidoMercadoria,
+  type CabecalhoPlanilha,
+} from "@/lib/compras/templatePedidoMercadoria";
 import ImportarLinhasMercadoriaDialog from "@/components/compras/ImportarLinhasMercadoriaDialog";
 import EditarPedidoMercadoriaDialog from "@/components/compras/EditarPedidoMercadoriaDialog";
 
@@ -225,6 +228,16 @@ function rotuloAtraso(prazo?: string | null, eta?: string | null) {
   const dias = differenceInCalendarDays(parseISO(eta), parseISO(prazo));
   if (dias <= 0) return <span className="text-muted-foreground">Em dia</span>;
   return <Selo estado="warning">{dias} {dias === 1 ? "dia" : "dias"}</Selo>;
+}
+
+/** dd/mm/aaaa ou aaaa-mm-dd vindos da planilha viram aaaa-mm-dd para o input date. */
+function normalizarDataPlanilha(v: string): string {
+  const t = v.trim();
+  const br = t.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (br) return `${br[3]}-${br[2]}-${br[1]}`;
+  const iso = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  return "";
 }
 
 const STATUS_ROTULO: Record<string, string> = {
@@ -562,6 +575,67 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
       modalidade: codigo,
       moeda: h.moeda || moedaDefault,
     }));
+  };
+
+  // Cabeçalho vindo da planilha: só preenche o que a planilha trouxe.
+  const aplicarCabecalhoPlanilha = (cab: CabecalhoPlanilha) => {
+    const norm = (v: string) =>
+      v
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
+
+    const modalidade = cab.modalidade
+      ? modalidadesQ.data?.find(
+          (m) => norm(m.codigo) === norm(cab.modalidade!) || norm(m.rotulo) === norm(cab.modalidade!),
+        )
+      : undefined;
+    const fornecedor = cab.fornecedor
+      ? parceirosQ.data?.find(
+          (x) =>
+            norm(x.nome_fantasia ?? "") === norm(cab.fornecedor!) ||
+            norm(x.razao_social ?? "") === norm(cab.fornecedor!),
+        )
+      : undefined;
+    const centro = cab.centro_destino
+      ? centrosQ.data?.find(
+          (c) => norm(c.codigo) === norm(cab.centro_destino!) || norm(c.nome) === norm(cab.centro_destino!),
+        )
+      : undefined;
+    const status = cab.status
+      ? statusQ.data?.find((st) => norm(st.codigo) === norm(cab.status!))
+      : undefined;
+
+    const naoResolvidos: string[] = [];
+    if (cab.modalidade && !modalidade) naoResolvidos.push(`modalidade "${cab.modalidade}"`);
+    if (cab.fornecedor && !fornecedor) naoResolvidos.push(`fornecedor "${cab.fornecedor}"`);
+    if (cab.centro_destino && !centro) naoResolvidos.push(`centro "${cab.centro_destino}"`);
+    if (cab.status && !status) naoResolvidos.push(`status "${cab.status}"`);
+
+    setHeader((h) => ({
+      ...h,
+      ...(cab.numero_pedido ? { numero_pedido: cab.numero_pedido } : {}),
+      ...(modalidade ? { modalidade: modalidade.codigo } : {}),
+      ...(cab.moeda ? { moeda: cab.moeda.toUpperCase() } : {}),
+      ...(fornecedor ? { fornecedor_id: fornecedor.id } : {}),
+      ...(centro ? { centro_id: centro.id } : {}),
+      ...(status ? { status_id: String(status.id) } : {}),
+      ...(cab.referencia_fornecedor
+        ? { referencia_fornecedor: cab.referencia_fornecedor }
+        : {}),
+      ...(cab.data_pedido ? { data_pedido: normalizarDataPlanilha(cab.data_pedido) } : {}),
+      ...(cab.prazo_entrega_acordado
+        ? { prazo_entrega_acordado: normalizarDataPlanilha(cab.prazo_entrega_acordado) }
+        : {}),
+      ...(cab.condicao_pagamento ? { condicao_pagamento: cab.condicao_pagamento } : {}),
+      ...(cab.observacao ? { observacao: cab.observacao } : {}),
+    }));
+    setConferencia(null);
+
+    if (naoResolvidos.length > 0) {
+      toast.warning(`Não reconheci: ${naoResolvidos.join(" · ")}. Preencha na mão.`);
+    }
   };
 
   // SKUs de produto disponíveis (para dropdown de destino de serviço)
