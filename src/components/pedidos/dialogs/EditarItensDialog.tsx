@@ -155,37 +155,68 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
         {/* Lista de itens */}
         <div className="space-y-1">
           {(() => {
-            const estoqueMap = estoqueQ.data ?? new Map<string, number>();
-            const temSemEstoque = itens.some((i) => isSemEstoque(i.sku, estoqueMap));
+            // Itens do diálogo são locais (sem item_id): a cobertura da view é
+            // consolidada por SKU para casar com a lista em edição.
+            const porSku = new Map<string, CoberturaItem>();
+            for (const c of (coberturaQ.data ?? new Map<string, CoberturaItem>()).values()) {
+              if (c.sku) porSku.set(c.sku, c);
+            }
+            const coberturaDe = (sku: string | null) => (sku ? porSku.get(sku) : undefined);
+            const problemas = itens
+              .map((i) => coberturaDe(i.sku)?.cobertura)
+              .filter((c) => c === "parcial" || c === "descoberto" || c === "sem_lastro");
+            const temDescoberto = problemas.some((c) => c === "descoberto" || c === "sem_lastro");
             return (
               <>
-                {temSemEstoque && (
-                  <div className="flex items-center gap-2 rounded-md bg-destructive/10 border border-destructive/40 px-3 py-2 mb-3">
-                    <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
-                    <p className="text-xs text-destructive">
-                      Este pedido contém produto(s) sem estoque — verifique disponibilidade antes de seguir.
+                {problemas.length > 0 && (
+                  <div
+                    className={cn(
+                      "flex items-center gap-2 rounded-md border px-3 py-2 mb-3",
+                      temDescoberto
+                        ? "bg-destructive/10 border-destructive/40"
+                        : "bg-warning/10 border-warning/40"
+                    )}
+                  >
+                    <AlertCircle
+                      className={cn("h-4 w-4 shrink-0", temDescoberto ? "text-destructive" : "text-warning")}
+                    />
+                    <p className={cn("text-xs", temDescoberto ? "text-destructive" : "text-warning")}>
+                      {problemas.length} item(ns) sem lastro na fila de reserva — verifique antes de seguir.
                     </p>
                   </div>
                 )}
                 {itens.map((item, idx) => {
-                  const semEstoque = isSemEstoque(item.sku, estoqueMap);
+                  const cob = coberturaDe(item.sku);
+                  const rotulo = cob ? rotuloCobertura(cob.cobertura, cob.qtd_coberta, cob.quantidade) : null;
+                  const descoberto = cob?.cobertura === "descoberto" || cob?.cobertura === "sem_lastro";
+                  const parcial = cob?.cobertura === "parcial";
                   return (
                     <div
                       key={`${item.sku ?? "x"}-${idx}`}
                       className={cn(
                         "flex items-center gap-2 py-2 border-b border-border/40 last:border-0 rounded-md px-2 -mx-2",
-                        semEstoque && "bg-destructive/10 border-destructive/40"
+                        descoberto && "bg-destructive/10 border-destructive/40",
+                        parcial && "bg-warning/10 border-warning/40"
                       )}
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium truncate">{item.descricao}</p>
-                          {semEstoque && (
-                            <Badge variant="outline" className="text-[10px] h-5 border-destructive/40 text-destructive bg-destructive/10">
-                              Sem Estoque
+                          {rotulo && (
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "text-[10px] h-5",
+                                descoberto
+                                  ? "border-destructive/40 text-destructive bg-destructive/10"
+                                  : "border-warning/40 text-warning bg-warning/10"
+                              )}
+                            >
+                              {rotulo}
                             </Badge>
                           )}
                         </div>
+
                         {item.sku && <p className="text-xs text-muted-foreground">{item.sku}</p>}
                       </div>
 
