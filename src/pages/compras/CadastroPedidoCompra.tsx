@@ -661,6 +661,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
 
 
       {/* ============================ LISTA ============================ */}
+      {vista === "acompanhamento" && (
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Pedidos existentes</CardTitle>
@@ -808,7 +809,10 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
         </CardContent>
       </Card>
 
+      )}
+
       {/* ============================ FORMULÁRIO ============================ */}
+      {vista === "novo" && (
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Novo pedido de mercadoria</CardTitle>
@@ -1103,6 +1107,8 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
           )}
         </CardContent>
       </Card>
+
+      )}
 
       <ImportarLinhasMercadoriaDialog
         open={importOpen}
