@@ -484,13 +484,14 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
     setPreviaExclusao(null);
     setChecandoExclusao(true);
     try {
-      const { data, error } = await supabase.rpc("excluir_pedido_importacao" as never, {
+      const { data, error } = await supabase.rpc("excluir_pedido_importacao", {
         p_pedido_id: p.id,
         p_confirmar: false,
       });
       if (error) throw error;
-      const linha = Array.isArray(data) ? data[0] : data;
-      setPreviaExclusao(linha as PreviaExclusao);
+      const raw = Array.isArray(data) ? data[0] : data;
+      setPreviaExclusao((raw ?? null) as PreviaExclusao | null);
+
     } catch (e) {
       toast.error(`Não foi possível checar a exclusão: ${formatError(e)}`);
       setExcluirAlvo(null);
@@ -503,12 +504,13 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
     if (!excluirAlvo) return;
     setExcluindo(true);
     try {
-      const { data, error } = await supabase.rpc("excluir_pedido_importacao" as never, {
+      const { data, error } = await supabase.rpc("excluir_pedido_importacao", {
         p_pedido_id: excluirAlvo.id,
         p_confirmar: true,
       });
       if (error) throw error;
       const linha = (Array.isArray(data) ? data[0] : data) as PreviaExclusao | null;
+
       if (linha && linha.excluido === false) {
         toast.error(
           linha.bloqueios?.length
