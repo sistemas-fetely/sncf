@@ -57,23 +57,34 @@ export function useConfirmarPagamentoLinha() {
       return (data ?? { ok: true }) as ConfirmarLinhaResult;
     },
 
-    onSuccess: (res) => {
+    onSuccess: (res, args) => {
       const faltando = res.portao_linhas_faltando ?? 0;
-      if (res.avancou) {
-        toast({
-          title: "Pedido liberado",
-          description: "Todas as linhas de portão estão pagas — o pedido avançou.",
-        });
-      } else if (faltando > 0) {
-        toast({
-          title: "Pagamento registrado",
-          description: `Ainda faltam ${faltando} linha(s) de portão, somando ${fmtBRL.format(
+      const propagadas = res.linhas_propagadas ?? 0;
+
+      const linhas: string[] = [];
+      if (propagadas > 0) {
+        linhas.push(
+          `${propagadas} parcela(s) de cartão confirmadas pela mesma captura${
+            res.valor_propagado ? ` (${fmtBRL.format(Number(res.valor_propagado))})` : ""
+          }.`,
+        );
+      }
+      if (!res.avancou && faltando > 0) {
+        linhas.push(
+          `Ainda faltam ${faltando} linha(s) de portão, somando ${fmtBRL.format(
             Number(res.portao_valor_faltando ?? 0),
           )}.`,
-        });
-      } else {
-        toast({ title: "Pagamento registrado" });
+        );
+        if (args.falta_label) linhas.push(`Falta: ${args.falta_label}`);
       }
+
+      toast({
+        title: res.avancou
+          ? "Portão completo. Pedido liberado para Pré-Separação."
+          : "Pagamento registrado",
+        description: linhas.length ? linhas.join(" ") : undefined,
+      });
+
 
       const keys: (readonly unknown[])[] = [
         ["pedido-detalhe", res.pedido_id],
