@@ -123,6 +123,8 @@ export function AdministrativoSidebar() {
   const { roles } = useAuth();
   const primaryRole = getHighestRoleLabel(roles);
   const location = useLocation();
+  const { podeVer, isLoading: carregandoVisibilidade } = useVisibilidadeMenuFixo();
+
 
   const isItemActive = (url: string, end?: boolean) =>
     end ? location.pathname === url : location.pathname.startsWith(url);
