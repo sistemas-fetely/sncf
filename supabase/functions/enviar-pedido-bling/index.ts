@@ -238,26 +238,57 @@ serve(async (req) => {
 
           const tk = await ensureFreshToken(supabase, cfgChk);
           const cli = makeBlingClient(supabase, cfgChk, tk);
-          const resSit = await cli.get(`/pedidos/vendas/${pedido.bling_id_destino}`);
-          const sitId = Number(resSit?.data?.situacao?.id ?? resSit?.data?.situacao?.valor ?? 0);
 
-          // DIMENSÃO VIA TABELA: o id de "Cancelado" vem de bling_situacoes, nunca hardcode.
-          const { data: sitCancelado } = await supabase
-            .from("bling_situacoes").select("bling_situacao_id")
-            .eq("modulo_nome", "Vendas").eq("nome", "Cancelado").maybeSingle();
-          if (!sitCancelado?.bling_situacao_id) throw new Error("Situação 'Cancelado' ausente em bling_situacoes");
+          // TRÊS RESPOSTAS POSSÍVEIS, NÃO DUAS.
+          // (a) pedido existe e está Cancelado  → reenvio liberado
+          // (b) pedido NÃO EXISTE MAIS (404)    → reenvio liberado — não há o que duplicar
+          // (c) pedido existe em outra situação → avisa e pede confirmação
+          // O código antigo só conhecia (a) e (c): o 404 caía no catch genérico e virava
+          // "situação não verificada", disparando o aviso de duplicata justamente no caminho
+          // MAIS seguro. Foi o que travou o reenvio do PED-2147 (excluído no Bling, 17/08).
+          let resSit: any = null;
+          let ausenteNoBling = false;
+          try {
+            resSit = await cli.get(`/pedidos/vendas/${pedido.bling_id_destino}`);
+          } catch (eGet) {
+            const msgGet = (eGet as Error).message ?? "";
+            // Só 404 + RESOURCE_NOT_FOUND libera. Qualquer outro erro (401, 429, 5xx, rede)
+            // continua sendo "não verificada" — não confundir "não existe" com "não consegui olhar".
+            const ehAusente = /\b404\b/.test(msgGet)
+              && /RESOURCE_NOT_FOUND|encontrado|encontrada/i.test(msgGet);
+            if (!ehAusente) throw eGet;
+            ausenteNoBling = true;
+          }
 
-          if (sitId && sitId !== Number(sitCancelado.bling_situacao_id)) {
-            const { data: sitAtual } = await supabase
-              .from("bling_situacoes").select("nome")
-              .eq("modulo_nome", "Vendas").eq("bling_situacao_id", sitId).maybeSingle();
-            situacaoAviso = sitAtual?.nome ?? `situação ${sitId}`;
+          if (ausenteNoBling) {
+            console.log("[reenviar] pedido ausente no Bling (404) — excluído lá, reenvio liberado", {
+              pedido_id, bling_id: String(pedido.bling_id_destino),
+            });
+            situacaoAviso = null; // libera: segue direto pro reenviar_pedido_bling
+          } else {
+            const sitId = Number(resSit?.data?.situacao?.id ?? resSit?.data?.situacao?.valor ?? 0);
+
+            // DIMENSÃO VIA TABELA: o id de "Cancelado" vem de bling_situacoes, nunca hardcode.
+            const { data: sitCancelado } = await supabase
+              .from("bling_situacoes").select("bling_situacao_id")
+              .eq("modulo_nome", "Vendas").eq("nome", "Cancelado").maybeSingle();
+            if (!sitCancelado?.bling_situacao_id) throw new Error("Situação 'Cancelado' ausente em bling_situacoes");
+
+            if (sitId && sitId !== Number(sitCancelado.bling_situacao_id)) {
+              const { data: sitAtual } = await supabase
+                .from("bling_situacoes").select("nome")
+                .eq("modulo_nome", "Vendas").eq("bling_situacao_id", sitId).maybeSingle();
+              situacaoAviso = sitAtual?.nome ?? `situação ${sitId}`;
+            }
           }
         } catch (e) {
-          // Não conseguir verificar NÃO é permissão para reenviar no escuro:
-          // vira o mesmo pedido de confirmação explícita.
-          situacaoAviso = `não verificada (${(e as Error).message})`;
+          // Não conseguir OLHAR não é permissão para reenviar no escuro. Mensagem enxuta:
+          // o JSON cru do Bling ia inteiro para a tela do usuário (PED-2147).
+          const bruto = (e as Error).message ?? String(e);
+          const enxuto = bruto.length > 160 ? `${bruto.slice(0, 160)}…` : bruto;
+          situacaoAviso = `não verificada (${enxuto})`;
         }
+
 
         if (situacaoAviso) {
           return new Response(JSON.stringify({
@@ -833,14 +864,27 @@ if (itensSemProdutoBling.length > 0) {
     const pesoReal = Number(pedido.peso_bruto_total ?? 0);
 
     if (transpNome || valorFrete > 0 || pesoReal > 0) {
+      // BLING V3: A TRANSPORTADORA VIVE EM `transporte.contato`, NÃO EM `transporte.transportadora`.
+      // `transportadora` é herança da API v2. Campo desconhecido não dá erro no Bling: ele
+      // ignora em silêncio e devolve 200 OK com o pedido SEM transportadora (PED-2147, 17/08,
+      // dois envios seguidos). Mandar o id no lugar certo é a diferença entre "salvou" e
+      // "o Bling recebeu". Se o bling_id do parceiro estiver errado, o Bling agora RECLAMA —
+      // erro alto é melhor que sucesso falso.
+      // Campos válidos de `transporte` na v3: fretePorConta, frete, quantidadeVolumes,
+      // pesoBruto, prazoEntrega, contato, etiqueta, volumes. `pesoLiquido` NÃO é um deles
+      // (ia pelo mesmo ralo silencioso) — removido.
       payload.transporte = {
         fretePorConta: tipoFrete,
-        ...(blingTransportadoraId ? { transportadora: blingTransportadoraId } : transpNome ? { transportadora: { nome: transpNome } } : {}),
+        ...(blingTransportadoraId
+          ? { contato: { id: blingTransportadoraId, ...(transpNome ? { nome: transpNome } : {}) } }
+          : transpNome
+            ? { contato: { nome: transpNome } }
+            : {}),
         ...(valorFrete > 0 ? { frete: parseFloat(valorFrete.toFixed(2)) } : {}),
         ...(pesoReal > 0 ? { pesoBruto: parseFloat(pesoReal.toFixed(3)) } : {}),
-        ...(pesoReal > 0 ? { pesoLiquido: parseFloat(pesoReal.toFixed(3)) } : {}),
       };
     }
+
 
     // A partir daqui o POST vai ao ar: nunca mais apagar a remessa.
     remessaCriadaNestaChamada = null;
