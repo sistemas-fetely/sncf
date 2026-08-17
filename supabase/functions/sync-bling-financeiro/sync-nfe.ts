@@ -170,7 +170,10 @@ for (const nf of items) {
       parceiro_id,
       xml_url:             nf.xml     ?? existing?.xml_url ?? null,
       pdf_url:             nf.linkPDF ?? existing?.pdf_url ?? null,
-      raw:                 nf,
+      // RAW-NÃO-EMAGRECE: o objeto da listagem é mais pobre que o do detalhe.
+      // Só sobrescreve o raw quando o detalhe foi realmente buscado nesta execução.
+      raw:                 (nf._itens ? nf : (existing?.raw ?? nf)),
+
       origem:              "bling",
       updated_at:          new Date().toISOString(),
       numero_pedido_loja:        numeroPedidoLojaRaw ?? existing?.numero_pedido_loja ?? null,
