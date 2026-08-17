@@ -15,6 +15,7 @@ import { SelectDepartamentoHierarquico } from "@/components/shared/SelectDeparta
 import { SalarioMasked } from "@/components/SalarioMasked";
 import { useCargos } from "@/hooks/useCargos";
 import {
+import { PageShell } from "@/components/layout/PageShell";
   useMovimentacoes, useColaboradoresAtivos, useContratosPJAtivos,
   useCriarMovimentacao, useAtualizarStatusMovimentacao, useExcluirMovimentacao,
   type MovimentacaoComNome,
@@ -150,7 +151,7 @@ export default function Movimentacoes() {
   const fmt = (v: number | null) => v != null ? `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—";
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-medium">Promoções e Movimentações</h1>
@@ -371,6 +372,6 @@ export default function Movimentacoes() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

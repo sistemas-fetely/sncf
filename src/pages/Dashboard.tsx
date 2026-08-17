@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { SugestoesInboxDialog, type SugestaoItem } from "@/components/dashboard/SugestoesInboxDialog";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { PageShell } from "@/components/layout/PageShell";
 
 const STATUS_LABELS: Record<string, string> = {
   ativo: "Ativos", inativo: "Inativos", ferias: "Férias",
@@ -661,7 +662,7 @@ function DashboardGestao() {
 
 export default function Dashboard() {
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
         <div>
           <h1 className="text-2xl font-medium tracking-tight">Dashboard</h1>
@@ -669,7 +670,7 @@ export default function Dashboard() {
         </div>
       </div>
       <DashboardGestao />
-    </div>
+    </PageShell>
   );
 }
 

@@ -23,6 +23,7 @@ import { nomeCanonico } from "@/lib/parceiros/nome";
 import { format, parseISO } from "date-fns";
 import { useParametros } from "@/hooks/useParametros";
 import { SalarioMasked } from "@/components/SalarioMasked";
+import { PageShell } from "@/components/layout/PageShell";
 
 const defaultStatusMap: Record<string, string> = {
   pendente: "Pendente", aprovada: "Aprovada", enviada_pagamento: "Enviada para Pagamento", paga: "Paga", cancelada: "Cancelada", vencida: "Vencida",
@@ -300,7 +301,7 @@ export default function NotaFiscalDetalhe() {
   };
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -830,7 +831,7 @@ export default function NotaFiscalDetalhe() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }
 

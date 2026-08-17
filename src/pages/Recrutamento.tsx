@@ -18,6 +18,7 @@ import { NovaVagaDialog } from "@/components/recrutamento/NovaVagaDialog";
 import { toast } from "sonner";
 import { humanizeError } from "@/lib/errorMessages";
 import { useQueryClient } from "@tanstack/react-query";
+import { PageShell } from "@/components/layout/PageShell";
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   rascunho: { label: "Rascunho", className: "bg-muted text-muted-foreground" },
@@ -125,7 +126,7 @@ export default function Recrutamento() {
   }, {});
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-medium tracking-tight">Recrutamento e Seleção</h1>
@@ -254,6 +255,6 @@ export default function Recrutamento() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   );
 }

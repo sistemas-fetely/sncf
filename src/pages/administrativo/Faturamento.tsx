@@ -21,6 +21,7 @@ import {
 } from "recharts";
 import { cn } from "@/lib/utils";
 import {
+import { PageShell } from "@/components/layout/PageShell";
   useFaturamentoMensal, useFaturamentoNf, useFaturamentoProduto,
   type FaturamentoMensal, type FaturamentoNf, type FaturamentoProduto,
 
@@ -320,7 +321,7 @@ export default function Faturamento() {
 
   if (errMensal) {
     return (
-      <div className="space-y-4">
+      <PageShell>
         <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
           <Receipt className="h-6 w-6 text-gold" /> Faturamento
         </h1>
@@ -329,12 +330,12 @@ export default function Faturamento() {
             Falha ao carregar o faturamento mensal: {(errorMensal as any)?.message ?? String(errorMensal)}
           </CardContent>
         </Card>
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div>
         <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
           <Receipt className="h-6 w-6 text-gold" />
@@ -564,7 +565,7 @@ export default function Faturamento() {
         )}
       </Tabs>
 
-    </div>
+    </PageShell>
   );
 }
 

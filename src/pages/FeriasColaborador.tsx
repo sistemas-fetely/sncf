@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import {
+import { PageShell } from "@/components/layout/PageShell";
   useCriarPeriodo, useCriarProgramacao, useAtualizarStatusProgramacao,
   type PeriodoComColaborador,
 } from "@/hooks/useFerias";
@@ -138,7 +139,7 @@ export default function FeriasColaborador() {
   };
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       {/* Header */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate("/ferias")}>
@@ -368,6 +369,6 @@ export default function FeriasColaborador() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

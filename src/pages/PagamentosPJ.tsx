@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { nomeExibicao } from "@/lib/parceiros/nome";
 import { format, parseISO } from "date-fns";
+import { PageShell } from "@/components/layout/PageShell";
 
 const formatCompetencia = (c: string) => {
   if (/^\d{4}-\d{2}$/.test(c)) return format(parseISO(`${c}-01`), "MM/yyyy");
@@ -107,7 +108,7 @@ export default function PagamentosPJ() {
   const totalValorPendente = pagamentos.filter((p) => pendingStatuses.includes(p.status)).reduce((acc, p) => acc + Number(p.valor), 0);
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-medium tracking-tight">Pagamentos PJ</h1>
@@ -210,6 +211,6 @@ export default function PagamentosPJ() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

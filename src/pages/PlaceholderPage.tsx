@@ -1,5 +1,6 @@
 import { Construction } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageShell } from "@/components/layout/PageShell";
 
 interface PlaceholderPageProps {
   title: string;
@@ -8,7 +9,7 @@ interface PlaceholderPageProps {
 
 export default function PlaceholderPage({ title, description }: PlaceholderPageProps) {
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div>
         <h1 className="text-2xl font-medium tracking-tight">{title}</h1>
         <p className="text-muted-foreground text-sm mt-1">{description}</p>
@@ -24,6 +25,6 @@ export default function PlaceholderPage({ title, description }: PlaceholderPageP
           </div>
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

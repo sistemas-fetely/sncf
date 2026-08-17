@@ -14,6 +14,7 @@ import { FolhaToolbar } from "@/components/folha-pagamento/FolhaToolbar";
 import { HoleriteTable } from "@/components/folha-pagamento/HoleriteTable";
 import { HoleriteDrawer } from "@/components/folha-pagamento/HoleriteDrawer";
 import { exportarExcel, exportarPDF } from "@/lib/exportar-folha";
+import { PageShell } from "@/components/layout/PageShell";
 
 export default function FolhaPagamento() {
   const { hasAnyRole } = useAuth();
@@ -46,7 +47,7 @@ export default function FolhaPagamento() {
   };
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div>
         <h1 className="text-2xl font-medium">Folha de Pagamento</h1>
         <p className="text-muted-foreground">Gestão e cálculo da folha de pagamento CLT</p>
@@ -80,6 +81,6 @@ export default function FolhaPagamento() {
         competenciaId={selectedId}
         canEdit={canEditHolerite}
       />
-    </div>
+    </PageShell>
   );
 }

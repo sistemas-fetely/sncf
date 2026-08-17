@@ -80,6 +80,7 @@ import {
   type TipoPendencia,
 } from "@/lib/compras/pendencias";
 import { cn } from "@/lib/utils";
+import { PageShell } from "@/components/layout/PageShell";
 
 // ============================================================================
 // Types
@@ -744,7 +745,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
 
   // ============================ RENDER ============================
   return (
-    <div className="space-y-6">
+    <PageShell>
 
 
       {/* ============================ LISTA ============================ */}
@@ -1338,7 +1339,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
           qc.invalidateQueries({ queryKey: ["compras-pendencias"] });
         }}
       />
-    </div>
+    </PageShell>
   );
 }
 

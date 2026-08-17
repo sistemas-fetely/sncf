@@ -28,6 +28,7 @@ import { SalarioMasked } from "@/components/SalarioMasked";
 
 type ColaboradorRow = Tables<"colaboradores_clt">;
 import { format, parseISO } from "date-fns";
+import { PageShell } from "@/components/layout/PageShell";
 
 const statusMap: Record<string, string> = {
   ativo: "Ativo",
@@ -118,7 +119,7 @@ export default function Colaboradores() {
     name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-medium tracking-tight">Colaboradores</h1>
@@ -342,6 +343,6 @@ export default function Colaboradores() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   );
 }

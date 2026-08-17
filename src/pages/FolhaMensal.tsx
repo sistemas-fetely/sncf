@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { humanizeError } from "@/lib/errorMessages";
+import { PageShell } from "@/components/layout/PageShell";
 
 interface LinhaFolha {
   vinculo_id: string;
@@ -104,7 +105,7 @@ export default function FolhaMensal() {
   const custoTotalEmpresa = totais.custo_total_empresa || (totais.total + totais.encargos + totais.provisoes);
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-medium tracking-tight">Folha Mensal</h1>
@@ -296,6 +297,6 @@ export default function FolhaMensal() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

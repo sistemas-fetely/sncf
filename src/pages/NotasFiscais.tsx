@@ -34,6 +34,7 @@ import { ptBR as dateFnsPtBR } from "date-fns/locale";
 import ImportNFDialog from "@/components/notas-fiscais/ImportNFDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { nomeExibicao } from "@/lib/parceiros/nome";
+import { PageShell } from "@/components/layout/PageShell";
 
 const periodOptions: { value: string; label: string }[] = [
   { value: "todos", label: "Todo Período" },
@@ -211,7 +212,7 @@ export default function NotasFiscais() {
   const hasActiveFilter = filterStatus !== "todos" || filterContrato !== "todos" || filterPeriodo !== "todos" || search.trim() !== "";
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-medium tracking-tight">Notas Fiscais</h1>
@@ -461,7 +462,7 @@ export default function NotasFiscais() {
         contratos={contratos}
         onSuccess={fetchData}
       />
-    </div>
+    </PageShell>
   );
 }
 

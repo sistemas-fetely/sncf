@@ -18,6 +18,7 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ReferenceLine,
 } from "recharts";
 import { cn } from "@/lib/utils";
+import { PageShell } from "@/components/layout/PageShell";
 
 const PISO = 0.20;
 
@@ -169,7 +170,7 @@ export default function PainelMargem() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div>
         <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
           <Percent className="h-6 w-6 text-gold" />
@@ -410,6 +411,6 @@ export default function PainelMargem() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

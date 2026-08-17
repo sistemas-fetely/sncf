@@ -67,6 +67,7 @@ import {
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { PageShell } from "@/components/layout/PageShell";
 
 // ==========================================================================
 // Types
@@ -317,7 +318,7 @@ export default function DeParaFornecedor() {
   };
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div className="flex items-start justify-between gap-3">
         <p className="text-sm text-muted-foreground">
           Casamento entre o código que o fornecedor manda na nota e o nosso SKU
@@ -510,7 +511,7 @@ export default function DeParaFornecedor() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   );
 }
 
