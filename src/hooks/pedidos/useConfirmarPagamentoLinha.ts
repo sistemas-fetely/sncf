@@ -11,6 +11,9 @@ interface Args {
   prova_ref?: string | null;
   data_pagamento: string; // ISO (date ou timestamptz)
   observacao?: string | null;
+  /** Texto pronto de qual meio ainda falta (ex.: "1 parcela de PIX").
+   *  Só alimenta o toast — a régua de portão continua sendo do banco. */
+  falta_label?: string | null;
 }
 
 export interface ConfirmarLinhaResult {
@@ -20,10 +23,14 @@ export interface ConfirmarLinhaResult {
   valor?: number;
   eh_portao?: boolean;
   adiantamento_id?: string | null;
+  /** Parcelas de cartão irmãs quitadas pela mesma captura. */
+  linhas_propagadas?: number;
+  valor_propagado?: number;
   portao_linhas_faltando?: number;
   portao_valor_faltando?: number;
   avancou?: boolean;
 }
+
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
