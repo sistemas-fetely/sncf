@@ -1022,12 +1022,12 @@ function CelulaPagamento({
         </TooltipTrigger>
         <TooltipContent>
           <div className="max-w-[320px] space-y-1">
-            {liberacao.motivo && <p className="text-xs">{liberacao.motivo}</p>}
+            {liberacao.motivo && <p className="text-xs leading-tight">{liberacao.motivo}</p>}
             {liberacao.prova_frase && (
-              <p className="text-xs opacity-80">{liberacao.prova_frase}</p>
+              <p className="text-xs opacity-80 leading-tight">{liberacao.prova_frase}</p>
             )}
             {p.situacao_rotulo && (
-              <p className="text-xs opacity-80">{p.situacao_rotulo}</p>
+              <p className="text-xs opacity-80 leading-tight">{p.situacao_rotulo}</p>
             )}
           </div>
         </TooltipContent>
