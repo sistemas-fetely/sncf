@@ -97,7 +97,7 @@ export default function PendenciasTab() {
     },
   });
 
-  const pendencias = pendenciasQ.data ?? [];
+  const pendencias = useMemo(() => pendenciasQ.data ?? [], [pendenciasQ.data]);
 
   const totais = useMemo(() => {
     const acc: Record<TipoPendencia, number> = {
