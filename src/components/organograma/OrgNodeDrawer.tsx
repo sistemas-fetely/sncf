@@ -152,13 +152,6 @@ export function OrgNodeDrawer({ node, open, onClose, allNodes, onEditPosition }:
                   <InfoRow icon={<Mail className="h-4 w-4" />} label="E-mail" value={node.contrato_pj.contato_email || "—"} />
                   <InfoRow icon={<Phone className="h-4 w-4" />} label="Telefone" value={node.contrato_pj.contato_telefone || "—"} />
                   <InfoRow icon={<Briefcase className="h-4 w-4" />} label="Vínculo" value="PJ" />
-                  {canSeeSalary && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-muted-foreground"><DollarSign className="h-4 w-4" /></span>
-                      <span className="text-muted-foreground min-w-[100px]">Valor mensal:</span>
-                      <SalarioMasked valor={node.contrato_pj.valor_mensal} userId={(node.contrato_pj as any).user_id || null} contexto="organograma" />
-                    </div>
-                  )}
                   <Button variant="outline" size="sm" className="w-full mt-3" onClick={() => navigate(`/contratos-pj/${node.contrato_pj!.id}`)}>
                     Ver contrato
                   </Button>
