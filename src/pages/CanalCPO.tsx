@@ -5,9 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessageCircle, ArrowRight } from "lucide-react";
+import type { EstagioPedido } from "@/types/pedido";
 
 import { PageShell } from "@/components/layout/PageShell";
 import { ESTAGIO_SELO } from "@/components/pedidos/BadgesPedido";
+
 const DATA_FMT = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
 });
