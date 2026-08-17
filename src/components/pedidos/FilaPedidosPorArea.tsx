@@ -585,7 +585,7 @@ export function FilaPedidosPorArea({
       <div ref={tableWrapperRef} className="rounded-md border border-border overflow-hidden">
         <Table className="table-fixed">
           <TableHeader>
-            <TableRow>
+            <TableRow className="sticky top-0 z-20 bg-card">
               <TableHead className="w-[56px]">Risco</TableHead>
               <TableHead className="w-[240px]">Pedido</TableHead>
               <TableHead className="w-[150px]">Valor</TableHead>
