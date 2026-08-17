@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ArrowRight, Zap, X, GitBranch, Undo2 } from "lucide-react";
 import { useTransicionarPedido } from "@/hooks/pedidos/useTransicionarPedido";
+import { ForcarSemLastroDialog } from "@/components/pedidos/dialogs/ForcarSemLastroDialog";
 import { useRegistrarOperacaoPedido } from "@/hooks/pedidos/useRegistrarOperacaoPedido";
 import { useRotearPedido } from "@/hooks/pedidos/useRotearPedido";
 import { useToast } from "@/hooks/use-toast";
