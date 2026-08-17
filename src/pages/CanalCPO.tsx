@@ -147,10 +147,11 @@ export default function CanalCPO() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-mono text-sm font-medium">{c.idExterno}</span>
                   {c.estagio && (
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${ESTAGIO_CORES[c.estagio] ?? "bg-muted text-muted-foreground"}`}>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${ESTAGIO_SELO[c.estagio as EstagioPedido] ?? "bg-muted text-muted-foreground"}`}>
                       {ESTAGIO_LABELS[c.estagio] ?? c.estagio}
                     </span>
                   )}
+
                   {c.lastTipo === "msg_comercial" && (
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-info text-white">
                       aguardando resposta
