@@ -14,7 +14,7 @@ import {
   FileSpreadsheet,
   Trash2,
 } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { differenceInCalendarDays, format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { apelidoParceiro, nomeCanonico, nomeExibicao } from "@/lib/parceiros/nome";
 import { formatError } from "@/lib/format-error";
@@ -217,6 +217,15 @@ const fmtBRL = (v: number, moeda = "BRL") =>
 
 const fmtDate = (d?: string | null) =>
   d ? format(parseISO(d), "dd/MM/yyyy") : "—";
+
+/** Atraso = ETA depois do prazo acordado. Sem prazo acordado, não há atraso a mostrar. */
+function rotuloAtraso(prazo?: string | null, eta?: string | null) {
+  if (!prazo) return <span className="text-muted-foreground">—</span>;
+  if (!eta) return <span className="text-muted-foreground">—</span>;
+  const dias = differenceInCalendarDays(parseISO(eta), parseISO(prazo));
+  if (dias <= 0) return <span className="text-muted-foreground">Em dia</span>;
+  return <Selo estado="warning">{dias} {dias === 1 ? "dia" : "dias"}</Selo>;
+}
 
 const STATUS_ROTULO: Record<string, string> = {
   ok: "OK",
