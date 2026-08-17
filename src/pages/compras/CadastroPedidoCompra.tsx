@@ -459,11 +459,11 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
   const pendenciasQ = useQuery({
     queryKey: ["compras-pendencias"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("vw_compras_pendencias")
+      const { data, error } = await supabase
+        .from("vw_compras_pendencias" as never)
         .select(SELECT_PENDENCIAS);
       if (error) throw error;
-      return (data ?? []) as PendenciaPedido[];
+      return (data ?? []) as unknown as PendenciaPedido[];
     },
   });
 
@@ -484,7 +484,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
     setPreviaExclusao(null);
     setChecandoExclusao(true);
     try {
-      const { data, error } = await (supabase as any).rpc("excluir_pedido_importacao", {
+      const { data, error } = await supabase.rpc("excluir_pedido_importacao" as never, {
         p_pedido_id: p.id,
         p_confirmar: false,
       });
@@ -503,7 +503,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
     if (!excluirAlvo) return;
     setExcluindo(true);
     try {
-      const { data, error } = await (supabase as any).rpc("excluir_pedido_importacao", {
+      const { data, error } = await supabase.rpc("excluir_pedido_importacao" as never, {
         p_pedido_id: excluirAlvo.id,
         p_confirmar: true,
       });
