@@ -11,6 +11,7 @@ import { useSyncContato } from "@/hooks/parceiros/useSyncContato";
 import { useAuth } from "@/contexts/AuthContext";
 import { ReenviarBlingDialog } from "@/components/pedidos/dialogs/ReenviarBlingDialog";
 import { ForcarXpmDialog } from "@/components/pedidos/dialogs/ForcarXpmDialog";
+import { DeclararCancelamentoXpmDialog } from "@/components/pedidos/dialogs/DeclararCancelamentoXpmDialog";
 
 interface Props {
   pedido_id: string;
@@ -201,10 +202,17 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
       )}
 
       {jaEmpurrado && (
-        <p className="text-xs text-muted-foreground px-1">
-          XPM: expedição {pedidoXpm!.xpm_expedicao_codigo}
-        </p>
+        <>
+          <p className="text-xs text-muted-foreground px-1 tabular-nums">
+            XPM: expedição {pedidoXpm!.xpm_expedicao_codigo}
+          </p>
+          <DeclararCancelamentoXpmDialog
+            pedidoId={pedido_id}
+            expedicaoCodigo={String(pedidoXpm!.xpm_expedicao_codigo)}
+          />
+        </>
       )}
+
 
       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
       {elegiveis.map((rem: any) => {
