@@ -771,11 +771,16 @@ export default function CobrancaDetalhe() {
 
 
   const handleRecalcular = () => {
+    if (!propostaQ.data?.titulos_propostos) return;
+    const novos = montarLinhasDaProposta(propostaQ.data.titulos_propostos, diasPrimeiroPagamento, intervaloDias);
     setTitulos((prev) => {
-      if (prev.length === 0) return prev;
-      const comDatas = aplicarPrimeiraDataECascata(prev, diasPrimeiroPagamento, intervaloDias);
-      return parcelasIguais ? redistribuirValoresIguais(comDatas, valorTotalCobrar) : comDatas;
+      if (parcelasIguais) {
+        return redistribuirValoresIguais(novos, valorTotalCobrar);
+      }
+      return novos;
     });
+    setParcelasIguais(false);
+    setPlanoEditado(false);
   };
 
   // Loading
