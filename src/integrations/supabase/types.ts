@@ -62165,6 +62165,7 @@ export type Database = {
       }
       fn_normalizar_municipio: { Args: { p_nome: string }; Returns: string }
       fn_normalizar_ncm: { Args: { p_ncm: string }; Returns: string }
+      fn_normalizar_nsu: { Args: { p_nsu: string }; Returns: string }
       fn_num_safe: { Args: { p_txt: string }; Returns: number }
       fn_obter_ou_criar_pasta_parceiro: {
         Args: { p_parceiro_id: string }
