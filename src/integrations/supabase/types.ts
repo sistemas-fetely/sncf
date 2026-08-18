@@ -52195,14 +52195,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -53366,6 +53366,24 @@ export type Database = {
           },
         ]
       }
+      vw_pedido_alerta: {
+        Row: {
+          achados: number | null
+          atencoes: number | null
+          bloqueantes: number | null
+          desde: string | null
+          detalhe_principal: string | null
+          idade_dias: number | null
+          informativos: number | null
+          pedido_id: string | null
+          regras: string | null
+          severidade: string | null
+          severidade_peso: number | null
+          tem_reincidente: boolean | null
+          titulo_principal: string | null
+        }
+        Relationships: []
+      }
       vw_pedido_arvore: {
         Row: {
           nivel: number | null
@@ -54113,14 +54131,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -56139,6 +56157,11 @@ export type Database = {
       }
       vw_pedidos_farol: {
         Row: {
+          alerta_achados: number | null
+          alerta_bloqueantes: number | null
+          alerta_detalhe: string | null
+          alerta_severidade: string | null
+          alerta_titulo: string | null
           bloqueio: string | null
           cliente: string | null
           data_estagio: string | null
