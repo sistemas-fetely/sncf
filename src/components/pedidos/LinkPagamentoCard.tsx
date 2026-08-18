@@ -115,12 +115,14 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
         pedido_id: pedidoId,
         link: url,
         gerado_em: geradoEm || hojeISO(),
+        expira_em: expiraEm || null,
         tipo_pagamento: linha?.tipo_pagamento ?? null,
         motivo: motivo.trim() || null,
       });
       setNovoLink("");
       setMotivo("");
       setGeradoEm(hojeISO());
+      setExpiraEm("");
       setForm(false);
     } catch {
       /* toast já sai no hook */
