@@ -17,7 +17,7 @@ interface Opts {
   /** Restringe a um cliente específico (histórico do parceiro). */
   parceiroId?: string;
   apenasAtivos?: boolean;
-  /** Quando true, cancelados/recuperação entram na consulta (só `entregue` fica de fora). */
+  /** Quando true, cancelados entram na consulta. Recuperação (desvio) nunca entra. */
   incluirCancelados?: boolean;
 }
 
