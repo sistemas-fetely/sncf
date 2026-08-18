@@ -245,7 +245,7 @@ export default function FolhaMensal() {
                   <TableHead className="font-medium text-right">Remuneração (sem encargos)</TableHead>
                   <TableHead className="font-medium text-right">Encargos (caixa do mês)</TableHead>
                   <TableHead className="font-medium text-right">Provisões (13º, férias, rescisão)</TableHead>
-                  <TableHead className="font-medium text-right">Custo total (empresa)</TableHead>
+                  <TableHead className="font-medium text-right">{rotuloTotal}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
