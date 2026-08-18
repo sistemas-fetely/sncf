@@ -4,7 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePedidosPipeline } from "@/hooks/pedidos/usePedidosPipeline";
-import { ESTAGIO_LABELS_CURTO, PIPELINE_PRINCIPAL } from "@/types/pedido";
+import {
+  ESTAGIO_LABELS_CURTO,
+  PIPELINE_PRINCIPAL,
+  ESTAGIOS_DESVIO,
+  ESTAGIOS_TERMINAIS,
+} from "@/types/pedido";
 import type { EstagioPedido } from "@/types/pedido";
 import {
   AlertTriangle, Inbox, Shield, CheckCircle2, Receipt,
@@ -74,6 +79,8 @@ interface Props {
   onToggleCancelados?: (v: boolean) => void;
   riscoAltoAtivo?: boolean;
   onToggleRiscoAlto?: () => void;
+  /** Abre a aba Recuperação (desvio) — não filtra a fila. */
+  onAbrirRecuperacao?: () => void;
 }
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", {
@@ -90,6 +97,7 @@ export function PipelineHorizontal({
   onToggleCancelados,
   riscoAltoAtivo = false,
   onToggleRiscoAlto,
+  onAbrirRecuperacao,
 }: Props) {
   const { data, isLoading, isError, error } = usePedidosPipeline();
 
@@ -117,37 +125,81 @@ export function PipelineHorizontal({
     },
   });
 
+  // As flags vêm do catálogo (pedido_estagio) via v_pedidos_pipeline.
+  // Onde a view não trouxer flag, cai nas constantes de fallback.
   const estagios = useMemo(() => {
-    const map = new Map<EstagioPedido, { qtd: number; sla: number; tipo_sla: string | null }>();
-    PIPELINE_PRINCIPAL.forEach((e) => map.set(e, { qtd: 0, sla: 0, tipo_sla: null }));
+    type Celula = {
+      qtd: number;
+      sla: number;
+      tipo_sla: string | null;
+      eh_final: boolean;
+      eh_desvio: boolean;
+    };
+    const map = new Map<EstagioPedido, Celula>();
+    PIPELINE_PRINCIPAL.forEach((e) =>
+      map.set(e, {
+        qtd: 0,
+        sla: 0,
+        tipo_sla: null,
+        eh_final: ESTAGIOS_TERMINAIS.includes(e),
+        eh_desvio: ESTAGIOS_DESVIO.includes(e),
+      }),
+    );
     (data || []).forEach((row) => {
-      const atual = map.get(row.estagio as EstagioPedido);
+      const estagio = row.estagio as EstagioPedido;
+      const atual = map.get(estagio);
       if (!atual) return;
       atual.qtd += row.qtd;
       atual.sla += row.qtd_sla_estourado;
       atual.tipo_sla = atual.tipo_sla ?? row.tipo_sla ?? null;
+      if (row.eh_final != null) atual.eh_final = !!row.eh_final;
+      if (row.eh_desvio != null) atual.eh_desvio = !!row.eh_desvio;
     });
     return PIPELINE_PRINCIPAL.map((estagio) => ({
       estagio,
-      ...(map.get(estagio) || { qtd: 0, sla: 0, tipo_sla: null }),
+      ...(map.get(estagio) as Celula),
     }));
   }, [data]);
 
+  // Fase linear = não é desvio e não é final (entregue segue como último card,
+  // comportamento preservado). Quem sai, sai porque o dado disse.
   const fases = estagios.filter(
-    (e) => !["cancelado", "recuperacao_venda"].includes(e.estagio)
+    (e) => !e.eh_desvio && (!e.eh_final || e.estagio === "entregue"),
   );
 
-  // Universo do card "Todos" = exatamente o que a tabela mostra por padrão:
-  // ativos (sem entregue) + cancelados/recuperação apenas com o toggle ligado.
+  // Chip de desvio (fora da carteira ativa): soma das linhas com eh_desvio.
+  const desvio = useMemo(() => {
+    let qtd = 0;
+    let valor = 0;
+    (data || []).forEach((row) => {
+      const ehDesvio =
+        row.eh_desvio != null
+          ? !!row.eh_desvio
+          : ESTAGIOS_DESVIO.includes(row.estagio as EstagioPedido);
+      if (!ehDesvio) return;
+      qtd += Number(row.qtd || 0);
+      valor += Number(row.soma_valor || 0);
+    });
+    return { qtd, valor };
+  }, [data]);
+
+  // Universo do card "Fila ativa" = exatamente o que a tabela mostra por padrão:
+  // ativos (sem entregue) + cancelados apenas com o toggle ligado.
+  // Desvio (recuperação) NUNCA entra: é outra sala.
   const { totalQtd, totalSla, riscoVermelhoQtd, riscoVermelhoValor } = useMemo(() => {
     const excluidosSempre = new Set<string>(["entregue"]);
-    const naoAtivos = new Set<string>(["cancelado", "recuperacao_venda"]);
+    const naoAtivos = new Set<string>(["cancelado"]);
     let qtd = 0;
     let sla = 0;
     let rQtd = 0;
     let rValor = 0;
     (data || []).forEach((row) => {
       const e = row.estagio as string;
+      const ehDesvio =
+        row.eh_desvio != null
+          ? !!row.eh_desvio
+          : ESTAGIOS_DESVIO.includes(e as EstagioPedido);
+      if (ehDesvio) return;
       if (excluidosSempre.has(e)) return;
       if (naoAtivos.has(e) && !incluirCancelados) return;
       qtd += Number(row.qtd || 0);
@@ -223,7 +275,7 @@ export function PipelineHorizontal({
         <button
           type="button"
           onClick={() => onLimparFiltro?.()}
-          title="Pedidos em andamento. Não inclui entregues. Cancelados e recuperação de venda entram só com o toggle ao lado. Para ver histórico completo, use a busca."
+          title="Pedidos em andamento. Não inclui entregues nem recuperação de venda. Cancelados entram só com o toggle ao lado. Para ver histórico completo, use a busca."
           className={cn(
             "group relative flex flex-col items-center justify-center rounded-md border py-2 px-3 transition-all duration-200 min-w-[76px]",
             "gold-border-hover focus-visible:outline-none",
@@ -248,7 +300,7 @@ export function PipelineHorizontal({
             "gold-border-hover focus-visible:outline-none",
             incluirCancelados ? "gold-border bg-gold-soft shadow-sm" : "border-border bg-card"
           )}
-          title="Inclui cancelados e recuperação de venda na fila"
+          title="Inclui pedidos cancelados na fila"
         >
           <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide leading-tight">
             Incluir<br />cancelados
@@ -307,6 +359,31 @@ export function PipelineHorizontal({
             </button>
           );
         })}
+
+        {/* Divisor: daqui pra frente não é passo do fluxo */}
+        <div className="w-px bg-border mx-1 self-stretch" />
+
+        {/* Chip de desvio — fora da carteira ativa */}
+        <button
+          type="button"
+          onClick={() => onAbrirRecuperacao?.()}
+          title="Fora da carteira ativa. Vendas a recuperar — clique para abrir a aba Recuperação."
+          className={cn(
+            "flex w-[104px] shrink-0 flex-col items-center justify-center rounded-md border border-dashed bg-muted/40 py-2 px-2 text-muted-foreground transition-all duration-200",
+            "gold-border-hover focus-visible:outline-none",
+            desvio.qtd === 0 && "opacity-40",
+          )}
+        >
+          <span className="text-[10px] font-medium uppercase tracking-wide leading-tight">
+            Recuperação
+          </span>
+          <span className="text-[11px] font-medium tabular-nums">
+            {desvio.qtd} {desvio.qtd === 1 ? "pedido" : "pedidos"}
+          </span>
+          <span className="text-[10px] tabular-nums">
+            {fmtBRL.format(desvio.valor)}
+          </span>
+        </button>
       </div>
     </div>
   );

@@ -68,7 +68,7 @@ export function useContaCorrenteCliente(parceiroId?: string) {
   });
 }
 
-export default function Consignados() {
+export default function Consignados({ embutido = false }: { embutido?: boolean } = {}) {
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
   const parceirosQ = useParceirosConsignados();
@@ -92,13 +92,16 @@ export default function Consignados() {
 
   const isError = parceirosQ.isError || contaQ.isError;
 
-  return (
-    <PageShell className="md:p-8">
-      <CasaPageHeader
-        breadcrumb={[{ label: "Comercial" }, { label: "Consignados" }]}
-        title="Consignados"
-        subtitle="Parceiros em regime de conta corrente"
-      />
+  const conteudo = (
+    <>
+      {!embutido && (
+        <CasaPageHeader
+          breadcrumb={[{ label: "Comercial" }, { label: "Consignados" }]}
+          title="Consignados"
+          subtitle="Parceiros em regime de conta corrente"
+        />
+      )}
+
 
       {isError && (
         <Card className="mb-4 border-destructive">
@@ -183,6 +186,9 @@ export default function Consignados() {
           )}
         </CardContent>
       </Card>
-    </PageShell>
+    </>
   );
+
+  if (embutido) return <div className="space-y-6">{conteudo}</div>;
+  return <PageShell className="md:p-8">{conteudo}</PageShell>;
 }

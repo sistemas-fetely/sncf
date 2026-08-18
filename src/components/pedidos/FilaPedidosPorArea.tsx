@@ -84,7 +84,7 @@ interface Props {
   /** Múltiplos estágios (vindos dos cards do pipeline) */
   estagios?: EstagioPedido[];
   apenasAtivos?: boolean;
-  /** Espelha o toggle do pipeline: traz cancelados/recuperação para a fila. */
+  /** Espelha o toggle do pipeline: traz apenas cancelados para a fila. */
   incluirCancelados?: boolean;
   /** Espelha a tarja de risco alto do pipeline. */
   somenteRiscoAlto?: boolean;
@@ -307,6 +307,14 @@ export function FilaPedidosPorArea({
       const vistos = new Set(base.map((p) => p.id));
       base = [...base, ...pedidosPorApelido.filter((p) => !vistos.has(p.id))];
     }
+    // Desvio não é fase: recuperação de venda só entra se pedida explicitamente
+    // em `estagios`. Nem no universo padrão, nem com `incluirCancelados`.
+    const desvioPedidoExplicitamente = !!estagios?.some(
+      (e) => e === "recuperacao_venda",
+    );
+    if (!desvioPedidoExplicitamente) {
+      base = base.filter((p) => p.estagio !== "recuperacao_venda");
+    }
     if (marcacaoFilter === "sem") base = base.filter((p) => !p.marcacao);
     else if (marcacaoFilter === "com") base = base.filter((p) => !!p.marcacao);
     else if (marcacaoFilter !== "todas") base = base.filter((p) => p.marcacao === marcacaoFilter);
@@ -346,7 +354,7 @@ export function FilaPedidosPorArea({
       if (db !== da) return db - da;
       return new Date(a.recebido_em).getTime() - new Date(b.recebido_em).getTime();
     });
-  }, [data, pedidosPorApelido, termoBusca, ordenacao, riscoMap, marcacaoFilter, formaPgtoFilter, situacaoFilter, somenteRiscoAlto]);
+  }, [data, pedidosPorApelido, termoBusca, ordenacao, riscoMap, marcacaoFilter, formaPgtoFilter, situacaoFilter, somenteRiscoAlto, estagios]);
 
   const buscaGlobalAtiva = !!buscaDebounced.trim() && !estagioEspecificoSelecionado;
 

@@ -17,7 +17,7 @@ interface Opts {
   /** Restringe a um cliente específico (histórico do parceiro). */
   parceiroId?: string;
   apenasAtivos?: boolean;
-  /** Quando true, cancelados/recuperação entram na consulta (só `entregue` fica de fora). */
+  /** Quando true, cancelados entram na consulta. Recuperação (desvio) nunca entra. */
   incluirCancelados?: boolean;
 }
 
@@ -52,9 +52,11 @@ export function usePedidosFila(opts: Opts = {}) {
         q = q.eq("estagio", opts.estagio);
       }
 
+      // Recuperação é DESVIO, não fase: sai da fila em definitivo e não volta
+      // nem com `incluirCancelados`. Só aparece se vier em `estagios` explícito.
       if (opts.apenasAtivos && !buscaGlobal) {
         q = opts.incluirCancelados
-          ? q.not("estagio", "in", "(entregue)")
+          ? q.not("estagio", "in", "(entregue,recuperacao_venda)")
           : q.not("estagio", "in", "(entregue,cancelado,recuperacao_venda)");
       }
 

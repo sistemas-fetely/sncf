@@ -96,7 +96,7 @@ async function copiar(link: string) {
 
 type FiltroOrigem = "todas" | OrigemOportunidade;
 
-export default function Oportunidades() {
+export default function Oportunidades({ embutido = false }: { embutido?: boolean } = {}) {
   const [busca, setBusca] = useState("");
   const [origem, setOrigem] = useState<FiltroOrigem>("todas");
   const [retomando, setRetomando] = useState<OportunidadeRow | null>(null);
@@ -152,12 +152,15 @@ export default function Oportunidades() {
 
   return (
     <TooltipProvider>
-      <div className="space-y-6 p-4 md:p-6">
-        <CasaPageHeader
-          breadcrumb={[{ label: "Comercial" }, { label: "Oportunidades" }]}
-          title="Oportunidades"
-          subtitle="Fila única do Comercial: pedidos migrados manualmente, portão vencido ou remessas cujo pai tem parcela vencida. Retome quando o cliente estiver pronto."
-        />
+      <div className={embutido ? "space-y-6" : "space-y-6 p-4 md:p-6"}>
+        {!embutido && (
+          <CasaPageHeader
+            breadcrumb={[{ label: "Comercial" }, { label: "Oportunidades" }]}
+            title="Oportunidades"
+            subtitle="Fila única do Comercial: pedidos migrados manualmente, portão vencido ou remessas cujo pai tem parcela vencida. Retome quando o cliente estiver pronto."
+          />
+        )}
+
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KpiCard label="Oportunidades" value={String(kpis.qtd)} />

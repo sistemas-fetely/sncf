@@ -107,8 +107,8 @@ export const CASA_APPS: CasaApp[] = [
   {
     id: "comercial",
     label: "Comercial",
-    defaultRoute: "/comercial/oportunidades",
-    routeMatchers: ["/comercial/oportunidades"],
+    defaultRoute: "/pedidos?aba=recuperacao",
+    routeMatchers: ["/pedidos?aba=recuperacao"],
     icon: Boxes,
     tela_slug: "tela.comercial",
     appChaves: ["comercial"],

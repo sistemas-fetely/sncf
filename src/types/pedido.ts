@@ -15,7 +15,7 @@ export type EstagioPedido =
   | "cancelado"
   | "recuperacao_venda";
 
-export type AreaPedido = "sops" | "credito" | "bling" | "sistema" | "nenhuma";
+export type AreaPedido = "sops" | "credito" | "bling" | "sistema" | "comercial" | "nenhuma";
 
 export type TipoPagamento = "a_prazo" | "a_vista";
 
@@ -56,6 +56,7 @@ export const AREA_LABELS: Record<AreaPedido, string> = {
   credito: "Crédito",
   bling: "Bling",
   sistema: "Sistema",
+  comercial: "Comercial",
   nenhuma: "—",
 };
 
@@ -78,6 +79,16 @@ export const ESTAGIOS_TERMINAIS: readonly EstagioPedido[] = [
   "cancelado",
 ] as const;
 
+/**
+ * Estágios de desvio: o pedido entra e volta pro estágio de origem.
+ * Não são passo do fluxo linear e NÃO contam na carteira ativa.
+ * Espelha pedido_estagio.eh_desvio — a fonte de verdade é o catálogo no banco;
+ * esta constante existe só como fallback de tipo/label.
+ */
+export const ESTAGIOS_DESVIO: readonly EstagioPedido[] = [
+  "recuperacao_venda",
+] as const;
+
 export const ESTAGIOS_RECUPERAVEIS: readonly EstagioPedido[] = [
   "recuperacao_venda",
 ] as const;
@@ -95,7 +106,7 @@ export const ESTAGIO_AREA: Record<EstagioPedido, AreaPedido> = {
   em_transporte: "bling",
   entregue: "nenhuma",
   cancelado: "nenhuma",
-  recuperacao_venda: "sops",
+  recuperacao_venda: "comercial",
 };
 
 export interface PedidoFilaItem {
@@ -192,6 +203,10 @@ export interface PipelineItem {
   valor_risco_vermelho?: number | null;
   tipo_sla: string | null;
   sla_dias: number | null;
+  eh_final?: boolean | null;
+  eh_desvio?: boolean | null;
+  ordem_catalogo?: number | null;
+  rotulo_catalogo?: string | null;
 }
 
 
