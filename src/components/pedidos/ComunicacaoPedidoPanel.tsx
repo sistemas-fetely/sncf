@@ -417,7 +417,7 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-4 min-w-0">
             {dialogTipo === "cobranca" && !!ultimoPorTipo["cobranca"] && (
               <div className="rounded-md border border-warning/40 bg-warning/10 p-3">
                 <p className="text-xs font-medium text-warning">
