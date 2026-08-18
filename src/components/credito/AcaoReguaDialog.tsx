@@ -17,7 +17,7 @@ import {
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import type { TituloCobranca } from "@/hooks/credito/useTitulosCobranca";
 import type { ReguaEtapa, CanalRegua } from "@/hooks/credito/useReguaFila";
-import { apelidoParceiro, nomeCanonico, nomeExibicao } from "@/lib/parceiros/nome";
+import { apelidoParceiro, nomeCanonico, nomeExibicao, nomeTratamento } from "@/lib/parceiros/nome";
 
 
 const CANAIS: { value: CanalRegua; label: string }[] = [
@@ -44,7 +44,8 @@ interface Props {
 }
 
 function interpolar(tpl: string, titulo: TituloCobranca): string {
-  const cliente = nomeCanonico(titulo.parceiro_razao_social, "");
+  const cliente = nomeTratamento(titulo.parceiro_razao_social, titulo.parceiro_nome_fantasia);
+
   const map: Record<string, string> = {
     "{cliente}": cliente,
     "{apelido}": apelidoParceiro(titulo.parceiro_razao_social, titulo.parceiro_nome_fantasia) ?? "",
@@ -147,7 +148,29 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose, reenvio = 
     if (!etapa) return;
     setEnviandoEmail(true);
     try {
+      // PORTÃO ANTES DO ENVIO (17/08/2026 · incidente cartão cobrado como boleto).
+      // A RPC registrar_acao_regua também barra, mas só roda DEPOIS do e-mail:
+      // sem esta checagem o cliente recebe a cobrança e apenas o log é bloqueado.
+      // Fonte única: vw_cobranca_mesa.regua_elegivel — a mesma que a RPC usa.
+      const { data: mesa, error: errMesa } = await (supabase as any)
+        .from("vw_cobranca_mesa")
+        .select("regua_elegivel, regua_motivo_inelegivel")
+        .eq("titulo_id", titulo.id)
+        .maybeSingle();
+      if (errMesa) {
+        throw new Error(`Não foi possível conferir a elegibilidade: ${errMesa.message}`);
+      }
+      if (!mesa) {
+        throw new Error("Título fora da mesa de cobrança (pago ou cancelado) — não há o que cobrar.");
+      }
+      if (mesa.regua_elegivel !== true) {
+        throw new Error(
+          `Cobrança bloqueada — ${mesa.regua_motivo_inelegivel ?? "título sem lastro para cobrar"}`,
+        );
+      }
+
       let attachments: Array<{ filename: string; content: string }> | undefined;
+
       if ((titulo as any).boleto_status === "registrado") {
         const { data: pdfResp, error: errPdf } = await supabase.functions.invoke(
           "gerar-boleto-pdf",
@@ -206,7 +229,11 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose, reenvio = 
   };
 
   const isPending = registrarForaMutation.isPending || enviandoEmail;
+  // regua_motivo_inelegivel só vem preenchido quando o título NÃO é elegível.
+  const bloqueioCobranca =
+    modo === "enviada" ? (((titulo as any).regua_motivo_inelegivel as string | null) ?? null) : null;
   const clienteNome = nomeExibicao(titulo.parceiro_razao_social, titulo.parceiro_nome_fantasia, "—");
+
   const vencCurto = titulo.data_vencimento_atual
     ? formatDateBR(titulo.data_vencimento_atual).slice(0, 5)
     : "—";
@@ -229,7 +256,17 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose, reenvio = 
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {etapa ? (
             <div className="space-y-4">
+              {bloqueioCobranca && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    Este título não pode ser cobrado pela régua: {bloqueioCobranca}. Registrar contato
+                    está bloqueado — resolva o lastro antes.
+                  </AlertDescription>
+                </Alert>
+              )}
               {reenvio && (
+
                 <Alert className="border-warning/40 bg-warning/10">
                   <AlertTriangle className="h-4 w-4 text-warning" />
                   <AlertDescription className="text-xs text-warning">
@@ -397,9 +434,10 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose, reenvio = 
                 variant="outline"
                 size="sm"
                 onClick={() => registrarForaMutation.mutate()}
-                disabled={!etapa || isPending}
+                disabled={!etapa || isPending || !!bloqueioCobranca}
                 className="w-full sm:w-auto"
               >
+
                 {registrarForaMutation.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
@@ -410,9 +448,10 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose, reenvio = 
               <Button
                 size="sm"
                 onClick={enviarEmailERegistrar}
-                disabled={!etapa || !podeEnviarEmail || isPending}
+                disabled={!etapa || !podeEnviarEmail || isPending || !!bloqueioCobranca}
                 className="w-full sm:w-auto"
               >
+
                 {enviandoEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Registrar e enviar e-mail
               </Button>
@@ -420,9 +459,10 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose, reenvio = 
               <Button
                 size="sm"
                 onClick={() => registrarForaMutation.mutate()}
-                disabled={!etapa || isPending}
+                disabled={!etapa || isPending || !!bloqueioCobranca}
                 className="w-full sm:w-auto"
               >
+
                 {registrarForaMutation.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}

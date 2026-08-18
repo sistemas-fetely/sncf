@@ -53,3 +53,29 @@ export function nomePessoaPJ(
   const r = (razaoSocial ?? "").trim();
   return r || fallback;
 }
+
+/**
+ * Nome de TRATAMENTO — vocativo de mensagem ao cliente ("Olá, X!").
+ * NÃO revoga NOME-CANONICO-COM-APELIDO: identificação fiscal, bancária e
+ * documental continua sendo razão social. Isto é só a saudação.
+ * Regras: apelido quando existe; senão razão social sem a raiz de CNPJ que a
+ * Receita prefixa em MEI ("62.067.027 FULANO DE TAL" -> "Fulano de Tal"),
+ * com capitalização corrigida quando o cadastro veio em CAIXA ALTA.
+ * Espelha public.fn_parceiro_tratamento(razao, fantasia) no banco.
+ */
+export function nomeTratamento(
+  razao?: string | null,
+  fantasia?: string | null,
+  fallback = "cliente",
+): string {
+  const base = (apelidoParceiro(razao, fantasia) ?? razao ?? "").trim();
+  const semRaiz = base.replace(/^\d{2}\.?\d{3}\.?\d{3}[\s./-]+/, "").trim();
+  const limpo = semRaiz || base;
+  if (!limpo) return fallback;
+  if (limpo !== limpo.toUpperCase()) return limpo; // já veio em caixa mista: respeita
+  return limpo
+    .toLowerCase()
+    .replace(/(^|[\s'`\-(&.])([a-zà-ÿ])/g, (_m, p, c) => p + c.toUpperCase())
+    .replace(/\s(De|Da|Do|Das|Dos|E)\s/g, (w) => w.toLowerCase());
+}
+

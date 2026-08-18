@@ -45543,6 +45543,63 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_contabil_competencias: {
+        Row: {
+          competencia: string | null
+          fechado_em: string | null
+          gates_bloqueantes: number | null
+          obs: string | null
+          politica: Json | null
+          rotulo: string | null
+          skus: number | null
+          status: string | null
+          unidades: number | null
+          valor_custo: number | null
+        }
+        Relationships: []
+      }
+      vw_contabil_nfs_periodo: {
+        Row: {
+          canal: string | null
+          cfops: string | null
+          cidade: string | null
+          cliente: string | null
+          cmv: number | null
+          cnpj: string | null
+          competencia: string | null
+          data: string | null
+          icms: number | null
+          numero: string | null
+          pedido: string | null
+          receita_frete: number | null
+          receita_produto: number | null
+          receita_total: number | null
+          serie: string | null
+          uf: string | null
+          unidades: number | null
+          valor_nota: number | null
+        }
+        Relationships: []
+      }
+      vw_contabil_vendas_periodo: {
+        Row: {
+          canal: string | null
+          cliente: string | null
+          cmv: number | null
+          cnpj: string | null
+          competencia: string | null
+          data: string | null
+          margem_bruta: number | null
+          nfs: number | null
+          numeros_nf: string | null
+          pedido: string | null
+          receita_frete: number | null
+          receita_produto: number | null
+          receita_total: number | null
+          unidades: number | null
+        }
+        Relationships: []
+      }
       vw_contas_pagar_consolidado: {
         Row: {
           aprovado_em: string | null
@@ -51933,14 +51990,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -61614,6 +61671,35 @@ export type Database = {
           tipo_linha: string
         }[]
       }
+      fn_contabil_fechar: {
+        Args: { p_competencia: string; p_forcar?: boolean; p_obs?: string }
+        Returns: Json
+      }
+      fn_contabil_gates: {
+        Args: { p_competencia: string }
+        Returns: {
+          detalhe: string
+          gate: string
+          quantidade: number
+          severidade: string
+        }[]
+      }
+      fn_contabil_posicao: {
+        Args: { p_competencia: string }
+        Returns: {
+          centro: string
+          custo_unitario: number
+          fonte: string
+          produto: string
+          quantidade: number
+          sku: string
+          valor_total: number
+        }[]
+      }
+      fn_contabil_reabrir: {
+        Args: { p_competencia: string; p_motivo: string }
+        Returns: Json
+      }
       fn_convite_cadastro_ativo: { Args: { p_token: string }; Returns: boolean }
       fn_criar_analise_desde_pedido: {
         Args: { p_pedido_id: string }
@@ -61846,6 +61932,10 @@ export type Database = {
         Returns: string
       }
       fn_parceiro_apelido: {
+        Args: { p_fantasia: string; p_razao: string }
+        Returns: string
+      }
+      fn_parceiro_tratamento: {
         Args: { p_fantasia: string; p_razao: string }
         Returns: string
       }
