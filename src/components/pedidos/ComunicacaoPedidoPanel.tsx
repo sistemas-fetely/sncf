@@ -455,7 +455,7 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
                     <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
                       Link que será enviado
                     </p>
-                    <p className="truncate text-sm font-medium" title={linkUrl}>
+                    <p className="break-all text-sm font-medium" title={linkUrl}>
                       {linkUrl}
                     </p>
                     <p className="text-xs text-muted-foreground">
