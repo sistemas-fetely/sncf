@@ -172,6 +172,7 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
   const hojeISO = new Date().toISOString().slice(0, 10);
   const [novoLink, setNovoLink] = useState("");
   const [geradoEm, setGeradoEm] = useState(hojeISO);
+  const [expiraEm, setExpiraEm] = useState("");
 
   // Precedência: contatos.financeiro.email > email_cobranca > email.
   const emailPreferido = useMemo(
