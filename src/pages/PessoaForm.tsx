@@ -20,6 +20,7 @@ import VinculoExtrasSection from "@/components/pessoas/VinculoExtrasSection";
 import VinculoFinanceiroPJSection from "@/components/pessoas/VinculoFinanceiroPJSection";
 import VinculoPagamentosPJSection from "@/components/pessoas/VinculoPagamentosPJSection";
 import CriarAcessoCard from "@/components/pessoas/CriarAcessoCard";
+import { useIsSocio } from "@/hooks/useIsSocio";
 
 import { PageShell } from "@/components/layout/PageShell";
 type Dim = { id: string; nome: string; codigo?: string };
@@ -54,7 +55,7 @@ interface VinculoForm {
   data_inicio: string;
   valor_base: string;
   valor_transporte: string;
-  valor_beneficios_extras: string;
+  
   forma_pagamento_id: string;
   dia_vencimento: string;
   banco_nome: string;
@@ -89,7 +90,7 @@ const emptyVinculo: VinculoForm = {
   tipo_vinculo: "CLT",
   cargo_id: "", departamento_id: "", centro_custo_id: "", unidade_id: "",
   data_inicio: new Date().toISOString().slice(0, 10),
-  valor_base: "", valor_transporte: "", valor_beneficios_extras: "",
+  valor_base: "", valor_transporte: "",
   forma_pagamento_id: "", dia_vencimento: "5",
   banco_nome: "", agencia: "", conta: "", tipo_conta: "", chave_pix: "",
   email_corporativo: "", observacoes: "",
@@ -120,6 +121,23 @@ export default function PessoaForm() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [pessoaExistente, setPessoaExistente] = useState<{ id: string; nome_completo: string } | null>(null);
+
+  // Sigilo salarial — fail-closed: só libera quando o banco confirma.
+  // Edição: RPC pode_ver_salario(pessoa). Criação: só diretoria (is_socio).
+  const { data: isSocio } = useIsSocio();
+  const [podeVerSalarioPessoa, setPodeVerSalarioPessoa] = useState(false);
+  const podeVerSalario = isEdit ? podeVerSalarioPessoa : isSocio === true;
+
+  useEffect(() => {
+    if (!isEdit || !id) return;
+    let vivo = true;
+    (async () => {
+      const { data, error } = await (supabase.rpc as any)("pode_ver_salario", { _pessoa_id: id });
+      if (vivo) setPodeVerSalarioPessoa(!error && data === true);
+    })();
+    return () => { vivo = false; };
+  }, [isEdit, id]);
+
 
   // Rastro de visualização (telemetria — nunca bloqueia nem alerta o usuário)
   const rastroRef = useRef(false);
@@ -188,9 +206,14 @@ export default function PessoaForm() {
         });
 
         // vinculo mais recente (preferindo ativo)
-        const { data: vs } = await (supabase as any)
-          .from("vinculos").select("*").eq("pessoa_id", id).order("data_inicio", { ascending: false });
-        const v = (vs || []).find((x: any) => x.status === "ativo") || (vs || [])[0];
+        const { data: vs } = await supabase
+          .from("vinculos")
+          .select(
+            "id, status, tipo_vinculo, cargo_id, departamento_id, centro_custo_id, unidade_id, data_inicio, valor_base, valor_transporte, forma_pagamento_id, dia_vencimento, banco_nome, agencia, conta, tipo_conta, chave_pix, email_corporativo, observacoes, cnpj, razao_social, nome_fantasia, categoria_pj, objeto, pis_pasep, ctps_numero, matricula, data_admissao, jornada_semanal, gestor_pessoa_id"
+          )
+          .eq("pessoa_id", id)
+          .order("data_inicio", { ascending: false });
+        const v: any = ((vs || []) as any[]).find((x: any) => x.status === "ativo") || (vs || [])[0];
         if (v) {
           setVinculoId(v.id);
           setVinculoStatus(v.status);
@@ -200,7 +223,7 @@ export default function PessoaForm() {
             data_inicio: v.data_inicio || "",
             valor_base: v.valor_base?.toString() || "",
             valor_transporte: v.valor_transporte?.toString() || "",
-            valor_beneficios_extras: v.valor_beneficios_extras?.toString() || "",
+
             forma_pagamento_id: v.forma_pagamento_id || "",
             dia_vencimento: v.dia_vencimento?.toString() || "5",
             banco_nome: v.banco_nome || "", agencia: v.agencia || "", conta: v.conta || "",
@@ -273,9 +296,15 @@ export default function PessoaForm() {
       unidade_id: vinculo.unidade_id || null,
       gestor_pessoa_id: vinculo.gestor_pessoa_id || null,
       data_inicio: vinculo.data_inicio,
-      valor_base: toNum(vinculo.valor_base),
-      valor_transporte: toNum(vinculo.valor_transporte),
-      valor_beneficios_extras: toNum(vinculo.valor_beneficios_extras),
+      // Sigilo salarial: sem permissão, as chaves são OMITIDAS do payload
+      // (enviar null apagaria o valor existente no banco).
+      ...(podeVerSalario
+        ? {
+            valor_base: toNum(vinculo.valor_base),
+            valor_transporte: toNum(vinculo.valor_transporte),
+          }
+        : {}),
+
       forma_pagamento_id: vinculo.forma_pagamento_id || null,
       dia_vencimento: toNum(vinculo.dia_vencimento),
       banco_nome: vinculo.banco_nome || null,
@@ -505,9 +534,30 @@ export default function PessoaForm() {
             <div><Label>E-mail corporativo</Label><Input type="email" value={vinculo.email_corporativo} onChange={(e) => setVinculo({ ...vinculo, email_corporativo: e.target.value })} /></div>
             <div />
 
-            <div><Label>Valor base (R$)</Label><Input value={vinculo.valor_base} onChange={(e) => setVinculo({ ...vinculo, valor_base: e.target.value })} /></div>
-            <div><Label>Vale-transporte (R$)</Label><Input value={vinculo.valor_transporte} onChange={(e) => setVinculo({ ...vinculo, valor_transporte: e.target.value })} /></div>
-            <div><Label>Benefícios extras (R$)</Label><Input value={vinculo.valor_beneficios_extras} onChange={(e) => setVinculo({ ...vinculo, valor_beneficios_extras: e.target.value })} /></div>
+            <div>
+              <Label>Valor base (R$)</Label>
+              {podeVerSalario ? (
+                <Input value={vinculo.valor_base} onChange={(e) => setVinculo({ ...vinculo, valor_base: e.target.value })} />
+              ) : (
+                <>
+                  <Input value="••••" disabled readOnly />
+                  <p className="text-xs text-muted-foreground mt-1">Sem permissão para ver ou alterar</p>
+                </>
+              )}
+            </div>
+            <div>
+              <Label>Vale-transporte (R$)</Label>
+              {podeVerSalario ? (
+                <Input value={vinculo.valor_transporte} onChange={(e) => setVinculo({ ...vinculo, valor_transporte: e.target.value })} />
+              ) : (
+                <>
+                  <Input value="••••" disabled readOnly />
+                  <p className="text-xs text-muted-foreground mt-1">Sem permissão para ver ou alterar</p>
+                </>
+              )}
+            </div>
+            <div />
+
 
             <div>
               <Label>Forma de pagamento</Label>
