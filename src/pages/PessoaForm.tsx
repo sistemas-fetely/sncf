@@ -195,7 +195,7 @@ export default function PessoaForm() {
           )
           .eq("pessoa_id", id)
           .order("data_inicio", { ascending: false });
-        const v = (vs || []).find((x: any) => x.status === "ativo") || (vs || [])[0];
+        const v: any = ((vs || []) as any[]).find((x: any) => x.status === "ativo") || (vs || [])[0];
         if (v) {
           setVinculoId(v.id);
           setVinculoStatus(v.status);
