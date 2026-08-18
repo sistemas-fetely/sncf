@@ -44,7 +44,12 @@ interface CustoLinha {
 const fmtBRL = (v: number) =>
   (Number(v) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+/** Nulo é ausência de permissão — não pode se parecer com zero. */
+const fmtOuTraco = (v: number | null | undefined) =>
+  v === null || v === undefined ? "—" : fmtBRL(Number(v));
+
 const num = (v: any) => Number(v || 0);
+
 
 const COMPOSICAO_COLORS = ["hsl(var(--primary))", "hsl(var(--chart-2, 142 71% 45%))", "hsl(var(--chart-3, 38 92% 50%))"];
 
