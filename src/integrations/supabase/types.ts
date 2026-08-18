@@ -9456,6 +9456,70 @@ export type Database = {
         }
         Relationships: []
       }
+      custo_composicao: {
+        Row: {
+          criado_em: string
+          finalidade: string
+          id: string
+          nf_id: number
+          nf_numero: string
+          quantidade_base: number
+          sku: string
+          valor_capitalizado: number | null
+          valor_icms: number
+          valor_ipi: number
+          valor_produto: number
+        }
+        Insert: {
+          criado_em?: string
+          finalidade: string
+          id?: string
+          nf_id: number
+          nf_numero: string
+          quantidade_base?: number
+          sku: string
+          valor_capitalizado?: number | null
+          valor_icms?: number
+          valor_ipi?: number
+          valor_produto?: number
+        }
+        Update: {
+          criado_em?: string
+          finalidade?: string
+          id?: string
+          nf_id?: number
+          nf_numero?: string
+          quantidade_base?: number
+          sku?: string
+          valor_capitalizado?: number | null
+          valor_icms?: number
+          valor_ipi?: number
+          valor_produto?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custo_composicao_finalidade_fkey"
+            columns: ["finalidade"]
+            isOneToOne: false
+            referencedRelation: "nf_entrada_finalidade"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "custo_composicao_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_nf"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custo_composicao_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_pedido_conferencia_nf"
+            referencedColumns: ["nf_id"]
+          },
+        ]
+      }
       custo_pessoas_mensal: {
         Row: {
           ano_mes: string
@@ -15866,9 +15930,12 @@ export type Database = {
           criado_em: string
           data_emissao: string | null
           data_saida: string | null
+          finalidade: string
           fornecedor_id: string
           icms_creditavel: boolean
           id: number
+          nf_referenciada_chave: string | null
+          nf_referenciada_id: number | null
           numero: string
           observacao: string | null
           origem: string
@@ -15891,9 +15958,12 @@ export type Database = {
           criado_em?: string
           data_emissao?: string | null
           data_saida?: string | null
+          finalidade?: string
           fornecedor_id: string
           icms_creditavel?: boolean
           id?: never
+          nf_referenciada_chave?: string | null
+          nf_referenciada_id?: number | null
           numero: string
           observacao?: string | null
           origem?: string
@@ -15916,9 +15986,12 @@ export type Database = {
           criado_em?: string
           data_emissao?: string | null
           data_saida?: string | null
+          finalidade?: string
           fornecedor_id?: string
           icms_creditavel?: boolean
           id?: never
+          nf_referenciada_chave?: string | null
+          nf_referenciada_id?: number | null
           numero?: string
           observacao?: string | null
           origem?: string
@@ -15935,6 +16008,13 @@ export type Database = {
           volumes?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "importacao_nf_finalidade_fkey"
+            columns: ["finalidade"]
+            isOneToOne: false
+            referencedRelation: "nf_entrada_finalidade"
+            referencedColumns: ["codigo"]
+          },
           {
             foreignKeyName: "importacao_nf_fornecedor_id_fkey"
             columns: ["fornecedor_id"]
@@ -15983,6 +16063,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_recebivel_por_conta"
             referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "importacao_nf_nf_referenciada_id_fkey"
+            columns: ["nf_referenciada_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_nf"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_nf_nf_referenciada_id_fkey"
+            columns: ["nf_referenciada_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_pedido_conferencia_nf"
+            referencedColumns: ["nf_id"]
           },
         ]
       }
@@ -18869,6 +18963,42 @@ export type Database = {
           rota?: string
           ultima_vez?: string
           ultimo_user_id?: string | null
+        }
+        Relationships: []
+      }
+      nf_entrada_finalidade: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          compoe_custo: boolean
+          exige_referencia: boolean
+          fin_nfe: number | null
+          movimenta_estoque: boolean
+          observacao: string | null
+          ordem: number
+          rotulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          compoe_custo: boolean
+          exige_referencia?: boolean
+          fin_nfe?: number | null
+          movimenta_estoque: boolean
+          observacao?: string | null
+          ordem?: number
+          rotulo: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          compoe_custo?: boolean
+          exige_referencia?: boolean
+          fin_nfe?: number | null
+          movimenta_estoque?: boolean
+          observacao?: string | null
+          ordem?: number
+          rotulo?: string
         }
         Relationships: []
       }
@@ -61772,6 +61902,15 @@ export type Database = {
         Returns: string
       }
       fn_cron_rolling_contratos: { Args: never; Returns: number }
+      fn_custo_recalcular: {
+        Args: { p_skus?: string[] }
+        Returns: {
+          custo_antigo: number
+          custo_novo: number
+          documentos: number
+          r_sku: string
+        }[]
+      }
       fn_data_entrega_rastreio: { Args: { p_eventos: Json }; Returns: string }
       fn_derivar_analise_credito: {
         Args: { p_pedido_id: string }
