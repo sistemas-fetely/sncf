@@ -48,6 +48,19 @@ Deno.serve(async (req) => {
     const { data: ambRow } = await sb.from("integracoes_config")
       .select("config").eq("sistema", "zenlog").single();
     const ambiente = (ambRow?.config as any)?.ambiente ?? "homologacao";
+    const modoNf = (ambRow?.config as any)?.nf_envio_modo ?? "automatico";
+
+    // Modo MANUAL: lote (sem fila_id) e recusado. Envio unitario segue permitido.
+    if (modoNf === "manual" && !filaId) {
+      return json({
+        ok: true,
+        processados: 0,
+        bloqueado_por_modo_manual: true,
+        motivo: (ambRow?.config as any)?.nf_envio_modo_motivo ?? null,
+        duracao_ms: Date.now() - t0,
+      });
+    }
+
     const sistema = ambiente === "producao" ? "zenlog_prd" : "zenlog";
 
     const { data: cfgRow, error: eCfg } = await sb.from("integracoes_config")
