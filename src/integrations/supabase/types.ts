@@ -62819,6 +62819,7 @@ export type Database = {
         }[]
       }
       pode_ver_pessoa: { Args: { _pessoa_id: string }; Returns: boolean }
+      pode_ver_salario: { Args: { _pessoa_id: string }; Returns: boolean }
       preview_devolucao_pedido: { Args: { p_pedido_id: string }; Returns: Json }
       preview_template_cargo: {
         Args: {

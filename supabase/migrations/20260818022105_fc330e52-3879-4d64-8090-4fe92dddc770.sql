@@ -1,0 +1,1 @@
+update public.sncf_navegacao set status = 'pronta' where chave = 'fin.cont_fechamento';
