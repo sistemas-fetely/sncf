@@ -120,7 +120,13 @@ export default function FolhaMensal() {
         <div>
           <h1 className="text-2xl font-medium tracking-tight">Folha Mensal</h1>
           <p className="text-muted-foreground text-sm mt-1">Custo da equipe por competência</p>
+          {!ehDiretoria && (
+            <p className="text-muted-foreground text-xs mt-1">
+              Você vê a remuneração da sua equipe. Valores de outras áreas não aparecem.
+            </p>
+          )}
         </div>
+
         <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas")}>
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
