@@ -100,6 +100,7 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
   const [histAberto, setHistAberto] = useState(false);
   const [novoLink, setNovoLink] = useState("");
   const [geradoEm, setGeradoEm] = useState(hojeISO());
+  const [expiraEm, setExpiraEm] = useState("");
   const [motivo, setMotivo] = useState("");
 
   const linha = linkQ.data ?? null;
@@ -114,12 +115,14 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
         pedido_id: pedidoId,
         link: url,
         gerado_em: geradoEm || hojeISO(),
+        expira_em: expiraEm || null,
         tipo_pagamento: linha?.tipo_pagamento ?? null,
         motivo: motivo.trim() || null,
       });
       setNovoLink("");
       setMotivo("");
       setGeradoEm(hojeISO());
+      setExpiraEm("");
       setForm(false);
     } catch {
       /* toast já sai no hook */
@@ -177,7 +180,7 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
                 className="h-8 text-xs"
               />
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-3">
               <div className="space-y-1.5">
                 <Label htmlFor="lp-data" className="text-xs">Gerado em</Label>
                 <Input
@@ -188,6 +191,18 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
                   onChange={(e) => setGeradoEm(e.target.value)}
                   className="h-8 text-xs"
                 />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="lp-expira" className="text-xs">Vence em</Label>
+                <Input
+                  id="lp-expira"
+                  type="date"
+                  min={geradoEm || hojeISO()}
+                  value={expiraEm}
+                  onChange={(e) => setExpiraEm(e.target.value)}
+                  className="h-8 text-xs"
+                />
+                <p className="text-[10px] text-muted-foreground">Vazio = validade padrão do sistema.</p>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="lp-motivo" className="text-xs">Motivo (opcional)</Label>

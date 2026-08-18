@@ -172,6 +172,7 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
   const hojeISO = new Date().toISOString().slice(0, 10);
   const [novoLink, setNovoLink] = useState("");
   const [geradoEm, setGeradoEm] = useState(hojeISO);
+  const [expiraEm, setExpiraEm] = useState("");
 
   // Precedência: contatos.financeiro.email > email_cobranca > email.
   const emailPreferido = useMemo(
@@ -349,10 +350,12 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
       pedido_id,
       link: novoLink.trim(),
       gerado_em: geradoEm || undefined,
+      expira_em: expiraEm || undefined,
       tipo_pagamento: linkInfo?.tipo_pagamento ?? portao?.tipo_pagamento ?? undefined,
       motivo: "Renovação de link vencido/inválido",
     });
     setNovoLink("");
+    setExpiraEm("");
     await linkQ.refetch();
   };
 
@@ -414,7 +417,7 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-4 min-w-0">
             {dialogTipo === "cobranca" && !!ultimoPorTipo["cobranca"] && (
               <div className="rounded-md border border-warning/40 bg-warning/10 p-3">
                 <p className="text-xs font-medium text-warning">
@@ -447,12 +450,12 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
 
             {dialogTipo === "cobranca" && !brCodePix && !!linkUrl && (
               <div className="rounded-md border bg-muted/40 p-3 space-y-1.5">
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start justify-between gap-2 min-w-0">
                   <div className="min-w-0">
                     <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
                       Link que será enviado
                     </p>
-                    <p className="truncate text-sm font-medium" title={linkUrl}>
+                    <p className="break-all text-sm font-medium" title={linkUrl}>
                       {linkUrl}
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -515,6 +518,17 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
                     onChange={(e) => setGeradoEm(e.target.value)}
                   />
                 </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="comunic-expira-em">Vence em</Label>
+                  <Input
+                    id="comunic-expira-em"
+                    type="date"
+                    min={geradoEm || hojeISO}
+                    value={expiraEm}
+                    onChange={(e) => setExpiraEm(e.target.value)}
+                  />
+                  <p className="text-[10px] text-muted-foreground">Vazio = validade padrão do sistema.</p>
+                </div>
                 <Button
                   size="sm"
                   onClick={salvarLinkNovo}
@@ -571,6 +585,7 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
                   value={novoEmail}
                   onChange={(e) => setNovoEmail(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addEmail())}
+                  className="min-w-0 flex-1"
                 />
                 <Button variant="outline" size="icon" onClick={addEmail} disabled={!novoEmail.trim()}>
                   <Plus className="h-4 w-4" />
