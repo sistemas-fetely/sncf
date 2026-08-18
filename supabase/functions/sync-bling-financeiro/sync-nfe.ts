@@ -243,11 +243,46 @@ for (const nf of items) {
       const { error: updErr } = await supabase.from("nfs_emitidas").update(registro).eq("id", existing.id);
       if (updErr) throw new Error("UPDATE nfs_emitidas: " + updErr.message);
       atualizados++;
+
+      // NF virou cancelada e a baixa de estoque continua ativa: NAO estorna automatico,
+      // abre achado bloqueante para tratamento humano.
+      if (existing.situacao === "autorizada" && registro.situacao === "cancelada") {
+        canceladasDetectadas++;
+        const numeroNf = registro.numero ?? existing.numero ?? null;
+        if (numeroNf) {
+          try {
+            const { data: movs } = await supabase
+              .from("movimentacao_estoque")
+              .select("id, quantidade")
+              .eq("doc_numero", numeroNf)
+              .eq("doc_tipo", "nf_venda");
+            if (movs && movs.length > 0) {
+              const agora = new Date().toISOString();
+              const soma = movs.reduce((acc: number, m: any) => acc + Number(m.quantidade || 0), 0);
+              const { error: achErr } = await supabase.from("auditoria_achado").insert({
+                regra_slug: "nf-cancelada-com-baixa-de-estoque",
+                chave: String(numeroNf),
+                entidade: "nf",
+                valor: -soma,
+                detalhe: `NF ${numeroNf} cancelada em ${registro.data_emissao ?? existing.data_emissao} mas com ${movs.length} movimentos de baixa de estoque ainda ativos`,
+                primeira_vez_em: agora,
+                ultima_vez_em: agora,
+                vezes_visto: 1,
+                situacao: "aberto",
+              });
+              if (achErr) console.error(`achado nf-cancelada-com-baixa-de-estoque [nf=${numeroNf}]: ${achErr.message}`);
+            }
+          } catch (e) {
+            console.error(`checagem de estoque da NF cancelada ${numeroNf} falhou: ${(e as Error).message}`);
+          }
+        }
+      }
     } else {
       const { error: insErr } = await supabase.from("nfs_emitidas").insert(registro);
       if (insErr) throw new Error("INSERT nfs_emitidas [bling_id=" + blingId + "]: " + insErr.message);
       criados++;
     }
+
   } catch (e) {
     erros++;
     ultimoErro = `item ${nf?.id}: ${(e as Error).message}`;
