@@ -178,7 +178,7 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
                 className="h-8 text-xs"
               />
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-3">
               <div className="space-y-1.5">
                 <Label htmlFor="lp-data" className="text-xs">Gerado em</Label>
                 <Input
@@ -189,6 +189,18 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
                   onChange={(e) => setGeradoEm(e.target.value)}
                   className="h-8 text-xs"
                 />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="lp-expira" className="text-xs">Vence em</Label>
+                <Input
+                  id="lp-expira"
+                  type="date"
+                  min={geradoEm || hojeISO()}
+                  value={expiraEm}
+                  onChange={(e) => setExpiraEm(e.target.value)}
+                  className="h-8 text-xs"
+                />
+                <p className="text-[10px] text-muted-foreground">Vazio = validade padrão do sistema.</p>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="lp-motivo" className="text-xs">Motivo (opcional)</Label>
