@@ -219,7 +219,11 @@ export default function CustoPessoas() {
               <div>
                 <p className="text-2xl font-medium">{kpis.headcount}</p>
                 <p className="text-xs text-muted-foreground">Headcount</p>
-                <p className="text-xs text-muted-foreground mt-1 truncate">Média: {fmtBRL(kpis.media)}</p>
+                <p className="text-xs text-muted-foreground mt-1 truncate">
+                  Média: {fmtBRL(kpis.media)}
+                  {kpis.comValor !== kpis.headcount && ` · base: ${kpis.comValor} com valor visível`}
+                </p>
+
               </div>
             </CardContent></Card>
             <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
