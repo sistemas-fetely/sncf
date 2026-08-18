@@ -158,7 +158,7 @@ export default function CustoPessoas() {
 
 
   const totaisRodape = useMemo(() => {
-    return linhas.reduce(
+    return visiveis.reduce(
       (acc, r) => ({
         remuneracao: acc.remuneracao + num(r.custo_recorrente_mensal),
         encargos: acc.encargos + num(r.encargo_direto_mensal),
@@ -167,7 +167,8 @@ export default function CustoPessoas() {
       }),
       { remuneracao: 0, encargos: 0, provisoes: 0, total: 0 },
     );
-  }, [linhas]);
+  }, [visiveis]);
+
 
   return (
     <PageShell>
