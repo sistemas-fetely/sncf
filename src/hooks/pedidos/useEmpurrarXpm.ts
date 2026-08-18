@@ -7,6 +7,8 @@ interface EmpurrarXpmResponse {
   codigo_expedicao?: string;
   ambiente?: string;
   bloqueios?: string[];
+  /** FOTO-NAO-BARRA: saldo insuficiente vira aviso, nunca bloqueio. */
+  avisos?: string[];
   erro?: string;
   duracao_ms?: number;
 }
