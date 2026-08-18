@@ -188,8 +188,13 @@ export default function PessoaForm() {
         });
 
         // vinculo mais recente (preferindo ativo)
-        const { data: vs } = await (supabase as any)
-          .from("vinculos").select("*").eq("pessoa_id", id).order("data_inicio", { ascending: false });
+        const { data: vs } = await supabase
+          .from("vinculos")
+          .select(
+            "id, status, tipo_vinculo, cargo_id, departamento_id, centro_custo_id, unidade_id, data_inicio, valor_base, valor_transporte, forma_pagamento_id, dia_vencimento, banco_nome, agencia, conta, tipo_conta, chave_pix, email_corporativo, observacoes, cnpj, razao_social, nome_fantasia, categoria_pj, objeto, pis_pasep, ctps_numero, matricula, data_admissao, jornada_semanal, gestor_pessoa_id"
+          )
+          .eq("pessoa_id", id)
+          .order("data_inicio", { ascending: false });
         const v = (vs || []).find((x: any) => x.status === "ativo") || (vs || [])[0];
         if (v) {
           setVinculoId(v.id);
@@ -200,7 +205,7 @@ export default function PessoaForm() {
             data_inicio: v.data_inicio || "",
             valor_base: v.valor_base?.toString() || "",
             valor_transporte: v.valor_transporte?.toString() || "",
-            valor_beneficios_extras: v.valor_beneficios_extras?.toString() || "",
+
             forma_pagamento_id: v.forma_pagamento_id || "",
             dia_vencimento: v.dia_vencimento?.toString() || "5",
             banco_nome: v.banco_nome || "", agencia: v.agencia || "", conta: v.conta || "",
