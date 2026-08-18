@@ -92,16 +92,8 @@ export default function Consignados({ embutido = false }: { embutido?: boolean }
 
   const isError = parceirosQ.isError || contaQ.isError;
 
-  const Wrapper = embutido
-    ? ({ children }: { children: React.ReactNode }) => (
-        <div className="space-y-6">{children}</div>
-      )
-    : ({ children }: { children: React.ReactNode }) => (
-        <PageShell className="md:p-8">{children}</PageShell>
-      );
-
-  return (
-    <Wrapper>
+  const conteudo = (
+    <>
       {!embutido && (
         <CasaPageHeader
           breadcrumb={[{ label: "Comercial" }, { label: "Consignados" }]}
