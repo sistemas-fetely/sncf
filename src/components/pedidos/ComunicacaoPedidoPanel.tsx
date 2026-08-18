@@ -450,7 +450,7 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
 
             {dialogTipo === "cobranca" && !brCodePix && !!linkUrl && (
               <div className="rounded-md border bg-muted/40 p-3 space-y-1.5">
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start justify-between gap-2 min-w-0">
                   <div className="min-w-0">
                     <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
                       Link que será enviado
