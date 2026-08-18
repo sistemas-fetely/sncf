@@ -44,7 +44,8 @@ interface Props {
 }
 
 function interpolar(tpl: string, titulo: TituloCobranca): string {
-  const cliente = nomeCanonico(titulo.parceiro_razao_social, "");
+  const cliente = nomeTratamento(titulo.parceiro_razao_social, titulo.parceiro_nome_fantasia);
+
   const map: Record<string, string> = {
     "{cliente}": cliente,
     "{apelido}": apelidoParceiro(titulo.parceiro_razao_social, titulo.parceiro_nome_fantasia) ?? "",
@@ -147,7 +148,29 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose, reenvio = 
     if (!etapa) return;
     setEnviandoEmail(true);
     try {
+      // PORTÃO ANTES DO ENVIO (17/08/2026 · incidente cartão cobrado como boleto).
+      // A RPC registrar_acao_regua também barra, mas só roda DEPOIS do e-mail:
+      // sem esta checagem o cliente recebe a cobrança e apenas o log é bloqueado.
+      // Fonte única: vw_cobranca_mesa.regua_elegivel — a mesma que a RPC usa.
+      const { data: mesa, error: errMesa } = await (supabase as any)
+        .from("vw_cobranca_mesa")
+        .select("regua_elegivel, regua_motivo_inelegivel")
+        .eq("titulo_id", titulo.id)
+        .maybeSingle();
+      if (errMesa) {
+        throw new Error(`Não foi possível conferir a elegibilidade: ${errMesa.message}`);
+      }
+      if (!mesa) {
+        throw new Error("Título fora da mesa de cobrança (pago ou cancelado) — não há o que cobrar.");
+      }
+      if (mesa.regua_elegivel !== true) {
+        throw new Error(
+          `Cobrança bloqueada — ${mesa.regua_motivo_inelegivel ?? "título sem lastro para cobrar"}`,
+        );
+      }
+
       let attachments: Array<{ filename: string; content: string }> | undefined;
+
       if ((titulo as any).boleto_status === "registrado") {
         const { data: pdfResp, error: errPdf } = await supabase.functions.invoke(
           "gerar-boleto-pdf",
