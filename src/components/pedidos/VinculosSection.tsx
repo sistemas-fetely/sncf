@@ -129,17 +129,56 @@ const fmtDataCurta = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "
  */
 function GrupoEnviosXpm({ pedido_id }: { pedido_id: string }) {
   const { data: envios } = useEnviosXpm(pedido_id);
-  if (!envios?.length) return null;
+  const { data: fila } = useNfFilaPedido(pedido_id);
+  const { data: modoNf } = useZenlogModoNf();
+  const enviarNf = useEnviarNfXpm(pedido_id);
+
+  const pendentes = (fila ?? []).filter((f) => f.status === "pendente" || f.status === "erro");
+  if (!envios?.length && !pendentes.length) return null;
 
   let nCreate = 0;
   let nNf = 0;
 
   return (
     <div className="space-y-1">
-      <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-        Envios à XPM
-      </p>
+      <div className="flex items-center gap-2">
+        <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+          Envios à XPM
+        </p>
+        {modoNf?.modo === "manual" && (
+          <Selo estado="warning">NF em modo manual</Selo>
+        )}
+      </div>
+
+      {pendentes.length > 0 && (
+        <div className="space-y-1 pb-1">
+          {pendentes.map((f) => {
+            const tentativas = Number(f.tentativas ?? 0);
+            const insistindo = f.status === "erro" && tentativas >= 8;
+            const nf = f.nf?.numero ? `NF ${f.nf.numero}` : "NF";
+            return (
+              <div key={f.id} className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="text-muted-foreground tabular-nums">{nf}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs"
+                  disabled={enviarNf.isPending}
+                  onClick={() => enviarNf.mutate(f.id)}
+                >
+                  {enviarNf.isPending && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
+                  {insistindo ? "Reenviar NF à XPM (já falhou 8x)" : "Enviar NF à XPM"}
+                </Button>
+                {f.ultimo_erro && (
+                  <span className="text-[10px] text-muted-foreground break-words">{f.ultimo_erro}</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
       <div className="space-y-1">
+
         {envios.map((e) => {
           const ehNf = e.operacao === "atribui_nf";
           const rotulo = ehNf ? `NF tentativa ${++nNf}` : `tentativa ${++nCreate}`;
