@@ -23,11 +23,21 @@ Deno.serve(async (req) => {
   let pedido_id: string | null = null;
   let payload: Record<string, unknown> | null = null;
   let userId: string | null = null;
+  let forcar = false;
+  let motivo = "";
 
   try {
     const body = await req.json().catch(() => ({}));
     pedido_id = body?.pedido_id ?? null;
     if (!pedido_id) return json({ sucesso: false, erro: "pedido_id obrigatório" }, 400);
+
+    forcar = body?.forcar === true;
+    motivo = typeof body?.motivo === "string" ? body.motivo : "";
+    // Sem motivo não força: o override precisa deixar rastro legível.
+    if (forcar && motivo.trim().length < 15) {
+      return json({ sucesso: false, erro: "Forçar exige motivo com pelo menos 15 caracteres" }, 400);
+    }
+
 
     // quem clicou (para trilha de autoria; a edge roda com service role)
     const authHeader = req.headers.get("Authorization") ?? "";
