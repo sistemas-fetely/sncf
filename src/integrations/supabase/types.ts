@@ -40553,6 +40553,9 @@ export type Database = {
       }
       xpm_expedicao: {
         Row: {
+          cancelada_declarada_em: string | null
+          cancelada_declarada_por: string | null
+          cancelada_motivo: string | null
           cfop: string | null
           codigo: string
           data_emissao: string | null
@@ -40578,6 +40581,9 @@ export type Database = {
           transportador_cnpj: string | null
         }
         Insert: {
+          cancelada_declarada_em?: string | null
+          cancelada_declarada_por?: string | null
+          cancelada_motivo?: string | null
           cfop?: string | null
           codigo: string
           data_emissao?: string | null
@@ -40603,6 +40609,9 @@ export type Database = {
           transportador_cnpj?: string | null
         }
         Update: {
+          cancelada_declarada_em?: string | null
+          cancelada_declarada_por?: string | null
+          cancelada_motivo?: string | null
           cfop?: string | null
           codigo?: string
           data_emissao?: string | null
@@ -54104,14 +54113,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -60434,6 +60443,8 @@ export type Database = {
       vw_xpm_expedicao: {
         Row: {
           canal: string | null
+          cancelada_declarada_em: string | null
+          cancelada_motivo: string | null
           cliente_sncf: string | null
           codigo: string | null
           data_expedicao: string | null
@@ -62444,6 +62455,15 @@ export type Database = {
         Returns: Json
       }
       fn_xpm_bloqueio_estoque: { Args: { p_itens: Json }; Returns: string }
+      fn_xpm_declarar_cancelamento: {
+        Args: {
+          p_declarado_por?: string
+          p_expedicao_codigo: string
+          p_motivo: string
+        }
+        Returns: Json
+      }
+      fn_xpm_expedicao_viva: { Args: { p_id_externo: string }; Returns: string }
       fn_xpm_nf_cfop: { Args: { p_raw: Json }; Returns: string }
       fn_xpm_payload_atribui_nf: { Args: { p_nf_id: string }; Returns: Json }
       fn_xpm_payload_expedicao: {
