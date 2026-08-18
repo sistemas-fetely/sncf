@@ -26,18 +26,18 @@ export const ESTAGIO_CORES: Record<EstagioPedido, string> = {
  *  Estado terminal e estado fora da esteira ficam sólidos ou neutros, sem alegar progressão. */
 export const ESTAGIO_SELO: Record<EstagioPedido, string> = {
   recebido:             "bg-muted text-muted-foreground",
-  em_analise_credito:   "bg-info/15 text-info-strong",
-  aguardando_estoque:   "bg-warning/15 text-warning-strong",
-  cobranca:             "bg-info/15 text-info-strong",
-  aguardando_pagamento: "bg-warning/28 text-warning-strong",
+  em_analise_credito:   "bg-info/10 text-info-strong",
+  aguardando_estoque:   "bg-warning/10 text-warning-strong",
+  cobranca:             "bg-info/10 text-info-strong",
+  aguardando_pagamento: "bg-warning/25 text-warning-strong",
   pre_separacao:        "bg-warning/40 text-warning-strong",
-  em_separacao:         "bg-info/28 text-info-strong",
-  pre_faturamento:      "bg-warning/52 text-warning-strong",
+  em_separacao:         "bg-info/25 text-info-strong",
+  pre_faturamento:      "bg-warning/50 text-warning-strong",
   faturado:             "bg-info/40 text-info-strong",
-  em_transporte:        "bg-info/52 text-info-strong",
+  em_transporte:        "bg-info/50 text-info-strong",
   entregue:             "bg-success text-success-foreground",
   cancelado:            "bg-destructive text-destructive-foreground",
-  recuperacao_venda:    "bg-warning/28 text-warning-strong",
+  recuperacao_venda:    "bg-warning/25 text-warning-strong",
 };
 
 export function EstagioBadge({ estagio }: { estagio: EstagioPedido }) {
