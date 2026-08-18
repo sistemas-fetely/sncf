@@ -186,12 +186,17 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
       )}
 
       {pedidoXpm?.xpm_envio_erro && !jaEmpurrado && (
-        <Alert variant="default" className="bg-destructive/10 border-destructive/40">
-          <AlertTriangle className="h-4 w-4 text-destructive" />
-          <AlertDescription className="text-destructive text-xs">
-            XPM recusou: {pedidoXpm.xpm_envio_erro}
-          </AlertDescription>
-        </Alert>
+        <>
+          <Alert variant="default" className="bg-destructive/10 border-destructive/40">
+            <AlertTriangle className="h-4 w-4 text-destructive" />
+            <AlertDescription className="text-destructive text-xs">
+              XPM recusou: {pedidoXpm.xpm_envio_erro}
+            </AlertDescription>
+          </Alert>
+          {String(pedidoXpm.xpm_envio_erro).includes("Expedicao ja existe na XPM") && (
+            <ForcarXpmDialog pedidoId={pedido_id} />
+          )}
+        </>
       )}
 
       {jaEmpurrado && (
