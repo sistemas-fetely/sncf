@@ -700,6 +700,7 @@ const App = () => (
                 <Route path="conciliacao-cartao" element={<ConciliacaoCartao />} />
                 <Route path="conciliacao-despesas" element={<ConciliacaoDespesas />} />
                 <Route path="despesas" element={<Despesas />} />
+                <Route path="contabilidade/fechamento" element={<FechamentoContabil />} />
                 
                 <Route path="auditoria" element={<Auditoria />} />
                 <Route path="painel-margem" element={<PainelMargem />} />
