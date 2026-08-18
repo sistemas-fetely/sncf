@@ -25,11 +25,39 @@ function parseBlingDate(val: unknown): string | null { if (!val) return null; co
 
 const SITUACAO_MAP: Record<number, string> = { 1: "pendente", 2: "cancelada", 3: "pendente", 4: "rejeitada", 5: "autorizada", 6: "autorizada", 7: "registrada", 8: "pendente", 9: "denegada", 10: "pendente", 11: "bloqueada", };
 
-export async function syncNfe( supabase: any, client: BlingClient, timeUp: () => boolean, cursor: { ultima_pagina: number; ultima_data_corte: string | null }, ) { let criados = 0, atualizados = 0, erros = 0; let pagina = Math.max(cursor.ultima_pagina + 1, 1); let ultimoErro = "";
+// Deteccao de cancelamento: Bling devolve situacao=5 (autorizada) na listagem mesmo
+// para nota cancelada. A verdade vem no detalhe, em situacaoCancelamento (numero,
+// string ou objeto com .valor) e/ou cancelamento (objeto com dataCancelamento etc).
+function detectarCancelamento(d: any): { cancelada: boolean; raw: any } {
+  const sc = d?.situacaoCancelamento;
+  const scVal = sc != null && typeof sc === "object" ? sc.valor : sc;
+  let porSituacaoCancelamento = false;
+  if (scVal != null && scVal !== "" && scVal !== false) {
+    const n = Number(scVal);
+    if (Number.isFinite(n)) porSituacaoCancelamento = n > 0;
+    else porSituacaoCancelamento = !/^(nao|não|n|0|false|sem)/i.test(String(scVal).trim());
+  }
+  const c = d?.cancelamento;
+  const porCancelamento = c != null && c !== "" && c !== false &&
+    (typeof c !== "object" || Object.keys(c).length > 0);
+  return {
+    cancelada: porSituacaoCancelamento || porCancelamento,
+    raw: { situacaoCancelamento: sc ?? null, cancelamento: c ?? null },
+  };
+}
 
-while (!timeUp()) { let data: any; try { data = await client.get(`/nfe?limite=100&pagina=${pagina}`); } catch (e) { ultimoErro = `pagina ${pagina}: ${(e as Error).message}`; break; } const items = data?.data || []; if (items.length === 0) { pagina = 0; break; }
+const REVALIDACAO_MAX = 40; // orcamento de 90s da funcao — teto de reconsultas por execucao
+
+export async function syncNfe( supabase: any, client: BlingClient, timeUp: () => boolean, cursor: { ultima_pagina: number; ultima_data_corte: string | null }, ) { let criados = 0, atualizados = 0, erros = 0; let pagina = Math.max(cursor.ultima_pagina + 1, 1); let ultimoErro = "";
+let revalidados = 0, errosDetalhe = 0, canceladasDetectadas = 0;
+const limite90d = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+while (!timeUp()) { let data: any; try { data = await client.get(`/nfe?limite=100&pagina=${pagina}`); } catch (e) { ultimoErro = `pagina ${pagina}: ${(e as Error).message}`; break; } const itemsRaw = data?.data || []; if (itemsRaw.length === 0) { pagina = 0; break; }
+// Prioriza data_emissao mais recente para gastar o orcamento de revalidacao no que importa
+const items = [...itemsRaw].sort((a: any, b: any) => String(b?.dataEmissao ?? "").localeCompare(String(a?.dataEmissao ?? "")));
 
 for (const nf of items) {
+
   try {
     const blingId = String(nf.id);
     const parceiro_id = await resolveParceiroId(supabase, nf.contato);
@@ -38,7 +66,7 @@ for (const nf of items) {
 
     const { data: existing } = await supabase
       .from("nfs_emitidas")
-      .select("id, valor_nota, pedido_venda_id, valor_frete, transportadora_nome, transportadora_cnpj, itens_json, numero_pedido_loja, bling_pedido_venda_numero, bling_pedido_venda_id, transporte_raw, serie, pdf_url, xml_url")
+      .select("id, numero, situacao, data_emissao, valor_nota, pedido_venda_id, valor_frete, transportadora_nome, transportadora_cnpj, itens_json, numero_pedido_loja, bling_pedido_venda_numero, bling_pedido_venda_id, transporte_raw, serie, pdf_url, xml_url")
       .eq("bling_id", blingId)
       .maybeSingle();
 
@@ -47,6 +75,12 @@ for (const nf of items) {
     const semPedido = !existing?.pedido_venda_id; const semTransporte = !existing?.transporte_raw;
     const semSerie = !existing?.serie;
     const semArquivo = !existing?.pdf_url || !existing?.xml_url;
+
+    // Nota completa e autorizada dos ultimos 90 dias pode ter sido cancelada DEPOIS
+    // do sync — sem reconsulta o cancelamento fica invisivel para sempre.
+    const revalidarCancelamento = !!existing && existing.situacao === "autorizada" &&
+      !!existing.data_emissao && String(existing.data_emissao).slice(0, 10) >= limite90d &&
+      revalidados < REVALIDACAO_MAX;
 
     // Busca detalhe apenas quando falta valor, frete, pedido, transporte, série
     // ou arquivo (pdf_url/xml_url) — evita rate limit do Bling.
@@ -57,7 +91,9 @@ for (const nf of items) {
     let pedidoVendaBlingIdRaw: string | null = null;
     let serieDetalhe: string | null = null;
 
-    if (semValor || semFrete || semPedido || semTransporte || semSerie || semArquivo) {
+    if (semValor || semFrete || semPedido || semTransporte || semSerie || semArquivo || revalidarCancelamento) {
+      if (revalidarCancelamento) revalidados++;
+
       try {
         await sleep(120); // respeita rate limit do Bling (~3 req/s)
         const det = await client.get(`/nfe/${nf.id}`);
@@ -69,6 +105,13 @@ for (const nf of items) {
           if (detSitNum != null) {
             situacaoDetalhe = SITUACAO_MAP[Number(detSitNum)] || null;
           }
+          // Cancelamento tem PRECEDENCIA sobre o mapa de situacao.
+          const canc = detectarCancelamento(d);
+          if (canc.cancelada || SITUACAO_MAP[Number(detSitNum)] === "cancelada") {
+            situacaoDetalhe = "cancelada";
+            nf._cancelamentoRaw = canc.raw;
+          }
+
           numeroPedidoLojaRaw = d.numeroPedidoLoja != null ? String(d.numeroPedidoLoja) : null;
           pedidoVendaNumeroRaw = d.pedidoVenda?.numero != null ? String(d.pedidoVenda.numero) : null;
           pedidoVendaBlingIdRaw = d.pedidoVenda?.id != null ? String(d.pedidoVenda.id) : null;
@@ -127,7 +170,12 @@ for (const nf of items) {
             }
           }
         }
-      } catch (_) { /* detalhe falhou — preserva valores existentes */ }
+      } catch (e) {
+        // FAIL-LOUD por NF: loga e conta, mas nao aborta o sync inteiro
+        errosDetalhe++;
+        console.error(`detalhe /nfe/${nf.id} falhou: ${(e as Error).message}`);
+      }
+
     }
 
     // Vínculo resolvido AGORA nesta execução (antes de preservar o existente)
@@ -195,11 +243,46 @@ for (const nf of items) {
       const { error: updErr } = await supabase.from("nfs_emitidas").update(registro).eq("id", existing.id);
       if (updErr) throw new Error("UPDATE nfs_emitidas: " + updErr.message);
       atualizados++;
+
+      // NF virou cancelada e a baixa de estoque continua ativa: NAO estorna automatico,
+      // abre achado bloqueante para tratamento humano.
+      if (existing.situacao === "autorizada" && registro.situacao === "cancelada") {
+        canceladasDetectadas++;
+        const numeroNf = registro.numero ?? existing.numero ?? null;
+        if (numeroNf) {
+          try {
+            const { data: movs } = await supabase
+              .from("movimentacao_estoque")
+              .select("id, quantidade")
+              .eq("doc_numero", numeroNf)
+              .eq("doc_tipo", "nf_venda");
+            if (movs && movs.length > 0) {
+              const agora = new Date().toISOString();
+              const soma = movs.reduce((acc: number, m: any) => acc + Number(m.quantidade || 0), 0);
+              const { error: achErr } = await supabase.from("auditoria_achado").insert({
+                regra_slug: "nf-cancelada-com-baixa-de-estoque",
+                chave: String(numeroNf),
+                entidade: "nf",
+                valor: -soma,
+                detalhe: `NF ${numeroNf} cancelada em ${registro.data_emissao ?? existing.data_emissao} mas com ${movs.length} movimentos de baixa de estoque ainda ativos`,
+                primeira_vez_em: agora,
+                ultima_vez_em: agora,
+                vezes_visto: 1,
+                situacao: "aberto",
+              });
+              if (achErr) console.error(`achado nf-cancelada-com-baixa-de-estoque [nf=${numeroNf}]: ${achErr.message}`);
+            }
+          } catch (e) {
+            console.error(`checagem de estoque da NF cancelada ${numeroNf} falhou: ${(e as Error).message}`);
+          }
+        }
+      }
     } else {
       const { error: insErr } = await supabase.from("nfs_emitidas").insert(registro);
       if (insErr) throw new Error("INSERT nfs_emitidas [bling_id=" + blingId + "]: " + insErr.message);
       criados++;
     }
+
   } catch (e) {
     erros++;
     ultimoErro = `item ${nf?.id}: ${(e as Error).message}`;
@@ -216,4 +299,5 @@ await sleep(300);
 
 }
 
-return { criados, atualizados, erros, ultimoErro, proximaPagina: pagina }; }
+console.log(`sync nfe: revalidacoes de cancelamento=${revalidados}, canceladas detectadas=${canceladasDetectadas}, erros de detalhe=${errosDetalhe}`);
+return { criados, atualizados, erros, ultimoErro, proximaPagina: pagina, revalidados, canceladasDetectadas, errosDetalhe }; }

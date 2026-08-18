@@ -61868,6 +61868,14 @@ export type Database = {
       fn_cnab_uso_empresa: { Args: { p_titulo_id: string }; Returns: string }
       fn_cnpj_cpf_valido: { Args: { p_doc: string }; Returns: boolean }
       fn_cnpj_valido: { Args: { p_cnpj: string }; Returns: boolean }
+      fn_colunas_sem_grant: {
+        Args: never
+        Returns: {
+          coluna: string
+          observacao: string
+          tabela: string
+        }[]
+      }
       fn_conciliar_recebimento_agrupado: {
         Args: { p_dry_run?: boolean; p_janela?: number; p_tolerancia?: number }
         Returns: {
