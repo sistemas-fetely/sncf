@@ -15,6 +15,7 @@ import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
 import { useAuth } from "@/contexts/AuthContext";
 import { useVinculosPedido, type PedidoVinculo } from "@/hooks/pedidos/useVinculosPedido";
 import { useRemessas } from "@/hooks/pedidos/useRemessas";
+import { useEnviosXpm } from "@/hooks/pedidos/useEnviosXpm";
 import { remessaStatusMeta } from "@/lib/remessaStatus";
 import { ESTAGIO_CORES } from "@/components/pedidos/BadgesPedido";
 import { ESTAGIO_LABELS } from "@/types/pedido";
@@ -118,6 +119,61 @@ function GrupoRemessas({ remessas, id_externo }: { remessas: any[]; id_externo: 
     </div>
   );
 }
+
+const fmtDataCurta = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
+
+/**
+ * Grupo "Envios a XPM" — trilha de `xpm_envios_log`. Cada operacao numera em sua
+ * propria sequencia: 'create' vira "tentativa N", 'atribui_nf' vira "NF tentativa N".
+ * Quando falha, o erro da XPM aparece inteiro: e o que o operador precisa ler.
+ */
+function GrupoEnviosXpm({ pedido_id }: { pedido_id: string }) {
+  const { data: envios } = useEnviosXpm(pedido_id);
+  if (!envios?.length) return null;
+
+  let nCreate = 0;
+  let nNf = 0;
+
+  return (
+    <div className="space-y-1">
+      <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+        Envios à XPM
+      </p>
+      <div className="space-y-1">
+        {envios.map((e) => {
+          const ehNf = e.operacao === "atribui_nf";
+          const rotulo = ehNf ? `NF tentativa ${++nNf}` : `tentativa ${++nCreate}`;
+          const data = e.tentativa_em ? fmtDataCurta.format(new Date(e.tentativa_em)) : null;
+          const ok = e.sucesso === true;
+          return (
+            <div key={e.id} className="flex items-start gap-1.5 text-xs leading-tight">
+              <span
+                className={cn("mt-1 h-2 w-2 shrink-0 rounded-full", ok ? "bg-success" : "bg-destructive")}
+                aria-hidden
+              />
+              <div className="min-w-0">
+                <div className="flex items-center gap-1">
+                  <span className="font-medium">{rotulo}</span>
+                  {data && <span className="text-[10px] text-muted-foreground tabular-nums">{data}</span>}
+                </div>
+                {e.expedicao_codigo_retornado && (
+                  <div className="text-[10px] text-muted-foreground tabular-nums">
+                    {e.expedicao_codigo_retornado}
+                  </div>
+                )}
+                {!ok && e.erro_msg && (
+                  <div className="text-[10px] text-muted-foreground break-words">{e.erro_msg}</div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+
 
 
 export function VinculosSection({
