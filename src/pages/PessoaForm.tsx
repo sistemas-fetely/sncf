@@ -273,9 +273,15 @@ export default function PessoaForm() {
       unidade_id: vinculo.unidade_id || null,
       gestor_pessoa_id: vinculo.gestor_pessoa_id || null,
       data_inicio: vinculo.data_inicio,
-      valor_base: toNum(vinculo.valor_base),
-      valor_transporte: toNum(vinculo.valor_transporte),
-      valor_beneficios_extras: toNum(vinculo.valor_beneficios_extras),
+      // Sigilo salarial: sem permissão, as chaves são OMITIDAS do payload
+      // (enviar null apagaria o valor existente no banco).
+      ...(podeVerSalario
+        ? {
+            valor_base: toNum(vinculo.valor_base),
+            valor_transporte: toNum(vinculo.valor_transporte),
+          }
+        : {}),
+
       forma_pagamento_id: vinculo.forma_pagamento_id || null,
       dia_vencimento: toNum(vinculo.dia_vencimento),
       banco_nome: vinculo.banco_nome || null,
