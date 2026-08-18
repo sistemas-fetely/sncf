@@ -530,6 +530,31 @@ export default function CobrancaDetalhe() {
     });
   };
 
+  function montarLinhasDaProposta(
+    lista: TituloProposto[],
+    dias: number,
+    intervalo: number,
+  ): LinhaPlano[] {
+    const novos: LinhaPlano[] = lista.map((t) => ({ ...t, eh_portao: false }));
+    // LINHA UNICA: se a regra exige portao e so ha uma parcela, ela nasce marcada.
+    // Com duas ou mais, a escolha continua do operador (composicao).
+    if (exigePortao && novos.length === 1) {
+      novos[0].eh_portao = true;
+    }
+    // APROVADO-MANDA-NO-VENCIMENTO (18/08/2026): propor_cobranca ja devolve os
+    // vencimentos derivados da condicao aprovada pelo credito. O parametro global
+    // (dias_primeiro_pagamento / intervalo_entre_parcelas) e SEMENTE para quando a
+    // proposta nao traz data — nunca sobreposicao do que o credito aprovou.
+    const todasTemData = novos.every((t) => t.data_vencimento);
+    if (todasTemData) {
+      return novos.map((t) => ({
+        ...t,
+        condicao_pagamento: calcularCondicaoLabel(t.data_vencimento, t.eh_entrada),
+      }));
+    }
+    return aplicarPrimeiraDataECascata(novos, dias, intervalo);
+  }
+
   // hidrata estado local quando a proposta chega — UMA VEZ por pedido.
   // Refetch da proposta (foco de janela, invalidação) não pode apagar a
   // composição manual montada pelo operador.
@@ -550,13 +575,8 @@ export default function CobrancaDetalhe() {
     setDiasPrimeiroPagamento(diasUsar);
     setIntervaloDias(intervaloUsar);
 
-    const novos: LinhaPlano[] = propostaQ.data.titulos_propostos.map((t) => ({ ...t, eh_portao: false }));
-    // LINHA UNICA: se a regra exige portao e so ha uma parcela, ela nasce marcada.
-    // Com duas ou mais, a escolha continua do operador (composicao).
-    if (exigePortao && novos.length === 1) {
-      novos[0].eh_portao = true;
-    }
-    setTitulos(aplicarPrimeiraDataECascata(novos, diasUsar, intervaloUsar));
+    const novos = montarLinhasDaProposta(propostaQ.data.titulos_propostos, diasUsar, intervaloUsar);
+    setTitulos(novos);
 
     const somaProposta = novos.reduce((acc, t) => acc + Number(t.valor_bruto || 0), 0);
     const bruto = Number(pedidoQ.data?.valor_liquido ?? propostaQ.data?.valor_total ?? somaProposta);
@@ -751,11 +771,16 @@ export default function CobrancaDetalhe() {
 
 
   const handleRecalcular = () => {
+    if (!propostaQ.data?.titulos_propostos) return;
+    const novos = montarLinhasDaProposta(propostaQ.data.titulos_propostos, diasPrimeiroPagamento, intervaloDias);
     setTitulos((prev) => {
-      if (prev.length === 0) return prev;
-      const comDatas = aplicarPrimeiraDataECascata(prev, diasPrimeiroPagamento, intervaloDias);
-      return parcelasIguais ? redistribuirValoresIguais(comDatas, valorTotalCobrar) : comDatas;
+      if (parcelasIguais) {
+        return redistribuirValoresIguais(novos, valorTotalCobrar);
+      }
+      return novos;
     });
+    setParcelasIguais(false);
+    setPlanoEditado(false);
   };
 
   // Loading
@@ -1032,7 +1057,7 @@ export default function CobrancaDetalhe() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">Proposta de títulos</CardTitle>
-          <Button variant="outline" size="sm" onClick={handleRecalcular}>
+          <Button variant="outline" size="sm" onClick={handleRecalcular} title="Volta ao plano de vencimentos aprovado pelo crédito, descartando edições manuais">
             <RefreshCcw className="h-4 w-4" /> Recalcular
           </Button>
         </CardHeader>
