@@ -354,7 +354,7 @@ export function FilaPedidosPorArea({
       if (db !== da) return db - da;
       return new Date(a.recebido_em).getTime() - new Date(b.recebido_em).getTime();
     });
-  }, [data, pedidosPorApelido, termoBusca, ordenacao, riscoMap, marcacaoFilter, formaPgtoFilter, situacaoFilter, somenteRiscoAlto]);
+  }, [data, pedidosPorApelido, termoBusca, ordenacao, riscoMap, marcacaoFilter, formaPgtoFilter, situacaoFilter, somenteRiscoAlto, estagios]);
 
   const buscaGlobalAtiva = !!buscaDebounced.trim() && !estagioEspecificoSelecionado;
 
