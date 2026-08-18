@@ -530,6 +530,31 @@ export default function CobrancaDetalhe() {
     });
   };
 
+  function montarLinhasDaProposta(
+    lista: TituloProposto[],
+    dias: number,
+    intervalo: number,
+  ): LinhaPlano[] {
+    const novos: LinhaPlano[] = lista.map((t) => ({ ...t, eh_portao: false }));
+    // LINHA UNICA: se a regra exige portao e so ha uma parcela, ela nasce marcada.
+    // Com duas ou mais, a escolha continua do operador (composicao).
+    if (exigePortao && novos.length === 1) {
+      novos[0].eh_portao = true;
+    }
+    // APROVADO-MANDA-NO-VENCIMENTO (18/08/2026): propor_cobranca ja devolve os
+    // vencimentos derivados da condicao aprovada pelo credito. O parametro global
+    // (dias_primeiro_pagamento / intervalo_entre_parcelas) e SEMENTE para quando a
+    // proposta nao traz data — nunca sobreposicao do que o credito aprovou.
+    const todasTemData = novos.every((t) => t.data_vencimento);
+    if (todasTemData) {
+      return novos.map((t) => ({
+        ...t,
+        condicao_pagamento: calcularCondicaoLabel(t.data_vencimento, t.eh_entrada),
+      }));
+    }
+    return aplicarPrimeiraDataECascata(novos, dias, intervalo);
+  }
+
   // hidrata estado local quando a proposta chega — UMA VEZ por pedido.
   // Refetch da proposta (foco de janela, invalidação) não pode apagar a
   // composição manual montada pelo operador.
