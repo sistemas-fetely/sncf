@@ -348,7 +348,7 @@ serve(async (req) => {
             id, numero_titulo, numero_parcela, total_parcelas,
             valor_bruto, valor_desconto, valor_juros, valor_multa, valor_correcao,
             data_vencimento_atual, boleto_status, pedido_id,
-            nosso_numero_seq, linha_digitavel, codigo_barras_boleto,
+            nosso_numero_seq, nosso_numero_safra, linha_digitavel, codigo_barras_boleto,
             prorrogacao_nova_data, prorrogacao_solicitada_em,
             reemissao_nova_data, remessa_safra_id,
             conta:contas_pagar_receber(
