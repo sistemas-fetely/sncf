@@ -53,12 +53,16 @@ Deno.serve(async (req) => {
     });
     if (eMontar) throw new Error(`montar payload: ${eMontar.message}`);
 
+    // FOTO-NAO-BARRA (18/08/2026): saldo insuficiente na XPM é AVISO, não
+    // bloqueio — a posição da ZenLOG é foto do fim do dia anterior.
+    const avisos: string[] = Array.isArray(montado?.avisos) ? montado.avisos : [];
+
     // 2. Bloqueio pré-voo: não sai pela metade, e o motivo vai pra tela.
     if (!montado?.ok) {
       const motivos: string[] = montado?.bloqueios ?? ["Falha desconhecida ao montar payload"];
       const msg = motivos.join(" · ");
       await sb.from("pedidos").update({ xpm_envio_erro: msg }).eq("id", pedido_id);
-      return json({ sucesso: false, erro: msg, bloqueios: motivos }, 422);
+      return json({ sucesso: false, erro: msg, bloqueios: motivos, avisos }, 422);
     }
 
     payload = montado.payload;
