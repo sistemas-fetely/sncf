@@ -575,13 +575,8 @@ export default function CobrancaDetalhe() {
     setDiasPrimeiroPagamento(diasUsar);
     setIntervaloDias(intervaloUsar);
 
-    const novos: LinhaPlano[] = propostaQ.data.titulos_propostos.map((t) => ({ ...t, eh_portao: false }));
-    // LINHA UNICA: se a regra exige portao e so ha uma parcela, ela nasce marcada.
-    // Com duas ou mais, a escolha continua do operador (composicao).
-    if (exigePortao && novos.length === 1) {
-      novos[0].eh_portao = true;
-    }
-    setTitulos(aplicarPrimeiraDataECascata(novos, diasUsar, intervaloUsar));
+    const novos = montarLinhasDaProposta(propostaQ.data.titulos_propostos, diasUsar, intervaloUsar);
+    setTitulos(novos);
 
     const somaProposta = novos.reduce((acc, t) => acc + Number(t.valor_bruto || 0), 0);
     const bruto = Number(pedidoQ.data?.valor_liquido ?? propostaQ.data?.valor_total ?? somaProposta);
