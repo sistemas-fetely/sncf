@@ -1057,7 +1057,7 @@ export default function CobrancaDetalhe() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">Proposta de títulos</CardTitle>
-          <Button variant="outline" size="sm" onClick={handleRecalcular}>
+          <Button variant="outline" size="sm" onClick={handleRecalcular} title="Volta ao plano de vencimentos aprovado pelo crédito, descartando edições manuais">
             <RefreshCcw className="h-4 w-4" /> Recalcular
           </Button>
         </CardHeader>
