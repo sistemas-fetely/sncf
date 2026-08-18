@@ -49,6 +49,7 @@ Deno.serve(async (req) => {
     // 1. Montador de payload mora no banco (FONTE-ÚNICA). A edge só transporta.
     const { data: montado, error: eMontar } = await sb.rpc("fn_xpm_payload_expedicao", {
       p_pedido_id: pedido_id,
+      p_forcar: forcar,
     });
     if (eMontar) throw new Error(`montar payload: ${eMontar.message}`);
 
@@ -148,7 +149,7 @@ Deno.serve(async (req) => {
       pedido_id,
       operacao: "create",
       enviado_por: userId,
-      payload_enviado: payload,
+      payload_enviado: { ...(payload ?? {}), forcar, motivo },
       resposta_status: respStatus,
       resposta_body: respBody as Record<string, unknown> | null,
       expedicao_codigo_retornado: sucesso ? codigo : null,
