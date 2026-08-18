@@ -203,7 +203,7 @@ export default function CustoPessoas() {
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Wallet className="h-5 w-5" /></div>
               <div className="min-w-0">
                 <p className="text-2xl font-medium truncate">{fmtBRL(kpis.totalEmpresa)}</p>
-                <p className="text-xs text-muted-foreground">Custo total (empresa)</p>
+                <p className="text-xs text-muted-foreground">{rotuloTotal}</p>
               </div>
             </CardContent></Card>
             <Card className="card-shadow"><CardContent className="p-4">
