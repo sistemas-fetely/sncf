@@ -64,7 +64,7 @@ import { CanalFopTab } from "@/components/pedidos/CanalFopTab";
 import { BotaoEditarPedido } from "@/components/pedidos/BotaoEditarPedido";
 import { EditarItensDialog } from "@/components/pedidos/dialogs/EditarItensDialog";
 import { ConfirmarPortaoPagoDialog } from "@/components/pedidos/dialogs/ConfirmarPortaoPagoDialog";
-import { ConfirmarCapturaCartaoDialog } from "@/components/pedidos/dialogs/ConfirmarCapturaCartaoDialog";
+import { ConfirmarCartaoCapturadoDialog } from "@/components/pedidos/dialogs/ConfirmarCartaoCapturadoDialog";
 import { usePlanoAbertoPedido, rotuloMeio } from "@/hooks/pedidos/usePlanoAbertoPedido";
 import { SplitsPedidoSection } from "@/components/pedidos/SplitsPedidoSection";
 import { BotaoSplitPedido } from "@/components/pedidos/BotaoSplitPedido";
@@ -833,9 +833,10 @@ function AcoesAguardandoPagamento({ pedido }: { pedido: any; geraTituloReceber?:
   return (
     <div className="flex flex-col gap-2 w-full">
       {cartao.length > 0 && (
-        <ConfirmarCapturaCartaoDialog
-          linhas={cartao}
-          faltaLabel={linhaALinha.length ? resumoMeios(linhaALinha) : null}
+        <ConfirmarCartaoCapturadoDialog
+          pedidoId={pedido.id}
+          parcelasAbertas={cartao.length}
+          valorAberto={cartao.reduce((acc, l) => acc + Number(l.valor ?? 0), 0)}
         />
       )}
       {linhaALinha.length > 0 && (

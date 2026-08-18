@@ -56158,11 +56158,6 @@ export type Database = {
       }
       vw_pedidos_farol: {
         Row: {
-          alerta_achados: number | null
-          alerta_bloqueantes: number | null
-          alerta_detalhe: string | null
-          alerta_severidade: string | null
-          alerta_titulo: string | null
           bloqueio: string | null
           cliente: string | null
           data_estagio: string | null
