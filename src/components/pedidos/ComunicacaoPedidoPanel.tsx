@@ -585,6 +585,7 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
                   value={novoEmail}
                   onChange={(e) => setNovoEmail(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addEmail())}
+                  className="min-w-0 flex-1"
                 />
                 <Button variant="outline" size="icon" onClick={addEmail} disabled={!novoEmail.trim()}>
                   <Plus className="h-4 w-4" />
