@@ -12,6 +12,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { humanizeError } from "@/lib/errorMessages";
 import { PageShell } from "@/components/layout/PageShell";
+import { useIsSocio } from "@/hooks/useIsSocio";
+
 
 interface LinhaFolha {
   vinculo_id: string;
