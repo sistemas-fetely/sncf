@@ -505,9 +505,30 @@ export default function PessoaForm() {
             <div><Label>E-mail corporativo</Label><Input type="email" value={vinculo.email_corporativo} onChange={(e) => setVinculo({ ...vinculo, email_corporativo: e.target.value })} /></div>
             <div />
 
-            <div><Label>Valor base (R$)</Label><Input value={vinculo.valor_base} onChange={(e) => setVinculo({ ...vinculo, valor_base: e.target.value })} /></div>
-            <div><Label>Vale-transporte (R$)</Label><Input value={vinculo.valor_transporte} onChange={(e) => setVinculo({ ...vinculo, valor_transporte: e.target.value })} /></div>
-            <div><Label>Benefícios extras (R$)</Label><Input value={vinculo.valor_beneficios_extras} onChange={(e) => setVinculo({ ...vinculo, valor_beneficios_extras: e.target.value })} /></div>
+            <div>
+              <Label>Valor base (R$)</Label>
+              {podeVerSalario ? (
+                <Input value={vinculo.valor_base} onChange={(e) => setVinculo({ ...vinculo, valor_base: e.target.value })} />
+              ) : (
+                <>
+                  <Input value="••••" disabled readOnly />
+                  <p className="text-xs text-muted-foreground mt-1">Sem permissão para ver ou alterar</p>
+                </>
+              )}
+            </div>
+            <div>
+              <Label>Vale-transporte (R$)</Label>
+              {podeVerSalario ? (
+                <Input value={vinculo.valor_transporte} onChange={(e) => setVinculo({ ...vinculo, valor_transporte: e.target.value })} />
+              ) : (
+                <>
+                  <Input value="••••" disabled readOnly />
+                  <p className="text-xs text-muted-foreground mt-1">Sem permissão para ver ou alterar</p>
+                </>
+              )}
+            </div>
+            <div />
+
 
             <div>
               <Label>Forma de pagamento</Label>
