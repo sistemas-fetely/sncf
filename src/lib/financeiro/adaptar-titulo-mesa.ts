@@ -94,8 +94,9 @@ export function adaptarParaTitulo(l: LinhaMesa): TituloCobranca {
     tipo_pagamento: l.instrumento ?? "",
     pedido_id: l.pedido_id ?? "",
     parceiro_id: l.parceiro_id,
-    parceiro_razao_social: l.nome_exibicao,
+    parceiro_razao_social: l.nome_canonico,
     parceiro_nome_fantasia: l.apelido,
+
     parceiro_cnpj: l.parceiro_cnpj,
     parceiro_email: l.email_cliente,
     parceiro_email_cobranca: l.email_cliente,
