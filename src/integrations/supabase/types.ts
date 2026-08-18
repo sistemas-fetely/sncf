@@ -22710,6 +22710,7 @@ export type Database = {
           ativo: boolean
           codigo: string
           created_at: string
+          eh_desvio: boolean
           eh_final: boolean
           observacao: string | null
           ordem: number
@@ -22720,6 +22721,7 @@ export type Database = {
           ativo?: boolean
           codigo: string
           created_at?: string
+          eh_desvio?: boolean
           eh_final?: boolean
           observacao?: string | null
           ordem: number
@@ -22730,6 +22732,7 @@ export type Database = {
           ativo?: boolean
           codigo?: string
           created_at?: string
+          eh_desvio?: boolean
           eh_final?: boolean
           observacao?: string | null
           ordem?: number
@@ -30882,6 +30885,7 @@ export type Database = {
           destinatarios: string[]
           enviada_em: string
           enviada_por: string | null
+          fechamento_id: string | null
           id: string
           link_expira_em: string | null
           link_signed: string | null
@@ -30891,6 +30895,8 @@ export type Database = {
           periodo_inicio: string
           qtd_contas: number
           qtd_documentos: number
+          storage_path: string | null
+          tipo: string
         }
         Insert: {
           created_at?: string
@@ -30898,6 +30904,7 @@ export type Database = {
           destinatarios?: string[]
           enviada_em?: string
           enviada_por?: string | null
+          fechamento_id?: string | null
           id?: string
           link_expira_em?: string | null
           link_signed?: string | null
@@ -30907,6 +30914,8 @@ export type Database = {
           periodo_inicio: string
           qtd_contas?: number
           qtd_documentos?: number
+          storage_path?: string | null
+          tipo?: string
         }
         Update: {
           created_at?: string
@@ -30914,6 +30923,7 @@ export type Database = {
           destinatarios?: string[]
           enviada_em?: string
           enviada_por?: string | null
+          fechamento_id?: string | null
           id?: string
           link_expira_em?: string | null
           link_signed?: string | null
@@ -30923,6 +30933,8 @@ export type Database = {
           periodo_inicio?: string
           qtd_contas?: number
           qtd_documentos?: number
+          storage_path?: string | null
+          tipo?: string
         }
         Relationships: [
           {
@@ -30930,6 +30942,13 @@ export type Database = {
             columns: ["enviada_por"]
             isOneToOne: false
             referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "remessas_contador_fechamento_id_fkey"
+            columns: ["fechamento_id"]
+            isOneToOne: false
+            referencedRelation: "contabil_fechamento"
             referencedColumns: ["id"]
           },
         ]
@@ -31032,6 +31051,13 @@ export type Database = {
             columns: ["remessa_id"]
             isOneToOne: false
             referencedRelation: "remessas_contador"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "remessas_contador_itens_remessa_id_fkey"
+            columns: ["remessa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contabil_remessas"
             referencedColumns: ["id"]
           },
         ]
@@ -42938,11 +42964,15 @@ export type Database = {
       v_pedidos_pipeline: {
         Row: {
           area_atual: string | null
+          eh_desvio: boolean | null
+          eh_final: boolean | null
           estagio: string | null
+          ordem_catalogo: number | null
           qtd: number | null
           qtd_risco_amarelo: number | null
           qtd_risco_vermelho: number | null
           qtd_sla_estourado: number | null
+          rotulo_catalogo: string | null
           sla_dias: number | null
           soma_valor: number | null
           tipo_sla: string | null
@@ -45581,6 +45611,26 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_contabil_remessas: {
+        Row: {
+          competencia: string | null
+          descricao: string | null
+          destinatarios: string[] | null
+          enviada_em: string | null
+          id: string | null
+          link_expira_em: string | null
+          link_expirado: boolean | null
+          link_signed: string | null
+          observacao: string | null
+          qtd_documentos: number | null
+          rotulo: string | null
+          storage_path: string | null
+          tipo: string | null
+          unidades: number | null
+          valor_custo: number | null
+        }
+        Relationships: []
+      }
       vw_contabil_vendas_periodo: {
         Row: {
           canal: string | null
@@ -46769,6 +46819,13 @@ export type Database = {
             columns: ["ultima_remessa_id"]
             isOneToOne: false
             referencedRelation: "remessas_contador"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "remessas_contador_itens_remessa_id_fkey"
+            columns: ["ultima_remessa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contabil_remessas"
             referencedColumns: ["id"]
           },
         ]
@@ -51990,14 +52047,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
