@@ -68,7 +68,7 @@ export function useContaCorrenteCliente(parceiroId?: string) {
   });
 }
 
-export default function Consignados() {
+export default function Consignados({ embutido = false }: { embutido?: boolean } = {}) {
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
   const parceirosQ = useParceirosConsignados();
@@ -92,13 +92,24 @@ export default function Consignados() {
 
   const isError = parceirosQ.isError || contaQ.isError;
 
+  const Wrapper = embutido
+    ? ({ children }: { children: React.ReactNode }) => (
+        <div className="space-y-6">{children}</div>
+      )
+    : ({ children }: { children: React.ReactNode }) => (
+        <PageShell className="md:p-8">{children}</PageShell>
+      );
+
   return (
-    <PageShell className="md:p-8">
-      <CasaPageHeader
-        breadcrumb={[{ label: "Comercial" }, { label: "Consignados" }]}
-        title="Consignados"
-        subtitle="Parceiros em regime de conta corrente"
-      />
+    <Wrapper>
+      {!embutido && (
+        <CasaPageHeader
+          breadcrumb={[{ label: "Comercial" }, { label: "Consignados" }]}
+          title="Consignados"
+          subtitle="Parceiros em regime de conta corrente"
+        />
+      )}
+
 
       {isError && (
         <Card className="mb-4 border-destructive">
