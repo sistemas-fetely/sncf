@@ -310,10 +310,11 @@ export default function CustoPessoas() {
                         <Badge variant={r.tipo_vinculo === "CLT" ? "default" : "secondary"}>{r.tipo_vinculo}</Badge>
                       </TableCell>
                       <TableCell>{r.centro_custo_nome || "—"}</TableCell>
-                      <TableCell className="text-right">{fmtBRL(num(r.custo_recorrente_mensal))}</TableCell>
-                      <TableCell className="text-right">{fmtBRL(num(r.encargo_direto_mensal))}</TableCell>
-                      <TableCell className="text-right">{fmtBRL(num(r.provisao_mensal))}</TableCell>
-                      <TableCell className="text-right font-medium">{fmtBRL(num(r.custo_total_empresa))}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtOuTraco(r.custo_recorrente_mensal)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtOuTraco(r.encargo_direto_mensal)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtOuTraco(r.provisao_mensal)}</TableCell>
+                      <TableCell className="text-right tabular-nums font-medium">{fmtOuTraco(r.custo_total_empresa)}</TableCell>
+
                     </TableRow>
                   ))}
                   <TableRow className="bg-muted/60 font-medium">
