@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useRemessas } from "@/hooks/pedidos/useRemessas";
 import { useEnviarBling } from "@/hooks/pedidos/useEnviarBling";
 import { useEmpurrarXpm } from "@/hooks/pedidos/useEmpurrarXpm";
+import { usePreviaEmpurrarXpm } from "@/hooks/pedidos/usePreviaEmpurrarXpm";
 import { useSyncContato } from "@/hooks/parceiros/useSyncContato";
 import { useAuth } from "@/contexts/AuthContext";
 import { ReenviarBlingDialog } from "@/components/pedidos/dialogs/ReenviarBlingDialog";
@@ -61,6 +62,11 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
     },
     enabled: !!pedido_id,
   });
+
+  const { data: previa } = usePreviaEmpurrarXpm(
+    pedido_id,
+    estagio === "pre_separacao" || estagio === "em_separacao",
+  );
 
   if (isLoading || estagio === "cancelado") return null;
 
