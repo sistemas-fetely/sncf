@@ -7395,6 +7395,86 @@ export type Database = {
           },
         ]
       }
+      contabil_fechamento: {
+        Row: {
+          competencia: string
+          criado_em: string
+          fechado_em: string | null
+          fechado_por: string | null
+          id: string
+          obs: string | null
+          politica: Json | null
+          skus: number | null
+          status: string
+          unidades: number | null
+          valor_custo: number | null
+        }
+        Insert: {
+          competencia: string
+          criado_em?: string
+          fechado_em?: string | null
+          fechado_por?: string | null
+          id?: string
+          obs?: string | null
+          politica?: Json | null
+          skus?: number | null
+          status?: string
+          unidades?: number | null
+          valor_custo?: number | null
+        }
+        Update: {
+          competencia?: string
+          criado_em?: string
+          fechado_em?: string | null
+          fechado_por?: string | null
+          id?: string
+          obs?: string | null
+          politica?: Json | null
+          skus?: number | null
+          status?: string
+          unidades?: number | null
+          valor_custo?: number | null
+        }
+        Relationships: []
+      }
+      contabil_fechamento_item: {
+        Row: {
+          centro_id: string | null
+          custo_unitario: number
+          fechamento_id: string
+          id: string
+          quantidade: number
+          sku: string
+          valor_total: number
+        }
+        Insert: {
+          centro_id?: string | null
+          custo_unitario: number
+          fechamento_id: string
+          id?: string
+          quantidade: number
+          sku: string
+          valor_total: number
+        }
+        Update: {
+          centro_id?: string | null
+          custo_unitario?: number
+          fechamento_id?: string
+          id?: string
+          quantidade?: number
+          sku?: string
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contabil_fechamento_item_fechamento_id_fkey"
+            columns: ["fechamento_id"]
+            isOneToOne: false
+            referencedRelation: "contabil_fechamento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contagem_estoque: {
         Row: {
           centro_id: string
@@ -9339,7 +9419,9 @@ export type Database = {
           atualizado_em: string
           codigo_nf: string | null
           custo_aterrissagem: number
+          custo_bruto: number | null
           fonte: string
+          icms_aliq: number
           id: string
           ipi_aliq: number | null
           ncm: string | null
@@ -9350,7 +9432,9 @@ export type Database = {
           atualizado_em?: string
           codigo_nf?: string | null
           custo_aterrissagem: number
+          custo_bruto?: number | null
           fonte?: string
+          icms_aliq?: number
           id?: string
           ipi_aliq?: number | null
           ncm?: string | null
@@ -9361,7 +9445,9 @@ export type Database = {
           atualizado_em?: string
           codigo_nf?: string | null
           custo_aterrissagem?: number
+          custo_bruto?: number | null
           fonte?: string
+          icms_aliq?: number
           id?: string
           ipi_aliq?: number | null
           ncm?: string | null
@@ -15781,6 +15867,7 @@ export type Database = {
           data_emissao: string | null
           data_saida: string | null
           fornecedor_id: string
+          icms_creditavel: boolean
           id: number
           numero: string
           observacao: string | null
@@ -15789,7 +15876,10 @@ export type Database = {
           peso_liquido: number | null
           processo: string | null
           serie: string
+          valor_cofins: number | null
+          valor_icms: number | null
           valor_ipi: number | null
+          valor_pis: number | null
           valor_produtos: number | null
           valor_total: number | null
           volumes: number | null
@@ -15802,6 +15892,7 @@ export type Database = {
           data_emissao?: string | null
           data_saida?: string | null
           fornecedor_id: string
+          icms_creditavel?: boolean
           id?: never
           numero: string
           observacao?: string | null
@@ -15810,7 +15901,10 @@ export type Database = {
           peso_liquido?: number | null
           processo?: string | null
           serie?: string
+          valor_cofins?: number | null
+          valor_icms?: number | null
           valor_ipi?: number | null
+          valor_pis?: number | null
           valor_produtos?: number | null
           valor_total?: number | null
           volumes?: number | null
@@ -15823,6 +15917,7 @@ export type Database = {
           data_emissao?: string | null
           data_saida?: string | null
           fornecedor_id?: string
+          icms_creditavel?: boolean
           id?: never
           numero?: string
           observacao?: string | null
@@ -15831,7 +15926,10 @@ export type Database = {
           peso_liquido?: number | null
           processo?: string | null
           serie?: string
+          valor_cofins?: number | null
+          valor_icms?: number | null
           valor_ipi?: number | null
+          valor_pis?: number | null
           valor_produtos?: number | null
           valor_total?: number | null
           volumes?: number | null
@@ -17382,6 +17480,8 @@ export type Database = {
           id: string
           importacao_pedido_id: number | null
           motivo: string | null
+          nf_entrada_id: number | null
+          nf_saida_id: string | null
           obs: string | null
           origem: string
           par_transferencia_id: string | null
@@ -17405,6 +17505,8 @@ export type Database = {
           id?: string
           importacao_pedido_id?: number | null
           motivo?: string | null
+          nf_entrada_id?: number | null
+          nf_saida_id?: string | null
           obs?: string | null
           origem: string
           par_transferencia_id?: string | null
@@ -17428,6 +17530,8 @@ export type Database = {
           id?: string
           importacao_pedido_id?: number | null
           motivo?: string | null
+          nf_entrada_id?: number | null
+          nf_saida_id?: string | null
           obs?: string | null
           origem?: string
           par_transferencia_id?: string | null
@@ -17521,6 +17625,118 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "estoque_motivo_movimento"
             referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_nf_entrada_id_fkey"
+            columns: ["nf_entrada_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_nf"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_nf_entrada_id_fkey"
+            columns: ["nf_entrada_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_pedido_conferencia_nf"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_nf_saida_id_fkey"
+            columns: ["nf_saida_id"]
+            isOneToOne: false
+            referencedRelation: "nfs_emitidas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_nf_saida_id_fkey"
+            columns: ["nf_saida_id"]
+            isOneToOne: false
+            referencedRelation: "vw_braspress_rastreio_fila"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_nf_saida_id_fkey"
+            columns: ["nf_saida_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ciclo_titulo"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_nf_saida_id_fkey"
+            columns: ["nf_saida_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fato_faturamento"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_nf_saida_id_fkey"
+            columns: ["nf_saida_id"]
+            isOneToOne: false
+            referencedRelation: "vw_faturamento_nf"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_nf_saida_id_fkey"
+            columns: ["nf_saida_id"]
+            isOneToOne: false
+            referencedRelation: "vw_frete_pedido"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_nf_saida_id_fkey"
+            columns: ["nf_saida_id"]
+            isOneToOne: false
+            referencedRelation: "vw_frete_pedido_link"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_nf_saida_id_fkey"
+            columns: ["nf_saida_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_em_pedido_cancelado"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_nf_saida_id_fkey"
+            columns: ["nf_saida_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_estado"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_nf_saida_id_fkey"
+            columns: ["nf_saida_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_pedido_resolvido"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_nf_saida_id_fkey"
+            columns: ["nf_saida_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_substituicao_sugerida"
+            referencedColumns: ["nf_substituida_id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_nf_saida_id_fkey"
+            columns: ["nf_saida_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_substituicao_sugerida"
+            referencedColumns: ["nf_substituta_id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_nf_saida_id_fkey"
+            columns: ["nf_saida_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_vinculo_excecao"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_nf_saida_id_fkey"
+            columns: ["nf_saida_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_nf_arquivo"
+            referencedColumns: ["nf_id"]
           },
           {
             foreignKeyName: "movimentacao_estoque_par_transferencia_id_fkey"
@@ -32323,6 +32539,117 @@ export type Database = {
         }
         Relationships: []
       }
+      snapshot_custo_aterrissagem_20260817: {
+        Row: {
+          atualizado_em: string | null
+          codigo_nf: string | null
+          custo_aterrissagem: number | null
+          fonte: string | null
+          id: string | null
+          ipi_aliq: number | null
+          ncm: string | null
+          sku: string | null
+          snapshot_em: string | null
+          valor_unit: number | null
+        }
+        Insert: {
+          atualizado_em?: string | null
+          codigo_nf?: string | null
+          custo_aterrissagem?: number | null
+          fonte?: string | null
+          id?: string | null
+          ipi_aliq?: number | null
+          ncm?: string | null
+          sku?: string | null
+          snapshot_em?: string | null
+          valor_unit?: number | null
+        }
+        Update: {
+          atualizado_em?: string | null
+          codigo_nf?: string | null
+          custo_aterrissagem?: number | null
+          fonte?: string | null
+          id?: string | null
+          ipi_aliq?: number | null
+          ncm?: string | null
+          sku?: string | null
+          snapshot_em?: string | null
+          valor_unit?: number | null
+        }
+        Relationships: []
+      }
+      snapshot_movimentacao_estoque_20260817: {
+        Row: {
+          centro_custo_id: string | null
+          centro_id: string | null
+          classe: string | null
+          condicao: string | null
+          criado_em: string | null
+          criado_por: string | null
+          custo_unitario: number | null
+          data_mov: string | null
+          doc_numero: string | null
+          doc_tipo: string | null
+          id: string | null
+          importacao_pedido_id: number | null
+          motivo: string | null
+          obs: string | null
+          origem: string | null
+          par_transferencia_id: string | null
+          pedido_id: string | null
+          quantidade: number | null
+          referencia: string | null
+          sku: string | null
+          tipo: string | null
+        }
+        Insert: {
+          centro_custo_id?: string | null
+          centro_id?: string | null
+          classe?: string | null
+          condicao?: string | null
+          criado_em?: string | null
+          criado_por?: string | null
+          custo_unitario?: number | null
+          data_mov?: string | null
+          doc_numero?: string | null
+          doc_tipo?: string | null
+          id?: string | null
+          importacao_pedido_id?: number | null
+          motivo?: string | null
+          obs?: string | null
+          origem?: string | null
+          par_transferencia_id?: string | null
+          pedido_id?: string | null
+          quantidade?: number | null
+          referencia?: string | null
+          sku?: string | null
+          tipo?: string | null
+        }
+        Update: {
+          centro_custo_id?: string | null
+          centro_id?: string | null
+          classe?: string | null
+          condicao?: string | null
+          criado_em?: string | null
+          criado_por?: string | null
+          custo_unitario?: number | null
+          data_mov?: string | null
+          doc_numero?: string | null
+          doc_tipo?: string | null
+          id?: string | null
+          importacao_pedido_id?: number | null
+          motivo?: string | null
+          obs?: string | null
+          origem?: string | null
+          par_transferencia_id?: string | null
+          pedido_id?: string | null
+          quantidade?: number | null
+          referencia?: string | null
+          sku?: string | null
+          tipo?: string | null
+        }
+        Relationships: []
+      }
       sncf_doc_genero: {
         Row: {
           ativo: boolean
@@ -36934,6 +37261,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tmp_ajuste_jul: {
+        Row: {
+          delta: number | null
+          sku: string | null
+        }
+        Insert: {
+          delta?: number | null
+          sku?: string | null
+        }
+        Update: {
+          delta?: number | null
+          sku?: string | null
+        }
+        Relationships: []
+      }
+      tmp_ancoragem: {
+        Row: {
+          codigo_nf: string | null
+          condicao: string | null
+          nf_id: number | null
+          nf_numero: string | null
+          qtd_alocada: number | null
+          qtd_razao: number | null
+          sku: string | null
+        }
+        Insert: {
+          codigo_nf?: string | null
+          condicao?: string | null
+          nf_id?: number | null
+          nf_numero?: string | null
+          qtd_alocada?: number | null
+          qtd_razao?: number | null
+          sku?: string | null
+        }
+        Update: {
+          codigo_nf?: string | null
+          condicao?: string | null
+          nf_id?: number | null
+          nf_numero?: string | null
+          qtd_alocada?: number | null
+          qtd_razao?: number | null
+          sku?: string | null
+        }
+        Relationships: []
       }
       tmp_zenlog_swagger: {
         Row: {
