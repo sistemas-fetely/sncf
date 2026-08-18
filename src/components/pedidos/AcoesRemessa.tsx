@@ -10,6 +10,7 @@ import { useEmpurrarXpm } from "@/hooks/pedidos/useEmpurrarXpm";
 import { useSyncContato } from "@/hooks/parceiros/useSyncContato";
 import { useAuth } from "@/contexts/AuthContext";
 import { ReenviarBlingDialog } from "@/components/pedidos/dialogs/ReenviarBlingDialog";
+import { ForcarXpmDialog } from "@/components/pedidos/dialogs/ForcarXpmDialog";
 
 interface Props {
   pedido_id: string;
