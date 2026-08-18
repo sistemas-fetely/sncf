@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Selo } from "@/components/ui/selo";
 import { usePedidosFila } from "@/hooks/pedidos/usePedidosFila";
 import { usePedidoRisco, usePedidoRiscoFaixas, RISCO_COR_TOKEN } from "@/hooks/pedidos/usePedidoRisco";
+import { usePedidoAlerta, ALERTA_COR_TOKEN, type PedidoAlerta } from "@/hooks/pedidos/usePedidoAlerta";
 import { usePedidoRelogio } from "@/hooks/pedidos/usePedidoRelogio";
 import type { PedidoRisco } from "@/hooks/pedidos/usePedidoRisco";
 import { usePedidosEntregaLote } from "@/hooks/pedidos/usePedidoEntrega";
