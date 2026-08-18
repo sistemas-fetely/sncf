@@ -434,9 +434,10 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose, reenvio = 
                 variant="outline"
                 size="sm"
                 onClick={() => registrarForaMutation.mutate()}
-                disabled={!etapa || isPending}
+                disabled={!etapa || isPending || !!bloqueioCobranca}
                 className="w-full sm:w-auto"
               >
+
                 {registrarForaMutation.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
@@ -447,9 +448,10 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose, reenvio = 
               <Button
                 size="sm"
                 onClick={enviarEmailERegistrar}
-                disabled={!etapa || !podeEnviarEmail || isPending}
+                disabled={!etapa || !podeEnviarEmail || isPending || !!bloqueioCobranca}
                 className="w-full sm:w-auto"
               >
+
                 {enviandoEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Registrar e enviar e-mail
               </Button>
@@ -457,9 +459,10 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose, reenvio = 
               <Button
                 size="sm"
                 onClick={() => registrarForaMutation.mutate()}
-                disabled={!etapa || isPending}
+                disabled={!etapa || isPending || !!bloqueioCobranca}
                 className="w-full sm:w-auto"
               >
+
                 {registrarForaMutation.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
