@@ -534,6 +534,7 @@ serve(async (req) => {
               valor_juros: jurosArq,
               valor_desconto: descontoArq,
               ...(movimentacaoBaixaId ? { movimentacao_baixa_id: movimentacaoBaixaId } : {}),
+              ...(!t.nosso_numero_safra ? { nosso_numero_safra: linha.nossoNumero } : {}),
             } as any)
             .eq("id", t.id);
           if (errBoleto) {
