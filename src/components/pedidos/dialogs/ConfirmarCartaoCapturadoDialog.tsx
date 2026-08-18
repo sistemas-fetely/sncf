@@ -14,6 +14,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useConfirmarCartaoCapturado } from "@/hooks/pedidos/useConfirmarCartaoCapturado";
+import { useCriarTarefa } from "@/hooks/pedidos/usePedidoTarefas";
+import { toast } from "@/hooks/use-toast";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -41,6 +43,31 @@ export function ConfirmarCartaoCapturadoDialog({
   const [observacao, setObservacao] = useState("");
 
   const confirmar = useConfirmarCartaoCapturado();
+  const criarTarefa = useCriarTarefa();
+
+  // PROVA-DE-CARTAO-E-O-NSU: nao existe captura anonima. Sem NSU o pedido segue em
+  // Aguardando Pagamento e a falta vira pendencia — nenhuma RPC de pagamento roda aqui.
+  const handleRegistrarPendencia = async () => {
+    try {
+      await criarTarefa.mutateAsync({
+        pedidoId: pedidoId,
+        titulo: "Informar NSU da captura do cartão (pedido segue em Aguardando Pagamento)",
+      });
+    } catch (e: any) {
+      toast({
+        title: "Não foi possível registrar a pendência",
+        description: e?.message ?? "Erro desconhecido",
+        variant: "destructive",
+      });
+      throw e;
+    }
+    toast({
+      title: "Pendência registrada",
+      description:
+        "O pedido continua em Aguardando Pagamento até o NSU ser informado. O NSU está no comprovante da maquininha e no portal SafraPay — sempre recuperável.",
+    });
+    setOpen(false);
+  };
 
   const handleConfirmar = async () => {
     const valorNum = valorCapturado.trim() === "" ? null : Number(valorCapturado.replace(",", "."));
@@ -104,7 +131,8 @@ export function ConfirmarCartaoCapturadoDialog({
               placeholder="Ex.: 123456789"
             />
             <p className="text-xs text-muted-foreground">
-              O número que aparece no comprovante da maquininha ou no painel da operadora.
+              O NSU é a prova da captura. Sem ele, o crédito da adquirente não encontra este
+              pedido na conciliação.
             </p>
           </div>
 
@@ -146,7 +174,16 @@ export function ConfirmarCartaoCapturadoDialog({
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRegistrarPendencia}
+            disabled={confirmar.isPending || criarTarefa.isPending}
+          >
+            {criarTarefa.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Não tenho o NSU — registrar pendência
+          </Button>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={confirmar.isPending}>
             Cancelar
           </Button>
