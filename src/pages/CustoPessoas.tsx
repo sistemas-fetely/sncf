@@ -94,54 +94,68 @@ export default function CustoPessoas() {
     return arr;
   }, [data]);
 
+  /**
+   * DENOMINADOR-E-NUMERADOR-DO-MESMO-CONJUNTO.
+   * Linhas com `custo_total_empresa` nulo têm o salário mascarado pelo banco
+   * (pode_ver_salario). Elas não entram em soma, média, contagem por vínculo,
+   * distribuição por centro de custo nem composição percentual.
+   */
+  const visiveis = useMemo(
+    () => linhas.filter((r) => r.custo_total_empresa !== null && r.custo_total_empresa !== undefined),
+    [linhas],
+  );
+
   const kpis = useMemo(() => {
-    const remuneracao = linhas.reduce((s, r) => s + num(r.custo_recorrente_mensal), 0);
-    const encargos = linhas.reduce((s, r) => s + num(r.encargo_direto_mensal), 0);
-    const provisoes = linhas.reduce((s, r) => s + num(r.provisao_mensal), 0);
-    const totalEmpresa = linhas.reduce((s, r) => s + num(r.custo_total_empresa), 0);
+    const remuneracao = visiveis.reduce((s, r) => s + num(r.custo_recorrente_mensal), 0);
+    const encargos = visiveis.reduce((s, r) => s + num(r.encargo_direto_mensal), 0);
+    const provisoes = visiveis.reduce((s, r) => s + num(r.provisao_mensal), 0);
+    const totalEmpresa = visiveis.reduce((s, r) => s + num(r.custo_total_empresa), 0);
     const headcount = linhas.length;
-    const media = headcount > 0 ? totalEmpresa / headcount : 0;
-    const clt = linhas.filter((r) => r.tipo_vinculo === "CLT");
-    const pj = linhas.filter((r) => r.tipo_vinculo === "PJ");
+    const comValor = visiveis.length;
+    const media = comValor > 0 ? totalEmpresa / comValor : 0;
+    const clt = visiveis.filter((r) => r.tipo_vinculo === "CLT");
+    const pj = visiveis.filter((r) => r.tipo_vinculo === "PJ");
     return {
       remuneracao,
       encargos,
       provisoes,
       totalEmpresa,
       headcount,
+      comValor,
       media,
       cltCount: clt.length,
       cltCusto: clt.reduce((s, r) => s + num(r.custo_total_empresa), 0),
       pjCount: pj.length,
       pjCusto: pj.reduce((s, r) => s + num(r.custo_total_empresa), 0),
     };
-  }, [linhas]);
+  }, [linhas, visiveis]);
 
   const porArea = useMemo(() => {
     const map = new Map<string, number>();
-    for (const r of linhas) {
+    for (const r of visiveis) {
       const cc = r.centro_custo_nome || "Sem centro de custo";
       map.set(cc, (map.get(cc) || 0) + num(r.custo_total_empresa));
     }
     return Array.from(map.entries())
       .map(([area, custo]) => ({ area, custo }))
       .sort((a, b) => b.custo - a.custo);
-  }, [linhas]);
+  }, [visiveis]);
 
   const composicao = useMemo(() => {
-    const remuneracao = linhas.reduce(
+    const remuneracao = visiveis.reduce(
       (s, r) => s + num(r.valor_base) + num(r.valor_transporte) + num(r.total_beneficios) + num(r.total_extras_recorrentes),
       0,
     );
-    const encargos = linhas.reduce((s, r) => s + num(r.encargo_direto_mensal), 0);
-    const provisoes = linhas.reduce((s, r) => s + num(r.provisao_mensal), 0);
+    const encargos = visiveis.reduce((s, r) => s + num(r.encargo_direto_mensal), 0);
+    const provisoes = visiveis.reduce((s, r) => s + num(r.provisao_mensal), 0);
     const total = remuneracao + encargos + provisoes;
     return [
       { name: "Remuneração (sem encargos)", value: remuneracao, pct: total ? (remuneracao / total) * 100 : 0 },
       { name: "Encargos (caixa do mês)", value: encargos, pct: total ? (encargos / total) * 100 : 0 },
       { name: "Provisões (13º, férias, rescisão)", value: provisoes, pct: total ? (provisoes / total) * 100 : 0 },
     ];
-  }, [linhas]);
+  }, [visiveis]);
+
 
   const totaisRodape = useMemo(() => {
     return linhas.reduce(
