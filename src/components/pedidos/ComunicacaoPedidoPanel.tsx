@@ -350,10 +350,12 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
       pedido_id,
       link: novoLink.trim(),
       gerado_em: geradoEm || undefined,
+      expira_em: expiraEm || undefined,
       tipo_pagamento: linkInfo?.tipo_pagamento ?? portao?.tipo_pagamento ?? undefined,
       motivo: "Renovação de link vencido/inválido",
     });
     setNovoLink("");
+    setExpiraEm("");
     await linkQ.refetch();
   };
 
