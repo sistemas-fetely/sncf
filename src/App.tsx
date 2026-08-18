@@ -189,8 +189,6 @@ const PedidosIndex = lazy(() => import("@/pages/Pedidos/PedidosIndex"));
 const PedidoDetalhe = lazy(() => import("@/pages/Pedidos/PedidoDetalhe"));
 const ParceiroDetalhe = lazy(() => import("@/pages/Parceiros/ParceiroDetalhe"));
 const EstoqueVirtual = lazy(() => import("@/pages/Comercial/EstoqueVirtual"));
-const Oportunidades = lazy(() => import("@/pages/Comercial/Oportunidades"));
-const Consignados = lazy(() => import("@/pages/Comercial/Consignados"));
 const ConsignadoDetalhe = lazy(() => import("@/pages/Comercial/ConsignadoDetalhe"));
 
 const XpmIndex = lazy(() => import("@/pages/vendas/xpm/XpmIndex"));
@@ -201,7 +199,6 @@ const RetornoDevolucao = lazy(() => import("@/pages/estoque/RetornoDevolucao"));
 const ConciliacaoCadastro = lazy(() => import("@/pages/acervo/ConciliacaoCadastro"));
 const DestinosCadastro = lazy(() => import("@/pages/acervo/DestinosCadastro"));
 const VendasLayout = lazy(() => import("@/layouts/VendasLayout"));
-const ComercialLayout = lazy(() => import("@/layouts/ComercialLayout"));
 const ProdutoEstoqueLayout = lazy(() => import("@/layouts/ProdutoEstoqueLayout"));
 const NfsDeVenda = lazy(() => import("@/pages/Vendas/NfsDeVenda"));
 const FarolPedidos = lazy(() => import("@/pages/vendas/FarolPedidos"));
@@ -375,12 +372,7 @@ const App = () => (
                 <Route path="/canal-cpo" element={<CanalCPO />} />
               </Route>
 
-              <Route element={<ComercialLayout />}>
-                <Route path="/comercial/oportunidades" element={<Oportunidades />} />
-                <Route path="/comercial/consignados" element={<Consignados />} />
-                <Route path="/comercial/consignados/:parceiroId" element={<ConsignadoDetalhe />} />
-                
-              </Route>
+              <Route path="/comercial/consignados/:parceiroId" element={<ConsignadoDetalhe />} />
 
 
 
@@ -766,6 +758,9 @@ const App = () => (
             <Route path="/vendas/produto/estoque" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
             <Route path="/logistica/analise-custo" element={<Navigate to="/logistica" replace />} />
             <Route path="/comercial/estoque-virtual" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
+            <Route path="/comercial" element={<Navigate to="/pedidos" replace />} />
+            <Route path="/comercial/oportunidades" element={<Navigate to="/pedidos?aba=recuperacao" replace />} />
+            <Route path="/comercial/consignados" element={<Navigate to="/pedidos?aba=consignados" replace />} />
             <Route path="/produto" element={<Navigate to="/vendas/produto" replace />} />
             <Route path="/produto/estoque/virtual" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
             <Route path="/produto/estoque/saude" element={<Navigate to="/vendas/produto/estoque/saude" replace />} />
