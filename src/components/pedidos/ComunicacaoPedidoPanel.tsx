@@ -518,6 +518,17 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
                     onChange={(e) => setGeradoEm(e.target.value)}
                   />
                 </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="comunic-expira-em">Vence em</Label>
+                  <Input
+                    id="comunic-expira-em"
+                    type="date"
+                    min={geradoEm || hojeISO}
+                    value={expiraEm}
+                    onChange={(e) => setExpiraEm(e.target.value)}
+                  />
+                  <p className="text-[10px] text-muted-foreground">Vazio = validade padrão do sistema.</p>
+                </div>
                 <Button
                   size="sm"
                   onClick={salvarLinkNovo}
