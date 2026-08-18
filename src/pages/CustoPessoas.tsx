@@ -178,9 +178,15 @@ export default function CustoPessoas() {
             <Wallet className="h-6 w-6" /> Custo de Pessoas
           </h1>
           <p className="text-muted-foreground text-sm mt-1">Custo recorrente mensal da equipe</p>
+          {!ehDiretoria && (
+            <p className="text-muted-foreground text-xs mt-1">
+              Você vê a remuneração da sua equipe. Valores de outras áreas não aparecem.
+            </p>
+          )}
         </div>
         <SmartBackButton fallback="/pessoas" fallbackLabel="Voltar" />
       </div>
+
 
       {isLoading ? (
         <div className="flex justify-center py-16">
