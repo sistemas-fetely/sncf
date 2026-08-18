@@ -17,8 +17,10 @@ import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { humanizeError } from "@/lib/errorMessages";
 import { SmartBackButton } from "@/components/SmartBackButton";
+import { useIsSocio } from "@/hooks/useIsSocio";
 
 import { PageShell } from "@/components/layout/PageShell";
+
 interface CustoLinha {
   vinculo_id: string;
   pessoa_id: string;
