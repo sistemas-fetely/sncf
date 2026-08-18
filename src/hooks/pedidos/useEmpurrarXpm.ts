@@ -7,6 +7,8 @@ interface EmpurrarXpmResponse {
   codigo_expedicao?: string;
   ambiente?: string;
   bloqueios?: string[];
+  /** FOTO-NAO-BARRA: saldo insuficiente vira aviso, nunca bloqueio. */
+  avisos?: string[];
   erro?: string;
   duracao_ms?: number;
 }
@@ -53,10 +55,18 @@ export function useEmpurrarXpm() {
     },
     onSuccess: (data, vars) => {
       const amb = data.ambiente === "producao" ? "" : ` · ${data.ambiente}`;
-      toast({
-        title: vars.forcar ? "Empurrado pra XPM (forçado)" : "Empurrado pra XPM",
-        description: `Expedição ${data.codigo_expedicao}${amb}${data.duracao_ms ? ` · ${data.duracao_ms}ms` : ""}`,
-      });
+      const avisos = data.avisos ?? [];
+      if (avisos.length > 0) {
+        toast({
+          title: "Empurrado pra XPM — com aviso de saldo",
+          description: `Expedição ${data.codigo_expedicao}${amb} · ${avisos[0]}`,
+        });
+      } else {
+        toast({
+          title: vars.forcar ? "Empurrado pra XPM (forçado)" : "Empurrado pra XPM",
+          description: `Expedição ${data.codigo_expedicao}${amb}${data.duracao_ms ? ` · ${data.duracao_ms}ms` : ""}`,
+        });
+      }
       qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });
       qc.invalidateQueries({ queryKey: ["pedido-xpm", vars.pedido_id] });
       qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
