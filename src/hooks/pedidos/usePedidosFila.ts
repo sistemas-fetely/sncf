@@ -52,9 +52,11 @@ export function usePedidosFila(opts: Opts = {}) {
         q = q.eq("estagio", opts.estagio);
       }
 
+      // Recuperação é DESVIO, não fase: sai da fila em definitivo e não volta
+      // nem com `incluirCancelados`. Só aparece se vier em `estagios` explícito.
       if (opts.apenasAtivos && !buscaGlobal) {
         q = opts.incluirCancelados
-          ? q.not("estagio", "in", "(entregue)")
+          ? q.not("estagio", "in", "(entregue,recuperacao_venda)")
           : q.not("estagio", "in", "(entregue,cancelado,recuperacao_venda)");
       }
 
