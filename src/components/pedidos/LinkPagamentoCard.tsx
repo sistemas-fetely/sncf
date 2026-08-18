@@ -100,6 +100,7 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
   const [histAberto, setHistAberto] = useState(false);
   const [novoLink, setNovoLink] = useState("");
   const [geradoEm, setGeradoEm] = useState(hojeISO());
+  const [expiraEm, setExpiraEm] = useState("");
   const [motivo, setMotivo] = useState("");
 
   const linha = linkQ.data ?? null;
