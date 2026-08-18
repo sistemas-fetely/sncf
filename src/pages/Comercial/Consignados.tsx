@@ -186,6 +186,9 @@ export default function Consignados({ embutido = false }: { embutido?: boolean }
           )}
         </CardContent>
       </Card>
-    </PageShell>
+    </>
   );
+
+  if (embutido) return <div className="space-y-6">{conteudo}</div>;
+  return <PageShell className="md:p-8">{conteudo}</PageShell>;
 }
