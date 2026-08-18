@@ -83,6 +83,7 @@ export function TISidebar() {
         {/* Atalhos de Meu Espaco. Ficam hardcoded de proposito: pela tabela
             pertencem ao app meu_espaco, nao a ti. Transformar em atalho
             declarado exige modelar isso na sncf_navegacao — frente separada. */}
+        {!carregandoVisibilidade && podeVer("/tarefas") && (
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -110,6 +111,7 @@ export function TISidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        )}
         <div className="mx-4 border-t border-sidebar-border/40" />
 
 
