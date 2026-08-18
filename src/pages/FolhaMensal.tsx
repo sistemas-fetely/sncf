@@ -159,7 +159,7 @@ export default function FolhaMensal() {
             </div>
             <div className="min-w-0">
               <p className="text-2xl font-medium truncate">{fmtBRL(custoTotalEmpresa)}</p>
-              <p className="text-xs text-muted-foreground">Custo total (empresa)</p>
+              <p className="text-xs text-muted-foreground">{rotuloTotal}</p>
             </div>
           </CardContent>
         </Card>
