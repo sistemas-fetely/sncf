@@ -170,7 +170,12 @@ for (const nf of items) {
             }
           }
         }
-      } catch (_) { /* detalhe falhou — preserva valores existentes */ }
+      } catch (e) {
+        // FAIL-LOUD por NF: loga e conta, mas nao aborta o sync inteiro
+        errosDetalhe++;
+        console.error(`detalhe /nfe/${nf.id} falhou: ${(e as Error).message}`);
+      }
+
     }
 
     // Vínculo resolvido AGORA nesta execução (antes de preservar o existente)
