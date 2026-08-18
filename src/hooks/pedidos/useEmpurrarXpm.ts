@@ -28,10 +28,10 @@ export function useEmpurrarXpm() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ pedido_id }: EmpurrarXpmParams): Promise<EmpurrarXpmResponse> => {
+    mutationFn: async ({ pedido_id, forcar, motivo }: EmpurrarXpmParams): Promise<EmpurrarXpmResponse> => {
       const { data, error } = await supabase.functions.invoke<EmpurrarXpmResponse>(
         "empurrar-pedido-xpm",
-        { body: { pedido_id } },
+        { body: { pedido_id, forcar: !!forcar, motivo } },
       );
       if (error) {
         // A edge devolve 422 com a lista de bloqueios no corpo; sem isso o
@@ -54,7 +54,7 @@ export function useEmpurrarXpm() {
     onSuccess: (data, vars) => {
       const amb = data.ambiente === "producao" ? "" : ` · ${data.ambiente}`;
       toast({
-        title: "Empurrado pra XPM",
+        title: vars.forcar ? "Empurrado pra XPM (forçado)" : "Empurrado pra XPM",
         description: `Expedição ${data.codigo_expedicao}${amb}${data.duracao_ms ? ` · ${data.duracao_ms}ms` : ""}`,
       });
       qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });
