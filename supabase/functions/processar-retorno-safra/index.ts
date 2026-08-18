@@ -379,10 +379,17 @@ serve(async (req) => {
         const parceiro = t.conta?.parceiro;
 
         // ═══════════════════════════════════════════════════════════════════
-        // REGISTRO (02)  — comportamento preservado
+        // REGISTRO (02)  — banco é a autoridade para o nosso número confirmado
         // ═══════════════════════════════════════════════════════════════════
         if (categoria === "registro") {
-          await sb.from("titulo_a_receber").update({ boleto_status: "registrado" }).eq("id", t.id);
+          const { error: errRegistro } = await sb
+            .from("titulo_a_receber")
+            .update({ boleto_status: "registrado", nosso_numero_safra: linha.nossoNumero })
+            .eq("id", t.id);
+          if (errRegistro) {
+            erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `update registro: ${errRegistro.message}` });
+            continue;
+          }
           if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
           contadores.registros++;
           continue;
