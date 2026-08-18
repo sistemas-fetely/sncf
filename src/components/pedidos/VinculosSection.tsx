@@ -261,6 +261,7 @@ export function VinculosSection({
       </CardHeader>
       <CardContent className="space-y-3">
         <GrupoRemessas remessas={remessas ?? []} id_externo={id_externo} />
+        <GrupoEnviosXpm pedido_id={pedido_id} />
         {acoesBling}
 
         {vinculos && (
