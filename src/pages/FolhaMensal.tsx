@@ -20,12 +20,14 @@ interface LinhaFolha {
   pessoa: string;
   tipo_vinculo: "CLT" | "PJ";
   departamento: string | null;
-  valor_base: number;
-  valor_transporte: number;
-  total_beneficios: number;
-  extras_recorrentes: number;
-  extras_pontuais: number;
-  total_mes: number;
+  // Colunas de dinheiro chegam NULL quando o banco mascara o salário (pode_ver_salario).
+  valor_base: number | null;
+  valor_transporte: number | null;
+  total_beneficios: number | null;
+  extras_recorrentes: number | null;
+  extras_pontuais: number | null;
+  total_mes: number | null;
+
   base_encargo?: number | null;
   encargo_direto?: number | null;
   provisao?: number | null;
