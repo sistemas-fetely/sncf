@@ -66,7 +66,7 @@ for (const nf of items) {
 
     const { data: existing } = await supabase
       .from("nfs_emitidas")
-      .select("id, valor_nota, pedido_venda_id, valor_frete, transportadora_nome, transportadora_cnpj, itens_json, numero_pedido_loja, bling_pedido_venda_numero, bling_pedido_venda_id, transporte_raw, serie, pdf_url, xml_url")
+      .select("id, numero, situacao, data_emissao, valor_nota, pedido_venda_id, valor_frete, transportadora_nome, transportadora_cnpj, itens_json, numero_pedido_loja, bling_pedido_venda_numero, bling_pedido_venda_id, transporte_raw, serie, pdf_url, xml_url")
       .eq("bling_id", blingId)
       .maybeSingle();
 
@@ -75,6 +75,12 @@ for (const nf of items) {
     const semPedido = !existing?.pedido_venda_id; const semTransporte = !existing?.transporte_raw;
     const semSerie = !existing?.serie;
     const semArquivo = !existing?.pdf_url || !existing?.xml_url;
+
+    // Nota completa e autorizada dos ultimos 90 dias pode ter sido cancelada DEPOIS
+    // do sync — sem reconsulta o cancelamento fica invisivel para sempre.
+    const revalidarCancelamento = !!existing && existing.situacao === "autorizada" &&
+      !!existing.data_emissao && String(existing.data_emissao).slice(0, 10) >= limite90d &&
+      revalidados < REVALIDACAO_MAX;
 
     // Busca detalhe apenas quando falta valor, frete, pedido, transporte, série
     // ou arquivo (pdf_url/xml_url) — evita rate limit do Bling.
@@ -85,7 +91,9 @@ for (const nf of items) {
     let pedidoVendaBlingIdRaw: string | null = null;
     let serieDetalhe: string | null = null;
 
-    if (semValor || semFrete || semPedido || semTransporte || semSerie || semArquivo) {
+    if (semValor || semFrete || semPedido || semTransporte || semSerie || semArquivo || revalidarCancelamento) {
+      if (revalidarCancelamento) revalidados++;
+
       try {
         await sleep(120); // respeita rate limit do Bling (~3 req/s)
         const det = await client.get(`/nfe/${nf.id}`);
