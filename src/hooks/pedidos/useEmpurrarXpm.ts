@@ -17,6 +17,10 @@ interface EmpurrarXpmResponse {
 // Ver sncf_documentacao `decisao-remessa-e-tentativa-envio`.
 interface EmpurrarXpmParams {
   pedido_id: string;
+  /** OVERRIDE: ignora só o bloqueio de expedição já existente na XPM. */
+  forcar?: boolean;
+  /** Obrigatório quando forcar=true (mín. 15 caracteres). */
+  motivo?: string;
 }
 
 export function useEmpurrarXpm() {
