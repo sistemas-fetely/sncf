@@ -348,7 +348,7 @@ serve(async (req) => {
             id, numero_titulo, numero_parcela, total_parcelas,
             valor_bruto, valor_desconto, valor_juros, valor_multa, valor_correcao,
             data_vencimento_atual, boleto_status, pedido_id,
-            nosso_numero_seq, linha_digitavel, codigo_barras_boleto,
+            nosso_numero_seq, nosso_numero_safra, linha_digitavel, codigo_barras_boleto,
             prorrogacao_nova_data, prorrogacao_solicitada_em,
             reemissao_nova_data, remessa_safra_id,
             conta:contas_pagar_receber(
@@ -379,10 +379,17 @@ serve(async (req) => {
         const parceiro = t.conta?.parceiro;
 
         // ═══════════════════════════════════════════════════════════════════
-        // REGISTRO (02)  — comportamento preservado
+        // REGISTRO (02)  — banco é a autoridade para o nosso número confirmado
         // ═══════════════════════════════════════════════════════════════════
         if (categoria === "registro") {
-          await sb.from("titulo_a_receber").update({ boleto_status: "registrado" }).eq("id", t.id);
+          const { error: errRegistro } = await sb
+            .from("titulo_a_receber")
+            .update({ boleto_status: "registrado", nosso_numero_safra: linha.nossoNumero })
+            .eq("id", t.id);
+          if (errRegistro) {
+            erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `update registro: ${errRegistro.message}` });
+            continue;
+          }
           if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
           contadores.registros++;
           continue;
@@ -527,6 +534,7 @@ serve(async (req) => {
               valor_juros: jurosArq,
               valor_desconto: descontoArq,
               ...(movimentacaoBaixaId ? { movimentacao_baixa_id: movimentacaoBaixaId } : {}),
+              ...(!t.nosso_numero_safra ? { nosso_numero_safra: linha.nossoNumero } : {}),
             } as any)
             .eq("id", t.id);
           if (errBoleto) {
