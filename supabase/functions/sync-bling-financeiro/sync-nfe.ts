@@ -25,11 +25,39 @@ function parseBlingDate(val: unknown): string | null { if (!val) return null; co
 
 const SITUACAO_MAP: Record<number, string> = { 1: "pendente", 2: "cancelada", 3: "pendente", 4: "rejeitada", 5: "autorizada", 6: "autorizada", 7: "registrada", 8: "pendente", 9: "denegada", 10: "pendente", 11: "bloqueada", };
 
-export async function syncNfe( supabase: any, client: BlingClient, timeUp: () => boolean, cursor: { ultima_pagina: number; ultima_data_corte: string | null }, ) { let criados = 0, atualizados = 0, erros = 0; let pagina = Math.max(cursor.ultima_pagina + 1, 1); let ultimoErro = "";
+// Deteccao de cancelamento: Bling devolve situacao=5 (autorizada) na listagem mesmo
+// para nota cancelada. A verdade vem no detalhe, em situacaoCancelamento (numero,
+// string ou objeto com .valor) e/ou cancelamento (objeto com dataCancelamento etc).
+function detectarCancelamento(d: any): { cancelada: boolean; raw: any } {
+  const sc = d?.situacaoCancelamento;
+  const scVal = sc != null && typeof sc === "object" ? sc.valor : sc;
+  let porSituacaoCancelamento = false;
+  if (scVal != null && scVal !== "" && scVal !== false) {
+    const n = Number(scVal);
+    if (Number.isFinite(n)) porSituacaoCancelamento = n > 0;
+    else porSituacaoCancelamento = !/^(nao|não|n|0|false|sem)/i.test(String(scVal).trim());
+  }
+  const c = d?.cancelamento;
+  const porCancelamento = c != null && c !== "" && c !== false &&
+    (typeof c !== "object" || Object.keys(c).length > 0);
+  return {
+    cancelada: porSituacaoCancelamento || porCancelamento,
+    raw: { situacaoCancelamento: sc ?? null, cancelamento: c ?? null },
+  };
+}
 
-while (!timeUp()) { let data: any; try { data = await client.get(`/nfe?limite=100&pagina=${pagina}`); } catch (e) { ultimoErro = `pagina ${pagina}: ${(e as Error).message}`; break; } const items = data?.data || []; if (items.length === 0) { pagina = 0; break; }
+const REVALIDACAO_MAX = 40; // orcamento de 90s da funcao — teto de reconsultas por execucao
+
+export async function syncNfe( supabase: any, client: BlingClient, timeUp: () => boolean, cursor: { ultima_pagina: number; ultima_data_corte: string | null }, ) { let criados = 0, atualizados = 0, erros = 0; let pagina = Math.max(cursor.ultima_pagina + 1, 1); let ultimoErro = "";
+let revalidados = 0, errosDetalhe = 0, canceladasDetectadas = 0;
+const limite90d = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+while (!timeUp()) { let data: any; try { data = await client.get(`/nfe?limite=100&pagina=${pagina}`); } catch (e) { ultimoErro = `pagina ${pagina}: ${(e as Error).message}`; break; } const itemsRaw = data?.data || []; if (itemsRaw.length === 0) { pagina = 0; break; }
+// Prioriza data_emissao mais recente para gastar o orcamento de revalidacao no que importa
+const items = [...itemsRaw].sort((a: any, b: any) => String(b?.dataEmissao ?? "").localeCompare(String(a?.dataEmissao ?? "")));
 
 for (const nf of items) {
+
   try {
     const blingId = String(nf.id);
     const parceiro_id = await resolveParceiroId(supabase, nf.contato);
