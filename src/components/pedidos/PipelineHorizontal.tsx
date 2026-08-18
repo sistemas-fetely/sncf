@@ -275,7 +275,7 @@ export function PipelineHorizontal({
         <button
           type="button"
           onClick={() => onLimparFiltro?.()}
-          title="Pedidos em andamento. Não inclui entregues. Cancelados e recuperação de venda entram só com o toggle ao lado. Para ver histórico completo, use a busca."
+          title="Pedidos em andamento. Não inclui entregues nem recuperação de venda. Cancelados entram só com o toggle ao lado. Para ver histórico completo, use a busca."
           className={cn(
             "group relative flex flex-col items-center justify-center rounded-md border py-2 px-3 transition-all duration-200 min-w-[76px]",
             "gold-border-hover focus-visible:outline-none",
@@ -300,7 +300,7 @@ export function PipelineHorizontal({
             "gold-border-hover focus-visible:outline-none",
             incluirCancelados ? "gold-border bg-gold-soft shadow-sm" : "border-border bg-card"
           )}
-          title="Inclui cancelados e recuperação de venda na fila"
+          title="Inclui pedidos cancelados na fila"
         >
           <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide leading-tight">
             Incluir<br />cancelados
@@ -359,6 +359,31 @@ export function PipelineHorizontal({
             </button>
           );
         })}
+
+        {/* Divisor: daqui pra frente não é passo do fluxo */}
+        <div className="w-px bg-border mx-1 self-stretch" />
+
+        {/* Chip de desvio — fora da carteira ativa */}
+        <button
+          type="button"
+          onClick={() => onAbrirRecuperacao?.()}
+          title="Fora da carteira ativa. Vendas a recuperar — clique para abrir a aba Recuperação."
+          className={cn(
+            "flex w-[104px] shrink-0 flex-col items-center justify-center rounded-md border border-dashed bg-muted/40 py-2 px-2 text-muted-foreground transition-all duration-200",
+            "gold-border-hover focus-visible:outline-none",
+            desvio.qtd === 0 && "opacity-40",
+          )}
+        >
+          <span className="text-[10px] font-medium uppercase tracking-wide leading-tight">
+            Recuperação
+          </span>
+          <span className="text-[11px] font-medium tabular-nums">
+            {desvio.qtd} {desvio.qtd === 1 ? "pedido" : "pedidos"}
+          </span>
+          <span className="text-[10px] tabular-nums">
+            {fmtBRL.format(desvio.valor)}
+          </span>
+        </button>
       </div>
     </div>
   );
