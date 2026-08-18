@@ -178,7 +178,7 @@ export function ConfirmarCartaoCapturadoDialog({
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleRegistrarPendencia}
+            onClick={() => { void handleRegistrarPendencia().catch(() => {}); }}
             disabled={confirmar.isPending || criarTarefa.isPending}
           >
             {criarTarefa.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
