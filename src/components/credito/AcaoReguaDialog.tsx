@@ -229,7 +229,11 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose, reenvio = 
   };
 
   const isPending = registrarForaMutation.isPending || enviandoEmail;
+  // regua_motivo_inelegivel só vem preenchido quando o título NÃO é elegível.
+  const bloqueioCobranca =
+    modo === "enviada" ? (((titulo as any).regua_motivo_inelegivel as string | null) ?? null) : null;
   const clienteNome = nomeExibicao(titulo.parceiro_razao_social, titulo.parceiro_nome_fantasia, "—");
+
   const vencCurto = titulo.data_vencimento_atual
     ? formatDateBR(titulo.data_vencimento_atual).slice(0, 5)
     : "—";
@@ -252,7 +256,17 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose, reenvio = 
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {etapa ? (
             <div className="space-y-4">
+              {bloqueioCobranca && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    Este título não pode ser cobrado pela régua: {bloqueioCobranca}. Registrar contato
+                    está bloqueado — resolva o lastro antes.
+                  </AlertDescription>
+                </Alert>
+              )}
               {reenvio && (
+
                 <Alert className="border-warning/40 bg-warning/10">
                   <AlertTriangle className="h-4 w-4 text-warning" />
                   <AlertDescription className="text-xs text-warning">
