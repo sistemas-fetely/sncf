@@ -17,8 +17,10 @@ import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { humanizeError } from "@/lib/errorMessages";
 import { SmartBackButton } from "@/components/SmartBackButton";
+import { useIsSocio } from "@/hooks/useIsSocio";
 
 import { PageShell } from "@/components/layout/PageShell";
+
 interface CustoLinha {
   vinculo_id: string;
   pessoa_id: string;
@@ -42,12 +44,21 @@ interface CustoLinha {
 const fmtBRL = (v: number) =>
   (Number(v) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+/** Nulo é ausência de permissão — não pode se parecer com zero. */
+const fmtOuTraco = (v: number | null | undefined) =>
+  v === null || v === undefined ? "—" : fmtBRL(Number(v));
+
 const num = (v: any) => Number(v || 0);
+
 
 const COMPOSICAO_COLORS = ["hsl(var(--primary))", "hsl(var(--chart-2, 142 71% 45%))", "hsl(var(--chart-3, 38 92% 50%))"];
 
 export default function CustoPessoas() {
   const navigate = useNavigate();
+  const { data: isSocio } = useIsSocio();
+  const ehDiretoria = isSocio === true;
+  const rotuloTotal = ehDiretoria ? "Custo total (empresa)" : "Custo do meu time";
+
 
   // Rastro de visualização (telemetria — nunca bloqueia nem alerta o usuário)
   const rastroRef = useRef(false);
@@ -83,57 +94,71 @@ export default function CustoPessoas() {
     return arr;
   }, [data]);
 
+  /**
+   * DENOMINADOR-E-NUMERADOR-DO-MESMO-CONJUNTO.
+   * Linhas com `custo_total_empresa` nulo têm o salário mascarado pelo banco
+   * (pode_ver_salario). Elas não entram em soma, média, contagem por vínculo,
+   * distribuição por centro de custo nem composição percentual.
+   */
+  const visiveis = useMemo(
+    () => linhas.filter((r) => r.custo_total_empresa !== null && r.custo_total_empresa !== undefined),
+    [linhas],
+  );
+
   const kpis = useMemo(() => {
-    const remuneracao = linhas.reduce((s, r) => s + num(r.custo_recorrente_mensal), 0);
-    const encargos = linhas.reduce((s, r) => s + num(r.encargo_direto_mensal), 0);
-    const provisoes = linhas.reduce((s, r) => s + num(r.provisao_mensal), 0);
-    const totalEmpresa = linhas.reduce((s, r) => s + num(r.custo_total_empresa), 0);
+    const remuneracao = visiveis.reduce((s, r) => s + num(r.custo_recorrente_mensal), 0);
+    const encargos = visiveis.reduce((s, r) => s + num(r.encargo_direto_mensal), 0);
+    const provisoes = visiveis.reduce((s, r) => s + num(r.provisao_mensal), 0);
+    const totalEmpresa = visiveis.reduce((s, r) => s + num(r.custo_total_empresa), 0);
     const headcount = linhas.length;
-    const media = headcount > 0 ? totalEmpresa / headcount : 0;
-    const clt = linhas.filter((r) => r.tipo_vinculo === "CLT");
-    const pj = linhas.filter((r) => r.tipo_vinculo === "PJ");
+    const comValor = visiveis.length;
+    const media = comValor > 0 ? totalEmpresa / comValor : 0;
+    const clt = visiveis.filter((r) => r.tipo_vinculo === "CLT");
+    const pj = visiveis.filter((r) => r.tipo_vinculo === "PJ");
     return {
       remuneracao,
       encargos,
       provisoes,
       totalEmpresa,
       headcount,
+      comValor,
       media,
       cltCount: clt.length,
       cltCusto: clt.reduce((s, r) => s + num(r.custo_total_empresa), 0),
       pjCount: pj.length,
       pjCusto: pj.reduce((s, r) => s + num(r.custo_total_empresa), 0),
     };
-  }, [linhas]);
+  }, [linhas, visiveis]);
 
   const porArea = useMemo(() => {
     const map = new Map<string, number>();
-    for (const r of linhas) {
+    for (const r of visiveis) {
       const cc = r.centro_custo_nome || "Sem centro de custo";
       map.set(cc, (map.get(cc) || 0) + num(r.custo_total_empresa));
     }
     return Array.from(map.entries())
       .map(([area, custo]) => ({ area, custo }))
       .sort((a, b) => b.custo - a.custo);
-  }, [linhas]);
+  }, [visiveis]);
 
   const composicao = useMemo(() => {
-    const remuneracao = linhas.reduce(
+    const remuneracao = visiveis.reduce(
       (s, r) => s + num(r.valor_base) + num(r.valor_transporte) + num(r.total_beneficios) + num(r.total_extras_recorrentes),
       0,
     );
-    const encargos = linhas.reduce((s, r) => s + num(r.encargo_direto_mensal), 0);
-    const provisoes = linhas.reduce((s, r) => s + num(r.provisao_mensal), 0);
+    const encargos = visiveis.reduce((s, r) => s + num(r.encargo_direto_mensal), 0);
+    const provisoes = visiveis.reduce((s, r) => s + num(r.provisao_mensal), 0);
     const total = remuneracao + encargos + provisoes;
     return [
       { name: "Remuneração (sem encargos)", value: remuneracao, pct: total ? (remuneracao / total) * 100 : 0 },
       { name: "Encargos (caixa do mês)", value: encargos, pct: total ? (encargos / total) * 100 : 0 },
       { name: "Provisões (13º, férias, rescisão)", value: provisoes, pct: total ? (provisoes / total) * 100 : 0 },
     ];
-  }, [linhas]);
+  }, [visiveis]);
+
 
   const totaisRodape = useMemo(() => {
-    return linhas.reduce(
+    return visiveis.reduce(
       (acc, r) => ({
         remuneracao: acc.remuneracao + num(r.custo_recorrente_mensal),
         encargos: acc.encargos + num(r.encargo_direto_mensal),
@@ -142,7 +167,8 @@ export default function CustoPessoas() {
       }),
       { remuneracao: 0, encargos: 0, provisoes: 0, total: 0 },
     );
-  }, [linhas]);
+  }, [visiveis]);
+
 
   return (
     <PageShell>
@@ -152,9 +178,15 @@ export default function CustoPessoas() {
             <Wallet className="h-6 w-6" /> Custo de Pessoas
           </h1>
           <p className="text-muted-foreground text-sm mt-1">Custo recorrente mensal da equipe</p>
+          {!ehDiretoria && (
+            <p className="text-muted-foreground text-xs mt-1">
+              Você vê a remuneração da sua equipe. Valores de outras áreas não aparecem.
+            </p>
+          )}
         </div>
         <SmartBackButton fallback="/pessoas" fallbackLabel="Voltar" />
       </div>
+
 
       {isLoading ? (
         <div className="flex justify-center py-16">
@@ -171,7 +203,7 @@ export default function CustoPessoas() {
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Wallet className="h-5 w-5" /></div>
               <div className="min-w-0">
                 <p className="text-2xl font-medium truncate">{fmtBRL(kpis.totalEmpresa)}</p>
-                <p className="text-xs text-muted-foreground">Custo total (empresa)</p>
+                <p className="text-xs text-muted-foreground">{rotuloTotal}</p>
               </div>
             </CardContent></Card>
             <Card className="card-shadow"><CardContent className="p-4">
@@ -187,7 +219,11 @@ export default function CustoPessoas() {
               <div>
                 <p className="text-2xl font-medium">{kpis.headcount}</p>
                 <p className="text-xs text-muted-foreground">Headcount</p>
-                <p className="text-xs text-muted-foreground mt-1 truncate">Média: {fmtBRL(kpis.media)}</p>
+                <p className="text-xs text-muted-foreground mt-1 truncate">
+                  Média: {fmtBRL(kpis.media)}
+                  {kpis.comValor !== kpis.headcount && ` · base: ${kpis.comValor} com valor visível`}
+                </p>
+
               </div>
             </CardContent></Card>
             <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
@@ -263,7 +299,7 @@ export default function CustoPessoas() {
                     <TableHead className="text-right">Remuneração (sem encargos)</TableHead>
                     <TableHead className="text-right">Encargos (caixa do mês)</TableHead>
                     <TableHead className="text-right">Provisões (13º, férias, rescisão)</TableHead>
-                    <TableHead className="text-right">Custo total (empresa)</TableHead>
+                    <TableHead className="text-right">{rotuloTotal}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -274,10 +310,11 @@ export default function CustoPessoas() {
                         <Badge variant={r.tipo_vinculo === "CLT" ? "default" : "secondary"}>{r.tipo_vinculo}</Badge>
                       </TableCell>
                       <TableCell>{r.centro_custo_nome || "—"}</TableCell>
-                      <TableCell className="text-right">{fmtBRL(num(r.custo_recorrente_mensal))}</TableCell>
-                      <TableCell className="text-right">{fmtBRL(num(r.encargo_direto_mensal))}</TableCell>
-                      <TableCell className="text-right">{fmtBRL(num(r.provisao_mensal))}</TableCell>
-                      <TableCell className="text-right font-medium">{fmtBRL(num(r.custo_total_empresa))}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtOuTraco(r.custo_recorrente_mensal)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtOuTraco(r.encargo_direto_mensal)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtOuTraco(r.provisao_mensal)}</TableCell>
+                      <TableCell className="text-right tabular-nums font-medium">{fmtOuTraco(r.custo_total_empresa)}</TableCell>
+
                     </TableRow>
                   ))}
                   <TableRow className="bg-muted/60 font-medium">

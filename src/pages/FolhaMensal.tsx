@@ -12,18 +12,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { humanizeError } from "@/lib/errorMessages";
 import { PageShell } from "@/components/layout/PageShell";
+import { useIsSocio } from "@/hooks/useIsSocio";
+
 
 interface LinhaFolha {
   vinculo_id: string;
   pessoa: string;
   tipo_vinculo: "CLT" | "PJ";
   departamento: string | null;
-  valor_base: number;
-  valor_transporte: number;
-  total_beneficios: number;
-  extras_recorrentes: number;
-  extras_pontuais: number;
-  total_mes: number;
+  // Colunas de dinheiro chegam NULL quando o banco mascara o salário (pode_ver_salario).
+  valor_base: number | null;
+  valor_transporte: number | null;
+  total_beneficios: number | null;
+  extras_recorrentes: number | null;
+  extras_pontuais: number | null;
+  total_mes: number | null;
+
   base_encargo?: number | null;
   encargo_direto?: number | null;
   provisao?: number | null;
@@ -34,11 +38,19 @@ interface LinhaFolha {
 const fmtBRL = (v: number) =>
   (Number(v) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+/** Nulo é ausência de permissão — não pode se parecer com zero. */
+const fmtOuTraco = (v: number | null | undefined) =>
+  v === null || v === undefined ? "—" : fmtBRL(Number(v));
+
 export default function FolhaMensal() {
   const navigate = useNavigate();
+  const { data: isSocio } = useIsSocio();
+  const ehDiretoria = isSocio === true;
+  const rotuloTotal = ehDiretoria ? "Custo total (empresa)" : "Custo do meu time";
   const hoje = new Date();
   const defaultComp = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
   const [competencia, setCompetencia] = useState<string>(defaultComp);
+
 
   // Rastro de visualização (telemetria — nunca bloqueia nem alerta o usuário)
   const rastroRef = useRef(false);
@@ -110,7 +122,13 @@ export default function FolhaMensal() {
         <div>
           <h1 className="text-2xl font-medium tracking-tight">Folha Mensal</h1>
           <p className="text-muted-foreground text-sm mt-1">Custo da equipe por competência</p>
+          {!ehDiretoria && (
+            <p className="text-muted-foreground text-xs mt-1">
+              Você vê a remuneração da sua equipe. Valores de outras áreas não aparecem.
+            </p>
+          )}
         </div>
+
         <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas")}>
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
@@ -141,7 +159,7 @@ export default function FolhaMensal() {
             </div>
             <div className="min-w-0">
               <p className="text-2xl font-medium truncate">{fmtBRL(custoTotalEmpresa)}</p>
-              <p className="text-xs text-muted-foreground">Custo total (empresa)</p>
+              <p className="text-xs text-muted-foreground">{rotuloTotal}</p>
             </div>
           </CardContent>
         </Card>
@@ -227,7 +245,7 @@ export default function FolhaMensal() {
                   <TableHead className="font-medium text-right">Remuneração (sem encargos)</TableHead>
                   <TableHead className="font-medium text-right">Encargos (caixa do mês)</TableHead>
                   <TableHead className="font-medium text-right">Provisões (13º, férias, rescisão)</TableHead>
-                  <TableHead className="font-medium text-right">Custo total (empresa)</TableHead>
+                  <TableHead className="font-medium text-right">{rotuloTotal}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -246,11 +264,20 @@ export default function FolhaMensal() {
                 ) : (
                   <>
                     {sorted.map((l) => {
-                      const base = (Number(l.valor_base) || 0) + (Number(l.valor_transporte) || 0);
+                      // Linha mascarada pelo banco: dinheiro vem nulo, não zero.
+                      const mascarada = l.valor_base === null || l.valor_base === undefined;
+                      const base = mascarada
+                        ? null
+                        : (Number(l.valor_base) || 0) + (Number(l.valor_transporte) || 0);
                       const pont = Number(l.extras_pontuais) || 0;
-                      const enc = Number(l.encargo_direto) || 0;
-                      const prov = Number(l.provisao) || 0;
-                      const custoEmpresa = Number(l.custo_total_empresa) || (Number(l.total_mes) || 0) + enc + prov;
+                      const enc = l.encargo_direto === null || l.encargo_direto === undefined ? null : Number(l.encargo_direto);
+                      const prov = l.provisao === null || l.provisao === undefined ? null : Number(l.provisao);
+                      const custoEmpresa =
+                        l.custo_total_empresa !== null && l.custo_total_empresa !== undefined
+                          ? Number(l.custo_total_empresa)
+                          : mascarada
+                            ? null
+                            : (Number(l.total_mes) || 0) + (enc || 0) + (prov || 0);
                       return (
                         <TableRow key={l.vinculo_id} className="hover:bg-muted/30">
                           <TableCell className="font-medium">{l.pessoa}</TableCell>
@@ -266,18 +293,19 @@ export default function FolhaMensal() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-sm">{l.departamento || "—"}</TableCell>
-                          <TableCell className="text-right tabular-nums">{fmtBRL(base)}</TableCell>
-                          <TableCell className="text-right tabular-nums">{fmtBRL(Number(l.total_beneficios) || 0)}</TableCell>
-                          <TableCell className="text-right tabular-nums">{fmtBRL(Number(l.extras_recorrentes) || 0)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{fmtOuTraco(base)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{fmtOuTraco(l.total_beneficios)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{fmtOuTraco(l.extras_recorrentes)}</TableCell>
                           <TableCell className={`text-right tabular-nums ${pont > 0 ? "text-warning font-medium" : "text-muted-foreground"}`}>
                             {pont > 0 ? fmtBRL(pont) : "—"}
                           </TableCell>
-                          <TableCell className="text-right tabular-nums">{fmtBRL(Number(l.total_mes) || 0)}</TableCell>
-                          <TableCell className="text-right tabular-nums">{fmtBRL(enc)}</TableCell>
-                          <TableCell className="text-right tabular-nums">{fmtBRL(prov)}</TableCell>
-                          <TableCell className="text-right tabular-nums font-medium">{fmtBRL(custoEmpresa)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{fmtOuTraco(l.total_mes)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{fmtOuTraco(enc)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{fmtOuTraco(prov)}</TableCell>
+                          <TableCell className="text-right tabular-nums font-medium">{fmtOuTraco(custoEmpresa)}</TableCell>
                         </TableRow>
                       );
+
                     })}
                     <TableRow className="bg-muted/60 font-medium">
                       <TableCell colSpan={3}>Total</TableCell>
