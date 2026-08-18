@@ -1,0 +1,1 @@
+update sncf_navegacao set status='pronta', updated_at=now() where chave='fin.cont_pacote';
