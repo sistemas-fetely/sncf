@@ -163,6 +163,7 @@ const ConciliacaoCartao = lazy(() => import("@/pages/administrativo/ConciliacaoC
 const ConciliacaoDespesas = lazy(() => import("@/pages/administrativo/ConciliacaoDespesas"));
 const Despesas = lazy(() => import("@/pages/administrativo/Despesas"));
 const FechamentoContabil = lazy(() => import("@/pages/administrativo/contabilidade/FechamentoContabil"));
+const PacoteContador = lazy(() => import("@/pages/administrativo/contabilidade/PacoteContador"));
 
 const Auditoria = lazy(() => import("@/pages/administrativo/Auditoria"));
 const PainelMargem = lazy(() => import("@/pages/administrativo/PainelMargem"));
