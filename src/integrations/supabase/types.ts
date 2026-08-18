@@ -62886,16 +62886,14 @@ export type Database = {
         Args: { _modulo: string; _tipo_evento: string }
         Returns: undefined
       }
-      reabrir_analise_pedido:
-        | { Args: { p_motivo?: string; p_pedido_id: string }; Returns: Json }
-        | {
-            Args: {
-              p_condicao_slug?: string
-              p_motivo?: string
-              p_pedido_id: string
-            }
-            Returns: Json
-          }
+      reabrir_analise_pedido: {
+        Args: {
+          p_condicao_slug?: string
+          p_motivo?: string
+          p_pedido_id: string
+        }
+        Returns: Json
+      }
       reabrir_nf_pj: {
         Args: { _motivo: string; _nota_id: string }
         Returns: Json
