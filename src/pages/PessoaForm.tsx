@@ -54,7 +54,7 @@ interface VinculoForm {
   data_inicio: string;
   valor_base: string;
   valor_transporte: string;
-  valor_beneficios_extras: string;
+  
   forma_pagamento_id: string;
   dia_vencimento: string;
   banco_nome: string;
