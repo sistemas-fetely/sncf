@@ -55,6 +55,10 @@ const COMPOSICAO_COLORS = ["hsl(var(--primary))", "hsl(var(--chart-2, 142 71% 45
 
 export default function CustoPessoas() {
   const navigate = useNavigate();
+  const { data: isSocio } = useIsSocio();
+  const ehDiretoria = isSocio === true;
+  const rotuloTotal = ehDiretoria ? "Custo total (empresa)" : "Custo do meu time";
+
 
   // Rastro de visualização (telemetria — nunca bloqueia nem alerta o usuário)
   const rastroRef = useRef(false);
