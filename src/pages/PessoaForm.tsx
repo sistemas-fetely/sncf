@@ -20,6 +20,7 @@ import VinculoExtrasSection from "@/components/pessoas/VinculoExtrasSection";
 import VinculoFinanceiroPJSection from "@/components/pessoas/VinculoFinanceiroPJSection";
 import VinculoPagamentosPJSection from "@/components/pessoas/VinculoPagamentosPJSection";
 import CriarAcessoCard from "@/components/pessoas/CriarAcessoCard";
+import { useIsSocio } from "@/hooks/useIsSocio";
 
 import { PageShell } from "@/components/layout/PageShell";
 type Dim = { id: string; nome: string; codigo?: string };
