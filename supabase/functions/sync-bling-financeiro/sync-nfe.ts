@@ -105,6 +105,13 @@ for (const nf of items) {
           if (detSitNum != null) {
             situacaoDetalhe = SITUACAO_MAP[Number(detSitNum)] || null;
           }
+          // Cancelamento tem PRECEDENCIA sobre o mapa de situacao.
+          const canc = detectarCancelamento(d);
+          if (canc.cancelada || SITUACAO_MAP[Number(detSitNum)] === "cancelada") {
+            situacaoDetalhe = "cancelada";
+            nf._cancelamentoRaw = canc.raw;
+          }
+
           numeroPedidoLojaRaw = d.numeroPedidoLoja != null ? String(d.numeroPedidoLoja) : null;
           pedidoVendaNumeroRaw = d.pedidoVenda?.numero != null ? String(d.pedidoVenda.numero) : null;
           pedidoVendaBlingIdRaw = d.pedidoVenda?.id != null ? String(d.pedidoVenda.id) : null;
