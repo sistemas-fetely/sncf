@@ -17,6 +17,7 @@ import { usePedidoOrigens } from "@/hooks/pedidos/usePedidoOrigens";
 import { supabase } from "@/integrations/supabase/client";
 import { usePedidoTitulos } from "@/hooks/pedidos/usePedidoTitulos";
 import { PlanoRecebimentoCard } from "@/components/pedidos/PlanoRecebimentoCard";
+import { AlertasPedidoPanel } from "@/components/pedidos/AlertasPedidoPanel";
 import { useRecebivelFamilia } from "@/hooks/pedidos/useRecebivelFamilia";
 import { useTituloEixosPedido } from "@/hooks/pedidos/useTituloEixosPedido";
 import { useTituloEixosDim } from "@/hooks/credito/useTituloEixosDim";
@@ -1647,6 +1648,9 @@ export default function PedidoDetalhe() {
         focarMotivo={!!naturezaSugerida}
 
       />
+
+      {/* Canal único de alerta operacional: achados vivos da auditoria. */}
+      <AlertasPedidoPanel pedidoId={pedido.id} />
 
       <Separator />
 

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Selo } from "@/components/ui/selo";
 import { usePedidosFila } from "@/hooks/pedidos/usePedidosFila";
 import { usePedidoRisco, usePedidoRiscoFaixas, RISCO_COR_TOKEN } from "@/hooks/pedidos/usePedidoRisco";
+import { usePedidoAlerta, ALERTA_COR_TOKEN, type PedidoAlerta } from "@/hooks/pedidos/usePedidoAlerta";
 import { usePedidoRelogio } from "@/hooks/pedidos/usePedidoRelogio";
 import type { PedidoRisco } from "@/hooks/pedidos/usePedidoRisco";
 import { usePedidosEntregaLote } from "@/hooks/pedidos/usePedidoEntrega";
@@ -166,6 +167,7 @@ export function FilaPedidosPorArea({
   const [situacaoFilter, setSituacaoFilter] = useState<string>("todas");
   const [liberacaoFilter, setLiberacaoFilter] = useState<string>("todas");
   const [ordenacao, setOrdenacao] = useState<OrdenacaoFila>("risco");
+  const [somenteComAlerta, setSomenteComAlerta] = useState(false);
   const [pagina, setPagina] = useState(1);
   const [pageSizeOpt, setPageSizeOpt] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
   const [autoPageSize, setAutoPageSize] = useState<number>(20);
@@ -237,6 +239,8 @@ export function FilaPedidosPorArea({
   const { data: riscoMap } = usePedidoRisco();
   const { data: relogioMap } = usePedidoRelogio();
   const { data: faixas } = usePedidoRiscoFaixas();
+  // Alerta operacional — fonte única: vw_pedido_alerta (achados vivos da auditoria).
+  const { data: alertaMap } = usePedidoAlerta();
 
   const termoBusca = buscaDebounced.trim();
 
@@ -333,6 +337,9 @@ export function FilaPedidosPorArea({
     if (somenteRiscoAlto) {
       base = base.filter((p) => riscoMap?.get(p.id)?.risco_cor === "destructive");
     }
+    if (somenteComAlerta) {
+      base = base.filter((p) => !!alertaMap?.get(p.id)?.severidade);
+    }
     if (ordenacao === "entrada_paga") {
       // Quem já pôs dinheiro fura a fila; empate volta ao critério cronológico.
       return [...base].sort((a, b) => {
@@ -354,7 +361,7 @@ export function FilaPedidosPorArea({
       if (db !== da) return db - da;
       return new Date(a.recebido_em).getTime() - new Date(b.recebido_em).getTime();
     });
-  }, [data, pedidosPorApelido, termoBusca, ordenacao, riscoMap, marcacaoFilter, formaPgtoFilter, situacaoFilter, somenteRiscoAlto, estagios]);
+  }, [data, pedidosPorApelido, termoBusca, ordenacao, riscoMap, marcacaoFilter, formaPgtoFilter, situacaoFilter, somenteRiscoAlto, somenteComAlerta, alertaMap, estagios]);
 
   const buscaGlobalAtiva = !!buscaDebounced.trim() && !estagioEspecificoSelecionado;
 
@@ -602,6 +609,16 @@ export function FilaPedidosPorArea({
             <SelectItem value="entrada_paga">Ordenar: Entrada paga primeiro</SelectItem>
           </SelectContent>
         </Select>
+        <Button
+          type="button"
+          variant={somenteComAlerta ? "secondary" : "outline"}
+          size="sm"
+          aria-pressed={somenteComAlerta}
+          className="w-full sm:w-auto"
+          onClick={() => setSomenteComAlerta((v) => !v)}
+        >
+          Só com alerta
+        </Button>
       </div>
 
       {resumoBuscaGlobal && (() => {
@@ -668,7 +685,7 @@ export function FilaPedidosPorArea({
                   className="cursor-pointer h-16 [&>td]:py-2 [&>td]:align-middle [&>td]:overflow-hidden"
                   onClick={() => navigate(`/pedidos/${p.id}`)}
                 >
-                  <TableCell onClick={(e) => e.stopPropagation()}>
+                  <TableCell onClick={(e) => e.stopPropagation()} className="whitespace-nowrap">
                     <FarolRisco
                       faixa={risco?.risco_faixa ?? null}
                       cor={risco?.risco_cor ?? null}
@@ -678,6 +695,7 @@ export function FilaPedidosPorArea({
                         risco?.risco_faixa ? faixas?.get(risco.risco_faixa)?.rotulo ?? null : null
                       }
                     />
+                    <FarolAlerta alerta={alertaMap?.get(p.id)} />
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <p className="text-sm font-mono font-medium text-foreground flex items-center gap-1 min-w-0">
@@ -1093,6 +1111,46 @@ function CelulaPagamento({
 
 
 
+
+/**
+ * Alerta operacional — bolinha menor, ao lado do risco.
+ * Risco é previsão; alerta é defeito presente. Por isso não se misturam.
+ */
+function FarolAlerta({ alerta }: { alerta: PedidoAlerta | undefined }) {
+  const sev = alerta?.severidade;
+  if (!alerta || !sev) return null;
+  const bg = ALERTA_COR_TOKEN[sev] ?? "bg-muted-foreground";
+  const rotuloSev =
+    sev === "bloqueante" ? "bloqueante" : sev === "atencao" ? "atenção" : "informativo";
+  const total = alerta.achados ?? 0;
+  const blo = alerta.bloqueantes ?? 0;
+  const contagem =
+    total > 1
+      ? `${total} achados${blo > 0 ? `, ${blo} ${blo === 1 ? "bloqueante" : "bloqueantes"}` : ""}`
+      : null;
+
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className="ml-1 inline-flex items-center cursor-help align-middle"
+            aria-label={`Alerta ${rotuloSev}: ${alerta.titulo_principal ?? "achado de auditoria"}`}
+          >
+            <span className={cn("h-1.5 w-1.5 rounded-full", bg)} />
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="right" className="max-w-xs">
+          <p className="text-xs font-medium">{alerta.titulo_principal ?? "Achado de auditoria"}</p>
+          {alerta.detalhe_principal && (
+            <p className="mt-1 text-xs opacity-80">{alerta.detalhe_principal}</p>
+          )}
+          {contagem && <p className="mt-1 text-xs tabular-nums opacity-80">{contagem}</p>}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
 
 /** Farol de risco — bolinha colorida + tooltip com faixa, score e motivos. */
 function FarolRisco({

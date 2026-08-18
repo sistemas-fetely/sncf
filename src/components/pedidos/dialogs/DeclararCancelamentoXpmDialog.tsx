@@ -37,7 +37,7 @@ export function DeclararCancelamentoXpmDialog({ pedidoId, expedicaoCodigo }: Pro
           className="w-full gap-1.5 whitespace-normal h-auto text-xs leading-tight py-2 text-muted-foreground"
         >
           <Ban className="h-3.5 w-3.5 shrink-0" />
-          XPM cancelou esta expedição
+          Declarar que a XPM cancelou
         </Button>
       </DialogTrigger>
 
