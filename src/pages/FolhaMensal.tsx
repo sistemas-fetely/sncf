@@ -262,11 +262,20 @@ export default function FolhaMensal() {
                 ) : (
                   <>
                     {sorted.map((l) => {
-                      const base = (Number(l.valor_base) || 0) + (Number(l.valor_transporte) || 0);
+                      // Linha mascarada pelo banco: dinheiro vem nulo, não zero.
+                      const mascarada = l.valor_base === null || l.valor_base === undefined;
+                      const base = mascarada
+                        ? null
+                        : (Number(l.valor_base) || 0) + (Number(l.valor_transporte) || 0);
                       const pont = Number(l.extras_pontuais) || 0;
-                      const enc = Number(l.encargo_direto) || 0;
-                      const prov = Number(l.provisao) || 0;
-                      const custoEmpresa = Number(l.custo_total_empresa) || (Number(l.total_mes) || 0) + enc + prov;
+                      const enc = l.encargo_direto === null || l.encargo_direto === undefined ? null : Number(l.encargo_direto);
+                      const prov = l.provisao === null || l.provisao === undefined ? null : Number(l.provisao);
+                      const custoEmpresa =
+                        l.custo_total_empresa !== null && l.custo_total_empresa !== undefined
+                          ? Number(l.custo_total_empresa)
+                          : mascarada
+                            ? null
+                            : (Number(l.total_mes) || 0) + (enc || 0) + (prov || 0);
                       return (
                         <TableRow key={l.vinculo_id} className="hover:bg-muted/30">
                           <TableCell className="font-medium">{l.pessoa}</TableCell>
@@ -282,18 +291,19 @@ export default function FolhaMensal() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-sm">{l.departamento || "—"}</TableCell>
-                          <TableCell className="text-right tabular-nums">{fmtBRL(base)}</TableCell>
-                          <TableCell className="text-right tabular-nums">{fmtBRL(Number(l.total_beneficios) || 0)}</TableCell>
-                          <TableCell className="text-right tabular-nums">{fmtBRL(Number(l.extras_recorrentes) || 0)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{fmtOuTraco(base)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{fmtOuTraco(l.total_beneficios)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{fmtOuTraco(l.extras_recorrentes)}</TableCell>
                           <TableCell className={`text-right tabular-nums ${pont > 0 ? "text-warning font-medium" : "text-muted-foreground"}`}>
                             {pont > 0 ? fmtBRL(pont) : "—"}
                           </TableCell>
-                          <TableCell className="text-right tabular-nums">{fmtBRL(Number(l.total_mes) || 0)}</TableCell>
-                          <TableCell className="text-right tabular-nums">{fmtBRL(enc)}</TableCell>
-                          <TableCell className="text-right tabular-nums">{fmtBRL(prov)}</TableCell>
-                          <TableCell className="text-right tabular-nums font-medium">{fmtBRL(custoEmpresa)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{fmtOuTraco(l.total_mes)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{fmtOuTraco(enc)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{fmtOuTraco(prov)}</TableCell>
+                          <TableCell className="text-right tabular-nums font-medium">{fmtOuTraco(custoEmpresa)}</TableCell>
                         </TableRow>
                       );
+
                     })}
                     <TableRow className="bg-muted/60 font-medium">
                       <TableCell colSpan={3}>Total</TableCell>
