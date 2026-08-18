@@ -23,11 +23,21 @@ Deno.serve(async (req) => {
   let pedido_id: string | null = null;
   let payload: Record<string, unknown> | null = null;
   let userId: string | null = null;
+  let forcar = false;
+  let motivo = "";
 
   try {
     const body = await req.json().catch(() => ({}));
     pedido_id = body?.pedido_id ?? null;
     if (!pedido_id) return json({ sucesso: false, erro: "pedido_id obrigatório" }, 400);
+
+    forcar = body?.forcar === true;
+    motivo = typeof body?.motivo === "string" ? body.motivo : "";
+    // Sem motivo não força: o override precisa deixar rastro legível.
+    if (forcar && motivo.trim().length < 15) {
+      return json({ sucesso: false, erro: "Forçar exige motivo com pelo menos 15 caracteres" }, 400);
+    }
+
 
     // quem clicou (para trilha de autoria; a edge roda com service role)
     const authHeader = req.headers.get("Authorization") ?? "";
@@ -39,6 +49,7 @@ Deno.serve(async (req) => {
     // 1. Montador de payload mora no banco (FONTE-ÚNICA). A edge só transporta.
     const { data: montado, error: eMontar } = await sb.rpc("fn_xpm_payload_expedicao", {
       p_pedido_id: pedido_id,
+      p_forcar: forcar,
     });
     if (eMontar) throw new Error(`montar payload: ${eMontar.message}`);
 
@@ -138,7 +149,7 @@ Deno.serve(async (req) => {
       pedido_id,
       operacao: "create",
       enviado_por: userId,
-      payload_enviado: payload,
+      payload_enviado: { ...(payload ?? {}), forcar, motivo },
       resposta_status: respStatus,
       resposta_body: respBody as Record<string, unknown> | null,
       expedicao_codigo_retornado: sucesso ? codigo : null,
@@ -157,6 +168,22 @@ Deno.serve(async (req) => {
         xpm_envio_erro: null,
       }).eq("id", pedido_id);
       if (eUp) throw new Error(`gravar pedido: ${eUp.message}`);
+
+      // OVERRIDE deixa rastro no histórico do pedido. FAIL-LOUD.
+      if (forcar) {
+        const { error: eEv } = await sb.from("pedido_eventos").insert({
+          pedido_id,
+          tipo_evento: "xpm_push_forcado",
+          descricao: `Empurrão para a XPM forçado sobre expedição já existente: ${motivo.trim()}`,
+          metadata: {
+            expedicao_codigo: codigo,
+            motivo: motivo.trim(),
+            forcado_por: userId,
+          },
+          automatico: false,
+        });
+        if (eEv) throw new Error(`registrar evento de override: ${eEv.message}`);
+      }
 
       return json({
         sucesso: true,

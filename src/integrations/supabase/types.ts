@@ -40430,6 +40430,7 @@ export type Database = {
           depositante_cnpj: string | null
           destinatario_cnpj: string | null
           destinatario_nome: string | null
+          duplicada_de: string | null
           expedicao_id_zenlog: number | null
           nf_chave: string | null
           nf_numero: string | null
@@ -40442,6 +40443,8 @@ export type Database = {
           sincronizado_em: string
           situacao: string | null
           situacao_integracao: number | null
+          suprimida_em: string | null
+          suprimida_motivo: string | null
           transportador_cnpj: string | null
         }
         Insert: {
@@ -40452,6 +40455,7 @@ export type Database = {
           depositante_cnpj?: string | null
           destinatario_cnpj?: string | null
           destinatario_nome?: string | null
+          duplicada_de?: string | null
           expedicao_id_zenlog?: number | null
           nf_chave?: string | null
           nf_numero?: string | null
@@ -40464,6 +40468,8 @@ export type Database = {
           sincronizado_em?: string
           situacao?: string | null
           situacao_integracao?: number | null
+          suprimida_em?: string | null
+          suprimida_motivo?: string | null
           transportador_cnpj?: string | null
         }
         Update: {
@@ -40474,6 +40480,7 @@ export type Database = {
           depositante_cnpj?: string | null
           destinatario_cnpj?: string | null
           destinatario_nome?: string | null
+          duplicada_de?: string | null
           expedicao_id_zenlog?: number | null
           nf_chave?: string | null
           nf_numero?: string | null
@@ -40486,6 +40493,8 @@ export type Database = {
           sincronizado_em?: string
           situacao?: string | null
           situacao_integracao?: number | null
+          suprimida_em?: string | null
+          suprimida_motivo?: string | null
           transportador_cnpj?: string | null
         }
         Relationships: []
@@ -62298,7 +62307,10 @@ export type Database = {
       fn_xpm_bloqueio_estoque: { Args: { p_itens: Json }; Returns: string }
       fn_xpm_nf_cfop: { Args: { p_raw: Json }; Returns: string }
       fn_xpm_payload_atribui_nf: { Args: { p_nf_id: string }; Returns: Json }
-      fn_xpm_payload_expedicao: { Args: { p_pedido_id: string }; Returns: Json }
+      fn_xpm_payload_expedicao: {
+        Args: { p_forcar?: boolean; p_pedido_id: string }
+        Returns: Json
+      }
       fn_xpm_reprocessar_expedicao: {
         Args: { p_expedicao_codigo: string }
         Returns: Json
