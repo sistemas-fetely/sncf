@@ -36,11 +36,19 @@ interface LinhaFolha {
 const fmtBRL = (v: number) =>
   (Number(v) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+/** Nulo é ausência de permissão — não pode se parecer com zero. */
+const fmtOuTraco = (v: number | null | undefined) =>
+  v === null || v === undefined ? "—" : fmtBRL(Number(v));
+
 export default function FolhaMensal() {
   const navigate = useNavigate();
+  const { data: isSocio } = useIsSocio();
+  const ehDiretoria = isSocio === true;
+  const rotuloTotal = ehDiretoria ? "Custo total (empresa)" : "Custo do meu time";
   const hoje = new Date();
   const defaultComp = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
   const [competencia, setCompetencia] = useState<string>(defaultComp);
+
 
   // Rastro de visualização (telemetria — nunca bloqueia nem alerta o usuário)
   const rastroRef = useRef(false);
