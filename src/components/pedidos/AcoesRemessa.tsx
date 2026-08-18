@@ -144,6 +144,23 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
         </Button>
       )}
 
+      {/* FOTO-NAO-BARRA (18/08/2026): saldo insuficiente na XPM avisa, nao barra. */}
+      {!precisaSincronizar && podeEmpurrarXpm && (previa?.avisos?.length ?? 0) > 0 && (
+        <Alert variant="default" className="bg-warning/10 border-warning/40">
+          <AlertTriangle className="h-4 w-4 text-warning" />
+          <AlertDescription className="text-warning text-xs space-y-1">
+            {previa!.avisos.map((a) => (
+              <p key={a} className="tabular-nums">{a}</p>
+            ))}
+            <p className="text-muted-foreground">
+              A posição da XPM é uma foto do fim do dia anterior: entrada recente
+              pode ainda não aparecer. Pode enviar — se realmente faltar, o
+              armazém corta o item.
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {!precisaSincronizar && podeEmpurrarXpm && (
         <Button
           size="sm"
