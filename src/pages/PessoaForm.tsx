@@ -121,6 +121,23 @@ export default function PessoaForm() {
   const [saving, setSaving] = useState(false);
   const [pessoaExistente, setPessoaExistente] = useState<{ id: string; nome_completo: string } | null>(null);
 
+  // Sigilo salarial — fail-closed: só libera quando o banco confirma.
+  // Edição: RPC pode_ver_salario(pessoa). Criação: só diretoria (is_socio).
+  const { data: isSocio } = useIsSocio();
+  const [podeVerSalarioPessoa, setPodeVerSalarioPessoa] = useState(false);
+  const podeVerSalario = isEdit ? podeVerSalarioPessoa : isSocio === true;
+
+  useEffect(() => {
+    if (!isEdit || !id) return;
+    let vivo = true;
+    (async () => {
+      const { data, error } = await (supabase.rpc as any)("pode_ver_salario", { _pessoa_id: id });
+      if (vivo) setPodeVerSalarioPessoa(!error && data === true);
+    })();
+    return () => { vivo = false; };
+  }, [isEdit, id]);
+
+
   // Rastro de visualização (telemetria — nunca bloqueia nem alerta o usuário)
   const rastroRef = useRef(false);
   useEffect(() => {
