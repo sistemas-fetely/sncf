@@ -153,7 +153,7 @@ Deno.serve(async (req) => {
       pedido_id,
       operacao: "create",
       enviado_por: userId,
-      payload_enviado: { ...(payload ?? {}), forcar, motivo },
+      payload_enviado: { ...(payload ?? {}), forcar, motivo, avisos },
       resposta_status: respStatus,
       resposta_body: respBody as Record<string, unknown> | null,
       expedicao_codigo_retornado: sucesso ? codigo : null,
@@ -193,6 +193,7 @@ Deno.serve(async (req) => {
         sucesso: true,
         codigo_expedicao: codigo,
         ambiente,
+        avisos,
         duracao_ms: Date.now() - t0,
       });
     }
