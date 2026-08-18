@@ -299,4 +299,5 @@ await sleep(300);
 
 }
 
-return { criados, atualizados, erros, ultimoErro, proximaPagina: pagina }; }
+console.log(`sync nfe: revalidacoes de cancelamento=${revalidados}, canceladas detectadas=${canceladasDetectadas}, erros de detalhe=${errosDetalhe}`);
+return { criados, atualizados, erros, ultimoErro, proximaPagina: pagina, revalidados, canceladasDetectadas, errosDetalhe }; }
