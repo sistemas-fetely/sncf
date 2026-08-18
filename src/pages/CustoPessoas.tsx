@@ -299,7 +299,7 @@ export default function CustoPessoas() {
                     <TableHead className="text-right">Remuneração (sem encargos)</TableHead>
                     <TableHead className="text-right">Encargos (caixa do mês)</TableHead>
                     <TableHead className="text-right">Provisões (13º, férias, rescisão)</TableHead>
-                    <TableHead className="text-right">Custo total (empresa)</TableHead>
+                    <TableHead className="text-right">{rotuloTotal}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
