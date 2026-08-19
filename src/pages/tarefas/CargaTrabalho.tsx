@@ -1,6 +1,6 @@
 import { PageTitle } from "@/components/layout/PageTitle";
 import { PageShell } from "@/components/layout/PageShell";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { addDays, addWeeks, format, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AlertTriangle, Gauge } from "lucide-react";

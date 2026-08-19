@@ -15,16 +15,17 @@ import {
   useTarefasConcluidas, useTarefasContadores, useTarefasHoje,
   useTarefasProximos7, useTarefasSemData, type Tarefa,
 } from "@/hooks/tarefas/useTarefas";
+import { useRespondoPor } from "@/hooks/tarefas/useMinhasTarefasPapel";
 
 function Vazio({ texto }: { texto: string }) {
   return <p className="py-6 text-center text-sm text-muted-foreground">{texto}</p>;
 }
 
-function Lista({ tarefas, atrasada }: { tarefas: Tarefa[]; atrasada?: boolean }) {
+function Lista({ tarefas, atrasada, somenteLeitura }: { tarefas: Tarefa[]; atrasada?: boolean; somenteLeitura?: boolean }) {
   return (
     <div className="space-y-2">
       {tarefas.map((t) => (
-        <TarefaItem key={t.id} tarefa={t} atrasada={atrasada} />
+        <TarefaItem key={t.id} tarefa={t} atrasada={atrasada} somenteLeitura={somenteLeitura} />
       ))}
     </div>
   );
