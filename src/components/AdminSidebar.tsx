@@ -53,7 +53,7 @@ export function AdminSidebar() {
     ...sistemaItems,
     ...(roles.includes("super_admin")
       ? [
-          { title: "SLA da XPM", url: "/admin/sla-xpm", icon: Timer },
+          { title: "SLA da Operação", url: "/admin/sla", icon: Timer },
           { title: "Visibilidade de Telas", url: "/admin/visibilidade", icon: Eye },
         ]
       : []),

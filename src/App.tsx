@@ -54,7 +54,7 @@ const AguardandoAprovacao = lazy(() => import("@/pages/AguardandoAprovacao"));
 const GerenciarUsuarios = lazy(() => import("@/pages/GerenciarUsuarios"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const Parametros = lazy(() => import("@/pages/Parametros"));
-const SlaXpm = lazy(() => import("@/pages/parametros/SlaXpm"));
+const SlaOperacao = lazy(() => import("@/pages/parametros/SlaOperacao"));
 const ContratosPJ = lazy(() => import("@/pages/ContratosPJ"));
 const ContratoPJDetalhe = lazy(() => import("@/pages/ContratoPJDetalhe"));
 const CadastroContratoPJ = lazy(() => import("@/components/contrato-pj/CadastroContratoPJ").then(m => ({ default: m.CadastroContratoPJ })));
@@ -659,9 +659,10 @@ const App = () => (
                     <GerenciarVisibilidade />
                   </ProtectedRoute>
                 } />
-                <Route path="sla-xpm" element={
-                  <ProtectedRoute><SlaXpm /></ProtectedRoute>
+                <Route path="sla" element={
+                  <ProtectedRoute><SlaOperacao /></ProtectedRoute>
                 } />
+                <Route path="sla-xpm" element={<Navigate to="/admin/sla" replace />} />
 
 
               </Route>

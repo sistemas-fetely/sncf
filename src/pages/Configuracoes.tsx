@@ -43,7 +43,7 @@ const ITENS: ConfigItem[] = [
   // Regras
   { value: "regras-ofx", label: "Regras de OFX", description: "Classificação automática de lançamentos do extrato", icon: Wand2, path: "/admin/regras-ofx", secao: "Regras" },
   { value: "extrato-regras", label: "Regras do Inbox", description: "Tratamento automático de entradas do extrato", icon: Filter, path: "/admin/extrato-regras", secao: "Regras" },
-  { value: "sla-xpm", label: "SLA do XPM", description: "Prazos acordados com o operador logístico", icon: Timer, path: "/admin/sla-xpm", secao: "Regras" },
+  { value: "sla", label: "SLA da Operação", description: "Prazos e limiares da operação: XPM, fases do pedido, frete e vigilância", icon: Timer, path: "/admin/sla", secao: "Regras" },
 
   // Sistema
   { value: "reportes", label: "Reportes do Sistema", description: "Logs e relatórios técnicos", icon: FileBarChart, path: "/admin/reportes", secao: "Sistema" },
