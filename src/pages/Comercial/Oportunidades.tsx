@@ -23,7 +23,10 @@ import { cn } from "@/lib/utils";
 import { RetomarOportunidadeDialog } from "@/components/comercial/RetomarOportunidadeDialog";
 import { BadgeLinkFila } from "@/components/pedidos/LinkPagamentoCard";
 import { useLinksPagamentoFila } from "@/hooks/pedidos/useLinkPagamentoPedido";
-import { rotuloSituacao } from "@/lib/pedidos/situacao-financeira";
+import {
+  PedidoOportunidadeDialog, chipSituacao,
+} from "@/components/comercial/PedidoOportunidadeDialog";
+
 
 type OrigemOportunidade = "portao_vencido" | "estoque_inadimplente" | "manual";
 
