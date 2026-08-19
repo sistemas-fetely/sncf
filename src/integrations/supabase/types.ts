@@ -21930,6 +21930,33 @@ export type Database = {
           },
         ]
       }
+      oportunidade_temperatura_peso: {
+        Row: {
+          ativo: boolean
+          observacao: string | null
+          peso: number
+          rotulo: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          observacao?: string | null
+          peso: number
+          rotulo: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          observacao?: string | null
+          peso?: number
+          rotulo?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       origem_fiscal: {
         Row: {
           codigo: string
@@ -53857,6 +53884,9 @@ export type Database = {
           situacao_rotulo: string | null
           status_portao: string | null
           telefone: string | null
+          tem_pagamento: boolean | null
+          temperatura: string | null
+          temperatura_score: number | null
           tipo_portao: string | null
           titulos_qtd: number | null
           valor_aberto: number | null
@@ -63708,6 +63738,26 @@ export type Database = {
         Args: { p_parceiro_id: string }
         Returns: string
       }
+      fn_oportunidade_temperatura:
+        | {
+            Args: {
+              p_dias_desde_pedido: number
+              p_eh_primeira_compra: boolean
+              p_portao_vencimento: string
+              p_tem_pagamento: boolean
+            }
+            Returns: number
+          }
+        | {
+            Args: {
+              p_dias_desde_pedido: number
+              p_eh_primeira_compra: boolean
+              p_portao_vencimento: string
+              p_situacao_financeira?: string
+              p_tem_pagamento: boolean
+            }
+            Returns: number
+          }
       fn_parceiro_apelido: {
         Args: { p_fantasia: string; p_razao: string }
         Returns: string
