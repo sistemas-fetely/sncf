@@ -420,6 +420,20 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
             invalidateKeys={[["oportunidades-comercial"]]}
           />
         )}
+
+        {detalhe && (
+          <PedidoOportunidadeDialog
+            open={!!detalhe}
+            onOpenChange={(v) => !v && setDetalhe(null)}
+            pedidoId={detalhe.pedido_id}
+            idExterno={detalhe.id_externo}
+            cliente={detalhe.apelido || detalhe.cliente}
+            valorEmJogo={detalhe.valor_em_jogo}
+            situacaoFinanceira={detalhe.situacao_financeira}
+            alertaOperacional={detalhe.alerta_operacional}
+          />
+        )}
+
       </div>
     </TooltipProvider>
   );
