@@ -91,4 +91,8 @@ additional_redirect_urls = ["https://people-fetely.lovable.app/**"]
   [functions.braspress-rastreio-sync]
     verify_jwt = true
 
+  [functions.reprocessar-nf-stage]
+    verify_jwt = false
+
+
 
