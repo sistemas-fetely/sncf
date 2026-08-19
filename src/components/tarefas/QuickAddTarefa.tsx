@@ -57,6 +57,44 @@ export function QuickAddTarefa() {
   }, [resultado, valor]);
 
   const criar = async () => {
+  const fragmento = useMemo(() => {
+    const ate = valor.slice(0, cursor);
+    const m = /(?:^|\s)@([^\s]*)$/.exec(ate);
+    if (!m) return null;
+    return { termo: m[1], inicio: cursor - m[1].length };
+  }, [valor, cursor]);
+
+  const candidatos = useMemo(
+    () => (fragmento ? sugerirPessoas(pessoas, fragmento.termo) : []),
+    [fragmento, pessoas]
+  );
+
+  const dropdownAberto = !!fragmento && candidatos.length > 0 && !suprimido;
+
+  useEffect(() => {
+    setIndice(0);
+    setSuprimido(false);
+  }, [fragmento?.termo]);
+
+  const pessoaResolvida = useMemo(
+    () => casarPessoa(pessoas, resultado.responsavelNome),
+    [pessoas, resultado.responsavelNome]
+  );
+
+  const escolher = (p: PessoaSistema) => {
+    const h = handlePessoa(p);
+    if (!h || !fragmento) return;
+    const novo = valor.slice(0, fragmento.inicio) + h + " " + valor.slice(cursor);
+    const pos = fragmento.inicio + h.length + 1;
+    setValor(novo);
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+      inputRef.current?.setSelectionRange(pos, pos);
+      setCursor(pos);
+    });
+  };
+
+  const criar = async () => {
     if (!valor.trim() || isPending) return;
     const r = parseQuickAdd(valor);
     const projeto_id = casarPorNome(projetos, r.projetoNome);
@@ -64,10 +102,7 @@ export function QuickAddTarefa() {
       projeto_id ? secoes?.filter((s) => s.projeto_id === projeto_id) : secoes,
       r.secaoNome
     );
-    const responsavel_id = casarPorNome(
-      pessoas?.filter((p): p is typeof p & { id: string; nome: string } => !!p.id && !!p.nome),
-      r.responsavelNome
-    );
+    const responsavel_id = casarPessoa(pessoas, r.responsavelNome)?.id ?? null;
     try {
       await criarDoParse(r, { projeto_id, secao_id, responsavel_id });
       setValor("");
