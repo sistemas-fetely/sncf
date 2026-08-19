@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import type { Tarefa, TarefaPrioridade } from "@/hooks/tarefas/useTarefas";
 import { useAlterarStatusTarefa, useReagendarTarefa } from "@/hooks/tarefas/useTarefaMutations";
 import { useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
-import { TarefaDetalhePainel } from "@/components/tarefas/detalhe/TarefaDetalhePainel";
+import { useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
 
 
 const PRIORIDADE_CLASSE: Record<TarefaPrioridade, string> = {
@@ -68,19 +68,15 @@ export function TarefaItem({ tarefa, atrasada = false }: Props) {
         aria-label={concluida ? "Reabrir tarefa" : "Concluir tarefa"}
       />
 
-      <TarefaDetalhePainel tarefaId={tarefa.id} aberto={painelAberto} onOpenChange={setPainelAberto} />
-
-
-      {/* só o corpo abre o painel — checkbox e menu seguem independentes */}
       <div
         className="min-w-0 flex-1 cursor-pointer"
         role="button"
         tabIndex={0}
-        onClick={() => setPainelAberto(true)}
+        onClick={() => abrir(tarefa.id)}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            setPainelAberto(true);
+            abrir(tarefa.id);
           }
         }}
       >
