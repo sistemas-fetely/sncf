@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
@@ -22,7 +23,10 @@ import { cn } from "@/lib/utils";
 import { RetomarOportunidadeDialog } from "@/components/comercial/RetomarOportunidadeDialog";
 import { BadgeLinkFila } from "@/components/pedidos/LinkPagamentoCard";
 import { useLinksPagamentoFila } from "@/hooks/pedidos/useLinkPagamentoPedido";
-import { rotuloSituacao } from "@/lib/pedidos/situacao-financeira";
+import {
+  PedidoOportunidadeDialog, chipSituacao,
+} from "@/components/comercial/PedidoOportunidadeDialog";
+
 
 type OrigemOportunidade = "portao_vencido" | "estoque_inadimplente" | "manual";
 
@@ -64,7 +68,27 @@ interface OportunidadeRow {
   situacao_financeira: string | null;
   situacao_rotulo: string | null;
   alerta_operacional: string | null;
+  pai_valor_pago: number | null;
+  pai_valor_aberto: number | null;
+  vendedor_id: string | null;
+  vendedor_nome: string | null;
+  eh_primeira_compra: boolean | null;
+  cliente_pedidos_faturados: number | null;
+  cliente_valor_faturado: number | null;
+  cliente_primeira_compra: string | null;
+  cliente_ultima_compra: string | null;
+  cliente_dias_sem_comprar: number | null;
+  cliente_ticket_medio: number | null;
 }
+
+/** "DD/MM" curto para a linha de histórico do cliente. */
+function formatDataCurta(valor: string | null): string {
+  if (!valor) return "—";
+  const d = new Date(valor + (valor.length === 10 ? "T00:00:00" : ""));
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+}
+
 
 function corDiasVencido(dias: number | null | undefined) {
   const d = Number(dias ?? 0);
@@ -100,6 +124,9 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
   const [busca, setBusca] = useState("");
   const [origem, setOrigem] = useState<FiltroOrigem>("todas");
   const [retomando, setRetomando] = useState<OportunidadeRow | null>(null);
+  const [detalhe, setDetalhe] = useState<OportunidadeRow | null>(null);
+  const navigate = useNavigate();
+
 
   const { data = [], isLoading } = useQuery({
     queryKey: ["oportunidades-comercial"],
@@ -226,14 +253,10 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                   <TableHeader>
                     <TableRow>
                       <TableHead>Pedido</TableHead>
-                      <TableHead>Origem</TableHead>
                       <TableHead>Cliente</TableHead>
                       <TableHead className="text-right">Valor em jogo</TableHead>
-                      <TableHead className="text-right">Vencido</TableHead>
                       <TableHead>Situação</TableHead>
-                      <TableHead>Pai</TableHead>
-                      <TableHead className="text-right">Na fila</TableHead>
-                      <TableHead className="text-right">Dias</TableHead>
+                      <TableHead className="text-right">Tempo</TableHead>
                       <TableHead>Vendedor</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
@@ -241,8 +264,25 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                   <TableBody>
                     {filtradas.map((r) => (
                       <TableRow key={`${r.origem}-${r.pedido_id}`}>
-                        <TableCell className="font-mono text-xs">
-                          {r.id_externo || "—"}
+                        <TableCell className="font-mono text-xs align-top">
+                          <button
+                            type="button"
+                            className="font-mono hover:underline"
+                            onClick={() => setDetalhe(r)}
+                          >
+                            {r.id_externo || "—"}
+                          </button>
+                          {r.pai_id_externo && (
+                            <div className="mt-1">
+                              <Badge
+                                variant="outline"
+                                className="rounded px-1.5 py-0 text-[10px]"
+                                title={`Pago no pai: ${formatBRL(r.pai_valor_pago ?? 0)} · Em aberto no pai: ${formatBRL(r.pai_valor_aberto ?? 0)}`}
+                              >
+                                split de {r.pai_id_externo}
+                              </Badge>
+                            </div>
+                          )}
                           {r.origem === "portao_vencido" && r.vencimento_portao && (
                             <div className="text-[10px] text-muted-foreground mt-0.5">
                               venc. {formatDateBR(r.vencimento_portao)}
@@ -252,109 +292,57 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                             <BadgeLinkFila linha={linksFila?.[r.pedido_id]} />
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Badge
-                                variant="outline"
-                                className={cn(
-                                  "border-0 rounded px-2 py-0.5 whitespace-nowrap",
-                                  ORIGEM_CLASSES[r.origem],
-                                )}
-                              >
-                                {ORIGEM_LABEL[r.origem]}
+                        <TableCell className="max-w-[280px] align-top">
+                          <button
+                            type="button"
+                            className="block max-w-full truncate font-medium text-left no-underline hover:underline"
+                            onClick={() => navigate(`/parceiros/${r.parceiro_id}`)}
+                          >
+                            {r.apelido || r.cliente || "—"}
+                          </button>
+                          <div className="text-xs text-muted-foreground truncate">
+                            {r.eh_primeira_compra ? (
+                              <Badge variant="outline" className="rounded px-1.5 py-0 text-[10px]">
+                                1ª COMPRA
                               </Badge>
-                            </TooltipTrigger>
-                            {r.motivo && (
-                              <TooltipContent className="max-w-xs">
-                                {r.motivo}
-                              </TooltipContent>
-                            )}
-                          </Tooltip>
-                        </TableCell>
-                        <TableCell className="max-w-[240px]">
-                          <div className="truncate font-medium">{r.cliente || "—"}</div>
-                          {r.apelido && (
-                            <div className="text-xs text-muted-foreground truncate">
-                              {r.apelido}
-                            </div>
-                          )}
-
-                          {r.cnpj && (
-                            <div className="text-[11px] text-muted-foreground truncate">
-                              {r.cnpj}
-                            </div>
-                          )}
-                          {r.justificativa?.trim() && (
-                            <div className="mt-1">
-                              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                                Justificativa do operador
-                              </div>
-                              <blockquote
-                                title={r.justificativa}
-                                className="text-[11px] italic text-muted-foreground border-l-2 border-border pl-2 line-clamp-2"
-                              >
-                                {r.justificativa}
-                              </blockquote>
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {formatBRL(r.valor_em_jogo ?? 0)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {Number(r.valor_vencido || 0) > 0
-                            ? formatBRL(r.valor_vencido!)
-                            : "—"}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col gap-1">
-                            {r.situacao_rotulo || r.situacao_financeira ? (
-                              <span className="text-xs text-foreground">
-                                {rotuloSituacao(r.situacao_financeira, r.situacao_rotulo)}
-                              </span>
                             ) : (
-                              <span className="text-xs text-muted-foreground">—</span>
-                            )}
-                            {r.alerta_operacional && (
-                              <Badge
-                                variant="outline"
-                                className="border-0 rounded px-2 py-0.5 whitespace-nowrap bg-warning/10 text-warning w-fit text-[10px]"
-                              >
-                                {r.alerta_operacional}
-                              </Badge>
+                              <>
+                                {`${r.cliente_pedidos_faturados ?? 0} pedidos · ${formatBRL(r.cliente_valor_faturado ?? 0)}`}
+                                {r.cliente_ultima_compra
+                                  ? ` · última em ${formatDataCurta(r.cliente_ultima_compra)} (${r.cliente_dias_sem_comprar ?? 0}d)`
+                                  : ""}
+                              </>
                             )}
                           </div>
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          {r.pai_id ? (
-                            <Link
-                              to={`/pedidos/${r.pai_id}`}
-                              className="font-mono text-primary hover:underline"
+                          {r.justificativa?.trim() && (
+                            <div
+                              title={r.justificativa}
+                              className="text-xs text-muted-foreground truncate mt-0.5"
                             >
-                              {r.pai_id_externo || "abrir"}
-                            </Link>
-                          ) : (
-                            "—"
+                              {r.justificativa}
+                            </div>
                           )}
                         </TableCell>
-                        <TableCell className="text-right">
-                          <Badge variant="outline" className="rounded px-2 py-0.5">
-                            {r.dias_na_fila ?? 0}
-                          </Badge>
+                        <TableCell className="text-right align-top">
+                          {formatBRL(r.valor_em_jogo ?? 0)}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="align-top">
                           <Badge
                             variant="outline"
-                            className={cn(
-                              "border-0 rounded px-2 py-0.5",
-                              corDiasVencido(r.dias_referencia),
-                            )}
+                            className="rounded px-2 py-0.5 text-xs whitespace-nowrap"
+                            title={r.alerta_operacional ?? undefined}
                           >
-                            {r.dias_referencia ?? 0}
+                            {chipSituacao(r.situacao_financeira)}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-xs">{r.vendedor || "—"}</TableCell>
+                        <TableCell className="text-right align-top">
+                          <div className="text-sm">{r.dias_desde_pedido ?? 0}d do pedido</div>
+                          <div className="text-xs text-muted-foreground">
+                            {r.dias_na_fila ?? 0}d na fila
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-xs align-top">{r.vendedor_nome || "—"}</TableCell>
+
                         <TableCell>
                           <div className="flex items-center justify-end gap-1">
                             <Button
@@ -432,6 +420,20 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
             invalidateKeys={[["oportunidades-comercial"]]}
           />
         )}
+
+        {detalhe && (
+          <PedidoOportunidadeDialog
+            open={!!detalhe}
+            onOpenChange={(v) => !v && setDetalhe(null)}
+            pedidoId={detalhe.pedido_id}
+            idExterno={detalhe.id_externo}
+            cliente={detalhe.apelido || detalhe.cliente}
+            valorEmJogo={detalhe.valor_em_jogo}
+            situacaoFinanceira={detalhe.situacao_financeira}
+            alertaOperacional={detalhe.alerta_operacional}
+          />
+        )}
+
       </div>
     </TooltipProvider>
   );
