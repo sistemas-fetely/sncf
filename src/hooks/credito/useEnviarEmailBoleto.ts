@@ -59,7 +59,7 @@ export function useEnviarEmailBoleto() {
           templateName: "boleto-safra",
           recipientEmail: destinatarios[0],
           cc: destinatarios.slice(1),
-          idempotencyKey: `boleto-safra-${titulo_id}-${destinatarios.join(",")}`,
+          idempotencyKey: `boleto-safra-${titulo_id}`,
           templateData: {
             parceiro_nome:  parceiro.razao_social,
             numero_parcela: String(titulo.numero_parcela ?? "1"),
