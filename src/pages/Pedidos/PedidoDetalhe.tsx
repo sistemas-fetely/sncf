@@ -2081,7 +2081,7 @@ export default function PedidoDetalhe() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="col-span-2">
+                    <div className="col-span-2 grid grid-cols-2 gap-2">
                       <Button
                         type="button"
                         size="sm"
@@ -2094,6 +2094,21 @@ export default function PedidoDetalhe() {
                       >
                         <Scale className="h-3.5 w-3.5 mr-1.5" />
                         Comparar transportadoras
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-8 w-full"
+                        disabled={!id || recotar.isPending}
+                        onClick={() => id && recotar.mutate({ pedidoId: id, forcar: true })}
+                      >
+                        {recotar.isPending ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                        ) : (
+                          <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                        )}
+                        Recotar
                       </Button>
                     </div>
                     <div>
