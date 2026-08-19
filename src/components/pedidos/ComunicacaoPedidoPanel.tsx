@@ -151,9 +151,31 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
     enabled: !!pedido_id,
   });
 
+  // Vendedor do pedido: e-mail resolvido pela view, para cópia automática.
+  const vendedorQ = useQuery({
+    queryKey: ["comunic-vendedor", pedido_id],
+    queryFn: async () => {
+      const { data: ped } = await (supabase as any)
+        .from("pedidos")
+        .select("vendedor_id")
+        .eq("id", pedido_id)
+        .maybeSingle();
+      if (!ped?.vendedor_id) return null;
+      const { data } = await (supabase as any)
+        .from("vw_vendedor_contato")
+        .select("vendedor_id, nome, email")
+        .eq("vendedor_id", ped.vendedor_id)
+        .maybeSingle();
+      if (!data?.email) return null;
+      return { nome: data.nome as string | null, email: String(data.email).trim().toLowerCase() };
+    },
+    enabled: !!pedido_id,
+  });
+
   const logQ = usePedidoEmailLog(pedido_id);
   const linkQ = useLinkPagamentoPedido(pedido_id);
   const registrarLink = useRegistrarLinkPagamento();
+
 
   // ── Mutations ──
   const enviarCobranca = useEnviarEmailPedidoCobranca();
