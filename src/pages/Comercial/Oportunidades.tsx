@@ -75,7 +75,13 @@ interface OportunidadeRow {
   cliente_ultima_compra: string | null;
   cliente_dias_sem_comprar: number | null;
   cliente_ticket_medio: number | null;
+  temperatura: string | null;
+  temperatura_score: number | null;
+  fase: string | null;
+  estagio: string | null;
+  portao_linhas: number | null;
 }
+
 
 /** "DD/MM" curto para a linha de histórico do cliente. */
 function formatDataCurta(valor: string | null): string {
