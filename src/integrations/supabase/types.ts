@@ -1041,13 +1041,6 @@ export type Database = {
             referencedColumns: ["portao_id"]
           },
           {
-            foreignKeyName: "adiantamento_cliente_portao_id_fkey"
-            columns: ["portao_id"]
-            isOneToOne: false
-            referencedRelation: "vw_oportunidades_comercial"
-            referencedColumns: ["portao_id"]
-          },
-          {
             foreignKeyName: "adiantamento_cliente_provisao_id_fkey"
             columns: ["provisao_id"]
             isOneToOne: false
@@ -39016,13 +39009,6 @@ export type Database = {
             foreignKeyName: "transp_fretes_wns_pedido_id_fkey"
             columns: ["wns_pedido_id"]
             isOneToOne: false
-            referencedRelation: "vw_gestao_b2c"
-            referencedColumns: ["wns_pedidowns"]
-          },
-          {
-            foreignKeyName: "transp_fretes_wns_pedido_id_fkey"
-            columns: ["wns_pedido_id"]
-            isOneToOne: false
             referencedRelation: "wns_pedidos"
             referencedColumns: ["pedidowns"]
           },
@@ -42009,6 +41995,13 @@ export type Database = {
             foreignKeyName: "xpm_expedicao_evento_expedicao_codigo_fkey"
             columns: ["expedicao_codigo"]
             isOneToOne: false
+            referencedRelation: "vw_gestao_b2c"
+            referencedColumns: ["xpm_codigo"]
+          },
+          {
+            foreignKeyName: "xpm_expedicao_evento_expedicao_codigo_fkey"
+            columns: ["expedicao_codigo"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_ciclo"
             referencedColumns: ["codigo"]
           },
@@ -42099,6 +42092,13 @@ export type Database = {
             foreignKeyName: "xpm_expedicao_item_expedicao_codigo_fkey"
             columns: ["expedicao_codigo"]
             isOneToOne: false
+            referencedRelation: "vw_gestao_b2c"
+            referencedColumns: ["xpm_codigo"]
+          },
+          {
+            foreignKeyName: "xpm_expedicao_item_expedicao_codigo_fkey"
+            columns: ["expedicao_codigo"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_ciclo"
             referencedColumns: ["codigo"]
           },
@@ -42184,6 +42184,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_embalagem_calibracao"
             referencedColumns: ["expedicao_codigo"]
+          },
+          {
+            foreignKeyName: "xpm_expedicao_pausa_expedicao_codigo_fkey"
+            columns: ["expedicao_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_b2c"
+            referencedColumns: ["xpm_codigo"]
           },
           {
             foreignKeyName: "xpm_expedicao_pausa_expedicao_codigo_fkey"
@@ -51818,27 +51825,36 @@ export type Database = {
       vw_gestao_b2c: {
         Row: {
           alerta: string | null
+          area_responsavel: string | null
           cancelled_at: string | null
           created_at_shopify: string | null
+          data_pedido: string | null
+          delta_bruto_vs_faturado: number | null
+          dias_no_estagio: number | null
           discount_amount: number | null
-          estagio_derivado: string | null
+          eh_final: boolean | null
+          entrega_prevista: string | null
+          estagio: string | null
+          estagio_ordem: number | null
+          estagio_rotulo: string | null
           financial_status: string | null
-          frete_realizado: number | null
+          frete_sla_dias: number | null
           fulfilled_at: string | null
           fulfillment_status: string | null
+          horas_xpm: number | null
+          liquido_mp: number | null
+          na_carteira_ativa: boolean | null
+          nf_data_emissao: string | null
+          nf_refs: string | null
           order_name: string | null
           paid_at: string | null
           payment_method: string | null
+          payment_reference: string | null
+          previsao_entrega: string | null
+          proxima_acao: string | null
           rastreio_atualizado_em: string | null
-          rastreio_classe: string | null
-          rastreio_codigo: string | null
-          rastreio_cte: string | null
-          rastreio_data: string | null
           rastreio_entregue: boolean | null
-          rastreio_label: string | null
-          rastreio_prazo: string | null
           rastreio_status: string | null
-          rastreio_texto: string | null
           refunded_amount: number | null
           shipping_city: string | null
           shipping_cost: number | null
@@ -51846,13 +51862,22 @@ export type Database = {
           shipping_province: string | null
           shipping_zip: string | null
           shopify_id: string | null
+          situacao_financeira: string | null
           subtotal: number | null
+          taxa_mp: number | null
+          tem_nf: boolean | null
+          tem_recebimento: boolean | null
           total: number | null
           tracking_company: string | null
           tracking_number: string | null
-          wns_fase_descricao: string | null
-          wns_pedidowns: number | null
-          wns_sequencia: number | null
+          tracking_url: string | null
+          xpm_codigo: string | null
+          xpm_concluida: boolean | null
+          xpm_data_expedicao: string | null
+          xpm_estagio: string | null
+          xpm_estagio_seq: number | null
+          xpm_farol_sla: string | null
+          xpm_horas_ciclo: number | null
         }
         Relationships: []
       }
@@ -53809,6 +53834,8 @@ export type Database = {
           dias_referencia: number | null
           eh_primeira_compra: boolean | null
           email: string | null
+          estagio: string | null
+          fase: string | null
           forma_solicitada: string | null
           id_externo: string | null
           justificativa: string | null
@@ -53824,6 +53851,7 @@ export type Database = {
           parceiro_id: string | null
           pedido_id: string | null
           portao_id: string | null
+          portao_linhas: number | null
           retomavel_para: string | null
           situacao_financeira: string | null
           situacao_rotulo: string | null
@@ -53843,6 +53871,13 @@ export type Database = {
           vendedor_nome: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "pedidos_estagio_fkey"
+            columns: ["estagio"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
+          },
           {
             foreignKeyName: "pedidos_split_de_pedido_id_fkey"
             columns: ["pai_id"]
@@ -55500,14 +55535,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -61373,13 +61408,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_recebivel_por_conta"
             referencedColumns: ["conta_id"]
-          },
-          {
-            foreignKeyName: "transp_fretes_wns_pedido_id_fkey"
-            columns: ["wns_pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_gestao_b2c"
-            referencedColumns: ["wns_pedidowns"]
           },
           {
             foreignKeyName: "transp_fretes_wns_pedido_id_fkey"
