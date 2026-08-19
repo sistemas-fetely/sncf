@@ -63,7 +63,15 @@ interface Props {
   valorEmJogo: number | null;
   situacaoFinanceira: string | null;
   alertaOperacional?: string | null;
+  tipoPortao?: string | null;
+  valorPortao?: number | null;
+  vencimentoPortao?: string | null;
+  portaoLinhas?: number | null;
+  linkPagamento?: string | null;
 }
+
+/** CARTAO-NAO-FECHA-NA-MAO: a prova do cartão é o NSU da captura, não confirmação manual. */
+const PORTAO_SEM_CONFIRMACAO_MANUAL = new Set(["cartao", "composicao"]);
 
 export function PedidoOportunidadeDialog({
   open,
@@ -74,14 +82,53 @@ export function PedidoOportunidadeDialog({
   valorEmJogo,
   situacaoFinanceira,
   alertaOperacional,
+  tipoPortao,
+  valorPortao,
+  vencimentoPortao,
+  portaoLinhas,
+  linkPagamento,
 }: Props) {
   const [texto, setTexto] = useState("");
+  const [confirmarAberto, setConfirmarAberto] = useState(false);
+  const [dataPagamento, setDataPagamento] = useState(() =>
+    new Date().toISOString().slice(0, 10),
+  );
+  const [obsPagamento, setObsPagamento] = useState("");
   const itens = useItensPedidoOportunidade(pedidoId, open);
   const obs = useObsComerciaisPedido(pedidoId, open);
   const adicionar = useAdicionarObsComercial(pedidoId);
+  const qc = useQueryClient();
 
   const total = (itens.data ?? []).reduce((s, i) => s + Number(i.subtotal || 0), 0);
   const podeEnviar = texto.trim().length > 0 && !adicionar.isPending;
+
+  const temPortao = !!vencimentoPortao;
+  const cartaoBloqueia = PORTAO_SEM_CONFIRMACAO_MANUAL.has((tipoPortao ?? "").toLowerCase());
+
+  const confirmarPagamento = useMutation({
+    mutationFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc("confirmar_portao_pago", {
+        p_pedido_id: pedidoId,
+        p_data_pagamento: dataPagamento,
+        p_observacao: obsPagamento.trim(),
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Pagamento do portão confirmado");
+      qc.invalidateQueries({ queryKey: ["oportunidades-comercial"] });
+      qc.invalidateQueries({ queryKey: ["oportunidade-obs-comerciais", pedidoId] });
+      setConfirmarAberto(false);
+      setObsPagamento("");
+      onOpenChange(false);
+    },
+    onError: (e: Error) => {
+      // FAIL-LOUD: a mensagem do banco é explicativa — não substituir.
+      toast.error(e.message);
+    },
+  });
 
   const enviar = async () => {
     if (!podeEnviar) return;
@@ -90,6 +137,16 @@ export function PedidoOportunidadeDialog({
       setTexto("");
     } catch {
       /* toast já emitido no hook */
+    }
+  };
+
+  const copiarLink = async () => {
+    if (!linkPagamento) return;
+    try {
+      await navigator.clipboard.writeText(linkPagamento);
+      toast.success("Link de pagamento copiado");
+    } catch {
+      toast.error("Não foi possível copiar o link");
     }
   };
 
@@ -115,7 +172,9 @@ export function PedidoOportunidadeDialog({
           <TabsList>
             <TabsTrigger value="itens">Itens</TabsTrigger>
             <TabsTrigger value="obs">Obs. Comerciais</TabsTrigger>
+            <TabsTrigger value="pagamento">Pagamento</TabsTrigger>
           </TabsList>
+
 
           <TabsContent value="itens" className="mt-4">
             {itens.isLoading ? (
