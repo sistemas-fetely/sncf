@@ -16,7 +16,6 @@ import { cn } from "@/lib/utils";
 import type { Tarefa, TarefaPrioridade } from "@/hooks/tarefas/useTarefas";
 import { useAlterarStatusTarefa, useReagendarTarefa } from "@/hooks/tarefas/useTarefaMutations";
 import { useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
-import { useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
 
 
 const PRIORIDADE_CLASSE: Record<TarefaPrioridade, string> = {
