@@ -124,6 +124,9 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
   const [busca, setBusca] = useState("");
   const [origem, setOrigem] = useState<FiltroOrigem>("todas");
   const [retomando, setRetomando] = useState<OportunidadeRow | null>(null);
+  const [detalhe, setDetalhe] = useState<OportunidadeRow | null>(null);
+  const navigate = useNavigate();
+
 
   const { data = [], isLoading } = useQuery({
     queryKey: ["oportunidades-comercial"],
