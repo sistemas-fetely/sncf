@@ -99,17 +99,29 @@ const AVISO_EXCECAO_SITUACAO: Record<string, string> = {
   parcial_pago: "JÁ ADIANTOU · cobrar só o saldo",
 };
 
-const ORIGEM_LABEL: Record<OrigemOportunidade, string> = {
-  portao_vencido: "Portão vencido",
-  estoque_inadimplente: "Aguardando estoque",
-  manual: "Manual",
+/** Ordem das faixas de temperatura na mesa — peso por map, nunca if encadeado. */
+const TEMPERATURA_PESO: Record<string, number> = {
+  quente: 0,
+  morno: 1,
+  frio: 2,
+  nao_cobrar: 3,
 };
 
-const ORIGEM_CLASSES: Record<OrigemOportunidade, string> = {
-  portao_vencido: "bg-info/10 text-info",
-  estoque_inadimplente: "bg-info/10 text-info",
-  manual: "bg-warning/10 text-warning",
+const TEMPERATURA_LABEL: Record<string, string> = {
+  quente: "QUENTE",
+  morno: "Morno",
+  frio: "Frio",
+  nao_cobrar: "Não cobrar",
 };
+
+const TEMPERATURA_CLASSES: Record<string, string> = {
+  quente: "border-destructive/50 text-destructive",
+  morno: "border-warning/50 text-warning",
+  frio: "border-muted-foreground/40 text-muted-foreground",
+  nao_cobrar: "border-muted-foreground/40 text-muted-foreground",
+};
+
+type FiltroTemperatura = "todas" | "quente" | "morno" | "frio" | "nao_cobrar";
 
 async function copiar(link: string) {
   try {
@@ -120,11 +132,10 @@ async function copiar(link: string) {
   }
 }
 
-type FiltroOrigem = "todas" | OrigemOportunidade;
-
 export default function Oportunidades({ embutido = false }: { embutido?: boolean } = {}) {
   const [busca, setBusca] = useState("");
-  const [origem, setOrigem] = useState<FiltroOrigem>("todas");
+  const [temperatura, setTemperatura] = useState<FiltroTemperatura>("todas");
+
   const [retomando, setRetomando] = useState<OportunidadeRow | null>(null);
   const [detalhe, setDetalhe] = useState<OportunidadeRow | null>(null);
   const navigate = useNavigate();
