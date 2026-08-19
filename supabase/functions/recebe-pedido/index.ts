@@ -448,11 +448,48 @@ if (body.tipo === "canal_badges") {
       },
     }).eq("id", data.pedido_id);
 
+    // Resolve vendedor pós-inserção (RPC não pode ser alterada — função separada no banco)
+    let vendedorResolvido: string | null = null;
+    try {
+      const { data: vendedorData, error: vendedorError } = await supabase.rpc(
+        "resolver_vendedor_pedido",
+        {
+          p_pedido_id: data.pedido_id,
+          p_fop_profile_id: body.vendedor_id ?? null,
+          p_vendedor_nome: body.vendedor ?? null,
+          p_vendedor_email: body.vendedor_email ?? null,
+          p_vendedor_tipo: body.vendedor_tipo ?? null,
+        }
+      );
+
+      if (vendedorError) {
+        console.error("[recebe-pedido] Falha ao resolver vendedor", {
+          pedido_id: data.pedido_id,
+          id_externo: body.id_externo,
+          error: vendedorError.message,
+        });
+      } else if (vendedorData === null) {
+        console.warn("[recebe-pedido] Vendedor nao resolvido", {
+          id_externo: body.id_externo,
+          vendedor: body.vendedor,
+        });
+      } else {
+        vendedorResolvido = (vendedorData as any)?.nome ?? null;
+      }
+    } catch (vendedorErr) {
+      console.error("[recebe-pedido] Falha ao resolver vendedor", {
+        pedido_id: data.pedido_id,
+        id_externo: body.id_externo,
+        error: (vendedorErr as Error).message,
+      });
+    }
+
     console.log("[recebe-pedido] Sucesso", {
       id_externo: body.id_externo,
       pedido_id: data?.pedido_id,
       status: data?.status,
       estagio: data?.estagio_inicial,
+      vendedor_resolvido: vendedorResolvido,
     });
 
     return jsonResponse(200, data);
