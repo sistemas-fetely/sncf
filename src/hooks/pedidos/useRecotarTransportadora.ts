@@ -42,9 +42,7 @@ export function useRecotarTransportadora() {
       }
     },
     onError: (err: unknown) => {
-      const msg = err instanceof Error
-        ? err.message
-        : (err as any)?.message ?? JSON.stringify(err);
+      const msg = formatError(err);
       console.error("useRecotarTransportadora error:", err);
       toast.error(`Erro ao recotar transportadora: ${msg}`);
     },
