@@ -1081,6 +1081,8 @@ export default function PedidoDetalhe() {
   const [valorFrete, setValorFrete] = useState("");
   
   const transportadoras = useTransportadoras();
+  const { rotuloOrigem } = useTransportadoraOrigem();
+  const recotar = useRecotarTransportadora();
   const salvarDadosEnvio = useSalvarDadosEnvio();
   const freteComparativo = useFreteComparativo(id);
   const [compararOpen, setCompararOpen] = useState(false);
