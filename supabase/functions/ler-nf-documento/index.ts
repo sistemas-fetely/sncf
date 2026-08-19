@@ -137,18 +137,37 @@ function parseXmlNfe(xmlString: string) {
     infCpl.match(/CONTAINER[:\s]*([A-Za-z0-9-]+)/i) ||
     infCpl.match(/CONT[EÊ]INER[:\s]*([A-Za-z0-9-]+)/i);
 
+  const nfRefChave =
+    arr<any>(ide.NFref)
+      .map((r) => txt(r?.refNFe))
+      .find((v) => !!v) ?? null;
+
   const dets = arr<any>(infNFe.det);
   const linhas = dets.map((det, i) => {
     const prod = det?.prod ?? {};
     const ipiTrib = det?.imposto?.IPI?.IPITrib ?? det?.imposto?.IPI?.IPINT ?? {};
+    const item_seq = Number(det?.["@_nItem"] ?? i + 1);
+    let icms = { valor: null as number | null, aliquota: null as number | null, cst: null as string | null, origem: null as string | null };
+    try {
+      icms = extrairIcmsLinha(det);
+    } catch (e) {
+      console.error(`[ler-nf-documento] imposto malformado no item_seq=${item_seq}:`, e);
+    }
     return {
-      item_seq: Number(det?.["@_nItem"] ?? i + 1),
+      item_seq,
       codigo_nf: txt(prod.cProd),
       descricao: txt(prod.xProd),
       ncm: txt(prod.NCM),
+      cfop: txt(prod.CFOP),
+      // NF-e complementar de preco tem qCom legitimamente 0,0000 — nunca inferir.
       quantidade: numOuNull(prod.qCom),
       valor_unit: numOuNull(prod.vUnCom),
       ipi_aliq: numOuNull(ipiTrib?.pIPI),
+      ipi_valor: numOuNull(ipiTrib?.vIPI),
+      icms_valor: icms.valor,
+      icms_aliq: icms.aliquota,
+      icms_cst: icms.cst,
+      origem_mercadoria: icms.origem,
       valor_total: numOuNull(prod.vProd),
     };
   });
@@ -166,6 +185,13 @@ function parseXmlNfe(xmlString: string) {
       valor_produtos: numOuNull(total.vProd),
       valor_ipi: numOuNull(total.vIPI),
       valor_total: numOuNull(total.vNF),
+      valor_icms: numOuNull(total.vICMS),
+      valor_pis: numOuNull(total.vPIS),
+      valor_cofins: numOuNull(total.vCOFINS),
+      base_icms: numOuNull(total.vBC),
+      fin_nfe: numOuNull(ide.finNFe),
+      nf_referenciada_chave: nfRefChave,
+      natureza_operacao: txt(ide.natOp),
       peso_bruto: numOuNull(vol.pesoB),
       peso_liquido: numOuNull(vol.pesoL),
       volumes: numOuNull(vol.qVol),
