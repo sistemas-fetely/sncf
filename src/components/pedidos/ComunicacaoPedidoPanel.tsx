@@ -589,6 +589,11 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
                 <div className="flex flex-wrap gap-2">
                   {emailsAdicionais.map((em) => (
                     <div key={em} className="flex items-center gap-1.5 rounded-md border bg-muted px-2 py-1 text-sm">
+                      {vendedorEmail === em && (
+                        <Badge variant="outline" className="text-[10px]">
+                          vendedor{vendedorNome ? `: ${vendedorNome}` : ""}
+                        </Badge>
+                      )}
                       <span>{em}</span>
                       <button
                         type="button"
