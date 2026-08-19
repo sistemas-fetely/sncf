@@ -50,6 +50,7 @@ interface Props {
 
 export function BoardProjeto({ projetoId }: Props) {
   const { user } = useAuth();
+  const { abrir: abrirTarefa } = useTarefaAberta();
   const { data: secoes } = useSecoesProjeto(projetoId);
   const { data: tarefas, isLoading } = useTarefasDoProjeto(projetoId);
   const { data: podeGerenciar } = usePodeGerenciarProjeto(projetoId);
@@ -74,7 +75,6 @@ export function BoardProjeto({ projetoId }: Props) {
   );
 
   const [alvo, setAlvo] = useState<string | null>(null);
-  const [tarefaAberta, setTarefaAberta] = useState<string | null>(null);
   const [novaSecao, setNovaSecao] = useState("");
   const [renomeando, setRenomeando] = useState<{ id: string; nome: string } | null>(null);
   const [excluindo, setExcluindo] = useState<{ id: string; nome: string } | null>(null);
