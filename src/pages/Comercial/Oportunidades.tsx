@@ -21,9 +21,7 @@ import { cn } from "@/lib/utils";
 import { RetomarOportunidadeDialog } from "@/components/comercial/RetomarOportunidadeDialog";
 import { BadgeLinkFila } from "@/components/pedidos/LinkPagamentoCard";
 import { useLinksPagamentoFila } from "@/hooks/pedidos/useLinkPagamentoPedido";
-import {
-  PedidoOportunidadeDialog, chipSituacao,
-} from "@/components/comercial/PedidoOportunidadeDialog";
+import { PedidoOportunidadeDialog } from "@/components/comercial/PedidoOportunidadeDialog";
 
 
 type OrigemOportunidade = "portao_vencido" | "estoque_inadimplente" | "manual";
@@ -88,6 +86,12 @@ function formatDataCurta(valor: string | null): string {
 }
 
 
+
+const AVISO_EXCECAO_SITUACAO: Record<string, string> = {
+  coberto_haver: "NÃO COBRAR · pré-pago por crédito",
+  sem_cobranca: "NÃO É VENDA · não gera título",
+  parcial_pago: "JÁ ADIANTOU · cobrar só o saldo",
+};
 
 const ORIGEM_LABEL: Record<OrigemOportunidade, string> = {
   portao_vencido: "Portão vencido",
@@ -247,7 +251,6 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                       <TableHead>Pedido</TableHead>
                       <TableHead>Cliente</TableHead>
                       <TableHead className="text-right">Valor em jogo</TableHead>
-                      <TableHead>Situação</TableHead>
                       <TableHead className="text-right">Tempo</TableHead>
                       <TableHead>Vendedor</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
@@ -292,6 +295,17 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                           >
                             {r.apelido || r.cliente || "—"}
                           </button>
+                          {AVISO_EXCECAO_SITUACAO[r.situacao_financeira ?? ""] && (
+                            <div className="mt-0.5">
+                              <Badge
+                                variant="outline"
+                                className="rounded px-1.5 py-0 text-[10px] border-warning/50 text-warning"
+                                title={r.alerta_operacional ?? undefined}
+                              >
+                                {AVISO_EXCECAO_SITUACAO[r.situacao_financeira ?? ""]}
+                              </Badge>
+                            </div>
+                          )}
                           <div className="text-xs text-muted-foreground truncate">
                             {r.eh_primeira_compra ? (
                               <Badge variant="outline" className="rounded px-1.5 py-0 text-[10px]">
@@ -317,15 +331,6 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                         </TableCell>
                         <TableCell className="text-right align-top">
                           {formatBRL(r.valor_em_jogo ?? 0)}
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <Badge
-                            variant="outline"
-                            className="rounded px-2 py-0.5 text-xs whitespace-nowrap"
-                            title={r.alerta_operacional ?? undefined}
-                          >
-                            {chipSituacao(r.situacao_financeira)}
-                          </Badge>
                         </TableCell>
                         <TableCell className="text-right align-top">
                           <div className="text-sm">{r.dias_desde_pedido ?? 0}d do pedido</div>
