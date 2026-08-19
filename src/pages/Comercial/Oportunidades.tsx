@@ -155,18 +155,18 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
   });
 
   const contagens = useMemo(() => {
-    const c = { todas: data.length, portao_vencido: 0, estoque_inadimplente: 0, manual: 0 };
+    const c = { todas: data.length, quente: 0, morno: 0, frio: 0, nao_cobrar: 0 };
     for (const r of data) {
-      if (r.origem === "portao_vencido") c.portao_vencido++;
-      else if (r.origem === "estoque_inadimplente") c.estoque_inadimplente++;
-      else if (r.origem === "manual") c.manual++;
+      const t = r.temperatura ?? "";
+      if (t === "quente" || t === "morno" || t === "frio" || t === "nao_cobrar") c[t]++;
     }
     return c;
   }, [data]);
 
   const filtradas = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    let base = origem === "todas" ? data : data.filter((r) => r.origem === origem);
+    let base =
+      temperatura === "todas" ? data : data.filter((r) => r.temperatura === temperatura);
     if (q) {
       base = base.filter((r) =>
         [r.id_externo, r.cliente, r.apelido, r.cnpj, r.vendedor]
@@ -174,8 +174,15 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
           .some((v) => String(v).toLowerCase().includes(q)),
       );
     }
-    return base;
-  }, [data, busca, origem]);
+    // TEMPERATURA-MANDA-NA-ORDEM: faixa primeiro, valor em jogo decrescente dentro dela.
+    return [...base].sort((a, b) => {
+      const pa = TEMPERATURA_PESO[a.temperatura ?? ""] ?? 99;
+      const pb = TEMPERATURA_PESO[b.temperatura ?? ""] ?? 99;
+      if (pa !== pb) return pa - pb;
+      return Number(b.valor_em_jogo || 0) - Number(a.valor_em_jogo || 0);
+    });
+  }, [data, busca, temperatura]);
+
 
   const { data: linksFila } = useLinksPagamentoFila(data.map((r) => r.pedido_id));
 
