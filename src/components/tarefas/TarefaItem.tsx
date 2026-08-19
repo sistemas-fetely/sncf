@@ -37,9 +37,11 @@ interface Props {
   tarefa: Tarefa;
   /** mostra a data de vencimento em vermelho (usado no grupo Atrasadas) */
   atrasada?: boolean;
+  /** C/I não concluem nem reagendam a tarefa de outro R */
+  somenteLeitura?: boolean;
 }
 
-export function TarefaItem({ tarefa, atrasada = false }: Props) {
+export function TarefaItem({ tarefa, atrasada = false, somenteLeitura = false }: Props) {
   const alterarStatus = useAlterarStatusTarefa();
   const reagendar = useReagendarTarefa();
   const { data: projetos } = useProjetos();
@@ -57,15 +59,19 @@ export function TarefaItem({ tarefa, atrasada = false }: Props) {
 
   return (
     <div className="group flex items-start gap-3 rounded-lg border border-border/60 bg-card px-3 py-2.5 transition-colors hover:bg-accent/40">
-      <Checkbox
-        className="mt-0.5"
-        checked={concluida}
-        disabled={alterarStatus.isPending}
-        onCheckedChange={(v) =>
-          alterarStatus.mutate({ id: tarefa.id, status: v ? "concluida" : "pendente" })
-        }
-        aria-label={concluida ? "Reabrir tarefa" : "Concluir tarefa"}
-      />
+      {somenteLeitura ? (
+        <span className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+      ) : (
+        <Checkbox
+          className="mt-0.5"
+          checked={concluida}
+          disabled={alterarStatus.isPending}
+          onCheckedChange={(v) =>
+            alterarStatus.mutate({ id: tarefa.id, status: v ? "concluida" : "pendente" })
+          }
+          aria-label={concluida ? "Reabrir tarefa" : "Concluir tarefa"}
+        />
+      )}
 
       <div
         className="min-w-0 flex-1 cursor-pointer"
@@ -107,42 +113,44 @@ export function TarefaItem({ tarefa, atrasada = false }: Props) {
         )}
       </div>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 opacity-60 group-hover:opacity-100">
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuLabel className="text-xs">Reagendar</DropdownMenuLabel>
-          <DropdownMenuItem onClick={() => reagendarPara(0)}>Hoje</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => reagendarPara(1)}>Amanhã</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => reagendarPara(7)}>Próxima semana</DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <Popover open={calendarioAberto} onOpenChange={setCalendarioAberto}>
-            <PopoverTrigger asChild>
-              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Escolher data</DropdownMenuItem>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-auto p-0">
-              <Calendar
-                mode="single"
-                selected={tarefa.data_limite ? parseISO(tarefa.data_limite) : undefined}
-                onSelect={(d) => {
-                  if (!d) return;
-                  reagendar.mutate({ id: tarefa.id, data_limite: isoLocal(d) });
-                  setCalendarioAberto(false);
-                }}
-                locale={ptBR}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => reagendar.mutate({ id: tarefa.id, data_limite: null })}>
-            Tirar a data
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {somenteLeitura ? null : (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 opacity-60 group-hover:opacity-100">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuLabel className="text-xs">Reagendar</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => reagendarPara(0)}>Hoje</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => reagendarPara(1)}>Amanhã</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => reagendarPara(7)}>Próxima semana</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <Popover open={calendarioAberto} onOpenChange={setCalendarioAberto}>
+              <PopoverTrigger asChild>
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Escolher data</DropdownMenuItem>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={tarefa.data_limite ? parseISO(tarefa.data_limite) : undefined}
+                  onSelect={(d) => {
+                    if (!d) return;
+                    reagendar.mutate({ id: tarefa.id, data_limite: isoLocal(d) });
+                    setCalendarioAberto(false);
+                  }}
+                  locale={ptBR}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => reagendar.mutate({ id: tarefa.id, data_limite: null })}>
+              Tirar a data
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
     </div>
   );
 }

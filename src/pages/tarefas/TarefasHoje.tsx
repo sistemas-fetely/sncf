@@ -15,16 +15,17 @@ import {
   useTarefasConcluidas, useTarefasContadores, useTarefasHoje,
   useTarefasProximos7, useTarefasSemData, type Tarefa,
 } from "@/hooks/tarefas/useTarefas";
+import { useRespondoPor } from "@/hooks/tarefas/useMinhasTarefasPapel";
 
 function Vazio({ texto }: { texto: string }) {
   return <p className="py-6 text-center text-sm text-muted-foreground">{texto}</p>;
 }
 
-function Lista({ tarefas, atrasada }: { tarefas: Tarefa[]; atrasada?: boolean }) {
+function Lista({ tarefas, atrasada, somenteLeitura }: { tarefas: Tarefa[]; atrasada?: boolean; somenteLeitura?: boolean }) {
   return (
     <div className="space-y-2">
       {tarefas.map((t) => (
-        <TarefaItem key={t.id} tarefa={t} atrasada={atrasada} />
+        <TarefaItem key={t.id} tarefa={t} atrasada={atrasada} somenteLeitura={somenteLeitura} />
       ))}
     </div>
   );
@@ -48,10 +49,11 @@ function TarefasHojeConteudo() {
   const semData = useTarefasSemData(userId);
   const concluidas = useTarefasConcluidas(userId);
   const { data: contadores } = useTarefasContadores(userId);
+  const { data: respondoPor } = useRespondoPor(userId);
 
   const atrasadas = hoje.data?.atrasadas ?? [];
   const doDia = hoje.data?.hoje ?? [];
-  const vazioHoje = !hoje.isLoading && atrasadas.length === 0 && doDia.length === 0;
+  const vazioHoje = !hoje.isLoading && atrasadas.length === 0 && doDia.length === 0 && (respondoPor?.length ?? 0) === 0;
 
   return (
     <PageShell>
@@ -84,6 +86,16 @@ function TarefasHojeConteudo() {
 
         <TabsContent value="hoje" className="space-y-6 pt-4">
           <InboxFilas />
+
+          {respondoPor && respondoPor.length > 0 && (
+            <section className="space-y-2">
+              <h2 className="text-sm font-medium">Respondo por ({respondoPor.length})</h2>
+              <p className="text-xs text-muted-foreground">
+                Você é o A destas tarefas. A execução é de outra pessoa.
+              </p>
+              <Lista tarefas={respondoPor} somenteLeitura />
+            </section>
+          )}
 
           {vazioHoje ? (
             <Vazio texto="Nenhuma tarefa sua para hoje. Use a caixa acima para capturar uma tarefa — dá para escrever tudo numa linha." />
