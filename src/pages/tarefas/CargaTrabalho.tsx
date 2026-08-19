@@ -47,7 +47,11 @@ export default function CargaTrabalho() {
   const salvarCapacidade = useSalvarCapacidade();
 
   const [drill, setDrill] = useState<{ userId: string; nome: string; inicio: string; fim: string } | null>(null);
-  const { abrir: abrirTarefa } = useTarefaAberta();
+  const { abrir: abrirTarefa, tarefaId } = useTarefaAberta();
+
+  useEffect(() => {
+    if (tarefaId) setDrill(null);
+  }, [tarefaId]);
 
   const pessoas = useMemo<LinhaPessoa[]>(() => {
     const mapa = new Map<string, LinhaPessoa>();

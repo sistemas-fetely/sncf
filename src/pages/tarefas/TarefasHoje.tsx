@@ -49,10 +49,11 @@ function TarefasHojeConteudo() {
   const semData = useTarefasSemData(userId);
   const concluidas = useTarefasConcluidas(userId);
   const { data: contadores } = useTarefasContadores(userId);
+  const { data: respondoPor } = useRespondoPor(userId);
 
   const atrasadas = hoje.data?.atrasadas ?? [];
   const doDia = hoje.data?.hoje ?? [];
-  const vazioHoje = !hoje.isLoading && atrasadas.length === 0 && doDia.length === 0;
+  const vazioHoje = !hoje.isLoading && atrasadas.length === 0 && doDia.length === 0 && (respondoPor?.length ?? 0) === 0;
 
   return (
     <PageShell>
@@ -85,6 +86,16 @@ function TarefasHojeConteudo() {
 
         <TabsContent value="hoje" className="space-y-6 pt-4">
           <InboxFilas />
+
+          {respondoPor && respondoPor.length > 0 && (
+            <section className="space-y-2">
+              <h2 className="text-sm font-medium">Respondo por ({respondoPor.length})</h2>
+              <p className="text-xs text-muted-foreground">
+                Você é o A destas tarefas. A execução é de outra pessoa.
+              </p>
+              <Lista tarefas={respondoPor} somenteLeitura />
+            </section>
+          )}
 
           {vazioHoje ? (
             <Vazio texto="Nenhuma tarefa sua para hoje. Use a caixa acima para capturar uma tarefa — dá para escrever tudo numa linha." />
