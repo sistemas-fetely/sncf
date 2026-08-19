@@ -1,11 +1,20 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { descreverPreview, parseQuickAdd, type TokenTipo } from "@/lib/tarefas/quickAddParser";
 import { useCriarTarefaQuickAdd } from "@/hooks/tarefas/useTarefaMutations";
-import { casarPorNome, usePessoasSistema, useProjetos, useSecoes } from "@/hooks/tarefas/useTarefasCatalogos";
+import {
+  casarPessoa,
+  casarPorNome,
+  handlePessoa,
+  sugerirPessoas,
+  usePessoasSistema,
+  useProjetos,
+  useSecoes,
+  type PessoaSistema,
+} from "@/hooks/tarefas/useTarefasCatalogos";
 
 const COR_TOKEN: Record<TokenTipo, string> = {
   projeto: "bg-primary/20",
