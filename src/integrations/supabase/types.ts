@@ -63545,6 +63545,16 @@ export type Database = {
         }
         Returns: Json
       }
+      resolver_vendedor_pedido: {
+        Args: {
+          p_fop_profile_id?: string
+          p_pedido_id: string
+          p_vendedor_email?: string
+          p_vendedor_nome?: string
+          p_vendedor_tipo?: string
+        }
+        Returns: string
+      }
       restaurar_snapshot_completo: {
         Args: { p_pedido_id: string; p_usuario_id: string }
         Returns: Json
