@@ -23667,6 +23667,56 @@ export type Database = {
         }
         Relationships: []
       }
+      pedido_estagio_canal: {
+        Row: {
+          area: string | null
+          ativo: boolean
+          canal: string
+          created_at: string
+          estagio_codigo: string
+          observacao: string | null
+          ordem: number
+          proxima_acao: string | null
+          rotulo: string
+          sla_horas: number | null
+          visivel_no_pipeline: boolean
+        }
+        Insert: {
+          area?: string | null
+          ativo?: boolean
+          canal: string
+          created_at?: string
+          estagio_codigo: string
+          observacao?: string | null
+          ordem: number
+          proxima_acao?: string | null
+          rotulo: string
+          sla_horas?: number | null
+          visivel_no_pipeline?: boolean
+        }
+        Update: {
+          area?: string | null
+          ativo?: boolean
+          canal?: string
+          created_at?: string
+          estagio_codigo?: string
+          observacao?: string | null
+          ordem?: number
+          proxima_acao?: string | null
+          rotulo?: string
+          sla_horas?: number | null
+          visivel_no_pipeline?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_estagio_canal_estagio_codigo_fkey"
+            columns: ["estagio_codigo"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
       pedido_eventos: {
         Row: {
           area_anterior: string | null
@@ -26215,6 +26265,7 @@ export type Database = {
           bling_id_destino: string | null
           bonus_pix_valor: number
           caixas_estimadas: number | null
+          canal: string
           cancelado_em: string | null
           cancelado_motivo: string | null
           cancelado_motivo_codigo: string | null
@@ -26315,6 +26366,7 @@ export type Database = {
           bling_id_destino?: string | null
           bonus_pix_valor?: number
           caixas_estimadas?: number | null
+          canal?: string
           cancelado_em?: string | null
           cancelado_motivo?: string | null
           cancelado_motivo_codigo?: string | null
@@ -26415,6 +26467,7 @@ export type Database = {
           bling_id_destino?: string | null
           bonus_pix_valor?: number
           caixas_estimadas?: number | null
+          canal?: string
           cancelado_em?: string | null
           cancelado_motivo?: string | null
           cancelado_motivo_codigo?: string | null
@@ -53442,6 +53495,7 @@ export type Database = {
       vw_nf_pedido_resolvido: {
         Row: {
           canal: string | null
+          canal_fonte: string | null
           nf_id: string | null
           pedido_ref: string | null
         }
@@ -53784,14 +53838,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -54382,14 +54436,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -63346,10 +63400,6 @@ export type Database = {
         Args: { p_pedido_id: string }
         Returns: string
       }
-      fn_canal_pedido_sops: {
-        Args: { p_natureza_codigo: string }
-        Returns: string
-      }
       fn_casar_nf_por_fob: {
         Args: { p_pedido_id: number }
         Returns: {
@@ -63723,6 +63773,10 @@ export type Database = {
           cand_usada: boolean
         }[]
       }
+      fn_nascer_pedido_b2c: {
+        Args: { p_dry_run?: boolean; p_shopify_id: string }
+        Returns: Json
+      }
       fn_norm_texto: { Args: { p_texto: string }; Returns: string }
       fn_norm_vendedor: { Args: { p_txt: string }; Returns: string }
       fn_normaliza_vendedor: { Args: { p_texto: string }; Returns: string }
@@ -63906,6 +63960,18 @@ export type Database = {
         Returns: string
       }
       fn_resolver_condicao: { Args: { p_condicao: string }; Returns: string }
+      fn_resolver_conta_b2c: {
+        Args: {
+          p_cep: string
+          p_cidade: string
+          p_email: string
+          p_nome: string
+          p_shopify_customer_id: string
+          p_telefone: string
+          p_uf: string
+        }
+        Returns: string
+      }
       fn_resolver_pedido_por_ref_bling: {
         Args: { p_ref: string }
         Returns: string
