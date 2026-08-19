@@ -138,8 +138,36 @@ export function QuickAddTarefa() {
           <Input
             ref={inputRef}
             value={valor}
-            onChange={(e) => setValor(e.target.value)}
+            onChange={(e) => {
+              setValor(e.target.value);
+              setCursor(e.currentTarget.selectionStart ?? 0);
+            }}
+            onKeyUp={(e) => setCursor(e.currentTarget.selectionStart ?? 0)}
+            onClick={(e) => setCursor(e.currentTarget.selectionStart ?? 0)}
+            onSelect={(e) => setCursor(e.currentTarget.selectionStart ?? 0)}
             onKeyDown={(e) => {
+              if (dropdownAberto) {
+                if (e.key === "ArrowDown") {
+                  e.preventDefault();
+                  setIndice((i) => (i + 1) % candidatos.length);
+                  return;
+                }
+                if (e.key === "ArrowUp") {
+                  e.preventDefault();
+                  setIndice((i) => (i - 1 + candidatos.length) % candidatos.length);
+                  return;
+                }
+                if (e.key === "Enter" || e.key === "Tab") {
+                  e.preventDefault();
+                  escolher(candidatos[indice]);
+                  return;
+                }
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  setSuprimido(true);
+                  return;
+                }
+              }
               if (e.key === "Enter") {
                 e.preventDefault();
                 void criar();
@@ -149,6 +177,31 @@ export function QuickAddTarefa() {
             className={cn("relative bg-transparent", CLASSES_TEXTO)}
             disabled={isPending}
           />
+          {dropdownAberto && (
+            <ul className="absolute left-0 right-0 top-full z-50 mt-1 max-h-64 overflow-y-auto rounded-md border border-border bg-popover py-1 shadow-md">
+              {candidatos.map((p, i) => (
+                <li key={p.id}>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      escolher(p);
+                    }}
+                    onMouseEnter={() => setIndice(i)}
+                    className={cn(
+                      "flex w-full flex-col items-start px-3 py-1.5 text-left",
+                      i === indice && "bg-accent"
+                    )}
+                  >
+                    <span className="text-sm">{p.nome}</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      @{handlePessoa(p)}{p.cargo ? ` · ${p.cargo}` : ""}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
         <Button
           variant="link"
@@ -161,9 +214,20 @@ export function QuickAddTarefa() {
 
       {preview && <p className="text-xs text-muted-foreground">{preview}</p>}
 
+      {resultado.responsavelNome && (
+        pessoaResolvida ? (
+          <p className="text-xs text-muted-foreground">→ responsável: {pessoaResolvida.nome}</p>
+        ) : (
+          <p className="text-xs text-warning">
+            Ninguém chamado "{resultado.responsavelNome}" — a tarefa vai nascer sem responsável.
+          </p>
+        )
+      )}
+
       <p className="text-[11px] text-muted-foreground/80">
-        #projeto @pessoa +etiqueta /seção !prioridade · datas em português: amanhã, sexta, dia 15, em 3 dias
+        #projeto @pessoa (digite @ e escolha) +etiqueta /seção !prioridade · datas em português: amanhã, sexta, dia 15, em 3 dias
       </p>
+
 
       {!valor && (
         <div className="flex flex-wrap gap-2 pt-1">
