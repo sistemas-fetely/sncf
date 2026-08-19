@@ -3750,6 +3750,405 @@ export type Database = {
           },
         ]
       }
+      bem_classe: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          confirmado_contabilidade: boolean
+          especie: string
+          fonte_taxa: string | null
+          metodo: string
+          observacao: string | null
+          plano_contas_codigo: string | null
+          rotulo: string
+          taxa_anual: number | null
+          vida_util_meses: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          confirmado_contabilidade?: boolean
+          especie: string
+          fonte_taxa?: string | null
+          metodo?: string
+          observacao?: string | null
+          plano_contas_codigo?: string | null
+          rotulo: string
+          taxa_anual?: number | null
+          vida_util_meses?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          confirmado_contabilidade?: boolean
+          especie?: string
+          fonte_taxa?: string | null
+          metodo?: string
+          observacao?: string | null
+          plano_contas_codigo?: string | null
+          rotulo?: string
+          taxa_anual?: number | null
+          vida_util_meses?: number | null
+        }
+        Relationships: []
+      }
+      bem_depreciacao: {
+        Row: {
+          acumulado: number
+          bem_id: string
+          calculado_em: string
+          competencia: string
+          id: string
+          metodo: string
+          taxa_anual: number
+          valor: number
+          valor_residual: number
+        }
+        Insert: {
+          acumulado: number
+          bem_id: string
+          calculado_em?: string
+          competencia: string
+          id?: string
+          metodo: string
+          taxa_anual: number
+          valor: number
+          valor_residual: number
+        }
+        Update: {
+          acumulado?: number
+          bem_id?: string
+          calculado_em?: string
+          competencia?: string
+          id?: string
+          metodo?: string
+          taxa_anual?: number
+          valor?: number
+          valor_residual?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bem_depreciacao_bem_id_fkey"
+            columns: ["bem_id"]
+            isOneToOne: false
+            referencedRelation: "bem_imobilizado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bem_depreciacao_bem_id_fkey"
+            columns: ["bem_id"]
+            isOneToOne: false
+            referencedRelation: "vw_bem_imobilizado_painel"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bem_depreciacao_fechamento: {
+        Row: {
+          bens: number | null
+          competencia: string
+          fechado_em: string
+          fechado_por: string | null
+          obs: string | null
+          status: string
+          valor_mes: number | null
+        }
+        Insert: {
+          bens?: number | null
+          competencia: string
+          fechado_em?: string
+          fechado_por?: string | null
+          obs?: string | null
+          status?: string
+          valor_mes?: number | null
+        }
+        Update: {
+          bens?: number | null
+          competencia?: string
+          fechado_em?: string
+          fechado_por?: string | null
+          obs?: string | null
+          status?: string
+          valor_mes?: number | null
+        }
+        Relationships: []
+      }
+      bem_imobilizado: {
+        Row: {
+          baixado_em: string | null
+          centro_custo_id: string | null
+          classe_codigo: string
+          cpr_id: string | null
+          criado_em: string
+          data_aquisicao: string
+          data_inicio_uso: string | null
+          descricao: string
+          id: string
+          local_observacao: string | null
+          local_parceiro_id: string | null
+          local_tipo: string
+          ncm: string | null
+          nf_chave_acesso: string | null
+          nf_numero: string | null
+          observacao: string | null
+          parceiro_id: string | null
+          plano_contas_id: string | null
+          quantidade: number
+          situacao: string
+          valor_aquisicao: number
+        }
+        Insert: {
+          baixado_em?: string | null
+          centro_custo_id?: string | null
+          classe_codigo: string
+          cpr_id?: string | null
+          criado_em?: string
+          data_aquisicao: string
+          data_inicio_uso?: string | null
+          descricao: string
+          id?: string
+          local_observacao?: string | null
+          local_parceiro_id?: string | null
+          local_tipo?: string
+          ncm?: string | null
+          nf_chave_acesso?: string | null
+          nf_numero?: string | null
+          observacao?: string | null
+          parceiro_id?: string | null
+          plano_contas_id?: string | null
+          quantidade?: number
+          situacao?: string
+          valor_aquisicao: number
+        }
+        Update: {
+          baixado_em?: string | null
+          centro_custo_id?: string | null
+          classe_codigo?: string
+          cpr_id?: string | null
+          criado_em?: string
+          data_aquisicao?: string
+          data_inicio_uso?: string | null
+          descricao?: string
+          id?: string
+          local_observacao?: string | null
+          local_parceiro_id?: string | null
+          local_tipo?: string
+          ncm?: string | null
+          nf_chave_acesso?: string | null
+          nf_numero?: string | null
+          observacao?: string | null
+          parceiro_id?: string | null
+          plano_contas_id?: string | null
+          quantidade?: number
+          situacao?: string
+          valor_aquisicao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bem_imobilizado_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dimensionamento_areas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_classe_codigo_fkey"
+            columns: ["classe_codigo"]
+            isOneToOne: false
+            referencedRelation: "bem_classe"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_cpr_id_fkey"
+            columns: ["cpr_id"]
+            isOneToOne: true
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_cpr_id_fkey"
+            columns: ["cpr_id"]
+            isOneToOne: true
+            referencedRelation: "contas_pagar_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_cpr_id_fkey"
+            columns: ["cpr_id"]
+            isOneToOne: true
+            referencedRelation: "contas_pagar_receber_ativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_cpr_id_fkey"
+            columns: ["cpr_id"]
+            isOneToOne: true
+            referencedRelation: "v_cpr_bola_redonda"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_cpr_id_fkey"
+            columns: ["cpr_id"]
+            isOneToOne: true
+            referencedRelation: "vw_conciliacao_furos"
+            referencedColumns: ["sugestao_cpr_id"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_cpr_id_fkey"
+            columns: ["cpr_id"]
+            isOneToOne: true
+            referencedRelation: "vw_contas_pagar_consolidado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_cpr_id_fkey"
+            columns: ["cpr_id"]
+            isOneToOne: true
+            referencedRelation: "vw_cpr_cobertura"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_cpr_id_fkey"
+            columns: ["cpr_id"]
+            isOneToOne: true
+            referencedRelation: "vw_despesas_match_sugestoes"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_cpr_id_fkey"
+            columns: ["cpr_id"]
+            isOneToOne: true
+            referencedRelation: "vw_documentos_envio_estados"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_cpr_id_fkey"
+            columns: ["cpr_id"]
+            isOneToOne: true
+            referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_local_parceiro_id_fkey"
+            columns: ["local_parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_local_parceiro_id_fkey"
+            columns: ["local_parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_local_parceiro_id_fkey"
+            columns: ["local_parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conta_corrente_cliente"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_local_parceiro_id_fkey"
+            columns: ["local_parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_estimado_parceiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_local_parceiro_id_fkey"
+            columns: ["local_parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_local_parceiro_id_fkey"
+            columns: ["local_parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_nome"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_local_parceiro_id_fkey"
+            columns: ["local_parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conta_corrente_cliente"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_estimado_parceiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_nome"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "bem_imobilizado_plano_contas_id_fkey"
+            columns: ["plano_contas_id"]
+            isOneToOne: false
+            referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       beneficios_catalogo: {
         Row: {
           ativo: boolean | null
@@ -44530,6 +44929,30 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_bem_imobilizado_painel: {
+        Row: {
+          classe: string | null
+          confirmado_contabilidade: boolean | null
+          conta: string | null
+          conta_nome: string | null
+          data_aquisicao: string | null
+          data_inicio_uso: string | null
+          depreciacao_acumulada: number | null
+          descricao: string | null
+          especie: string | null
+          id: string | null
+          local_observacao: string | null
+          local_parceiro: string | null
+          local_tipo: string | null
+          nf_numero: string | null
+          situacao: string | null
+          taxa_anual: number | null
+          valor_aquisicao: number | null
+          valor_contabil: number | null
+          vida_util_meses: number | null
+        }
+        Relationships: []
+      }
       vw_beneficios_consolidado: {
         Row: {
           beneficio: string | null
@@ -47466,6 +47889,15 @@ export type Database = {
             referencedColumns: ["codigo"]
           },
         ]
+      }
+      vw_dre_depreciacao: {
+        Row: {
+          bens: number | null
+          competencia: string | null
+          especie: string | null
+          valor: number | null
+        }
+        Relationships: []
       }
       vw_dre_integridade: {
         Row: {
@@ -62099,6 +62531,20 @@ export type Database = {
         }[]
       }
       fn_data_entrega_rastreio: { Args: { p_eventos: Json }; Returns: string }
+      fn_depreciacao_calcular: {
+        Args: { p_competencia: string; p_gravar?: boolean }
+        Returns: {
+          acumulado: number
+          bens: number
+          bloqueio: string
+          classe: string
+          valor_mes: number
+        }[]
+      }
+      fn_depreciacao_gravar: {
+        Args: { p_ate_competencia: string; p_obs?: string }
+        Returns: Json
+      }
       fn_derivar_analise_credito: {
         Args: { p_pedido_id: string }
         Returns: Json

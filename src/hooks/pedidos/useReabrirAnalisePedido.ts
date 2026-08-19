@@ -39,6 +39,7 @@ export function useReabrirAnalisePedido() {
       qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
       qc.invalidateQueries({ queryKey: ["aguardando-pagamento-fila"] });
       qc.invalidateQueries({ queryKey: ["avaliar-impacto-edicao", vars.pedidoId] });
+      qc.invalidateQueries({ queryKey: ["avaliar-impacto-plano", vars.pedidoId] });
       toast({
         title: "Pedido enviado para reanálise",
         description: "Uma nova análise de crédito foi criada.",

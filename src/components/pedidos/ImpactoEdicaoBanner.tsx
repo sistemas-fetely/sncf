@@ -2,38 +2,57 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CheckCircle2, AlertTriangle, XCircle, Info } from "lucide-react";
 import { formatBRL } from "@/lib/format-currency";
 import { useAvaliarImpactoEdicao } from "@/hooks/credito/useAvaliarImpactoEdicao";
+import { useAvaliarImpactoPlano, type LinhaImpacto } from "@/hooks/credito/useAvaliarImpactoPlano";
 
 interface Props {
   pedidoId: string | null | undefined;
-  novaCondicao: string | null | undefined;
+  /** Plano em tela. Quando informado, a avaliação é feita por linhas. */
+  linhas?: LinhaImpacto[];
+  /** Legado: avaliação por string de condição (dialogs de edição de condição/desconto). */
+  novaCondicao?: string | null;
   novoValorLiquido?: number | null;
   enabled?: boolean;
   className?: string;
 }
 
+function fmtData(iso: string): string {
+  const [y, m, d] = iso.slice(0, 10).split("-");
+  if (!y || !m || !d) return iso;
+  return `${d}/${m}/${y}`;
+}
+
 /**
  * Banner CONSULTIVO — não bloqueia ações.
- * Chama fn_avaliar_impacto_edicao_pedido e sugere o caminho.
+ * Chama fn_avaliar_impacto_plano e avalia o PLANO EM TELA (as linhas montadas
+ * pelo operador), não a condição original do pedido, e sugere o caminho.
  * Fail-loud suave: em erro/rpc off, não renderiza.
  */
 export function ImpactoEdicaoBanner({
   pedidoId,
+  linhas,
   novaCondicao,
   novoValorLiquido,
   enabled = true,
   className,
 }: Props) {
-  const q = useAvaliarImpactoEdicao({
+  const usarPlano = !!linhas && linhas.length > 0;
+
+  const qPlano = useAvaliarImpactoPlano({
+    pedidoId,
+    linhas: linhas ?? [],
+    enabled: enabled && usarPlano,
+  });
+
+  const qCondicao = useAvaliarImpactoEdicao({
     pedidoId,
     novaCondicao,
     novoValorLiquido,
-    enabled,
+    enabled: enabled && !usarPlano,
   });
 
+  const q = usarPlano ? qPlano : qCondicao;
+
   if (!enabled) return null;
-  if (q.isLoading || q.isFetching && !q.data) {
-    // opcional: renderizar um placeholder discreto
-  }
   if (q.error || !q.data) return null;
 
   const d = q.data;
@@ -43,6 +62,7 @@ export function ImpactoEdicaoBanner({
   const limite = Number(d.limite_concedido ?? 0);
   const prazoNovo = d.prazo_novo_dias ?? null;
   const prazoMax = d.prazo_max_dias ?? null;
+  const vencMaisLongo = usarPlano ? qPlano.data?.venc_mais_longo ?? null : null;
 
   const numeros =
     limite > 0 || expo > 0 ? (
@@ -54,6 +74,7 @@ export function ImpactoEdicaoBanner({
             {prazoMax != null && <> / {prazoMax}d</>}
           </>
         )}
+        {vencMaisLongo && <> · última em {fmtData(vencMaisLongo)}</>}
       </div>
     ) : null;
 

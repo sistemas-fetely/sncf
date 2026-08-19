@@ -617,6 +617,22 @@ export default function CobrancaDetalhe() {
     () => titulos.reduce((acc, t) => acc + Number(t.valor_bruto || 0), 0),
     [titulos],
   );
+
+  // ENVELOPE-TEM-UMA-DEFINICAO (19/08/2026): o banner avalia o PLANO EM TELA.
+  // Antes recebia proposta.condicao_original — a condicao ANTIGA — e dava
+  // falso-verde para plano que estourava o prazo aprovado.
+  const linhasParaImpacto = useMemo(
+    () =>
+      titulos.map((t) => ({
+        numero_parcela: t.numero_parcela,
+        tipo_pagamento: t.tipo_pagamento,
+        valor: Number(t.valor_bruto || 0),
+        data_vencimento: t.data_vencimento,
+        eh_entrada: !!t.eh_entrada,
+        eh_portao: !!t.eh_portao,
+      })),
+    [titulos],
+  );
   const valorACobrar = Math.max(0, valorPedido - creditoAplicado);
   const diff = totalEditado - valorACobrar;
   const pctDiff = valorACobrar > 0 ? Math.abs(diff) / valorACobrar : 0;
@@ -1064,15 +1080,13 @@ export default function CobrancaDetalhe() {
         <CardContent>
           <ImpactoEdicaoBanner
             pedidoId={pedidoQ.data?.id}
-            novaCondicao={proposta.condicao_original}
-            novoValorLiquido={totalEditado}
+            linhas={linhasParaImpacto}
             className="mb-2"
           />
           <div className="mb-4">
             <ReabrirAnaliseAction
               pedidoId={pedidoQ.data?.id}
-              novaCondicao={proposta.condicao_original}
-              novoValorLiquido={totalEditado}
+              linhas={linhasParaImpacto}
             />
           </div>
           {jaPagoPedido > 0.005 && (

@@ -12,11 +12,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { useAvaliarImpactoEdicao } from "@/hooks/credito/useAvaliarImpactoEdicao";
+import { useAvaliarImpactoPlano, type LinhaImpacto } from "@/hooks/credito/useAvaliarImpactoPlano";
 import { useReabrirAnalisePedido } from "@/hooks/pedidos/useReabrirAnalisePedido";
 
 interface Props {
   pedidoId: string | null | undefined;
-  novaCondicao: string | null | undefined;
+  /** Plano em tela. Quando informado, a avaliação é feita por linhas. */
+  linhas?: LinhaImpacto[];
+  /** Legado: avaliação por string de condição. */
+  novaCondicao?: string | null;
   novoValorLiquido?: number | null;
   enabled?: boolean;
   className?: string;
@@ -30,6 +34,7 @@ interface Props {
  */
 export function ReabrirAnaliseAction({
   pedidoId,
+  linhas,
   novaCondicao,
   novoValorLiquido,
   enabled = true,
@@ -39,18 +44,29 @@ export function ReabrirAnaliseAction({
   const [open, setOpen] = useState(false);
   const [motivo, setMotivo] = useState("");
 
-  const impacto = useAvaliarImpactoEdicao({
+  const usarPlano = !!linhas && linhas.length > 0;
+
+  const impactoPlano = useAvaliarImpactoPlano({
+    pedidoId,
+    linhas: linhas ?? [],
+    enabled: enabled && usarPlano,
+  });
+
+  const impactoCondicao = useAvaliarImpactoEdicao({
     pedidoId,
     novaCondicao,
     novoValorLiquido,
-    enabled,
+    enabled: enabled && !usarPlano,
   });
+
+  const impacto = usarPlano ? impactoPlano : impactoCondicao;
 
   const reabrir = useReabrirAnalisePedido();
 
   if (!enabled || !pedidoId) return null;
   if (impacto.error || !impacto.data) return null;
   if (impacto.data.caminho !== "re_analise") return null;
+
 
   async function handleConfirmar() {
     if (!pedidoId) return;
