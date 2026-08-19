@@ -114,3 +114,49 @@ export function casarPorNome<T extends { id: string; nome: string }>(
     null
   );
 }
+
+const semAcento = (s: string) =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+/**
+ * Apelido operacional da pessoa = parte local do e-mail.
+ * Sem espaço por construção (o parser corta o token no espaço) e único por
+ * construção (é um e-mail). É também como as pessoas se chamam aqui: nathy, não Nathalia.
+ */
+export function handlePessoa(p: { email: string | null }): string | null {
+  const local = (p.email ?? "").split("@")[0]?.trim().toLowerCase();
+  return local || null;
+}
+
+/** Todos os termos pelos quais uma pessoa pode ser chamada no quick add. */
+export function termosPessoa(p: PessoaSistema): string[] {
+  const h = handlePessoa(p);
+  const doHandle = h ? [h, ...h.split(".")] : [];
+  return [...semAcento(p.nome).split(/\s+/), ...doHandle].filter(Boolean);
+}
+
+/** Resolve o texto de @alvo numa pessoa. Handle exato vence; depois termo exato; depois prefixo. */
+export function casarPessoa(
+  pessoas: PessoaSistema[] | undefined,
+  alvo: string | null
+): PessoaSistema | null {
+  if (!alvo || !pessoas?.length) return null;
+  const a = semAcento(alvo);
+  return (
+    pessoas.find((p) => handlePessoa(p) === a) ??
+    pessoas.find((p) => termosPessoa(p).some((t) => t === a)) ??
+    pessoas.find((p) => termosPessoa(p).some((t) => t.startsWith(a))) ??
+    null
+  );
+}
+
+/** Candidatos do dropdown. Fragmento vazio (acabou de digitar "@") mostra todo mundo. */
+export function sugerirPessoas(
+  pessoas: PessoaSistema[] | undefined,
+  fragmento: string
+): PessoaSistema[] {
+  if (!pessoas?.length) return [];
+  const a = semAcento(fragmento);
+  if (!a) return pessoas.slice(0, 6);
+  return pessoas.filter((p) => termosPessoa(p).some((t) => t.startsWith(a))).slice(0, 6);
+}

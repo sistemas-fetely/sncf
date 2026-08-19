@@ -1,11 +1,20 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { descreverPreview, parseQuickAdd, type TokenTipo } from "@/lib/tarefas/quickAddParser";
 import { useCriarTarefaQuickAdd } from "@/hooks/tarefas/useTarefaMutations";
-import { casarPorNome, usePessoasSistema, useProjetos, useSecoes } from "@/hooks/tarefas/useTarefasCatalogos";
+import {
+  casarPessoa,
+  casarPorNome,
+  handlePessoa,
+  sugerirPessoas,
+  usePessoasSistema,
+  useProjetos,
+  useSecoes,
+  type PessoaSistema,
+} from "@/hooks/tarefas/useTarefasCatalogos";
 
 const COR_TOKEN: Record<TokenTipo, string> = {
   projeto: "bg-primary/20",
@@ -22,6 +31,9 @@ const CLASSES_TEXTO = "px-3 py-2 text-sm font-normal leading-[1.25rem] tracking-
 
 export function QuickAddTarefa() {
   const [valor, setValor] = useState("");
+  const [cursor, setCursor] = useState(0);
+  const [indice, setIndice] = useState(0);
+  const [suprimido, setSuprimido] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { criarDoParse, isPending } = useCriarTarefaQuickAdd();
@@ -44,6 +56,43 @@ export function QuickAddTarefa() {
     return out;
   }, [resultado, valor]);
 
+  const fragmento = useMemo(() => {
+    const ate = valor.slice(0, cursor);
+    const m = /(?:^|\s)@([^\s]*)$/.exec(ate);
+    if (!m) return null;
+    return { termo: m[1], inicio: cursor - m[1].length };
+  }, [valor, cursor]);
+
+  const candidatos = useMemo(
+    () => (fragmento ? sugerirPessoas(pessoas, fragmento.termo) : []),
+    [fragmento, pessoas]
+  );
+
+  const dropdownAberto = !!fragmento && candidatos.length > 0 && !suprimido;
+
+  useEffect(() => {
+    setIndice(0);
+    setSuprimido(false);
+  }, [fragmento?.termo]);
+
+  const pessoaResolvida = useMemo(
+    () => casarPessoa(pessoas, resultado.responsavelNome),
+    [pessoas, resultado.responsavelNome]
+  );
+
+  const escolher = (p: PessoaSistema) => {
+    const h = handlePessoa(p);
+    if (!h || !fragmento) return;
+    const novo = valor.slice(0, fragmento.inicio) + h + " " + valor.slice(cursor);
+    const pos = fragmento.inicio + h.length + 1;
+    setValor(novo);
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+      inputRef.current?.setSelectionRange(pos, pos);
+      setCursor(pos);
+    });
+  };
+
   const criar = async () => {
     if (!valor.trim() || isPending) return;
     const r = parseQuickAdd(valor);
@@ -52,10 +101,7 @@ export function QuickAddTarefa() {
       projeto_id ? secoes?.filter((s) => s.projeto_id === projeto_id) : secoes,
       r.secaoNome
     );
-    const responsavel_id = casarPorNome(
-      pessoas?.filter((p): p is typeof p & { id: string; nome: string } => !!p.id && !!p.nome),
-      r.responsavelNome
-    );
+    const responsavel_id = casarPessoa(pessoas, r.responsavelNome)?.id ?? null;
     try {
       await criarDoParse(r, { projeto_id, secao_id, responsavel_id });
       setValor("");
@@ -92,8 +138,36 @@ export function QuickAddTarefa() {
           <Input
             ref={inputRef}
             value={valor}
-            onChange={(e) => setValor(e.target.value)}
+            onChange={(e) => {
+              setValor(e.target.value);
+              setCursor(e.currentTarget.selectionStart ?? 0);
+            }}
+            onKeyUp={(e) => setCursor(e.currentTarget.selectionStart ?? 0)}
+            onClick={(e) => setCursor(e.currentTarget.selectionStart ?? 0)}
+            onSelect={(e) => setCursor(e.currentTarget.selectionStart ?? 0)}
             onKeyDown={(e) => {
+              if (dropdownAberto) {
+                if (e.key === "ArrowDown") {
+                  e.preventDefault();
+                  setIndice((i) => (i + 1) % candidatos.length);
+                  return;
+                }
+                if (e.key === "ArrowUp") {
+                  e.preventDefault();
+                  setIndice((i) => (i - 1 + candidatos.length) % candidatos.length);
+                  return;
+                }
+                if (e.key === "Enter" || e.key === "Tab") {
+                  e.preventDefault();
+                  escolher(candidatos[indice]);
+                  return;
+                }
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  setSuprimido(true);
+                  return;
+                }
+              }
               if (e.key === "Enter") {
                 e.preventDefault();
                 void criar();
@@ -103,6 +177,31 @@ export function QuickAddTarefa() {
             className={cn("relative bg-transparent", CLASSES_TEXTO)}
             disabled={isPending}
           />
+          {dropdownAberto && (
+            <ul className="absolute left-0 right-0 top-full z-50 mt-1 max-h-64 overflow-y-auto rounded-md border border-border bg-popover py-1 shadow-md">
+              {candidatos.map((p, i) => (
+                <li key={p.id}>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      escolher(p);
+                    }}
+                    onMouseEnter={() => setIndice(i)}
+                    className={cn(
+                      "flex w-full flex-col items-start px-3 py-1.5 text-left",
+                      i === indice && "bg-accent"
+                    )}
+                  >
+                    <span className="text-sm">{p.nome}</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      @{handlePessoa(p)}{p.cargo ? ` · ${p.cargo}` : ""}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
         <Button
           variant="link"
@@ -115,9 +214,20 @@ export function QuickAddTarefa() {
 
       {preview && <p className="text-xs text-muted-foreground">{preview}</p>}
 
+      {resultado.responsavelNome && (
+        pessoaResolvida ? (
+          <p className="text-xs text-muted-foreground">→ responsável: {pessoaResolvida.nome}</p>
+        ) : (
+          <p className="text-xs text-warning">
+            Ninguém chamado "{resultado.responsavelNome}" — a tarefa vai nascer sem responsável.
+          </p>
+        )
+      )}
+
       <p className="text-[11px] text-muted-foreground/80">
-        #projeto @pessoa +etiqueta /seção !prioridade · datas em português: amanhã, sexta, dia 15, em 3 dias
+        #projeto @pessoa (digite @ e escolha) +etiqueta /seção !prioridade · datas em português: amanhã, sexta, dia 15, em 3 dias
       </p>
+
 
       {!valor && (
         <div className="flex flex-wrap gap-2 pt-1">
