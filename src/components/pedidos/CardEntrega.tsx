@@ -21,6 +21,7 @@ function mesmoDia(a: string | null | undefined, b: string | null | undefined): b
 export function CardEntrega({ pedidoId, estagio }: Props) {
   const { data, isLoading } = usePedidoEntrega(pedidoId, estagio);
   const { getFreteTipo, rotuloFreteTipo } = useFreteTipos();
+  const { rotuloOrigem } = useTransportadoraOrigem();
 
   if (estagio !== "entregue") return null;
 
