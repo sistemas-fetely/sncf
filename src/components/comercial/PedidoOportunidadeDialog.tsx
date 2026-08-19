@@ -262,8 +262,117 @@ export function PedidoOportunidadeDialog({
               </div>
             )}
           </TabsContent>
+
+          <TabsContent value="pagamento" className="mt-4 space-y-4">
+            {!temPortao ? (
+              <p className="text-sm text-muted-foreground py-6 text-center">
+                Este pedido não tem portão de pagamento pendente.
+              </p>
+            ) : (
+              <>
+                <div className="rounded-md border px-3 py-2 space-y-1">
+                  <p className="text-sm">
+                    Tipo: <span className="font-medium">{tipoPortao || "—"}</span>
+                  </p>
+                  <p className="text-sm">
+                    Valor: <span className="font-medium">{formatBRL(valorPortao ?? 0)}</span>
+                  </p>
+                  <p className="text-sm">
+                    Vencimento:{" "}
+                    <span className="font-medium">{formatDateBR(vencimentoPortao)}</span>
+                  </p>
+                  {(portaoLinhas ?? 0) > 1 && (
+                    <p className="text-xs text-muted-foreground">
+                      Pagamento em {portaoLinhas} linhas
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="outline"
+                    className="gap-1.5"
+                    disabled={!linkPagamento}
+                    title={linkPagamento ? undefined : "Sem link de pagamento"}
+                    onClick={copiarLink}
+                  >
+                    <Copy className="h-4 w-4" />
+                    Copiar link de pagamento
+                  </Button>
+                  <Button
+                    disabled={cartaoBloqueia || confirmarPagamento.isPending}
+                    title={
+                      cartaoBloqueia
+                        ? "Cartão não fecha por confirmação manual — a prova é o NSU da captura."
+                        : undefined
+                    }
+                    onClick={() => setConfirmarAberto(true)}
+                  >
+                    {confirmarPagamento.isPending && (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    )}
+                    Confirmar pagamento
+                  </Button>
+                </div>
+              </>
+            )}
+          </TabsContent>
         </Tabs>
+
+        <AlertDialog open={confirmarAberto} onOpenChange={setConfirmarAberto}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar pagamento do portão</AlertDialogTitle>
+              <AlertDialogDescription>
+                Registre a data e como o pagamento foi comprovado. Esta observação fica na
+                timeline do pedido.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="data-pgto-oportunidade">Data do pagamento</Label>
+                <Input
+                  id="data-pgto-oportunidade"
+                  type="date"
+                  value={dataPagamento}
+                  onChange={(e) => setDataPagamento(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="obs-pgto-oportunidade">Como foi comprovado</Label>
+                <Textarea
+                  id="obs-pgto-oportunidade"
+                  value={obsPagamento}
+                  onChange={(e) => setObsPagamento(e.target.value)}
+                  placeholder="Ex.: comprovante PIX recebido por WhatsApp, conferido no extrato Safra"
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={confirmarPagamento.isPending}>
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction
+                disabled={
+                  confirmarPagamento.isPending ||
+                  !dataPagamento ||
+                  obsPagamento.trim().length < 5
+                }
+                onClick={(e) => {
+                  e.preventDefault();
+                  confirmarPagamento.mutate();
+                }}
+              >
+                Confirmar pagamento
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );
 }
+
