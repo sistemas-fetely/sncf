@@ -5,6 +5,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { usePedidoEntrega } from "@/hooks/pedidos/usePedidoEntrega";
 import { useFreteTipos } from "@/hooks/pedidos/useFreteTipos";
+import { useTransportadoraOrigem } from "@/hooks/pedidos/useTransportadoraOrigem";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -20,6 +21,7 @@ function mesmoDia(a: string | null | undefined, b: string | null | undefined): b
 export function CardEntrega({ pedidoId, estagio }: Props) {
   const { data, isLoading } = usePedidoEntrega(pedidoId, estagio);
   const { getFreteTipo, rotuloFreteTipo } = useFreteTipos();
+  const { rotuloOrigem } = useTransportadoraOrigem();
 
   if (estagio !== "entregue") return null;
 
@@ -44,6 +46,9 @@ export function CardEntrega({ pedidoId, estagio }: Props) {
         <>
           <p className="text-sm font-medium">{e.transportadora_nome}</p>
           {e.transportadora_cnpj && <p className="text-[11px] text-muted-foreground">{e.transportadora_cnpj}</p>}
+          {e.transportadora_origem && (
+            <p className="text-[11px] text-muted-foreground">{rotuloOrigem(e.transportadora_origem)}</p>
+          )}
         </>
       );
     }

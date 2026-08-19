@@ -19,6 +19,7 @@ export interface PedidoEntrega {
   estimativa_frete_valor: number | null;
   frete_responsavel: string | null;
   transporte_origem: string | null;
+  transportadora_origem: string | null;
   nf_numero: string | null;
   nf_data: string | null;
   eventos_rastreio: unknown;

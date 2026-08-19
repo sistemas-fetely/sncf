@@ -96,6 +96,8 @@ import { AtencaoPedidoDialog } from "@/components/pedidos/dialogs/AtencaoPedidoD
 import { useLimparAtencao } from "@/hooks/pedidos/useAtencaoPedido";
 import { toast } from "@/hooks/use-toast";
 import { useTransportadoras } from "@/hooks/pedidos/useTransportadoras";
+import { useTransportadoraOrigem } from "@/hooks/pedidos/useTransportadoraOrigem";
+import { useRecotarTransportadora } from "@/hooks/pedidos/useRecotarTransportadora";
 import { useSalvarDadosEnvio } from "@/hooks/pedidos/useSalvarDadosEnvio";
 import { useRemessas } from "@/hooks/pedidos/useRemessas";
 import { useFreteEstimado } from "@/hooks/transportadoras/useFreteEstimado";
@@ -1079,6 +1081,8 @@ export default function PedidoDetalhe() {
   const [valorFrete, setValorFrete] = useState("");
   
   const transportadoras = useTransportadoras();
+  const { rotuloOrigem } = useTransportadoraOrigem();
+  const recotar = useRecotarTransportadora();
   const salvarDadosEnvio = useSalvarDadosEnvio();
   const freteComparativo = useFreteComparativo(id);
   const [compararOpen, setCompararOpen] = useState(false);
@@ -1904,6 +1908,13 @@ export default function PedidoDetalhe() {
                 </Card>
             </div>
 
+            {pedido.alerta_logistica && (
+              <div className="flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-warning">
+                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                <p className="text-sm">{pedido.alerta_logistica}</p>
+              </div>
+            )}
+
             {/* Card — Dados de envio */}
             {estagio !== "cancelado" && (
               <Card className="border-border/60 h-full flex flex-col">
@@ -1926,11 +1937,16 @@ export default function PedidoDetalhe() {
                             {t.cnpj && <span className="text-muted-foreground ml-2 text-xs">{t.cnpj}</span>}
                           </SelectItem>
                         ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                        </SelectContent>
+                      </Select>
+                      {pedido.transportadora_origem && (
+                        <Badge variant="outline" className="text-[10px] w-fit">
+                          {rotuloOrigem(pedido.transportadora_origem)}
+                        </Badge>
+                      )}
+                    </div>
 
-                  <div className="space-y-1.5">
+                    <div className="space-y-1.5">
                     <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Peso bruto total (kg)</label>
                     <div className="flex gap-1">
                       <input
@@ -2065,7 +2081,7 @@ export default function PedidoDetalhe() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="col-span-2">
+                    <div className="col-span-2 grid grid-cols-2 gap-2">
                       <Button
                         type="button"
                         size="sm"
@@ -2078,6 +2094,21 @@ export default function PedidoDetalhe() {
                       >
                         <Scale className="h-3.5 w-3.5 mr-1.5" />
                         Comparar transportadoras
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-8 w-full"
+                        disabled={!id || recotar.isPending}
+                        onClick={() => id && recotar.mutate({ pedidoId: id, forcar: true })}
+                      >
+                        {recotar.isPending ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                        ) : (
+                          <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                        )}
+                        Recotar
                       </Button>
                     </div>
                     <div>
