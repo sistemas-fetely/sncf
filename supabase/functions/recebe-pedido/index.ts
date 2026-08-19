@@ -474,7 +474,7 @@ if (body.tipo === "canal_badges") {
           vendedor: body.vendedor,
         });
       } else {
-        vendedorResolvido = (vendedorData as any)?.nome ?? null;
+        vendedorResolvido = vendedorData as string;
       }
     } catch (vendedorErr) {
       console.error("[recebe-pedido] Falha ao resolver vendedor", {
