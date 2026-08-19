@@ -659,9 +659,10 @@ const App = () => (
                     <GerenciarVisibilidade />
                   </ProtectedRoute>
                 } />
-                <Route path="sla-xpm" element={
-                  <ProtectedRoute><SlaXpm /></ProtectedRoute>
+                <Route path="sla" element={
+                  <ProtectedRoute><SlaOperacao /></ProtectedRoute>
                 } />
+                <Route path="sla-xpm" element={<Navigate to="/admin/sla" replace />} />
 
 
               </Route>
