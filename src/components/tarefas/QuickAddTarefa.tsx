@@ -56,7 +56,6 @@ export function QuickAddTarefa() {
     return out;
   }, [resultado, valor]);
 
-  const criar = async () => {
   const fragmento = useMemo(() => {
     const ate = valor.slice(0, cursor);
     const m = /(?:^|\s)@([^\s]*)$/.exec(ate);
