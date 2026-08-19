@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      _diag_estoque_churn: {
+        Row: {
+          de: number | null
+          id: number
+          para: number | null
+          produto_id: string | null
+          sku: string | null
+          visto_em: string
+        }
+        Insert: {
+          de?: number | null
+          id?: number
+          para?: number | null
+          produto_id?: string | null
+          sku?: string | null
+          visto_em?: string
+        }
+        Update: {
+          de?: number | null
+          id?: number
+          para?: number | null
+          produto_id?: string | null
+          sku?: string | null
+          visto_em?: string
+        }
+        Relationships: []
+      }
       acesso_dados_log: {
         Row: {
           alvo_nome: string | null
@@ -1935,6 +1962,57 @@ export type Database = {
           },
           {
             foreignKeyName: "auditoria_achado_evento_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      auditoria_alerta_destinatario: {
+        Row: {
+          ativo: boolean
+          canal: string
+          created_at: string
+          id: string
+          modulo_slug: string | null
+          observacao: string | null
+          severidade: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          canal?: string
+          created_at?: string
+          id?: string
+          modulo_slug?: string | null
+          observacao?: string | null
+          severidade: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          canal?: string
+          created_at?: string
+          id?: string
+          modulo_slug?: string | null
+          observacao?: string | null
+          severidade?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auditoria_alerta_destinatario_severidade_fkey"
+            columns: ["severidade"]
+            isOneToOne: false
+            referencedRelation: "auditoria_severidade_dim"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "auditoria_alerta_destinatario_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "v_pessoas_sistema"
@@ -61845,12 +61923,20 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_avaliar_envelope_plano: {
+        Args: { p_linhas: Json; p_pedido_id: string }
+        Returns: Json
+      }
       fn_avaliar_impacto_edicao_pedido: {
         Args: {
           p_nova_condicao: string
           p_novo_valor_liquido?: number
           p_pedido_id: string
         }
+        Returns: Json
+      }
+      fn_avaliar_impacto_plano: {
+        Args: { p_linhas: Json; p_pedido_id: string }
         Returns: Json
       }
       fn_badges: {
@@ -61951,6 +62037,10 @@ export type Database = {
           p_janela_banco?: number
           p_janela_cartao?: number
         }
+        Returns: Json
+      }
+      fn_condicao_para_linhas: {
+        Args: { p_condicao: string; p_pedido_id: string; p_valor?: number }
         Returns: Json
       }
       fn_conferir_codigos_fornecedor: {
