@@ -1937,11 +1937,16 @@ export default function PedidoDetalhe() {
                             {t.cnpj && <span className="text-muted-foreground ml-2 text-xs">{t.cnpj}</span>}
                           </SelectItem>
                         ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                        </SelectContent>
+                      </Select>
+                      {pedido.transportadora_origem && (
+                        <Badge variant="outline" className="text-[10px] w-fit">
+                          {rotuloOrigem((pedido as any).transportadora_origem)}
+                        </Badge>
+                      )}
+                    </div>
 
-                  <div className="space-y-1.5">
+                    <div className="space-y-1.5">
                     <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Peso bruto total (kg)</label>
                     <div className="flex gap-1">
                       <input
