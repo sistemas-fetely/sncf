@@ -75,7 +75,13 @@ interface OportunidadeRow {
   cliente_ultima_compra: string | null;
   cliente_dias_sem_comprar: number | null;
   cliente_ticket_medio: number | null;
+  temperatura: string | null;
+  temperatura_score: number | null;
+  fase: string | null;
+  estagio: string | null;
+  portao_linhas: number | null;
 }
+
 
 /** "DD/MM" curto para a linha de histórico do cliente. */
 function formatDataCurta(valor: string | null): string {
@@ -93,17 +99,29 @@ const AVISO_EXCECAO_SITUACAO: Record<string, string> = {
   parcial_pago: "JÁ ADIANTOU · cobrar só o saldo",
 };
 
-const ORIGEM_LABEL: Record<OrigemOportunidade, string> = {
-  portao_vencido: "Portão vencido",
-  estoque_inadimplente: "Aguardando estoque",
-  manual: "Manual",
+/** Ordem das faixas de temperatura na mesa — peso por map, nunca if encadeado. */
+const TEMPERATURA_PESO: Record<string, number> = {
+  quente: 0,
+  morno: 1,
+  frio: 2,
+  nao_cobrar: 3,
 };
 
-const ORIGEM_CLASSES: Record<OrigemOportunidade, string> = {
-  portao_vencido: "bg-info/10 text-info",
-  estoque_inadimplente: "bg-info/10 text-info",
-  manual: "bg-warning/10 text-warning",
+const TEMPERATURA_LABEL: Record<string, string> = {
+  quente: "QUENTE",
+  morno: "Morno",
+  frio: "Frio",
+  nao_cobrar: "Não cobrar",
 };
+
+const TEMPERATURA_CLASSES: Record<string, string> = {
+  quente: "border-destructive/50 text-destructive",
+  morno: "border-warning/50 text-warning",
+  frio: "border-muted-foreground/40 text-muted-foreground",
+  nao_cobrar: "border-muted-foreground/40 text-muted-foreground",
+};
+
+type FiltroTemperatura = "todas" | "quente" | "morno" | "frio" | "nao_cobrar";
 
 async function copiar(link: string) {
   try {
@@ -114,11 +132,10 @@ async function copiar(link: string) {
   }
 }
 
-type FiltroOrigem = "todas" | OrigemOportunidade;
-
 export default function Oportunidades({ embutido = false }: { embutido?: boolean } = {}) {
   const [busca, setBusca] = useState("");
-  const [origem, setOrigem] = useState<FiltroOrigem>("todas");
+  const [temperatura, setTemperatura] = useState<FiltroTemperatura>("todas");
+
   const [retomando, setRetomando] = useState<OportunidadeRow | null>(null);
   const [detalhe, setDetalhe] = useState<OportunidadeRow | null>(null);
   const navigate = useNavigate();
@@ -138,18 +155,18 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
   });
 
   const contagens = useMemo(() => {
-    const c = { todas: data.length, portao_vencido: 0, estoque_inadimplente: 0, manual: 0 };
+    const c = { todas: data.length, quente: 0, morno: 0, frio: 0, nao_cobrar: 0 };
     for (const r of data) {
-      if (r.origem === "portao_vencido") c.portao_vencido++;
-      else if (r.origem === "estoque_inadimplente") c.estoque_inadimplente++;
-      else if (r.origem === "manual") c.manual++;
+      const t = r.temperatura ?? "";
+      if (t === "quente" || t === "morno" || t === "frio" || t === "nao_cobrar") c[t]++;
     }
     return c;
   }, [data]);
 
   const filtradas = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    let base = origem === "todas" ? data : data.filter((r) => r.origem === origem);
+    let base =
+      temperatura === "todas" ? data : data.filter((r) => r.temperatura === temperatura);
     if (q) {
       base = base.filter((r) =>
         [r.id_externo, r.cliente, r.apelido, r.cnpj, r.vendedor]
@@ -157,8 +174,15 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
           .some((v) => String(v).toLowerCase().includes(q)),
       );
     }
-    return base;
-  }, [data, busca, origem]);
+    // TEMPERATURA-MANDA-NA-ORDEM: faixa primeiro, valor em jogo decrescente dentro dela.
+    return [...base].sort((a, b) => {
+      const pa = TEMPERATURA_PESO[a.temperatura ?? ""] ?? 99;
+      const pb = TEMPERATURA_PESO[b.temperatura ?? ""] ?? 99;
+      if (pa !== pb) return pa - pb;
+      return Number(b.valor_em_jogo || 0) - Number(a.valor_em_jogo || 0);
+    });
+  }, [data, busca, temperatura]);
+
 
   const { data: linksFila } = useLinksPagamentoFila(data.map((r) => r.pedido_id));
 
@@ -197,24 +221,28 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex rounded-md border overflow-hidden">
-            <FiltroBtn ativo={origem === "todas"} onClick={() => setOrigem("todas")}>
+            <FiltroBtn ativo={temperatura === "todas"} onClick={() => setTemperatura("todas")}>
               Todas ({contagens.todas})
             </FiltroBtn>
             <FiltroBtn
-              ativo={origem === "portao_vencido"}
-              onClick={() => setOrigem("portao_vencido")}
+              ativo={temperatura === "quente"}
+              onClick={() => setTemperatura("quente")}
             >
-              Portão vencido ({contagens.portao_vencido})
+              Quente ({contagens.quente})
+            </FiltroBtn>
+            <FiltroBtn ativo={temperatura === "morno"} onClick={() => setTemperatura("morno")}>
+              Morno ({contagens.morno})
+            </FiltroBtn>
+            <FiltroBtn ativo={temperatura === "frio"} onClick={() => setTemperatura("frio")}>
+              Frio ({contagens.frio})
             </FiltroBtn>
             <FiltroBtn
-              ativo={origem === "estoque_inadimplente"}
-              onClick={() => setOrigem("estoque_inadimplente")}
+              ativo={temperatura === "nao_cobrar"}
+              onClick={() => setTemperatura("nao_cobrar")}
             >
-              Aguardando estoque ({contagens.estoque_inadimplente})
+              Não cobrar ({contagens.nao_cobrar})
             </FiltroBtn>
-            <FiltroBtn ativo={origem === "manual"} onClick={() => setOrigem("manual")}>
-              Manual ({contagens.manual})
-            </FiltroBtn>
+
           </div>
           <div className="relative w-full md:w-96 md:ml-auto">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -240,7 +268,7 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                   Nenhuma oportunidade encontrada com os filtros atuais.
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Ajuste a busca ou o filtro de origem para ver a fila completa.
+                  Ajuste a busca ou o filtro de temperatura para ver a fila completa.
                 </p>
               </div>
             ) : (
@@ -248,6 +276,7 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Temp.</TableHead>
                       <TableHead>Pedido</TableHead>
                       <TableHead>Cliente</TableHead>
                       <TableHead className="text-right">Valor em jogo</TableHead>
@@ -259,6 +288,20 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                   <TableBody>
                     {filtradas.map((r) => (
                       <TableRow key={`${r.origem}-${r.pedido_id}`}>
+                        <TableCell className="align-top">
+                          {TEMPERATURA_LABEL[r.temperatura ?? ""] && (
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "rounded px-1.5 py-0 text-[10px]",
+                                TEMPERATURA_CLASSES[r.temperatura ?? ""],
+                              )}
+                              title={`Score ${r.temperatura_score ?? 0}`}
+                            >
+                              {TEMPERATURA_LABEL[r.temperatura ?? ""]}
+                            </Badge>
+                          )}
+                        </TableCell>
                         <TableCell className="font-mono text-xs align-top">
                           <button
                             type="button"
@@ -267,7 +310,18 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                           >
                             {r.id_externo || "—"}
                           </button>
+                          {r.fase && (
+                            <div className="mt-1">
+                              <Badge
+                                variant="outline"
+                                className="rounded px-1.5 py-0 text-[10px]"
+                              >
+                                {r.fase}
+                              </Badge>
+                            </div>
+                          )}
                           {r.pai_id_externo && (
+
                             <div className="mt-1">
                               <Badge
                                 variant="outline"
@@ -393,6 +447,12 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
             valorEmJogo={detalhe.valor_em_jogo}
             situacaoFinanceira={detalhe.situacao_financeira}
             alertaOperacional={detalhe.alerta_operacional}
+            tipoPortao={detalhe.tipo_portao}
+            valorPortao={detalhe.valor_portao}
+            vencimentoPortao={detalhe.vencimento_portao}
+            portaoLinhas={detalhe.portao_linhas}
+            linkPagamento={detalhe.link_pagamento}
+
           />
         )}
 
