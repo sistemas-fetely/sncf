@@ -208,10 +208,14 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
     }
   }, [dialogOpen, emailPreferido, emailPrincipal]);
 
+  const vendedorEmail = vendedorQ.data?.email ?? null;
+  const vendedorNome = vendedorQ.data?.nome ?? null;
+
   const abrirDialog = (tipo: TipoEmail) => {
     setDialogTipo(tipo);
+    const principal = (emailPreferido ?? "").trim().toLowerCase();
     setEmailPrincipal(emailPreferido ?? "");
-    setEmailsAdicionais([]);
+    setEmailsAdicionais(vendedorEmail && vendedorEmail !== principal ? [vendedorEmail] : []);
     setNovoEmail("");
     setNovoLink("");
     setGeradoEm(hojeISO);
@@ -238,6 +242,8 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
     try {
       const principal = emailPrincipal.trim();
       const cc = emailsAdicionais;
+      // Boleto: destinatários escolhidos no diálogo têm que chegar ao hook.
+      const destinatarios = [principal, ...cc];
 
       if (dialogTipo === "cobranca") {
         await enviarCobranca.mutateAsync({
@@ -245,11 +251,11 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
         });
       } else if (dialogTipo === "portao_boleto") {
         if (tituloEntradaQ.data?.id) {
-          await enviarBoleto.mutateAsync(tituloEntradaQ.data.id);
+          await enviarBoleto.mutateAsync({ titulo_id: tituloEntradaQ.data.id, destinatarios });
         }
       } else if (dialogTipo === "boleto") {
         for (const t of titulosBoleto) {
-          await enviarBoleto.mutateAsync(t.id);
+          await enviarBoleto.mutateAsync({ titulo_id: t.id, destinatarios });
         }
       } else if (dialogTipo === "nf") {
         await enviarNf.mutateAsync({ pedido_id, emails: [principal], cc, skipEstagioCheck: true });
