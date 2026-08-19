@@ -1941,7 +1941,7 @@ export default function PedidoDetalhe() {
                       </Select>
                       {pedido.transportadora_origem && (
                         <Badge variant="outline" className="text-[10px] w-fit">
-                          {rotuloOrigem((pedido as any).transportadora_origem)}
+                          {rotuloOrigem(pedido.transportadora_origem)}
                         </Badge>
                       )}
                     </div>
