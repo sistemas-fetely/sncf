@@ -1287,8 +1287,8 @@ export default function PedidoDetalhe() {
         : "Não é possível trocar: o estágio atual não permite alterar a natureza.";
 
   const rotuloPedido = pedido.id_externo ?? String(pedido.id).slice(0, 8);
-  const nomeClienteExibido =
-    (parceiro?.nome_fantasia ?? "").trim() || (parceiro?.razao_social ?? "").trim() || "Cliente";
+  const nomeClienteExibido = nomeCanonico(parceiro?.razao_social, "Cliente");
+  const apelidoCliente = apelidoParceiro(parceiro?.razao_social, parceiro?.nome_fantasia);
   const geraTituloReceber = natureza?.gera_titulo_receber ?? true;
   const estagio = pedido.estagio as EstagioPedido;
   const estagioFinal = isEstagioFinal(estagio);
@@ -1460,14 +1460,14 @@ export default function PedidoDetalhe() {
             {pedido.parceiro_id ? (
               <Link
                 to={`/parceiros/${pedido.parceiro_id}`}
-                title={parceiro?.razao_social ?? undefined}
                 className="text-primary border-b border-primary/40 no-underline hover:border-primary"
               >
                 {nomeClienteExibido}
               </Link>
             ) : (
-              <span title={parceiro?.razao_social ?? undefined}>{nomeClienteExibido}</span>
+              <span>{nomeClienteExibido}</span>
             )}
+            {apelidoCliente && <span> · {apelidoCliente}</span>}
             {parceiro?.cnpj && <span className="font-mono"> · CNPJ {parceiro.cnpj}</span>}
           </p>
           <div className="flex flex-wrap items-center gap-2 pt-1">
