@@ -447,6 +447,12 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
             valorEmJogo={detalhe.valor_em_jogo}
             situacaoFinanceira={detalhe.situacao_financeira}
             alertaOperacional={detalhe.alerta_operacional}
+            tipoPortao={detalhe.tipo_portao}
+            valorPortao={detalhe.valor_portao}
+            vencimentoPortao={detalhe.vencimento_portao}
+            portaoLinhas={detalhe.portao_linhas}
+            linkPagamento={detalhe.link_pagamento}
+
           />
         )}
 
