@@ -268,7 +268,7 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                   Nenhuma oportunidade encontrada com os filtros atuais.
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Ajuste a busca ou o filtro de origem para ver a fila completa.
+                  Ajuste a busca ou o filtro de temperatura para ver a fila completa.
                 </p>
               </div>
             ) : (
