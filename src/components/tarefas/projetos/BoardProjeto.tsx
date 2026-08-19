@@ -14,8 +14,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { TarefaDetalhePainel } from "@/components/tarefas/detalhe/TarefaDetalhePainel";
 import { useNomePessoa, PRIORIDADE_ROTULO } from "@/components/tarefas/detalhe/comuns";
+import { useTarefaAberta } from "@/hooks/tarefas/useTarefaAberta";
 import {
   useCriarSecao, useCriarTarefaNaSecao, useExcluirSecao, useMoverTarefaSecao,
   usePodeGerenciarProjeto, useRenomearSecao, useReordenarSecoes, useSecoesProjeto,
@@ -236,7 +236,7 @@ export function BoardProjeto({ projetoId }: Props) {
                           e.dataTransfer.setData("text/tarefa-id", t.id);
                           e.dataTransfer.effectAllowed = "move";
                         }}
-                        onClick={() => setTarefaAberta(t.id)}
+                        onClick={() => abrirTarefa(t.id)}
                         className={cn(
                           "cursor-pointer space-y-2 border p-3 transition hover:shadow-sm",
                           arrastavel ? "active:opacity-70" : "opacity-95",
@@ -346,12 +346,6 @@ export function BoardProjeto({ projetoId }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <TarefaDetalhePainel
-        tarefaId={tarefaAberta}
-        aberto={!!tarefaAberta}
-        onOpenChange={(v) => !v && setTarefaAberta(null)}
-      />
     </div>
   );
 }
