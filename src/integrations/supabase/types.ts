@@ -25393,6 +25393,36 @@ export type Database = {
           },
         ]
       }
+      pedido_transportadora_origem: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          congela_sugestao: boolean
+          observacao: string | null
+          ordem: number
+          rotulo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          congela_sugestao?: boolean
+          observacao?: string | null
+          ordem?: number
+          rotulo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          congela_sugestao?: boolean
+          observacao?: string | null
+          ordem?: number
+          rotulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pedidos: {
         Row: {
           acrescimo_ie_base: number | null
@@ -25480,6 +25510,7 @@ export type Database = {
           split_de_pedido_id: string | null
           tipo_pagamento: string | null
           transportadora_id: string | null
+          transportadora_origem: string | null
           triado_em: string | null
           urgencia_declarada: string
           urgencia_observacao: string | null
@@ -25579,6 +25610,7 @@ export type Database = {
           split_de_pedido_id?: string | null
           tipo_pagamento?: string | null
           transportadora_id?: string | null
+          transportadora_origem?: string | null
           triado_em?: string | null
           urgencia_declarada?: string
           urgencia_observacao?: string | null
@@ -25678,6 +25710,7 @@ export type Database = {
           split_de_pedido_id?: string | null
           tipo_pagamento?: string | null
           transportadora_id?: string | null
+          transportadora_origem?: string | null
           triado_em?: string | null
           urgencia_declarada?: string
           urgencia_observacao?: string | null
@@ -26545,6 +26578,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_recebivel_por_conta"
             referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "pedidos_transportadora_origem_fkey"
+            columns: ["transportadora_origem"]
+            isOneToOne: false
+            referencedRelation: "pedido_transportadora_origem"
+            referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_vendedor_id_fkey"
@@ -38816,6 +38856,8 @@ export type Database = {
           adm_pct: number | null
           ativo: boolean
           criado_em: string | null
+          elegivel_default: boolean
+          elegivel_default_motivo: string | null
           gris_base: string | null
           gris_minimo: number | null
           gris_pct: number | null
@@ -38835,6 +38877,8 @@ export type Database = {
           adm_pct?: number | null
           ativo?: boolean
           criado_em?: string | null
+          elegivel_default?: boolean
+          elegivel_default_motivo?: string | null
           gris_base?: string | null
           gris_minimo?: number | null
           gris_pct?: number | null
@@ -38854,6 +38898,8 @@ export type Database = {
           adm_pct?: number | null
           ativo?: boolean
           criado_em?: string | null
+          elegivel_default?: boolean
+          elegivel_default_motivo?: string | null
           gris_base?: string | null
           gris_minimo?: number | null
           gris_pct?: number | null
@@ -52527,14 +52573,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -61747,6 +61793,10 @@ export type Database = {
         Args: { p_analise_id: string }
         Returns: string
       }
+      fn_aplicar_sugestao_transportadora: {
+        Args: { p_forcar?: boolean; p_pedido_id: string }
+        Returns: Json
+      }
       fn_auditoria_conferir_tipos: {
         Args: { p_amostra: Json }
         Returns: string
@@ -62062,6 +62112,10 @@ export type Database = {
         Returns: number
       }
       fn_frete_rateia_por: { Args: { p_frete_tipo: string }; Returns: string }
+      fn_frete_sugerir_transportadora: {
+        Args: { p_pedido_id: string }
+        Returns: Json
+      }
       fn_gerar_cprs_de_contrato: {
         Args: { p_contrato_id: string }
         Returns: number
