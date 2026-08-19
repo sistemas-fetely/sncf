@@ -276,6 +276,7 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Temp.</TableHead>
                       <TableHead>Pedido</TableHead>
                       <TableHead>Cliente</TableHead>
                       <TableHead className="text-right">Valor em jogo</TableHead>
@@ -287,6 +288,20 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                   <TableBody>
                     {filtradas.map((r) => (
                       <TableRow key={`${r.origem}-${r.pedido_id}`}>
+                        <TableCell className="align-top">
+                          {TEMPERATURA_LABEL[r.temperatura ?? ""] && (
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "rounded px-1.5 py-0 text-[10px]",
+                                TEMPERATURA_CLASSES[r.temperatura ?? ""],
+                              )}
+                              title={`Score ${r.temperatura_score ?? 0}`}
+                            >
+                              {TEMPERATURA_LABEL[r.temperatura ?? ""]}
+                            </Badge>
+                          )}
+                        </TableCell>
                         <TableCell className="font-mono text-xs align-top">
                           <button
                             type="button"
@@ -295,7 +310,18 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                           >
                             {r.id_externo || "—"}
                           </button>
+                          {r.fase && (
+                            <div className="mt-1">
+                              <Badge
+                                variant="outline"
+                                className="rounded px-1.5 py-0 text-[10px]"
+                              >
+                                {r.fase}
+                              </Badge>
+                            </div>
+                          )}
                           {r.pai_id_externo && (
+
                             <div className="mt-1">
                               <Badge
                                 variant="outline"
