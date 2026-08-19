@@ -1908,10 +1908,10 @@ export default function PedidoDetalhe() {
                 </Card>
             </div>
 
-            {(pedido as any).alerta_logistica && (
+            {pedido.alerta_logistica && (
               <div className="flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-warning">
                 <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-                <p className="text-sm">{(pedido as any).alerta_logistica}</p>
+                <p className="text-sm">{pedido.alerta_logistica}</p>
               </div>
             )}
 
