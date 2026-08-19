@@ -38,11 +38,11 @@ export default function CalendarioTarefas() {
   const isMobile = useIsMobile();
   const { data: pessoas } = usePessoasSistema();
   const { data: projetos } = useProjetos();
+  const { abrir: abrirTarefa } = useTarefaAberta();
 
   const [mes, setMes] = useState(() => startOfMonth(new Date()));
   const [responsavelId, setResponsavelId] = useState<string | null>(user?.id ?? null);
   const [projetoId, setProjetoId] = useState<string | null>(null);
-  const [tarefaAberta, setTarefaAberta] = useState<string | null>(null);
   const [arrastando, setArrastando] = useState<string | null>(null);
   const [diaAlvo, setDiaAlvo] = useState<string | null>(null);
 
@@ -145,7 +145,7 @@ export default function CalendarioTarefas() {
                 {(porDia[iso(d)] ?? []).map((t) => (
                   <button
                     key={t.id}
-                    onClick={() => setTarefaAberta(t.id)}
+                    onClick={() => abrirTarefa(t.id)}
                     className={cn(
                       "w-full rounded-md border border-l-4 px-2 py-1.5 text-left text-sm",
                       COR_PRIORIDADE[t.prioridade]
@@ -203,7 +203,7 @@ export default function CalendarioTarefas() {
                       draggable
                       onDragStart={() => setArrastando(t.id)}
                       onDragEnd={() => { setArrastando(null); setDiaAlvo(null); }}
-                      onClick={() => setTarefaAberta(t.id)}
+                      onClick={() => abrirTarefa(t.id)}
                       className={cn(
                         "cursor-pointer truncate rounded border border-l-[3px] px-1 py-0.5 text-[11px]",
                         COR_PRIORIDADE[t.prioridade]
@@ -223,11 +223,6 @@ export default function CalendarioTarefas() {
         </div>
       )}
 
-      <TarefaDetalhePainel
-        tarefaId={tarefaAberta}
-        aberto={!!tarefaAberta}
-        onOpenChange={(v) => !v && setTarefaAberta(null)}
-      />
     </PageShell>
   );
 }
