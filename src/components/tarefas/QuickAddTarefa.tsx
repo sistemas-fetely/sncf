@@ -31,6 +31,9 @@ const CLASSES_TEXTO = "px-3 py-2 text-sm font-normal leading-[1.25rem] tracking-
 
 export function QuickAddTarefa() {
   const [valor, setValor] = useState("");
+  const [cursor, setCursor] = useState(0);
+  const [indice, setIndice] = useState(0);
+  const [suprimido, setSuprimido] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { criarDoParse, isPending } = useCriarTarefaQuickAdd();
