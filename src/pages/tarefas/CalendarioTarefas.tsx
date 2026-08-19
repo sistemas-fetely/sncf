@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { TarefaDetalhePainel } from "@/components/tarefas/detalhe/TarefaDetalhePainel";
+import { useTarefaAberta } from "@/hooks/tarefas/useTarefaAberta";
 import { usePessoasSistema, useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
 import {
   useReagendarNoCalendario, useTarefasCalendario, type FiltroCalendario,
