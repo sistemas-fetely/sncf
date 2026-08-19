@@ -221,24 +221,28 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex rounded-md border overflow-hidden">
-            <FiltroBtn ativo={origem === "todas"} onClick={() => setOrigem("todas")}>
+            <FiltroBtn ativo={temperatura === "todas"} onClick={() => setTemperatura("todas")}>
               Todas ({contagens.todas})
             </FiltroBtn>
             <FiltroBtn
-              ativo={origem === "portao_vencido"}
-              onClick={() => setOrigem("portao_vencido")}
+              ativo={temperatura === "quente"}
+              onClick={() => setTemperatura("quente")}
             >
-              Portão vencido ({contagens.portao_vencido})
+              Quente ({contagens.quente})
+            </FiltroBtn>
+            <FiltroBtn ativo={temperatura === "morno"} onClick={() => setTemperatura("morno")}>
+              Morno ({contagens.morno})
+            </FiltroBtn>
+            <FiltroBtn ativo={temperatura === "frio"} onClick={() => setTemperatura("frio")}>
+              Frio ({contagens.frio})
             </FiltroBtn>
             <FiltroBtn
-              ativo={origem === "estoque_inadimplente"}
-              onClick={() => setOrigem("estoque_inadimplente")}
+              ativo={temperatura === "nao_cobrar"}
+              onClick={() => setTemperatura("nao_cobrar")}
             >
-              Aguardando estoque ({contagens.estoque_inadimplente})
+              Não cobrar ({contagens.nao_cobrar})
             </FiltroBtn>
-            <FiltroBtn ativo={origem === "manual"} onClick={() => setOrigem("manual")}>
-              Manual ({contagens.manual})
-            </FiltroBtn>
+
           </div>
           <div className="relative w-full md:w-96 md:ml-auto">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
