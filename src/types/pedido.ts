@@ -97,7 +97,9 @@ export const ESTAGIO_AREA: Record<EstagioPedido, AreaPedido> = {
   recebido: "sistema",
   em_analise_credito: "credito",
   cobranca: "sops",
-  aguardando_pagamento: "sops",
+  // MESA-UNICA-DO-COMERCIAL (19/08/2026): aguardando_pagamento virou fila do Comercial,
+  // espelhando transicionar_pedido no banco. SOPS reassume em pre_separacao.
+  aguardando_pagamento: "comercial",
   pre_separacao: "sops",
   aguardando_estoque: "sops",
   em_separacao: "bling",
