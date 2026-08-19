@@ -25379,6 +25379,7 @@ export type Database = {
           valor_frete: number
           valor_liquido: number
           vendedor: string | null
+          vendedor_id: string | null
           xpm_enviado_em: string | null
           xpm_enviado_por: string | null
           xpm_envio_erro: string | null
@@ -25477,6 +25478,7 @@ export type Database = {
           valor_frete?: number
           valor_liquido: number
           vendedor?: string | null
+          vendedor_id?: string | null
           xpm_enviado_em?: string | null
           xpm_enviado_por?: string | null
           xpm_envio_erro?: string | null
@@ -25575,6 +25577,7 @@ export type Database = {
           valor_frete?: number
           valor_liquido?: number
           vendedor?: string | null
+          vendedor_id?: string | null
           xpm_enviado_em?: string | null
           xpm_enviado_por?: string | null
           xpm_envio_erro?: string | null
@@ -26434,6 +26437,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_recebivel_por_conta"
             referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "pedidos_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vendedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_vendedor_contato"
+            referencedColumns: ["vendedor_id"]
           },
         ]
       }
@@ -39192,6 +39209,192 @@ export type Database = {
           },
         ]
       }
+      vendedor_alias: {
+        Row: {
+          alias_norm: string
+          alias_original: string
+          created_at: string
+          origem: string
+          vendedor_id: string
+        }
+        Insert: {
+          alias_norm: string
+          alias_original: string
+          created_at?: string
+          origem?: string
+          vendedor_id: string
+        }
+        Update: {
+          alias_norm?: string
+          alias_original?: string
+          created_at?: string
+          origem?: string
+          vendedor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendedor_alias_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vendedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendedor_alias_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_vendedor_contato"
+            referencedColumns: ["vendedor_id"]
+          },
+        ]
+      }
+      vendedores: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          email_contato: string | null
+          fop_profile_id: string | null
+          id: string
+          nome_exibicao: string
+          observacao: string | null
+          parceiro_comercial_id: string | null
+          pendente_vinculo: boolean
+          pessoa_id: string | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          email_contato?: string | null
+          fop_profile_id?: string | null
+          id?: string
+          nome_exibicao: string
+          observacao?: string | null
+          parceiro_comercial_id?: string | null
+          pendente_vinculo?: boolean
+          pessoa_id?: string | null
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          email_contato?: string | null
+          fop_profile_id?: string | null
+          id?: string
+          nome_exibicao?: string
+          observacao?: string | null
+          parceiro_comercial_id?: string | null
+          pendente_vinculo?: boolean
+          pessoa_id?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendedores_parceiro_comercial_id_fkey"
+            columns: ["parceiro_comercial_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendedores_parceiro_comercial_id_fkey"
+            columns: ["parceiro_comercial_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "vendedores_parceiro_comercial_id_fkey"
+            columns: ["parceiro_comercial_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conta_corrente_cliente"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "vendedores_parceiro_comercial_id_fkey"
+            columns: ["parceiro_comercial_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_estimado_parceiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "vendedores_parceiro_comercial_id_fkey"
+            columns: ["parceiro_comercial_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "vendedores_parceiro_comercial_id_fkey"
+            columns: ["parceiro_comercial_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_nome"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "vendedores_parceiro_comercial_id_fkey"
+            columns: ["parceiro_comercial_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "vendedores_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendedores_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vendedores_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_vinculo_pessoa"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vendedores_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organograma"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vendedores_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vendedores_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vendedores_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_reembolso_saneamento"
+            referencedColumns: ["pessoa_id"]
+          },
+        ]
+      }
       vinculo_beneficios: {
         Row: {
           beneficio_id: string
@@ -45402,6 +45605,14 @@ export type Database = {
             referencedColumns: ["pedido_id"]
           },
         ]
+      }
+      vw_colunas_sem_grant: {
+        Row: {
+          coluna: string | null
+          observacao: string | null
+          tabela: string | null
+        }
+        Relationships: []
       }
       vw_compras_pendencias: {
         Row: {
@@ -52196,14 +52407,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -52745,14 +52956,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -60119,6 +60330,120 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_vendedor_contato: {
+        Row: {
+          ativo: boolean | null
+          email: string | null
+          fop_profile_id: string | null
+          nome: string | null
+          origem_email: string | null
+          parceiro_comercial_id: string | null
+          pendente_vinculo: boolean | null
+          pessoa_id: string | null
+          tipo: string | null
+          vendedor_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendedores_parceiro_comercial_id_fkey"
+            columns: ["parceiro_comercial_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendedores_parceiro_comercial_id_fkey"
+            columns: ["parceiro_comercial_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "vendedores_parceiro_comercial_id_fkey"
+            columns: ["parceiro_comercial_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conta_corrente_cliente"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "vendedores_parceiro_comercial_id_fkey"
+            columns: ["parceiro_comercial_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_estimado_parceiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "vendedores_parceiro_comercial_id_fkey"
+            columns: ["parceiro_comercial_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "vendedores_parceiro_comercial_id_fkey"
+            columns: ["parceiro_comercial_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_nome"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "vendedores_parceiro_comercial_id_fkey"
+            columns: ["parceiro_comercial_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "vendedores_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendedores_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vendedores_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_vinculo_pessoa"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vendedores_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organograma"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vendedores_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vendedores_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vendedores_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_reembolso_saneamento"
+            referencedColumns: ["pessoa_id"]
+          },
+        ]
+      }
       vw_vinculo_beneficios_resumo: {
         Row: {
           qtd_beneficios_ativos: number | null
@@ -62163,6 +62488,8 @@ export type Database = {
         }[]
       }
       fn_norm_texto: { Args: { p_texto: string }; Returns: string }
+      fn_norm_vendedor: { Args: { p_txt: string }; Returns: string }
+      fn_normaliza_vendedor: { Args: { p_texto: string }; Returns: string }
       fn_normalizar_codigo_fornecedor: {
         Args: { p_codigo: string }
         Returns: string
