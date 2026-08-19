@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTarefaAberta } from "@/hooks/tarefas/useTarefaAberta";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarClock, MoreHorizontal } from "lucide-react";
@@ -44,7 +45,7 @@ export function TarefaItem({ tarefa, atrasada = false }: Props) {
   const reagendar = useReagendarTarefa();
   const { data: projetos } = useProjetos();
   const [calendarioAberto, setCalendarioAberto] = useState(false);
-  const [painelAberto, setPainelAberto] = useState(false);
+  const { abrir } = useTarefaAberta();
 
   const projeto = projetos?.find((p) => p.id === tarefa.projeto_id);
   const concluida = tarefa.status === "concluida";
