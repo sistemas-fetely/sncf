@@ -1064,15 +1064,13 @@ export default function CobrancaDetalhe() {
         <CardContent>
           <ImpactoEdicaoBanner
             pedidoId={pedidoQ.data?.id}
-            novaCondicao={proposta.condicao_original}
-            novoValorLiquido={totalEditado}
+            linhas={linhasParaImpacto}
             className="mb-2"
           />
           <div className="mb-4">
             <ReabrirAnaliseAction
               pedidoId={pedidoQ.data?.id}
-              novaCondicao={proposta.condicao_original}
-              novoValorLiquido={totalEditado}
+              linhas={linhasParaImpacto}
             />
           </div>
           {jaPagoPedido > 0.005 && (
