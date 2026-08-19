@@ -19651,6 +19651,7 @@ export type Database = {
       nfs_stage: {
         Row: {
           arquivo_storage_path: string | null
+          base_icms: number | null
           categoria_sugerida_ia: boolean
           centro_custo_id: string | null
           conta_pagar_id: string | null
@@ -19659,6 +19660,7 @@ export type Database = {
           data_vencimento: string | null
           descricao: string | null
           duplicatas: Json | null
+          fin_nfe: number | null
           fonte: string
           fornecedor_cliente: string | null
           fornecedor_cnpj: string | null
@@ -19671,15 +19673,19 @@ export type Database = {
           meio_pagamento: string | null
           moeda: string
           motivo_descarte: string | null
+          natureza_operacao: string | null
           nf_chave_acesso: string | null
           nf_data_emissao: string | null
           nf_numero: string | null
+          nf_referenciada_chave: string | null
           nf_serie: string | null
           numero_documento_referencia: string | null
           numero_parcela: number | null
           pais_emissor: string
           parceiro_id: string | null
           plano_contas_id: string | null
+          reprocessado_em: string | null
+          reprocesso_erro: string | null
           resumo_pdf_gerado_em: string | null
           resumo_pdf_pendente: boolean
           resumo_pdf_storage_path: string | null
@@ -19693,10 +19699,14 @@ export type Database = {
           total_parcelas: number | null
           updated_at: string
           valor: number | null
+          valor_cofins: number | null
+          valor_icms: number | null
           valor_origem: number | null
+          valor_pis: number | null
         }
         Insert: {
           arquivo_storage_path?: string | null
+          base_icms?: number | null
           categoria_sugerida_ia?: boolean
           centro_custo_id?: string | null
           conta_pagar_id?: string | null
@@ -19705,6 +19715,7 @@ export type Database = {
           data_vencimento?: string | null
           descricao?: string | null
           duplicatas?: Json | null
+          fin_nfe?: number | null
           fonte?: string
           fornecedor_cliente?: string | null
           fornecedor_cnpj?: string | null
@@ -19717,15 +19728,19 @@ export type Database = {
           meio_pagamento?: string | null
           moeda?: string
           motivo_descarte?: string | null
+          natureza_operacao?: string | null
           nf_chave_acesso?: string | null
           nf_data_emissao?: string | null
           nf_numero?: string | null
+          nf_referenciada_chave?: string | null
           nf_serie?: string | null
           numero_documento_referencia?: string | null
           numero_parcela?: number | null
           pais_emissor?: string
           parceiro_id?: string | null
           plano_contas_id?: string | null
+          reprocessado_em?: string | null
+          reprocesso_erro?: string | null
           resumo_pdf_gerado_em?: string | null
           resumo_pdf_pendente?: boolean
           resumo_pdf_storage_path?: string | null
@@ -19739,10 +19754,14 @@ export type Database = {
           total_parcelas?: number | null
           updated_at?: string
           valor?: number | null
+          valor_cofins?: number | null
+          valor_icms?: number | null
           valor_origem?: number | null
+          valor_pis?: number | null
         }
         Update: {
           arquivo_storage_path?: string | null
+          base_icms?: number | null
           categoria_sugerida_ia?: boolean
           centro_custo_id?: string | null
           conta_pagar_id?: string | null
@@ -19751,6 +19770,7 @@ export type Database = {
           data_vencimento?: string | null
           descricao?: string | null
           duplicatas?: Json | null
+          fin_nfe?: number | null
           fonte?: string
           fornecedor_cliente?: string | null
           fornecedor_cnpj?: string | null
@@ -19763,15 +19783,19 @@ export type Database = {
           meio_pagamento?: string | null
           moeda?: string
           motivo_descarte?: string | null
+          natureza_operacao?: string | null
           nf_chave_acesso?: string | null
           nf_data_emissao?: string | null
           nf_numero?: string | null
+          nf_referenciada_chave?: string | null
           nf_serie?: string | null
           numero_documento_referencia?: string | null
           numero_parcela?: number | null
           pais_emissor?: string
           parceiro_id?: string | null
           plano_contas_id?: string | null
+          reprocessado_em?: string | null
+          reprocesso_erro?: string | null
           resumo_pdf_gerado_em?: string | null
           resumo_pdf_pendente?: boolean
           resumo_pdf_storage_path?: string | null
@@ -19785,7 +19809,10 @@ export type Database = {
           total_parcelas?: number | null
           updated_at?: string
           valor?: number | null
+          valor_cofins?: number | null
+          valor_icms?: number | null
           valor_origem?: number | null
+          valor_pis?: number | null
         }
         Relationships: [
           {
@@ -23157,6 +23184,63 @@ export type Database = {
           },
         ]
       }
+      pedido_item_cobertura_snap: {
+        Row: {
+          acum_fila: number | null
+          calculado_em: string
+          cobertura: string | null
+          estagio: string | null
+          id_externo: string | null
+          item_id: string
+          lastro_sku: number | null
+          pedido_id: string
+          posicao_fila: number | null
+          qtd_coberta: number | null
+          qtd_descoberta: number | null
+          quantidade: number | null
+          reserva_ativa: boolean | null
+          sku: string | null
+          sku_tem_linha: boolean | null
+          tem_nf: boolean | null
+        }
+        Insert: {
+          acum_fila?: number | null
+          calculado_em?: string
+          cobertura?: string | null
+          estagio?: string | null
+          id_externo?: string | null
+          item_id: string
+          lastro_sku?: number | null
+          pedido_id: string
+          posicao_fila?: number | null
+          qtd_coberta?: number | null
+          qtd_descoberta?: number | null
+          quantidade?: number | null
+          reserva_ativa?: boolean | null
+          sku?: string | null
+          sku_tem_linha?: boolean | null
+          tem_nf?: boolean | null
+        }
+        Update: {
+          acum_fila?: number | null
+          calculado_em?: string
+          cobertura?: string | null
+          estagio?: string | null
+          id_externo?: string | null
+          item_id?: string
+          lastro_sku?: number | null
+          pedido_id?: string
+          posicao_fila?: number | null
+          qtd_coberta?: number | null
+          qtd_descoberta?: number | null
+          quantidade?: number | null
+          reserva_ativa?: boolean | null
+          sku?: string | null
+          sku_tem_linha?: boolean | null
+          tem_nf?: boolean | null
+        }
+        Relationships: []
+      }
       pedido_itens: {
         Row: {
           criado_em: string
@@ -24360,6 +24444,30 @@ export type Database = {
           previsao_entrega?: string | null
           servico?: string | null
           status_atual?: string | null
+        }
+        Relationships: []
+      }
+      pedido_relogio_snap: {
+        Row: {
+          calculado_em: string
+          dias_espera: number | null
+          dias_nossos: number | null
+          dias_total: number | null
+          pedido_id: string
+        }
+        Insert: {
+          calculado_em?: string
+          dias_espera?: number | null
+          dias_nossos?: number | null
+          dias_total?: number | null
+          pedido_id: string
+        }
+        Update: {
+          calculado_em?: string
+          dias_espera?: number | null
+          dias_nossos?: number | null
+          dias_total?: number | null
+          pedido_id?: string
         }
         Relationships: []
       }
@@ -43211,6 +43319,18 @@ export type Database = {
           dias_total: number | null
           pedido_id: string | null
         }
+        Insert: {
+          dias_espera?: number | null
+          dias_nossos?: number | null
+          dias_total?: number | null
+          pedido_id?: string | null
+        }
+        Update: {
+          dias_espera?: number | null
+          dias_nossos?: number | null
+          dias_total?: number | null
+          pedido_id?: string | null
+        }
         Relationships: []
       }
       v_pedidos_fila: {
@@ -53992,239 +54112,7 @@ export type Database = {
           un_descobertas: number | null
           un_total: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "pedidos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "v_pedidos_fila"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "v_pedidos_priorizados"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_ciclo_pedido"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_ciclo_titulo"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_dossie_pedido"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_fila_aguardando_pagamento"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_fila_cobranca_materializar"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_gestao_pedidos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_oportunidades_comercial"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedido_aguardando_estoque"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedido_base"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedido_consolidavel"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedido_delta_snapshot"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedido_destino_estoque"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedido_entrega"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedido_haver_disponivel"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedido_liberacao_expedicao"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedido_origens"
-            referencedColumns: ["origem_pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedido_portao_regra"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedido_prova_pagamento"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedido_risco"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedido_situacao_financeira"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_export_comercial"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_farol"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_incoerentes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pix_candidato_conciliacao"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_remessa_safra_titulos"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_validacao_cartao"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_xpm_ciclo"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_xpm_divergencia_estagio"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_xpm_expedicao"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_xpm_risco_atraso"
-            referencedColumns: ["pedido_id"]
-          },
-        ]
+        Relationships: []
       }
       vw_pedido_consolidavel: {
         Row: {
@@ -54863,246 +54751,41 @@ export type Database = {
           sku_tem_linha: boolean | null
           tem_nf: boolean | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "pedidos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "v_pedidos_fila"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "v_pedidos_priorizados"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_ciclo_pedido"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_ciclo_titulo"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_dossie_pedido"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_fila_aguardando_pagamento"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_fila_cobranca_materializar"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_gestao_pedidos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_oportunidades_comercial"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedido_aguardando_estoque"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedido_base"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedido_consolidavel"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedido_delta_snapshot"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedido_destino_estoque"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedido_entrega"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedido_haver_disponivel"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedido_liberacao_expedicao"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedido_origens"
-            referencedColumns: ["origem_pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedido_portao_regra"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedido_prova_pagamento"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedido_risco"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedido_situacao_financeira"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_export_comercial"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_farol"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pedidos_incoerentes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pix_candidato_conciliacao"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_remessa_safra_titulos"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_validacao_cartao"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_xpm_ciclo"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_xpm_divergencia_estagio"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_xpm_expedicao"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_xpm_risco_atraso"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
-            isOneToOne: false
-            referencedRelation: "pedido_estagio"
-            referencedColumns: ["codigo"]
-          },
-        ]
+        Insert: {
+          acum_fila?: number | null
+          cobertura?: string | null
+          estagio?: string | null
+          id_externo?: string | null
+          item_id?: string | null
+          lastro_sku?: number | null
+          pedido_id?: string | null
+          posicao_fila?: number | null
+          qtd_coberta?: number | null
+          qtd_descoberta?: number | null
+          quantidade?: number | null
+          reserva_ativa?: boolean | null
+          sku?: string | null
+          sku_tem_linha?: boolean | null
+          tem_nf?: boolean | null
+        }
+        Update: {
+          acum_fila?: number | null
+          cobertura?: string | null
+          estagio?: string | null
+          id_externo?: string | null
+          item_id?: string | null
+          lastro_sku?: number | null
+          pedido_id?: string | null
+          posicao_fila?: number | null
+          qtd_coberta?: number | null
+          qtd_descoberta?: number | null
+          quantidade?: number | null
+          reserva_ativa?: boolean | null
+          sku?: string | null
+          sku_tem_linha?: boolean | null
+          tem_nf?: boolean | null
+        }
+        Relationships: []
       }
       vw_pedido_liberacao_expedicao: {
         Row: {
@@ -62188,6 +61871,7 @@ export type Database = {
       fn_cnab_uso_empresa: { Args: { p_titulo_id: string }; Returns: string }
       fn_cnpj_cpf_valido: { Args: { p_doc: string }; Returns: boolean }
       fn_cnpj_valido: { Args: { p_cnpj: string }; Returns: boolean }
+      fn_cobertura_refresh: { Args: never; Returns: number }
       fn_colunas_sem_grant: {
         Args: never
         Returns: {
@@ -62644,6 +62328,7 @@ export type Database = {
       }
       fn_regras_aplicar: { Args: never; Returns: Json }
       fn_regua_materializar: { Args: never; Returns: Json }
+      fn_relogio_refresh: { Args: never; Returns: number }
       fn_render_template: {
         Args: { p_template: string; p_vals: Json }
         Returns: string
