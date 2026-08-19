@@ -5,6 +5,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { usePedidoEntrega } from "@/hooks/pedidos/usePedidoEntrega";
 import { useFreteTipos } from "@/hooks/pedidos/useFreteTipos";
+import { useTransportadoraOrigem } from "@/hooks/pedidos/useTransportadoraOrigem";
 import { cn } from "@/lib/utils";
 
 interface Props {
