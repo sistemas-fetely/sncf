@@ -151,9 +151,31 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
     enabled: !!pedido_id,
   });
 
+  // Vendedor do pedido: e-mail resolvido pela view, para cópia automática.
+  const vendedorQ = useQuery({
+    queryKey: ["comunic-vendedor", pedido_id],
+    queryFn: async () => {
+      const { data: ped } = await (supabase as any)
+        .from("pedidos")
+        .select("vendedor_id")
+        .eq("id", pedido_id)
+        .maybeSingle();
+      if (!ped?.vendedor_id) return null;
+      const { data } = await (supabase as any)
+        .from("vw_vendedor_contato")
+        .select("vendedor_id, nome, email")
+        .eq("vendedor_id", ped.vendedor_id)
+        .maybeSingle();
+      if (!data?.email) return null;
+      return { nome: data.nome as string | null, email: String(data.email).trim().toLowerCase() };
+    },
+    enabled: !!pedido_id,
+  });
+
   const logQ = usePedidoEmailLog(pedido_id);
   const linkQ = useLinkPagamentoPedido(pedido_id);
   const registrarLink = useRegistrarLinkPagamento();
+
 
   // ── Mutations ──
   const enviarCobranca = useEnviarEmailPedidoCobranca();
@@ -186,10 +208,14 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
     }
   }, [dialogOpen, emailPreferido, emailPrincipal]);
 
+  const vendedorEmail = vendedorQ.data?.email ?? null;
+  const vendedorNome = vendedorQ.data?.nome ?? null;
+
   const abrirDialog = (tipo: TipoEmail) => {
     setDialogTipo(tipo);
+    const principal = (emailPreferido ?? "").trim().toLowerCase();
     setEmailPrincipal(emailPreferido ?? "");
-    setEmailsAdicionais([]);
+    setEmailsAdicionais(vendedorEmail && vendedorEmail !== principal ? [vendedorEmail] : []);
     setNovoEmail("");
     setNovoLink("");
     setGeradoEm(hojeISO);
@@ -216,6 +242,8 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
     try {
       const principal = emailPrincipal.trim();
       const cc = emailsAdicionais;
+      // Boleto: destinatários escolhidos no diálogo têm que chegar ao hook.
+      const destinatarios = [principal, ...cc];
 
       if (dialogTipo === "cobranca") {
         await enviarCobranca.mutateAsync({
@@ -223,11 +251,11 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
         });
       } else if (dialogTipo === "portao_boleto") {
         if (tituloEntradaQ.data?.id) {
-          await enviarBoleto.mutateAsync(tituloEntradaQ.data.id);
+          await enviarBoleto.mutateAsync({ titulo_id: tituloEntradaQ.data.id, destinatarios });
         }
       } else if (dialogTipo === "boleto") {
         for (const t of titulosBoleto) {
-          await enviarBoleto.mutateAsync(t.id);
+          await enviarBoleto.mutateAsync({ titulo_id: t.id, destinatarios });
         }
       } else if (dialogTipo === "nf") {
         await enviarNf.mutateAsync({ pedido_id, emails: [principal], cc, skipEstagioCheck: true });
@@ -561,6 +589,11 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
                 <div className="flex flex-wrap gap-2">
                   {emailsAdicionais.map((em) => (
                     <div key={em} className="flex items-center gap-1.5 rounded-md border bg-muted px-2 py-1 text-sm">
+                      {vendedorEmail === em && (
+                        <Badge variant="outline" className="text-[10px]">
+                          vendedor{vendedorNome ? `: ${vendedorNome}` : ""}
+                        </Badge>
+                      )}
                       <span>{em}</span>
                       <button
                         type="button"
