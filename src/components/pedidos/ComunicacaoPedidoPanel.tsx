@@ -191,6 +191,7 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
   const [emailsAdicionais, setEmailsAdicionais] = useState<string[]>([]);
   const [novoEmail, setNovoEmail] = useState("");
   const [sending, setSending] = useState(false);
+  const [injetadoVendedorNestaAbertura, setInjetadoVendedorNestaAbertura] = useState(false);
   const hojeISO = new Date().toISOString().slice(0, 10);
   const [novoLink, setNovoLink] = useState("");
   const [geradoEm, setGeradoEm] = useState(hojeISO);
@@ -210,12 +211,25 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
 
   const vendedorEmail = vendedorQ.data?.email ?? null;
   const vendedorNome = vendedorQ.data?.nome ?? null;
+  const vendedorCarregando = vendedorQ.isLoading && dialogOpen;
+
+  // Injeta o e-mail do vendedor quando ele chegar depois da abertura do diálogo.
+  // Só uma vez por abertura — se o operador remover de propósito, não traz de volta.
+  useEffect(() => {
+    if (!dialogOpen || !vendedorEmail || injetadoVendedorNestaAbertura) return;
+    const principal = emailPrincipal.trim().toLowerCase();
+    if (vendedorEmail !== principal && !emailsAdicionais.includes(vendedorEmail)) {
+      setEmailsAdicionais((p) => [...p, vendedorEmail]);
+    }
+    setInjetadoVendedorNestaAbertura(true);
+  }, [dialogOpen, vendedorEmail, emailPrincipal, emailsAdicionais, injetadoVendedorNestaAbertura]);
 
   const abrirDialog = (tipo: TipoEmail) => {
     setDialogTipo(tipo);
     const principal = (emailPreferido ?? "").trim().toLowerCase();
     setEmailPrincipal(emailPreferido ?? "");
     setEmailsAdicionais(vendedorEmail && vendedorEmail !== principal ? [vendedorEmail] : []);
+    setInjetadoVendedorNestaAbertura(false);
     setNovoEmail("");
     setNovoLink("");
     setGeradoEm(hojeISO);
@@ -631,9 +645,11 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
             <Button variant="outline" onClick={fecharDialog} disabled={sending}>
               Cancelar
             </Button>
-            <Button onClick={handleEnviar} disabled={!emailPrincipal.trim() || sending || precisaRenovar} className="gap-1.5">
+            <Button onClick={handleEnviar} disabled={!emailPrincipal.trim() || sending || precisaRenovar || vendedorCarregando} className="gap-1.5">
               {sending ? (
                 <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</>
+              ) : vendedorCarregando ? (
+                <><Loader2 className="h-4 w-4 animate-spin" />Carregando destinatário…</>
               ) : (
                 <><Mail className="h-4 w-4" />Enviar</>
               )}
