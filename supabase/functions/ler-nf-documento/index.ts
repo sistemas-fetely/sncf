@@ -87,6 +87,28 @@ const dataOuNull = (v: unknown): string | null => {
 const arr = <T>(v: T | T[] | undefined | null): T[] =>
   v === undefined || v === null ? [] : Array.isArray(v) ? v : [v];
 
+// O no ICMS traz um filho variavel conforme o CST/CSOSN (ICMS00, ICMS10, ICMS20,
+// ICMS51, ICMS60, ICMS90, ICMSSN101, ICMSSN102, ICMSSN500, ICMSSN900...).
+// Pegamos o primeiro filho, qualquer que seja, e lemos os campos dele.
+function extrairIcmsLinha(det: any): {
+  valor: number | null;
+  aliquota: number | null;
+  cst: string | null;
+  origem: string | null;
+} {
+  const vazio = { valor: null, aliquota: null, cst: null, origem: null };
+  const icms = det?.imposto?.ICMS;
+  if (!icms || typeof icms !== "object") return vazio;
+  const primeiro = Object.values(icms).find((v) => v && typeof v === "object") as any;
+  const no = primeiro ?? icms;
+  return {
+    valor: numOuNull(no?.vICMS),
+    aliquota: numOuNull(no?.pICMS),
+    cst: txt(no?.CST ?? no?.CSOSN),
+    origem: txt(no?.orig),
+  };
+}
+
 function parseXmlNfe(xmlString: string) {
   const parser = new XMLParser({
     ignoreAttributes: false,
