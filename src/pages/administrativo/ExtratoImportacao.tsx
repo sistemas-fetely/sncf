@@ -637,17 +637,10 @@ export default function ExtratoImportacao() {
         periodoInicio = datasV[0] || null;
         periodoFim = datasV[datasV.length - 1] || null;
 
-        for (const v of parsed.vendas) {
-          if (!v.nsu || !v.data_venda) continue;
-          const { data: exist } = await sb
-            .from("safrapay_venda")
-            .select("id")
-            .eq("nsu", v.nsu)
-            .eq("data_venda", v.data_venda)
-            .maybeSingle();
-          if (exist) { duplicadas++; continue; }
-
-          const { error: errIns } = await sb.from("safrapay_venda").insert({
+        // mdr é coluna gerada no banco (valor_bruto - valor_liquido); nunca enviar do front.
+        const linhas = parsed.vendas
+          .filter((v) => v.nsu && v.data_venda)
+          .map((v) => ({
             nsu: v.nsu,
             ec: parsed.ec || null,
             anomes: parsed.anomes || null,
@@ -660,13 +653,19 @@ export default function ExtratoImportacao() {
             autorizacao: v.autorizacao || null,
             valor_bruto: v.valor_bruto,
             valor_liquido: v.valor_liquido,
-            mdr: Number((v.valor_bruto - v.valor_liquido).toFixed(2)),
             arquivo_origem: file.name,
             importado_em: new Date().toISOString(),
-          });
-          if (errIns) throw errIns;
-          novas++;
-        }
+          }));
+
+        const { data, error } = await sb
+          .from("safrapay_venda")
+          .upsert(linhas, { onConflict: "nsu", ignoreDuplicates: true })
+          .select("nsu");
+        if (error) throw error;
+
+        novas = data?.length ?? 0;
+        duplicadas = linhas.length - novas;
+
       } else if (fonte === "safrapay_ajustes") {
         // Tipo 3 — ajuste de adquirência sempre acompanha um crédito que já está
         // no OFX: só enriquece, nunca cria linha nova.
