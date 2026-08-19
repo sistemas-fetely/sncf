@@ -64,7 +64,27 @@ interface OportunidadeRow {
   situacao_financeira: string | null;
   situacao_rotulo: string | null;
   alerta_operacional: string | null;
+  pai_valor_pago: number | null;
+  pai_valor_aberto: number | null;
+  vendedor_id: string | null;
+  vendedor_nome: string | null;
+  eh_primeira_compra: boolean | null;
+  cliente_pedidos_faturados: number | null;
+  cliente_valor_faturado: number | null;
+  cliente_primeira_compra: string | null;
+  cliente_ultima_compra: string | null;
+  cliente_dias_sem_comprar: number | null;
+  cliente_ticket_medio: number | null;
 }
+
+/** "DD/MM" curto para a linha de histórico do cliente. */
+function formatDataCurta(valor: string | null): string {
+  if (!valor) return "—";
+  const d = new Date(valor + (valor.length === 10 ? "T00:00:00" : ""));
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+}
+
 
 function corDiasVencido(dias: number | null | undefined) {
   const d = Number(dias ?? 0);
