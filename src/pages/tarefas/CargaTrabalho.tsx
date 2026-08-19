@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { TarefaDetalhePainel } from "@/components/tarefas/detalhe/TarefaDetalhePainel";
+import { useTarefaAberta } from "@/hooks/tarefas/useTarefaAberta";
 import { PRIORIDADE_ROTULO, STATUS_ROTULO } from "@/components/tarefas/detalhe/comuns";
 import {
   CLASSE_TOM, tomDaCarga, useCargaDetalhe, useCargaSemanal, usePodeEditarCapacidade,
@@ -47,7 +47,7 @@ export default function CargaTrabalho() {
   const salvarCapacidade = useSalvarCapacidade();
 
   const [drill, setDrill] = useState<{ userId: string; nome: string; inicio: string; fim: string } | null>(null);
-  const [tarefaAberta, setTarefaAberta] = useState<string | null>(null);
+  const { abrir: abrirTarefa } = useTarefaAberta();
 
   const pessoas = useMemo<LinhaPessoa[]>(() => {
     const mapa = new Map<string, LinhaPessoa>();
@@ -187,13 +187,7 @@ export default function CargaTrabalho() {
       <SheetDrill
         drill={drill}
         onFechar={() => setDrill(null)}
-        onAbrirTarefa={(id) => setTarefaAberta(id)}
-      />
-
-      <TarefaDetalhePainel
-        tarefaId={tarefaAberta}
-        aberto={!!tarefaAberta}
-        onOpenChange={(v) => !v && setTarefaAberta(null)}
+        onAbrirTarefa={abrirTarefa}
       />
     </PageShell>
   );

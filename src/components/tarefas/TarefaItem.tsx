@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTarefaAberta } from "@/hooks/tarefas/useTarefaAberta";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarClock, MoreHorizontal } from "lucide-react";
@@ -15,7 +16,6 @@ import { cn } from "@/lib/utils";
 import type { Tarefa, TarefaPrioridade } from "@/hooks/tarefas/useTarefas";
 import { useAlterarStatusTarefa, useReagendarTarefa } from "@/hooks/tarefas/useTarefaMutations";
 import { useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
-import { TarefaDetalhePainel } from "@/components/tarefas/detalhe/TarefaDetalhePainel";
 
 
 const PRIORIDADE_CLASSE: Record<TarefaPrioridade, string> = {
@@ -44,7 +44,7 @@ export function TarefaItem({ tarefa, atrasada = false }: Props) {
   const reagendar = useReagendarTarefa();
   const { data: projetos } = useProjetos();
   const [calendarioAberto, setCalendarioAberto] = useState(false);
-  const [painelAberto, setPainelAberto] = useState(false);
+  const { abrir } = useTarefaAberta();
 
   const projeto = projetos?.find((p) => p.id === tarefa.projeto_id);
   const concluida = tarefa.status === "concluida";
@@ -67,19 +67,15 @@ export function TarefaItem({ tarefa, atrasada = false }: Props) {
         aria-label={concluida ? "Reabrir tarefa" : "Concluir tarefa"}
       />
 
-      <TarefaDetalhePainel tarefaId={tarefa.id} aberto={painelAberto} onOpenChange={setPainelAberto} />
-
-
-      {/* só o corpo abre o painel — checkbox e menu seguem independentes */}
       <div
         className="min-w-0 flex-1 cursor-pointer"
         role="button"
         tabIndex={0}
-        onClick={() => setPainelAberto(true)}
+        onClick={() => abrir(tarefa.id)}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            setPainelAberto(true);
+            abrir(tarefa.id);
           }
         }}
       >

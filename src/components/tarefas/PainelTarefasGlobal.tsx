@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ListChecks } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTarefaAberta } from "@/hooks/tarefas/useTarefaAberta";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,6 +30,7 @@ function hojeIso(): string {
 export function PainelTarefasGlobal() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { tarefaId } = useTarefaAberta();
   const [aberto, setAberto] = useState(false);
 
   const { data: tarefas, isLoading } = useQuery({
@@ -60,6 +62,10 @@ export function PainelTarefasGlobal() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  useEffect(() => {
+    if (tarefaId) setAberto(false);
+  }, [tarefaId]);
 
   if (!user) return null;
 
