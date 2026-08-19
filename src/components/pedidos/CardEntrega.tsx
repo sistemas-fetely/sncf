@@ -46,6 +46,9 @@ export function CardEntrega({ pedidoId, estagio }: Props) {
         <>
           <p className="text-sm font-medium">{e.transportadora_nome}</p>
           {e.transportadora_cnpj && <p className="text-[11px] text-muted-foreground">{e.transportadora_cnpj}</p>}
+          {e.transportadora_origem && (
+            <p className="text-[11px] text-muted-foreground">{rotuloOrigem(e.transportadora_origem)}</p>
+          )}
         </>
       );
     }
