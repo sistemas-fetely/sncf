@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { formatError } from "@/lib/format-error";
 import { toast } from "sonner";
 
 interface RecotarInput {
