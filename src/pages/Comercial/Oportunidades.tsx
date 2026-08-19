@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,9 +15,7 @@ import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import {
-  Copy, ExternalLink, Mail, Phone, Search, Sparkles, Loader2, Undo2,
-} from "lucide-react";
+import { Copy, Search, Sparkles, Loader2, Undo2 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import { RetomarOportunidadeDialog } from "@/components/comercial/RetomarOportunidadeDialog";
@@ -90,12 +88,6 @@ function formatDataCurta(valor: string | null): string {
 }
 
 
-function corDiasVencido(dias: number | null | undefined) {
-  const d = Number(dias ?? 0);
-  if (d <= 15) return "bg-muted text-muted-foreground";
-  if (d <= 45) return "bg-warning/10 text-warning";
-  return "bg-destructive/15 text-destructive font-medium";
-}
 
 const ORIGEM_LABEL: Record<OrigemOportunidade, string> = {
   portao_vencido: "Portão vencido",
@@ -267,7 +259,7 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                         <TableCell className="font-mono text-xs align-top">
                           <button
                             type="button"
-                            className="font-mono hover:underline"
+                            className="font-mono text-primary underline-offset-2 hover:underline cursor-pointer"
                             onClick={() => setDetalhe(r)}
                           >
                             {r.id_externo || "—"}
@@ -295,7 +287,7 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                         <TableCell className="max-w-[280px] align-top">
                           <button
                             type="button"
-                            className="block max-w-full truncate font-medium text-left no-underline hover:underline"
+                            className="block max-w-full truncate font-medium text-left text-primary underline-offset-2 hover:underline cursor-pointer"
                             onClick={() => navigate(`/parceiros/${r.parceiro_id}`)}
                           >
                             {r.apelido || r.cliente || "—"}
@@ -343,60 +335,25 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                         </TableCell>
                         <TableCell className="text-xs align-top">{r.vendedor_nome || "—"}</TableCell>
 
-                        <TableCell>
-                          <div className="flex items-center justify-end gap-1">
+                        <TableCell className="align-middle">
+                          <div className="flex items-center justify-end gap-2">
                             <Button
                               size="sm"
                               variant="default"
-                              className="h-7 gap-1.5"
+                              className="h-7 gap-1.5 w-[110px] justify-center"
                               onClick={() => setRetomando(r)}
                             >
                               <Undo2 className="h-3.5 w-3.5" />
                               Retomar
                             </Button>
-                            {r.link_pagamento && (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                title="Copiar link de pagamento"
-                                onClick={() => copiar(r.link_pagamento!)}
-                              >
-                                <Copy className="h-4 w-4" />
-                              </Button>
-                            )}
-                            {r.telefone && (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                title={`Ligar: ${r.telefone}`}
-                                asChild
-                              >
-                                <a href={`tel:${r.telefone}`}>
-                                  <Phone className="h-4 w-4" />
-                                </a>
-                              </Button>
-                            )}
-                            {r.email && (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                title={`E-mail: ${r.email}`}
-                                asChild
-                              >
-                                <a href={`mailto:${r.email}`}>
-                                  <Mail className="h-4 w-4" />
-                                </a>
-                              </Button>
-                            )}
                             <Button
                               size="icon"
                               variant="ghost"
-                              title="Abrir pedido"
-                              asChild
+                              title={r.link_pagamento ? "Copiar link de pagamento" : "Sem link de pagamento"}
+                              disabled={!r.link_pagamento}
+                              onClick={() => r.link_pagamento && copiar(r.link_pagamento)}
                             >
-                              <Link to={`/pedidos/${r.pedido_id}`}>
-                                <ExternalLink className="h-4 w-4" />
-                              </Link>
+                              <Copy className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
