@@ -9,7 +9,15 @@
  *         usado pela função do Fala Fetely), devolvendo o MESMO shape do XML.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { XMLParser } from "https://esm.sh/fast-xml-parser@4.4.1";
+import {
+  arr,
+  dataOuNull,
+  numOuNull,
+  parseXmlNfe,
+  soDigitos,
+  txt,
+} from "../_shared/parse-nfe-xml.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
