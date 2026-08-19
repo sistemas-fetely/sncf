@@ -33659,6 +33659,39 @@ export type Database = {
         }
         Relationships: []
       }
+      sla_parametro: {
+        Row: {
+          ativo: boolean
+          chave: string
+          descricao: string | null
+          grupo: string
+          label: string
+          unidade: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          ativo?: boolean
+          chave: string
+          descricao?: string | null
+          grupo: string
+          label: string
+          unidade: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          ativo?: boolean
+          chave?: string
+          descricao?: string | null
+          grupo?: string
+          label?: string
+          unidade?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       snapshot_custo_aterrissagem_20260817: {
         Row: {
           atualizado_em: string | null
@@ -63188,31 +63221,23 @@ export type Database = {
         Returns: string
       }
       fn_auditoria_custo_estimado: { Args: { p_sql: string }; Returns: number }
-      fn_auditoria_notificar:
-        | { Args: { p_dry?: boolean; p_janela?: string }; Returns: Json }
-        | { Args: { p_teste?: boolean }; Returns: Json }
+      fn_auditoria_notificar: {
+        Args: { p_dry?: boolean; p_janela?: string }
+        Returns: Json
+      }
       fn_auditoria_regra_testar: {
         Args: { p_limite?: number; p_slug: string }
         Returns: Json
       }
-      fn_auditoria_rodar:
-        | {
-            Args: {
-              p_origem?: string
-              p_regra_slug?: string
-              p_user_id?: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_origem?: string
-              p_regra_slug?: string
-              p_teto_ms?: number
-              p_user_id?: string
-            }
-            Returns: Json
-          }
+      fn_auditoria_rodar: {
+        Args: {
+          p_origem?: string
+          p_regra_slug?: string
+          p_teto_ms?: number
+          p_user_id?: string
+        }
+        Returns: Json
+      }
       fn_auditoria_saude: { Args: { p_gravar?: boolean }; Returns: Json }
       fn_auditoria_sql_valido: { Args: { p_sql: string }; Returns: string }
       fn_auditoria_testar_pendentes: {
