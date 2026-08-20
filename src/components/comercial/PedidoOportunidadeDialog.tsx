@@ -28,6 +28,7 @@ import {
 } from "@/hooks/comercial/usePedidoOportunidadeDetalhe";
 import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { ComprovantePagamentoBloco } from "@/components/comercial/ComprovantePagamentoBloco";
+import { useComprovantesPedido } from "@/hooks/comercial/useComprovantePagamento";
 
 
 /** Texto curto do chip de situação — map, nunca concatenação. */
@@ -114,6 +115,13 @@ export function PedidoOportunidadeDialog({
 
   const temPortao = !!vencimentoPortao;
   const cartaoBloqueia = PORTAO_SEM_CONFIRMACAO_MANUAL.has((tipoPortao ?? "").toLowerCase());
+
+  // COMPROVANTE-FECHA-O-PORTAO (20/08/2026): confirmado por comprovante, a
+  // confirmação manual não existe mais — o banco recusaria e o erro é feio.
+  const comprovantes = useComprovantesPedido(pedidoId, open);
+  const temComprovanteConfirmado = (comprovantes.data ?? []).some(
+    (c) => c.status === "confirmado",
+  );
 
   const confirmarPagamento = useMutation({
     mutationFn: async () => {
@@ -327,33 +335,41 @@ export function PedidoOportunidadeDialog({
                     <Copy className="h-4 w-4" />
                     Copiar link de pagamento
                   </Button>
-                  <Button
-                    disabled={
-                      cartaoBloqueia ||
-                      confirmarPagamento.isPending ||
-                      carregandoConfirmarPagamento ||
-                      !podeConfirmarPagamento
-                    }
-                    title={
-                      cartaoBloqueia
-                        ? "Cartão não fecha por confirmação manual — a prova é o NSU da captura."
-                        : !carregandoConfirmarPagamento && !podeConfirmarPagamento
-                          ? "Você não tem permissão para confirmar pagamento declarado."
-                          : undefined
-                    }
-                    onClick={() => setConfirmarAberto(true)}
-                  >
-                    {confirmarPagamento.isPending && (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    )}
-                    Confirmar pagamento
-                  </Button>
+                  {!temComprovanteConfirmado && (
+                    <Button
+                      disabled={
+                        cartaoBloqueia ||
+                        confirmarPagamento.isPending ||
+                        carregandoConfirmarPagamento ||
+                        !podeConfirmarPagamento
+                      }
+                      title={
+                        cartaoBloqueia
+                          ? "Cartão não fecha por confirmação manual — a prova é o NSU da captura."
+                          : !carregandoConfirmarPagamento && !podeConfirmarPagamento
+                            ? "Você não tem permissão para confirmar pagamento declarado."
+                            : undefined
+                      }
+                      onClick={() => setConfirmarAberto(true)}
+                    >
+                      {confirmarPagamento.isPending && (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      )}
+                      Confirmar pagamento
+                    </Button>
+                  )}
+                  {temComprovanteConfirmado && (
+                    <span className="text-xs text-muted-foreground">
+                      Pagamento já confirmado por comprovante.
+                    </span>
+                  )}
                 </div>
               </>
             )}
           </TabsContent>
         </Tabs>
 
+        {!temComprovanteConfirmado && (
         <AlertDialog open={confirmarAberto} onOpenChange={setConfirmarAberto}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -406,6 +422,7 @@ export function PedidoOportunidadeDialog({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        )}
       </DialogContent>
     </Dialog>
   );

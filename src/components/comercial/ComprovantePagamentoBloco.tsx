@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AlertTriangle, Loader2, Paperclip } from "lucide-react";
+import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import {
   useComprovantesPedido,
@@ -31,7 +32,43 @@ interface Props {
   valorPortao?: number | null;
   tipoPortao?: string | null;
   podeConfirmar: boolean;
+  /** Modo prova: SOPS/outras áreas só conferem o comprovante, sem anexar nem confirmar. */
+  somenteLeitura?: boolean;
 }
+
+async function abrirArquivo(storagePath: string) {
+  // FAIL-LOUD: bucket privado, URL assinada curta. Sem isso o operador só vê metadados.
+  const { data, error } = await supabase.storage
+    .from("comprovantes-pagamento")
+    .createSignedUrl(storagePath, 60);
+  if (error) {
+    toast.error(error.message);
+    return;
+  }
+  if (data?.signedUrl) window.open(data.signedUrl, "_blank", "noopener");
+}
+
+function BotaoVerArquivo({ storagePath }: { storagePath: string }) {
+  const [carregando, setCarregando] = useState(false);
+  return (
+    <button
+      type="button"
+      className="text-primary underline-offset-2 hover:underline disabled:opacity-50"
+      disabled={carregando}
+      onClick={async () => {
+        setCarregando(true);
+        try {
+          await abrirArquivo(storagePath);
+        } finally {
+          setCarregando(false);
+        }
+      }}
+    >
+      Ver arquivo
+    </button>
+  );
+}
+
 
 function BadgeConfianca({ confianca }: { confianca: string | null }) {
   const c = (confianca ?? "baixa").toLowerCase();
@@ -212,6 +249,7 @@ export function ComprovantePagamentoBloco({
   valorPortao,
   tipoPortao,
   podeConfirmar,
+  somenteLeitura = false,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const lista = useComprovantesPedido(pedidoId, !!pedidoId);
@@ -225,6 +263,8 @@ export function ComprovantePagamentoBloco({
   const comprovantes = lista.data ?? [];
   const lidos = comprovantes.filter((c) => c.status === "lido");
   const confirmados = comprovantes.filter((c) => c.status === "confirmado");
+  // Em modo prova, os 'lido' entram na mesma lista, só marcados como pendentes.
+  const linhas = somenteLeitura ? [...confirmados, ...lidos] : confirmados;
 
   const idsConfirmadores = useMemo(
     () => Array.from(new Set(confirmados.map((c) => c.confirmado_por).filter(Boolean) as string[])),
@@ -246,77 +286,89 @@ export function ComprovantePagamentoBloco({
     },
   });
 
+  // Sem prova nenhuma o bloco de leitura não existe — evita seção morta.
+  if (somenteLeitura && comprovantes.length === 0) return null;
+
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <input
-          ref={inputRef}
-          type="file"
-          accept={ACEITOS}
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            e.target.value = "";
-            if (!file) return;
-            setArquivoNome(file.name);
-            enviar.mutate(file);
-          }}
-        />
-        <Button
-          variant="outline"
-          className="gap-1.5"
-          disabled={enviar.isPending}
-          onClick={() => inputRef.current?.click()}
-        >
-          {enviar.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Paperclip className="h-4 w-4" />
+      {!somenteLeitura && (
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            ref={inputRef}
+            type="file"
+            accept={ACEITOS}
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (!file) return;
+              setArquivoNome(file.name);
+              enviar.mutate(file);
+            }}
+          />
+          <Button
+            variant="outline"
+            className="gap-1.5"
+            disabled={enviar.isPending}
+            onClick={() => inputRef.current?.click()}
+          >
+            {enviar.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Paperclip className="h-4 w-4" />
+            )}
+            {enviar.isPending ? "Lendo comprovante…" : "Anexar comprovante"}
+          </Button>
+          {enviar.isPending && arquivoNome && (
+            <span className="text-xs text-muted-foreground">{arquivoNome}</span>
           )}
-          {enviar.isPending ? "Lendo comprovante…" : "Anexar comprovante"}
-        </Button>
-        {enviar.isPending && arquivoNome && (
-          <span className="text-xs text-muted-foreground">{arquivoNome}</span>
-        )}
-      </div>
+        </div>
+      )}
 
-      {(tipoPortao ?? "").toLowerCase() === "cartao" && (
+      {!somenteLeitura && (tipoPortao ?? "").toLowerCase() === "cartao" && (
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>Cartão fecha pela captura com NSU, não por aqui.</AlertDescription>
         </Alert>
       )}
 
-      {lista.isLoading && (
+      {!somenteLeitura && lista.isLoading && (
         <p className="text-xs text-muted-foreground">Carregando comprovantes…</p>
       )}
 
-      {lidos.map((c) => (
-        <CardComprovanteLido
-          key={c.id}
-          comprovante={c}
-          pedidoId={pedidoId}
-          valorPortao={Number(valorPortao ?? 0)}
-          podeConfirmar={podeConfirmar}
-        />
-      ))}
+      {!somenteLeitura &&
+        lidos.map((c) => (
+          <CardComprovanteLido
+            key={c.id}
+            comprovante={c}
+            pedidoId={pedidoId}
+            valorPortao={Number(valorPortao ?? 0)}
+            podeConfirmar={podeConfirmar}
+          />
+        ))}
 
-      {confirmados.length > 0 && (
+      {linhas.length > 0 && (
         <div className="rounded-md border divide-y">
-          {confirmados.map((c) => (
+          {linhas.map((c) => (
             <div key={c.id} className="px-3 py-2 text-xs flex flex-wrap gap-x-3 gap-y-1">
               <span className="text-muted-foreground">{formatDateBR(c.data_lida)}</span>
               <span className="font-medium">{c.tipo_lido ?? "—"}</span>
               <span className="font-mono truncate max-w-[220px]">{c.chave_lida || "—"}</span>
               <span className="font-medium">{formatBRL(Number(c.valor_lido ?? 0))}</span>
-              <span className="text-muted-foreground">
-                confirmado por{" "}
-                {(c.confirmado_por && nomes.data?.[c.confirmado_por]) || "usuário do sistema"}
-              </span>
+              {c.status === "confirmado" ? (
+                <span className="text-muted-foreground">
+                  confirmado por{" "}
+                  {(c.confirmado_por && nomes.data?.[c.confirmado_por]) || "usuário do sistema"}
+                </span>
+              ) : (
+                <Badge variant="secondary">aguardando conferência</Badge>
+              )}
+              <BotaoVerArquivo storagePath={c.storage_path} />
             </div>
           ))}
         </div>
       )}
     </div>
+
   );
 }
