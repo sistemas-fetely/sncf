@@ -100,7 +100,14 @@ export function RecorrenciaDialog({ aberto, onOpenChange, regra }: Props) {
 
   const confirmar = () => {
     salvar.mutate(
-      { id: regra?.id ?? null, valores: { ...f, titulo: f.titulo.trim() } },
+      {
+        id: regra?.id ?? null,
+        valores: {
+          ...f,
+          titulo: f.titulo.trim(),
+          visibilidade: f.visibilidade === "privada" ? "privada" : "publica",
+        },
+      },
       { onSuccess: () => onOpenChange(false) }
     );
   };
@@ -321,7 +328,6 @@ export function RecorrenciaDialog({ aberto, onOpenChange, regra }: Props) {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="publica">Pública</SelectItem>
-                  <SelectItem value="departamento">Departamento</SelectItem>
                   <SelectItem value="privada">Privada</SelectItem>
                 </SelectContent>
               </Select>
