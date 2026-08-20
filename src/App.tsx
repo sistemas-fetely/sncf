@@ -95,6 +95,12 @@ const TesteEmailTemplate = lazy(() => import("@/pages/ti/TesteEmailTemplate"));
 const DocumentacaoDetalhe = lazy(() => import("@/pages/ti/DocumentacaoDetalhe"));
 const DocumentacaoForm = lazy(() => import("@/pages/ti/DocumentacaoForm"));
 const TarefasLayout = lazy(() => import("@/layouts/TarefasLayout"));
+const GestaoSalaLayout = lazy(() => import("@/layouts/GestaoSalaLayout"));
+const GestaoSalas = lazy(() => import("@/pages/gestao/Salas"));
+const GestaoSalaReuniao = lazy(() => import("@/pages/gestao/SalaReuniao"));
+const GestaoPainelProjetos = lazy(() => import("@/pages/gestao/PainelProjetos"));
+const GestaoDecisoes = lazy(() => import("@/pages/gestao/Decisoes"));
+const GestaoRiscos = lazy(() => import("@/pages/gestao/Riscos"));
 const TarefasHoje = lazy(() => import("@/pages/tarefas/TarefasHoje"));
 const MinhasTarefasNovo = lazy(() => import("@/pages/tarefas/MinhasTarefasNovo"));
 const ProjetosGrid = lazy(() => import("@/pages/tarefas/ProjetosGrid"));
@@ -408,6 +414,14 @@ const App = () => (
               {/* Doutrina CASA-2: SNCFLayout removido — rotas ficam direto no CasaLayout */}
               <Route path="/sncf" element={<PortalSNCF />} />
               <Route path="/tarefas" element={<Navigate to="/tarefas/hoje" replace />} />
+              {/* Sala de Gestão — ritos, projetos, decisões e riscos */}
+              <Route element={<GestaoSalaLayout />}>
+                <Route path="/gestao" element={<GestaoSalas />} />
+                <Route path="/gestao/sala/:id" element={<GestaoSalaReuniao />} />
+                <Route path="/gestao/projetos" element={<GestaoPainelProjetos />} />
+                <Route path="/gestao/decisoes" element={<GestaoDecisoes />} />
+                <Route path="/gestao/riscos" element={<GestaoRiscos />} />
+              </Route>
               <Route element={<TarefasLayout />}>
                 <Route path="/tarefas/hoje" element={<TarefasHoje />} />
                 <Route path="/tarefas/minhas" element={<MinhasTarefasNovo />} />
