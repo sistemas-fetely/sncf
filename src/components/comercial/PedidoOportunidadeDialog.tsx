@@ -26,6 +26,7 @@ import {
   useObsComerciaisPedido,
 } from "@/hooks/comercial/usePedidoOportunidadeDetalhe";
 import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
+import { ComprovantePagamentoBloco } from "@/components/comercial/ComprovantePagamentoBloco";
 
 
 /** Texto curto do chip de situação — map, nunca concatenação. */
@@ -293,7 +294,15 @@ export function PedidoOportunidadeDialog({
                   )}
                 </div>
 
+                <ComprovantePagamentoBloco
+                  pedidoId={pedidoId}
+                  valorPortao={valorPortao}
+                  tipoPortao={tipoPortao}
+                  podeConfirmar={podeConfirmarPagamento && !carregandoConfirmarPagamento}
+                />
+
                 <div className="flex flex-wrap items-center gap-2">
+
                   <Button
                     variant="outline"
                     className="gap-1.5"

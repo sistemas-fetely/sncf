@@ -7255,6 +7255,375 @@ export type Database = {
           },
         ]
       }
+      comprovante_pagamento: {
+        Row: {
+          beneficiario_cnpj_lido: string | null
+          chave_lida: string | null
+          confianca_ia: string | null
+          confirmado_em: string | null
+          confirmado_por: string | null
+          criado_em: string
+          criado_por: string | null
+          data_lida: string | null
+          divergencia_justificativa: string | null
+          divergencia_valor: number | null
+          hash_arquivo: string
+          id: string
+          mime_type: string | null
+          motivo_recusa: string | null
+          pagador_lido: string | null
+          payload_ia: Json | null
+          pedido_id: string
+          provisao_id: string | null
+          sentido: string
+          status: string
+          storage_path: string
+          tamanho_bytes: number | null
+          tipo_lido: string | null
+          valor_lido: number | null
+        }
+        Insert: {
+          beneficiario_cnpj_lido?: string | null
+          chave_lida?: string | null
+          confianca_ia?: string | null
+          confirmado_em?: string | null
+          confirmado_por?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          data_lida?: string | null
+          divergencia_justificativa?: string | null
+          divergencia_valor?: number | null
+          hash_arquivo: string
+          id?: string
+          mime_type?: string | null
+          motivo_recusa?: string | null
+          pagador_lido?: string | null
+          payload_ia?: Json | null
+          pedido_id: string
+          provisao_id?: string | null
+          sentido?: string
+          status?: string
+          storage_path: string
+          tamanho_bytes?: number | null
+          tipo_lido?: string | null
+          valor_lido?: number | null
+        }
+        Update: {
+          beneficiario_cnpj_lido?: string | null
+          chave_lida?: string | null
+          confianca_ia?: string | null
+          confirmado_em?: string | null
+          confirmado_por?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          data_lida?: string | null
+          divergencia_justificativa?: string | null
+          divergencia_valor?: number | null
+          hash_arquivo?: string
+          id?: string
+          mime_type?: string | null
+          motivo_recusa?: string | null
+          pagador_lido?: string | null
+          payload_ia?: Json | null
+          pedido_id?: string
+          provisao_id?: string | null
+          sentido?: string
+          status?: string
+          storage_path?: string
+          tamanho_bytes?: number | null
+          tipo_lido?: string | null
+          valor_lido?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comprovante_pagamento_confirmado_por_fkey"
+            columns: ["confirmado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_fila"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_priorizados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ciclo_pedido"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ciclo_titulo"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dossie_pedido"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_aguardando_pagamento"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_cobranca_materializar"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_b2c_pedido"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_aguardando_estoque"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_base"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_consolidavel"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_delta_snapshot"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_desfecho"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_destino_estoque"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_entrega"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_haver_disponivel"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_liberacao_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_origens"
+            referencedColumns: ["origem_pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_portao_regra"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_prova_pagamento"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_risco"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_situacao_financeira"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_export_comercial"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_farol"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pix_candidato_conciliacao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_remessa_safra_titulos"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_validacao_cartao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_ciclo"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_divergencia_estagio"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_risco_atraso"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_provisao_id_fkey"
+            columns: ["provisao_id"]
+            isOneToOne: false
+            referencedRelation: "provisao_recebimento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_provisao_id_fkey"
+            columns: ["provisao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pix_candidato_conciliacao"
+            referencedColumns: ["provisao_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_provisao_id_fkey"
+            columns: ["provisao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_provisao_caixa"
+            referencedColumns: ["provisao_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_provisao_id_fkey"
+            columns: ["provisao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_provisao_descoberta"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       concessao_ocorrencia: {
         Row: {
           causa_status: string
@@ -64879,6 +65248,17 @@ export type Database = {
         }
         Returns: Json
       }
+      confirmar_comprovante_pagamento: {
+        Args: {
+          p_chave: string
+          p_comprovante_id: string
+          p_data: string
+          p_justificativa?: string
+          p_tipo: string
+          p_valor: number
+        }
+        Returns: Json
+      }
       confirmar_depara_fornecedor: {
         Args: {
           p_codigo: string
@@ -67140,6 +67520,17 @@ export type Database = {
           p_periodicidade?: string
           p_primeira_parcela_data?: string
           p_status_alvo: string
+        }
+        Returns: Json
+      }
+      registrar_comprovante_pagamento: {
+        Args: {
+          p_bytes?: number
+          p_hash: string
+          p_leitura: Json
+          p_mime?: string
+          p_pedido_id: string
+          p_storage_path: string
         }
         Returns: Json
       }
