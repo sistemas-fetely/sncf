@@ -17,7 +17,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { AlertTriangle } from "lucide-react";
-import { formatBRL } from "@/lib/format-currency";
+import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -46,6 +46,10 @@ interface PreviewItem {
 
 interface PreviewOk {
   ok: true;
+  pode_devolver: boolean;
+  impedimento: string | null;
+  id_externo: string | null;
+  ja_devolvido_em: string | null;
   estagio: string;
   titulos_a_devolver: number;
   boletos_a_baixar: number;
@@ -57,6 +61,10 @@ interface PreviewOk {
 interface PreviewErr {
   ok: false;
   erro: string;
+  pode_devolver: boolean;
+  impedimento: string | null;
+  id_externo: string | null;
+  ja_devolvido_em: string | null;
   estagio?: string;
 }
 type Preview = PreviewOk | PreviewErr;
@@ -177,9 +185,14 @@ export function RegistrarDevolucaoDialog({ pedidoId, pedidoIdExterno, open, onCl
 
   const previewOk = preview.data && preview.data.ok === true ? preview.data : null;
   const previewErr = preview.data && preview.data.ok === false ? preview.data : null;
+  const bloqueado = !!previewOk && previewOk.pode_devolver !== true;
 
   const podeConfirmar =
-    !!previewOk && motivo.trim().length >= 5 && !mut.isPending && !preview.isLoading;
+    !!previewOk &&
+    previewOk.pode_devolver === true &&
+    motivo.trim().length >= 5 &&
+    !mut.isPending &&
+    !preview.isLoading;
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -218,8 +231,29 @@ export function RegistrarDevolucaoDialog({ pedidoId, pedidoIdExterno, open, onCl
           </Alert>
         )}
 
-        {previewOk && (
+        {previewOk && bloqueado && (
+          <Alert className="border-destructive/40 bg-destructive/10">
+            <AlertTriangle className="h-4 w-4 !text-destructive" />
+            <AlertDescription className="text-xs text-destructive">
+              {previewOk.impedimento ||
+                previewErr?.erro ||
+                "Não é possível registrar devolução neste pedido."}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {previewOk && !bloqueado && (
           <>
+            {previewOk.ja_devolvido_em && (
+              <Alert className="border-warning/40 bg-warning/10">
+                <AlertTriangle className="h-4 w-4 !text-warning" />
+                <AlertDescription className="text-xs text-warning">
+                  Atenção: este pedido já teve uma devolução registrada em{" "}
+                  {formatDateBR(previewOk.ja_devolvido_em)}.
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
               <div className="p-2 rounded border">
                 <div className="text-muted-foreground">Títulos a devolver</div>
@@ -320,16 +354,24 @@ export function RegistrarDevolucaoDialog({ pedidoId, pedidoIdExterno, open, onCl
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={mut.isPending}>
-            Voltar
-          </Button>
-          <Button
-            variant="destructive"
-            disabled={!podeConfirmar}
-            onClick={() => mut.mutate()}
-          >
-            {mut.isPending ? "Registrando..." : "Confirmar devolução"}
-          </Button>
+          {bloqueado ? (
+            <Button variant="outline" onClick={onClose} disabled={mut.isPending}>
+              Fechar
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline" onClick={onClose} disabled={mut.isPending}>
+                Voltar
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={!podeConfirmar}
+                onClick={() => mut.mutate()}
+              >
+                {mut.isPending ? "Registrando..." : "Confirmar devolução"}
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

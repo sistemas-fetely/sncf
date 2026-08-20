@@ -10679,6 +10679,69 @@ export type Database = {
           },
         ]
       }
+      devolucao_canal: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          descricao: string | null
+          exige_lastro_financeiro: boolean
+          ordem: number
+          prefixo_numero: string
+          rotulo: string
+          tabela_pedido: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          descricao?: string | null
+          exige_lastro_financeiro?: boolean
+          ordem?: number
+          prefixo_numero?: string
+          rotulo: string
+          tabela_pedido: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          descricao?: string | null
+          exige_lastro_financeiro?: boolean
+          ordem?: number
+          prefixo_numero?: string
+          rotulo?: string
+          tabela_pedido?: string
+        }
+        Relationships: []
+      }
+      devolucao_status: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          derivado: boolean
+          descricao: string | null
+          eh_final: boolean
+          ordem: number
+          rotulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          derivado?: boolean
+          descricao?: string | null
+          eh_final?: boolean
+          ordem?: number
+          rotulo: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          derivado?: boolean
+          descricao?: string | null
+          eh_final?: boolean
+          ordem?: number
+          rotulo?: string
+        }
+        Relationships: []
+      }
       documentos_venda: {
         Row: {
           atualizado_em: string
