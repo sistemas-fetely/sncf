@@ -4,7 +4,7 @@ import { Scissors } from "lucide-react";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { SplitPedidoDialog } from "@/components/pedidos/dialogs/SplitPedidoDialog";
 import { usePedidoEdicaoCampo } from "@/hooks/pedidos/usePedidoEdicaoCampo";
-import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
+import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface Props {
