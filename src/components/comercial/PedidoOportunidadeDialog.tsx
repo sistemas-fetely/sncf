@@ -293,7 +293,15 @@ export function PedidoOportunidadeDialog({
                   )}
                 </div>
 
+                <ComprovantePagamentoBloco
+                  pedidoId={pedidoId}
+                  valorPortao={valorPortao}
+                  tipoPortao={tipoPortao}
+                  podeConfirmar={podeConfirmarPagamento && !carregandoConfirmarPagamento}
+                />
+
                 <div className="flex flex-wrap items-center gap-2">
+
                   <Button
                     variant="outline"
                     className="gap-1.5"
