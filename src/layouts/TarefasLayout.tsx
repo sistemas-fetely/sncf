@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useRef } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import {
-  CalendarDays, CheckCheck, Gauge, LayoutGrid, ListChecks, Repeat, Sun, UsersRound,
+  CalendarDays, CheckCheck, Gauge, Inbox, LayoutGrid, ListChecks, Repeat, Sun, UsersRound,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,7 @@ const ITENS = [
   { title: "Recorrências", url: "/tarefas/recorrencias", icon: Repeat },
   { title: "Templates", url: "/tarefas/templates", icon: CheckCheck },
   { title: "Meu Time", url: "/tarefas/time", icon: UsersRound },
+  { title: "Fila de Processos", url: "/tarefas/fila", icon: Inbox },
 ];
 
 export default function TarefasLayout() {
