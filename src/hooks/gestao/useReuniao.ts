@@ -309,21 +309,52 @@ export function useMarcarPresenca() {
 }
 
 /** Irreversível: grava check-ins, congela notas e dispara a ata. Só facilitador. */
+/** Retorno real da RPC fn_gestao_fechar_reuniao — FAIL-LOUD: o front não promete o que não checou. */
+export type ResultadoFecharReuniao = {
+  checkins: number;
+  decisoes_carimbadas: number;
+  ata_destinatarios: number;
+  ata_erro: string | null;
+};
+
 export function useFecharReuniao() {
   const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (reuniaoId: string) => {
-      const { error } = await supabase.rpc("fn_gestao_fechar_reuniao", { _reuniao_id: reuniaoId });
+  return useMutation<ResultadoFecharReuniao, Error, string>({
+    mutationFn: async (reuniaoId: string): Promise<ResultadoFecharReuniao> => {
+      const { data, error } = await supabase.rpc("fn_gestao_fechar_reuniao", { _reuniao_id: reuniaoId });
       if (error) throw error;
+      if (!data || typeof data !== "object") throw new Error("A RPC de fechamento não devolveu o resumo esperado.");
+      const bruto = data as Record<string, unknown>;
+      return {
+        checkins: Number(bruto.checkins ?? 0),
+        decisoes_carimbadas: Number(bruto.decisoes_carimbadas ?? 0),
+        ata_destinatarios: Number(bruto.ata_destinatarios ?? 0),
+        ata_erro: typeof bruto.ata_erro === "string" && bruto.ata_erro.trim() ? bruto.ata_erro : null,
+      };
     },
-    onSuccess: () => {
+    onSuccess: (r) => {
       qc.invalidateQueries({ queryKey: KEY_GESTAO });
       qc.invalidateQueries({ queryKey: ["tarefas"] });
-      toast.success("Reunião fechada e ata enviada aos membros");
+      const carimbos = `${r.checkins} check-in(s) gravado(s) · ${r.decisoes_carimbadas} decisão(ões) carimbada(s)`;
+      if (r.ata_erro) {
+        toast.error(`Reunião fechada, mas a ata não saiu: ${r.ata_erro}`, { description: carimbos });
+        return;
+      }
+      if (r.ata_destinatarios === 0) {
+        toast.warning(
+          "Reunião fechada. Nenhum membro tem e-mail corporativo cadastrado — a ata não foi enviada.",
+          { description: carimbos },
+        );
+        return;
+      }
+      toast.success(`Reunião fechada. Ata enviada para ${r.ata_destinatarios} membro(s).`, {
+        description: carimbos,
+      });
     },
     onError: (e: Error) => toast.error(`Não foi possível fechar a reunião: ${e.message}`),
   });
 }
+
 
 /** Cria uma reunião nova (sob demanda) na sala. */
 export function useAbrirReuniao() {
