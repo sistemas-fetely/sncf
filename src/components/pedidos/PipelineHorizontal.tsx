@@ -79,7 +79,7 @@ interface Props {
   onToggleCancelados?: (v: boolean) => void;
   riscoAltoAtivo?: boolean;
   onToggleRiscoAlto?: () => void;
-  /** Abre a aba Recuperação (desvio) — não filtra a fila. */
+  /** Abre a aba Mesa Comercial — não filtra a fila. */
   onAbrirRecuperacao?: () => void;
 }
 
@@ -365,25 +365,25 @@ export function PipelineHorizontal({
         {/* Divisor: daqui pra frente não é passo do fluxo */}
         <div className="w-px bg-border mx-1 self-stretch" />
 
-        {/* Chip de desvio — fora da carteira ativa */}
+        {/* Mesa Comercial — fora da carteira ativa */}
         <button
           type="button"
           onClick={() => onAbrirRecuperacao?.()}
-          title="Fora da carteira ativa. Vendas a recuperar — clique para abrir a aba Recuperação."
+          title="Fora da carteira ativa. Pedidos que aguardam pagamento ou estoque — clique para abrir a aba Mesa Comercial."
           className={cn(
             "flex w-[104px] shrink-0 flex-col items-center justify-center rounded-md border border-dashed bg-muted/40 py-2 px-2 text-muted-foreground transition-all duration-200",
             "gold-border-hover focus-visible:outline-none",
-            desvio.qtd === 0 && "opacity-40",
+            (mesaComercial?.qtd ?? 0) === 0 && "opacity-40",
           )}
         >
           <span className="text-[10px] font-medium uppercase tracking-wide leading-tight">
-            Recuperação
+            Mesa Comercial
           </span>
           <span className="text-[11px] font-medium tabular-nums">
-            {desvio.qtd} {desvio.qtd === 1 ? "pedido" : "pedidos"}
+            {mesaComercial?.qtd ?? 0} {(mesaComercial?.qtd ?? 0) === 1 ? "pedido" : "pedidos"}
           </span>
           <span className="text-[10px] tabular-nums">
-            {fmtBRL.format(desvio.valor)}
+            {fmtBRL.format(mesaComercial?.valor ?? 0)}
           </span>
         </button>
       </div>
