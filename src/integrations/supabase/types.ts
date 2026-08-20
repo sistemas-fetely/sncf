@@ -15934,6 +15934,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "gestao_decisao_reuniao_id_fkey"
+            columns: ["reuniao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_ata_cabecalho"
+            referencedColumns: ["reuniao_id"]
+          },
+          {
             foreignKeyName: "gestao_decisao_revisao_de_id_fkey"
             columns: ["revisao_de_id"]
             isOneToOne: false
@@ -16077,6 +16084,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "gestao_reuniao_item_reuniao_id_fkey"
+            columns: ["reuniao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_ata_cabecalho"
+            referencedColumns: ["reuniao_id"]
+          },
+          {
             foreignKeyName: "gestao_reuniao_item_risco_id_fkey"
             columns: ["risco_id"]
             isOneToOne: false
@@ -16171,6 +16185,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gestao_reuniao"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gestao_reuniao_participante_reuniao_id_fkey"
+            columns: ["reuniao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_ata_cabecalho"
+            referencedColumns: ["reuniao_id"]
           },
         ]
       }
@@ -38811,6 +38832,13 @@ export type Database = {
             referencedRelation: "gestao_reuniao"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tarefas_projeto_status_reuniao_id_fkey"
+            columns: ["reuniao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_ata_cabecalho"
+            referencedColumns: ["reuniao_id"]
+          },
         ]
       }
       tarefas_projetos: {
@@ -55339,6 +55367,134 @@ export type Database = {
           },
         ]
       }
+      vw_gestao_ata: {
+        Row: {
+          complemento: string | null
+          decisao_id: string | null
+          item_id: string | null
+          item_tipo: string | null
+          marcador: string | null
+          nota: string | null
+          ordem: number | null
+          ordem_grupo: number | null
+          projeto_id: string | null
+          responsavel: string | null
+          reuniao_id: string | null
+          risco_id: string | null
+          sala_id: string | null
+          saude: string | null
+          tarefa_id: string | null
+          titulo: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gestao_reuniao_item_decisao_id_fkey"
+            columns: ["decisao_id"]
+            isOneToOne: false
+            referencedRelation: "gestao_decisao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gestao_reuniao_item_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas_projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gestao_reuniao_item_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_painel_projeto"
+            referencedColumns: ["projeto_id"]
+          },
+          {
+            foreignKeyName: "gestao_reuniao_item_reuniao_id_fkey"
+            columns: ["reuniao_id"]
+            isOneToOne: false
+            referencedRelation: "gestao_reuniao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gestao_reuniao_item_reuniao_id_fkey"
+            columns: ["reuniao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_ata_cabecalho"
+            referencedColumns: ["reuniao_id"]
+          },
+          {
+            foreignKeyName: "gestao_reuniao_item_risco_id_fkey"
+            columns: ["risco_id"]
+            isOneToOne: false
+            referencedRelation: "gestao_risco"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gestao_reuniao_item_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gestao_reuniao_item_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_meu_papel"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gestao_reuniao_sala_id_fkey"
+            columns: ["sala_id"]
+            isOneToOne: false
+            referencedRelation: "gestao_sala"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gestao_reuniao_sala_id_fkey"
+            columns: ["sala_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_sala_ciclo"
+            referencedColumns: ["sala_id"]
+          },
+        ]
+      }
+      vw_gestao_ata_cabecalho: {
+        Row: {
+          ausentes: number | null
+          confidencial: boolean | null
+          data: string | null
+          fechada_em: string | null
+          gerada_automaticamente: boolean | null
+          lista_ausentes: string | null
+          lista_presentes: string | null
+          numero: number | null
+          presentes: number | null
+          reuniao_anterior_data: string | null
+          reuniao_id: string | null
+          sala_codigo: string | null
+          sala_id: string | null
+          sala_nome: string | null
+          status: string | null
+          total_itens: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gestao_reuniao_sala_id_fkey"
+            columns: ["sala_id"]
+            isOneToOne: false
+            referencedRelation: "gestao_sala"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gestao_reuniao_sala_id_fkey"
+            columns: ["sala_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_sala_ciclo"
+            referencedColumns: ["sala_id"]
+          },
+        ]
+      }
       vw_gestao_b2c: {
         Row: {
           alerta: string | null
@@ -58106,14 +58262,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
