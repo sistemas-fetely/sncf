@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AlertTriangle, Loader2, Paperclip } from "lucide-react";
+import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import {
   useComprovantesPedido,
