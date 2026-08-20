@@ -598,8 +598,22 @@ export function FilaPedidosPorArea({
 
   const { data: liberacaoMap } = useLiberacaoExpedicaoLote(pedidoIdsSaida);
 
-  // Coluna Lastro: cobertura por pedido (fila FIFO contra o estoque real do SKU).
-  const { data: coberturaPedidoMap } = useCoberturaPedidos(pedidoIdsSaida);
+  // Coluna Lastro: instrumento de cobrança do dinheiro em aberto (view pronta, poucas linhas).
+  const { data: lastroMap } = useQuery({
+    queryKey: ["pedido-lastro-cobranca"],
+    staleTime: 30 * 1000,
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("vw_pedido_lastro_cobranca")
+        .select("*");
+      if (error) throw error;
+      const m = new Map<string, LastroCobranca>();
+      (data || []).forEach((r: LastroCobranca) => m.set(r.pedido_id, r));
+      return m;
+    },
+  });
+
 
   // Liberação: filtro aplicado depois que o mapa existe (hook acima depende dos ids).
   const linhasFiltradas = useMemo(() => {
