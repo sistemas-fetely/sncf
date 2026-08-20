@@ -20,6 +20,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { apelidoParceiro } from "@/lib/parceiros/nome";
 import {
   useAdicionarObsComercial,
   useItensPedidoOportunidade,
@@ -62,6 +63,7 @@ interface Props {
   pedidoId: string;
   idExterno: string | null;
   cliente: string | null;
+  apelido?: string | null;
   valorEmJogo: number | null;
   situacaoFinanceira: string | null;
   alertaOperacional?: string | null;
@@ -81,6 +83,7 @@ export function PedidoOportunidadeDialog({
   pedidoId,
   idExterno,
   cliente,
+  apelido,
   valorEmJogo,
   situacaoFinanceira,
   alertaOperacional,
