@@ -80,7 +80,14 @@ interface OportunidadeRow {
   fase: string | null;
   estagio: string | null;
   portao_linhas: number | null;
+  bloqueio: string | null;
+  bloqueio_rotulo: string | null;
 }
+
+const BLOQUEIO_COR: Record<string, string> = {
+  falta_pagar: "border-warning/50 text-warning",
+  falta_estoque: "border-muted-foreground/40 text-muted-foreground",
+};
 
 
 /** "DD/MM" curto para a linha de histórico do cliente. */
@@ -202,8 +209,8 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
       <div className={embutido ? "space-y-6" : "space-y-6 p-4 md:p-6"}>
         {!embutido && (
           <CasaPageHeader
-            breadcrumb={[{ label: "Comercial" }, { label: "Oportunidades" }]}
-            title="Oportunidades"
+            breadcrumb={[{ label: "Comercial" }, { label: "Mesa Comercial" }]}
+            title="Mesa Comercial"
             subtitle="Fila única do Comercial: pedidos migrados manualmente, portão vencido ou remessas cujo pai tem parcela vencida. Retome quando o cliente estiver pronto."
           />
         )}
@@ -310,13 +317,16 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                           >
                             {r.id_externo || "—"}
                           </button>
-                          {r.fase && (
+                          {r.bloqueio_rotulo && (
                             <div className="mt-1">
                               <Badge
                                 variant="outline"
-                                className="rounded px-1.5 py-0 text-[10px]"
+                                className={cn(
+                                  "rounded px-1.5 py-0 text-[10px]",
+                                  BLOQUEIO_COR[r.bloqueio ?? ""],
+                                )}
                               >
-                                {r.fase}
+                                {r.bloqueio_rotulo}
                               </Badge>
                             </div>
                           )}
