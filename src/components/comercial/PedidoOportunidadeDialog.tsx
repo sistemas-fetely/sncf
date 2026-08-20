@@ -20,6 +20,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { apelidoParceiro } from "@/lib/parceiros/nome";
 import {
   useAdicionarObsComercial,
   useItensPedidoOportunidade,
@@ -62,6 +63,7 @@ interface Props {
   pedidoId: string;
   idExterno: string | null;
   cliente: string | null;
+  apelido?: string | null;
   valorEmJogo: number | null;
   situacaoFinanceira: string | null;
   alertaOperacional?: string | null;
@@ -81,6 +83,7 @@ export function PedidoOportunidadeDialog({
   pedidoId,
   idExterno,
   cliente,
+  apelido,
   valorEmJogo,
   situacaoFinanceira,
   alertaOperacional,
@@ -163,7 +166,12 @@ export function PedidoOportunidadeDialog({
         <DialogHeader>
           <DialogTitle className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-sm">{idExterno || "Pedido"}</span>
-            <span className="text-sm text-muted-foreground">{cliente || "—"}</span>
+            <span className="text-sm">{cliente || "—"}</span>
+            {apelidoParceiro(cliente, apelido) && (
+              <span className="text-sm text-muted-foreground">
+                · {apelidoParceiro(cliente, apelido)}
+              </span>
+            )}
             <span className="text-sm">{formatBRL(valorEmJogo ?? 0)}</span>
             <Badge
               variant="outline"
