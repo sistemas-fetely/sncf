@@ -196,6 +196,23 @@ export default function SalaDetalhe() {
         }
         acoes={
           <>
+            {(reunioes ?? []).length > 0 && (
+              <Select
+                value={reuniaoId ?? ""}
+                onValueChange={(v) => setReuniaoEscolhidaId(v)}
+              >
+                <SelectTrigger className="h-9 w-[240px]">
+                  <SelectValue placeholder="Histórico de reuniões" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(reunioes ?? []).map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      #{r.numero} · {dataBR(r.data)} · {r.status}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <Button variant="ghost" onClick={() => navigate("/gestao")}>
               <ArrowLeft className="mr-1 h-4 w-4" /> Salas
             </Button>
@@ -206,6 +223,7 @@ export default function SalaDetalhe() {
             )}
           </>
         }
+
       />
 
       {sala?.confidencial && (
