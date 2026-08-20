@@ -88,7 +88,7 @@ export default function ShopifyB2c() {
     setSearchParams(next);
   };
 
-  const lista = pedidos ?? [];
+  const lista = useMemo(() => pedidos ?? [], [pedidos]);
 
   const ufs = useMemo(() => {
     const set = new Set<string>();

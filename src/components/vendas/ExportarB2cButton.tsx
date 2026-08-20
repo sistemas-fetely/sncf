@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Download } from "lucide-react";
 import ExcelJS from "exceljs";
 import { toast } from "sonner";
+import { formatError } from "@/lib/format-error";
 import { Button } from "@/components/ui/button";
 import type { PedidoB2cRow } from "@/hooks/vendas/useB2c";
 
@@ -63,7 +64,7 @@ export function ExportarB2cButton({ linhas }: { linhas: PedidoB2cRow[] }) {
       URL.revokeObjectURL(url);
       toast.success(`Exportação concluída — ${linhas.length} linha(s).`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao exportar.");
+      toast.error(formatError(e));
     } finally {
       setLoading(false);
     }
