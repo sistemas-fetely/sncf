@@ -25,6 +25,7 @@ import {
   useItensPedidoOportunidade,
   useObsComerciaisPedido,
 } from "@/hooks/comercial/usePedidoOportunidadeDetalhe";
+import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 
 
 /** Texto curto do chip de situação — map, nunca concatenação. */
@@ -98,6 +99,11 @@ export function PedidoOportunidadeDialog({
   const obs = useObsComerciaisPedido(pedidoId, open);
   const adicionar = useAdicionarObsComercial(pedidoId);
   const qc = useQueryClient();
+
+  const { permitido: podeConfirmarPagamento, carregando: carregandoConfirmarPagamento } =
+    usePermissaoAcao("acao.confirmar_pagamento_declarado");
+  const { permitido: podeEnviarLink, carregando: carregandoEnviarLink } =
+    usePermissaoAcao("acao.enviar_link_pagamento");
 
   const total = (itens.data ?? []).reduce((s, i) => s + Number(i.subtotal || 0), 0);
   const podeEnviar = texto.trim().length > 0 && !adicionar.isPending;
@@ -292,19 +298,32 @@ export function PedidoOportunidadeDialog({
                   <Button
                     variant="outline"
                     className="gap-1.5"
-                    disabled={!linkPagamento}
-                    title={linkPagamento ? undefined : "Sem link de pagamento"}
+                    disabled={!linkPagamento || carregandoEnviarLink || !podeEnviarLink}
+                    title={
+                      !linkPagamento
+                        ? "Sem link de pagamento"
+                        : !carregandoEnviarLink && !podeEnviarLink
+                          ? "Você não tem permissão para enviar link de pagamento."
+                          : undefined
+                    }
                     onClick={copiarLink}
                   >
                     <Copy className="h-4 w-4" />
                     Copiar link de pagamento
                   </Button>
                   <Button
-                    disabled={cartaoBloqueia || confirmarPagamento.isPending}
+                    disabled={
+                      cartaoBloqueia ||
+                      confirmarPagamento.isPending ||
+                      carregandoConfirmarPagamento ||
+                      !podeConfirmarPagamento
+                    }
                     title={
                       cartaoBloqueia
                         ? "Cartão não fecha por confirmação manual — a prova é o NSU da captura."
-                        : undefined
+                        : !carregandoConfirmarPagamento && !podeConfirmarPagamento
+                          ? "Você não tem permissão para confirmar pagamento declarado."
+                          : undefined
                     }
                     onClick={() => setConfirmarAberto(true)}
                   >
