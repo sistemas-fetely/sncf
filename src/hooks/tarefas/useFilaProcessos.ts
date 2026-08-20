@@ -94,11 +94,12 @@ export function useConcluirTarefaFila() {
       evidenciaTexto?: string | null;
       evidenciaUrl?: string | null;
     }) => {
-      const { error } = await supabase.rpc("concluir_tarefa", {
+      const args: { p_tarefa_id: string; p_evidencia_texto?: string; p_evidencia_url?: string } = {
         p_tarefa_id: id,
-        p_evidencia_texto: evidenciaTexto?.trim() ? evidenciaTexto.trim() : null,
-        p_evidencia_url: evidenciaUrl?.trim() ? evidenciaUrl.trim() : null,
-      });
+      };
+      if (evidenciaTexto?.trim()) args.p_evidencia_texto = evidenciaTexto.trim();
+      if (evidenciaUrl?.trim()) args.p_evidencia_url = evidenciaUrl.trim();
+      const { error } = await supabase.rpc("concluir_tarefa", args);
       if (error) throw error;
     },
     onSuccess: () => {
