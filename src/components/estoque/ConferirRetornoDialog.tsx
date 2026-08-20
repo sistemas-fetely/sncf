@@ -103,7 +103,15 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
       setResultado(res);
       const unid = res.unidades ?? unidadesInformadas;
       const itens = res.itens ?? linhasValidas.length;
-      toast.success(`Retorno registrado: ${itens} item(ns), ${unid} unidade(s)`);
+      const numero = res.devolucao ?? devolucao.devolucao_numero;
+      const base = `Retorno registrado em ${numero}: ${itens} item(ns), ${unid} unidade(s)`;
+      if (res.encerrada) {
+        toast.success(`${base}. Devolução encerrada — tudo que era esperado voltou.`);
+      } else {
+        toast.success(
+          `${base}. Ainda faltam ${Number(res.ainda_pendente ?? 0)} unidade(s) para encerrar.`,
+        );
+      }
       if (res.aviso) toast.warning(String(res.aviso), { duration: 10000 });
       setQtds({});
       setConds({});
