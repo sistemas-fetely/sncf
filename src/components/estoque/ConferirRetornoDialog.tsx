@@ -22,7 +22,8 @@ import {
   useRegistrarRetornoDevolucao,
   type RegistrarRetornoResult,
 } from "@/hooks/estoque/useRegistrarRetornoDevolucao";
-import type { RetornoPendentePedido } from "@/hooks/estoque/useDevolucoesRetornoPendente";
+import type { RetornoPendenteDevolucao } from "@/hooks/estoque/useDevolucoesRetornoPendente";
+import { Badge } from "@/components/ui/badge";
 
 const CENTRO_PADRAO = "XPM-SC";
 const CONDICAO_PADRAO = "__default__";
@@ -30,7 +31,8 @@ const CONDICAO_PADRAO = "__default__";
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  pedido: RetornoPendentePedido | null;
+  // FILA-ANCORADA-NA-DEVOLUCAO (20/08/2026): a identidade e a devolucao.
+  devolucao: RetornoPendenteDevolucao | null;
 }
 
 function hojeISO() {
