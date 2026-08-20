@@ -807,10 +807,27 @@ export function FilaPedidosPorArea({
                 </TableCell>
               </TableRow>
             )}
-            {!isLoading && (!linhas || linhas.length === 0) && (
+            {!isLoading && linhasFiltradas.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                  Nenhum pedido neste filtro.
+                <TableCell colSpan={9} className="text-center py-8">
+                  <EstadoVazioFila
+                    termoBusca={termoBusca}
+                    estagios={estagios}
+                    estagioFilter={estagioFilter}
+                    usarEstagiosMultiplos={usarEstagiosMultiplos}
+                    situacaoFilter={situacaoFilter}
+                    formaPgtoFilter={formaPgtoFilter}
+                    liberacaoFilter={liberacaoFilter}
+                    marcacaoFilter={marcacaoFilter}
+                    somenteComAlerta={somenteComAlerta}
+                    somenteRiscoAlto={somenteRiscoAlto}
+                    setBusca={setBusca}
+                    setSituacaoFilter={setSituacaoFilter}
+                    setFormaPgtoFilter={setFormaPgtoFilter}
+                    setLiberacaoFilter={setLiberacaoFilter}
+                    setMarcacaoFilter={setMarcacaoFilter}
+                    setSomenteComAlerta={setSomenteComAlerta}
+                  />
                 </TableCell>
               </TableRow>
             )}
