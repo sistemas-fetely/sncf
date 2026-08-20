@@ -369,6 +369,7 @@ export function PedidoOportunidadeDialog({
           </TabsContent>
         </Tabs>
 
+        {!temComprovanteConfirmado && (
         <AlertDialog open={confirmarAberto} onOpenChange={setConfirmarAberto}>
           <AlertDialogContent>
             <AlertDialogHeader>
