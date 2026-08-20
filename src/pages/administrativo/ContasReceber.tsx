@@ -104,6 +104,7 @@ type RecebivelB2B = {
 
   compensado_por: "banco" | "manual" | null;
   eh_inadimplencia: boolean | null;
+  condicao_parcelamento: string | null;
 };
 
 
@@ -747,6 +748,12 @@ function AbaB2B() {
             <div className="text-xs text-muted-foreground">
               parcela {t.numero_parcela}/{t.total_parcelas}
             </div>
+          )}
+          {!aninhada && t.data_compra && (
+            <div className="text-xs text-muted-foreground">Fat. {formatDateBR(t.data_compra)}</div>
+          )}
+          {!aninhada && t.condicao_parcelamento && (
+            <div className="text-xs text-muted-foreground">{t.condicao_parcelamento}</div>
           )}
         </TableCell>
         <TableCell className="text-sm">{aninhada ? "" : t.cliente ?? "—"}</TableCell>
@@ -1538,6 +1545,11 @@ function AbaB2B() {
                                     +{g.ocultos} fora do filtro
                                   </div>
                                 )}
+                                {g.titulos[0]?.condicao_parcelamento && (
+                                  <div className="text-[10px] text-muted-foreground pl-5">
+                                    {g.titulos[0].condicao_parcelamento}
+                                  </div>
+                                )}
                               </TableCell>
                               <TableCell className="text-sm font-medium">
                                 {g.cliente ?? "—"}
@@ -1571,7 +1583,11 @@ function AbaB2B() {
                               <TableCell className="text-sm">
                                 {g.proximoVencimento ? formatDateBR(g.proximoVencimento) : "—"}
                               </TableCell>
-                              <TableCell className="text-sm">—</TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {g.titulos[0]?.data_compra
+                                  ? `Fat. ${formatDateBR(g.titulos[0].data_compra)}`
+                                  : "—"}
+                              </TableCell>
                               <TableCell className="text-right font-medium tabular-nums">
                                 {formatBRL(g.total)}
                                 <div className="text-[10px] text-muted-foreground">
