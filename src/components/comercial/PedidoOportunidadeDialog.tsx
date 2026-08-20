@@ -422,6 +422,7 @@ export function PedidoOportunidadeDialog({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        )}
       </DialogContent>
     </Dialog>
   );
