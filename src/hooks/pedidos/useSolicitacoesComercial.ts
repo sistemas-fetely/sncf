@@ -17,7 +17,7 @@ export interface SolicitacaoComercial {
 
 export const SOLICITACAO_TIPO_ROTULO: Record<string, string> = {
   trocar_forma_pagamento: "Trocar forma de pagamento",
-  novo_link_pagamento: "Novo link de pagamento",
+  novo_link: "Novo link de pagamento",
   outro: "Outro",
 };
 

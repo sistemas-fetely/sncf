@@ -29,6 +29,8 @@ import {
 import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { ComprovantePagamentoBloco } from "@/components/comercial/ComprovantePagamentoBloco";
 import { useComprovantesPedido } from "@/hooks/comercial/useComprovantePagamento";
+import { useAbrirSolicitacao } from "@/hooks/pedidos/useSolicitacoesComercial";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 /** Texto curto do chip de situação — map, nunca concatenação. */
@@ -118,6 +120,14 @@ export function PedidoOportunidadeDialog({
 
   // COMPROVANTE-FECHA-O-PORTAO (20/08/2026): confirmado por comprovante, a
   // confirmação manual não existe mais — o banco recusaria e o erro é feio.
+  // SOPS-ATENDE-O-COMERCIAL (20/08/2026): a tela nao replica regra de estagio;
+  // o banco recusa e explica, e a mensagem dele aparece no toast.
+  const [solicitarAberto, setSolicitarAberto] = useState(false);
+  const [tipoSolicitacao, setTipoSolicitacao] = useState("trocar_forma_pagamento");
+  const [detalheSolicitacao, setDetalheSolicitacao] = useState("");
+  const abrirSolicitacao = useAbrirSolicitacao(pedidoId);
+  const detalheValido = detalheSolicitacao.trim().length >= 5;
+
   const comprovantes = useComprovantesPedido(pedidoId, open);
   const temComprovanteConfirmado = (comprovantes.data ?? []).some(
     (c) => c.status === "confirmado",
@@ -366,8 +376,70 @@ export function PedidoOportunidadeDialog({
                 </div>
               </>
             )}
+
+            <div className="flex flex-wrap items-center gap-2 border-t pt-3">
+              <Button variant="outline" onClick={() => setSolicitarAberto(true)}>
+                Solicitar ao SOPS
+              </Button>
+            </div>
           </TabsContent>
         </Tabs>
+
+        <AlertDialog open={solicitarAberto} onOpenChange={setSolicitarAberto}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Solicitar ao SOPS</AlertDialogTitle>
+              <AlertDialogDescription>
+                A solicitação entra na fila do SOPS e fica registrada na timeline do pedido.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label>Tipo</Label>
+                <Select value={tipoSolicitacao} onValueChange={setTipoSolicitacao}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="trocar_forma_pagamento">Trocar forma de pagamento</SelectItem>
+                    <SelectItem value="novo_link">Gerar novo link de pagamento</SelectItem>
+                    <SelectItem value="outro">Outro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Detalhe (obrigatório)</Label>
+                <Textarea
+                  rows={3}
+                  value={detalheSolicitacao}
+                  onChange={(e) => setDetalheSolicitacao(e.target.value)}
+                  placeholder="Explique o que o SOPS precisa fazer (mínimo 5 caracteres)."
+                />
+              </div>
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={abrirSolicitacao.isPending}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={!detalheValido || abrirSolicitacao.isPending}
+                onClick={async (e) => {
+                  e.preventDefault();
+                  try {
+                    await abrirSolicitacao.mutateAsync({
+                      tipo: tipoSolicitacao,
+                      detalhe: detalheSolicitacao.trim(),
+                    });
+                    setDetalheSolicitacao("");
+                    setSolicitarAberto(false);
+                  } catch {
+                    /* toast do banco já exibido pelo hook */
+                  }
+                }}
+              >
+                {abrirSolicitacao.isPending ? "Enviando..." : "Enviar solicitação"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {!temComprovanteConfirmado && (
         <AlertDialog open={confirmarAberto} onOpenChange={setConfirmarAberto}>
