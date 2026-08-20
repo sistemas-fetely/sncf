@@ -26,6 +26,7 @@ import {
   useObsComerciaisPedido,
 } from "@/hooks/comercial/usePedidoOportunidadeDetalhe";
 import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
+import { ComprovantePagamentoBloco } from "@/components/comercial/ComprovantePagamentoBloco";
 
 
 /** Texto curto do chip de situação — map, nunca concatenação. */
