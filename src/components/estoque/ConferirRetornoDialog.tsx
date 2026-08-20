@@ -51,7 +51,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
   const [centro, setCentro] = useState(CENTRO_PADRAO);
   const [resultado, setResultado] = useState<RegistrarRetornoResult | null>(null);
 
-  const chave = devolucao?.pedido_id ?? "";
+  const chave = devolucao?.devolucao_id ?? "";
   const [chaveAtual, setChaveAtual] = useState("");
   if (open && chave && chave !== chaveAtual) {
     setChaveAtual(chave);
@@ -117,10 +117,21 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Conferir retorno de devolução</DialogTitle>
+          <DialogTitle className="flex flex-wrap items-center gap-2">
+            <span>Devolução {devolucao?.devolucao_numero ?? "—"}</span>
+            <span className="text-sm font-normal text-muted-foreground">
+              Pedido {devolucao?.id_externo ?? "—"}
+            </span>
+            {devolucao?.canal === "b2c" && (
+              <Badge variant="outline" className="font-normal">B2C</Badge>
+            )}
+            {devolucao?.tipo === "parcial" && (
+              <Badge variant="outline" className="font-normal">Parcial</Badge>
+            )}
+          </DialogTitle>
           <DialogDescription>
-            Pedido {devolucao?.id_externo ?? "—"}
-            {devolucao?.nf ? ` · NF de saída ${pedido.nf}` : ""} · retorno parcial é permitido.
+            Conferência de retorno
+            {devolucao?.nf ? ` · NF de saída ${devolucao.nf}` : ""} · retorno parcial é permitido.
           </DialogDescription>
         </DialogHeader>
 
