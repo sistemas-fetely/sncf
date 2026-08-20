@@ -249,6 +249,7 @@ export function ComprovantePagamentoBloco({
   valorPortao,
   tipoPortao,
   podeConfirmar,
+  somenteLeitura = false,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const lista = useComprovantesPedido(pedidoId, !!pedidoId);
@@ -262,6 +263,8 @@ export function ComprovantePagamentoBloco({
   const comprovantes = lista.data ?? [];
   const lidos = comprovantes.filter((c) => c.status === "lido");
   const confirmados = comprovantes.filter((c) => c.status === "confirmado");
+  // Em modo prova, os 'lido' entram na mesma lista, só marcados como pendentes.
+  const linhas = somenteLeitura ? [...confirmados, ...lidos] : confirmados;
 
   const idsConfirmadores = useMemo(
     () => Array.from(new Set(confirmados.map((c) => c.confirmado_por).filter(Boolean) as string[])),
@@ -283,77 +286,89 @@ export function ComprovantePagamentoBloco({
     },
   });
 
+  // Sem prova nenhuma o bloco de leitura não existe — evita seção morta.
+  if (somenteLeitura && comprovantes.length === 0) return null;
+
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <input
-          ref={inputRef}
-          type="file"
-          accept={ACEITOS}
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            e.target.value = "";
-            if (!file) return;
-            setArquivoNome(file.name);
-            enviar.mutate(file);
-          }}
-        />
-        <Button
-          variant="outline"
-          className="gap-1.5"
-          disabled={enviar.isPending}
-          onClick={() => inputRef.current?.click()}
-        >
-          {enviar.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Paperclip className="h-4 w-4" />
+      {!somenteLeitura && (
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            ref={inputRef}
+            type="file"
+            accept={ACEITOS}
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (!file) return;
+              setArquivoNome(file.name);
+              enviar.mutate(file);
+            }}
+          />
+          <Button
+            variant="outline"
+            className="gap-1.5"
+            disabled={enviar.isPending}
+            onClick={() => inputRef.current?.click()}
+          >
+            {enviar.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Paperclip className="h-4 w-4" />
+            )}
+            {enviar.isPending ? "Lendo comprovante…" : "Anexar comprovante"}
+          </Button>
+          {enviar.isPending && arquivoNome && (
+            <span className="text-xs text-muted-foreground">{arquivoNome}</span>
           )}
-          {enviar.isPending ? "Lendo comprovante…" : "Anexar comprovante"}
-        </Button>
-        {enviar.isPending && arquivoNome && (
-          <span className="text-xs text-muted-foreground">{arquivoNome}</span>
-        )}
-      </div>
+        </div>
+      )}
 
-      {(tipoPortao ?? "").toLowerCase() === "cartao" && (
+      {!somenteLeitura && (tipoPortao ?? "").toLowerCase() === "cartao" && (
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>Cartão fecha pela captura com NSU, não por aqui.</AlertDescription>
         </Alert>
       )}
 
-      {lista.isLoading && (
+      {!somenteLeitura && lista.isLoading && (
         <p className="text-xs text-muted-foreground">Carregando comprovantes…</p>
       )}
 
-      {lidos.map((c) => (
-        <CardComprovanteLido
-          key={c.id}
-          comprovante={c}
-          pedidoId={pedidoId}
-          valorPortao={Number(valorPortao ?? 0)}
-          podeConfirmar={podeConfirmar}
-        />
-      ))}
+      {!somenteLeitura &&
+        lidos.map((c) => (
+          <CardComprovanteLido
+            key={c.id}
+            comprovante={c}
+            pedidoId={pedidoId}
+            valorPortao={Number(valorPortao ?? 0)}
+            podeConfirmar={podeConfirmar}
+          />
+        ))}
 
-      {confirmados.length > 0 && (
+      {linhas.length > 0 && (
         <div className="rounded-md border divide-y">
-          {confirmados.map((c) => (
+          {linhas.map((c) => (
             <div key={c.id} className="px-3 py-2 text-xs flex flex-wrap gap-x-3 gap-y-1">
               <span className="text-muted-foreground">{formatDateBR(c.data_lida)}</span>
               <span className="font-medium">{c.tipo_lido ?? "—"}</span>
               <span className="font-mono truncate max-w-[220px]">{c.chave_lida || "—"}</span>
               <span className="font-medium">{formatBRL(Number(c.valor_lido ?? 0))}</span>
-              <span className="text-muted-foreground">
-                confirmado por{" "}
-                {(c.confirmado_por && nomes.data?.[c.confirmado_por]) || "usuário do sistema"}
-              </span>
+              {c.status === "confirmado" ? (
+                <span className="text-muted-foreground">
+                  confirmado por{" "}
+                  {(c.confirmado_por && nomes.data?.[c.confirmado_por]) || "usuário do sistema"}
+                </span>
+              ) : (
+                <Badge variant="secondary">aguardando conferência</Badge>
+              )}
+              <BotaoVerArquivo storagePath={c.storage_path} />
             </div>
           ))}
         </div>
       )}
     </div>
+
   );
 }
