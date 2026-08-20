@@ -68065,6 +68065,7 @@ export type Database = {
           sala: string
         }[]
       }
+      fn_gestao_enviar_ata: { Args: { _reuniao_id: string }; Returns: Json }
       fn_gestao_fechar_reuniao: { Args: { _reuniao_id: string }; Returns: Json }
       fn_grupo_fiscal: {
         Args: { p_ncm: string; p_origem: string }
