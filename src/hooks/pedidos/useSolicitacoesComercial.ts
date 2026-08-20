@@ -42,12 +42,24 @@ export function useSolicitacoesAbertas() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: pedidos, error: pErr } = await (supabase as any)
         .from("pedidos")
-        .select("id, id_externo, estagio, parceiro_id, parceiros(razao_social)")
+        .select("id, id_externo, estagio, parceiro_id, parceiros_comerciais(razao_social)")
         .in("id", pedidoIds);
       if (pErr) throw pErr;
       const pMap = new Map<string, Record<string, unknown>>();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (pedidos || []).forEach((p: any) => pMap.set(p.id, p));
+
+      const userIds = [...new Set(rows.map((r) => r.criado_por).filter(Boolean))];
+      const nomes = new Map<string, string>();
+      if (userIds.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: perfis } = await (supabase as any)
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", userIds);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (perfis || []).forEach((x: any) => nomes.set(x.user_id, x.full_name));
+      }
 
       return rows.map((r) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -59,10 +71,10 @@ export function useSolicitacoesAbertas() {
           detalhe: r.detalhe ?? null,
           status: r.status,
           criado_em: r.criado_em,
-          criado_por_nome: r.criado_por_nome ?? r.aberto_por_nome ?? null,
+          criado_por_nome: nomes.get(r.criado_por) ?? null,
           pedido_id_externo: p?.id_externo ?? null,
           pedido_estagio: p?.estagio ?? null,
-          cliente_razao: p?.parceiros?.razao_social ?? null,
+          cliente_razao: p?.parceiros_comerciais?.razao_social ?? null,
         };
       });
     },
