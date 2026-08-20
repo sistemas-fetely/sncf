@@ -27,19 +27,19 @@ export default function PedidosIndex() {
   const [incluirCancelados, setIncluirCancelados] = useState(false);
   const [riscoAltoAtivo, setRiscoAltoAtivo] = useState(false);
 
-  // Reaproveita o cache do pipeline: a contagem de desvio já está lá.
-  const { data: pipeline } = usePedidosPipeline();
-  const qtdRecuperacao = useMemo(() => {
-    let qtd = 0;
-    (pipeline || []).forEach((row) => {
-      const ehDesvio =
-        row.eh_desvio != null
-          ? !!row.eh_desvio
-          : ESTAGIOS_DESVIO.includes(row.estagio);
-      if (ehDesvio) qtd += Number(row.qtd || 0);
-    });
-    return qtd;
-  }, [pipeline]);
+  // FONTE-UNICA: o contador da aba le a MESMA view que a tabela da Mesa Comercial.
+  const { data: qtdMesaComercial = 0 } = useQuery({
+    queryKey: ["mesa-comercial-contagem"],
+    staleTime: 30 * 1000,
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { count, error } = await (supabase as any)
+        .from("vw_oportunidades_comercial")
+        .select("pedido_id", { count: "exact", head: true });
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
 
   const setAba = (valor: string) => {
     // Trocar de aba preserva os outros params (ex.: ?estagio= aplicado na Fila).
