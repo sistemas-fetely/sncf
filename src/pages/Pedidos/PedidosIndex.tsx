@@ -8,8 +8,7 @@ import { FilaPedidosPorArea } from "@/components/pedidos/FilaPedidosPorArea";
 import { PainelDashPedidos } from "@/components/pedidos/PainelDashPedidos";
 import { ExportarPedidosButton } from "@/components/pedidos/ExportarPedidosButton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { usePedidosPipeline } from "@/hooks/pedidos/usePedidosPipeline";
-import { ESTAGIOS_DESVIO, type EstagioPedido } from "@/types/pedido";
+import { type EstagioPedido } from "@/types/pedido";
 
 import { PageShell } from "@/components/layout/PageShell";
 
