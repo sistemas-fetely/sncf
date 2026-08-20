@@ -231,60 +231,67 @@ function EstadoVazioFila({
 
 
 
-function CelulaLastro({ cob }: { cob: CoberturaPedido | undefined }) {
-  if (!cob) return <span className="text-muted-foreground">—</span>;
-  if (cob.cobertura_pedido === "faturado") {
-    return <span className="text-muted-foreground">—</span>;
-  }
-  const pct = cob.pct_coberto ?? 0;
-  if (pct === 100) {
-    return <span className="text-muted-foreground tabular-nums">100%</span>;
-  }
-  if (pct > 0) {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Badge className="text-[10px] py-0 px-1.5 border-0 bg-warning/10 text-warning tabular-nums">
-              {pct}% · faltam {cob.un_descobertas} un
-            </Badge>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p className="text-xs leading-tight">
-              {cob.un_cobertas} de {cob.un_total} unidades com lastro na fila de reserva.
-            </p>
-            {cob.na_fila === false && (
-              <p className="text-xs leading-tight">
-                Pedido fora da fila de reserva — estágio não reserva estoque.
-              </p>
-            )}
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
+/** LASTRO-E-INSTRUMENTO (20/08/2026): a coluna Lastro diz se o dinheiro em aberto
+ *  tem instrumento de cobrança (boleto registrado / em remessa / nenhum). */
+type LastroCobranca = {
+  pedido_id: string;
+  lastro: "registrado" | "em_remessa" | "boleto_sem_registro" | "sem_instrumento" | "nao_aplica";
+  lastro_rotulo: string | null;
+  valor_aberto: number | null;
+  valor_registrado: number | null;
+  valor_em_remessa: number | null;
+  valor_boleto_sem_registro: number | null;
+  valor_sem_instrumento: number | null;
+  tem_vencido_sem_lastro: boolean | null;
+  titulos: number | null;
+};
+
+const LASTRO_META: Record<string, { texto: string; classe: string }> = {
+  registrado: { texto: "Boleto registrado", classe: "border-success/50 text-success" },
+  em_remessa: { texto: "Em remessa", classe: "border-warning/50 text-warning" },
+  boleto_sem_registro: { texto: "SEM REGISTRO", classe: "border-destructive/50 text-destructive" },
+  sem_instrumento: { texto: "SEM INSTRUMENTO", classe: "border-destructive/50 text-destructive" },
+};
+
+function CelulaLastro({ lastro }: { lastro: LastroCobranca | undefined }) {
+  const meta = lastro ? LASTRO_META[lastro.lastro] : undefined;
+  if (!lastro || !meta) return <span className="text-muted-foreground">—</span>;
+
+  const resumo = [
+    lastro.valor_registrado ? `Registrado ${fmtBRL.format(lastro.valor_registrado)}` : null,
+    lastro.valor_em_remessa ? `Em remessa ${fmtBRL.format(lastro.valor_em_remessa)}` : null,
+    lastro.valor_boleto_sem_registro
+      ? `Sem registro ${fmtBRL.format(lastro.valor_boleto_sem_registro)}`
+      : null,
+    lastro.valor_sem_instrumento
+      ? `Sem instrumento ${fmtBRL.format(lastro.valor_sem_instrumento)}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  const mostraValor =
+    lastro.lastro === "boleto_sem_registro" || lastro.lastro === "sem_instrumento";
+
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Badge variant="destructive" className="text-[10px] py-0 px-1.5 border-0 tabular-nums">
-            Sem lastro
-          </Badge>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p className="text-xs leading-tight">
-            {cob.un_cobertas} de {cob.un_total} unidades com lastro na fila de reserva.
-          </p>
-          {cob.na_fila === false && (
-            <p className="text-xs leading-tight">
-              Pedido fora da fila de reserva — estágio não reserva estoque.
-            </p>
-          )}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <div className="space-y-0.5">
+      <Badge
+        variant="outline"
+        className={cn("rounded px-1.5 py-0 text-[10px]", meta.classe)}
+        title={resumo || lastro.lastro_rotulo || meta.texto}
+      >
+        {meta.texto}
+      </Badge>
+      {mostraValor && (
+        <p className="text-xs text-muted-foreground">
+          {fmtBRL.format(lastro.valor_aberto || 0)}
+          {lastro.tem_vencido_sem_lastro ? <span className="text-destructive"> · vencido</span> : null}
+        </p>
+      )}
+    </div>
   );
 }
+
 
 export function FilaPedidosPorArea({
   area,
