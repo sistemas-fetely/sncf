@@ -419,6 +419,7 @@ const App = () => (
                 <Route path="/tarefas/recorrencias" element={<RecorrenciasTarefas />} />
                 <Route path="/tarefas/templates" element={<TemplatesTarefas />} />
                 <Route path="/tarefas/notificacoes" element={<NotificacoesPreferencias />} />
+                <Route path="/tarefas/fila" element={<FilaProcessos />} />
               </Route>
 
               <Route path="/fala-fetely" element={<FalaFetely />} />
