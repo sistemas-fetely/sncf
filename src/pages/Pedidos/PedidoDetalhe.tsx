@@ -17,6 +17,7 @@ import { usePedidoOrigens } from "@/hooks/pedidos/usePedidoOrigens";
 import { supabase } from "@/integrations/supabase/client";
 import { usePedidoTitulos } from "@/hooks/pedidos/usePedidoTitulos";
 import { PlanoRecebimentoCard } from "@/components/pedidos/PlanoRecebimentoCard";
+import { ComprovantePagamentoBloco } from "@/components/comercial/ComprovantePagamentoBloco";
 import { AlertasPedidoPanel } from "@/components/pedidos/AlertasPedidoPanel";
 import { useRecebivelFamilia } from "@/hooks/pedidos/useRecebivelFamilia";
 import { useTituloEixosPedido } from "@/hooks/pedidos/useTituloEixosPedido";
