@@ -115,6 +115,13 @@ export function PedidoOportunidadeDialog({
   const temPortao = !!vencimentoPortao;
   const cartaoBloqueia = PORTAO_SEM_CONFIRMACAO_MANUAL.has((tipoPortao ?? "").toLowerCase());
 
+  // COMPROVANTE-FECHA-O-PORTAO (20/08/2026): confirmado por comprovante, a
+  // confirmação manual não existe mais — o banco recusaria e o erro é feio.
+  const comprovantes = useComprovantesPedido(pedidoId, open);
+  const temComprovanteConfirmado = (comprovantes.data ?? []).some(
+    (c) => c.status === "confirmado",
+  );
+
   const confirmarPagamento = useMutation({
     mutationFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
