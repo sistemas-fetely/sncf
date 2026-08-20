@@ -763,6 +763,17 @@ export function FilaPedidosPorArea({
                   <TableCell>
                     <div className="flex flex-wrap items-center gap-1.5 min-w-0">
                       <EstagioBadge estagio={p.estagio} />
+                      {/* AREA-DIZ-ONDE-TRATAR (20/08/2026): o estagio diz o que falta, a area diz quem
+                          trabalha. aguardando_pagamento e recuperacao_venda moram na Mesa Comercial. */}
+                      {p.area_atual === "comercial" && (
+                        <Badge
+                          variant="outline"
+                          className="rounded px-1.5 py-0 text-[10px]"
+                          title="Este pedido é tratado pelo Comercial, na aba Mesa Comercial da Casa dos Pedidos."
+                        >
+                          Mesa Comercial
+                        </Badge>
+                      )}
                       {p.estagio === "em_analise_credito" && analiseStages?.get(p.id) === "entrada" && (
                         <Badge className="bg-warning text-white border-0 text-[10px]">
                           Aguardando liberação
