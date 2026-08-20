@@ -91,6 +91,143 @@ interface Props {
   somenteRiscoAlto?: boolean;
 }
 
+interface EstadoVazioFilaProps {
+  termoBusca: string;
+  estagios?: EstagioPedido[];
+  estagioFilter: EstagioPedido | "todos";
+  usarEstagiosMultiplos: boolean;
+  situacaoFilter: string;
+  formaPgtoFilter: string;
+  liberacaoFilter: string;
+  marcacaoFilter: string;
+  somenteComAlerta: boolean;
+  somenteRiscoAlto?: boolean;
+  setBusca: (v: string) => void;
+  setSituacaoFilter: (v: string) => void;
+  setFormaPgtoFilter: (v: string) => void;
+  setLiberacaoFilter: (v: string) => void;
+  setMarcacaoFilter: (v: string) => void;
+  setSomenteComAlerta: (v: boolean) => void;
+}
+
+function EstadoVazioFila({
+  termoBusca,
+  estagios,
+  estagioFilter,
+  usarEstagiosMultiplos,
+  situacaoFilter,
+  formaPgtoFilter,
+  liberacaoFilter,
+  marcacaoFilter,
+  somenteComAlerta,
+  somenteRiscoAlto,
+  setBusca,
+  setSituacaoFilter,
+  setFormaPgtoFilter,
+  setLiberacaoFilter,
+  setMarcacaoFilter,
+  setSomenteComAlerta,
+}: EstadoVazioFilaProps) {
+  const temBusca = termoBusca.length > 0;
+  const temFiltrosTabela =
+    situacaoFilter !== "todas" ||
+    formaPgtoFilter !== "todas" ||
+    liberacaoFilter !== "todas" ||
+    marcacaoFilter !== "todas" ||
+    somenteComAlerta;
+  const estagioAtivo = usarEstagiosMultiplos
+    ? (estagios ?? []).filter((e): e is EstagioPedido => e !== undefined)
+    : estagioFilter !== "todos"
+      ? [estagioFilter]
+      : [];
+  const temEstagio = estagioAtivo.length > 0;
+  const temFiltrosAtivos =
+    temBusca || temFiltrosTabela || temEstagio || somenteComAlerta || somenteRiscoAlto;
+
+  const limparFiltrosTabela = () => {
+    setSituacaoFilter("todas");
+    setFormaPgtoFilter("todas");
+    setLiberacaoFilter("todas");
+    setMarcacaoFilter("todas");
+    setSomenteComAlerta(false);
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <p className="text-sm text-foreground">
+        {temFiltrosAtivos
+          ? "Nenhum pedido combina com os filtros ativos."
+          : "Nenhum pedido nesta fila."}
+      </p>
+
+      {temFiltrosAtivos && (
+        <>
+          <div className="flex flex-wrap gap-1.5 justify-center">
+            {temBusca && (
+              <Badge variant="outline" className="text-[11px] font-normal">
+                busca: &quot;{termoBusca}&quot;
+              </Badge>
+            )}
+            {estagioAtivo.map((e) => (
+              <EstagioBadge key={e} estagio={e} />
+            ))}
+            {situacaoFilter !== "todas" && (
+              <Badge variant="outline" className="text-[11px] font-normal">
+                situação: {situacaoFilter}
+              </Badge>
+            )}
+            {formaPgtoFilter !== "todas" && (
+              <Badge variant="outline" className="text-[11px] font-normal">
+                pagamento: {formaPgtoFilter}
+              </Badge>
+            )}
+            {liberacaoFilter !== "todas" && (
+              <Badge variant="outline" className="text-[11px] font-normal">
+                liberação: {liberacaoFilter}
+              </Badge>
+            )}
+            {marcacaoFilter !== "todas" && (
+              <Badge variant="outline" className="text-[11px] font-normal">
+                marcação: {marcacaoFilter}
+              </Badge>
+            )}
+            {somenteComAlerta && (
+              <Badge variant="outline" className="text-[11px] font-normal">
+                só com alerta
+              </Badge>
+            )}
+            {somenteRiscoAlto && (
+              <Badge variant="outline" className="text-[11px] font-normal">
+                só risco alto
+              </Badge>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-2 justify-center">
+            {temBusca && (
+              <Button size="sm" variant="outline" onClick={() => setBusca("")}>
+                Limpar busca
+              </Button>
+            )}
+            {temFiltrosTabela && (
+              <Button size="sm" variant="outline" onClick={limparFiltrosTabela}>
+                Limpar filtros da tabela
+              </Button>
+            )}
+          </div>
+
+          {temEstagio && !temFiltrosTabela && !temBusca && !somenteComAlerta && !somenteRiscoAlto && (
+            <p className="text-xs text-muted-foreground">
+              O estágio vem do card selecionado acima.
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+
 
 
 
