@@ -9,6 +9,8 @@ import { PainelDashPedidos } from "@/components/pedidos/PainelDashPedidos";
 import { ExportarPedidosButton } from "@/components/pedidos/ExportarPedidosButton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { type EstagioPedido } from "@/types/pedido";
+import { SolicitacoesSopsAba } from "@/components/pedidos/SolicitacoesSopsAba";
+import { useContagemSolicitacoes } from "@/hooks/pedidos/useSolicitacoesComercial";
 
 import { PageShell } from "@/components/layout/PageShell";
 
@@ -16,7 +18,7 @@ import { PageShell } from "@/components/layout/PageShell";
 const Oportunidades = lazy(() => import("@/pages/Comercial/Oportunidades"));
 const Consignados = lazy(() => import("@/pages/Comercial/Consignados"));
 
-const ABAS = ["fila", "dash", "recuperacao", "consignados"] as const;
+const ABAS = ["fila", "dash", "recuperacao", "consignados", "solicitacoes"] as const;
 type Aba = (typeof ABAS)[number];
 
 export default function PedidosIndex() {
@@ -40,6 +42,8 @@ export default function PedidosIndex() {
       return count ?? 0;
     },
   });
+
+  const { data: qtdSolicitacoes = 0 } = useContagemSolicitacoes();
 
   const setAba = (valor: string) => {
     // Trocar de aba preserva os outros params (ex.: ?estagio= aplicado na Fila).
@@ -80,6 +84,7 @@ export default function PedidosIndex() {
             Mesa Comercial{qtdMesaComercial > 0 ? ` (${qtdMesaComercial})` : ""}
           </TabsTrigger>
           <TabsTrigger value="consignados">Consignados</TabsTrigger>
+          <TabsTrigger value="solicitacoes">Solicitações ({qtdSolicitacoes})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="fila" className="space-y-4">
@@ -123,6 +128,9 @@ export default function PedidosIndex() {
           <Suspense fallback={<CarregandoAba />}>
             <Consignados embutido />
           </Suspense>
+        </TabsContent>
+        <TabsContent value="solicitacoes">
+          <SolicitacoesSopsAba />
         </TabsContent>
       </Tabs>
     </PageShell>
