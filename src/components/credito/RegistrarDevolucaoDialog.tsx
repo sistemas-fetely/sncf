@@ -185,9 +185,14 @@ export function RegistrarDevolucaoDialog({ pedidoId, pedidoIdExterno, open, onCl
 
   const previewOk = preview.data && preview.data.ok === true ? preview.data : null;
   const previewErr = preview.data && preview.data.ok === false ? preview.data : null;
+  const bloqueado = !!previewOk && previewOk.pode_devolver !== true;
 
   const podeConfirmar =
-    !!previewOk && motivo.trim().length >= 5 && !mut.isPending && !preview.isLoading;
+    !!previewOk &&
+    previewOk.pode_devolver === true &&
+    motivo.trim().length >= 5 &&
+    !mut.isPending &&
+    !preview.isLoading;
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
