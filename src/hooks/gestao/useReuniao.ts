@@ -63,6 +63,7 @@ export interface ItemReuniao {
 
 export interface AtaCabecalho {
   reuniao_id: string | null;
+  sala_id: string | null;
   sala_codigo: string | null;
   sala_nome: string | null;
   confidencial: boolean | null;
