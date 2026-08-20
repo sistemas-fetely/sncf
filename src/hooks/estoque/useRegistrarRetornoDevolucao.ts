@@ -7,8 +7,10 @@ export interface RetornoRow {
   condicao: string | null;
 }
 
+// FILA-ANCORADA-NA-DEVOLUCAO (20/08/2026): a RPC recebe p_devolucao_id.
+// p_pedido_id nao existe mais e chamar com ele da erro.
 export interface RegistrarRetornoInput {
-  pedido_id: string;
+  devolucao_id: string;
   rows: RetornoRow[];
   doc_numero: string | null;
   obs: string | null;
@@ -25,8 +27,11 @@ export interface RetornoDetalhe {
 
 export interface RegistrarRetornoResult {
   pedido?: string;
+  devolucao?: string;
   itens?: number;
   unidades?: number;
+  ainda_pendente?: number;
+  encerrada?: boolean;
   detalhe?: RetornoDetalhe[];
   aviso?: string | null;
   [k: string]: unknown;
@@ -38,7 +43,7 @@ export function useRegistrarRetornoDevolucao() {
     mutationFn: async (input: RegistrarRetornoInput): Promise<RegistrarRetornoResult> => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any).rpc("registrar_retorno_devolucao", {
-        p_pedido_id: input.pedido_id,
+        p_devolucao_id: input.devolucao_id,
         p_rows: input.rows,
         p_doc_numero: input.doc_numero,
         p_obs: input.obs,
