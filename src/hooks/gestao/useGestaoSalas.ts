@@ -208,3 +208,21 @@ export function useCriarSala() {
     onError: (e: Error) => toast.error(`Não foi possível criar a sala: ${e.message}`),
   });
 }
+
+/** Contagem de itens da pauta automática por sala (vw_gestao_pauta). */
+export function usePautaContagemPorSala() {
+  return useQuery({
+    queryKey: [...KEY_GESTAO, "pauta-contagem"],
+    queryFn: async (): Promise<Record<string, number>> => {
+      const { data, error } = await supabase.from("vw_gestao_pauta").select("sala_id");
+      if (error) throw error;
+      const mapa: Record<string, number> = {};
+      (data ?? []).forEach((l) => {
+        const id = l.sala_id as string | null;
+        if (!id) return;
+        mapa[id] = (mapa[id] ?? 0) + 1;
+      });
+      return mapa;
+    },
+  });
+}

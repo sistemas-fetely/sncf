@@ -95,10 +95,11 @@ const TesteEmailTemplate = lazy(() => import("@/pages/ti/TesteEmailTemplate"));
 const DocumentacaoDetalhe = lazy(() => import("@/pages/ti/DocumentacaoDetalhe"));
 const DocumentacaoForm = lazy(() => import("@/pages/ti/DocumentacaoForm"));
 const TarefasLayout = lazy(() => import("@/layouts/TarefasLayout"));
-const GestaoSalaLayout = lazy(() => import("@/layouts/GestaoSalaLayout"));
+const GestaoLayout = lazy(() => import("@/layouts/GestaoLayout"));
 const GestaoSalas = lazy(() => import("@/pages/gestao/Salas"));
-const GestaoSalaReuniao = lazy(() => import("@/pages/gestao/SalaReuniao"));
-const GestaoPainelProjetos = lazy(() => import("@/pages/gestao/PainelProjetos"));
+const GestaoSalaDetalhe = lazy(() => import("@/pages/gestao/SalaDetalhe"));
+const GestaoAta = lazy(() => import("@/pages/gestao/Ata"));
+const GestaoProjetos = lazy(() => import("@/pages/gestao/ProjetosGestao"));
 const GestaoDecisoes = lazy(() => import("@/pages/gestao/Decisoes"));
 const GestaoRiscos = lazy(() => import("@/pages/gestao/Riscos"));
 const TarefasHoje = lazy(() => import("@/pages/tarefas/TarefasHoje"));
@@ -415,10 +416,11 @@ const App = () => (
               <Route path="/sncf" element={<PortalSNCF />} />
               <Route path="/tarefas" element={<Navigate to="/tarefas/hoje" replace />} />
               {/* Sala de Gestão — ritos, projetos, decisões e riscos */}
-              <Route element={<GestaoSalaLayout />}>
+              <Route element={<GestaoLayout />}>
                 <Route path="/gestao" element={<GestaoSalas />} />
-                <Route path="/gestao/sala/:id" element={<GestaoSalaReuniao />} />
-                <Route path="/gestao/projetos" element={<GestaoPainelProjetos />} />
+                <Route path="/gestao/sala/:salaId" element={<GestaoSalaDetalhe />} />
+                <Route path="/gestao/ata/:reuniaoId" element={<GestaoAta />} />
+                <Route path="/gestao/projetos" element={<GestaoProjetos />} />
                 <Route path="/gestao/decisoes" element={<GestaoDecisoes />} />
                 <Route path="/gestao/riscos" element={<GestaoRiscos />} />
               </Route>

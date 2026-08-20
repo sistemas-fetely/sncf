@@ -13,7 +13,7 @@ function dataBR(iso: string | null | undefined) {
   return iso.slice(0, 10).split("-").reverse().join("/");
 }
 
-export default function PainelProjetos() {
+export default function ProjetosGestao() {
   const { data: linhas, isLoading, error } = usePainelProjetos();
   const { data: faixas } = useFaixasRisco();
 
