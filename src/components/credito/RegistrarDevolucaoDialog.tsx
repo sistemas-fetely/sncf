@@ -231,8 +231,29 @@ export function RegistrarDevolucaoDialog({ pedidoId, pedidoIdExterno, open, onCl
           </Alert>
         )}
 
-        {previewOk && (
+        {previewOk && bloqueado && (
+          <Alert className="border-destructive/40 bg-destructive/10">
+            <AlertTriangle className="h-4 w-4 !text-destructive" />
+            <AlertDescription className="text-xs text-destructive">
+              {previewOk.impedimento ||
+                previewErr?.erro ||
+                "Não é possível registrar devolução neste pedido."}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {previewOk && !bloqueado && (
           <>
+            {previewOk.ja_devolvido_em && (
+              <Alert className="border-warning/40 bg-warning/10">
+                <AlertTriangle className="h-4 w-4 !text-warning" />
+                <AlertDescription className="text-xs text-warning">
+                  Atenção: este pedido já teve uma devolução registrada em{" "}
+                  {formatDateBR(previewOk.ja_devolvido_em)}.
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
               <div className="p-2 rounded border">
                 <div className="text-muted-foreground">Títulos a devolver</div>
