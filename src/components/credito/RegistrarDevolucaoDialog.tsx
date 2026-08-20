@@ -354,16 +354,24 @@ export function RegistrarDevolucaoDialog({ pedidoId, pedidoIdExterno, open, onCl
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={mut.isPending}>
-            Voltar
-          </Button>
-          <Button
-            variant="destructive"
-            disabled={!podeConfirmar}
-            onClick={() => mut.mutate()}
-          >
-            {mut.isPending ? "Registrando..." : "Confirmar devolução"}
-          </Button>
+          {bloqueado ? (
+            <Button variant="outline" onClick={onClose} disabled={mut.isPending}>
+              Fechar
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline" onClick={onClose} disabled={mut.isPending}>
+                Voltar
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={!podeConfirmar}
+                onClick={() => mut.mutate()}
+              >
+                {mut.isPending ? "Registrando..." : "Confirmar devolução"}
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
