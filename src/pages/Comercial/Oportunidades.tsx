@@ -317,8 +317,8 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                           >
                             {r.id_externo || "—"}
                           </button>
-                          {r.bloqueio_rotulo && (
-                            <div className="mt-1">
+                          <div className="mt-1 flex flex-wrap items-center gap-1">
+                            {r.bloqueio_rotulo && (
                               <Badge
                                 variant="outline"
                                 className={cn(
@@ -328,11 +328,8 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                               >
                                 {r.bloqueio_rotulo}
                               </Badge>
-                            </div>
-                          )}
-                          {r.pai_id_externo && (
-
-                            <div className="mt-1">
+                            )}
+                            {r.pai_id_externo && (
                               <Badge
                                 variant="outline"
                                 className="rounded px-1.5 py-0 text-[10px]"
@@ -340,8 +337,8 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                               >
                                 split de {r.pai_id_externo}
                               </Badge>
-                            </div>
-                          )}
+                            )}
+                          </div>
                           {r.origem === "portao_vencido" && r.vencimento_portao && (
                             <div className="text-[10px] text-muted-foreground mt-0.5">
                               venc. {formatDateBR(r.vencimento_portao)}

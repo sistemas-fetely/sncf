@@ -158,7 +158,7 @@ export function PedidoOportunidadeDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-sm">{idExterno || "Pedido"}</span>
@@ -174,15 +174,14 @@ export function PedidoOportunidadeDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="itens">
+        <Tabs defaultValue="itens" className="flex flex-1 flex-col min-h-0">
           <TabsList>
             <TabsTrigger value="itens">Itens</TabsTrigger>
             <TabsTrigger value="obs">Obs. Comerciais</TabsTrigger>
             <TabsTrigger value="pagamento">Pagamento</TabsTrigger>
           </TabsList>
 
-
-          <TabsContent value="itens" className="mt-4">
+          <TabsContent value="itens" className="mt-4 flex-1 min-h-0 overflow-y-auto">
             {itens.isLoading ? (
               <div className="flex justify-center py-10">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -195,7 +194,7 @@ export function PedidoOportunidadeDialog({
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="sticky top-0 bg-background z-10">
                       <TableHead>SKU</TableHead>
                       <TableHead>Descrição</TableHead>
                       <TableHead className="text-right">Qtd</TableHead>
@@ -221,7 +220,7 @@ export function PedidoOportunidadeDialog({
                     ))}
                   </TableBody>
                   <TableFooter>
-                    <TableRow>
+                    <TableRow className="sticky bottom-0 bg-background">
                       <TableCell colSpan={4} className="text-right text-xs uppercase tracking-wide">
                         Total
                       </TableCell>
@@ -233,7 +232,7 @@ export function PedidoOportunidadeDialog({
             )}
           </TabsContent>
 
-          <TabsContent value="obs" className="mt-4 space-y-4">
+          <TabsContent value="obs" className="mt-4 space-y-4 flex-1 min-h-0 overflow-y-auto">
             <div className="space-y-2">
               <Textarea
                 value={texto}
@@ -269,7 +268,7 @@ export function PedidoOportunidadeDialog({
             )}
           </TabsContent>
 
-          <TabsContent value="pagamento" className="mt-4 space-y-4">
+          <TabsContent value="pagamento" className="mt-4 space-y-4 flex-1 min-h-0 overflow-y-auto">
             {!temPortao ? (
               <p className="text-sm text-muted-foreground py-6 text-center">
                 Este pedido não tem portão de pagamento pendente.
