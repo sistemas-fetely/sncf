@@ -7259,6 +7259,8 @@ export type Database = {
         Row: {
           beneficiario_cnpj_lido: string | null
           chave_lida: string | null
+          conciliacao_nota: string | null
+          conciliado_em: string | null
           confianca_ia: string | null
           confirmado_em: string | null
           confirmado_por: string | null
@@ -7271,6 +7273,7 @@ export type Database = {
           id: string
           mime_type: string | null
           motivo_recusa: string | null
+          movimentacao_id: string | null
           pagador_lido: string | null
           payload_ia: Json | null
           pedido_id: string
@@ -7285,6 +7288,8 @@ export type Database = {
         Insert: {
           beneficiario_cnpj_lido?: string | null
           chave_lida?: string | null
+          conciliacao_nota?: string | null
+          conciliado_em?: string | null
           confianca_ia?: string | null
           confirmado_em?: string | null
           confirmado_por?: string | null
@@ -7297,6 +7302,7 @@ export type Database = {
           id?: string
           mime_type?: string | null
           motivo_recusa?: string | null
+          movimentacao_id?: string | null
           pagador_lido?: string | null
           payload_ia?: Json | null
           pedido_id: string
@@ -7311,6 +7317,8 @@ export type Database = {
         Update: {
           beneficiario_cnpj_lido?: string | null
           chave_lida?: string | null
+          conciliacao_nota?: string | null
+          conciliado_em?: string | null
           confianca_ia?: string | null
           confirmado_em?: string | null
           confirmado_por?: string | null
@@ -7323,6 +7331,7 @@ export type Database = {
           id?: string
           mime_type?: string | null
           motivo_recusa?: string | null
+          movimentacao_id?: string | null
           pagador_lido?: string | null
           payload_ia?: Json | null
           pedido_id?: string
@@ -7348,6 +7357,111 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_pessoas_sistema"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "movimentacoes_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cartao_credito_par"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ciclo_titulo"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_cartao_sugestoes"
+            referencedColumns: ["ofx_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_furos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_match_nf_sugestoes"
+            referencedColumns: ["mov_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_match_sugestoes"
+            referencedColumns: ["mov_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_extrato_conta"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_creditos_nao_conciliados"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_movimentacao_destino"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pagamento_alocacao_detalhe"
+            referencedColumns: ["mov_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pares_transferencia_sugeridos"
+            referencedColumns: ["credito_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pares_transferencia_sugeridos"
+            referencedColumns: ["debito_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pix_candidato_conciliacao"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_b2c_pedido"
+            referencedColumns: ["movimentacao_id"]
           },
           {
             foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
@@ -54026,6 +54140,8 @@ export type Database = {
           dias_no_estagio: number | null
           discount_amount: number | null
           eh_final: boolean | null
+          entrega_declarada_em: string | null
+          entrega_fonte: string | null
           entrega_prevista: string | null
           estagio: string | null
           estagio_ordem: number | null
@@ -54049,6 +54165,8 @@ export type Database = {
           rastreio_entregue: boolean | null
           rastreio_status: string | null
           refunded_amount: number | null
+          shipment_atualizado_em: string | null
+          shipment_status: string | null
           shipping_city: string | null
           shipping_cost: number | null
           shipping_method: string | null
@@ -54087,6 +54205,8 @@ export type Database = {
           dias_no_estagio: number | null
           discount_amount: number | null
           eh_final: boolean | null
+          entrega_declarada_em: string | null
+          entrega_fonte: string | null
           entrega_prevista: string | null
           estagio: string | null
           estagio_ordem: number | null
@@ -54113,6 +54233,8 @@ export type Database = {
           rastreio_entregue: boolean | null
           rastreio_status: string | null
           refunded_amount: number | null
+          shipment_atualizado_em: string | null
+          shipment_status: string | null
           shipping_city: string | null
           shipping_cost: number | null
           shipping_method: string | null
@@ -56700,14 +56822,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -57925,14 +58047,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -66000,6 +66122,10 @@ export type Database = {
           observacao: string
           tabela: string
         }[]
+      }
+      fn_conciliar_comprovante_chave: {
+        Args: { p_dry_run?: boolean }
+        Returns: Json
       }
       fn_conciliar_recebimento_agrupado: {
         Args: { p_dry_run?: boolean; p_janela?: number; p_tolerancia?: number }
