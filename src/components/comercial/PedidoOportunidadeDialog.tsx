@@ -166,7 +166,12 @@ export function PedidoOportunidadeDialog({
         <DialogHeader>
           <DialogTitle className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-sm">{idExterno || "Pedido"}</span>
-            <span className="text-sm text-muted-foreground">{cliente || "—"}</span>
+            <span className="text-sm">{cliente || "—"}</span>
+            {apelidoParceiro(cliente, apelido) && (
+              <span className="text-sm text-muted-foreground">
+                · {apelidoParceiro(cliente, apelido)}
+              </span>
+            )}
             <span className="text-sm">{formatBRL(valorEmJogo ?? 0)}</span>
             <Badge
               variant="outline"
