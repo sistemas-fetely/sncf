@@ -10679,6 +10679,431 @@ export type Database = {
           },
         ]
       }
+      devolucao: {
+        Row: {
+          canal: string
+          cancelado_em: string | null
+          cancelado_motivo: string | null
+          cancelado_por: string | null
+          criado_em: string
+          criado_por: string | null
+          desfecho: string | null
+          encerrado_em: string | null
+          encerrado_por: string | null
+          haver_id: string | null
+          id: string
+          motivo_categoria: string | null
+          motivo_codigo: string | null
+          motivo_texto: string
+          nf_devolucao: string | null
+          numero: string
+          observacao: string | null
+          parceiro_id: string | null
+          pedido_id: string | null
+          shopify_pedido_id: string | null
+          snapshot_id: string | null
+          status: string
+          tipo: string
+          valor_credito: number | null
+        }
+        Insert: {
+          canal: string
+          cancelado_em?: string | null
+          cancelado_motivo?: string | null
+          cancelado_por?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          desfecho?: string | null
+          encerrado_em?: string | null
+          encerrado_por?: string | null
+          haver_id?: string | null
+          id?: string
+          motivo_categoria?: string | null
+          motivo_codigo?: string | null
+          motivo_texto: string
+          nf_devolucao?: string | null
+          numero: string
+          observacao?: string | null
+          parceiro_id?: string | null
+          pedido_id?: string | null
+          shopify_pedido_id?: string | null
+          snapshot_id?: string | null
+          status?: string
+          tipo: string
+          valor_credito?: number | null
+        }
+        Update: {
+          canal?: string
+          cancelado_em?: string | null
+          cancelado_motivo?: string | null
+          cancelado_por?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          desfecho?: string | null
+          encerrado_em?: string | null
+          encerrado_por?: string | null
+          haver_id?: string | null
+          id?: string
+          motivo_categoria?: string | null
+          motivo_codigo?: string | null
+          motivo_texto?: string
+          nf_devolucao?: string | null
+          numero?: string
+          observacao?: string | null
+          parceiro_id?: string | null
+          pedido_id?: string | null
+          shopify_pedido_id?: string | null
+          snapshot_id?: string | null
+          status?: string
+          tipo?: string
+          valor_credito?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devolucao_canal_fkey"
+            columns: ["canal"]
+            isOneToOne: false
+            referencedRelation: "devolucao_canal"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "devolucao_haver_id_fkey"
+            columns: ["haver_id"]
+            isOneToOne: false
+            referencedRelation: "haver_cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_motivo_fk"
+            columns: ["motivo_categoria", "motivo_codigo"]
+            isOneToOne: false
+            referencedRelation: "parametros"
+            referencedColumns: ["categoria", "valor"]
+          },
+          {
+            foreignKeyName: "devolucao_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "devolucao_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conta_corrente_cliente"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "devolucao_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_estimado_parceiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "devolucao_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "devolucao_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_historico_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "devolucao_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_nome"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "devolucao_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_fila"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pedidos_priorizados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ciclo_pedido"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ciclo_titulo"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dossie_pedido"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_aguardando_pagamento"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_cobranca_materializar"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_aguardando_estoque"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_base"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_consolidavel"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_delta_snapshot"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_destino_estoque"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_entrega"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_haver_disponivel"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_liberacao_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_origens"
+            referencedColumns: ["origem_pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_portao_regra"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_prova_pagamento"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_risco"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_situacao_financeira"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_export_comercial"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_farol"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedidos_incoerentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pix_candidato_conciliacao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_remessa_safra_titulos"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_validacao_cartao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_ciclo"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_divergencia_estagio"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_risco_atraso"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_shopify_pedido_id_fkey"
+            columns: ["shopify_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "shopify_pedidos"
+            referencedColumns: ["shopify_id"]
+          },
+          {
+            foreignKeyName: "devolucao_shopify_pedido_id_fkey"
+            columns: ["shopify_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_b2c"
+            referencedColumns: ["shopify_id"]
+          },
+          {
+            foreignKeyName: "devolucao_shopify_pedido_id_fkey"
+            columns: ["shopify_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_pedidos_rastreio"
+            referencedColumns: ["shopify_id"]
+          },
+          {
+            foreignKeyName: "devolucao_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "acao_snapshot"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_status_fkey"
+            columns: ["status"]
+            isOneToOne: false
+            referencedRelation: "devolucao_status"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
       devolucao_canal: {
         Row: {
           ativo: boolean
@@ -10711,6 +11136,54 @@ export type Database = {
           tabela_pedido?: string
         }
         Relationships: []
+      }
+      devolucao_item: {
+        Row: {
+          condicao_esperada: string | null
+          criado_em: string
+          descricao: string | null
+          devolucao_id: string
+          id: string
+          qtd_declarada: number
+          sku: string
+          valor_unitario: number | null
+        }
+        Insert: {
+          condicao_esperada?: string | null
+          criado_em?: string
+          descricao?: string | null
+          devolucao_id: string
+          id?: string
+          qtd_declarada: number
+          sku: string
+          valor_unitario?: number | null
+        }
+        Update: {
+          condicao_esperada?: string | null
+          criado_em?: string
+          descricao?: string | null
+          devolucao_id?: string
+          id?: string
+          qtd_declarada?: number
+          sku?: string
+          valor_unitario?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devolucao_item_condicao_esperada_fkey"
+            columns: ["condicao_esperada"]
+            isOneToOne: false
+            referencedRelation: "estoque_condicao"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "devolucao_item_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: false
+            referencedRelation: "devolucao"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       devolucao_status: {
         Row: {
@@ -54010,6 +54483,8 @@ export type Database = {
         Row: {
           alerta_operacional: string | null
           apelido: string | null
+          bloqueio: string | null
+          bloqueio_rotulo: string | null
           cliente: string | null
           cliente_dias_sem_comprar: number | null
           cliente_pedidos_faturados: number | null
@@ -55731,14 +56206,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -63678,6 +64153,10 @@ export type Database = {
         Returns: Json
       }
       fn_destino_pos_estoque: { Args: { p_pedido_id: string }; Returns: Json }
+      fn_devolucao_gerar_numero: {
+        Args: { p_canal: string; p_pedido_id: string; p_shopify_id?: string }
+        Returns: string
+      }
       fn_dias_uteis_entre: {
         Args: { p_ate: string; p_de: string }
         Returns: number
@@ -65117,7 +65596,9 @@ export type Database = {
       registrar_devolucao_parcial: {
         Args: {
           p_desfecho?: string
+          p_itens?: Json
           p_motivo?: string
+          p_motivo_codigo?: string
           p_nf_devolucao?: string
           p_nova_data?: string
           p_pedido_id: string
@@ -65130,6 +65611,7 @@ export type Database = {
         Args: {
           p_gerar_haver?: boolean
           p_motivo?: string
+          p_motivo_codigo?: string
           p_nf_devolucao?: string
           p_pedido_id: string
         }
