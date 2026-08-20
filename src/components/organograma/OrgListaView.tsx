@@ -1,74 +1,67 @@
-import { useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
-import { Loader2, Info } from "lucide-react";
+import { Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { supabase } from "@/integrations/supabase/client";
-import { humanizeError } from "@/lib/errorMessages";
+import { Badge } from "@/components/ui/badge";
+import type { PosicaoNode } from "@/types/organograma";
 
-interface OrgRow {
-  vinculo_id: string;
-  pessoa_id: string;
-  nome: string;
-  tipo_vinculo: string;
-  status: string;
-  data_inicio: string | null;
-  cargo: string | null;
-  departamento: string | null;
-  unidade: string | null;
-  gestor_pessoa_id: string | null;
-  gestor_nome: string | null;
-  eh_topo: boolean;
+interface Props {
+  tree: PosicaoNode[];
+  onNodeClick?: (n: PosicaoNode) => void;
 }
 
 function NoCard({
-  row,
+  node,
   level,
-  childrenByGestor,
-  visited,
+  onNodeClick,
 }: {
-  row: OrgRow;
+  node: PosicaoNode;
   level: number;
-  childrenByGestor: Map<string, OrgRow[]>;
-  visited: Set<string>;
+  onNodeClick?: (n: PosicaoNode) => void;
 }) {
-  if (visited.has(row.pessoa_id)) return null;
-  const nextVisited = new Set(visited);
-  nextVisited.add(row.pessoa_id);
-
-  const filhos = childrenByGestor.get(row.pessoa_id) || [];
   const compact = level >= 2;
+  const nome = node.nome_display?.trim() || node.titulo_cargo;
+  const vago = node.status !== "ocupado";
 
   return (
     <div className="space-y-2">
       <Card
         className={`card-shadow border-l-4 ${
           level === 0 ? "border-l-primary" : level === 1 ? "border-l-primary/60" : "border-l-primary/30"
-        }`}
+        } ${onNodeClick ? "cursor-pointer hover:shadow-md transition-shadow" : ""}`}
+        onClick={() => onNodeClick?.(node)}
       >
         <CardContent className={compact ? "p-2.5" : "p-3.5"}>
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="min-w-0">
-              <p className={`font-medium truncate ${compact ? "text-sm" : "text-base"}`}>{row.nome}</p>
+              <p className={`font-medium truncate ${compact ? "text-sm" : "text-base"}`}>{nome}</p>
               <p className="text-xs text-muted-foreground truncate">
-                {row.cargo || "—"} {row.departamento ? `· ${row.departamento}` : ""}
-                {row.unidade ? ` · ${row.unidade}` : ""}
+                {node.titulo_cargo || "—"}
+                {node.departamento ? ` · ${node.departamento}` : ""}
+                {node.filial ? ` · ${node.filial}` : ""}
               </p>
             </div>
-            <span className="shrink-0 text-[11px] text-muted-foreground">{row.tipo_vinculo}</span>
+            <div className="flex items-center gap-2 shrink-0">
+              {node.subordinados_diretos > 0 && (
+                <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                  <Users className="h-3 w-3" />
+                  {node.subordinados_diretos}
+                </span>
+              )}
+              {vago ? (
+                <Badge variant="outline" className="text-[10px] border-dashed">
+                  {node.status === "vaga_aberta" ? "Vaga Aberta" : "Previsto"}
+                </Badge>
+              ) : (
+                node.vinculo && <span className="text-[11px] text-muted-foreground">{node.vinculo}</span>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
-      {filhos.length > 0 && (
+
+      {node.children.length > 0 && (
         <div className="ml-6 pl-4 border-l border-border space-y-2">
-          {filhos.map((f) => (
-            <NoCard
-              key={f.vinculo_id}
-              row={f}
-              level={level + 1}
-              childrenByGestor={childrenByGestor}
-              visited={nextVisited}
-            />
+          {node.children.map((f) => (
+            <NoCard key={f.id} node={f} level={level + 1} onNodeClick={onNodeClick} />
           ))}
         </div>
       )}
@@ -76,83 +69,20 @@ function NoCard({
   );
 }
 
-export function OrgListaView() {
-  const [rows, setRows] = useState<OrgRow[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancel = false;
-    (async () => {
-      setLoading(true);
-      const { data, error } = await supabase.from("vw_organograma").select("*");
-      if (cancel) return;
-      if (error) {
-        toast.error(humanizeError(error.message));
-        setRows([]);
-      } else {
-        setRows((data || []) as OrgRow[]);
-      }
-      setLoading(false);
-    })();
-    return () => {
-      cancel = true;
-    };
-  }, []);
-
-  const { roots, childrenByGestor, semGestor, total } = useMemo(() => {
-    const map = new Map<string, OrgRow[]>();
-    const rootsArr: OrgRow[] = [];
-    let sem = 0;
-    for (const r of rows) {
-      if (r.eh_topo || !r.gestor_pessoa_id) {
-        rootsArr.push(r);
-        sem++;
-      } else {
-        const arr = map.get(r.gestor_pessoa_id) || [];
-        arr.push(r);
-        map.set(r.gestor_pessoa_id, arr);
-      }
-    }
-    const cmp = (a: OrgRow, b: OrgRow) => a.nome.localeCompare(b.nome, "pt-BR");
-    rootsArr.sort(cmp);
-    for (const arr of map.values()) arr.sort(cmp);
-    return { roots: rootsArr, childrenByGestor: map, semGestor: sem, total: rows.length };
-  }, [rows]);
-
-  const todosTopo = total > 0 && semGestor === total;
+export function OrgListaView({ tree, onNodeClick }: Props) {
+  if (tree.length === 0) {
+    return (
+      <div className="rounded-lg border p-10 text-center text-sm text-muted-foreground">
+        Nenhuma posição encontrada com os filtros atuais.
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      {!loading && todosTopo && (
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertTitle>Nenhum gestor definido ainda</AlertTitle>
-          <AlertDescription>
-            Defina o gestor de cada pessoa no campo "Reporta a" (edição da pessoa) para a árvore se formar.
-          </AlertDescription>
-        </Alert>
-      )}
-      {!loading && !todosTopo && semGestor > 1 && (
-        <p className="text-xs text-muted-foreground">
-          {semGestor} pessoa(s) sem gestor definido (aparecem como raiz).
-        </p>
-      )}
-
-      {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
-      ) : rows.length === 0 ? (
-        <div className="rounded-lg border p-10 text-center text-sm text-muted-foreground">
-          Nenhuma pessoa ativa no organograma. Cadastre um vínculo em Pessoas para a árvore começar.
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {roots.map((r) => (
-            <NoCard key={r.vinculo_id} row={r} level={0} childrenByGestor={childrenByGestor} visited={new Set()} />
-          ))}
-        </div>
-      )}
+    <div className="space-y-3">
+      {tree.map((r) => (
+        <NoCard key={r.id} node={r} level={0} onNodeClick={onNodeClick} />
+      ))}
     </div>
   );
 }

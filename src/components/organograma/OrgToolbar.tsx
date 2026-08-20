@@ -1,4 +1,4 @@
-import { Search, Filter, RotateCcw, Plus } from "lucide-react";
+import { Search, RotateCcw, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -21,9 +21,31 @@ export function OrgToolbar({ viewMode, onViewModeChange, filters, onFiltersChang
   const departamentos = [...new Set(allNodes.map(n => n.departamento).filter(Boolean).filter(d => d.trim() !== ""))].sort();
   const filiais = [...new Set(allNodes.map(n => n.filial).filter(Boolean).filter(f => (f as string).trim() !== ""))].sort();
 
-  const resetFilters = () => onFiltersChange({ search: "", departamento: "todos", filial: "todos", vinculo: "todos", status: "todos", nivel: "todos" });
+  // Lideres = posicoes com pelo menos um subordinado direto
+  const lideres = allNodes
+    .filter(n => n.subordinados_diretos > 0)
+    .sort((a, b) => {
+      if (b.subordinados_totais !== a.subordinados_totais) return b.subordinados_totais - a.subordinados_totais;
+      const na = a.nome_display?.trim() || a.titulo_cargo;
+      const nb = b.nome_display?.trim() || b.titulo_cargo;
+      return na.localeCompare(nb, "pt-BR");
+    });
 
-  const hasFilter = filters.search || filters.departamento !== "todos" || filters.filial !== "todos" || filters.vinculo !== "todos" || filters.status !== "todos";
+  const profundidadeMax = allNodes.reduce((m, n) => Math.max(m, n.depth), 0) + 1;
+  const opcoesNivel = Array.from({ length: Math.max(profundidadeMax, 1) }, (_, i) => i + 1);
+
+  const resetFilters = () => onFiltersChange({
+    search: "", departamento: "todos", filial: "todos", vinculo: "todos", status: "todos", nivel: "todos", lider: "todos",
+  });
+
+  const hasFilter =
+    filters.search ||
+    filters.departamento !== "todos" ||
+    filters.filial !== "todos" ||
+    filters.vinculo !== "todos" ||
+    filters.status !== "todos" ||
+    filters.nivel !== "todos" ||
+    filters.lider !== "todos";
 
   return (
     <div className="space-y-3">
@@ -59,6 +81,28 @@ export function OrgToolbar({ viewMode, onViewModeChange, filters, onFiltersChang
             onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
           />
         </div>
+
+        <Select value={filters.lider} onValueChange={(v) => onFiltersChange({ ...filters, lider: v })}>
+          <SelectTrigger className="w-[230px] h-9"><SelectValue placeholder="Ver equipe de…" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Empresa toda</SelectItem>
+            {lideres.map(l => (
+              <SelectItem key={l.id} value={l.id}>
+                {(l.nome_display?.trim() || l.titulo_cargo)} · {l.titulo_cargo} ({l.subordinados_diretos})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={filters.nivel} onValueChange={(v) => onFiltersChange({ ...filters, nivel: v })}>
+          <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Níveis" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos níveis</SelectItem>
+            {opcoesNivel.map(n => (
+              <SelectItem key={n} value={String(n)}>Até nível {n}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         <Select value={filters.departamento} onValueChange={(v) => onFiltersChange({ ...filters, departamento: v })}>
           <SelectTrigger className="w-[160px] h-9"><SelectValue placeholder="Departamento" /></SelectTrigger>
