@@ -16,9 +16,12 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useNomePessoa } from "@/components/tarefas/detalhe/comuns";
+import { usePessoasSistema } from "@/hooks/tarefas/useTarefasCatalogos";
 import {
-  CADENCIA_ROTULO, useCriarSala, useMembrosSalas, usePodeCriarSala, useSalas, useSalasCiclo,
+  CADENCIA_ROTULO, useCriarSala, useMembrosSalas, usePautaContagemPorSala, usePodeCriarSala,
+  useSalas, useSalasCiclo,
 } from "@/hooks/gestao/useGestaoSalas";
 
 function dataBR(iso: string | null | undefined) {
@@ -32,6 +35,8 @@ export default function Salas() {
   const { data: ciclos } = useSalasCiclo();
   const { data: membros } = useMembrosSalas();
   const { data: podeCriar } = usePodeCriarSala();
+  const { data: pautaContagem } = usePautaContagemPorSala();
+  const { data: pessoas } = usePessoasSistema();
   const nomePessoa = useNomePessoa();
   const criar = useCriarSala();
 
@@ -114,7 +119,28 @@ export default function Salas() {
                       </div>
                       <p className="mt-0.5 text-xs text-muted-foreground">
                         {s.codigo} · {lista.length} membro(s) · última fechada {dataBR(ciclo?.ultima_fechada)}
+                        {" · "}
+                        {pautaContagem?.[s.id] ?? 0} item(ns) de pauta
                       </p>
+                      {lista.length > 0 && (
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                          {lista.slice(0, 8).map((m) => {
+                            const pessoa = (pessoas ?? []).find((p) => p.id === m.pessoa_id);
+                            const nome = pessoa?.nome ?? nomePessoa(m.pessoa_id);
+                            return (
+                              <Avatar key={m.pessoa_id} className="h-6 w-6" title={`${nome} · ${m.papel}`}>
+                                {pessoa?.avatar_url && <AvatarImage src={pessoa.avatar_url} alt={nome} />}
+                                <AvatarFallback className="text-[10px]">
+                                  {nome.slice(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                            );
+                          })}
+                          {lista.length > 8 && (
+                            <span className="text-[11px] text-muted-foreground">+{lista.length - 8}</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
