@@ -77,7 +77,7 @@ export default function PedidosIndex() {
               à direita, salas separadas. */}
           <div className="w-px bg-border mx-1.5 self-stretch" aria-hidden />
           <TabsTrigger value="recuperacao">
-            Recuperação{qtdRecuperacao > 0 ? ` (${qtdRecuperacao})` : ""}
+            Mesa Comercial{qtdMesaComercial > 0 ? ` (${qtdMesaComercial})` : ""}
           </TabsTrigger>
           <TabsTrigger value="consignados">Consignados</TabsTrigger>
         </TabsList>
