@@ -46,6 +46,10 @@ interface PreviewItem {
 
 interface PreviewOk {
   ok: true;
+  pode_devolver: boolean;
+  impedimento: string | null;
+  id_externo: string | null;
+  ja_devolvido_em: string | null;
   estagio: string;
   titulos_a_devolver: number;
   boletos_a_baixar: number;
@@ -57,6 +61,10 @@ interface PreviewOk {
 interface PreviewErr {
   ok: false;
   erro: string;
+  pode_devolver: boolean;
+  impedimento: string | null;
+  id_externo: string | null;
+  ja_devolvido_em: string | null;
   estagio?: string;
 }
 type Preview = PreviewOk | PreviewErr;
