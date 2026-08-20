@@ -42,12 +42,26 @@ export function useSolicitacoesAbertas() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: pedidos, error: pErr } = await (supabase as any)
         .from("pedidos")
-        .select("id, id_externo, estagio, parceiro_id, parceiros_comerciais(razao_social)")
+        .select("id, id_externo, estagio, parceiro_id")
         .in("id", pedidoIds);
       if (pErr) throw pErr;
       const pMap = new Map<string, Record<string, unknown>>();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (pedidos || []).forEach((p: any) => pMap.set(p.id, p));
+
+      const parceiroIds = [
+        ...new Set((pedidos || []).map((p: { parceiro_id: string | null }) => p.parceiro_id).filter(Boolean)),
+      ];
+      const razoes = new Map<string, string>();
+      if (parceiroIds.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: parcs } = await (supabase as any)
+          .from("parceiros_comerciais")
+          .select("id, razao_social")
+          .in("id", parceiroIds);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (parcs || []).forEach((x: any) => razoes.set(x.id, x.razao_social));
+      }
 
       const userIds = [...new Set(rows.map((r) => r.criado_por).filter(Boolean))];
       const nomes = new Map<string, string>();
@@ -74,7 +88,7 @@ export function useSolicitacoesAbertas() {
           criado_por_nome: nomes.get(r.criado_por) ?? null,
           pedido_id_externo: p?.id_externo ?? null,
           pedido_estagio: p?.estagio ?? null,
-          cliente_razao: p?.parceiros_comerciais?.razao_social ?? null,
+          cliente_razao: p?.parceiro_id ? razoes.get(p.parceiro_id) ?? null : null,
         };
       });
     },
