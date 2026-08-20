@@ -31,7 +31,43 @@ interface Props {
   valorPortao?: number | null;
   tipoPortao?: string | null;
   podeConfirmar: boolean;
+  /** Modo prova: SOPS/outras áreas só conferem o comprovante, sem anexar nem confirmar. */
+  somenteLeitura?: boolean;
 }
+
+async function abrirArquivo(storagePath: string) {
+  // FAIL-LOUD: bucket privado, URL assinada curta. Sem isso o operador só vê metadados.
+  const { data, error } = await supabase.storage
+    .from("comprovantes-pagamento")
+    .createSignedUrl(storagePath, 60);
+  if (error) {
+    toast.error(error.message);
+    return;
+  }
+  if (data?.signedUrl) window.open(data.signedUrl, "_blank", "noopener");
+}
+
+function BotaoVerArquivo({ storagePath }: { storagePath: string }) {
+  const [carregando, setCarregando] = useState(false);
+  return (
+    <button
+      type="button"
+      className="text-primary underline-offset-2 hover:underline disabled:opacity-50"
+      disabled={carregando}
+      onClick={async () => {
+        setCarregando(true);
+        try {
+          await abrirArquivo(storagePath);
+        } finally {
+          setCarregando(false);
+        }
+      }}
+    >
+      Ver arquivo
+    </button>
+  );
+}
+
 
 function BadgeConfianca({ confianca }: { confianca: string | null }) {
   const c = (confianca ?? "baixa").toLowerCase();
