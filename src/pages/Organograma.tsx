@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageShell } from "@/components/layout/PageShell";
@@ -11,6 +11,7 @@ import { OrgNodeDrawer } from "@/components/organograma/OrgNodeDrawer";
 import { OrgPosicaoModal } from "@/components/organograma/OrgPosicaoModal";
 import { OrgMoveConfirmDialog } from "@/components/organograma/OrgMoveConfirmDialog";
 import { OrgListaView } from "@/components/organograma/OrgListaView";
+import { OrgLenteBreadcrumb } from "@/components/organograma/OrgLenteBreadcrumb";
 import type { ViewMode, OrgFilters, PosicaoNode } from "@/types/organograma";
 
 function filterTree(nodes: PosicaoNode[], filters: OrgFilters): PosicaoNode[] {
@@ -38,6 +39,14 @@ function filterTree(nodes: PosicaoNode[], filters: OrgFilters): PosicaoNode[] {
   return nodes.map(filterNode).filter(Boolean) as PosicaoNode[];
 }
 
+function podarNivel(nodes: PosicaoNode[], maxNiveis: number, baseDepth: number): PosicaoNode[] {
+  function walk(node: PosicaoNode): PosicaoNode | null {
+    if (node.depth - baseDepth >= maxNiveis) return null;
+    return { ...node, children: node.children.map(walk).filter(Boolean) as PosicaoNode[] };
+  }
+  return nodes.map(walk).filter(Boolean) as PosicaoNode[];
+}
+
 function flattenFiltered(nodes: PosicaoNode[]): PosicaoNode[] {
   const result: PosicaoNode[] = [];
   function walk(n: PosicaoNode) { result.push(n); n.children.forEach(walk); }
@@ -56,20 +65,38 @@ export default function Organograma() {
     filial: searchParams.get("filial") || "todos",
     vinculo: searchParams.get("vinculo") || "todos",
     status: searchParams.get("status") || "todos",
-    nivel: "todos",
+    nivel: searchParams.get("nivel") || "todos",
+    lider: searchParams.get("lider") || "todos",
   });
 
   const [selectedNode, setSelectedNode] = useState<PosicaoNode | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [editNode, setEditNode] = useState<PosicaoNode | null>(null);
 
-  // Move confirm dialog state
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [movedNode, setMovedNode] = useState<PosicaoNode | null>(null);
   const [moveTarget, setMoveTarget] = useState<PosicaoNode | null>(null);
+
+  // Espelha filtros na URL (link compartilhavel). Preserva "view".
+  useEffect(() => {
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev);
+      const aplicar = (chave: string, valor: string, padrao: string) => {
+        if (valor && valor !== padrao) p.set(chave, valor);
+        else p.delete(chave);
+      };
+      aplicar("search", filters.search, "");
+      aplicar("dept", filters.departamento, "todos");
+      aplicar("filial", filters.filial, "todos");
+      aplicar("vinculo", filters.vinculo, "todos");
+      aplicar("status", filters.status, "todos");
+      aplicar("nivel", filters.nivel, "todos");
+      aplicar("lider", filters.lider, "todos");
+      return p;
+    }, { replace: true });
+  }, [filters, setSearchParams]);
 
   const setViewMode = (v: ViewMode) => {
     setSearchParams(prev => { prev.set("view", v); return prev; });
@@ -102,14 +129,62 @@ export default function Organograma() {
     }
   }, [data]);
 
+  // LENTE: re-enraiza a arvore no lider escolhido (nao e filtro, e troca de raiz)
+  const lenteNode = useMemo(() => {
+    if (!data || filters.lider === "todos") return null;
+    return data.flat.find(n => n.id === filters.lider) || null;
+  }, [data, filters.lider]);
+
+  // Se o lider da URL nao existe mais, limpa a lente
+  useEffect(() => {
+    if (data && filters.lider !== "todos" && !lenteNode) {
+      setFilters(f => ({ ...f, lider: "todos" }));
+    }
+  }, [data, filters.lider, lenteNode]);
+
+  const trilhaLente = useMemo(() => {
+    if (!data || !lenteNode) return [] as PosicaoNode[];
+    const porId = new Map(data.flat.map(n => [n.id, n]));
+    const cadeia: PosicaoNode[] = [];
+    const vistos = new Set<string>();
+    let atual = lenteNode.id_pai ? porId.get(lenteNode.id_pai) : undefined;
+    while (atual && !vistos.has(atual.id)) {
+      vistos.add(atual.id);
+      cadeia.unshift(atual);
+      atual = atual.id_pai ? porId.get(atual.id_pai) : undefined;
+    }
+    return cadeia;
+  }, [data, lenteNode]);
+
   const filteredTree = useMemo(() => {
     if (!data) return [];
-    const hasFilter = filters.search || filters.departamento !== "todos" || filters.filial !== "todos" || filters.vinculo !== "todos" || filters.status !== "todos";
-    if (!hasFilter) return data.tree;
-    return filterTree(data.tree, filters);
-  }, [data, filters]);
+    const baseTree = lenteNode ? [lenteNode] : data.tree;
+    const baseDepth = lenteNode ? lenteNode.depth : 0;
+
+    const temFiltroAtributo =
+      filters.search ||
+      filters.departamento !== "todos" ||
+      filters.filial !== "todos" ||
+      filters.vinculo !== "todos" ||
+      filters.status !== "todos";
+
+    let resultado = temFiltroAtributo ? filterTree(baseTree, filters) : baseTree;
+
+    if (filters.nivel !== "todos") {
+      const maxNiveis = parseInt(filters.nivel, 10);
+      if (!Number.isNaN(maxNiveis) && maxNiveis > 0) {
+        resultado = podarNivel(resultado, maxNiveis, baseDepth);
+      }
+    }
+
+    return resultado;
+  }, [data, filters, lenteNode]);
 
   const filteredFlat = useMemo(() => flattenFiltered(filteredTree), [filteredTree]);
+
+  const setLider = useCallback((id: string) => {
+    setFilters(f => ({ ...f, lider: id }));
+  }, []);
 
   if (isLoading) {
     return (
@@ -132,6 +207,15 @@ export default function Organograma() {
         onCreatePosition={handleCreatePosition}
       />
 
+      {lenteNode && (
+        <OrgLenteBreadcrumb
+          no={lenteNode}
+          trilha={trilhaLente}
+          onSelecionar={setLider}
+          onLimpar={() => setLider("todos")}
+        />
+      )}
+
       {viewMode === "visual" && (
         <OrgVisualView
           tree={filteredTree}
@@ -146,7 +230,9 @@ export default function Organograma() {
       {viewMode === "analitico" && (
         <OrgAnalyticView flat={filteredFlat} filters={filters} />
       )}
-      {viewMode === "lista" && <OrgListaView />}
+      {viewMode === "lista" && (
+        <OrgListaView tree={filteredTree} onNodeClick={handleNodeClick} />
+      )}
 
       <OrgNodeDrawer
         node={selectedNode}

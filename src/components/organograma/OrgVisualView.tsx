@@ -133,7 +133,13 @@ function layoutTree(roots: PosicaoNode[]): { nodes: Node[]; edges: Edge[] } {
     startX += rw + H_GAP;
   }
 
-  return { nodes, edges };
+  // Descarta arestas orfas: quando a arvore e re-enraizada por lente/filtro,
+  // o no raiz ainda tem id_pai apontando para um pai que nao esta desenhado.
+  const idsDesenhados = new Set(nodes.map(n => n.id));
+  return {
+    nodes,
+    edges: edges.filter(e => idsDesenhados.has(e.source) && idsDesenhados.has(e.target)),
+  };
 }
 
 interface Props {

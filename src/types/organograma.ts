@@ -72,4 +72,5 @@ export interface OrgFilters {
   vinculo: string;
   status: string;
   nivel: string;
+  lider: string;
 }
