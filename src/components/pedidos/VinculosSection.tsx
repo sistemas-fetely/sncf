@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Link2, Link2Off, Search, Loader2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useVincularComplementar } from "@/hooks/pedidos/useVincularComplementar";
-import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
+import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { useAuth } from "@/contexts/AuthContext";
 import { useVinculosPedido, type PedidoVinculo } from "@/hooks/pedidos/useVinculosPedido";
 import { useRemessas } from "@/hooks/pedidos/useRemessas";
@@ -238,10 +238,12 @@ export function VinculosSection({
   });
   // Fonte CERTA das remessas: `pedido_remessa`, mesmo hook que AcoesRemessa usa.
   const { data: remessas } = useRemessas(pedido_id);
-  const { data: permissoes } = usePermissoesDoUsuario();
+  const { permitido: permissaoSplit } = usePermissaoAcao("acao.split_pedido");
   const { roles } = useAuth();
   const isSuperAdmin = (roles ?? []).includes("super_admin");
-  const podeSplit = isSuperAdmin || (permissoes?.has("acao.split_pedido") ?? false);
+  // ACAO-NAO-MORA-NA-LISTA-DE-TELAS (19/08/2026): usuario_telas_permitidas filtra
+  // tipo='tela'. Permissao de acao so e legivel por usuario_tem_acao/usePermissaoAcao.
+  const podeSplit = isSuperAdmin || permissaoSplit;
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [busca, setBusca] = useState("");

@@ -4,7 +4,7 @@ import { Scissors } from "lucide-react";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { SplitPedidoDialog } from "@/components/pedidos/dialogs/SplitPedidoDialog";
 import { usePedidoEdicaoCampo } from "@/hooks/pedidos/usePedidoEdicaoCampo";
-import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
+import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface Props {
@@ -43,14 +43,17 @@ export function BotaoSplitPedido({
     else setOpenInterno(v);
   };
   const { regraDe, isLoading } = usePedidoEdicaoCampo(estagio);
-  const { data: permissoes } = usePermissoesDoUsuario();
+  const { permitido: permissaoSplit, carregando: carregandoPermissao } =
+    usePermissaoAcao("acao.split_pedido");
   const { roles } = useAuth();
 
   const isSuperAdmin = (roles ?? []).includes("super_admin");
-  const podeSplit = isSuperAdmin || (permissoes?.has("acao.split_pedido") ?? false);
+  // ACAO-NAO-MORA-NA-LISTA-DE-TELAS (19/08/2026): usuario_telas_permitidas filtra
+  // tipo='tela'. Permissao de acao so e legivel por usuario_tem_acao/usePermissaoAcao.
+  const podeSplit = isSuperAdmin || permissaoSplit;
   const permitido = regraDe("split")?.permitido ?? false;
 
-  if (isLoading || !podeSplit || !permitido) return null;
+  if (isLoading || carregandoPermissao || !podeSplit || !permitido) return null;
 
   const rotulo = regraDe("split")?.rotulo || "Split";
 
