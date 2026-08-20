@@ -25,6 +25,11 @@ export function useReverterParaCobranca() {
       qc.invalidateQueries({ queryKey: ["aguardando-pagamento-fila"] });
       qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedidoId] });
       qc.invalidateQueries({ queryKey: ["pedido-titulos", pedidoId] });
+      qc.invalidateQueries({ queryKey: ["cobranca-plano-existente", pedidoId] });
+      qc.invalidateQueries({ queryKey: ["cobranca-proposta", pedidoId] });
+      qc.invalidateQueries({ queryKey: ["provisoes-pedido", pedidoId] });
+      qc.invalidateQueries({ queryKey: ["gerenciar-links", pedidoId] });
+      qc.invalidateQueries({ queryKey: ["pedido-portao-regra", pedidoId] });
       toast({
         title: "Pedido revertido",
         description: "Pedido voltou para cobrança. Títulos cancelados.",
