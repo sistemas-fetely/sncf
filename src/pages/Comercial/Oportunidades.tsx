@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { Copy, Search, Sparkles, Loader2, Undo2 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
+import { apelidoParceiro } from "@/lib/parceiros/nome";
 import { RetomarOportunidadeDialog } from "@/components/comercial/RetomarOportunidadeDialog";
 import { BadgeLinkFila } from "@/components/pedidos/LinkPagamentoCard";
 import { useLinksPagamentoFila } from "@/hooks/pedidos/useLinkPagamentoPedido";
@@ -354,8 +355,13 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                             className="block max-w-full truncate font-medium text-left text-primary underline-offset-2 hover:underline cursor-pointer"
                             onClick={() => navigate(`/parceiros/${r.parceiro_id}`)}
                           >
-                            {r.apelido || r.cliente || "—"}
+                            {r.cliente || "—"}
                           </button>
+                          {apelidoParceiro(r.cliente, r.apelido) && (
+                            <div className="text-xs text-muted-foreground truncate">
+                              {apelidoParceiro(r.cliente, r.apelido)}
+                            </div>
+                          )}
                           {AVISO_EXCECAO_SITUACAO[r.situacao_financeira ?? ""] && (
                             <div className="mt-0.5">
                               <Badge
@@ -450,7 +456,8 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
             onOpenChange={(v) => !v && setDetalhe(null)}
             pedidoId={detalhe.pedido_id}
             idExterno={detalhe.id_externo}
-            cliente={detalhe.apelido || detalhe.cliente}
+            cliente={detalhe.cliente}
+            apelido={detalhe.apelido}
             valorEmJogo={detalhe.valor_em_jogo}
             situacaoFinanceira={detalhe.situacao_financeira}
             alertaOperacional={detalhe.alerta_operacional}
