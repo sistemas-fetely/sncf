@@ -933,7 +933,7 @@ export function FilaPedidosPorArea({
                     <CelulaPagamento p={p} liberacao={liberacaoMap?.get(p.id)} />
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
-                    <CelulaLastro cob={coberturaPedidoMap?.get(p.id)} />
+                    <CelulaLastro lastro={lastroMap?.get(p.id)} />
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap items-center gap-1.5 min-w-0">
