@@ -1904,6 +1904,16 @@ export default function PedidoDetalhe() {
                         </div>
                       );
                     })()}
+
+                    {/* PROVA-VIAJA-COM-O-PEDIDO (20/08/2026): o comprovante confirmado
+                        na Mesa Comercial precisa ser conferível pelo SOPS depois. */}
+                    <div className="mt-3">
+                      <ComprovantePagamentoBloco
+                        pedidoId={pedido.id}
+                        somenteLeitura
+                        podeConfirmar={false}
+                      />
+                    </div>
                   </CardContent>
                 </Card>
             </div>
