@@ -167,21 +167,23 @@ export function PipelineHorizontal({
     (e) => !e.eh_desvio && (!e.eh_final || e.estagio === "entregue"),
   );
 
-  // Chip de desvio (fora da carteira ativa): soma das linhas com eh_desvio.
-  const desvio = useMemo(() => {
-    let qtd = 0;
-    let valor = 0;
-    (data || []).forEach((row) => {
-      const ehDesvio =
-        row.eh_desvio != null
-          ? !!row.eh_desvio
-          : ESTAGIOS_DESVIO.includes(row.estagio as EstagioPedido);
-      if (!ehDesvio) return;
-      qtd += Number(row.qtd || 0);
-      valor += Number(row.soma_valor || 0);
-    });
-    return { qtd, valor };
-  }, [data]);
+  // FONTE-UNICA: o card da Mesa Comercial le a MESMA view que a tabela da aba.
+  const { data: mesaComercial } = useQuery({
+    queryKey: ["mesa-comercial-card"],
+    staleTime: 30 * 1000,
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("vw_oportunidades_comercial")
+        .select("valor_em_jogo");
+      if (error) throw error;
+      const rows = (data ?? []) as Array<{ valor_em_jogo: number | null }>;
+      return {
+        qtd: rows.length,
+        valor: rows.reduce((s, r) => s + Number(r.valor_em_jogo || 0), 0),
+      };
+    },
+  });
 
   // Universo do card "Fila ativa" = exatamente o que a tabela mostra por padrão:
   // ativos (sem entregue) + cancelados apenas com o toggle ligado.
