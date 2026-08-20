@@ -103,9 +103,14 @@ export default function SalaDetalhe() {
   const ciclo = (ciclos ?? []).find((c) => c.sala_id === salaId) ?? null;
   const reuniaoAberta = (reunioes ?? []).find((r) => r.status === "aberta") ?? null;
   const ultimaFechada = (reunioes ?? []).find((r) => r.status === "fechada") ?? null;
-  const reuniao = reuniaoAberta ?? ultimaFechada;
+  // HISTORICO-DE-ATA-E-NAVEGAVEL (20/08/2026): padrão = reunião aberta, senão a última fechada.
+  const [reuniaoEscolhidaId, setReuniaoEscolhidaId] = useState<string | null>(null);
+  const padrao = reuniaoAberta ?? ultimaFechada;
+  const reuniao =
+    (reuniaoEscolhidaId && (reunioes ?? []).find((r) => r.id === reuniaoEscolhidaId)) || padrao;
   const fechada = !!reuniao && reuniao.status === "fechada";
   const reuniaoId = reuniao?.id ?? null;
+
 
   const { data: pauta } = usePauta(salaId);
   const { data: participantes } = useParticipantes(reuniaoId);
@@ -191,6 +196,23 @@ export default function SalaDetalhe() {
         }
         acoes={
           <>
+            {(reunioes ?? []).length > 0 && (
+              <Select
+                value={reuniaoId ?? ""}
+                onValueChange={(v) => setReuniaoEscolhidaId(v)}
+              >
+                <SelectTrigger className="h-9 w-[240px]">
+                  <SelectValue placeholder="Histórico de reuniões" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(reunioes ?? []).map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      #{r.numero} · {dataBR(r.data)} · {r.status}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <Button variant="ghost" onClick={() => navigate("/gestao")}>
               <ArrowLeft className="mr-1 h-4 w-4" /> Salas
             </Button>
@@ -201,6 +223,7 @@ export default function SalaDetalhe() {
             )}
           </>
         }
+
       />
 
       {sala?.confidencial && (
