@@ -4,6 +4,7 @@ import { FolderKanban, Gavel, ShieldAlert, Users } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import { CommandPaletteProvider } from "@/components/navegacao/CommandPaletteProvider";
+import { SinoNotificacoes } from "@/components/shared/SinoNotificacoes";
 
 /** Abas do módulo Sala de Gestão — mesma linguagem de navegação do módulo Tarefas. */
 const ITENS = [
@@ -13,7 +14,7 @@ const ITENS = [
   { title: "Riscos", url: "/gestao/riscos", icon: ShieldAlert },
 ];
 
-export default function GestaoSalaLayout() {
+export default function GestaoLayout() {
   const location = useLocation();
 
   return (
@@ -22,7 +23,7 @@ export default function GestaoSalaLayout() {
         <nav className="flex flex-1 items-center gap-1 overflow-x-auto whitespace-nowrap">
           {ITENS.map((item) => {
             const active = item.exato
-              ? location.pathname === "/gestao" || location.pathname.startsWith("/gestao/sala")
+              ? location.pathname === "/gestao" || location.pathname.startsWith("/gestao/sala") || location.pathname.startsWith("/gestao/ata")
               : location.pathname.startsWith(item.url);
             return (
               <NavLink
@@ -41,6 +42,9 @@ export default function GestaoSalaLayout() {
             );
           })}
         </nav>
+        <div className="ml-auto shrink-0">
+          <SinoNotificacoes />
+        </div>
       </header>
 
       <main className="relative flex-1 overflow-auto">

@@ -87,8 +87,8 @@ function useCriarTarefaDaReuniao() {
   });
 }
 
-export default function SalaReuniao() {
-  const { id: salaId = null } = useParams();
+export default function SalaDetalhe() {
+  const { salaId = null } = useParams();
   const navigate = useNavigate();
 
   const { data: sala } = useSala(salaId);
@@ -465,7 +465,14 @@ export default function SalaReuniao() {
               onClick={(e) => {
                 e.preventDefault();
                 if (!reuniaoId) return;
-                fechar.mutate(reuniaoId, { onSuccess: () => setConfirmarFechar(false) });
+                const alvo = reuniaoId;
+                fechar.mutate(alvo, {
+                  onSuccess: () => {
+                    setConfirmarFechar(false);
+                    // ATA-E-DERIVADA (20/08/2026): fechada a reunião, a leitura é a ata.
+                    navigate(`/gestao/ata/${alvo}`);
+                  },
+                });
               }}
             >
               Fechar reunião
