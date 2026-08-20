@@ -33379,6 +33379,55 @@ export type Database = {
         }
         Relationships: []
       }
+      shopify_pedido_cliente: {
+        Row: {
+          customer_id: string | null
+          email: string | null
+          extraido_em: string
+          nome: string | null
+          shopify_id: string
+          telefone: string | null
+        }
+        Insert: {
+          customer_id?: string | null
+          email?: string | null
+          extraido_em?: string
+          nome?: string | null
+          shopify_id: string
+          telefone?: string | null
+        }
+        Update: {
+          customer_id?: string | null
+          email?: string | null
+          extraido_em?: string
+          nome?: string | null
+          shopify_id?: string
+          telefone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopify_pedido_cliente_shopify_id_fkey"
+            columns: ["shopify_id"]
+            isOneToOne: true
+            referencedRelation: "shopify_pedidos"
+            referencedColumns: ["shopify_id"]
+          },
+          {
+            foreignKeyName: "shopify_pedido_cliente_shopify_id_fkey"
+            columns: ["shopify_id"]
+            isOneToOne: true
+            referencedRelation: "vw_gestao_b2c"
+            referencedColumns: ["shopify_id"]
+          },
+          {
+            foreignKeyName: "shopify_pedido_cliente_shopify_id_fkey"
+            columns: ["shopify_id"]
+            isOneToOne: true
+            referencedRelation: "vw_shopify_pedidos_rastreio"
+            referencedColumns: ["shopify_id"]
+          },
+        ]
+      }
       shopify_pedidos: {
         Row: {
           cancelled_at: string | null
@@ -63363,6 +63412,10 @@ export type Database = {
         Returns: Json
       }
       fix_lancamentos_origem_constraint: { Args: never; Returns: string }
+      fn_absorver_docvenda_b2c: {
+        Args: { p_pedido_id: string; p_shopify_id: string }
+        Returns: string
+      }
       fn_acrescimo_ie_pct: {
         Args: { p_data?: string; p_parceiro_id: string }
         Returns: number
