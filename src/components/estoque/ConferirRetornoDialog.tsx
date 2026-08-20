@@ -22,7 +22,8 @@ import {
   useRegistrarRetornoDevolucao,
   type RegistrarRetornoResult,
 } from "@/hooks/estoque/useRegistrarRetornoDevolucao";
-import type { RetornoPendentePedido } from "@/hooks/estoque/useDevolucoesRetornoPendente";
+import type { RetornoPendenteDevolucao } from "@/hooks/estoque/useDevolucoesRetornoPendente";
+import { Badge } from "@/components/ui/badge";
 
 const CENTRO_PADRAO = "XPM-SC";
 const CONDICAO_PADRAO = "__default__";
@@ -30,14 +31,15 @@ const CONDICAO_PADRAO = "__default__";
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  pedido: RetornoPendentePedido | null;
+  // FILA-ANCORADA-NA-DEVOLUCAO (20/08/2026): a identidade e a devolucao.
+  devolucao: RetornoPendenteDevolucao | null;
 }
 
 function hojeISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function ConferirRetornoDialog({ open, onOpenChange, pedido }: Props) {
+export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) {
   const { data: condicoes = [] } = useEstoqueCondicoes();
   const registrar = useRegistrarRetornoDevolucao();
 
@@ -49,13 +51,13 @@ export function ConferirRetornoDialog({ open, onOpenChange, pedido }: Props) {
   const [centro, setCentro] = useState(CENTRO_PADRAO);
   const [resultado, setResultado] = useState<RegistrarRetornoResult | null>(null);
 
-  const chave = pedido?.pedido_id ?? "";
+  const chave = devolucao?.devolucao_id ?? "";
   const [chaveAtual, setChaveAtual] = useState("");
   if (open && chave && chave !== chaveAtual) {
     setChaveAtual(chave);
     setQtds({});
     setConds({});
-    setDocNumero(pedido?.nf ?? "");
+    setDocNumero(devolucao?.nf ?? "");
     setObs("");
     setData(hojeISO());
     setCentro(CENTRO_PADRAO);
@@ -63,8 +65,8 @@ export function ConferirRetornoDialog({ open, onOpenChange, pedido }: Props) {
   }
 
   const linhasValidas = useMemo(() => {
-    if (!pedido) return [];
-    return pedido.itens
+    if (!devolucao) return [];
+    return devolucao.itens
       .map((it) => {
         const raw = qtds[it.sku];
         const qtd = Number(raw);
@@ -77,21 +79,21 @@ export function ConferirRetornoDialog({ open, onOpenChange, pedido }: Props) {
         };
       })
       .filter((x): x is { sku: string; qtd: number; condicao: string | null } => x !== null);
-  }, [pedido, qtds, conds]);
+  }, [devolucao, qtds, conds]);
 
   const unidadesInformadas = linhasValidas.reduce((s, l) => s + l.qtd, 0);
-  const excedeAlguma = pedido
-    ? pedido.itens.some((it) => {
+  const excedeAlguma = devolucao
+    ? devolucao.itens.some((it) => {
         const q = Number(qtds[it.sku]);
         return Number.isFinite(q) && q > Number(it.qtd_pendente ?? 0);
       })
     : false;
 
   async function handleGravar() {
-    if (!pedido || linhasValidas.length === 0) return;
+    if (!devolucao || linhasValidas.length === 0) return;
     try {
       const res = await registrar.mutateAsync({
-        pedido_id: pedido.pedido_id,
+        devolucao_id: devolucao.devolucao_id,
         rows: linhasValidas,
         doc_numero: docNumero.trim() || null,
         obs: obs.trim() || null,
@@ -101,7 +103,15 @@ export function ConferirRetornoDialog({ open, onOpenChange, pedido }: Props) {
       setResultado(res);
       const unid = res.unidades ?? unidadesInformadas;
       const itens = res.itens ?? linhasValidas.length;
-      toast.success(`Retorno registrado: ${itens} item(ns), ${unid} unidade(s)`);
+      const numero = res.devolucao ?? devolucao.devolucao_numero;
+      const base = `Retorno registrado em ${numero}: ${itens} item(ns), ${unid} unidade(s)`;
+      if (res.encerrada) {
+        toast.success(`${base}. Devolução encerrada — tudo que era esperado voltou.`);
+      } else {
+        toast.success(
+          `${base}. Ainda faltam ${Number(res.ainda_pendente ?? 0)} unidade(s) para encerrar.`,
+        );
+      }
       if (res.aviso) toast.warning(String(res.aviso), { duration: 10000 });
       setQtds({});
       setConds({});
@@ -115,10 +125,21 @@ export function ConferirRetornoDialog({ open, onOpenChange, pedido }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Conferir retorno de devolução</DialogTitle>
+          <DialogTitle className="flex flex-wrap items-center gap-2">
+            <span>Devolução {devolucao?.devolucao_numero ?? "—"}</span>
+            <span className="text-sm font-normal text-muted-foreground">
+              Pedido {devolucao?.id_externo ?? "—"}
+            </span>
+            {devolucao?.canal === "b2c" && (
+              <Badge variant="outline" className="font-normal">B2C</Badge>
+            )}
+            {devolucao?.tipo === "parcial" && (
+              <Badge variant="outline" className="font-normal">Parcial</Badge>
+            )}
+          </DialogTitle>
           <DialogDescription>
-            Pedido {pedido?.id_externo ?? "—"}
-            {pedido?.nf ? ` · NF de saída ${pedido.nf}` : ""} · retorno parcial é permitido.
+            Conferência de retorno
+            {devolucao?.nf ? ` · NF de saída ${devolucao.nf}` : ""} · retorno parcial é permitido.
           </DialogDescription>
         </DialogHeader>
 
@@ -163,7 +184,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, pedido }: Props) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(pedido?.itens ?? []).map((it) => {
+              {(devolucao?.itens ?? []).map((it) => {
                 const q = Number(qtds[it.sku]);
                 const excede = Number.isFinite(q) && q > Number(it.qtd_pendente ?? 0);
                 return (

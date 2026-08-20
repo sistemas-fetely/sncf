@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import {
   useDevolucoesRetornoPendente,
-  type RetornoPendentePedido,
+  type RetornoPendenteDevolucao,
 } from "@/hooks/estoque/useDevolucoesRetornoPendente";
 import { ConferirRetornoDialog } from "@/components/estoque/ConferirRetornoDialog";
 
@@ -21,15 +21,16 @@ function formatNum(v: number | null | undefined) {
 }
 
 export default function RetornoDevolucao() {
-  const { data: pedidos = [], isLoading, isFetching, refetch } = useDevolucoesRetornoPendente();
+  const { data: devolucoes = [], isLoading, isFetching, refetch } = useDevolucoesRetornoPendente();
   const [busca, setBusca] = useState("");
-  const [selecionado, setSelecionado] = useState<RetornoPendentePedido | null>(null);
+  const [selecionado, setSelecionado] = useState<RetornoPendenteDevolucao | null>(null);
 
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    if (!q) return pedidos;
-    return pedidos.filter(
+    if (!q) return devolucoes;
+    return devolucoes.filter(
       (p) =>
+        p.devolucao_numero?.toLowerCase().includes(q) ||
         p.id_externo?.toLowerCase().includes(q) ||
         p.nf?.toLowerCase().includes(q) ||
         p.itens.some(
@@ -38,14 +39,14 @@ export default function RetornoDevolucao() {
             i.nome_comercial?.toLowerCase().includes(q),
         ),
     );
-  }, [pedidos, busca]);
+  }, [devolucoes, busca]);
 
-  const totalUnidades = pedidos.reduce((s, p) => s + p.unidades_pendentes, 0);
-  const totalValor = pedidos.reduce((s, p) => s + p.valor_custo_pendente, 0);
+  const totalUnidades = devolucoes.reduce((s, p) => s + p.unidades_pendentes, 0);
+  const totalValor = devolucoes.reduce((s, p) => s + p.valor_custo_pendente, 0);
 
-  // mantém o pedido aberto sincronizado com o refetch da view
-  const pedidoAberto = selecionado
-    ? pedidos.find((p) => p.pedido_id === selecionado.pedido_id) ?? null
+  // mantém a devolução aberta sincronizada com o refetch da view
+  const devolucaoAberta = selecionado
+    ? devolucoes.find((d) => d.devolucao_id === selecionado.devolucao_id) ?? null
     : null;
 
   return (
@@ -76,8 +77,8 @@ export default function RetornoDevolucao() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
         <div className="rounded-md border bg-card p-4">
-          <div className="text-xs text-muted-foreground">Pedidos aguardando conferência</div>
-          <div className="text-2xl font-medium tabular-nums">{formatNum(pedidos.length)}</div>
+          <div className="text-xs text-muted-foreground">Devoluções aguardando conferência</div>
+          <div className="text-2xl font-medium tabular-nums">{formatNum(devolucoes.length)}</div>
         </div>
         <div className="rounded-md border bg-card p-4">
           <div className="text-xs text-muted-foreground">Unidades pendentes</div>
@@ -95,12 +96,12 @@ export default function RetornoDevolucao() {
           <FilterInput
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por pedido, NF, SKU ou produto"
+            placeholder="Buscar por devolução, pedido, NF, SKU ou produto"
             className="pl-9"
           />
         </div>
         <span className="text-xs text-muted-foreground ml-auto">
-          {filtrados.length} {filtrados.length === 1 ? "pedido" : "pedidos"}
+          {filtrados.length} {filtrados.length === 1 ? "devolução" : "devoluções"}
         </span>
       </div>
 
@@ -108,7 +109,7 @@ export default function RetornoDevolucao() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[160px]">Pedido</TableHead>
+              <TableHead className="w-[210px]">Devolução</TableHead>
               <TableHead className="w-[130px]">NF de saída</TableHead>
               <TableHead>Motivo</TableHead>
               <TableHead className="w-[130px]">Devolvido em</TableHead>
@@ -134,8 +135,21 @@ export default function RetornoDevolucao() {
               </TableRow>
             ) : (
               filtrados.map((p) => (
-                <TableRow key={p.pedido_id}>
-                  <TableCell className="font-medium">{p.id_externo ?? "—"}</TableCell>
+                <TableRow key={p.devolucao_id}>
+                  <TableCell>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="font-medium">{p.devolucao_numero ?? "—"}</span>
+                      {p.canal === "b2c" && (
+                        <Badge variant="outline" className="font-normal">B2C</Badge>
+                      )}
+                      {p.tipo === "parcial" && (
+                        <Badge variant="outline" className="font-normal">Parcial</Badge>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Pedido {p.id_externo ?? "—"}
+                    </div>
+                  </TableCell>
                   <TableCell className="font-mono text-xs">{p.nf ?? "—"}</TableCell>
                   <TableCell className="text-sm text-muted-foreground max-w-[280px] truncate">
                     {p.motivo ?? "—"}
@@ -178,7 +192,7 @@ export default function RetornoDevolucao() {
       <ConferirRetornoDialog
         open={!!selecionado}
         onOpenChange={(v) => { if (!v) setSelecionado(null); }}
-        pedido={pedidoAberto}
+        devolucao={devolucaoAberta}
       />
     </PageShell>
   );

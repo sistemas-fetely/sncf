@@ -2,6 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface RetornoPendenteLinha {
+  devolucao_id: string;
+  devolucao_numero: string;
+  canal: string;
+  tipo: string;
+  culpa: string | null;
+  motivo_codigo: string | null;
   pedido_id: string;
   id_externo: string | null;
   devolvido_em: string | null;
@@ -16,7 +22,16 @@ export interface RetornoPendenteLinha {
   valor_custo_pendente: number | null;
 }
 
-export interface RetornoPendentePedido {
+// FILA-ANCORADA-NA-DEVOLUCAO (20/08/2026): um pedido pode ter varias devolucoes
+// parciais, entao o agrupamento e por devolucao_id. Agrupar por pedido fundiria
+// duas devolucoes distintas numa linha so.
+export interface RetornoPendenteDevolucao {
+  devolucao_id: string;
+  devolucao_numero: string;
+  canal: string;
+  tipo: string;
+  culpa: string | null;
+  motivo_codigo: string | null;
   pedido_id: string;
   id_externo: string | null;
   devolvido_em: string | null;
@@ -29,12 +44,12 @@ export interface RetornoPendentePedido {
 }
 
 const COLS =
-  "pedido_id,id_externo,devolvido_em,motivo,nf,sku,nome_comercial,qtd_saiu,qtd_ja_retornada,qtd_pendente,dias_esperando,valor_custo_pendente";
+  "devolucao_id,devolucao_numero,canal,tipo,culpa,motivo_codigo,pedido_id,id_externo,devolvido_em,motivo,nf,sku,nome_comercial,qtd_saiu,qtd_ja_retornada,qtd_pendente,dias_esperando,valor_custo_pendente";
 
 export function useDevolucoesRetornoPendente() {
   return useQuery({
     queryKey: ["devolucao-retorno-pendente"],
-    queryFn: async (): Promise<RetornoPendentePedido[]> => {
+    queryFn: async (): Promise<RetornoPendenteDevolucao[]> => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("vw_devolucao_retorno_pendente")
@@ -43,12 +58,18 @@ export function useDevolucoesRetornoPendente() {
       if (error) throw error;
 
       const linhas = (data ?? []) as RetornoPendenteLinha[];
-      const mapa = new Map<string, RetornoPendentePedido>();
+      const mapa = new Map<string, RetornoPendenteDevolucao>();
 
       for (const l of linhas) {
-        let grupo = mapa.get(l.pedido_id);
+        let grupo = mapa.get(l.devolucao_id);
         if (!grupo) {
           grupo = {
+            devolucao_id: l.devolucao_id,
+            devolucao_numero: l.devolucao_numero,
+            canal: l.canal,
+            tipo: l.tipo,
+            culpa: l.culpa,
+            motivo_codigo: l.motivo_codigo,
             pedido_id: l.pedido_id,
             id_externo: l.id_externo,
             devolvido_em: l.devolvido_em,
@@ -59,7 +80,7 @@ export function useDevolucoesRetornoPendente() {
             valor_custo_pendente: 0,
             itens: [],
           };
-          mapa.set(l.pedido_id, grupo);
+          mapa.set(l.devolucao_id, grupo);
         }
         grupo.itens.push(l);
         grupo.unidades_pendentes += Number(l.qtd_pendente ?? 0);
