@@ -105,6 +105,7 @@ const MeuTime = lazy(() => import("@/pages/tarefas/MeuTime"));
 const RecorrenciasTarefas = lazy(() => import("@/pages/tarefas/Recorrencias"));
 const TemplatesTarefas = lazy(() => import("@/pages/tarefas/Templates"));
 const NotificacoesPreferencias = lazy(() => import("@/pages/tarefas/NotificacoesPreferencias"));
+const FilaProcessos = lazy(() => import("@/pages/tarefas/FilaProcessos"));
 
 const Processos = lazy(() => import("@/pages/Processos"));
 const ProcessoDetalhe = lazy(() => import("@/pages/ProcessoDetalhe"));
