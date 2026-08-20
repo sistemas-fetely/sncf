@@ -327,27 +327,34 @@ export function PedidoOportunidadeDialog({
                     <Copy className="h-4 w-4" />
                     Copiar link de pagamento
                   </Button>
-                  <Button
-                    disabled={
-                      cartaoBloqueia ||
-                      confirmarPagamento.isPending ||
-                      carregandoConfirmarPagamento ||
-                      !podeConfirmarPagamento
-                    }
-                    title={
-                      cartaoBloqueia
-                        ? "Cartão não fecha por confirmação manual — a prova é o NSU da captura."
-                        : !carregandoConfirmarPagamento && !podeConfirmarPagamento
-                          ? "Você não tem permissão para confirmar pagamento declarado."
-                          : undefined
-                    }
-                    onClick={() => setConfirmarAberto(true)}
-                  >
-                    {confirmarPagamento.isPending && (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    )}
-                    Confirmar pagamento
-                  </Button>
+                  {!temComprovanteConfirmado && (
+                    <Button
+                      disabled={
+                        cartaoBloqueia ||
+                        confirmarPagamento.isPending ||
+                        carregandoConfirmarPagamento ||
+                        !podeConfirmarPagamento
+                      }
+                      title={
+                        cartaoBloqueia
+                          ? "Cartão não fecha por confirmação manual — a prova é o NSU da captura."
+                          : !carregandoConfirmarPagamento && !podeConfirmarPagamento
+                            ? "Você não tem permissão para confirmar pagamento declarado."
+                            : undefined
+                      }
+                      onClick={() => setConfirmarAberto(true)}
+                    >
+                      {confirmarPagamento.isPending && (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      )}
+                      Confirmar pagamento
+                    </Button>
+                  )}
+                  {temComprovanteConfirmado && (
+                    <span className="text-xs text-muted-foreground">
+                      Pagamento já confirmado por comprovante.
+                    </span>
+                  )}
                 </div>
               </>
             )}
