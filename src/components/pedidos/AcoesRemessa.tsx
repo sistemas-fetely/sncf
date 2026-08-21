@@ -204,7 +204,11 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
             await enviar.mutateAsync({ pedido_id }).catch(() => {});
           }}
         >
-          ...
+          {ocupado ? (
+            <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</>
+          ) : (
+            <><Truck className="h-4 w-4 shrink-0" />Enviar pros dois</>
+          )}
         </Button>
       )}
 
