@@ -20,7 +20,11 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { useNomePessoa } from "@/components/tarefas/detalhe/comuns";
+// IDENTIDADE-DA-GESTAO-E-PESSOA_ID (20/08/2026): membros/participantes usam pessoa_id
+// (pessoas.id) — nomes resolvem por vw_gestao_pessoa, nunca por v_pessoas_sistema.
+import { useNomeDaPessoa, usePessoasGestao } from "@/hooks/gestao/usePessoasGestao";
+import { PainelMembrosSala } from "@/components/gestao/PainelMembrosSala";
+import { PainelEscopoSala } from "@/components/gestao/PainelEscopoSala";
 import { useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -98,7 +102,8 @@ export default function SalaDetalhe() {
   const { data: ehFacilitador } = useEhFacilitador(salaId);
   const { data: reunioes } = useReunioesDaSala(salaId);
   const { data: projetos } = useProjetos();
-  const nomePessoa = useNomePessoa();
+  const nomePessoa = useNomeDaPessoa();
+  const { data: pessoasGestao } = usePessoasGestao();
 
   const ciclo = (ciclos ?? []).find((c) => c.sala_id === salaId) ?? null;
   const reuniaoAberta = (reunioes ?? []).find((r) => r.status === "aberta") ?? null;
