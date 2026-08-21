@@ -14,9 +14,13 @@ import { usePessoasSistema, useProjetos } from "@/hooks/tarefas/useTarefasCatalo
 import {
   usePreviewOcorrencias, useSalvarRecorrencia, type NovaRecorrencia, type Recorrencia,
 } from "@/hooks/tarefas/useRecorrencias";
+import { useTemplates, useTemplateItens } from "@/hooks/tarefas/useTemplates";
 import { DIAS_SEMANA_CURTO, MESES_NOME, dataBR, textoRecorrencia } from "@/lib/tarefas/recorrenciaTexto";
 
+
 const SEM_VALOR = "__nenhum__";
+const SEM_TEMPLATE = "__nenhum__";
+
 
 function hojeISO(): string {
   const d = new Date();
@@ -36,6 +40,7 @@ const VAZIA: NovaRecorrencia = {
   projeto_id: null,
   secao_id: null,
   responsavel_id: null,
+  template_id: null,
   visibilidade: "publica",
   estimativa_horas: null,
   departamento_destino_id: null,
@@ -50,11 +55,15 @@ const VAZIA: NovaRecorrencia = {
   ativo: true,
 };
 
+
 export function RecorrenciaDialog({ aberto, onOpenChange, regra }: Props) {
   const [f, setF] = useState<NovaRecorrencia>(VAZIA);
   const salvar = useSalvarRecorrencia();
   const { data: pessoas } = usePessoasSistema();
   const { data: projetos } = useProjetos();
+  const { data: templates } = useTemplates();
+  const { data: templateItens } = useTemplateItens(f.template_id);
+
 
   useEffect(() => {
     if (!aberto) return;
