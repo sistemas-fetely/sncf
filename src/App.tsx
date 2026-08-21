@@ -277,6 +277,16 @@ function CargosIdRedirect() {
   return <Navigate to={`/admin/cargos/${id}`} replace />;
 }
 
+// GESTAO-E-ABA-DE-TAREFAS (21/08/2026): rotas legadas /gestao/* → /tarefas/gestao/*
+function GestaoSalaRedirect() {
+  const { salaId } = useParams();
+  return <Navigate to={`/tarefas/gestao/sala/${salaId}`} replace />;
+}
+function GestaoAtaRedirect() {
+  const { reuniaoId } = useParams();
+  return <Navigate to={`/tarefas/gestao/ata/${reuniaoId}`} replace />;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -415,15 +425,6 @@ const App = () => (
               {/* Doutrina CASA-2: SNCFLayout removido — rotas ficam direto no CasaLayout */}
               <Route path="/sncf" element={<PortalSNCF />} />
               <Route path="/tarefas" element={<Navigate to="/tarefas/hoje" replace />} />
-              {/* Sala de Gestão — ritos, projetos, decisões e riscos */}
-              <Route element={<GestaoLayout />}>
-                <Route path="/gestao" element={<GestaoSalas />} />
-                <Route path="/gestao/sala/:salaId" element={<GestaoSalaDetalhe />} />
-                <Route path="/gestao/ata/:reuniaoId" element={<GestaoAta />} />
-                <Route path="/gestao/projetos" element={<GestaoProjetos />} />
-                <Route path="/gestao/decisoes" element={<GestaoDecisoes />} />
-                <Route path="/gestao/riscos" element={<GestaoRiscos />} />
-              </Route>
               <Route element={<TarefasLayout />}>
                 <Route path="/tarefas/hoje" element={<TarefasHoje />} />
                 <Route path="/tarefas/minhas" element={<MinhasTarefasNovo />} />
@@ -436,6 +437,15 @@ const App = () => (
                 <Route path="/tarefas/templates" element={<TemplatesTarefas />} />
                 <Route path="/tarefas/notificacoes" element={<NotificacoesPreferencias />} />
                 <Route path="/tarefas/fila" element={<FilaProcessos />} />
+                {/* Sala de Gestão — aba dentro de Tarefas (GESTAO-E-ABA-DE-TAREFAS) */}
+                <Route element={<GestaoLayout />}>
+                  <Route path="/tarefas/gestao" element={<GestaoSalas />} />
+                  <Route path="/tarefas/gestao/sala/:salaId" element={<GestaoSalaDetalhe />} />
+                  <Route path="/tarefas/gestao/ata/:reuniaoId" element={<GestaoAta />} />
+                  <Route path="/tarefas/gestao/projetos" element={<GestaoProjetos />} />
+                  <Route path="/tarefas/gestao/decisoes" element={<GestaoDecisoes />} />
+                  <Route path="/tarefas/gestao/riscos" element={<GestaoRiscos />} />
+                </Route>
               </Route>
 
               <Route path="/fala-fetely" element={<FalaFetely />} />
@@ -807,6 +817,13 @@ const App = () => (
             <Route path="/cargos/enriquecimento" element={<Navigate to="/admin/cargos/enriquecimento" replace />} />
             <Route path="/cargos/novo" element={<Navigate to="/admin/cargos/novo" replace />} />
             <Route path="/cargos/:id" element={<CargosIdRedirect />} />
+            {/* Sala de Gestão virou aba de Tarefas (GESTAO-E-ABA-DE-TAREFAS) */}
+            <Route path="/gestao" element={<Navigate to="/tarefas/gestao" replace />} />
+            <Route path="/gestao/projetos" element={<Navigate to="/tarefas/gestao/projetos" replace />} />
+            <Route path="/gestao/decisoes" element={<Navigate to="/tarefas/gestao/decisoes" replace />} />
+            <Route path="/gestao/riscos" element={<Navigate to="/tarefas/gestao/riscos" replace />} />
+            <Route path="/gestao/sala/:salaId" element={<GestaoSalaRedirect />} />
+            <Route path="/gestao/ata/:reuniaoId" element={<GestaoAtaRedirect />} />
             <Route path="/administrativo/parceiros" element={<Navigate to="/administrativo-fetely/parceiros" replace />} />
             <Route path="/administrativo/importar" element={<Navigate to="/administrativo-fetely/importar" replace />} />
             <Route path="/administrativo/nfs-stage" element={<Navigate to="/administrativo-fetely/nfs-stage" replace />} />

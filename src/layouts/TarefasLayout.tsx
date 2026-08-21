@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useRef } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import {
-  CalendarDays, CheckCheck, Gauge, Inbox, LayoutGrid, ListChecks, Repeat, Sun, UsersRound,
+  CalendarDays, CheckCheck, Compass, Gauge, Inbox, LayoutGrid, ListChecks, Repeat, Sun, UsersRound,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,8 @@ const ITENS = [
   { title: "Templates", url: "/tarefas/templates", icon: CheckCheck },
   { title: "Meu Time", url: "/tarefas/time", icon: UsersRound },
   { title: "Fila de Processos", url: "/tarefas/fila", icon: Inbox },
+  // GESTAO-E-ABA-DE-TAREFAS (21/08/2026): Sala de Gestão vive dentro de Tarefas
+  { title: "Gestão", url: "/tarefas/gestao", icon: Compass },
 ];
 
 export default function TarefasLayout() {

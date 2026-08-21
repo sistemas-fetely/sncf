@@ -174,7 +174,7 @@ export default function Salas() {
                     <Button
                       size="sm"
                       variant={ciclo?.reuniao_aberta_id ? "default" : "outline"}
-                      onClick={() => navigate(`/gestao/sala/${s.id}`)}
+                      onClick={() => navigate(`/tarefas/gestao/sala/${s.id}`)}
                     >
                       {ciclo?.reuniao_aberta_id ? "Entrar na reunião" : "Abrir sala"}
                       <ArrowRight className="ml-1 h-3.5 w-3.5" />
