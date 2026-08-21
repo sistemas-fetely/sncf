@@ -238,6 +238,7 @@ function SecaoPagamento({ pedidoId, pedido, guarda }: {
       toast.success("Pedido devolvido para análise de crédito com a condição pretendida registrada.");
       await qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedidoId] });
       qc.invalidateQueries({ queryKey: ["pedidos"] });
+      qc.invalidateQueries({ queryKey: ["cobranca-proposta", pedidoId] });
       setOpen(false);
       setMotivo("");
     },
@@ -268,6 +269,7 @@ function SecaoPagamento({ pedidoId, pedido, guarda }: {
       setAvisoPortao(!!exigePortao);
       await qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedidoId] });
       qc.invalidateQueries({ queryKey: ["pedidos"] });
+      qc.invalidateQueries({ queryKey: ["cobranca-proposta", pedidoId] });
       setOpen(false);
       setMotivo("");
     },
