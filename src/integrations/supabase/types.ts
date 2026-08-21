@@ -28142,6 +28142,11 @@ export type Database = {
           itens_json: Json | null
           link_pagamento: string | null
           marcacao: string | null
+          meta_base: string | null
+          meta_cravada_em: string | null
+          meta_dias_espera: number
+          meta_original: string | null
+          meta_provisoria: boolean
           natureza_operacao_id: string
           nf_data: string | null
           nf_email_enviado_em: string | null
@@ -28243,6 +28248,11 @@ export type Database = {
           itens_json?: Json | null
           link_pagamento?: string | null
           marcacao?: string | null
+          meta_base?: string | null
+          meta_cravada_em?: string | null
+          meta_dias_espera?: number
+          meta_original?: string | null
+          meta_provisoria?: boolean
           natureza_operacao_id?: string
           nf_data?: string | null
           nf_email_enviado_em?: string | null
@@ -28344,6 +28354,11 @@ export type Database = {
           itens_json?: Json | null
           link_pagamento?: string | null
           marcacao?: string | null
+          meta_base?: string | null
+          meta_cravada_em?: string | null
+          meta_dias_espera?: number
+          meta_original?: string | null
+          meta_provisoria?: boolean
           natureza_operacao_id?: string
           nf_data?: string | null
           nf_email_enviado_em?: string | null
@@ -34299,6 +34314,27 @@ export type Database = {
           id?: string
           nivel?: string
           responsabilidade?: string
+        }
+        Relationships: []
+      }
+      rls_blindagem_log: {
+        Row: {
+          acao: string
+          executado_em: string
+          id: number
+          tabela: string
+        }
+        Insert: {
+          acao: string
+          executado_em?: string
+          id?: never
+          tabela: string
+        }
+        Update: {
+          acao?: string
+          executado_em?: string
+          id?: never
+          tabela?: string
         }
         Relationships: []
       }
@@ -57286,14 +57322,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -57907,14 +57943,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -59132,14 +59168,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -59461,6 +59497,7 @@ export type Database = {
           data_entrega: string | null
           data_entrega_prevista: string | null
           data_entrega_transportadora: string | null
+          dias_vs_meta: number | null
           dias_vs_previsto: number | null
           entrega_ocorrencia_classe: string | null
           entrega_ocorrencia_codigo: string | null
@@ -59477,6 +59514,8 @@ export type Database = {
           frete_tipo: string | null
           id_externo: string | null
           margem_frete: number | null
+          meta_original: string | null
+          meta_provisoria: boolean | null
           nf_data: string | null
           nf_numero: string | null
           pct_frete_nf: number | null
@@ -59484,6 +59523,12 @@ export type Database = {
           peso_real: number | null
           peso_taxado: number | null
           prazo_transportadora: string | null
+          previsao_confianca: string | null
+          previsao_entrega: string | null
+          previsao_fonte: string | null
+          previsao_motivo_sem_data: string | null
+          transito_dias: number | null
+          transito_fonte: string | null
           transportadora_apelido: string | null
           transportadora_cnpj: string | null
           transportadora_id: string | null
@@ -61343,12 +61388,18 @@ export type Database = {
           dias_vs_meta: number | null
           entregue_com_atraso: boolean | null
           estagio: string | null
+          eta_confianca: string | null
+          eta_fonte: string | null
+          eta_motivo_sem_data: string | null
+          eta_vencido: boolean | null
           eta_vivo: string | null
           expedido: boolean | null
           fase_gargalo: string | null
           fase_logistica: string | null
           id_externo: string | null
           meta: string | null
+          meta_original: string | null
+          meta_provisoria: boolean | null
           pago_apos_expedicao: boolean | null
           parceiro_apelido: string | null
           parceiro_id: string | null
@@ -61358,6 +61409,8 @@ export type Database = {
           sla_fase_atual: number | null
           status_label: string | null
           tempo_na_fase: number | null
+          transito_dias: number | null
+          transito_fonte: string | null
           valor_liquido: number | null
         }
         Relationships: [
@@ -67428,6 +67481,7 @@ export type Database = {
         }[]
       }
       fn_brl: { Args: { p_valor: number }; Returns: string }
+      fn_calcular_meta_base: { Args: { p_pedido_id: string }; Returns: string }
       fn_calcular_meta_entrega: {
         Args: { p_pedido_id: string }
         Returns: string
@@ -67926,6 +67980,8 @@ export type Database = {
         Returns: boolean
       }
       fn_pode_operar_mercadoria: { Args: never; Returns: boolean }
+      fn_prazo_transito_pedido: { Args: { p_pedido_id: string }; Returns: Json }
+      fn_previsao_entrega: { Args: { p_pedido_id: string }; Returns: Json }
       fn_processar_ocorrencia_transp: {
         Args: {
           p_codigo: string
@@ -67950,6 +68006,15 @@ export type Database = {
       fn_recalcular_vinculo_nf_cpr: {
         Args: { p_cpr_id: string }
         Returns: undefined
+      }
+      fn_recravar_meta_pedido: {
+        Args: {
+          p_dias?: number
+          p_modo: string
+          p_motivo?: string
+          p_pedido_id: string
+        }
+        Returns: Json
       }
       fn_reembolso_apontar: {
         Args: {
