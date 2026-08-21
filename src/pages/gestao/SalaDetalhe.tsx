@@ -243,6 +243,11 @@ export default function SalaDetalhe() {
         </div>
       )}
 
+      <div className="grid gap-4 lg:grid-cols-2">
+        <PainelMembrosSala salaId={salaId} membros={membros ?? []} ehFacilitador={!!ehFacilitador} />
+        <PainelEscopoSala salaId={salaId} escopo={escopo ?? []} ehFacilitador={!!ehFacilitador} />
+      </div>
+
       {!reuniao ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-2 p-10 text-center">
@@ -705,9 +710,15 @@ export default function SalaDetalhe() {
                 <SelectTrigger><SelectValue placeholder="Eu mesmo" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value={SEM_PROJETO}>Eu mesmo</SelectItem>
-                  {(membros ?? []).map((m) => (
-                    <SelectItem key={m.pessoa_id} value={m.pessoa_id}>{nomePessoa(m.pessoa_id)}</SelectItem>
-                  ))}
+                  {/* IDENTIDADE: tarefas.responsavel_id é usuario_id (auth), não pessoa_id.
+                      Membro sem login não recebe tarefa no sistema. */}
+                  {(membros ?? []).map((m) => {
+                    const pg = (pessoasGestao ?? []).find((p) => p.pessoa_id === m.pessoa_id);
+                    if (!pg?.usuario_id) return null;
+                    return (
+                      <SelectItem key={pg.usuario_id} value={pg.usuario_id}>{pg.nome}</SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
