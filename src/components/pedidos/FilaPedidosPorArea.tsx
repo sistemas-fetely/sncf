@@ -39,6 +39,7 @@ import {
 import { formatDateBR } from "@/lib/format-currency";
 import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialog";
 import { EnviarBlingDialog } from "@/components/pedidos/dialogs/EnviarBlingDialog";
+import { EmpurrarXpmLinhaDialog } from "@/components/pedidos/dialogs/EmpurrarXpmLinhaDialog";
 import { ConfirmarPortaoPagoDialog } from "@/components/pedidos/dialogs/ConfirmarPortaoPagoDialog";
 import { TabelaCadastroDialog } from "@/components/pedidos/dialogs/TabelaCadastroDialog";
 import { ExportarPedidoDialog } from "@/components/pedidos/dialogs/ExportarPedidoDialog";
@@ -1470,6 +1471,18 @@ function AcoesLinha({ p, temMsg, risco }: { p: PedidoFilaItem; temMsg: boolean; 
           valor_liquido={p.valor_liquido}
           forma_solicitada={p.forma_solicitada}
           variante="discreta"
+          estagio={p.estagio}
+          xpm_expedicao_codigo={p.xpm_expedicao_codigo}
+        />
+      )}
+      {/* XPM-SEM-VAZAMENTO (21/08/2026): resgate do pedido que já foi pro Bling
+          e ficou sem expedição na XPM. Mutuamente exclusivo com o botão acima. */}
+      {p.bling_id_destino && !p.xpm_expedicao_codigo &&
+        (p.estagio === "pre_separacao" || p.estagio === "em_separacao") && (
+        <EmpurrarXpmLinhaDialog
+          pedido_id={p.id}
+          id_externo={p.id_externo}
+          xpm_envio_erro={p.xpm_envio_erro}
         />
       )}
 
