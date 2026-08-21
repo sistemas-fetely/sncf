@@ -196,6 +196,15 @@ export function usePedidosEntregaLote(pedidoIds: string[]) {
           nf_situacao: null,
           nf_id: null,
           nf_bling_id: null,
+          previsao_entrega: null,
+          previsao_fonte: null,
+          previsao_confianca: null,
+          previsao_motivo_sem_data: null,
+          dias_vs_meta: null,
+          meta_provisoria: null,
+          meta_original: null,
+          transito_dias: null,
+          transito_fonte: null,
         };
         m.set(pid, { ...base, ...patch });
       };
