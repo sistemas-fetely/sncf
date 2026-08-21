@@ -103,7 +103,9 @@ export function QuickAddTarefa() {
       projeto_id ? secoes?.filter((s) => s.projeto_id === projeto_id) : secoes,
       r.secaoNome
     );
-    const responsavel_id = casarPessoa(pessoas, r.responsavelNome)?.id ?? null;
+    // Sem @pessoa, ou com @pessoa que não casou: a tarefa nasce no nome de quem criou.
+    // Nunca nasce órfã — sem responsável ela não gera papel e some de todas as listas.
+    const responsavel_id = casarPessoa(pessoas, r.responsavelNome)?.id ?? user?.id ?? null;
     try {
       await criarDoParse(r, { projeto_id, secao_id, responsavel_id });
       setValor("");
