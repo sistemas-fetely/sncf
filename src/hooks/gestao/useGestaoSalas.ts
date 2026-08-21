@@ -209,6 +209,122 @@ export function useCriarSala() {
   });
 }
 
+export type PapelMembro = "facilitador" | "membro" | "convidado";
+
+export const PAPEL_ROTULO: Record<string, string> = {
+  facilitador: "Facilitador",
+  membro: "Membro",
+  convidado: "Convidado",
+};
+
+function invalidarMembros(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: [...KEY_GESTAO, "membros"] });
+  // Trocar/remover facilitador muda quem pode fechar reunião.
+  qc.invalidateQueries({ queryKey: [...KEY_GESTAO, "facilitador"] });
+}
+
+function invalidarEscopo(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: [...KEY_GESTAO, "escopo"] });
+  // A pauta automática só enxerga projetos do escopo.
+  qc.invalidateQueries({ queryKey: [...KEY_GESTAO, "pauta"] });
+  qc.invalidateQueries({ queryKey: [...KEY_GESTAO, "pauta-contagem"] });
+}
+
+export function useAdicionarMembro() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { salaId: string; pessoaId: string; papel: PapelMembro }) => {
+      const { data: auth } = await supabase.auth.getUser();
+      const { error } = await supabase.from("gestao_sala_membro").insert({
+        sala_id: v.salaId,
+        pessoa_id: v.pessoaId,
+        papel: v.papel,
+        criado_por: auth.user?.id ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidarMembros(qc);
+      toast.success("Membro adicionado à sala");
+    },
+    onError: (e: Error) => toast.error(`Não foi possível adicionar o membro: ${e.message}`),
+  });
+}
+
+export function useTrocarPapelMembro() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { salaId: string; pessoaId: string; papel: PapelMembro }) => {
+      const { error } = await supabase
+        .from("gestao_sala_membro")
+        .update({ papel: v.papel })
+        .eq("sala_id", v.salaId)
+        .eq("pessoa_id", v.pessoaId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidarMembros(qc);
+      toast.success("Papel atualizado");
+    },
+    onError: (e: Error) => toast.error(`Não foi possível trocar o papel: ${e.message}`),
+  });
+}
+
+export function useRemoverMembro() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { salaId: string; pessoaId: string }) => {
+      const { error } = await supabase
+        .from("gestao_sala_membro")
+        .delete()
+        .eq("sala_id", v.salaId)
+        .eq("pessoa_id", v.pessoaId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidarMembros(qc);
+      toast.success("Membro removido da sala");
+    },
+    onError: (e: Error) => toast.error(`Não foi possível remover o membro: ${e.message}`),
+  });
+}
+
+export function useAdicionarEscopo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { salaId: string; projetoId: string }) => {
+      const { error } = await supabase
+        .from("gestao_sala_escopo")
+        .insert({ sala_id: v.salaId, projeto_id: v.projetoId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidarEscopo(qc);
+      toast.success("Projeto adicionado ao escopo da sala");
+    },
+    onError: (e: Error) => toast.error(`Não foi possível adicionar o projeto: ${e.message}`),
+  });
+}
+
+export function useRemoverEscopo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { salaId: string; projetoId: string }) => {
+      const { error } = await supabase
+        .from("gestao_sala_escopo")
+        .delete()
+        .eq("sala_id", v.salaId)
+        .eq("projeto_id", v.projetoId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidarEscopo(qc);
+      toast.success("Projeto removido do escopo da sala");
+    },
+    onError: (e: Error) => toast.error(`Não foi possível remover o projeto: ${e.message}`),
+  });
+}
+
 /** Contagem de itens da pauta automática por sala (vw_gestao_pauta). */
 export function usePautaContagemPorSala() {
   return useQuery({

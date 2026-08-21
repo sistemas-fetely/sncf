@@ -17,8 +17,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useNomePessoa } from "@/components/tarefas/detalhe/comuns";
-import { usePessoasSistema } from "@/hooks/tarefas/useTarefasCatalogos";
+// IDENTIDADE-DA-GESTAO-E-PESSOA_ID (20/08/2026): membros usam pessoa_id — nomes e
+// avatares vêm de vw_gestao_pessoa, nunca de v_pessoas_sistema (chave = usuario_id).
+import { useNomeDaPessoa, usePessoasGestao } from "@/hooks/gestao/usePessoasGestao";
 import {
   CADENCIA_ROTULO, useCriarSala, useMembrosSalas, usePautaContagemPorSala, usePodeCriarSala,
   useSalas, useSalasCiclo,
@@ -36,8 +37,8 @@ export default function Salas() {
   const { data: membros } = useMembrosSalas();
   const { data: podeCriar } = usePodeCriarSala();
   const { data: pautaContagem } = usePautaContagemPorSala();
-  const { data: pessoas } = usePessoasSistema();
-  const nomePessoa = useNomePessoa();
+  const { data: pessoas } = usePessoasGestao();
+  const nomePessoa = useNomeDaPessoa();
   const criar = useCriarSala();
 
   const [aberto, setAberto] = useState(false);
@@ -125,7 +126,7 @@ export default function Salas() {
                       {lista.length > 0 && (
                         <div className="mt-1.5 flex flex-wrap items-center gap-1">
                           {lista.slice(0, 8).map((m) => {
-                            const pessoa = (pessoas ?? []).find((p) => p.id === m.pessoa_id);
+                            const pessoa = (pessoas ?? []).find((p) => p.pessoa_id === m.pessoa_id);
                             const nome = pessoa?.nome ?? nomePessoa(m.pessoa_id);
                             return (
                               <Avatar key={m.pessoa_id} className="h-6 w-6" title={`${nome} · ${m.papel}`}>

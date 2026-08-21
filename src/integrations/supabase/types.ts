@@ -15881,6 +15881,13 @@ export type Database = {
             foreignKeyName: "gestao_decisao_decidida_por_pessoa_id_fkey"
             columns: ["decidida_por_pessoa_id"]
             isOneToOne: false
+            referencedRelation: "vw_gestao_pessoa"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "gestao_decisao_decidida_por_pessoa_id_fkey"
+            columns: ["decidida_por_pessoa_id"]
+            isOneToOne: false
             referencedRelation: "vw_nf_vinculo_pessoa"
             referencedColumns: ["pessoa_id"]
           },
@@ -16148,6 +16155,13 @@ export type Database = {
             foreignKeyName: "gestao_reuniao_participante_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
+            referencedRelation: "vw_gestao_pessoa"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "gestao_reuniao_participante_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
             referencedRelation: "vw_nf_vinculo_pessoa"
             referencedColumns: ["pessoa_id"]
           },
@@ -16260,6 +16274,13 @@ export type Database = {
             columns: ["dono_pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "gestao_risco_dono_pessoa_id_fkey"
+            columns: ["dono_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_pessoa"
             referencedColumns: ["pessoa_id"]
           },
           {
@@ -16429,6 +16450,13 @@ export type Database = {
             foreignKeyName: "gestao_sala_dono_pessoa_id_fkey"
             columns: ["dono_pessoa_id"]
             isOneToOne: false
+            referencedRelation: "vw_gestao_pessoa"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "gestao_sala_dono_pessoa_id_fkey"
+            columns: ["dono_pessoa_id"]
+            isOneToOne: false
             referencedRelation: "vw_nf_vinculo_pessoa"
             referencedColumns: ["pessoa_id"]
           },
@@ -16544,6 +16572,13 @@ export type Database = {
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "gestao_sala_membro_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_pessoa"
             referencedColumns: ["pessoa_id"]
           },
           {
@@ -30480,6 +30515,13 @@ export type Database = {
             foreignKeyName: "pessoa_departamentos_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
+            referencedRelation: "vw_gestao_pessoa"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "pessoa_departamentos_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
             referencedRelation: "vw_nf_vinculo_pessoa"
             referencedColumns: ["pessoa_id"]
           },
@@ -38959,6 +39001,7 @@ export type Database = {
           proxima_geracao: string | null
           responsavel_id: string | null
           secao_id: string | null
+          template_id: string | null
           titulo: string
           visibilidade: string
         }
@@ -38984,6 +39027,7 @@ export type Database = {
           proxima_geracao?: string | null
           responsavel_id?: string | null
           secao_id?: string | null
+          template_id?: string | null
           titulo: string
           visibilidade?: string
         }
@@ -39009,6 +39053,7 @@ export type Database = {
           proxima_geracao?: string | null
           responsavel_id?: string | null
           secao_id?: string | null
+          template_id?: string | null
           titulo?: string
           visibilidade?: string
         }
@@ -39053,6 +39098,13 @@ export type Database = {
             columns: ["secao_id"]
             isOneToOne: false
             referencedRelation: "tarefas_secoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_recorrencias_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -43311,6 +43363,13 @@ export type Database = {
             foreignKeyName: "vendedores_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
+            referencedRelation: "vw_gestao_pessoa"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vendedores_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
             referencedRelation: "vw_nf_vinculo_pessoa"
             referencedColumns: ["pessoa_id"]
           },
@@ -43808,6 +43867,13 @@ export type Database = {
             foreignKeyName: "vinculos_gestor_pessoa_id_fkey"
             columns: ["gestor_pessoa_id"]
             isOneToOne: false
+            referencedRelation: "vw_gestao_pessoa"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vinculos_gestor_pessoa_id_fkey"
+            columns: ["gestor_pessoa_id"]
+            isOneToOne: false
             referencedRelation: "vw_nf_vinculo_pessoa"
             referencedColumns: ["pessoa_id"]
           },
@@ -43907,6 +43973,13 @@ export type Database = {
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vinculos_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_pessoa"
             referencedColumns: ["pessoa_id"]
           },
           {
@@ -47132,6 +47205,13 @@ export type Database = {
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vinculos_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_pessoa"
             referencedColumns: ["pessoa_id"]
           },
           {
@@ -55799,6 +55879,35 @@ export type Database = {
           },
         ]
       }
+      vw_gestao_pessoa: {
+        Row: {
+          avatar_url: string | null
+          cargo: string | null
+          departamento: string | null
+          email: string | null
+          nome: string | null
+          pessoa_id: string | null
+          tem_login: boolean | null
+          tipo_vinculo: string | null
+          usuario_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vinculos_tipo_vinculo_fkey"
+            columns: ["tipo_vinculo"]
+            isOneToOne: false
+            referencedRelation: "tipos_vinculo"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "vinculos_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "v_pessoas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vw_gestao_sala_ciclo: {
         Row: {
           cadencia: string | null
@@ -58069,6 +58178,13 @@ export type Database = {
             foreignKeyName: "vinculos_gestor_pessoa_id_fkey"
             columns: ["gestor_pessoa_id"]
             isOneToOne: false
+            referencedRelation: "vw_gestao_pessoa"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vinculos_gestor_pessoa_id_fkey"
+            columns: ["gestor_pessoa_id"]
+            isOneToOne: false
             referencedRelation: "vw_nf_vinculo_pessoa"
             referencedColumns: ["pessoa_id"]
           },
@@ -58262,14 +58378,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -59487,14 +59603,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -66014,6 +66130,13 @@ export type Database = {
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "vendedores_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_pessoa"
             referencedColumns: ["pessoa_id"]
           },
           {

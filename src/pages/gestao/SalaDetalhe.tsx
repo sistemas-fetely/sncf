@@ -20,7 +20,11 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { useNomePessoa } from "@/components/tarefas/detalhe/comuns";
+// IDENTIDADE-DA-GESTAO-E-PESSOA_ID (20/08/2026): membros/participantes usam pessoa_id
+// (pessoas.id) — nomes resolvem por vw_gestao_pessoa, nunca por v_pessoas_sistema.
+import { useNomeDaPessoa, usePessoasGestao } from "@/hooks/gestao/usePessoasGestao";
+import { PainelMembrosSala } from "@/components/gestao/PainelMembrosSala";
+import { PainelEscopoSala } from "@/components/gestao/PainelEscopoSala";
 import { useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -98,7 +102,8 @@ export default function SalaDetalhe() {
   const { data: ehFacilitador } = useEhFacilitador(salaId);
   const { data: reunioes } = useReunioesDaSala(salaId);
   const { data: projetos } = useProjetos();
-  const nomePessoa = useNomePessoa();
+  const nomePessoa = useNomeDaPessoa();
+  const { data: pessoasGestao } = usePessoasGestao();
 
   const ciclo = (ciclos ?? []).find((c) => c.sala_id === salaId) ?? null;
   const reuniaoAberta = (reunioes ?? []).find((r) => r.status === "aberta") ?? null;
@@ -237,6 +242,11 @@ export default function SalaDetalhe() {
           </p>
         </div>
       )}
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <PainelMembrosSala salaId={salaId} membros={membros ?? []} ehFacilitador={!!ehFacilitador} />
+        <PainelEscopoSala salaId={salaId} escopo={escopo ?? []} ehFacilitador={!!ehFacilitador} />
+      </div>
 
       {!reuniao ? (
         <Card>
@@ -700,9 +710,15 @@ export default function SalaDetalhe() {
                 <SelectTrigger><SelectValue placeholder="Eu mesmo" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value={SEM_PROJETO}>Eu mesmo</SelectItem>
-                  {(membros ?? []).map((m) => (
-                    <SelectItem key={m.pessoa_id} value={m.pessoa_id}>{nomePessoa(m.pessoa_id)}</SelectItem>
-                  ))}
+                  {/* IDENTIDADE: tarefas.responsavel_id é usuario_id (auth), não pessoa_id.
+                      Membro sem login não recebe tarefa no sistema. */}
+                  {(membros ?? []).map((m) => {
+                    const pg = (pessoasGestao ?? []).find((p) => p.pessoa_id === m.pessoa_id);
+                    if (!pg?.usuario_id) return null;
+                    return (
+                      <SelectItem key={pg.usuario_id} value={pg.usuario_id}>{pg.nome}</SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
