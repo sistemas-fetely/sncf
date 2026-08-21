@@ -5136,6 +5136,98 @@ export type Database = {
           },
         ]
       }
+      cargos_faixas_salariais: {
+        Row: {
+          cargo_id: string
+          created_at: string
+          faixa_clt_f1_max: number | null
+          faixa_clt_f1_min: number | null
+          faixa_clt_f2_max: number | null
+          faixa_clt_f2_min: number | null
+          faixa_clt_f3_max: number | null
+          faixa_clt_f3_min: number | null
+          faixa_clt_f4_max: number | null
+          faixa_clt_f4_min: number | null
+          faixa_clt_f5_max: number | null
+          faixa_clt_f5_min: number | null
+          faixa_pj_f1_max: number | null
+          faixa_pj_f1_min: number | null
+          faixa_pj_f2_max: number | null
+          faixa_pj_f2_min: number | null
+          faixa_pj_f3_max: number | null
+          faixa_pj_f3_min: number | null
+          faixa_pj_f4_max: number | null
+          faixa_pj_f4_min: number | null
+          faixa_pj_f5_max: number | null
+          faixa_pj_f5_min: number | null
+          id: string
+          protege_salario: boolean
+          updated_at: string
+        }
+        Insert: {
+          cargo_id: string
+          created_at?: string
+          faixa_clt_f1_max?: number | null
+          faixa_clt_f1_min?: number | null
+          faixa_clt_f2_max?: number | null
+          faixa_clt_f2_min?: number | null
+          faixa_clt_f3_max?: number | null
+          faixa_clt_f3_min?: number | null
+          faixa_clt_f4_max?: number | null
+          faixa_clt_f4_min?: number | null
+          faixa_clt_f5_max?: number | null
+          faixa_clt_f5_min?: number | null
+          faixa_pj_f1_max?: number | null
+          faixa_pj_f1_min?: number | null
+          faixa_pj_f2_max?: number | null
+          faixa_pj_f2_min?: number | null
+          faixa_pj_f3_max?: number | null
+          faixa_pj_f3_min?: number | null
+          faixa_pj_f4_max?: number | null
+          faixa_pj_f4_min?: number | null
+          faixa_pj_f5_max?: number | null
+          faixa_pj_f5_min?: number | null
+          id?: string
+          protege_salario?: boolean
+          updated_at?: string
+        }
+        Update: {
+          cargo_id?: string
+          created_at?: string
+          faixa_clt_f1_max?: number | null
+          faixa_clt_f1_min?: number | null
+          faixa_clt_f2_max?: number | null
+          faixa_clt_f2_min?: number | null
+          faixa_clt_f3_max?: number | null
+          faixa_clt_f3_min?: number | null
+          faixa_clt_f4_max?: number | null
+          faixa_clt_f4_min?: number | null
+          faixa_clt_f5_max?: number | null
+          faixa_clt_f5_min?: number | null
+          faixa_pj_f1_max?: number | null
+          faixa_pj_f1_min?: number | null
+          faixa_pj_f2_max?: number | null
+          faixa_pj_f2_min?: number | null
+          faixa_pj_f3_max?: number | null
+          faixa_pj_f3_min?: number | null
+          faixa_pj_f4_max?: number | null
+          faixa_pj_f4_min?: number | null
+          faixa_pj_f5_max?: number | null
+          faixa_pj_f5_min?: number | null
+          id?: string
+          protege_salario?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cargos_faixas_salariais_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: true
+            referencedRelation: "cargos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cartao_conciliacao_auto_log: {
         Row: {
           candidatos: number
