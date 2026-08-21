@@ -139,6 +139,27 @@ Incluir as 3 experiências mais recentes e todas as formações. Skills técnica
         });
       }
 
+      // SECURITY: sem login, só o PRIMEIRO cálculo é permitido (logo após a candidatura
+      // pública, quando score_calculado_em ainda é NULL). Isso impede que qualquer
+      // pessoa reescreva o score de um candidato existente via service role.
+      if (!authedUserId) {
+        const adminCheck = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        );
+        const { data: cand } = await adminCheck
+          .from("candidatos")
+          .select("score_calculado_em")
+          .eq("id", candidato_id)
+          .maybeSingle();
+        if (!cand || cand.score_calculado_em) {
+          return new Response(JSON.stringify({ error: "Não autorizado" }), {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
