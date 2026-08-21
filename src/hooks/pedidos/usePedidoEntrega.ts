@@ -79,6 +79,16 @@ export interface EntregaLinhaInfo {
   nf_situacao: string | null;
   nf_id: string | null;
   nf_bling_id: string | null;
+  // PREVISAO-VEM-DO-BANCO (21/08/2026)
+  previsao_entrega: string | null;
+  previsao_fonte: string | null;
+  previsao_confianca: string | null;
+  previsao_motivo_sem_data: string | null;
+  dias_vs_meta: number | null;
+  meta_provisoria: boolean | null;
+  meta_original: string | null;
+  transito_dias: number | null;
+  transito_fonte: string | null;
 }
 
 
