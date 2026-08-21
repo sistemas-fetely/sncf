@@ -1,13 +1,12 @@
 import { useLocation } from "react-router-dom";
-import {
-  Sliders, Settings, UserCog, Shield,
-  ClipboardList, UsersRound, FilePlus, Eye, Timer,
-} from "lucide-react";
+import { Shield, ClipboardList, UsersRound } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { useVisibilidadeMenuFixo } from "@/hooks/useVisibilidadeMenu";
+import { useMenuApp, type ItemMenu } from "@/hooks/useMenuApp";
+import { resolverIcone } from "@/config/iconesNavegacao";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
@@ -16,29 +15,6 @@ import {
 
 const ADMIN_COLOR = "#1A4A3A";
 
-interface MenuItem {
-  title: string;
-  url: string;
-  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
-  end?: boolean;
-}
-
-// Grupo 2: Pessoas & Acessos
-const pessoasItems: MenuItem[] = [
-  { title: "Gerenciar Usuários", url: "/admin/usuarios", icon: UserCog },
-];
-
-// Grupo 3: Sistema
-const sistemaItems: MenuItem[] = [
-  { title: "Parâmetros", url: "/admin/parametros", icon: Sliders },
-  { title: "Configurações", url: "/admin/configuracoes", icon: Settings },
-  { title: "Importações PDF", url: "/admin/importacoes-pdf", icon: FilePlus },
-];
-
-// MIGRADOS na Sprint 2 (29/04/2026):
-//   - Cargos e Salários → People Fetely (já estava lá; removido daqui pra evitar duplicação)
-//   - Reportes do Sistema → TI Fetely
-
 export function AdminSidebar() {
   const location = useLocation();
   const { state } = useSidebar();
@@ -46,59 +22,34 @@ export function AdminSidebar() {
   const collapsed = state === "collapsed";
   const { podeVer, isLoading: carregandoVisibilidade } = useVisibilidadeMenuFixo();
 
-  // ATENCAO: este sidebar e HARDCODED, nao le sncf_navegacao. Toda tela nova de
-  // /admin precisa ser declarada NOS DOIS lugares: aqui e em sncf_navegacao
-  // (doutrina DECLARAR-OU-NAO-EXISTE). So o registro no banco nao faz aparecer.
-  const sistemaItemsFinal: MenuItem[] = [
-    ...sistemaItems,
-    ...(roles.includes("super_admin")
-      ? [
-          { title: "SLA da Operação", url: "/admin/sla", icon: Timer },
-          { title: "Visibilidade de Telas", url: "/admin/visibilidade", icon: Eye },
-        ]
-      : []),
-  ];
+  // MENU-VIA-TABELA (21/08/2026): grupos, itens, rotulos, icones e ordem vem
+  // da sncf_navegacao (app "mesa"). Mudar o menu de Mesa passa a ser UPDATE,
+  // sem deploy. Achado na migracao: "Configurar Perfis" (/admin/usuarios/perfis)
+  // ja existia na tabela e nunca tinha aparecido aqui — orfa corrigida de graca.
+  const { grupos, soltos, isLoading: carregandoMenu } = useMenuApp("mesa");
 
-  const isItemActive = (url: string, end?: boolean) =>
-    end ? location.pathname === url : location.pathname.startsWith(url);
+  const isItemActive = (url: string) =>
+    location.pathname === url || location.pathname.startsWith(url + "/");
 
-  const renderMenuItem = (item: MenuItem) => {
-    const active = isItemActive(item.url, item.end);
+  const renderMenuItem = (item: ItemMenu) => {
+    const active = isItemActive(item.rota);
+    const Icone = resolverIcone(item.icone);
     return (
-      <SidebarMenuItem key={item.url}>
+      <SidebarMenuItem key={item.chave}>
         <SidebarMenuButton asChild>
           <NavLink
-            to={item.url}
-            end={item.end}
+            to={item.rota}
             className={cn(
               "flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200",
               active && "bg-sidebar-accent text-sidebar-foreground font-medium border-l-[3px] shadow-sm"
             )}
             style={active ? { borderLeftColor: ADMIN_COLOR, color: ADMIN_COLOR } : undefined}
           >
-            <item.icon className="h-[18px] w-[18px] shrink-0" style={active ? { color: ADMIN_COLOR } : undefined} />
-            {!collapsed && <span>{item.title}</span>}
+            <Icone className="h-[18px] w-[18px] shrink-0" style={active ? { color: ADMIN_COLOR } : undefined} />
+            {!collapsed && <span>{item.label}</span>}
           </NavLink>
         </SidebarMenuButton>
       </SidebarMenuItem>
-    );
-  };
-
-  const renderGroup = (label: string, items: MenuItem[]) => {
-    if (carregandoVisibilidade) return null;
-    const visiveis = items.filter((i) => podeVer(i.url));
-    if (!visiveis.length) return null;
-    return (
-      <SidebarGroup>
-        {!collapsed && (
-          <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4">
-            {label}
-          </SidebarGroupLabel>
-        )}
-        <SidebarGroupContent>
-          <SidebarMenu>{visiveis.map(renderMenuItem)}</SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
     );
   };
 
@@ -163,9 +114,27 @@ export function AdminSidebar() {
         </SidebarGroup>
         )}
         <div className="mx-4 border-t border-sidebar-border/40" />
-        {renderGroup("Pessoas & Acessos", pessoasItems)}
-        <div className="mx-4 border-t border-sidebar-border/40" />
-        {renderGroup("Sistema", sistemaItemsFinal)}
+
+        {!carregandoMenu && soltos.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>{soltos.map(renderMenuItem)}</SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {!carregandoMenu && grupos.map((g) => (
+          <SidebarGroup key={g.chave}>
+            {!collapsed && (
+              <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4">
+                {g.label}
+              </SidebarGroupLabel>
+            )}
+            <SidebarGroupContent>
+              <SidebarMenu>{g.itens.map(renderMenuItem)}</SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
 
       <SidebarFooter className="p-4 space-y-2">

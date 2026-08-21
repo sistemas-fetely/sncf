@@ -66521,6 +66521,15 @@ export type Database = {
         Args: { p_cpr_id: string }
         Returns: undefined
       }
+      fn_recorrencia_gerar_subtarefas: {
+        Args: {
+          _data_base: string
+          _recorrencia_id: string
+          _tarefa_mae_id: string
+          _template_id: string
+        }
+        Returns: number
+      }
       fn_recravar_meta_pedido: {
         Args: {
           p_dias?: number
