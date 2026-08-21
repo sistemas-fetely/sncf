@@ -16,11 +16,37 @@ serve(async (req) => {
 
     const { action, candidato_id, pdf_base64, vaga, candidato } = await req.json();
 
+    // SECURITY: identifica o chamador quando autenticado. Recalcular score (ou pontuar
+    // candidato inexistente) exige login; o portal público só faz o PRIMEIRO cálculo.
+    const authHeader = req.headers.get("Authorization");
+    let authedUserId: string | null = null;
+    if (authHeader?.startsWith("Bearer ")) {
+      try {
+        const userClient = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_ANON_KEY")!,
+          { global: { headers: { Authorization: authHeader } } }
+        );
+        const { data: claims } = await userClient.auth.getClaims(authHeader.replace("Bearer ", ""));
+        authedUserId = (claims?.claims?.sub as string | undefined) ?? null;
+      } catch {
+        authedUserId = null;
+      }
+    }
+
     // --- PARSE PDF ---
     if (action === "parse_pdf") {
       if (!pdf_base64) {
         return new Response(JSON.stringify({ error: "pdf_base64 obrigatório" }), {
           status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // SECURITY: limite de tamanho para conter abuso de créditos de IA (~10MB de PDF)
+      if (typeof pdf_base64 !== "string" || pdf_base64.length > 14_000_000) {
+        return new Response(JSON.stringify({ error: "PDF muito grande (limite ~10MB)" }), {
+          status: 413,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
