@@ -23677,6 +23677,7 @@ export type Database = {
           pix_tipo: string | null
           plano_contas_id: string | null
           premissas: Json | null
+          rastreio_automatico: boolean
           razao_social: string
           regiao_atuacao: string | null
           regime_consignado: boolean
@@ -23737,6 +23738,7 @@ export type Database = {
           pix_tipo?: string | null
           plano_contas_id?: string | null
           premissas?: Json | null
+          rastreio_automatico?: boolean
           razao_social: string
           regiao_atuacao?: string | null
           regime_consignado?: boolean
@@ -23797,6 +23799,7 @@ export type Database = {
           pix_tipo?: string | null
           plano_contas_id?: string | null
           premissas?: Json | null
+          rastreio_automatico?: boolean
           razao_social?: string
           regiao_atuacao?: string | null
           regime_consignado?: boolean
