@@ -23679,6 +23679,10 @@ export type Database = {
           premissas: Json | null
           razao_social: string
           regiao_atuacao: string | null
+          regime_consignado: boolean
+          regime_consignado_desde: string | null
+          regime_consignado_motivo: string | null
+          regime_consignado_por: string | null
           rg: string | null
           segmento: string | null
           situacao_cadastral: string | null
@@ -23735,6 +23739,10 @@ export type Database = {
           premissas?: Json | null
           razao_social: string
           regiao_atuacao?: string | null
+          regime_consignado?: boolean
+          regime_consignado_desde?: string | null
+          regime_consignado_motivo?: string | null
+          regime_consignado_por?: string | null
           rg?: string | null
           segmento?: string | null
           situacao_cadastral?: string | null
@@ -23791,6 +23799,10 @@ export type Database = {
           premissas?: Json | null
           razao_social?: string
           regiao_atuacao?: string | null
+          regime_consignado?: boolean
+          regime_consignado_desde?: string | null
+          regime_consignado_motivo?: string | null
+          regime_consignado_por?: string | null
           rg?: string | null
           segmento?: string | null
           situacao_cadastral?: string | null
