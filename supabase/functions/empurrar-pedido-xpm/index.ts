@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
       duracao_ms: Date.now() - t0,
     });
 
-      // 8. Estado do pedido (FAIL-LOUD: erro fica gravado e visível)
+    // 8. Estado do pedido (FAIL-LOUD: erro fica gravado e visível)
     if (sucesso) {
       const { error: eUp } = await sb.from("pedidos").update({
         xpm_expedicao_codigo: codigo,
