@@ -1,28 +1,8 @@
 import { Loader2 } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { EntregaLinhaInfo } from "@/hooks/pedidos/usePedidoEntrega";
 import { useDownloadNfPdf } from "@/hooks/nf/useDownloadNfPdf";
-
-const TOOLTIP_META =
-  "Alvo calculado pelo sistema: SLAs internos + 5 dias úteis de trânsito fixos. Não é prazo informado pela transportadora.";
-
-function fmtDataCurta(v: string | null): string | null {
-  if (!v) return null;
-  const d = new Date(v);
-  if (isNaN(d.getTime())) return null;
-  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-}
-
-/** Dias corridos entre hoje e uma data ISO (positivo = data já passou). */
-function diasDesde(v: string): number | null {
-  const d = new Date(v);
-  if (isNaN(d.getTime())) return null;
-  const hoje = new Date();
-  const a = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
-  const b = Date.UTC(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
-  return Math.floor((b - a) / 86400000);
-}
+import { BlocoPrazo, Selo, fmtDataCurta, proveniencia } from "@/components/pedidos/prazoEntrega";
 
 /** Linha da NF na coluna Valor: faturamento é fato do dinheiro. */
 export function LinhaNfFila({ info }: { info: EntregaLinhaInfo | undefined }) {
@@ -88,15 +68,7 @@ function LinhaQuemEntrega({ info }: { info: EntregaLinhaInfoComApelido }) {
       </p>
     );
   }
-  if (origem === "transportadora_via_frete") {
-    const texto = (nome || "Transportadora") + sufixo;
-    return (
-      <p className={cn("text-[11px] truncate", prevista ? "text-muted-foreground" : "text-foreground")} title={texto}>
-        {texto}
-      </p>
-    );
-  }
-  if (origem === "transportadora") {
+  if (origem === "transportadora_via_frete" || origem === "transportadora") {
     const texto = (nome || "Transportadora") + sufixo;
     return (
       <p className={cn("text-[11px] truncate", prevista ? "text-muted-foreground" : "text-foreground")} title={texto}>
@@ -111,50 +83,37 @@ function LinhaQuemEntrega({ info }: { info: EntregaLinhaInfoComApelido }) {
   );
 }
 
-/** Linha de baixo: ESCADA DE PROCEDÊNCIA — apenas um degrau, o mais alto. */
+/**
+ * Linha de baixo: meta e previsão CONVIVEM (PREVISAO-VEM-DO-BANCO, 21/08/2026).
+ * Só o pedido entregue troca o bloco pela data real com selo de procedência.
+ */
 function LinhaDataProcedencia({ info }: { info: EntregaLinhaInfo }) {
-  const entregue = fmtDataCurta(info.entregue_em || info.data_entrega_transportadora);
-  if (entregue) {
-    return <p className="text-[11px] text-success">Entregue {entregue}</p>;
-  }
+  const entregueEm = info.entregue_em || info.data_entrega_transportadora;
+  const entregue = info.estagio === "entregue" || !!info.entregue_em;
+  const dataEntregue = fmtDataCurta(entregueEm);
 
-  const prazo = fmtDataCurta(info.prazo_transportadora);
-  if (prazo) {
-    return <p className="text-[11px] text-foreground">Transportadora: {prazo}</p>;
-  }
-
-  const meta = fmtDataCurta(info.data_entrega_prevista);
-  if (meta) {
-    const atraso = info.data_entrega_prevista ? diasDesde(info.data_entrega_prevista) : null;
-    const atrasada = atraso !== null && atraso > 0;
+  if (entregue && dataEntregue) {
+    const proc = proveniencia(info.entregue_metodo);
     return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="w-fit cursor-help flex flex-wrap items-center gap-1">
-              <span className="text-[10px] rounded px-1 py-[1px] border bg-muted text-muted-foreground border-border">
-                Meta interna
-              </span>
-              <span className={cn("text-[11px]", atrasada ? "text-destructive font-medium" : "text-muted-foreground")}>
-                {atrasada ? `${atraso}d além da meta` : meta}
-              </span>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p className="text-xs max-w-[280px]">
-              {TOOLTIP_META}
-              {atrasada ? ` Meta era ${meta}.` : ""}
-            </p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <div className="flex flex-wrap items-center gap-1">
+        <span className="text-[11px] text-success">Entregue {dataEntregue}</span>
+        <Selo
+          className={
+            proc.alerta
+              ? "bg-warning/15 text-warning border-warning/40 font-medium"
+              : "bg-success/10 text-success border-success/30"
+          }
+        >
+          {proc.rotulo}
+        </Selo>
+      </div>
     );
   }
 
-  return <p className="text-[11px] text-muted-foreground/60 italic">Sem previsão</p>;
+  return <BlocoPrazo info={info} formato="curta" />;
 }
 
-/** Coluna Entrega da fila: quem entrega, a data pela escada e a última ocorrência. */
+/** Coluna Entrega da fila: quem entrega, o bloco de prazo e a última ocorrência. */
 export function CelulaEntregaFila({ info }: { info: EntregaLinhaInfo | undefined }) {
   if (!info) {
     return <p className="text-[11px] text-muted-foreground/60 italic">Transportadora não definida</p>;
