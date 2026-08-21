@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { descreverPreview, parseQuickAdd, type TokenTipo } from "@/lib/tarefas/quickAddParser";
 import { useCriarTarefaQuickAdd } from "@/hooks/tarefas/useTarefaMutations";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   casarPessoa,
   casarPorNome,
@@ -30,6 +31,7 @@ const COR_TOKEN: Record<TokenTipo, string> = {
 const CLASSES_TEXTO = "px-3 py-2 text-sm font-normal leading-[1.25rem] tracking-normal";
 
 export function QuickAddTarefa() {
+  const { user } = useAuth();
   const [valor, setValor] = useState("");
   const [cursor, setCursor] = useState(0);
   const [indice, setIndice] = useState(0);
@@ -101,7 +103,9 @@ export function QuickAddTarefa() {
       projeto_id ? secoes?.filter((s) => s.projeto_id === projeto_id) : secoes,
       r.secaoNome
     );
-    const responsavel_id = casarPessoa(pessoas, r.responsavelNome)?.id ?? null;
+    // Sem @pessoa, ou com @pessoa que não casou: a tarefa nasce no nome de quem criou.
+    // Nunca nasce órfã — sem responsável ela não gera papel e some de todas as listas.
+    const responsavel_id = casarPessoa(pessoas, r.responsavelNome)?.id ?? user?.id ?? null;
     try {
       await criarDoParse(r, { projeto_id, secao_id, responsavel_id });
       setValor("");
@@ -219,7 +223,7 @@ export function QuickAddTarefa() {
           <p className="text-xs text-muted-foreground">→ responsável: {pessoaResolvida.nome}</p>
         ) : (
           <p className="text-xs text-warning">
-            Ninguém chamado "{resultado.responsavelNome}" — a tarefa vai nascer sem responsável.
+            Ninguém chamado "{resultado.responsavelNome}" — a tarefa vai nascer no seu nome.
           </p>
         )
       )}
