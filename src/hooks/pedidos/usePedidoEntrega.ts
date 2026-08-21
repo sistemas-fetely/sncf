@@ -226,6 +226,15 @@ export function usePedidosEntregaLote(pedidoIds: string[]) {
           entrega_ocorrencia_codigo: r.entrega_ocorrencia_codigo ?? null,
           entrega_ocorrencia_classe: r.entrega_ocorrencia_classe ?? null,
           entrega_ocorrencia_problema: r.entrega_ocorrencia_problema ?? null,
+          previsao_entrega: r.previsao_entrega ?? null,
+          previsao_fonte: r.previsao_fonte ?? null,
+          previsao_confianca: r.previsao_confianca ?? null,
+          previsao_motivo_sem_data: r.previsao_motivo_sem_data ?? null,
+          dias_vs_meta: r.dias_vs_meta ?? null,
+          meta_provisoria: r.meta_provisoria ?? null,
+          meta_original: r.meta_original ?? null,
+          transito_dias: r.transito_dias ?? null,
+          transito_fonte: r.transito_fonte ?? null,
         });
       }
       for (const [pid, nf] of nfMap.entries()) {
