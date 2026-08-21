@@ -9,7 +9,8 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
-import { useNomePessoa } from "@/components/tarefas/detalhe/comuns";
+// IDENTIDADE-DA-GESTAO-E-PESSOA_ID (20/08/2026): dono_pessoa_id é pessoas.id — resolve por vw_gestao_pessoa.
+import { useNomeDaPessoa } from "@/hooks/gestao/usePessoasGestao";
 import { STATUS_RISCO_ROTULO, useRiscos } from "@/hooks/gestao/useRiscos";
 import { classesDaFaixa, faixaDe, useFaixasRisco } from "@/hooks/gestao/useFaixasRisco";
 
@@ -30,7 +31,7 @@ export default function Riscos() {
   });
   const { data: faixas } = useFaixasRisco();
   const { data: projetos } = useProjetos();
-  const nomePessoa = useNomePessoa();
+  const nomePessoa = useNomeDaPessoa();
 
   const contagem = useMemo(() => {
     const m = new Map<string, number>();
