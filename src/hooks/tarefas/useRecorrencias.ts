@@ -20,7 +20,9 @@ export interface Recorrencia {
   projeto_id: string | null;
   secao_id: string | null;
   responsavel_id: string | null;
+  template_id: string | null;
   visibilidade: string;
+
   estimativa_horas: number | null;
   departamento_destino_id: string | null;
   frequencia: string;
@@ -37,7 +39,8 @@ export interface Recorrencia {
 }
 
 const CAMPOS =
-  "id,titulo,descricao,prioridade,projeto_id,secao_id,responsavel_id,visibilidade,estimativa_horas,departamento_destino_id,frequencia,intervalo,dias_semana,dia_mes,mes,inicio_em,fim_em,proxima_geracao,antecedencia_dias,ativo,criado_em" as const;
+  "id,titulo,descricao,prioridade,projeto_id,secao_id,responsavel_id,template_id,visibilidade,estimativa_horas,departamento_destino_id,frequencia,intervalo,dias_semana,dia_mes,mes,inicio_em,fim_em,proxima_geracao,antecedencia_dias,ativo,criado_em" as const;
+
 
 export type NovaRecorrencia = Omit<Recorrencia, "id" | "criado_em" | "proxima_geracao">;
 
