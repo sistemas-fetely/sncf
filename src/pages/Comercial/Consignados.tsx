@@ -35,18 +35,10 @@ export function useParceirosConsignados() {
   return useQuery({
     queryKey: ["consignados-parceiros"],
     queryFn: async (): Promise<ParceiroConsignado[]> => {
-      const { data: formas, error: errForma } = await (supabase as any)
-        .from("formas_pagamento")
-        .select("id")
-        .eq("codigo", "conta_corrente");
-      if (errForma) throw errForma;
-      const ids = ((formas ?? []) as { id: string }[]).map((f) => f.id);
-      if (ids.length === 0) return [];
-
       const { data, error } = await (supabase as any)
         .from("parceiros_comerciais")
         .select("id, razao_social, nome_fantasia, cnpj")
-        .in("forma_pagamento_padrao_id", ids)
+        .eq("regime_consignado", true)
         .eq("ativo", true)
         .order("razao_social");
       if (error) throw error;
