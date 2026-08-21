@@ -81,7 +81,7 @@ export function useCargos(filtroTipo?: "clt" | "pj" | "ambos") {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (await mesclarFaixasSalariais(data)) as Cargo[];
+      return (await mesclarFaixasSalariais(data)) as unknown as Cargo[];
     },
   });
 }
@@ -95,7 +95,7 @@ export function useAllCargos() {
         .select("*")
         .order("nome");
       if (error) throw error;
-      return (await mesclarFaixasSalariais(data)) as Cargo[];
+      return (await mesclarFaixasSalariais(data)) as unknown as Cargo[];
     },
   });
 }
@@ -112,7 +112,7 @@ export function useCargoById(id: string | null) {
         .single();
       if (error) throw error;
       const [completo] = await mesclarFaixasSalariais([data]);
-      return completo as Cargo;
+      return completo as unknown as Cargo;
     },
     enabled: !!id,
   });

@@ -144,6 +144,10 @@ export interface PedidoFilaItem {
   analise_credito_id: string | null;
   marcacao: string | null;
   bling_id_destino?: string | null;
+  // XPM-NA-FILA (21/08/2026): a ação da linha usa estes campos pra decidir se o
+  // pedido precisa passar pela XPM (antes do Bling) ou ser resgatado pra XPM.
+  xpm_expedicao_codigo: string | null;
+  xpm_envio_erro: string | null;
   atencao_nivel?: 'pausa' | 'aviso' | null;
   atencao_motivo?: string | null;
   atencao_por?: string | null;
