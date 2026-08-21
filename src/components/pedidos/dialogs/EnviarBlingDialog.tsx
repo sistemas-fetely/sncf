@@ -7,8 +7,10 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Send, Loader2, AlertTriangle, RefreshCw, Package } from "lucide-react";
+import { Send, Loader2, AlertTriangle, RefreshCw, Package, Truck } from "lucide-react";
 import { useEnviarBling } from "@/hooks/pedidos/useEnviarBling";
+import { useEmpurrarXpm } from "@/hooks/pedidos/useEmpurrarXpm";
+import { usePreviaEmpurrarXpm } from "@/hooks/pedidos/usePreviaEmpurrarXpm";
 import { useSyncContato } from "@/hooks/parceiros/useSyncContato";
 import { useProvaPagamento } from "@/hooks/pedidos/useProvaPagamento";
 import { ProvaPagamentoAlerta } from "@/components/pedidos/ProvaPagamentoAlerta";
@@ -24,19 +26,27 @@ interface Props {
   /** "padrao" = botão com rótulo (default, preserva todos os consumidores atuais).
    *  "discreta" = ícone ghost com tooltip, para uso em linha de tabela. */
   variante?: "padrao" | "discreta";
+  estagio?: string;
+  xpm_expedicao_codigo?: string | null;
 }
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 export function EnviarBlingDialog({
   pedido_id, parceiro_id, id_externo, valor_liquido, forma_solicitada,
-  variante = "padrao",
+  variante = "padrao", estagio, xpm_expedicao_codigo,
 }: Props) {
 
   const [open, setOpen] = useState(false);
   const enviar = useEnviarBling();
+  const empurrarXpm = useEmpurrarXpm();
   const sync = useSyncContato();
   const navigate = useNavigate();
+
+  // XPM-PRIMEIRO (21/08/2026): pedido em (pré-)separação sem expedição na XPM
+  // precisa ser aceito pelo armazém ANTES de ir pro Bling — senão fica no
+  // Bling sem lastro real e ninguém vê.
+  const precisaXpm = !xpm_expedicao_codigo && (estagio === "pre_separacao" || estagio === "em_separacao");
 
   const { data: prova, isLoading: checkingProva } = useProvaPagamento(pedido_id, open);
   const { permitido: podeLiberarSemProva } = usePermissaoAcao("acao.liberar_sem_prova");
@@ -69,9 +79,20 @@ export function EnviarBlingDialog({
     enabled: open,
   });
 
+  const { data: previaXpm, isLoading: checkingPreviaXpm } = usePreviaEmpurrarXpm(
+    pedido_id,
+    open && precisaXpm,
+  );
+
   const temBlingId = !!parceiroStatus?.bling_id;
   const temRemessaAtiva = Array.isArray(remessasAtivas) && remessasAtivas.length > 0;
-  const carregando = checkingBling || checkingRemessas || checkingProva;
+  const carregando = checkingBling || checkingRemessas || checkingProva || (precisaXpm && checkingPreviaXpm);
+  const bloqueiosXpm = precisaXpm ? (previaXpm?.bloqueios ?? []) : [];
+  const avisosXpm = precisaXpm ? (previaXpm?.avisos ?? []) : [];
+  const bloqueadoXpm = precisaXpm && bloqueiosXpm.length > 0;
+  const enviando = enviar.isPending || empurrarXpm.isPending;
+
+  const IconeGatilho = precisaXpm ? Truck : Send;
 
   const handleSincronizar = async () => {
     try {
@@ -92,6 +113,15 @@ export function EnviarBlingDialog({
         console.error("Falha ao registrar despacho sem prova:", e);
       }
     }
+    // XPM-PRIMEIRO: se a XPM não aceitar, o Bling nem roda e o diálogo fica
+    // aberto. FAIL-LOUD — os toasts de erro já saem de dentro de cada hook.
+    if (precisaXpm) {
+      try {
+        await empurrarXpm.mutateAsync({ pedido_id });
+      } catch {
+        return;
+      }
+    }
     try {
       await enviar.mutateAsync({ pedido_id });
       setOpen(false);
@@ -104,7 +134,7 @@ export function EnviarBlingDialog({
     <Dialog
       open={open}
       onOpenChange={(v) => {
-        if (enviar.isPending) return;
+        if (enviando) return;
         setOpen(v);
       }}
     >
@@ -114,22 +144,22 @@ export function EnviarBlingDialog({
             variant="ghost"
             size="icon"
             className="h-8 w-8 text-muted-foreground hover:text-foreground"
-            title="Enviar pro Bling"
-            aria-label="Enviar pro Bling"
+            title={precisaXpm ? "Enviar pra expedição — XPM e Bling" : "Enviar pro Bling"}
+            aria-label={precisaXpm ? "Enviar pra expedição — XPM e Bling" : "Enviar pro Bling"}
           >
-            <Send className="h-4 w-4" />
+            <IconeGatilho className="h-4 w-4" />
           </Button>
         ) : (
           <Button size="sm" className="gap-1.5">
-            <Send className="h-4 w-4" />
-            Enviar pro Bling
+            <IconeGatilho className="h-4 w-4" />
+            {precisaXpm ? "Enviar pra expedição" : "Enviar pro Bling"}
           </Button>
         )}
       </DialogTrigger>
 
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Enviar pedido pro Bling</DialogTitle>
+          <DialogTitle>{precisaXpm ? "Enviar pra expedição" : "Enviar pedido pro Bling"}</DialogTitle>
           <DialogDescription>
             Pedido <strong>#{id_externo}</strong> · {fmtBRL.format(valor_liquido)} · {forma_solicitada}
           </DialogDescription>
@@ -182,6 +212,36 @@ export function EnviarBlingDialog({
           </div>
         ) : (
           <div className="space-y-3">
+            {bloqueiosXpm.length > 0 && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="space-y-1">
+                  {bloqueiosXpm.map((b) => (
+                    <p key={b}>{b}</p>
+                  ))}
+                  <p className="text-xs">
+                    Corrija os bloqueios acima pra enviar. Enquanto a XPM não
+                    aceitar, o pedido não vai pro Bling.
+                  </p>
+                </AlertDescription>
+              </Alert>
+            )}
+            {/* FOTO-NAO-BARRA (18/08/2026): saldo insuficiente na XPM avisa, nao barra. */}
+            {avisosXpm.length > 0 && (
+              <Alert variant="default" className="bg-warning/10 border-warning/40">
+                <AlertTriangle className="h-4 w-4 text-warning" />
+                <AlertDescription className="text-warning text-xs space-y-1">
+                  {avisosXpm.map((a) => (
+                    <p key={a} className="tabular-nums">{a}</p>
+                  ))}
+                  <p className="text-muted-foreground">
+                    A posição da XPM é uma foto do fim do dia anterior: entrada recente
+                    pode ainda não aparecer. Pode enviar — se realmente faltar, o
+                    armazém corta o item.
+                  </p>
+                </AlertDescription>
+              </Alert>
+            )}
             {prova && <ProvaPagamentoAlerta prova={prova} />}
             {prova && !prova.libera_despacho && (
               podeLiberarSemProva ? (
@@ -197,10 +257,18 @@ export function EnviarBlingDialog({
               )
             )}
             <div className="space-y-2 text-sm text-muted-foreground">
-              <p>
-                Ao confirmar, o pedido será criado no Bling com seus títulos a receber.
-                Esta ação é irreversível dentro do sistema (depois precisa cancelar lá direto).
-              </p>
+              {precisaXpm ? (
+                <p>
+                  Ao confirmar, o pedido vai primeiro pra expedição da XPM e, se ela
+                  aceitar, é criado no Bling com seus títulos a receber.
+                  Esta ação é irreversível dentro do sistema (depois precisa cancelar lá direto).
+                </p>
+              ) : (
+                <p>
+                  Ao confirmar, o pedido será criado no Bling com seus títulos a receber.
+                  Esta ação é irreversível dentro do sistema (depois precisa cancelar lá direto).
+                </p>
+              )}
               <p className="text-xs">
                 Se faltar alguma informação (forma sem id Bling parametrizado),
                 o envio falha com mensagem clara e nada é alterado no pedido.
@@ -213,20 +281,20 @@ export function EnviarBlingDialog({
           <Button
             variant="outline"
             onClick={() => setOpen(false)}
-            disabled={enviar.isPending || sync.isPending}
+            disabled={enviando || sync.isPending}
           >
             Cancelar
           </Button>
           {temBlingId && !temRemessaAtiva && (
             <Button
               onClick={handleEnviar}
-              disabled={enviar.isPending || travadoSemProva}
+              disabled={enviando || travadoSemProva || bloqueadoXpm}
               className="gap-1.5"
             >
-              {enviar.isPending ? (
+              {enviando ? (
                 <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</>
               ) : (
-                <><Send className="h-4 w-4" />Confirmar envio</>
+                <><IconeGatilho className="h-4 w-4" />{precisaXpm ? "Confirmar envio (XPM + Bling)" : "Confirmar envio"}</>
               )}
             </Button>
           )}
