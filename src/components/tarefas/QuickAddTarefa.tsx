@@ -223,7 +223,7 @@ export function QuickAddTarefa() {
           <p className="text-xs text-muted-foreground">→ responsável: {pessoaResolvida.nome}</p>
         ) : (
           <p className="text-xs text-warning">
-            Ninguém chamado "{resultado.responsavelNome}" — a tarefa vai nascer sem responsável.
+            Ninguém chamado "{resultado.responsavelNome}" — a tarefa vai nascer no seu nome.
           </p>
         )
       )}
