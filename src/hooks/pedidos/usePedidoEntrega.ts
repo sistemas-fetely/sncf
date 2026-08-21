@@ -79,6 +79,16 @@ export interface EntregaLinhaInfo {
   nf_situacao: string | null;
   nf_id: string | null;
   nf_bling_id: string | null;
+  // PREVISAO-VEM-DO-BANCO (21/08/2026)
+  previsao_entrega: string | null;
+  previsao_fonte: string | null;
+  previsao_confianca: string | null;
+  previsao_motivo_sem_data: string | null;
+  dias_vs_meta: number | null;
+  meta_provisoria: boolean | null;
+  meta_original: string | null;
+  transito_dias: number | null;
+  transito_fonte: string | null;
 }
 
 
@@ -101,7 +111,7 @@ export function usePedidosEntregaLote(pedidoIds: string[]) {
         sb
           .from("vw_pedido_entrega")
           .select(
-            "pedido_id, estagio, transporte_origem, entregue_em, entregue_metodo, transportadora_nome, transportadora_apelido, transportadora_razao, data_entrega_transportadora, data_entrega_prevista, prazo_transportadora, entrega_ocorrencia_texto, entrega_ocorrencia_codigo, entrega_ocorrencia_classe, entrega_ocorrencia_problema",
+            "pedido_id, estagio, transporte_origem, entregue_em, entregue_metodo, transportadora_nome, transportadora_apelido, transportadora_razao, data_entrega_transportadora, data_entrega_prevista, prazo_transportadora, entrega_ocorrencia_texto, entrega_ocorrencia_codigo, entrega_ocorrencia_classe, entrega_ocorrencia_problema, previsao_entrega, previsao_fonte, previsao_confianca, previsao_motivo_sem_data, dias_vs_meta, meta_provisoria, meta_original, transito_dias, transito_fonte",
           )
           .in("pedido_id", ids),
         sb
@@ -186,6 +196,15 @@ export function usePedidosEntregaLote(pedidoIds: string[]) {
           nf_situacao: null,
           nf_id: null,
           nf_bling_id: null,
+          previsao_entrega: null,
+          previsao_fonte: null,
+          previsao_confianca: null,
+          previsao_motivo_sem_data: null,
+          dias_vs_meta: null,
+          meta_provisoria: null,
+          meta_original: null,
+          transito_dias: null,
+          transito_fonte: null,
         };
         m.set(pid, { ...base, ...patch });
       };
@@ -207,6 +226,15 @@ export function usePedidosEntregaLote(pedidoIds: string[]) {
           entrega_ocorrencia_codigo: r.entrega_ocorrencia_codigo ?? null,
           entrega_ocorrencia_classe: r.entrega_ocorrencia_classe ?? null,
           entrega_ocorrencia_problema: r.entrega_ocorrencia_problema ?? null,
+          previsao_entrega: r.previsao_entrega ?? null,
+          previsao_fonte: r.previsao_fonte ?? null,
+          previsao_confianca: r.previsao_confianca ?? null,
+          previsao_motivo_sem_data: r.previsao_motivo_sem_data ?? null,
+          dias_vs_meta: r.dias_vs_meta ?? null,
+          meta_provisoria: r.meta_provisoria ?? null,
+          meta_original: r.meta_original ?? null,
+          transito_dias: r.transito_dias ?? null,
+          transito_fonte: r.transito_fonte ?? null,
         });
       }
       for (const [pid, nf] of nfMap.entries()) {
