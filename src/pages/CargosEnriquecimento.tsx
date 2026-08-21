@@ -93,14 +93,16 @@ export default function CargosEnriquecimento() {
         "faixa_pj_f5_min","faixa_pj_f5_max",
       ];
 
+      // Faixas vão para cargos_faixas_salariais (fonte única, RLS restrita)
+      const faixasUpdate: any = {};
       if (cargo.tipo_contrato !== "pj") {
         faixasClt.forEach(f => {
-          if (cargo[f] == null && data[f] != null) update[f] = data[f];
+          if (cargo[f] == null && data[f] != null) faixasUpdate[f] = data[f];
         });
       }
       if (cargo.tipo_contrato !== "clt") {
         faixasPj.forEach(f => {
-          if (cargo[f] == null && data[f] != null) update[f] = data[f];
+          if (cargo[f] == null && data[f] != null) faixasUpdate[f] = data[f];
         });
       }
 
@@ -110,6 +112,16 @@ export default function CargosEnriquecimento() {
           .update(update)
           .eq("id", cargo.id);
         if (saveError) throw saveError;
+      }
+
+      if (Object.keys(faixasUpdate).length > 0) {
+        const { error: faixasError } = await supabase
+          .from("cargos_faixas_salariais")
+          .upsert(
+            { cargo_id: cargo.id, protege_salario: cargo.protege_salario ?? false, ...faixasUpdate },
+            { onConflict: "cargo_id" }
+          );
+        if (faixasError) throw faixasError;
       }
 
       setStatusMap(s => ({ ...s, [cargo.id]: "enriquecido" }));

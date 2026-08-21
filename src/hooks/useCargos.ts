@@ -37,6 +37,34 @@ export interface Cargo {
   ferramentas: string[];
 }
 
+const FAIXA_KEYS = ["f1", "f2", "f3", "f4", "f5"] as const;
+
+// FAIXA-SALARIAL-MORA-EM-TABELA-PROPRIA (21/08/2026): cargos é lida por anon
+// (candidatura pública), então faixas e protege_salario vivem em
+// cargos_faixas_salariais (RLS restrita) e são mescladas aqui por cargo_id.
+// Para quem não tem permissão na tabela de faixas, o select volta vazio (RLS)
+// e os campos saem null/false — sem vazar dado salarial.
+export async function mesclarFaixasSalariais<T extends { id: string }>(cargos: T[]): Promise<T[]> {
+  if (cargos.length === 0) return cargos;
+  const { data: faixas, error } = await supabase
+    .from("cargos_faixas_salariais")
+    .select("*")
+    .in("cargo_id", cargos.map((c) => c.id));
+  if (error) throw error;
+  const porCargo = new Map((faixas ?? []).map((f) => [f.cargo_id, f]));
+  return cargos.map((c) => {
+    const f = porCargo.get(c.id);
+    const merged: Record<string, unknown> = { ...c, protege_salario: f?.protege_salario ?? false };
+    for (const k of FAIXA_KEYS) {
+      merged[`faixa_clt_${k}_min`] = f?.[`faixa_clt_${k}_min`] ?? null;
+      merged[`faixa_clt_${k}_max`] = f?.[`faixa_clt_${k}_max`] ?? null;
+      merged[`faixa_pj_${k}_min`] = f?.[`faixa_pj_${k}_min`] ?? null;
+      merged[`faixa_pj_${k}_max`] = f?.[`faixa_pj_${k}_max`] ?? null;
+    }
+    return merged as T;
+  });
+}
+
 export function useCargos(filtroTipo?: "clt" | "pj" | "ambos") {
   return useQuery({
     queryKey: ["cargos", filtroTipo],
@@ -53,7 +81,7 @@ export function useCargos(filtroTipo?: "clt" | "pj" | "ambos") {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as Cargo[];
+      return (await mesclarFaixasSalariais(data)) as Cargo[];
     },
   });
 }
@@ -67,7 +95,7 @@ export function useAllCargos() {
         .select("*")
         .order("nome");
       if (error) throw error;
-      return data as Cargo[];
+      return (await mesclarFaixasSalariais(data)) as Cargo[];
     },
   });
 }
@@ -83,7 +111,8 @@ export function useCargoById(id: string | null) {
         .eq("id", id)
         .single();
       if (error) throw error;
-      return data as Cargo;
+      const [completo] = await mesclarFaixasSalariais([data]);
+      return completo as Cargo;
     },
     enabled: !!id,
   });
