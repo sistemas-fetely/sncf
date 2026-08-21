@@ -189,11 +189,30 @@ Deno.serve(async (req) => {
         if (eEv) throw new Error(`registrar evento de override: ${eEv.message}`);
       }
 
+      // 8b. Transição de estágio — XPM-CONFIRMA-SEPARACAO (21/08/2026): pré-separação
+      // → em separação só avança quando a XPM confirma de verdade a expedição
+      // (via GetEventosExpedicao acima). O Bling não mexe mais em estágio.
+      let avisoTransicao: string | undefined;
+      const estagioAtual = montado?.estagio as string | undefined;
+      if (estagioAtual && ["pre_faturado", "pre_separacao"].includes(estagioAtual)) {
+        const { error: errTransicao } = await sb.rpc("transicionar_pedido", {
+          p_pedido_id: pedido_id,
+          p_para_estagio: "em_separacao",
+          p_proxima_acao: "Pedido no armazém — aguardar NF",
+          p_motivo: `Expedição confirmada na XPM (${codigo})`,
+        });
+        if (errTransicao) {
+          console.error(`[empurrar-pedido-xpm] transicionar_pedido falhou: ${errTransicao.message}`);
+          avisoTransicao = `Empurrado pra XPM mas estágio não avançou automaticamente — ${errTransicao.message}`;
+        }
+      }
+
       return json({
         sucesso: true,
         codigo_expedicao: codigo,
         ambiente,
         avisos,
+        ...(avisoTransicao ? { aviso_transicao: avisoTransicao } : {}),
         duracao_ms: Date.now() - t0,
       });
     }

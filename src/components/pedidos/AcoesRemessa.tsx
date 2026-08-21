@@ -189,17 +189,19 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
           size="sm"
           variant="secondary"
           className="w-full gap-1.5 whitespace-normal h-auto text-xs leading-tight py-2"
-          title={`Enviar ${id_externo} pro Bling e empurrar pra XPM`}
+          title={`Empurrar ${id_externo} pra XPM e enviar pro Bling`}
           disabled={ocupado}
           onClick={async () => {
-            // Sequencial e com await: se o Bling falhar, a XPM nao roda.
-            // FAIL-LOUD — o toast de erro ja sai de dentro de cada hook.
+            // XPM-PRIMEIRO (21/08/2026): a XPM é quem decide se o pedido avança de
+            // fase. Sequencial e com await: se a XPM falhar, o Bling nem roda — evita
+            // pedido "no Bling" sem lastro real na expedição do armazém.
+            // FAIL-LOUD — o toast de erro já sai de dentro de cada hook.
             try {
-              await enviar.mutateAsync({ pedido_id });
+              await empurrarXpm.mutateAsync({ pedido_id });
             } catch {
               return;
             }
-            await empurrarXpm.mutateAsync({ pedido_id }).catch(() => {});
+            await enviar.mutateAsync({ pedido_id }).catch(() => {});
           }}
         >
           {ocupado ? (
