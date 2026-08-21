@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { descreverPreview, parseQuickAdd, type TokenTipo } from "@/lib/tarefas/quickAddParser";
 import { useCriarTarefaQuickAdd } from "@/hooks/tarefas/useTarefaMutations";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   casarPessoa,
   casarPorNome,
