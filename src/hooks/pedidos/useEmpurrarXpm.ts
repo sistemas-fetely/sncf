@@ -9,6 +9,7 @@ interface EmpurrarXpmResponse {
   bloqueios?: string[];
   /** FOTO-NAO-BARRA: saldo insuficiente vira aviso, nunca bloqueio. */
   avisos?: string[];
+  aviso_transicao?: string;
   erro?: string;
   duracao_ms?: number;
 }
@@ -65,6 +66,13 @@ export function useEmpurrarXpm() {
         toast({
           title: vars.forcar ? "Empurrado pra XPM (forçado)" : "Empurrado pra XPM",
           description: `Expedição ${data.codigo_expedicao}${amb}${data.duracao_ms ? ` · ${data.duracao_ms}ms` : ""}`,
+        });
+      }
+      if (data.aviso_transicao) {
+        toast({
+          title: "Atenção — estágio não avançou",
+          description: data.aviso_transicao,
+          variant: "destructive",
         });
       }
       qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });

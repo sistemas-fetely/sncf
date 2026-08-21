@@ -959,20 +959,6 @@ if (itensSemProdutoBling.length > 0) {
         }).eq("id", pedido_id);
       }
 
-      // 12c. Transição de estágio — se em pre_faturado ou pre_separacao
-      let avisoTransicao: string | undefined;
-      if (["pre_faturado", "pre_separacao"].includes(pedido.estagio)) {
-        const { error: errTransicao } = await supabase.rpc("transicionar_pedido" as string, {
-          p_pedido_id: pedido_id,
-          p_para_estagio: "em_separacao",
-          p_proxima_acao: "Pedido no armazém — aguardar NF",
-          p_motivo: `Remessa ${remessaCodigo} enviada ao Bling (id ${blingId})`,
-        });
-        if (errTransicao) {
-          console.error(`[enviar-pedido-bling] transicionar_pedido falhou: ${errTransicao.message}`);
-          avisoTransicao = `Pedido enviado ao Bling mas estágio não avançou automaticamente — ${errTransicao.message}`;
-        }
-      }
 
       return ok({
         sucesso: true,
@@ -980,7 +966,6 @@ if (itensSemProdutoBling.length > 0) {
         remessa_id: remessa.id,
         remessa_codigo: remessaCodigo,
         mensagem: `Remessa ${remessaCodigo} enviada pro Bling (id ${blingId})`,
-        ...(avisoTransicao ? { aviso_transicao: avisoTransicao } : {}),
         duracao_ms: duracaoMs,
       });
     } else {
