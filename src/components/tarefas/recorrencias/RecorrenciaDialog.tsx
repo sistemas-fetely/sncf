@@ -342,7 +342,34 @@ export function RecorrenciaDialog({ aberto, onOpenChange, regra }: Props) {
               </Select>
             </div>
           </div>
+
+          <div className="space-y-1.5">
+            <Label>Template de subtarefas (opcional)</Label>
+            <Select
+              value={f.template_id ?? SEM_TEMPLATE}
+              onValueChange={(v) => setF({ ...f, template_id: v === SEM_TEMPLATE ? null : v })}
+            >
+              <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={SEM_TEMPLATE}>Nenhum</SelectItem>
+                {(templates ?? [])
+                  .filter((t) => t.ativo)
+                  .map((t) => (
+                    <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Cada ocorrência nasce com as subtarefas do template penduradas nela. O prazo de cada subtarefa conta a partir da data da ocorrência.
+            </p>
+            {f.template_id && templateItens && templateItens.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {templateItens.length} subtarefa{templateItens.length > 1 ? "s" : ""} ser{templateItens.length > 1 ? "ão" : "á"} criada{templateItens.length > 1 ? "s" : ""} em cada ocorrência.
+              </p>
+            )}
+          </div>
         </div>
+
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
