@@ -1,64 +1,55 @@
-import { Suspense } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { FolderKanban, Gavel, ShieldAlert, Users } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
-import { CommandPaletteProvider } from "@/components/navegacao/CommandPaletteProvider";
-import { SinoNotificacoes } from "@/components/shared/SinoNotificacoes";
 
-/** Abas do módulo Sala de Gestão — mesma linguagem de navegação do módulo Tarefas. */
+/**
+ * GESTAO-E-ABA-DE-TAREFAS (21/08/2026): a Sala de Gestão não é mais um app de topo.
+ * Este layout virou a SUB-NAVEGAÇÃO da aba "Gestão" dentro do TarefasLayout —
+ * barra secundária discreta, subordinada às abas principais (padrão ProdutoEstoqueLayout).
+ * Header, sino e CommandPalette vêm do TarefasLayout pai.
+ */
 const ITENS = [
-  { title: "Salas", url: "/gestao", icon: Users, exato: true },
-  { title: "Projetos", url: "/gestao/projetos", icon: FolderKanban },
-  { title: "Decisões", url: "/gestao/decisoes", icon: Gavel },
-  { title: "Riscos", url: "/gestao/riscos", icon: ShieldAlert },
+  { title: "Salas", url: "/tarefas/gestao", icon: Users, exato: true },
+  { title: "Projetos", url: "/tarefas/gestao/projetos", icon: FolderKanban },
+  { title: "Decisões", url: "/tarefas/gestao/decisoes", icon: Gavel },
+  { title: "Riscos", url: "/tarefas/gestao/riscos", icon: ShieldAlert },
 ];
 
 export default function GestaoLayout() {
   const location = useLocation();
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
-      <header className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b bg-card/80 px-3 backdrop-blur-sm">
-        <nav className="flex flex-1 items-center gap-1 overflow-x-auto whitespace-nowrap">
+    <div className="flex h-full flex-col">
+      <div className="border-b bg-card/60">
+        <nav className="flex gap-1 overflow-x-auto whitespace-nowrap px-4">
           {ITENS.map((item) => {
             const active = item.exato
-              ? location.pathname === "/gestao" || location.pathname.startsWith("/gestao/sala") || location.pathname.startsWith("/gestao/ata")
+              ? location.pathname === "/tarefas/gestao" ||
+                location.pathname.startsWith("/tarefas/gestao/sala") ||
+                location.pathname.startsWith("/tarefas/gestao/ata")
               : location.pathname.startsWith(item.url);
             return (
               <NavLink
                 key={item.url}
                 to={item.url}
                 className={cn(
-                  "flex h-12 shrink-0 items-center gap-2 border-b-2 border-transparent px-3 text-sm transition-colors",
+                  "flex h-9 shrink-0 items-center gap-1.5 border-b-2 border-transparent px-2.5 text-xs transition-colors -mb-px",
                   active
-                    ? "border-b-2 border-gold text-gold"
+                    ? "border-gold font-medium text-gold"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                <item.icon className="h-4 w-4 shrink-0" />
+                <item.icon className="h-3.5 w-3.5 shrink-0" />
                 <span>{item.title}</span>
               </NavLink>
             );
           })}
         </nav>
-        <div className="ml-auto shrink-0">
-          <SinoNotificacoes />
-        </div>
-      </header>
-
-      <main className="relative flex-1 overflow-auto">
-        <Suspense
-          fallback={
-            <div className="flex h-full items-center justify-center p-12">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
-            </div>
-          }
-        >
-          <Outlet />
-        </Suspense>
-      </main>
-      <CommandPaletteProvider />
+      </div>
+      <div className="flex-1 overflow-auto">
+        <Outlet />
+      </div>
     </div>
   );
 }

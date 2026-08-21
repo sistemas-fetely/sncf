@@ -70,7 +70,7 @@ export default function Ata() {
         acoes={
           <>
             {cabecalho?.sala_id && (
-              <Button variant="ghost" onClick={() => navigate(`/gestao/sala/${cabecalho.sala_id}`)}>
+              <Button variant="ghost" onClick={() => navigate(`/tarefas/gestao/sala/${cabecalho.sala_id}`)}>
                 <ArrowLeft className="mr-1 h-4 w-4" /> Sala
               </Button>
             )}

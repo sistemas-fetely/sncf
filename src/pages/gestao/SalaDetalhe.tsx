@@ -218,7 +218,7 @@ export default function SalaDetalhe() {
                 </SelectContent>
               </Select>
             )}
-            <Button variant="ghost" onClick={() => navigate("/gestao")}>
+            <Button variant="ghost" onClick={() => navigate("/tarefas/gestao")}>
               <ArrowLeft className="mr-1 h-4 w-4" /> Salas
             </Button>
             {!fechada && reuniaoId && ehFacilitador && (
@@ -503,7 +503,7 @@ export default function SalaDetalhe() {
                   onSuccess: () => {
                     setConfirmarFechar(false);
                     // ATA-E-DERIVADA (20/08/2026): fechada a reunião, a leitura é a ata.
-                    navigate(`/gestao/ata/${alvo}`);
+                    navigate(`/tarefas/gestao/ata/${alvo}`);
                   },
                 });
               }}
