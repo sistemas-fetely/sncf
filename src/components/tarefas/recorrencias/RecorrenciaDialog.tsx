@@ -19,7 +19,6 @@ import { DIAS_SEMANA_CURTO, MESES_NOME, dataBR, textoRecorrencia } from "@/lib/t
 
 
 const SEM_VALOR = "__nenhum__";
-const SEM_TEMPLATE = "__nenhum__";
 
 
 function hojeISO(): string {
@@ -346,12 +345,12 @@ export function RecorrenciaDialog({ aberto, onOpenChange, regra }: Props) {
           <div className="space-y-1.5">
             <Label>Template de subtarefas (opcional)</Label>
             <Select
-              value={f.template_id ?? SEM_TEMPLATE}
-              onValueChange={(v) => setF({ ...f, template_id: v === SEM_TEMPLATE ? null : v })}
+              value={f.template_id ?? SEM_VALOR}
+              onValueChange={(v) => setF({ ...f, template_id: v === SEM_VALOR ? null : v })}
             >
               <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value={SEM_TEMPLATE}>Nenhum</SelectItem>
+                <SelectItem value={SEM_VALOR}>Nenhum</SelectItem>
                 {(templates ?? [])
                   .filter((t) => t.ativo)
                   .map((t) => (
@@ -362,11 +361,19 @@ export function RecorrenciaDialog({ aberto, onOpenChange, regra }: Props) {
             <p className="text-xs text-muted-foreground">
               Cada ocorrência nasce com as subtarefas do template penduradas nela. O prazo de cada subtarefa conta a partir da data da ocorrência.
             </p>
-            {f.template_id && templateItens && templateItens.length > 0 && (
-              <p className="text-xs text-muted-foreground">
-                {templateItens.length} subtarefa{templateItens.length > 1 ? "s" : ""} ser{templateItens.length > 1 ? "ão" : "á"} criada{templateItens.length > 1 ? "s" : ""} em cada ocorrência.
-              </p>
-            )}
+            {f.template_id && templateItens && templateItens.length > 0 && (() => {
+              const diretas = templateItens.filter((i) => !i.parent_item_id).length;
+              const netas = templateItens.filter((i) => i.parent_item_id).length;
+              const total = diretas + netas;
+              const plural = total > 1;
+              return (
+                <p className="text-xs text-muted-foreground">
+                  {netas === 0
+                    ? `${diretas} subtarefa${diretas > 1 ? "s" : ""} ser${diretas > 1 ? "ão" : "á"} criada${diretas > 1 ? "s" : ""} em cada ocorrência.`
+                    : `${diretas} subtarefa${diretas > 1 ? "s" : ""} (mais ${netas} em segundo nível) ser${plural ? "ão" : "á"} criada${plural ? "s" : ""} em cada ocorrência.`}
+                </p>
+              );
+            })()}
           </div>
         </div>
 
