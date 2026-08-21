@@ -817,6 +817,13 @@ const App = () => (
             <Route path="/cargos/enriquecimento" element={<Navigate to="/admin/cargos/enriquecimento" replace />} />
             <Route path="/cargos/novo" element={<Navigate to="/admin/cargos/novo" replace />} />
             <Route path="/cargos/:id" element={<CargosIdRedirect />} />
+            {/* Sala de Gestão virou aba de Tarefas (GESTAO-E-ABA-DE-TAREFAS) */}
+            <Route path="/gestao" element={<Navigate to="/tarefas/gestao" replace />} />
+            <Route path="/gestao/projetos" element={<Navigate to="/tarefas/gestao/projetos" replace />} />
+            <Route path="/gestao/decisoes" element={<Navigate to="/tarefas/gestao/decisoes" replace />} />
+            <Route path="/gestao/riscos" element={<Navigate to="/tarefas/gestao/riscos" replace />} />
+            <Route path="/gestao/sala/:salaId" element={<GestaoSalaRedirect />} />
+            <Route path="/gestao/ata/:reuniaoId" element={<GestaoAtaRedirect />} />
             <Route path="/administrativo/parceiros" element={<Navigate to="/administrativo-fetely/parceiros" replace />} />
             <Route path="/administrativo/importar" element={<Navigate to="/administrativo-fetely/importar" replace />} />
             <Route path="/administrativo/nfs-stage" element={<Navigate to="/administrativo-fetely/nfs-stage" replace />} />
