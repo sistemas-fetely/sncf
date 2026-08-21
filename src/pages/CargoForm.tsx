@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Loader2, Plus, Sparkles, X } from "lucide-react";
 import { SelectDepartamentoHierarquico } from "@/components/shared/SelectDepartamentoHierarquico";
 import { useTemplates } from "@/hooks/useTemplates";
+import { mesclarFaixasSalariais } from "@/hooks/useCargos";
 import { toast } from "sonner";
 
 import { PageShell } from "@/components/layout/PageShell";
@@ -202,7 +203,9 @@ export default function CargoForm() {
     queryFn: async () => {
       const { data, error } = await supabase.from("cargos").select("*").eq("id", id!).single();
       if (error) throw error;
-      return data;
+      // protege_salario e faixas vêm de cargos_faixas_salariais (fonte única)
+      const [completo] = await mesclarFaixasSalariais([data]);
+      return completo;
     },
     enabled: !isNovo,
   });
@@ -234,6 +237,7 @@ export default function CargoForm() {
 
   const salvar = useMutation({
     mutationFn: async () => {
+      // Campos "públicos" continuam em cargos (lida por anon na candidatura)
       const payload: any = {
         nome: form.nome,
         nivel: form.nivel,
@@ -242,26 +246,33 @@ export default function CargoForm() {
         template_id_padrao: form.template_id_padrao,
         tipo_contrato: form.tipo_contrato,
         is_clevel: form.is_clevel,
-        protege_salario: form.protege_salario,
         missao: form.missao || null,
         responsabilidades: form.responsabilidades.length > 0 ? form.responsabilidades : null,
         skills_obrigatorias: form.skills_obrigatorias.length > 0 ? form.skills_obrigatorias : null,
         skills_desejadas: form.skills_desejadas.length > 0 ? form.skills_desejadas : null,
         ferramentas: form.ferramentas.length > 0 ? form.ferramentas : null,
       };
+      // protege_salario + faixas vão para cargos_faixas_salariais (RLS restrita)
+      const faixasPayload: any = { protege_salario: form.protege_salario };
       for (const f of FAIXA_KEYS) {
-        payload[`faixa_clt_${f}_min`] = toNum(form[`faixa_clt_${f}_min`] as string);
-        payload[`faixa_clt_${f}_max`] = toNum(form[`faixa_clt_${f}_max`] as string);
-        payload[`faixa_pj_${f}_min`] = toNum(form[`faixa_pj_${f}_min`] as string);
-        payload[`faixa_pj_${f}_max`] = toNum(form[`faixa_pj_${f}_max`] as string);
+        faixasPayload[`faixa_clt_${f}_min`] = toNum(form[`faixa_clt_${f}_min`] as string);
+        faixasPayload[`faixa_clt_${f}_max`] = toNum(form[`faixa_clt_${f}_max`] as string);
+        faixasPayload[`faixa_pj_${f}_min`] = toNum(form[`faixa_pj_${f}_min`] as string);
+        faixasPayload[`faixa_pj_${f}_max`] = toNum(form[`faixa_pj_${f}_max`] as string);
       }
+      let cargoId = id!;
       if (isNovo) {
-        const { error } = await supabase.from("cargos").insert(payload);
+        const { data: novo, error } = await supabase.from("cargos").insert(payload).select("id").single();
         if (error) throw error;
+        cargoId = novo.id;
       } else {
         const { error } = await supabase.from("cargos").update(payload).eq("id", id!);
         if (error) throw error;
       }
+      const { error: faixasError } = await supabase
+        .from("cargos_faixas_salariais")
+        .upsert({ cargo_id: cargoId, ...faixasPayload }, { onConflict: "cargo_id" });
+      if (faixasError) throw faixasError;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["cargos"] });
