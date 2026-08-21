@@ -220,7 +220,7 @@ export default function CargoForm() {
     state.template_id_padrao = (cargo as any).template_id_padrao ?? null;
     state.tipo_contrato = cargo.tipo_contrato ?? "ambos";
     state.is_clevel = cargo.is_clevel ?? false;
-    state.protege_salario = cargo.protege_salario ?? false;
+    state.protege_salario = (cargo as any).protege_salario ?? false;
     state.missao = cargo.missao ?? "";
     state.responsabilidades = (cargo.responsabilidades as string[]) ?? [];
     state.skills_obrigatorias = (cargo.skills_obrigatorias as string[]) ?? [];
