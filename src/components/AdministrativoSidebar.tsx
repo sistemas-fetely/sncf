@@ -1,31 +1,34 @@
 /**
  * AdministrativoSidebar — Pilar novo cravado em 29/04/2026.
  *
- * Recebe itens que vieram do Financeiro Fetely:
- *   - Contratos, Imóveis, Seguros, GED
- *   - Pedidos de Venda ⚠️, Produtos ⚠️ (provisórios — podem migrar pra Produto Fetely)
+ * MENU-VIA-TABELA (21/08/2026): o grupo Patrimônio (Contratos, Imóveis,
+ * Seguros, GED) vem da sncf_navegacao (app "patrimonio") via useMenuApp.
+ * Mudar esse menu passa a ser UPDATE, sem deploy.
  *
- * Doutrina das três casas: este sidebar reflete o que está em
- * sncf_documentacao slug "arquitetura-sistemas-fetely" v2 → seção 3 → Administrativo Fetely.
+ * "Documentos" (NFs em Stage, Importar Dados, Motor de Classificação,
+ * Documentos Pendentes) continua HARDCODED de propósito: essas 4 telas
+ * pertencem ao app "financas" na tabela (grupo fin.entrada_docs), não a
+ * Patrimônio — é atalho cross-app, mesmo padrão do link de Tarefas em toda
+ * sidebar já migrada. A tabela não modela "atalho" (débito conhecido desde
+ * 01/08). Migrar via useMenuApp("patrimonio") faria essas 4 telas sumirem
+ * daqui sem reaparecer em nenhum outro menu.
  */
 
-import { Building2, ShieldCheck, FileSignature, FolderArchive, ShoppingCart, ClipboardList, UsersRound, Landmark, Users, Upload, Layers, FileWarning, Filter } from "lucide-react";
+import { Building2, ShieldCheck, FileSignature, FolderArchive, ClipboardList, UsersRound, Landmark, Upload, Layers, FileWarning, Filter } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { getHighestRoleLabel } from "@/lib/user-role";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useMenuApp, type ItemMenu } from "@/hooks/useMenuApp";
+import { resolverIcone } from "@/config/iconesNavegacao";
 import { useVisibilidadeMenuFixo } from "@/hooks/useVisibilidadeMenu";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
   SidebarHeader, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
-
-
 
 const ADM_FETELY_COLOR = "#6B5B45"; // tom terroso, distinto do verde Financeiro
 
@@ -37,23 +40,7 @@ interface MenuItem {
   badge?: string;
 }
 
-// Grupo 1: Ativos & Patrimônio
-const patrimonioItems: MenuItem[] = [
-  { title: "Contratos", url: "/administrativo-fetely/contratos", icon: FileSignature },
-  { title: "Imóveis", url: "/administrativo-fetely/imoveis", icon: Building2 },
-  { title: "Seguros", url: "/administrativo-fetely/seguros", icon: ShieldCheck },
-  { title: "GED", url: "/administrativo-fetely/ged", icon: FolderArchive },
-];
-
-// Grupo 2: Parceiros & Rede — "Parceiros Comerciais" migrado pro app Vendas em 31/05/2026.
-const parceirosItems: MenuItem[] = [];
-
-// Grupo 3: Vendas & Produtos — "Produtos" migrado pro app Vendas em 08/06/2026.
-const vendasItems: MenuItem[] = [];
-
-// Grupo 4: Documentos (migrado de Finanças em 31/05/2026)
-// Ordem e rótulos espelham sncf_navegacao > grupo fin.entrada_docs.
-// Quando esta sidebar migrar para table-driven, este array sai — a fonte é a tabela.
+// Atalho cross-app hardcoded (ver comentário do topo do arquivo)
 const documentosItems: MenuItem[] = [
   { title: "NFs em Stage", url: "/administrativo-fetely/nfs-stage", icon: Layers },
   { title: "Importar Dados", url: "/administrativo-fetely/importar", icon: Upload },
@@ -68,7 +55,7 @@ export function AdministrativoSidebar() {
   const primaryRole = getHighestRoleLabel(roles);
   const location = useLocation();
   const { podeVer, isLoading: carregandoVisibilidade } = useVisibilidadeMenuFixo();
-
+  const { soltos: patrimonioSoltos, isLoading: carregandoMenu } = useMenuApp("patrimonio");
 
   const isItemActive = (url: string, end?: boolean) =>
     end ? location.pathname === url : location.pathname.startsWith(url);
@@ -102,6 +89,28 @@ export function AdministrativoSidebar() {
     );
   };
 
+  const renderTabelaItem = (item: ItemMenu) => {
+    const active = isItemActive(item.rota);
+    const Icone = resolverIcone(item.icone);
+    return (
+      <SidebarMenuItem key={item.chave}>
+        <SidebarMenuButton asChild>
+          <NavLink
+            to={item.rota}
+            className={cn(
+              "flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200",
+              active && "bg-sidebar-accent text-sidebar-foreground font-medium border-l-[3px] shadow-sm"
+            )}
+            style={active ? { borderLeftColor: ADM_FETELY_COLOR, color: ADM_FETELY_COLOR } : undefined}
+          >
+            <Icone className="h-[18px] w-[18px] shrink-0" style={active ? { color: ADM_FETELY_COLOR } : undefined} />
+            {!collapsed && <span>{item.label}</span>}
+          </NavLink>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  };
+
   const renderGroup = (label: string, items: MenuItem[]) => {
     if (carregandoVisibilidade) return null;
     const visiveis = items.filter((i) => podeVer(i.url));
@@ -119,7 +128,6 @@ export function AdministrativoSidebar() {
       </SidebarGroup>
     );
   };
-
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
@@ -182,7 +190,13 @@ export function AdministrativoSidebar() {
 
         <div className="mx-4 border-t border-sidebar-border/40" />
 
-        {renderGroup("Ativos & Patrimônio", patrimonioItems)}
+        {!carregandoMenu && patrimonioSoltos.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>{patrimonioSoltos.map(renderTabelaItem)}</SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
         <div className="mx-4 border-t border-sidebar-border/40" />
         {renderGroup("Documentos", documentosItems)}
       </SidebarContent>
