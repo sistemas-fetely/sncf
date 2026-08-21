@@ -4877,33 +4877,12 @@ export type Database = {
           created_at: string | null
           departamento: string | null
           departamento_id: string | null
-          faixa_clt_f1_max: number | null
-          faixa_clt_f1_min: number | null
-          faixa_clt_f2_max: number | null
-          faixa_clt_f2_min: number | null
-          faixa_clt_f3_max: number | null
-          faixa_clt_f3_min: number | null
-          faixa_clt_f4_max: number | null
-          faixa_clt_f4_min: number | null
-          faixa_clt_f5_max: number | null
-          faixa_clt_f5_min: number | null
-          faixa_pj_f1_max: number | null
-          faixa_pj_f1_min: number | null
-          faixa_pj_f2_max: number | null
-          faixa_pj_f2_min: number | null
-          faixa_pj_f3_max: number | null
-          faixa_pj_f3_min: number | null
-          faixa_pj_f4_max: number | null
-          faixa_pj_f4_min: number | null
-          faixa_pj_f5_max: number | null
-          faixa_pj_f5_min: number | null
           ferramentas: string[] | null
           id: string
           is_clevel: boolean | null
           missao: string | null
           nivel: string
           nome: string
-          protege_salario: boolean | null
           responsabilidades: string[] | null
           skills_desejadas: string[] | null
           skills_obrigatorias: string[] | null
@@ -4917,33 +4896,12 @@ export type Database = {
           created_at?: string | null
           departamento?: string | null
           departamento_id?: string | null
-          faixa_clt_f1_max?: number | null
-          faixa_clt_f1_min?: number | null
-          faixa_clt_f2_max?: number | null
-          faixa_clt_f2_min?: number | null
-          faixa_clt_f3_max?: number | null
-          faixa_clt_f3_min?: number | null
-          faixa_clt_f4_max?: number | null
-          faixa_clt_f4_min?: number | null
-          faixa_clt_f5_max?: number | null
-          faixa_clt_f5_min?: number | null
-          faixa_pj_f1_max?: number | null
-          faixa_pj_f1_min?: number | null
-          faixa_pj_f2_max?: number | null
-          faixa_pj_f2_min?: number | null
-          faixa_pj_f3_max?: number | null
-          faixa_pj_f3_min?: number | null
-          faixa_pj_f4_max?: number | null
-          faixa_pj_f4_min?: number | null
-          faixa_pj_f5_max?: number | null
-          faixa_pj_f5_min?: number | null
           ferramentas?: string[] | null
           id?: string
           is_clevel?: boolean | null
           missao?: string | null
           nivel: string
           nome: string
-          protege_salario?: boolean | null
           responsabilidades?: string[] | null
           skills_desejadas?: string[] | null
           skills_obrigatorias?: string[] | null
@@ -4957,33 +4915,12 @@ export type Database = {
           created_at?: string | null
           departamento?: string | null
           departamento_id?: string | null
-          faixa_clt_f1_max?: number | null
-          faixa_clt_f1_min?: number | null
-          faixa_clt_f2_max?: number | null
-          faixa_clt_f2_min?: number | null
-          faixa_clt_f3_max?: number | null
-          faixa_clt_f3_min?: number | null
-          faixa_clt_f4_max?: number | null
-          faixa_clt_f4_min?: number | null
-          faixa_clt_f5_max?: number | null
-          faixa_clt_f5_min?: number | null
-          faixa_pj_f1_max?: number | null
-          faixa_pj_f1_min?: number | null
-          faixa_pj_f2_max?: number | null
-          faixa_pj_f2_min?: number | null
-          faixa_pj_f3_max?: number | null
-          faixa_pj_f3_min?: number | null
-          faixa_pj_f4_max?: number | null
-          faixa_pj_f4_min?: number | null
-          faixa_pj_f5_max?: number | null
-          faixa_pj_f5_min?: number | null
           ferramentas?: string[] | null
           id?: string
           is_clevel?: boolean | null
           missao?: string | null
           nivel?: string
           nome?: string
-          protege_salario?: boolean | null
           responsabilidades?: string[] | null
           skills_desejadas?: string[] | null
           skills_obrigatorias?: string[] | null
@@ -14522,6 +14459,7 @@ export type Database = {
           ativo: boolean
           codigo: string
           entra_no_liquido: boolean
+          fecha_na_expedicao: boolean
           fetely_paga_transportadora: boolean | null
           mod_frete_nf: number | null
           observacao: string | null
@@ -14535,6 +14473,7 @@ export type Database = {
           ativo?: boolean
           codigo: string
           entra_no_liquido: boolean
+          fecha_na_expedicao?: boolean
           fetely_paga_transportadora?: boolean | null
           mod_frete_nf?: number | null
           observacao?: string | null
@@ -14548,6 +14487,7 @@ export type Database = {
           ativo?: boolean
           codigo?: string
           entra_no_liquido?: boolean
+          fecha_na_expedicao?: boolean
           fetely_paga_transportadora?: boolean | null
           mod_frete_nf?: number | null
           observacao?: string | null
@@ -45640,6 +45580,8 @@ export type Database = {
           valor_pago: number | null
           valor_vencido: number | null
           vendedor: string | null
+          xpm_envio_erro: string | null
+          xpm_expedicao_codigo: string | null
         }
         Relationships: [
           {
