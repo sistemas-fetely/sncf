@@ -31,6 +31,7 @@ const COR_TOKEN: Record<TokenTipo, string> = {
 const CLASSES_TEXTO = "px-3 py-2 text-sm font-normal leading-[1.25rem] tracking-normal";
 
 export function QuickAddTarefa() {
+  const { user } = useAuth();
   const [valor, setValor] = useState("");
   const [cursor, setCursor] = useState(0);
   const [indice, setIndice] = useState(0);
