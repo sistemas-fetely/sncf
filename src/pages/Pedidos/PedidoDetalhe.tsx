@@ -102,6 +102,7 @@ import { useTransportadoras } from "@/hooks/pedidos/useTransportadoras";
 import { useTransportadoraOrigem } from "@/hooks/pedidos/useTransportadoraOrigem";
 import { useRecotarTransportadora } from "@/hooks/pedidos/useRecotarTransportadora";
 import { useSalvarDadosEnvio } from "@/hooks/pedidos/useSalvarDadosEnvio";
+import { RastreioPedidoBloco } from "@/components/pedidos/RastreioPedidoBloco";
 import { useRemessas } from "@/hooks/pedidos/useRemessas";
 import { useFreteEstimado } from "@/hooks/transportadoras/useFreteEstimado";
 import { useEnviarEmailPedidoCobranca } from "@/hooks/pedidos/useEnviarEmailPedidoCobranca";
@@ -1967,6 +1968,9 @@ export default function PedidoDetalhe() {
                         </Badge>
                       )}
                     </div>
+
+                    {/* RASTREIO-B2B-MANUAL (22/08/2026): vínculo manual de código Correios */}
+                    {id && <RastreioPedidoBloco pedidoId={id} />}
 
                     <div className="space-y-1.5">
                     <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Peso bruto total (kg)</label>
