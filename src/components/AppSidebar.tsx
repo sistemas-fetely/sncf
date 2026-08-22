@@ -1,181 +1,62 @@
-import {
-  LayoutDashboard, Users, GitBranch, UserSearch, MailPlus, Rocket,
-  ArrowLeftRight, Award, BookOpen, Receipt, Clock, CreditCard, FileText,
-  Palmtree, Gift, BarChart3, LogOut, LayoutGrid, Tv, Shield, Monitor,
-  ClipboardList, UsersRound, Banknote, Landmark,
-} from "lucide-react";
+/**
+ * AppSidebar (People Fetely) — MENU-VIA-TABELA (21/08/2026).
+ *
+ * Itens, rótulos, ícones e ordem vêm da sncf_navegacao (app "pessoas") via
+ * useMenuApp. Mudar esse menu passa a ser UPDATE, sem deploy.
+ *
+ * Achado na migração: 8 telas reais e funcionando (Recrutamento, Convites de
+ * Cadastro, Onboarding, Movimentações, Férias, Benefícios, Pagamentos PJ,
+ * Notas Fiscais PJ) estavam com status='em_construcao' na tabela — dado
+ * desatualizado, não o app. Corrigido pra 'pronta' antes desta migração
+ * (senão useTelasVisiveis esconderia todas de quem não é super_admin).
+ * Ponto, Avaliações e Treinamentos continuam em_construcao de propósito —
+ * são PlaceholderPage de verdade, confirmado no código.
+ */
 
+import { Users, ClipboardList, UsersRound, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Badge } from "@/components/ui/badge";
 import { useVisibilidadeMenuFixo } from "@/hooks/useVisibilidadeMenu";
+import { useMenuApp, type ItemMenu } from "@/hooks/useMenuApp";
+import { resolverIcone } from "@/config/iconesNavegacao";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
   SidebarHeader, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
-import type { Database } from "@/integrations/supabase/types";
-
-type AppRole = Database["public"]["Enums"]["app_role"];
-
-const roleLabels: Record<AppRole, string> = {
-  super_admin: "Super Admin",
-  diretoria_executiva: "Diretoria Executiva",
-  admin_rh: "Admin RH",
-  admin_ti: "Admin TI",
-  gestor_rh: "Gestor RH",
-  gestor_direto: "Gestor Direto",
-  colaborador: "Colaborador",
-  financeiro: "Financeiro",
-  fiscal: "Fiscal",
-  operacional: "Operacional",
-  recrutador: "Recrutador",
-  rh: "RH",
-  administrativo: "Administrativo",
-  ti: "TI",
-  recrutamento: "Recrutamento",
-  gestao_direta: "Gestão Direta",
-  estagiario: "Estagiário",
-  comprador: "Comprador",
-  triagem: "Triagem",
-  coordenacao_op_fin: "Coordenação Op/Fin",
-  auditor: "Auditor",
-  socio: "Sócio",
-};
-
-const ROLE_PRIORITY: AppRole[] = [
-  "super_admin", "diretoria_executiva",
-  "rh", "admin_rh", "gestor_rh",
-  "recrutamento", "recrutador",
-  "financeiro", "fiscal",
-  "ti", "admin_ti",
-  "administrativo", "operacional",
-  "gestao_direta", "gestor_direto",
-  "estagiario", "colaborador",
-];
-
-interface MenuItem {
-  title: string;
-  url: string;
-  icon: React.ComponentType<{ className?: string }>;
-  requireRole?: string;
-}
-
-// Grupo 1: Dashboards & Análise (topo)
-// MIGRADOS na Sprint 2 (29/04/2026):
-//   - Dashboard, Relatórios, Gestão à Vista → sistema "Gestão à Vista" (novo)
-// Mantido vazio aqui pra preservar grupo caso volte item de análise focado em People.
-const analiseItems: MenuItem[] = [];
-
-// Grupo 2: Pessoas (núcleo operacional)
-const pessoasItems: MenuItem[] = [
-  { title: "Pessoas", url: "/pessoas", icon: Users },
-  { title: "Cargos e Salários", url: "/admin/cargos", icon: Banknote },
-  { title: "Organograma", url: "/organograma", icon: GitBranch },
-  { title: "Recrutamento", url: "/recrutamento", icon: UserSearch },
-  { title: "Convites de Cadastro", url: "/convites-cadastro", icon: MailPlus },
-  { title: "Onboarding", url: "/onboarding", icon: Rocket },
-  { title: "Movimentações", url: "/movimentacoes", icon: ArrowLeftRight },
-  { title: "Reembolsos", url: "/pessoas/reembolsos", icon: Receipt },
-  { title: "Avaliações", url: "/avaliacoes", icon: Award },
-  { title: "Treinamentos", url: "/treinamentos", icon: BookOpen },
-];
-
-// Grupo 3: Benefícios & Financeiro
-const beneficiosItems: MenuItem[] = [
-  { title: "Folha de Pagamento", url: "/folha-pagamento", icon: Receipt },
-  { title: "Ponto", url: "/ponto", icon: Clock },
-  { title: "Férias", url: "/ferias", icon: Palmtree },
-  { title: "Benefícios", url: "/beneficios", icon: Gift },
-  { title: "Pagamentos PJ", url: "/pagamentos-pj", icon: CreditCard },
-  { title: "Notas Fiscais PJ", url: "/notas-fiscais", icon: FileText },
-];
-
-interface MenuGroupProps {
-  label: string;
-  items: MenuItem[];
-  collapsed: boolean;
-  userRoles?: string[];
-}
-
-function MenuGroup({ label, items, collapsed, userRoles = [] }: MenuGroupProps) {
-  const location = useLocation();
-  const { podeVer, isLoading: carregandoVisibilidade } = useVisibilidadeMenuFixo();
-  const visibleItems = items.filter((item) => {
-    if (!podeVer(item.url)) return false;
-    if (item.requireRole) {
-      if (item.requireRole === "__gestor_or_rh__") {
-        if (!userRoles.some((r) => ["gestor_direto", "super_admin", "admin_rh", "gestor_rh"].includes(r))) return false;
-      } else if (item.requireRole === "__admin_rh_or_super__") {
-        if (!userRoles.some((r) => ["super_admin", "admin_rh"].includes(r))) return false;
-      } else if (!userRoles.includes(item.requireRole)) {
-        return false;
-      }
-    }
-    return true;
-  });
-
-  if (carregandoVisibilidade) return null;
-  if (visibleItems.length === 0) return null;
-
-  const isItemActive = (url: string) => {
-    if (url.includes("?")) {
-      const [path, query] = url.split("?");
-      return location.pathname === path && location.search === `?${query}`;
-    }
-    return url === "/" ? location.pathname === "/" : location.pathname === url;
-  };
-
-  return (
-    <SidebarGroup>
-      {!collapsed && (
-        <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4">
-          {label}
-        </SidebarGroupLabel>
-      )}
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {visibleItems.map((item) => {
-            const active = isItemActive(item.url);
-            return (
-              <SidebarMenuItem key={item.url}>
-                <SidebarMenuButton asChild>
-                  <NavLink
-                    to={item.url}
-                    end={item.url === "/"}
-                    className={cn(
-                      "flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200",
-                      active && "bg-sidebar-primary/20 text-sidebar-primary font-medium border-l-[3px] border-sidebar-primary shadow-sm"
-                    )}
-                  >
-                    <item.icon className={cn("h-[18px] w-[18px] shrink-0 transition-colors", active && "text-sidebar-primary")} />
-                    {!collapsed && <span>{item.title}</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            );
-          })}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
-  );
-}
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { user, roles, profile, signOut } = useAuth();
+  const { roles, signOut } = useAuth();
   const { podeVer, isLoading: carregandoVisibilidade } = useVisibilidadeMenuFixo();
+  const { grupos, isLoading: carregandoMenu } = useMenuApp("pessoas");
 
-  const initials = profile?.full_name
-    ? profile.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
-    : user?.email?.slice(0, 2).toUpperCase() || "??";
+  const isItemActive = (url: string) => location.pathname === url;
 
-  const displayName = profile?.full_name || user?.email || "Usuário";
-  const primaryRole = roleLabels[ROLE_PRIORITY.find(r => roles.includes(r)) || roles[0]] || "Colaborador";
+  const renderItem = (item: ItemMenu) => {
+    const active = isItemActive(item.rota);
+    const Icone = resolverIcone(item.icone);
+    return (
+      <SidebarMenuItem key={item.chave}>
+        <SidebarMenuButton asChild>
+          <NavLink
+            to={item.rota}
+            className={cn(
+              "flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200",
+              active && "bg-sidebar-primary/20 text-sidebar-primary font-medium border-l-[3px] border-sidebar-primary shadow-sm"
+            )}
+          >
+            <Icone className={cn("h-[18px] w-[18px] shrink-0 transition-colors", active && "text-sidebar-primary")} />
+            {!collapsed && <span>{item.label}</span>}
+          </NavLink>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
@@ -237,11 +118,19 @@ export function AppSidebar() {
         </SidebarGroup>
         )}
         <div className="mx-4 border-t border-sidebar-border/40" />
-        <MenuGroup label="Análise" items={analiseItems} collapsed={collapsed} userRoles={roles} />
-        <div className="mx-4 border-t border-sidebar-border/40" />
-        <MenuGroup label="Pessoas" items={pessoasItems} collapsed={collapsed} userRoles={roles} />
-        <div className="mx-4 border-t border-sidebar-border/40" />
-        <MenuGroup label="Benefícios & Financeiro" items={beneficiosItems} collapsed={collapsed} userRoles={roles} />
+
+        {!carregandoMenu && grupos.map((g) => (
+          <SidebarGroup key={g.chave}>
+            {!collapsed && (
+              <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4">
+                {g.label}
+              </SidebarGroupLabel>
+            )}
+            <SidebarGroupContent>
+              <SidebarMenu>{g.itens.map(renderItem)}</SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
 
       <SidebarFooter className="p-4">
