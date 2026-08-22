@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { type EstagioPedido } from "@/types/pedido";
 import { SolicitacoesSopsAba } from "@/components/pedidos/SolicitacoesSopsAba";
 import { useContagemSolicitacoes } from "@/hooks/pedidos/useSolicitacoesComercial";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 import { PageShell } from "@/components/layout/PageShell";
 
@@ -67,11 +68,7 @@ export default function PedidosIndex() {
 
   return (
     <PageShell>
-      {/* Header */}
-      <div className="flex flex-row items-center justify-between">
-        <h1 className="text-2xl font-medium">Casa dos Pedidos</h1>
-        <ExportarPedidosButton />
-      </div>
+      <PageHeader titulo="Casa dos Pedidos" acoes={<ExportarPedidosButton />} />
 
       <Tabs value={aba} onValueChange={setAba} className="space-y-4">
         <TabsList>
