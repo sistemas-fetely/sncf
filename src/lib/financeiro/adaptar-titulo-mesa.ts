@@ -93,6 +93,7 @@ export function adaptarParaTitulo(l: LinhaMesa): TituloCobranca {
     linha_digitavel: l.linha_digitavel,
     tipo_pagamento: l.instrumento ?? "",
     pedido_id: l.pedido_id ?? "",
+    pedido_id_externo: l.pedido ?? null,
     parceiro_id: l.parceiro_id,
     parceiro_razao_social: l.nome_canonico,
     parceiro_nome_fantasia: l.apelido,
