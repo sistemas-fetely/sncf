@@ -39,6 +39,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { BaixaManualDialog } from "@/components/credito/BaixaManualDialog";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 type Titulo = {
   id: string;
   numero_titulo: string | null;
