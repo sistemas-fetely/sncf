@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 interface Importacao {
   id: string;
   importado_por_nome: string | null;
@@ -59,15 +60,11 @@ export default function HistoricoImportacoesPDF() {
 
   return (
     <PageShell>
-      <div>
-        <div className="flex items-center gap-2 mb-1">
-          <Sparkles className="h-5 w-5 text-info" />
-          <h1 className="text-2xl font-medium tracking-tight">Histórico de Importações PDF</h1>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          PDFs analisados pela IA para virar processos. Auditoria completa.
-        </p>
-      </div>
+      <PageHeader
+        icone={Sparkles}
+        titulo="Histórico de Importações PDF"
+        estado="PDFs analisados pela IA para virar processos. Auditoria completa."
+      />
 
       <div className="flex items-center gap-3 flex-wrap">
         <span className="text-xs text-muted-foreground">Filtrar status:</span>

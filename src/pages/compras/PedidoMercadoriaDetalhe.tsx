@@ -34,6 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PageHeader } from "@/components/layout/PageHeader";
 import LancarNfDialog from "@/components/compras/LancarNfDialog";
 import LancarInvoiceDialog from "@/components/compras/LancarInvoiceDialog";
 import EditarPedidoMercadoriaDialog from "@/components/compras/EditarPedidoMercadoriaDialog";
@@ -503,22 +504,25 @@ export default function PedidoMercadoriaDetalhe() {
         <>
           {/* Cabeçalho */}
           <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-medium">{pedido.numero_pedido}</h1>
-              {pedido.rocabella_ref && (
-                <span className="text-sm text-muted-foreground">Ref. {pedido.rocabella_ref}</span>
+            <PageHeader
+              titulo={pedido.numero_pedido}
+              acoes={(
+                <>
+                  {pedido.rocabella_ref && (
+                    <span className="text-sm text-muted-foreground">Ref. {pedido.rocabella_ref}</span>
+                  )}
+                  <FaseBadge fase={pedido.fase_xpm} />
+                  {pedido.status && <Badge variant="outline">{pedido.status}</Badge>}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEditOpen(true)}
+                  >
+                    <Pencil className="h-4 w-4 mr-1" /> Editar pedido
+                  </Button>
+                </>
               )}
-              <FaseBadge fase={pedido.fase_xpm} />
-              {pedido.status && <Badge variant="outline">{pedido.status}</Badge>}
-              <Button
-                variant="outline"
-                size="sm"
-                className="ml-auto"
-                onClick={() => setEditOpen(true)}
-              >
-                <Pencil className="h-4 w-4 mr-1" /> Editar pedido
-              </Button>
-            </div>
+            />
 
             <div className="text-sm text-muted-foreground">
               <div>

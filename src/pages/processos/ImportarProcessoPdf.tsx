@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 export default function ImportarProcessoPdf() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -91,15 +92,11 @@ export default function ImportarProcessoPdf() {
           </Button>
         </div>
 
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-info" />
-            Múltiplos processos identificados
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            O PDF <strong>{arquivoNome}</strong> parece conter mais de um processo. Qual você quer importar agora?
-          </p>
-        </div>
+        <PageHeader
+          icone={Sparkles}
+          titulo="Múltiplos processos identificados"
+          estado={<>O PDF <strong>{arquivoNome}</strong> parece conter mais de um processo. Qual você quer importar agora?</>}
+        />
 
         <div className="grid gap-2">
           {multiplos.map((p: any, idx: number) => (

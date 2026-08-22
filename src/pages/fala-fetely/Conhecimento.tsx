@@ -29,6 +29,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { SugestoesPendentes, type SugestaoPendente } from "@/components/fala-fetely/SugestoesPendentes";
 import { ConfirmacaoDupla } from "@/components/ConfirmacaoDupla";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 type Categoria = "politica" | "regra" | "diretriz" | "faq" | "conceito" | "manifesto" | "mercado";
 
@@ -351,34 +352,30 @@ export default function Conhecimento() {
     <div className="min-h-screen p-6" style={{ background: "linear-gradient(135deg, #FFF8F3 0%, #F0F7F4 100%)" }}>
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <Button variant="ghost" onClick={() => navigate("/fala-fetely")} className="gap-1 mb-2 -ml-3">
-              <ArrowLeft className="h-4 w-4" /> Voltar ao Fala Fetely
-            </Button>
+        <Button variant="ghost" onClick={() => navigate("/fala-fetely")} className="gap-1 mb-2 -ml-3">
+          <ArrowLeft className="h-4 w-4" /> Voltar ao Fala Fetely
+        </Button>
+        <PageHeader
+          icone={BookOpen}
+          titulo="Base de Conhecimento"
+          estado="Ensine o Fala Fetely sobre cultura, regras, mercado e diretrizes da empresa"
+          acoes={(
             <div className="flex items-center gap-2">
-              <BookOpen className="h-6 w-6" style={{ color: "#1A4A3A" }} />
-              <h1 className="text-2xl font-medium" style={{ color: "#1A4A3A" }}>Base de Conhecimento</h1>
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Ensine o Fala Fetely sobre cultura, regras, mercado e diretrizes da empresa
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {(isSuperAdmin || isAdminRH || (userRoles as string[]).includes("gestor_rh")) && (
-              <Button
-                variant="outline"
-                onClick={() => setMostrarUploadPdf(true)}
-                className="gap-2"
-              >
-                <FileText className="h-4 w-4" /> A partir de PDF
+              {(isSuperAdmin || isAdminRH || (userRoles as string[]).includes("gestor_rh")) && (
+                <Button
+                  variant="outline"
+                  onClick={() => setMostrarUploadPdf(true)}
+                  className="gap-2"
+                >
+                  <FileText className="h-4 w-4" /> A partir de PDF
+                </Button>
+              )}
+              <Button onClick={abrirNovo} className="gap-2 text-white hover:opacity-90" style={{ backgroundColor: "#1A4A3A" }}>
+                <Plus className="h-4 w-4" /> Novo Conhecimento
               </Button>
-            )}
-            <Button onClick={abrirNovo} className="gap-2 text-white hover:opacity-90" style={{ backgroundColor: "#1A4A3A" }}>
-              <Plus className="h-4 w-4" /> Novo Conhecimento
-            </Button>
-          </div>
-        </div>
+            </div>
+          )}
+        />
 
         <UploadPdfConhecimento
           open={mostrarUploadPdf}
