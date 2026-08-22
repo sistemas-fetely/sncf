@@ -132,7 +132,16 @@ function agruparPorPedidoMesa(rows: LinhaMesa[]): GrupoPedidoMesa[] {
   return grupos.sort((a, b) => maiorAtraso(b.parcelas) - maiorAtraso(a.parcelas));
 }
 
-function TextoAtraso({ dias }: { dias: number }) {
+/**
+ * VENCIDO-EXIGE-COBRA-PELA-REGUA: dias é matemática de data pura. Quando o
+ * título não é cobrável pela régua (conta_corrente/consignado, cartão com
+ * parcela futura), "Xd em atraso" contradiz a própria fila NAO_COBRAVEL —
+ * mostra framing neutro em vez de vermelho.
+ */
+function TextoAtraso({ dias, cobravel = true }: { dias: number; cobravel?: boolean }) {
+  if (!cobravel) {
+    return <span className="text-muted-foreground">aguarda acerto</span>;
+  }
   return dias > 0 ? (
     <span className="text-destructive">{dias}d em atraso</span>
   ) : (
@@ -223,7 +232,8 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
       if (!revelandoSemAcao && l.mesa_exige_acao !== true) return false;
       if (soVencido) {
         // Filtro transversal de vencidos: ignora o recorte por grupo de cartão.
-        if (!((l.dias_atraso ?? 0) > 0)) return false;
+        // Não conta título não-cobrável pela régua (conta_corrente/consignado) — contradiz a própria fila NAO_COBRAVEL.
+        if (!((l.dias_atraso ?? 0) > 0 && l.cobra_pela_regua)) return false;
       } else if (grupoAtivo && !GRUPOS[grupoAtivo].includes(l.fila ?? "")) return false;
       if (filaF !== "todas" && l.fila !== filaF) return false;
       if (instrumentoF !== "todos" && l.instrumento !== instrumentoF) return false;
@@ -241,9 +251,9 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
     return { qtd: alvo.length, soma: alvo.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0) };
   };
 
-  /** Vencidos: transversal a todas as filas. */
+  /** Vencidos: transversal a todas as filas. Não conta não-cobrável pela régua (ex: conta_corrente/consignado). */
   const resumoVencido = useMemo(() => {
-    const alvo = linhas.filter((l) => (l.dias_atraso ?? 0) > 0);
+    const alvo = linhas.filter((l) => (l.dias_atraso ?? 0) > 0 && l.cobra_pela_regua);
     return { qtd: alvo.length, soma: alvo.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0) };
   }, [linhas]);
 
@@ -261,7 +271,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
   const filasOrdenadas = useMemo(() => {
     return FILAS.map((f, i) => {
       const rows = porFila[f.chave] ?? [];
-      const vencidas = rows.filter((l) => (l.dias_atraso ?? 0) > 0);
+      const vencidas = rows.filter((l) => (l.dias_atraso ?? 0) > 0 && l.cobra_pela_regua);
       return {
         ...f,
         rows,
@@ -533,7 +543,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                       {fmtData(g.urgente.vencimento)}
                                     </span>
                                     <span className="shrink-0 tabular-nums">
-                                      <TextoAtraso dias={atrasoUrgente} />
+                                      <TextoAtraso dias={atrasoUrgente} cobravel={g.urgente.cobra_pela_regua ?? true} />
                                     </span>
                                     <span className="flex shrink-0 flex-wrap items-center gap-1">
                                       {seloEntrega(g.urgente)}
@@ -598,7 +608,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                           <TableCell className="py-1.5 text-right tabular-nums">{formatBRL(Number(l.valor_atual ?? 0))}</TableCell>
                                           <TableCell className="py-1.5 tabular-nums">{fmtData(l.vencimento)}</TableCell>
                                           <TableCell className="py-1.5 tabular-nums">
-                                            <TextoAtraso dias={Number(l.dias_atraso ?? 0)} />
+                                            <TextoAtraso dias={Number(l.dias_atraso ?? 0)} cobravel={l.cobra_pela_regua ?? true} />
                                           </TableCell>
                                           <TableCell className="py-1.5">
                                             <div className="flex flex-wrap items-center gap-1">
