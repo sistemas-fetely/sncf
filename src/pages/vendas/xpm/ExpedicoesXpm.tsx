@@ -787,25 +787,23 @@ export default function ExpedicoesXpm() {
   return (
     <TooltipProvider delayDuration={200}>
       <PageShell>
-        <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-medium tracking-tight">Expedições XPM</h1>
-            <p className="text-sm text-muted-foreground">
-              Andamento físico das expedições no armazém, do pedido ao embarque.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground">{desdeQuando(ultimoSync)}</span>
-            <Button onClick={sincronizar} disabled={sincronizando} className="gap-2">
-              {sincronizando ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4" />
-              )}
-              Sincronizar
-            </Button>
-          </div>
-        </header>
+        <PageHeader
+          titulo="Expedições XPM"
+          estado="Andamento físico das expedições no armazém, do pedido ao embarque."
+          acoes={
+            <>
+              <span className="text-xs text-muted-foreground">{desdeQuando(ultimoSync)}</span>
+              <Button onClick={sincronizar} disabled={sincronizando} className="gap-2">
+                {sincronizando ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                Sincronizar
+              </Button>
+            </>
+          }
+        />
 
         <AlertaDivergencia />
 
