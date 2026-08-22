@@ -27,13 +27,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   CheckCircle2, XCircle, UserCheck, UserX, Users, UserPlus,
-  Shield, ShieldCheck, ShieldAlert, Pencil, Trash2, Link2, LinkIcon, Unlink,
-  ChevronDown, ChevronRight, FileText, Sparkles, Check, Eye, Ghost, Loader2, ScanSearch, History,
+  Shield, ShieldCheck, ShieldAlert, Pencil, Trash2,
+  ChevronDown, ChevronRight, FileText, Sparkles, Check, Ghost, Loader2, ScanSearch, History,
 } from "lucide-react";
 import { toast } from "sonner";
-import { ConfirmacaoDupla } from "@/components/ConfirmacaoDupla";
-import { DrawerUsuario } from "@/components/DrawerUsuario";
-import { HubDaPessoaDialog } from "@/components/gerenciar-usuarios/HubDaPessoaDialog";
 import { GrupoCell } from "@/components/gerenciar-usuarios/GrupoCell";
 import NovoUsuarioDialog from "@/components/gerenciar-usuarios/NovoUsuarioDialog";
 import MesaUsuariosTab from "@/components/gerenciar-usuarios/MesaUsuariosTab";
@@ -144,24 +141,11 @@ export default function GerenciarUsuarios() {
   const isAdminRH = myRoles.includes("admin_rh");
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
-  const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<{ userId: string; name: string } | null>(null);
-  const [selectedRoles, setSelectedRoles] = useState<AppRole[]>([]);
-  const [selectedColabTipo, setSelectedColabTipo] = useState<string>("");
   const [newUser, setNewUser] = useState({
     email: "", full_name: "", roles: ["colaborador"] as string[],
     tipo_acesso: "externo" as "vinculado" | "externo",
     colaborador_id: "", colaborador_tipo: ""
   });
-  const [deleteConfirm, setDeleteConfirm] = useState<{ userId: string; name: string } | null>(null);
-  const [removeSuperAdminConfirm, setRemoveSuperAdminConfirm] = useState<
-    { userId: string; name: string; mode: "ban" | "delete" } | null
-  >(null);
-  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
-  const [linkUser, setLinkUser] = useState<{ userId: string; name: string } | null>(null);
-  const [linkColaboradorId, setLinkColaboradorId] = useState("");
-  const [linkContratoPjId, setLinkContratoPjId] = useState("");
-  const [drawerUsuarioId, setDrawerUsuarioId] = useState<string | null>(null);
   const [novoUsuarioOpen, setNovoUsuarioOpen] = useState(false);
 
   // V3 — Template / Departamento / Unidade para Novo Usuário
@@ -229,39 +213,6 @@ export default function GerenciarUsuarios() {
     },
   });
 
-  // Fetch linked CLT/PJ to determine user type badges
-  const { data: linkedCLT = [] } = useQuery({
-    queryKey: ["linked-clt-users"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("colaboradores_clt")
-        .select("id, user_id, nome_completo, cargo")
-        .not("user_id", "is", null);
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const { data: linkedPJ = [] } = useQuery({
-    queryKey: ["linked-pj-users"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("contratos_pj")
-        .select("id, user_id, contato_nome, tipo_servico")
-        .not("user_id", "is", null);
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const getUserLink = (userId: string) => {
-    const clt = linkedCLT.find((c) => c.user_id === userId);
-    if (clt) return { tipo: "CLT" as const, nome: clt.nome_completo, cargo: clt.cargo, id: clt.id };
-    const pj = linkedPJ.find((p) => p.user_id === userId);
-    if (pj) return { tipo: "PJ" as const, nome: pj.contato_nome, cargo: pj.tipo_servico, id: pj.id };
-    return null;
-  };
-
   const createUser = useMutation({
     mutationFn: async () => {
       const result = await callManageUser("create_user_standalone", {
@@ -307,131 +258,6 @@ export default function GerenciarUsuarios() {
     },
     onError: (err: Error) => toast.error(err.message || "Erro ao criar usuário"),
   });
-
-  const toggleBan = useMutation({
-    mutationFn: async ({ user_id, ban }: { user_id: string; ban: boolean }) => {
-      await callManageUser("toggle_ban", { user_id, ban });
-    },
-    onSuccess: (_, { ban }) => {
-      queryClient.invalidateQueries({ queryKey: ["admin-profiles"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-auth-users"] });
-      toast.success(ban ? "Usuário inativado com sucesso!" : "Usuário ativado com sucesso!");
-    },
-    onError: () => toast.error("Erro ao atualizar status do usuário"),
-  });
-
-  const approveUser = useMutation({
-    mutationFn: async (user_id: string) => {
-      await callManageUser("approve", { user_id });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-profiles"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-auth-users"] });
-      toast.success("Usuário aprovado com sucesso!");
-    },
-    onError: () => toast.error("Erro ao aprovar usuário"),
-  });
-
-  const updateRoles = useMutation({
-    mutationFn: async ({ user_id, roles, colaborador_tipo }: { user_id: string; roles: AppRole[]; colaborador_tipo?: string | null }) => {
-      await callManageUser("update_roles", { user_id, roles, colaborador_tipo });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-user-roles"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-profiles"] });
-      toast.success("Perfis atualizados com sucesso!");
-      setRolesDialogOpen(false);
-    },
-    onError: () => toast.error("Erro ao atualizar perfis"),
-  });
-
-  const deleteUser = useMutation({
-    mutationFn: async (user_id: string) => {
-      await callManageUser("delete_user", { user_id });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-profiles"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-user-roles"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-auth-users"] });
-      toast.success("Usuário deletado com sucesso!");
-      setDeleteConfirm(null);
-    },
-    onError: (err: Error) => toast.error(err.message || "Erro ao deletar usuário"),
-  });
-
-  const linkRecord = useMutation({
-    mutationFn: async ({ user_id, colaborador_id, contrato_pj_id }: { user_id: string; colaborador_id?: string; contrato_pj_id?: string }) => {
-      await callManageUser("link_record", { user_id, colaborador_id, contrato_pj_id });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["unlinked-clt"] });
-      queryClient.invalidateQueries({ queryKey: ["unlinked-pj"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-profiles"] });
-      queryClient.invalidateQueries({ queryKey: ["linked-clt-users"] });
-      queryClient.invalidateQueries({ queryKey: ["linked-pj-users"] });
-      toast.success("Vínculo realizado com sucesso!");
-      setLinkDialogOpen(false);
-      setLinkColaboradorId("");
-      setLinkContratoPjId("");
-    },
-    onError: () => toast.error("Erro ao vincular registro"),
-  });
-
-  const unlinkRecord = useMutation({
-    mutationFn: async (user_id: string) => {
-      await callManageUser("unlink_record", { user_id });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["unlinked-clt"] });
-      queryClient.invalidateQueries({ queryKey: ["unlinked-pj"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-profiles"] });
-      queryClient.invalidateQueries({ queryKey: ["linked-clt-users"] });
-      queryClient.invalidateQueries({ queryKey: ["linked-pj-users"] });
-      toast.success("Vínculo removido com sucesso!");
-      setLinkDialogOpen(false);
-    },
-    onError: () => toast.error("Erro ao desvincular registro"),
-  });
-
-  const getUserRoles = (userId: string) =>
-    allRoles.filter((r) => r.user_id === userId).map((r) => r.role);
-
-  const getUserRoleRecord = (userId: string, role: AppRole) =>
-    allRoles.find((r) => r.user_id === userId && r.role === role);
-
-  const isGestorManual = (userId: string) => {
-    const record = getUserRoleRecord(userId, "gestor_direto" as AppRole);
-    return record ? (record as any).atribuido_manualmente === true : false;
-  };
-
-  const getAuthUser = (userId: string) =>
-    authUsers.find((u: { id: string }) => u.id === userId);
-
-  const openRolesDialog = (userId: string, name: string) => {
-    // admin_rh cannot edit super_admin or other admin_rh users
-    if (!isSuperAdmin) {
-      const targetRoles = getUserRoles(userId);
-      if (targetRoles.includes("super_admin") || targetRoles.includes("admin_rh")) {
-        toast.error("Sem permissão para editar este usuário");
-        return;
-      }
-    }
-    setSelectedUser({ userId, name });
-    setSelectedRoles(getUserRoles(userId));
-    const profile = profiles.find((p) => p.user_id === userId);
-    setSelectedColabTipo((profile as any)?.colaborador_tipo || "");
-    setRolesDialogOpen(true);
-  };
-
-  const toggleRole = (role: AppRole) => {
-    if (!isSuperAdmin && role === "super_admin") {
-      toast.error("Apenas Super Admin pode atribuir este role");
-      return;
-    }
-    setSelectedRoles((prev) =>
-      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
-    );
-  };
 
   const toggleNewUserRole = (role: string) => {
     setNewUser((prev) => ({
@@ -740,181 +566,6 @@ export default function GerenciarUsuarios() {
 
 
       </Tabs>
-
-      {/* Hub da Pessoa v2 — perfis, níveis e unidades */}
-      <HubDaPessoaDialog
-        userId={selectedUser?.userId || null}
-        userName={selectedUser?.name || ""}
-        open={rolesDialogOpen}
-        onOpenChange={(open) => {
-          setRolesDialogOpen(open);
-          if (!open) setSelectedUser(null);
-        }}
-        onSucesso={() => {
-          queryClient.invalidateQueries({ queryKey: ["admin-user-roles"] });
-        }}
-      />
-
-      <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja deletar o usuário <strong>{deleteConfirm?.name}</strong>? Esta ação é irreversível e removerá todos os dados de acesso do usuário.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => deleteConfirm && deleteUser.mutate(deleteConfirm.userId)}
-              disabled={deleteUser.isPending}
-            >
-              {deleteUser.isPending ? "Deletando..." : "Deletar"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Confirmação dupla: remover/inativar Super Admin (Regra 18) */}
-      <ConfirmacaoDupla
-        open={!!removeSuperAdminConfirm}
-        onOpenChange={(o) => !o && setRemoveSuperAdminConfirm(null)}
-        titulo="🔐 Remover privilégios de Super Admin"
-        descricao={
-          <>
-            <p>
-              Você está prestes a {removeSuperAdminConfirm?.mode === "delete" ? "deletar" : "inativar"} o
-              Super Admin <strong>{removeSuperAdminConfirm?.name}</strong>. Essa ação afeta o acesso total
-              ao sistema e é registrada em auditoria.
-            </p>
-            <p>Confirme apenas se for realmente necessário.</p>
-          </>
-        }
-        textoConfirmacao="REMOVER SUPER ADMIN"
-        placeholder="REMOVER SUPER ADMIN"
-        acaoLabel={removeSuperAdminConfirm?.mode === "delete" ? "Deletar Super Admin" : "Inativar Super Admin"}
-        onConfirmar={async () => {
-          if (!removeSuperAdminConfirm) return;
-          if (removeSuperAdminConfirm.mode === "delete") {
-            await deleteUser.mutateAsync(removeSuperAdminConfirm.userId);
-          } else {
-            await toggleBan.mutateAsync({ user_id: removeSuperAdminConfirm.userId, ban: true });
-          }
-          setRemoveSuperAdminConfirm(null);
-        }}
-      />
-
-      <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Link2 className="h-5 w-5 text-primary" />
-              Vincular Cadastro
-            </DialogTitle>
-            <DialogDescription>
-              Vincular o usuário <strong>{linkUser?.name}</strong> a um registro de colaborador CLT ou contrato PJ existente.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            {/* Current link status */}
-            {linkUser && (() => {
-              const currentLink = getUserLink(linkUser.userId);
-              if (currentLink) {
-                return (
-                  <div className="rounded-lg border border-border p-3 bg-muted/30 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wider">Vínculo atual</p>
-                        <p className="text-sm font-medium flex items-center gap-1.5 mt-0.5">
-                          <LinkIcon className="h-3.5 w-3.5 text-primary" />
-                          {currentLink.nome}
-                          <Badge variant="outline" className={`text-[10px] ml-1 ${currentLink.tipo === "CLT" ? "border-info/40 text-info" : "border-success/40 text-success"}`}>
-                            {currentLink.tipo}
-                          </Badge>
-                        </p>
-                        <p className="text-xs text-muted-foreground">{currentLink.cargo}</p>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-destructive hover:text-destructive gap-1"
-                        onClick={() => unlinkRecord.mutate(linkUser.userId)}
-                        disabled={unlinkRecord.isPending}
-                      >
-                        <Unlink className="h-3.5 w-3.5" />
-                        {unlinkRecord.isPending ? "Removendo..." : "Desvincular"}
-                      </Button>
-                    </div>
-                  </div>
-                );
-              }
-              return (
-                <div className="rounded-lg border border-dashed border-muted-foreground/30 p-3 text-center">
-                  <Unlink className="h-4 w-4 mx-auto text-muted-foreground mb-1" />
-                  <p className="text-sm text-muted-foreground">Sem vínculo ativo</p>
-                </div>
-              );
-            })()}
-
-            <div className="space-y-2">
-              <Label>Colaborador CLT</Label>
-              <Select value={linkColaboradorId} onValueChange={setLinkColaboradorId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Nenhum (não vincular CLT)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhum</SelectItem>
-                  {unlinkedCLT.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.nome_completo} — {c.cargo}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Contrato PJ</Label>
-              <Select value={linkContratoPjId} onValueChange={setLinkContratoPjId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Nenhum (não vincular PJ)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhum</SelectItem>
-                  {unlinkedPJ.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.contato_nome} — {c.razao_social}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setLinkDialogOpen(false)}>Cancelar</Button>
-            <Button
-              onClick={() => {
-                if (linkUser) {
-                  linkRecord.mutate({
-                    user_id: linkUser.userId,
-                    colaborador_id: linkColaboradorId && linkColaboradorId !== "none" ? linkColaboradorId : undefined,
-                    contrato_pj_id: linkContratoPjId && linkContratoPjId !== "none" ? linkContratoPjId : undefined,
-                  });
-                }
-              }}
-              disabled={linkRecord.isPending || (!linkColaboradorId && !linkContratoPjId) || (linkColaboradorId === "none" && linkContratoPjId === "none")}
-            >
-              {linkRecord.isPending ? "Vinculando..." : "Vincular"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <DrawerUsuario
-        userId={drawerUsuarioId}
-        open={!!drawerUsuarioId}
-        onOpenChange={(open) => !open && setDrawerUsuarioId(null)}
-      />
 
       <NovoUsuarioDialog open={novoUsuarioOpen} onOpenChange={setNovoUsuarioOpen} />
     </div>
