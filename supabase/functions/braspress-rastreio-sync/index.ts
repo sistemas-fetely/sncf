@@ -141,6 +141,28 @@ Deno.serve(async (req) => {
     let divergencias = 0;
     const resultados: Resultado[] = [];
 
+    // Mapa descricao -> codigo de ocorrencia (transportadora especifica + generica)
+    const { data: ocorrenciaRows, error: errOcorrencias } = await supabase
+      .from("transp_ocorrencia_tipo")
+      .select("codigo, descricao, transportadora_id");
+    if (errOcorrencias) {
+      console.error("[braspress-rastreio-sync] falha ao ler transp_ocorrencia_tipo:", errOcorrencias.message);
+    }
+    const mapaOcorrencia = new Map<string, string>();
+    for (const row of (ocorrenciaRows ?? []) as Record<string, unknown>[]) {
+      const chave = `${row.transportadora_id ?? "null"}|${String(row.descricao ?? "").toLowerCase().trim()}`;
+      if (!mapaOcorrencia.has(chave)) {
+        mapaOcorrencia.set(chave, String(row.codigo ?? ""));
+      }
+    }
+    function resolverOcorrenciaCodigo(transportadoraId: unknown, descricao: string | null): string | null {
+      if (!descricao) return null;
+      const normalizado = descricao.toLowerCase().trim();
+      const especifica = mapaOcorrencia.get(`${transportadoraId ?? "null"}|${normalizado}`);
+      if (especifica) return especifica;
+      return mapaOcorrencia.get(`null|${normalizado}`) ?? null;
+    }
+
     for (let i = 0; i < itens.length; i++) {
       const item = itens[i];
       const nfNumero = String(item.nf_numero ?? "").trim();
@@ -231,6 +253,11 @@ Deno.serve(async (req) => {
               ).trim() || null
             : null;
           const ultimoEm = ultimo ? ultimo.iso : null;
+
+          const textoOcorrencia =
+            ultimoDesc ??
+            (typeof escolhido?.ultimaOcorrencia === "string" ? String(escolhido.ultimaOcorrencia).trim() : null);
+          registro.ocorrencia_codigo = resolverOcorrenciaCodigo(transportadoraId, textoOcorrencia);
 
           const cabecalhoEntregue =
             !!escolhido?.dataEntrega ||
