@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { humanizeError } from "@/lib/errorMessages";
 import { useQueryClient } from "@tanstack/react-query";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   rascunho: { label: "Rascunho", className: "bg-muted text-muted-foreground" },
@@ -127,18 +128,16 @@ export default function Recrutamento() {
 
   return (
     <PageShell>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight">Recrutamento e Seleção</h1>
-          <p className="text-muted-foreground text-sm mt-1">Gestão de vagas e candidatos</p>
-        </div>
-        {canCreate && (
+      <PageHeader
+        titulo="Recrutamento e Seleção"
+        estado="Gestão de vagas e candidatos"
+        acoes={canCreate && (
           <Button onClick={() => setDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Nova Vaga
           </Button>
         )}
-      </div>
+      />
 
       <div className="rounded-md border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
         <strong className="text-warning">Fluxo de contratação desativado nesta tela.</strong>{" "}

@@ -32,6 +32,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 const STATUS_COR: Record<string, string> = {
   vigente: "bg-success/10 text-success border-success/30",
   em_revisao: "bg-warning/10 text-warning border-warning/30",
@@ -118,17 +119,11 @@ export default function Processos() {
   return (
     <PageShell>
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
-            <FileText className="h-6 w-6 text-primary" />
-            Processos Fetely
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Como a Fetely faz o que faz. Vivos, versionados e de todos.
-          </p>
-        </div>
-        {podeEditar && (
+      <PageHeader
+        icone={FileText}
+        titulo="Processos Fetely"
+        estado="Como a Fetely faz o que faz. Vivos, versionados e de todos."
+        acoes={podeEditar && (
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -143,7 +138,7 @@ export default function Processos() {
             </Button>
           </div>
         )}
-      </div>
+      />
 
       {/* Busca + filtros */}
       <div className="flex gap-2 items-center flex-wrap">

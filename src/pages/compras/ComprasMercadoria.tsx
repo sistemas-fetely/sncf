@@ -8,6 +8,7 @@ import RateioNfTab from "@/components/compras/RateioNfTab";
 import PendenciasTab from "@/components/compras/PendenciasTab";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 interface AbaMercadoria {
   value: string;
   label: string;
@@ -45,17 +46,11 @@ export default function ComprasMercadoria() {
 
   return (
     <PageShell variant="dados">
-      <div className="flex items-center gap-3">
-        <div className="flex items-center justify-center rounded-lg bg-primary p-2">
-          <ShoppingBag className="h-6 w-6 text-primary-foreground" aria-hidden="true" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-medium">Compras de Mercadoria</h1>
-          <p className="text-sm text-muted-foreground">
-            Importação e compra nacional de produtos para revenda.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icone={ShoppingBag}
+        titulo="Compras de Mercadoria"
+        estado="Importação e compra nacional de produtos para revenda."
+      />
 
 
       <Tabs value={abaAtual} onValueChange={onChange}>

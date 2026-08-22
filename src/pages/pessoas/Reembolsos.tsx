@@ -8,6 +8,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/layout/PageHeader";
 import LancarReembolsoSheet from "@/components/pessoas/reembolso/LancarReembolsoSheet";
 import SolicitacaoDrawer from "@/components/pessoas/reembolso/SolicitacaoDrawer";
 import ImportarPlanilhaSheet, {
@@ -98,41 +99,37 @@ export default function Reembolsos() {
 
   return (
     <div className="p-6 space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
-            <Receipt className="h-6 w-6" />
-            Reembolsos
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Fila de operação: lançar o que chegou, resolver pendência e aprovar.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button onClick={() => setSheetAberto(true)}>
-            <Plus className="h-4 w-4" />
-            Lançar reembolso recebido
-          </Button>
-          <Button variant="outline" onClick={() => setImportarAberto(true)}>
-            <FileUp className="h-4 w-4" />
-            Importar planilha
-          </Button>
-          <BotaoBaixarTemplate />
+      <PageHeader
+        icone={Receipt}
+        titulo="Reembolsos"
+        estado="Fila de operação: lançar o que chegou, resolver pendência e aprovar."
+        acoes={(
+          <div className="flex flex-wrap items-center gap-2">
+            <Button onClick={() => setSheetAberto(true)}>
+              <Plus className="h-4 w-4" />
+              Lançar reembolso recebido
+            </Button>
+            <Button variant="outline" onClick={() => setImportarAberto(true)}>
+              <FileUp className="h-4 w-4" />
+              Importar planilha
+            </Button>
+            <BotaoBaixarTemplate />
 
-          <Button variant="outline" asChild>
-            <Link to="/pessoas/reembolsos/ciclos">
-              <CalendarRange className="h-4 w-4" />
-              Ciclos e pagamentos
-            </Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link to="/pessoas/reembolsos/saneamento">
-              <Wrench className="h-4 w-4" />
-              Sanear cadastro
-            </Link>
-          </Button>
-        </div>
-      </div>
+            <Button variant="outline" asChild>
+              <Link to="/pessoas/reembolsos/ciclos">
+                <CalendarRange className="h-4 w-4" />
+                Ciclos e pagamentos
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link to="/pessoas/reembolsos/saneamento">
+                <Wrench className="h-4 w-4" />
+                Sanear cadastro
+              </Link>
+            </Button>
+          </div>
+        )}
+      />
 
       <Card className="card-shadow">
         <CardContent className="flex flex-wrap items-center gap-x-10 gap-y-4 py-4">

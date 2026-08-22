@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -596,13 +597,10 @@ export default function DestinosCadastro() {
 
   return (
     <PageShell>
-      <div>
-        <h1 className="text-2xl font-medium tracking-tight">Destinos de Cadastro</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Prepara arquivos de cadastro para os sistemas de destino. Nada é gravado no banco nesta
-          tela — ela lê o arquivo, calcula e devolve outro arquivo.
-        </p>
-      </div>
+      <PageHeader
+        titulo="Destinos de Cadastro"
+        estado="Prepara arquivos de cadastro para os sistemas de destino. Nada é gravado no banco nesta tela — ela lê o arquivo, calcula e devolve outro arquivo."
+      />
 
       <Tabs defaultValue="bling">
         <TabsList>

@@ -33,6 +33,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { humanizeError } from "@/lib/errorMessages";
 import { PreencherVagaDialog } from "@/components/vagas/PreencherVagaDialog";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 type StatusVaga = "aberta" | "em_processo" | "preenchida" | "cancelada";
 type StatusFiltro = "vivas" | "todas" | StatusVaga;
@@ -275,20 +276,18 @@ export default function Vagas() {
 
   return (
     <PageShell>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight">Vagas</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Posições planejadas por área
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <SmartBackButton fallback="/pessoas" fallbackLabel="Voltar" />
-          <Button onClick={openCreate} className="gap-2">
-            <Plus className="h-4 w-4" /> Nova vaga
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        titulo="Vagas"
+        estado="Posições planejadas por área"
+        acoes={(
+          <div className="flex gap-2">
+            <SmartBackButton fallback="/pessoas" fallbackLabel="Voltar" />
+            <Button onClick={openCreate} className="gap-2">
+              <Plus className="h-4 w-4" /> Nova vaga
+            </Button>
+          </div>
+        )}
+      />
 
       <Card className="card-shadow">
         <CardContent className="p-4">
