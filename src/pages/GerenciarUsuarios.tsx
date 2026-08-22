@@ -167,14 +167,6 @@ export default function GerenciarUsuarios() {
     },
   });
 
-  const { data: allRoles = [] } = useQuery({
-    queryKey: ["admin-user-roles"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("user_roles").select("*");
-      if (error) throw error;
-      return data;
-    },
-  });
 
   const { data: authUsers = [] } = useQuery({
     queryKey: ["admin-auth-users"],
