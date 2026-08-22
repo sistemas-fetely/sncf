@@ -67825,6 +67825,18 @@ export type Database = {
           stage_id: string
         }[]
       }
+      mesa_listar_vinculos: {
+        Args: never
+        Returns: {
+          cargo_nome: string
+          id: string
+          nome_completo: string
+          pessoa_id: string
+          status: string
+          tipo_vinculo: string
+          usuario_id: string
+        }[]
+      }
       mesa_vincular_usuario: {
         Args: { p_user_id: string; p_vinculo_id: string }
         Returns: Json
