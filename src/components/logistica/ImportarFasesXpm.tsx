@@ -373,9 +373,9 @@ export function ImportarFasesXpm() {
           )}
 
           {preview.pedidosNaoVistos !== null && preview.pedidosNaoVistos.length > 0 && (
-            <div className="border border-warning/40 bg-warning/10 rounded-md p-3 text-sm space-y-1">
-              <p className="text-warning font-medium flex items-center gap-1.5">
-                <AlertTriangle className="h-4 w-4" /> {preview.pedidosNaoVistos.length} pedido(s) nunca vistos na expedição XPM
+            <div className="border border-border bg-muted/30 rounded-md p-3 text-sm space-y-1">
+              <p className="text-foreground font-medium flex items-center gap-1.5">
+                <AlertTriangle className="h-4 w-4 text-muted-foreground" /> {preview.pedidosNaoVistos.length} pedido(s) nunca vistos na expedição XPM
               </p>
               <p className="text-muted-foreground text-xs">
                 Não é bloqueante: serão gravados no log sem vínculo com a expedição.
@@ -406,7 +406,7 @@ export function ImportarFasesXpm() {
                       <td className="px-2 py-1 text-muted-foreground">{l.faturadoem ? formatarDataHora(l.faturadoem) : "—"}</td>
                       <td className="px-2 py-1">
                         {p === "fase" && <Selo estado="destructive">fase?</Selo>}
-                        {p === "pedido" && <Selo estado="warning">novo</Selo>}
+                        {p === "pedido" && <Selo estado="muted">novo</Selo>}
                       </td>
                     </tr>
                   );
