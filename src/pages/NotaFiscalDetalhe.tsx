@@ -24,6 +24,7 @@ import { format, parseISO } from "date-fns";
 import { useParametros } from "@/hooks/useParametros";
 import { SalarioMasked } from "@/components/SalarioMasked";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const defaultStatusMap: Record<string, string> = {
   pendente: "Pendente", aprovada: "Aprovada", enviada_pagamento: "Enviada para Pagamento", paga: "Paga", cancelada: "Cancelada", vencida: "Vencida",
@@ -306,46 +307,39 @@ export default function NotaFiscalDetalhe() {
   return (
     <PageShell>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <SmartBackButton fallback="/notas-fiscais" fallbackLabel="Notas Fiscais" />
-          <div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl font-medium tracking-tight">
-                NF {nota.numero}{nota.serie ? `/${nota.serie}` : ""}
-              </h1>
-              <Badge variant="outline" className={`text-sm ${statusStyles[nota.status] || ""}`}>
-                {statusMap[nota.status] || nota.status}
-              </Badge>
-              {cpGerada && (
-                <Link to={`/administrativo/contas-pagar?conta=${cpGerada.id}`}>
-                  <Badge className="bg-admin/10 text-admin gap-1 hover:bg-admin/20 cursor-pointer">
-                    <Landmark className="h-3 w-3" /> Conta a pagar gerada automaticamente
-                  </Badge>
-                </Link>
-              )}
-            </div>
-            <p className="text-muted-foreground text-sm mt-0.5">
-              Competência {formatCompetencia(nota.competencia)} · Emitida em {formatDate(nota.data_emissao)}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {canSendEmail && (
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={() => setEmailDialogOpen(true)}
-            >
-              <Mail className="h-4 w-4" /> Enviar por E-mail
-            </Button>
-          )}
-          {canEdit && (
-            <Button variant="outline" className="gap-2" onClick={() => navigate(`/notas-fiscais?edit=${nota.id}`)}>
-              <Edit className="h-4 w-4" /> Editar
-            </Button>
-          )}
-        </div>
+      <div className="flex items-center gap-4">
+        <SmartBackButton fallback="/notas-fiscais" fallbackLabel="Notas Fiscais" />
+        <PageHeader
+          className="flex-1 mb-0"
+          titulo={`NF ${nota.numero}${nota.serie ? `/${nota.serie}` : ""}`}
+          estado={`Competência ${formatCompetencia(nota.competencia)} · Emitida em ${formatDate(nota.data_emissao)}`}
+          acoes={<>
+            <Badge variant="outline" className={`text-sm ${statusStyles[nota.status] || ""}`}>
+              {statusMap[nota.status] || nota.status}
+            </Badge>
+            {cpGerada && (
+              <Link to={`/administrativo/contas-pagar?conta=${cpGerada.id}`}>
+                <Badge className="bg-admin/10 text-admin gap-1 hover:bg-admin/20 cursor-pointer">
+                  <Landmark className="h-3 w-3" /> Conta a pagar gerada automaticamente
+                </Badge>
+              </Link>
+            )}
+            {canSendEmail && (
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => setEmailDialogOpen(true)}
+              >
+                <Mail className="h-4 w-4" /> Enviar por E-mail
+              </Button>
+            )}
+            {canEdit && (
+              <Button variant="outline" className="gap-2" onClick={() => navigate(`/notas-fiscais?edit=${nota.id}`)}>
+                <Edit className="h-4 w-4" /> Editar
+              </Button>
+            )}
+          </>}
+        />
       </div>
 
       {/* Status Pipeline */}
