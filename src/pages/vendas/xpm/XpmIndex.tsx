@@ -19,7 +19,7 @@ export default function XpmIndex() {
   return (
     <div className="flex flex-col h-full">
       <div className="border-b bg-card px-4 pt-4">
-        <h1 className="text-2xl font-medium tracking-tight mb-3">XPM</h1>
+        <PageHeader titulo="XPM" className="mb-3" />
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList>
             {TABS.map((t) => (
