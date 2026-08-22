@@ -60,6 +60,17 @@ export default function Logistica() {
             >
               <Package className="h-3.5 w-3.5" /> Entregas
             </button>
+            <button
+              onClick={() => setAtivaId("atencao")}
+              className={cn(
+                "rounded-full px-3 py-1 text-sm border transition inline-flex items-center gap-1.5",
+                isAtencao
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card text-foreground hover:bg-muted border-border"
+              )}
+            >
+              <AlertTriangle className="h-3.5 w-3.5" /> Fila de atenção
+            </button>
             {transportadoras.map((t) => {
               const nome = nomeExibicao(t.razao_social, t.nome_fantasia);
               const ativo = t.id === ativaId;
@@ -87,6 +98,8 @@ export default function Logistica() {
             <VisaoGeralLogistica />
           ) : isRastreio ? (
             <EntregasControle />
+          ) : isAtencao ? (
+            <FilaAtencaoLogistica />
           ) : ativa ? (
             <AbaTransportadora transportadora={ativa} />
           ) : (
