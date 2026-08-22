@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -290,12 +291,10 @@ function AbaB2B() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-serif">Farol de Pedidos</h1>
-        <p className="text-sm text-muted-foreground">
-          Acompanhamento de prazo de entrega (somente leitura)
-        </p>
-      </div>
+      <PageHeader
+        titulo="Farol de Pedidos"
+        estado="Acompanhamento de prazo de entrega (somente leitura)"
+      />
 
       <Card>
         <CardContent className="p-4 space-y-3">
@@ -703,12 +702,10 @@ function AbaB2C() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-serif">Farol de Pedidos · B2C</h1>
-        <p className="text-sm text-muted-foreground">
-          Acompanhamento de prazo de entrega Shopify (somente leitura)
-        </p>
-      </div>
+      <PageHeader
+        titulo="Farol de Pedidos · B2C"
+        estado="Acompanhamento de prazo de entrega Shopify (somente leitura)"
+      />
 
       {/* régua de prazos B2C */}
       <Card>
