@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { SalarioMasked } from "@/components/SalarioMasked";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { apelidoParceiro, nomeCanonico } from "@/lib/parceiros/nome";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
@@ -99,15 +100,20 @@ export default function PagamentoPJRelatorio() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-medium tracking-tight">Relatório de Pagamentos</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">{nome} — CNPJ: {contrato?.cnpj || "—"}</p>
+          <PageHeader
+            className="mb-0"
+            titulo="Relatório de Pagamentos"
+            estado={`${nome} — CNPJ: ${contrato?.cnpj || "—"}`}
+            acoes={
+              <Button variant="outline" onClick={() => navigate(`/contratos-pj/${contratoId}`)}>
+                <FileText className="h-4 w-4 mr-2" /> Ver Contrato
+              </Button>
+            }
+          />
           {apelido && (
             <p className="text-muted-foreground text-xs mt-0.5">{apelido}</p>
           )}
         </div>
-        <Button variant="outline" onClick={() => navigate(`/contratos-pj/${contratoId}`)}>
-          <FileText className="h-4 w-4 mr-2" /> Ver Contrato
-        </Button>
       </div>
 
       {/* KPIs */}

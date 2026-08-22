@@ -35,6 +35,7 @@ import ImportNFDialog from "@/components/notas-fiscais/ImportNFDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { nomeExibicao } from "@/lib/parceiros/nome";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const periodOptions: { value: string; label: string }[] = [
   { value: "todos", label: "Todo Período" },
@@ -213,12 +214,10 @@ export default function NotasFiscais() {
 
   return (
     <PageShell>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight">Notas Fiscais</h1>
-          <p className="text-muted-foreground text-sm mt-1">Gestão de notas fiscais de todos os contratos PJ</p>
-        </div>
-        {canCreate && (
+      <PageHeader
+        titulo="Notas Fiscais"
+        estado="Gestão de notas fiscais de todos os contratos PJ"
+        acoes={canCreate && (
           <div className="flex gap-2">
             <Button variant="outline" className="gap-2" onClick={() => setImportOpen(true)}>
               <Upload className="h-4 w-4" /> Importar PDF
@@ -228,7 +227,7 @@ export default function NotasFiscais() {
             </Button>
           </div>
         )}
-      </div>
+      />
 
       {/* Mês Atual - Fixed Cards */}
       <div>

@@ -23,6 +23,7 @@ import { format, parseISO } from "date-fns";
 import { humanizeError } from "@/lib/errorMessages";
 import { useIsSocio } from "@/hooks/useIsSocio";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface PessoaLinha {
   pessoa_id: string;
