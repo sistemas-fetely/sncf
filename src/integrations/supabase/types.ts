@@ -67199,6 +67199,14 @@ export type Database = {
         Args: { p_pedido_id: string }
         Returns: Json
       }
+      fn_registrar_rastreio_pedido: {
+        Args: {
+          p_codigo_rastreio: string
+          p_pedido_id: string
+          p_servico?: string
+        }
+        Returns: string
+      }
       fn_registrar_residuo_adquirente: {
         Args: { p_nsu: string; p_simular?: boolean; p_user_id?: string }
         Returns: Json
