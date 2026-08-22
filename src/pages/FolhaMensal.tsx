@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { humanizeError } from "@/lib/errorMessages";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useIsSocio } from "@/hooks/useIsSocio";
 
 
@@ -118,21 +119,20 @@ export default function FolhaMensal() {
 
   return (
     <PageShell>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight">Folha Mensal</h1>
-          <p className="text-muted-foreground text-sm mt-1">Custo da equipe por competência</p>
-          {!ehDiretoria && (
-            <p className="text-muted-foreground text-xs mt-1">
-              Você vê a remuneração da sua equipe. Valores de outras áreas não aparecem.
-            </p>
-          )}
-        </div>
-
-        <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas")}>
-          <ArrowLeft className="h-4 w-4" /> Voltar
-        </Button>
-      </div>
+      <PageHeader
+        titulo="Folha Mensal"
+        estado="Custo da equipe por competência"
+        acoes={
+          <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas")}>
+            <ArrowLeft className="h-4 w-4" /> Voltar
+          </Button>
+        }
+      />
+      {!ehDiretoria && (
+        <p className="text-muted-foreground text-xs mt-1">
+          Você vê a remuneração da sua equipe. Valores de outras áreas não aparecem.
+        </p>
+      )}
 
       <Card className="card-shadow">
         <CardContent className="p-4">

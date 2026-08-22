@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 type ConsentTipo = {
   tipo: string;
   label: string;
@@ -255,15 +256,11 @@ export default function MeusDados() {
 
   return (
     <PageShell>
-      <div>
-        <h1 className="text-3xl font-medium flex items-center gap-2">
-          <ShieldCheck className="h-8 w-8 text-primary" />
-          Meus Dados
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Tudo que a Fetely sabe sobre você, com seus direitos de LGPD garantidos. 🌸
-        </p>
-      </div>
+      <PageHeader
+        icone={ShieldCheck}
+        titulo="Meus Dados"
+        estado="Tudo que a Fetely sabe sobre você, com seus direitos de LGPD garantidos. 🌸"
+      />
 
       <Tabs value={aba} onValueChange={setAba}>
         <TabsList className="grid grid-cols-2 md:grid-cols-6 h-auto">

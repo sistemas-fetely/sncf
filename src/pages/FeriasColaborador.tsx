@@ -23,6 +23,7 @@ import {
   type PeriodoComColaborador,
 } from "@/hooks/useFerias";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const STATUS_PERIODO: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   em_aberto: { label: "Em Aberto", variant: "outline" },
@@ -145,22 +146,17 @@ export default function FeriasColaborador() {
         <Button variant="ghost" size="icon" onClick={() => navigate("/ferias")}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-medium flex items-center gap-2">
-            <UserCircle className="h-6 w-6 text-primary" />
-            {colaborador?.nome_completo ?? "Carregando..."}
-          </h1>
-          {colaborador && (
-            <p className="text-muted-foreground text-sm">
-              {colaborador.cargo} — {colaborador.departamento} · Admissão: {format(new Date(colaborador.data_admissao), "dd/MM/yyyy")}
-            </p>
+        <PageHeader
+          className="flex-1 mb-0"
+          icone={UserCircle}
+          titulo={colaborador?.nome_completo ?? "Carregando..."}
+          estado={colaborador && `${colaborador.cargo} — ${colaborador.departamento} · Admissão: ${format(new Date(colaborador.data_admissao), "dd/MM/yyyy")}`}
+          acoes={canManage && (
+            <Button size="sm" onClick={() => setShowNovoPeriodo(true)}>
+              <Plus className="h-4 w-4 mr-1" /> Novo Período
+            </Button>
           )}
-        </div>
-        {canManage && (
-          <Button size="sm" onClick={() => setShowNovoPeriodo(true)}>
-            <Plus className="h-4 w-4 mr-1" /> Novo Período
-          </Button>
-        )}
+        />
       </div>
 
       {/* KPI Summary */}

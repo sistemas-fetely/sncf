@@ -15,6 +15,7 @@ import { HoleriteTable } from "@/components/folha-pagamento/HoleriteTable";
 import { HoleriteDrawer } from "@/components/folha-pagamento/HoleriteDrawer";
 import { exportarExcel, exportarPDF } from "@/lib/exportar-folha";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export default function FolhaPagamento() {
   const { hasAnyRole } = useAuth();
@@ -48,10 +49,10 @@ export default function FolhaPagamento() {
 
   return (
     <PageShell>
-      <div>
-        <h1 className="text-2xl font-medium">Folha de Pagamento</h1>
-        <p className="text-muted-foreground">Gestão e cálculo da folha de pagamento CLT</p>
-      </div>
+      <PageHeader
+        titulo="Folha de Pagamento"
+        estado="Gestão e cálculo da folha de pagamento CLT"
+      />
 
       <FolhaToolbar
         competencias={competencias}
