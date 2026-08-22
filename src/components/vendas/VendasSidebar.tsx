@@ -1,4 +1,24 @@
-import { ShoppingCart, Receipt, FileText, Building2, Boxes, HandCoins, Package, Truck, ShoppingBag, Radar, CreditCard, ClipboardList, MessageCircle, Users, TableProperties } from "lucide-react";
+/**
+ * VendasSidebar (SOPs) — MENU-VIA-TABELA (21/08/2026).
+ *
+ * Itens, rótulos, ícones e ordem vêm da sncf_navegacao (app "sops") via
+ * useMenuApp. Mudar esse menu passa a ser UPDATE, sem deploy.
+ *
+ * Achados na migração:
+ *  - "Entradas Recebidas" (/recebimento/entradas) não existia na tabela —
+ *    adicionada (sops.entradas), senão sumiria do menu.
+ *  - "Aguardando Pagamento" e "Destinos de Cadastro" já estavam na tabela
+ *    mas nunca apareciam em nenhum menu — órfãs corrigidas de graça.
+ *  - Badge de "Central de Mensagens" (badge_fonte='msgs_comercial_pendentes')
+ *    já estava modelado, mas fn_badges() não sabia calculá-lo — completado
+ *    na mesma sessão (replica exata da contagem que vivia inline aqui).
+ *
+ * Mantém FinancasSidebarItem/FinancasSidebarSection (identidade visual do
+ * SOPs, com seções colapsáveis) — cada um já valida visibilidade sozinho via
+ * useTelasVisiveis, mesma engine do RotaGate.
+ */
+
+import { HandCoins } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -9,33 +29,42 @@ import {
 } from "@/components/ui/sidebar";
 import { FinancasSidebarItem } from "@/components/financas/FinancasSidebarItem";
 import { FinancasSidebarSection } from "@/components/financas/FinancasSidebarSection";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useMenuApp, type ItemMenu } from "@/hooks/useMenuApp";
+import { useBadgesNavegacao } from "@/hooks/useBadgesNavegacao";
+import { resolverIcone } from "@/config/iconesNavegacao";
 import { Badge } from "@/components/ui/badge";
 
 export function VendasSidebar() {
-  const { data: qtdMsgsPendentes = 0 } = useQuery({
-    queryKey: ["canal-msgs-pendentes-sidebar"],
-    queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("pedido_eventos")
-        .select("pedido_id, tipo_evento, criado_em")
-        .in("tipo_evento", ["msg_comercial", "msg_sops"])
-        .order("criado_em", { ascending: false });
-      const lastEvento = new Map();
-      for (const row of (data ?? []) as any[]) {
-        if (!lastEvento.has(row.pedido_id)) {
-          lastEvento.set(row.pedido_id, row.tipo_evento as string);
-        }
-      }
-      let count = 0;
-      for (const tipo of lastEvento.values()) {
-        if (tipo === "msg_comercial") count++;
-      }
-      return count;
-    },
-    refetchInterval: 60_000,
-  });
+  const { grupos, isLoading } = useMenuApp("sops");
+  const { data: badgesNav } = useBadgesNavegacao();
+
+  const renderBadge = (item: ItemMenu) => {
+    if (!item.badge_fonte) return undefined;
+    const b = badgesNav?.get(item.badge_fonte);
+    if (!b || b.total <= 0) return undefined;
+    return (
+      <Badge className="text-[9px] px-1.5 py-0 h-4 border-0" style={{ backgroundColor: "#185FA5", color: "white" }}>
+        {b.total}
+      </Badge>
+    );
+  };
+
+  const renderItem = (item: ItemMenu, irmaos: ItemMenu[]) => {
+    const Icone = resolverIcone(item.icone);
+    // 'end' evita que este item fique marcado ativo quando uma rota irmã
+    // mais específica (ex: /vendas/produto/estoque) está aberta.
+    const end = irmaos.some((o) => o.chave !== item.chave && o.rota.startsWith(item.rota + "/"));
+    return (
+      <FinancasSidebarItem
+        key={item.chave}
+        to={item.rota}
+        icon={Icone}
+        label={item.label}
+        end={end}
+        badge={renderBadge(item)}
+      />
+    );
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -49,74 +78,24 @@ export function VendasSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="pt-4 gap-0">
-        <SidebarGroup className="pb-3">
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <FinancasSidebarItem
-                to="/canal-cpo"
-                icon={MessageCircle}
-                label="Central de Mensagens"
-                badge={qtdMsgsPendentes > 0 ? (
-                  <Badge className="text-[9px] px-1.5 py-0 h-4 border-0" style={{ backgroundColor: "#185FA5", color: "white" }}>
-                    {qtdMsgsPendentes}
-                  </Badge>
-                ) : undefined}
-              />
-
-              <FinancasSidebarItem to="/vendas/gestao-pedidos" icon={TableProperties} label="Gestão de Pedidos" />
-              <FinancasSidebarItem to="/pedidos" icon={ShoppingCart} label="Pedidos B2B" end />
-              <FinancasSidebarItem to="/vendas/shopify" icon={ShoppingBag} label="Pedidos B2C" end />
-              <FinancasSidebarItem to="/recebimento/cobranca" icon={Receipt} label="Cobrança" />
-              <FinancasSidebarItem to="/recebimento/entradas" icon={HandCoins} label="Entradas Recebidas" />
-
-              
-              
-              
-              <FinancasSidebarItem to="/vendas/farol-pedidos" icon={Radar} label="Farol de Pedidos" />
-
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup className="pb-3">
-          <SidebarGroupContent>
-            <FinancasSidebarSection title="Produto" defaultOpen>
-              <FinancasSidebarItem to="/vendas/produto" icon={Package} label="Produto" end />
-              <FinancasSidebarItem to="/vendas/produto/estoque" icon={Boxes} label="Estoque" />
-            </FinancasSidebarSection>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup className="pb-3">
-          <SidebarGroupContent>
-            <FinancasSidebarSection title="Operador Logístico" defaultOpen>
-              <FinancasSidebarItem to="/logistica" icon={Truck} label="Logística" />
-              <FinancasSidebarItem to="/vendas/xpm" icon={Package} label="XPM" />
-            </FinancasSidebarSection>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup className="pb-3">
-          <SidebarGroupContent>
-            <FinancasSidebarSection title="Bling" defaultOpen>
-              <FinancasSidebarItem to="/vendas/nfs" icon={FileText} label="NFs de Venda" />
-              <FinancasSidebarItem to="/vendas/bling-pedidos" icon={ClipboardList} label="Pedidos de Venda" />
-            </FinancasSidebarSection>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup className="pb-3">
-          <SidebarGroupContent>
-            <FinancasSidebarSection title="Shopify" defaultOpen>
-              <FinancasSidebarItem to="/vendas/shopify/checkouts" icon={Receipt} label="Checkouts" />
-              <FinancasSidebarItem to="/vendas/shopify/produtos" icon={Package} label="Produtos" />
-              <FinancasSidebarItem to="/vendas/shopify/clientes" icon={Users} label="Clientes" />
-              <FinancasSidebarItem to="/vendas/shopify/reembolsos" icon={Receipt} label="Reembolsos" />
-              <FinancasSidebarItem to="/vendas/shopify/fulfillments" icon={Truck} label="Fulfillments" />
-              <FinancasSidebarItem to="/vendas/shopify/estoque" icon={Boxes} label="Estoque" />
-            </FinancasSidebarSection>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {!isLoading && grupos.map((g) =>
+          g.chave === "sops.operacao" ? (
+            // Grupo "Operação" — sem título/seção colapsável, igual hoje.
+            <SidebarGroup key={g.chave} className="pb-3">
+              <SidebarGroupContent>
+                <SidebarMenu>{g.itens.map((item) => renderItem(item, g.itens))}</SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ) : (
+            <SidebarGroup key={g.chave} className="pb-3">
+              <SidebarGroupContent>
+                <FinancasSidebarSection title={g.label} defaultOpen>
+                  {g.itens.map((item) => renderItem(item, g.itens))}
+                </FinancasSidebarSection>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )
+        )}
       </SidebarContent>
     </Sidebar>
   );
