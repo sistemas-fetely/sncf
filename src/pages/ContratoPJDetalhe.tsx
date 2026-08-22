@@ -35,6 +35,7 @@ import { useCLevelCargos } from "@/hooks/useCLevelCargos";
 import type { Tables } from "@/integrations/supabase/types";
 
 import { SmartBackButton } from "@/components/SmartBackButton";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { StepDadosPessoaisPJ } from "@/components/contrato-pj/StepDadosPessoaisPJ";
 import { StepDocumentosPJ } from "@/components/contrato-pj/StepDocumentosPJ";
 import { StepDadosProfissionaisPJ } from "@/components/contrato-pj/StepDadosProfissionaisPJ";
@@ -551,8 +552,11 @@ export default function ContratoPJDetalhe() {
                 </div>
               )}
               <div className="flex-1">
-                <h1 className="text-2xl font-medium">{contrato.contato_nome}</h1>
-                <p className="text-muted-foreground">{contrato.tipo_servico} · {contrato.razao_social}</p>
+                <PageHeader
+                  className="mb-2"
+                  titulo={contrato.contato_nome}
+                  estado={`${contrato.tipo_servico} · ${contrato.razao_social}`}
+                />
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                   <Badge variant="outline" className={statusStyles[contrato.status] || ""}>
                     {statusMap[contrato.status] || contrato.status}
@@ -842,7 +846,7 @@ export default function ContratoPJDetalhe() {
           </Button>
         </div>
 
-        <h1 className="text-2xl font-medium tracking-tight">Editar: {contrato.contato_nome}</h1>
+        <PageHeader titulo={`Editar: ${contrato.contato_nome}`} />
 
         <Tabs defaultValue="pessoais">
           <TabsList className="w-full justify-start">

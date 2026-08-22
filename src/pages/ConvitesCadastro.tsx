@@ -47,6 +47,7 @@ import { useCargos } from "@/hooks/useCargos";
 import { useUnidades } from "@/hooks/useUnidades";
 import { useCLevelCargos } from "@/hooks/useCLevelCargos";
 import { SystemReadinessBanner } from "@/components/shared/SystemReadinessBanner";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -610,19 +611,17 @@ export default function ConvitesCadastro() {
     <PageShell>
       <SystemReadinessBanner />
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight">Convites de Pré-Cadastro</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {isGestorDireto ? "Convites do seu time" : "Gestão do funil de pré-cadastro de colaboradores"}
-          </p>
-        </div>
-        {!isGestorDireto && (
-          <Button className="gap-2" onClick={() => setFormOpen(true)}>
-            <Plus className="h-4 w-4" /> Novo Convite
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        titulo="Convites de Pré-Cadastro"
+        estado={isGestorDireto ? "Convites do seu time" : "Gestão do funil de pré-cadastro de colaboradores"}
+        acoes={
+          !isGestorDireto && (
+            <Button className="gap-2" onClick={() => setFormOpen(true)}>
+              <Plus className="h-4 w-4" /> Novo Convite
+            </Button>
+          )
+        }
+      />
 
       {/* Funnel flow */}
       <div className="flex items-stretch gap-0 overflow-x-auto pb-2">

@@ -16,6 +16,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { humanizeError } from "@/lib/errorMessages";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface Documento {
   id: string;
@@ -115,19 +116,11 @@ export default function DocumentacaoGeral() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <div className="flex items-center gap-2">
-            <BookOpen className="h-6 w-6" style={{ color: SNCF_COLOR }} />
-            <h1 className="text-2xl font-medium tracking-tight" style={{ color: SNCF_COLOR }}>
-              Documentação Fetely
-            </h1>
-          </div>
-          <p className="text-muted-foreground text-sm mt-1">
-            Tudo que a Fetely sabe, em um lugar só. Documentos vivos — atualizados a cada sessão.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        titulo="Documentação Fetely"
+        estado="Tudo que a Fetely sabe, em um lugar só. Documentos vivos — atualizados a cada sessão."
+        icone={BookOpen}
+      />
 
       {/* Filtros */}
       <div className="flex gap-3 flex-wrap items-center">
