@@ -1,6 +1,8 @@
 import { ReactNode } from "react";
 import { LucideIcon } from "lucide-react";
+import { BotaoFavoritar } from "@/components/navegacao/BotaoFavoritar";
 import { cn } from "@/lib/utils";
+
 
 /**
  * Sistema Visual Fetely §5 e §6 — cabecalho padrao de toda tela.
@@ -25,7 +27,9 @@ export function PageTitle({ titulo, estado, icone: Icone, acoes, className }: Pa
           <h1 className="truncate font-display text-[27px] font-normal leading-tight text-foreground">
             {titulo}
           </h1>
+          <BotaoFavoritar />
         </div>
+
         {estado && <p className="mt-0.5 text-xs text-muted-foreground">{estado}</p>}
       </div>
       {acoes && <div className="flex shrink-0 flex-wrap items-center gap-2">{acoes}</div>}

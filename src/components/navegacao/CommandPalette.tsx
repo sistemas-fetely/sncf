@@ -391,8 +391,11 @@ export function CommandPalette({ open, onOpenChange }: Props) {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      void toggleFavorito(page.rota, page.titulo, page.pilar);
+                      // Assinatura nova (22/08/2026): só a rota — título, ícone
+                      // e app são resolvidos da sncf_navegacao pelo hook.
+                      toggleFavorito(page.rota);
                     }}
+
                     className={`shrink-0 p-1 rounded hover:bg-background/80 ${
                       fav ? "text-warning" : "text-muted-foreground/20 hover:text-warning"
                     }`}
