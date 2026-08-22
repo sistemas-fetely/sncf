@@ -47,6 +47,7 @@ import { useCargos } from "@/hooks/useCargos";
 import { useUnidades } from "@/hooks/useUnidades";
 import { useCLevelCargos } from "@/hooks/useCLevelCargos";
 import { SystemReadinessBanner } from "@/components/shared/SystemReadinessBanner";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";

@@ -20,6 +20,7 @@ import { SugestoesInboxDialog, type SugestaoItem } from "@/components/dashboard/
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const STATUS_LABELS: Record<string, string> = {
   ativo: "Ativos", inativo: "Inativos", ferias: "Férias",

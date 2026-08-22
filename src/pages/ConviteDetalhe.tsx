@@ -26,6 +26,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { SmartBackButton } from "@/components/SmartBackButton";
 import { fetchExtensoesAplicaveis } from "@/hooks/useExtensoesAplicaveis";
 import { SystemReadinessBanner } from "@/components/shared/SystemReadinessBanner";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 async function gerarTarefasExtensoes(params: {
   checklistId: string;

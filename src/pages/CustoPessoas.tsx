@@ -20,6 +20,7 @@ import { SmartBackButton } from "@/components/SmartBackButton";
 import { useIsSocio } from "@/hooks/useIsSocio";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface CustoLinha {
   vinculo_id: string;

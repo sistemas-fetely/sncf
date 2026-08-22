@@ -37,6 +37,7 @@ import { Loader2 } from "lucide-react";
 import { SalarioMasked } from "@/components/SalarioMasked";
 import { nomePessoaPJ } from "@/lib/parceiros/nome";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const statusMap: Record<string, string> = {
   rascunho: "Rascunho",

@@ -16,6 +16,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { humanizeError } from "@/lib/errorMessages";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface Documento {
   id: string;
