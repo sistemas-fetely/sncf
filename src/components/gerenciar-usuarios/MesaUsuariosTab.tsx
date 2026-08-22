@@ -747,8 +747,7 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
           <AlertDialogHeader>
             <AlertDialogTitle>Inativar acesso de {banConfirm?.nome}?</AlertDialogTitle>
             <AlertDialogDescription>
-              O usuário não conseguirá mais acessar o sistema. Você pode reativar o acesso
-              a qualquer momento nesta mesma tela.
+              O usuário perde acesso ao sistema imediatamente. Pode ser revertido a qualquer momento.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -761,6 +760,30 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
               }}
             >
               Inativar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reativar acesso */}
+      <AlertDialog open={!!reativarConfirm} onOpenChange={(v) => !v && setReativarConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reativar acesso de {reativarConfirm?.nome}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O usuário volta a acessar o sistema normalmente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={toggleBan.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (reativarConfirm) toggleBan.mutate({ user_id: reativarConfirm.userId, ban: false });
+              }}
+            >
+              Reativar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
