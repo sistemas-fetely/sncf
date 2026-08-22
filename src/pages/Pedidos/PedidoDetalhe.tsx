@@ -53,6 +53,7 @@ import { MarcacaoPedido } from "@/components/pedidos/MarcacaoPedido";
 import { EstagioBadge, FormatoIdade, NaturezaOperacaoBadge } from "@/components/pedidos/BadgesPedido";
 import { LinhaContatosCliente } from "@/components/pedidos/LinhaContatosCliente";
 import { CardEntrega } from "@/components/pedidos/CardEntrega";
+import { ChipNfPedido } from "@/components/pedidos/ChipNfPedido";
 import { CardAnalisePedido } from "@/components/pedidos/CardAnalisePedido";
 import { BadgesContextuais } from "@/components/credito/BadgesContextuais";
 import { EditarProgramaInline } from "@/components/credito/EditarProgramaInline";
@@ -1461,9 +1462,12 @@ export default function PedidoDetalhe() {
       <div className="px-6 pt-2 pb-4">
         <div className="space-y-1 min-w-0">
           {/* PEDIDO-E-O-TITULO: remessas do mesmo cliente precisam de abas distinguíveis. */}
-          <h1 className="font-serif text-[26px] font-medium tracking-tight text-foreground leading-tight truncate">
-            Pedido {rotuloPedido}
-          </h1>
+          <div className="flex items-center gap-2 min-w-0">
+            <h1 className="font-serif text-[26px] font-medium tracking-tight text-foreground leading-tight truncate">
+              Pedido {rotuloPedido}
+            </h1>
+            <ChipNfPedido pedidoId={pedido.id} />
+          </div>
           <p className="text-[15px] text-muted-foreground truncate">
             {pedido.parceiro_id ? (
               <Link
