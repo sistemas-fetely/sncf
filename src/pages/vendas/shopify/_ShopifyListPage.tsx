@@ -65,15 +65,17 @@ export function ShopifyListPage<T extends Record<string, any>>({
 
   return (
     <PageShell>
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-serif">{titulo}</h1>
-        <Input
-          placeholder="Buscar..."
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          className="max-w-xs"
-        />
-      </div>
+      <PageHeader
+        titulo={titulo}
+        acoes={
+          <Input
+            placeholder="Buscar..."
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            className="max-w-xs"
+          />
+        }
+      />
 
       <div className="rounded-md border bg-card">
         <Table>

@@ -235,30 +235,26 @@ export default function MinhasMemorias() {
   return (
     <div className="min-h-screen p-6" style={{ background: "linear-gradient(135deg, #FFF8F3 0%, #F0F7F4 100%)" }}>
       <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="space-y-2">
-            <Button variant="ghost" onClick={() => navigate("/fala-fetely")} className="gap-1 -ml-2">
-              <ArrowLeft className="h-4 w-4" /> Voltar ao Fala Fetely
-            </Button>
-            <h1 className="text-3xl font-medium flex items-center gap-2" style={{ color: "#1A4A3A" }}>
-              <Brain className="h-7 w-7" /> Minhas Memórias
-            </h1>
-            <p className="text-muted-foreground max-w-xl">
-              Tudo que o Fala Fetely lembra de você. Você pode editar ou esquecer qualquer memória a qualquer momento.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {isSuperAdmin && (
-              <Button variant="outline" onClick={() => setAcessarOutroOpen(true)} className="gap-2">
-                <ShieldAlert className="h-4 w-4" /> Ver memórias de outro usuário
+        <Button variant="ghost" onClick={() => navigate("/fala-fetely")} className="gap-1 -ml-2">
+          <ArrowLeft className="h-4 w-4" /> Voltar ao Fala Fetely
+        </Button>
+        <PageHeader
+          icone={Brain}
+          titulo="Minhas Memórias"
+          estado="Tudo que o Fala Fetely lembra de você. Você pode editar ou esquecer qualquer memória a qualquer momento."
+          acoes={
+            <div className="flex items-center gap-2">
+              {isSuperAdmin && (
+                <Button variant="outline" onClick={() => setAcessarOutroOpen(true)} className="gap-2">
+                  <ShieldAlert className="h-4 w-4" /> Ver memórias de outro usuário
+                </Button>
+              )}
+              <Button onClick={abrirNova} style={{ backgroundColor: "#1A4A3A" }} className="text-white hover:opacity-90 gap-2">
+                <Plus className="h-4 w-4" /> Adicionar memória
               </Button>
-            )}
-            <Button onClick={abrirNova} style={{ backgroundColor: "#1A4A3A" }} className="text-white hover:opacity-90 gap-2">
-              <Plus className="h-4 w-4" /> Adicionar memória
-            </Button>
-          </div>
-        </div>
+            </div>
+          }
+        />
 
         {/* Filtros */}
         <div className="flex items-center gap-4 flex-wrap bg-white/60 backdrop-blur-sm p-4 rounded-lg border">
