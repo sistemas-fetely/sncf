@@ -147,7 +147,7 @@ function LinhaCompacta({
       <ChevronRight className={cn("h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform", aberto && "rotate-90")} />
       <span className="text-xs font-medium truncate min-w-0 flex-1">{razao}</span>
       <span className="hidden md:inline text-[10px] font-mono text-muted-foreground shrink-0">
-        {titulo.numero_titulo}
+        {titulo.pedido_id_externo ? `${titulo.pedido_id_externo} · ${titulo.numero_titulo}` : titulo.numero_titulo}
       </span>
       <TooltipProvider>
         {vencido ? (
@@ -231,7 +231,7 @@ function CardTitulo({
             {titulo.parceiro_cnpj ? formatCNPJ(titulo.parceiro_cnpj) : ""}
           </p>
           <p className="text-xs text-muted-foreground font-mono mt-0.5">
-            {titulo.numero_titulo}
+            {titulo.pedido_id_externo ? `${titulo.pedido_id_externo} · ${titulo.numero_titulo}` : titulo.numero_titulo}
           </p>
         </div>
         <div className="text-right shrink-0">
