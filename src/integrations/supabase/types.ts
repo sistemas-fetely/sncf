@@ -36912,6 +36912,27 @@ export type Database = {
           },
         ]
       }
+      stg_itau_reparo_20260822: {
+        Row: {
+          data: string | null
+          descricao: string | null
+          fitid: string | null
+          valor: number | null
+        }
+        Insert: {
+          data?: string | null
+          descricao?: string | null
+          fitid?: string | null
+          valor?: number | null
+        }
+        Update: {
+          data?: string | null
+          descricao?: string | null
+          fitid?: string | null
+          valor?: number | null
+        }
+        Relationships: []
+      }
       suppressed_emails: {
         Row: {
           created_at: string
