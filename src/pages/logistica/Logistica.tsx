@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Truck, Loader2, Plus, LayoutGrid, Package } from "lucide-react";
+import { Truck, Loader2, Plus, LayoutGrid, Package, AlertTriangle } from "lucide-react";
 import { useTransportadorasLogistica } from "@/hooks/logistica/useTransportadorasLogistica";
 import { AbaTransportadora } from "@/components/logistica/AbaTransportadora";
 import { VisaoGeralLogistica } from "@/components/logistica/VisaoGeralLogistica";
 import { EntregasControle } from "@/components/logistica/EntregasControle";
+import { FilaAtencaoLogistica } from "@/components/logistica/FilaAtencaoLogistica";
 import { cn } from "@/lib/utils";
 import { nomeExibicao } from "@/lib/parceiros/nome";
 import { PageShell } from "@/components/layout/PageShell";
@@ -16,6 +17,7 @@ export default function Logistica() {
   const ativa = transportadoras.find((t) => t.id === ativaId) ?? null;
   const isGeral = ativaId === "geral";
   const isRastreio = ativaId === "rastreio";
+  const isAtencao = ativaId === "atencao";
 
   return (
     <PageShell>
@@ -58,6 +60,17 @@ export default function Logistica() {
             >
               <Package className="h-3.5 w-3.5" /> Entregas
             </button>
+            <button
+              onClick={() => setAtivaId("atencao")}
+              className={cn(
+                "rounded-full px-3 py-1 text-sm border transition inline-flex items-center gap-1.5",
+                isAtencao
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card text-foreground hover:bg-muted border-border"
+              )}
+            >
+              <AlertTriangle className="h-3.5 w-3.5" /> Fila de atenção
+            </button>
             {transportadoras.map((t) => {
               const nome = nomeExibicao(t.razao_social, t.nome_fantasia);
               const ativo = t.id === ativaId;
@@ -85,6 +98,8 @@ export default function Logistica() {
             <VisaoGeralLogistica />
           ) : isRastreio ? (
             <EntregasControle />
+          ) : isAtencao ? (
+            <FilaAtencaoLogistica />
           ) : ativa ? (
             <AbaTransportadora transportadora={ativa} />
           ) : (
