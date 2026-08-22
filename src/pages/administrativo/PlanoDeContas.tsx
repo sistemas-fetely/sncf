@@ -1,4 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -319,23 +320,19 @@ export default function PlanoDeContas() {
 
   return (
     <PageShell>
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
-            <ListTree className="h-6 w-6 text-admin" />
-            Plano de Contas
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Estrutura hierárquica de receitas, custos e despesas da Fetely.
-          </p>
-        </div>
-        {canManage && (
-          <Button onClick={handleNew} className="gap-2 bg-admin hover:bg-admin/90 text-admin-foreground">
-            <Plus className="h-4 w-4" />
-            Nova categoria
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        titulo="Plano de Contas"
+        icone={ListTree}
+        estado="Estrutura hierárquica de receitas, custos e despesas da Fetely."
+        acoes={
+          canManage && (
+            <Button onClick={handleNew} className="gap-2 bg-admin hover:bg-admin/90 text-admin-foreground">
+              <Plus className="h-4 w-4" />
+              Nova categoria
+            </Button>
+          )
+        }
+      />
 
       <Card>
         <CardHeader className="pb-3">

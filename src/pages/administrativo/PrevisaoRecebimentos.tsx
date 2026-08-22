@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -166,17 +167,17 @@ export default function PrevisaoRecebimentos() {
   return (
     <TooltipProvider>
       <div className="p-6 space-y-6">
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
-            <ArrowDownToLine className="h-6 w-6 text-admin" />
-            Previsão de Recebimentos
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Lente de tesouraria: contraparte de entrada do Fluxo de Caixa Futuro. Soma dois
-            estágios do funil — <strong>Firme</strong> (NF emitida) e{" "}
-            <strong>Condicional</strong> (pré-NF, só entra se a NF for emitida).
-          </p>
-        </div>
+        <PageHeader
+          titulo="Previsão de Recebimentos"
+          icone={ArrowDownToLine}
+          estado={
+            <>
+              Lente de tesouraria: contraparte de entrada do Fluxo de Caixa Futuro. Soma dois
+              estágios do funil — <strong>Firme</strong> (NF emitida) e{" "}
+              <strong>Condicional</strong> (pré-NF, só entra se a NF for emitida).
+            </>
+          }
+        />
 
         {/* Doutrina */}
         <Card className="border-admin/20 bg-admin/5">

@@ -1,4 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { exportarParceirosXlsx, importarParceirosXlsx, type LookupMaps } from "@/lib/parceiros/excel-io";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
@@ -394,45 +395,41 @@ export default function Parceiros() {
         className="hidden"
         onChange={handleImportarArquivo}
       />
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
-            <Users className="h-6 w-6 text-admin" />
-            Parceiros Comerciais
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Fornecedores, clientes e parceiros da Fetely — cadastro unificado.
-          </p>
-        </div>
-        {tabAtiva !== "grupos" && (
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={handleExportar}
-              className="gap-2"
-              disabled={isLoading || !filtered.length}
-              title="Exporta os parceiros filtrados para Excel"
-            >
-              <Download className="h-4 w-4" />
-              Exportar Excel
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleImportarClick}
-              className="gap-2"
-              disabled={importando}
-              title="Reimportar arquivo Excel (atualiza por id, cria novos sem id)"
-            >
-              {importando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              Importar Excel
-            </Button>
-            <Button onClick={handleOpenNew} className="gap-2 bg-admin hover:bg-admin/90 text-admin-foreground">
-              <Plus className="h-4 w-4" />
-              Novo parceiro
-            </Button>
-          </div>
-        )}
-      </div>
+      <PageHeader
+        titulo="Parceiros Comerciais"
+        icone={Users}
+        estado="Fornecedores, clientes e parceiros da Fetely — cadastro unificado."
+        acoes={
+          tabAtiva !== "grupos" && (
+            <>
+              <Button
+                variant="outline"
+                onClick={handleExportar}
+                className="gap-2"
+                disabled={isLoading || !filtered.length}
+                title="Exporta os parceiros filtrados para Excel"
+              >
+                <Download className="h-4 w-4" />
+                Exportar Excel
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleImportarClick}
+                className="gap-2"
+                disabled={importando}
+                title="Reimportar arquivo Excel (atualiza por id, cria novos sem id)"
+              >
+                {importando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                Importar Excel
+              </Button>
+              <Button onClick={handleOpenNew} className="gap-2 bg-admin hover:bg-admin/90 text-admin-foreground">
+                <Plus className="h-4 w-4" />
+                Novo parceiro
+              </Button>
+            </>
+          )
+        }
+      />
 
       <Tabs value={tabAtiva} onValueChange={setTabAtiva}>
         <TabsList>

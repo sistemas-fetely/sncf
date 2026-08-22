@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/layout/PageHeader";
 import {
   Table,
   TableBody,
@@ -1111,62 +1112,62 @@ export default function NFsStage() {
     <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden">
       {/* HEADER FIXO - Título, KPIs como filtros, busca */}
       <div className="sticky top-0 z-10 bg-background px-6 pt-6 pb-3 border-b space-y-4 backdrop-blur">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
-              <Layers className="h-6 w-6 text-admin" />
-              NFs aguardando vínculo
-            </h1>
-            <p className="text-muted-foreground text-sm mt-0.5">
+        <PageHeader
+          titulo="NFs aguardando vínculo"
+          icone={Layers}
+          estado={
+            <>
               Notas fiscais importadas que ainda não foram vinculadas a uma despesa.{" "}
               <span className="text-[11px] opacity-70">
                 Atalhos: <kbd className="px-1 py-0.5 border rounded text-[10px]">/</kbd> buscar ·{" "}
                 <kbd className="px-1 py-0.5 border rounded text-[10px]">Del</kbd> remover ·{" "}
                 <kbd className="px-1 py-0.5 border rounded text-[10px]">Esc</kbd> limpar
               </span>
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button
-              onClick={() => setAddDocOpen(true)}
-              className="bg-admin hover:bg-admin/90 gap-2"
-            >
-              <FilePlus2 className="h-4 w-4" />
-              Adicionar documento
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => navigate("/administrativo-fetely/motor-classificacao")}
-              className="gap-2"
-            >
-              <Gauge className="h-4 w-4" />
-              Painel do Motor
-            </Button>
-            <Button
-              variant="outline"
-              onClick={classificarComIA}
-              disabled={classificandoIA}
-              className="gap-2"
-            >
-              {classificandoIA ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4" />
-              )}
-              {classificandoIA ? "Classificando..." : "Classificar com IA"}
-            </Button>
-            {sugestoesDisponiveis > 0 && (
+            </>
+          }
+          acoes={
+            <>
+              <Button
+                onClick={() => setAddDocOpen(true)}
+                className="bg-admin hover:bg-admin/90 gap-2"
+              >
+                <FilePlus2 className="h-4 w-4" />
+                Adicionar documento
+              </Button>
               <Button
                 variant="outline"
-                onClick={aceitarTodasSugestoes}
-                className="gap-2 border-info/40 text-info hover:bg-info/10"
+                onClick={() => navigate("/administrativo-fetely/motor-classificacao")}
+                className="gap-2"
               >
-                <Sparkles className="h-4 w-4" />
-                Aplicar {sugestoesDisponiveis} sugestão{sugestoesDisponiveis === 1 ? "" : "ões"} automática{sugestoesDisponiveis === 1 ? "" : "s"}
+                <Gauge className="h-4 w-4" />
+                Painel do Motor
               </Button>
-            )}
-          </div>
-        </div>
+              <Button
+                variant="outline"
+                onClick={classificarComIA}
+                disabled={classificandoIA}
+                className="gap-2"
+              >
+                {classificandoIA ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+                {classificandoIA ? "Classificando..." : "Classificar com IA"}
+              </Button>
+              {sugestoesDisponiveis > 0 && (
+                <Button
+                  variant="outline"
+                  onClick={aceitarTodasSugestoes}
+                  className="gap-2 border-info/40 text-info hover:bg-info/10"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Aplicar {sugestoesDisponiveis} sugestão{sugestoesDisponiveis === 1 ? "" : "ões"} automática{sugestoesDisponiveis === 1 ? "" : "s"}
+                </Button>
+              )}
+            </>
+          }
+        />
 
         {/* KPI pills (clicáveis = filtros) + Gráfico por mês */}
         <div className="flex gap-4 items-start flex-wrap">

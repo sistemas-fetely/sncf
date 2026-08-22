@@ -1,4 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -248,12 +249,10 @@ export default function PainelFinanceiroConta() {
 
   return (
     <PageShell>
-      <div>
-        <h1 className="text-2xl font-medium">Vencimentos x Cliente</h1>
-        <p className="text-sm text-muted-foreground">
-          Quanto cada cliente deve e há quanto tempo — recebíveis B2B (somente com NF), por aging.
-        </p>
-      </div>
+      <PageHeader
+        titulo="Vencimentos x Cliente"
+        estado="Quanto cada cliente deve e há quanto tempo — recebíveis B2B (somente com NF), por aging."
+      />
 
       {/* KPIs */}
       <div className="grid gap-4 md:grid-cols-3">

@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/layout/PageHeader";
 import {
   Table,
   TableBody,
@@ -501,17 +502,11 @@ export default function FaturasCartao() {
     <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden">
       {/* HEADER FIXO */}
       <div className="px-6 pt-6 pb-3 border-b bg-background/95 backdrop-blur sticky top-0 z-20 space-y-4">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
-              <CreditCard className="h-6 w-6 text-admin" />
-              Faturas de Cartão
-            </h1>
-            <p className="text-muted-foreground text-sm mt-0.5">
-              Importe faturas, classifique lançamentos e acompanhe o ciclo de pagamento.
-            </p>
-          </div>
-          <div className="flex gap-2">
+        <PageHeader
+          titulo="Faturas de Cartão"
+          icone={CreditCard}
+          estado="Importe faturas, classifique lançamentos e acompanhe o ciclo de pagamento."
+          acoes={
             <Button
               onClick={() => setImportarOpen(true)}
               className="gap-2 bg-admin hover:bg-admin-accent text-admin-foreground"
@@ -519,8 +514,8 @@ export default function FaturasCartao() {
               <Plus className="h-4 w-4" />
               Importar Fatura
             </Button>
-          </div>
-        </div>
+          }
+        />
 
         {/* KPIs financeiros agregados */}
         {totals.modoFocado && totals.faturaFocada && (

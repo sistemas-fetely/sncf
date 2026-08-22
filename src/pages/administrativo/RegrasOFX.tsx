@@ -1,4 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -199,21 +200,17 @@ export default function RegrasOFX() {
 
   return (
     <PageShell>
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-2">
-          <h1 className="text-2xl font-medium flex items-center gap-2">
-            <Zap className="h-6 w-6" />
-            Regras automáticas OFX
-          </h1>
-          <p className="text-sm text-muted-foreground max-w-2xl">
-            Quando o extrato OFX é importado, transações que casam com uma regra ativa viram CPR + movimentação + conciliação Stage 2 automaticamente. Regras são determinísticas — humano declara, sistema executa.
-          </p>
-        </div>
-        <Button onClick={abrirNova} className="gap-1">
-          <Plus className="h-4 w-4" />
-          Nova regra
-        </Button>
-      </div>
+      <PageHeader
+        titulo="Regras automáticas OFX"
+        icone={Zap}
+        estado="Quando o extrato OFX é importado, transações que casam com uma regra ativa viram CPR + movimentação + conciliação Stage 2 automaticamente. Regras são determinísticas — humano declara, sistema executa."
+        acoes={
+          <Button onClick={abrirNova} className="gap-1">
+            <Plus className="h-4 w-4" />
+            Nova regra
+          </Button>
+        }
+      />
 
       {isLoading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">

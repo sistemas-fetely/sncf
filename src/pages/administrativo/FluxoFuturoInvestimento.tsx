@@ -1,4 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { addMonths, format, isAfter, isBefore, parseISO, startOfMonth } from "date-fns";
@@ -258,13 +259,10 @@ export default function FluxoFuturoInvestimento() {
 
   return (
     <PageShell>
-      <div>
-        <h1 className="text-2xl font-medium">Fluxo Futuro de Investimento</h1>
-        <p className="text-sm text-muted-foreground">
-          Projeção de saídas de caixa por frente de investimento. Combina CPRs lançados ainda
-          não pagos + linhas planejadas com data prevista.
-        </p>
-      </div>
+      <PageHeader
+        titulo="Fluxo Futuro de Investimento"
+        estado="Projeção de saídas de caixa por frente de investimento. Combina CPRs lançados ainda não pagos + linhas planejadas com data prevista."
+      />
 
       {/* KPIs */}
       {isLoading ? (

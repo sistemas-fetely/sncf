@@ -8,6 +8,7 @@ import { ShoppingCart, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const fmtBRL = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
@@ -63,15 +64,11 @@ export default function PedidosVenda() {
 
   return (
     <PageShell>
-      <div>
-        <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
-          <ShoppingCart className="h-6 w-6 text-admin" />
-          Pedidos de Venda
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Pedidos sincronizados do Bling.
-        </p>
-      </div>
+      <PageHeader
+        titulo="Pedidos de Venda"
+        icone={ShoppingCart}
+        estado="Pedidos sincronizados do Bling."
+      />
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>

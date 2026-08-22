@@ -19,6 +19,7 @@ import {
 } from "recharts";
 import { cn } from "@/lib/utils";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const PISO = 0.20;
 
@@ -171,16 +172,11 @@ export default function PainelMargem() {
 
   return (
     <PageShell>
-      <div>
-        <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
-          <Percent className="h-6 w-6 text-gold" />
-          Painel de Margem
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Margem por produto nos canais B2B e B2C. Piso de referência: {(PISO * 100).toFixed(0)}%.
-          Somente leitura — o preço é decidido no FOP.
-        </p>
-      </div>
+      <PageHeader
+        titulo="Painel de Margem"
+        icone={Percent}
+        estado={`Margem por produto nos canais B2B e B2C. Piso de referência: ${(PISO * 100).toFixed(0)}%. Somente leitura — o preço é decidido no FOP.`}
+      />
 
       {/* KPIs */}
       <div className="grid gap-4 md:grid-cols-4">

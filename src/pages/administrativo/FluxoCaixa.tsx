@@ -1,4 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -248,42 +249,38 @@ export default function FluxoCaixa() {
   return (
     <PageShell>
       {/* HEADER */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
-            <TrendingUp className="h-6 w-6 text-admin" />
-            Fluxo de Caixa
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Projeção gerencial ancorada no saldo de hoje (otimista x conservador).
-          </p>
-        </div>
-        <div className="flex items-end gap-3 flex-wrap">
-          <div className="flex gap-1">
-            {([30, 60, 90] as const).map((h) => (
-              <Button key={h} size="sm" variant={horizonte === h ? "default" : "outline"} onClick={() => setHorizonte(h)}>
-                {h} dias
-              </Button>
-            ))}
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-muted-foreground">Saldo inicial (override)</label>
-            <div className="flex gap-2">
-              <div className="w-44">
-                <InputMoedaBR value={saldoInput} onChange={setSaldoInput} />
-              </div>
-              <Button size="sm" variant="outline" onClick={() => setSaldoInicialOverride(saldoInput > 0 ? saldoInput : null)}>
-                Aplicar
-              </Button>
-              {saldoInicialOverride != null && (
-                <Button size="sm" variant="ghost" onClick={() => { setSaldoInicialOverride(null); setSaldoInput(0); }}>
-                  Limpar
+      <PageHeader
+        titulo="Fluxo de Caixa"
+        icone={TrendingUp}
+        estado="Projeção gerencial ancorada no saldo de hoje (otimista x conservador)."
+        acoes={
+          <div className="flex items-end gap-3 flex-wrap">
+            <div className="flex gap-1">
+              {([30, 60, 90] as const).map((h) => (
+                <Button key={h} size="sm" variant={horizonte === h ? "default" : "outline"} onClick={() => setHorizonte(h)}>
+                  {h} dias
                 </Button>
-              )}
+              ))}
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted-foreground">Saldo inicial (override)</label>
+              <div className="flex gap-2">
+                <div className="w-44">
+                  <InputMoedaBR value={saldoInput} onChange={setSaldoInput} />
+                </div>
+                <Button size="sm" variant="outline" onClick={() => setSaldoInicialOverride(saldoInput > 0 ? saldoInput : null)}>
+                  Aplicar
+                </Button>
+                {saldoInicialOverride != null && (
+                  <Button size="sm" variant="ghost" onClick={() => { setSaldoInicialOverride(null); setSaldoInput(0); }}>
+                    Limpar
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {error ? (
         <Card>

@@ -1,4 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, ArrowLeft, BarChart3, CheckCircle, Layers, Loader2, Zap } from "lucide-react";
@@ -95,25 +96,19 @@ export default function MotorClassificacao() {
 
   return (
     <PageShell>
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate("/administrativo-fetely/nfs-stage")}
-            className="gap-2 text-muted-foreground -ml-2 mb-2"
-          >
-            <ArrowLeft className="h-4 w-4" /> Voltar para NFs Stage
-          </Button>
-          <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-admin" />
-            Motor de Classificação
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Observabilidade e priorização da fila
-          </p>
-        </div>
-      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => navigate("/administrativo-fetely/nfs-stage")}
+        className="gap-2 text-muted-foreground -ml-2 mb-2"
+      >
+        <ArrowLeft className="h-4 w-4" /> Voltar para NFs Stage
+      </Button>
+      <PageHeader
+        titulo="Motor de Classificação"
+        icone={BarChart3}
+        estado="Observabilidade e priorização da fila"
+      />
 
       {loading ? (
         <div className="flex justify-center py-20">

@@ -1,4 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -324,13 +325,10 @@ export default function InvestimentoLancamento() {
 
   return (
     <PageShell>
-      <div>
-        <h1 className="text-2xl font-medium">Investimento de Lançamento</h1>
-        <p className="text-sm text-muted-foreground">
-          Acompanhamento de orçamento inicial, valores fechados e realizados das frentes
-          de investimento de lançamento da Fetely.
-        </p>
-      </div>
+      <PageHeader
+        titulo="Investimento de Lançamento"
+        estado="Acompanhamento de orçamento inicial, valores fechados e realizados das frentes de investimento de lançamento da Fetely."
+      />
 
       {/* KPIs */}
       {loadingF ? (
