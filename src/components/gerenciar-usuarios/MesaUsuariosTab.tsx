@@ -534,7 +534,7 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
                           size="sm"
                           variant="ghost"
                           disabled={toggleBan.isPending}
-                          onClick={() => toggleBan.mutate({ user_id: l.userId, ban: false })}
+                          onClick={() => setReativarConfirm({ userId: l.userId, nome: l.nome })}
                         >
                           <ShieldCheck className="h-3.5 w-3.5" /> Reativar acesso
                         </Button>
