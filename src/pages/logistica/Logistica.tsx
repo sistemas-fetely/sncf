@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Truck, Loader2, Plus, LayoutGrid, Package } from "lucide-react";
+import { Truck, Loader2, Plus, LayoutGrid, Package, AlertTriangle } from "lucide-react";
 import { useTransportadorasLogistica } from "@/hooks/logistica/useTransportadorasLogistica";
 import { AbaTransportadora } from "@/components/logistica/AbaTransportadora";
 import { VisaoGeralLogistica } from "@/components/logistica/VisaoGeralLogistica";
 import { EntregasControle } from "@/components/logistica/EntregasControle";
+import { FilaAtencaoLogistica } from "@/components/logistica/FilaAtencaoLogistica";
 import { cn } from "@/lib/utils";
 import { nomeExibicao } from "@/lib/parceiros/nome";
 import { PageShell } from "@/components/layout/PageShell";
@@ -16,6 +17,7 @@ export default function Logistica() {
   const ativa = transportadoras.find((t) => t.id === ativaId) ?? null;
   const isGeral = ativaId === "geral";
   const isRastreio = ativaId === "rastreio";
+  const isAtencao = ativaId === "atencao";
 
   return (
     <PageShell>
