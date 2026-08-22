@@ -190,10 +190,6 @@ export default function Compras() {
               <Boxes className="h-4 w-4" />
               Compras de Mercadoria
             </Link>
-            <Button onClick={abrirCriar} style={{ backgroundColor: "#1A4A3A", color: "white" }}>
-              <Plus className="h-4 w-4 mr-1" />
-              Novo Pedido
-            </Button>
           </>
         }
       />
