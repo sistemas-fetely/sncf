@@ -40,6 +40,7 @@ import ParametrosBeneficiosSection from "@/components/parametros/ParametrosBenef
 import ParametrosExtrasSection from "@/components/parametros/ParametrosExtrasSection";
 import ParametrosCondicoesPagamento from "@/components/parametros/ParametrosCondicoesPagamento";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface CategoriaConfig {
   value: string;
@@ -518,12 +519,10 @@ export default function Parametros() {
 
   return (
     <PageShell>
-      <div>
-        <h1 className="text-2xl font-medium tracking-tight">Parâmetros</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Gerencie as opções disponíveis nas listas de cadastro
-        </p>
-      </div>
+      <PageHeader
+        titulo="Parâmetros"
+        estado="Gerencie as opções disponíveis nas listas de cadastro"
+      />
 
       {/* Top-level module tabs */}
       <Tabs value={modulo} onValueChange={handleModuloChange}>

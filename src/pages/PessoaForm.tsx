@@ -23,6 +23,7 @@ import CriarAcessoCard from "@/components/pessoas/CriarAcessoCard";
 import { useIsSocio } from "@/hooks/useIsSocio";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 type Dim = { id: string; nome: string; codigo?: string };
 
 interface PessoaForm {
@@ -406,16 +407,19 @@ export default function PessoaForm() {
     <PageShell>
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate("/pessoas")}><ArrowLeft className="h-4 w-4" /></Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-medium tracking-tight">{isEdit ? "Editar pessoa" : "Nova pessoa"}</h1>
-          <p className="text-muted-foreground text-sm">Dados do ser humano e do vínculo com a Fetely</p>
-        </div>
-        {vinculoStatus === "desligado" && (
-          <span className="text-xs bg-destructive/10 text-destructive px-2 py-1 rounded">Vínculo desligado</span>
-        )}
-        <Button onClick={salvar} disabled={saving} className="gap-2">
-          <Save className="h-4 w-4" /> {saving ? "Salvando..." : "Salvar"}
-        </Button>
+        <PageHeader
+          className="flex-1 mb-0"
+          titulo={isEdit ? "Editar pessoa" : "Nova pessoa"}
+          estado="Dados do ser humano e do vínculo com a Fetely"
+          acoes={<>
+            {vinculoStatus === "desligado" && (
+              <span className="text-xs bg-destructive/10 text-destructive px-2 py-1 rounded">Vínculo desligado</span>
+            )}
+            <Button onClick={salvar} disabled={saving} className="gap-2">
+              <Save className="h-4 w-4" /> {saving ? "Salvando..." : "Salvar"}
+            </Button>
+          </>}
+        />
       </div>
 
       {/* BLOCO PESSOA */}

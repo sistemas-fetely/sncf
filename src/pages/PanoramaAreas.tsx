@@ -14,6 +14,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { humanizeError } from "@/lib/errorMessages";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface DimensionamentoArea {
   centro_custo_id: string;
@@ -91,22 +92,18 @@ export default function PanoramaAreas() {
 
   return (
     <PageShell>
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight">Panorama de Áreas</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Headcount e custo mensal por centro de custo
-          </p>
-        </div>
-        <div className="flex gap-2">
+      <PageHeader
+        titulo="Panorama de Áreas"
+        estado="Headcount e custo mensal por centro de custo"
+        acoes={<>
           <Button variant="outline" onClick={() => navigate("/pessoas/vagas", { state: { from: "/pessoas/panorama", fromLabel: "Panorama de Areas" } })} className="gap-2">
             <ClipboardList className="h-4 w-4" /> Gerenciar vagas
           </Button>
           <Button variant="outline" onClick={() => navigate("/pessoas")} className="gap-2">
             <ArrowLeft className="h-4 w-4" /> Voltar
           </Button>
-        </div>
-      </div>
+        </>}
+      />
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">

@@ -22,6 +22,7 @@ import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { SmartBackButton } from "@/components/SmartBackButton";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { formatError } from "@/lib/format-error";
 
 type Tarefa = {
@@ -298,35 +299,35 @@ export default function OnboardingDetalhe() {
     <TooltipProvider>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <div className="mb-2 -ml-2">
-              <SmartBackButton fallback="/onboarding" fallbackLabel="Onboarding" />
-            </div>
-            <h1 className="text-2xl font-medium">{checklist.nome}</h1>
-            <p className="text-muted-foreground text-sm">
-              {checklist.cargo} · {checklist.departamento} · {checklist.colaborador_tipo?.toUpperCase()}
-            </p>
+        <div>
+          <div className="mb-2 -ml-2">
+            <SmartBackButton fallback="/onboarding" fallbackLabel="Onboarding" />
           </div>
-          <div className="text-right space-y-1">
-            <Badge
-              variant="outline"
-              className={
-                checklist.status === "concluido"
-                  ? "bg-success/10 text-success border-0"
-                  : hasOverdue
-                  ? "bg-destructive/10 text-destructive border-0"
-                  : "bg-info/10 text-info border-0"
-              }
-            >
-              {checklist.status === "concluido" ? "Concluído" : hasOverdue ? "Com atrasos" : "Em andamento"}
-            </Badge>
-            {checklist.coordenador_nome && (
-              <p className="text-xs text-muted-foreground">
-                Coordenado por: <span className="text-foreground font-medium">{checklist.coordenador_nome}</span>
-              </p>
-            )}
-          </div>
+          <PageHeader
+            titulo={checklist.nome}
+            estado={`${checklist.cargo} · ${checklist.departamento} · ${checklist.colaborador_tipo?.toUpperCase()}`}
+            acoes={
+              <div className="text-right space-y-1">
+                <Badge
+                  variant="outline"
+                  className={
+                    checklist.status === "concluido"
+                      ? "bg-success/10 text-success border-0"
+                      : hasOverdue
+                      ? "bg-destructive/10 text-destructive border-0"
+                      : "bg-info/10 text-info border-0"
+                  }
+                >
+                  {checklist.status === "concluido" ? "Concluído" : hasOverdue ? "Com atrasos" : "Em andamento"}
+                </Badge>
+                {checklist.coordenador_nome && (
+                  <p className="text-xs text-muted-foreground">
+                    Coordenado por: <span className="text-foreground font-medium">{checklist.coordenador_nome}</span>
+                  </p>
+                )}
+              </div>
+            }
+          />
         </div>
 
         {/* KPIs */}

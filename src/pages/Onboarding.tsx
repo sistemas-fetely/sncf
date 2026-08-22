@@ -30,6 +30,7 @@ import {
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 type Checklist = {
   id: string;
@@ -344,7 +345,7 @@ export default function Onboarding() {
 
     return (
       <div className="p-4 max-w-lg mx-auto space-y-6">
-        <h1 className="text-xl font-medium">Meu Onboarding</h1>
+        <PageHeader titulo="Meu Onboarding" />
         {loading ? (
           <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
         ) : myTarefas.length === 0 ? (
@@ -419,19 +420,21 @@ export default function Onboarding() {
   return (
     <TooltipProvider>
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-medium">Onboarding</h1>
-        <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {statusFilter.map((s) => (
-              <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <PageHeader
+        titulo="Onboarding"
+        acoes={
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {statusFilter.map((s) => (
+                <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        }
+      />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>

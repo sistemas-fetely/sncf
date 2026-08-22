@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { nomeExibicao } from "@/lib/parceiros/nome";
 import { format, parseISO } from "date-fns";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const formatCompetencia = (c: string) => {
   if (/^\d{4}-\d{2}$/.test(c)) return format(parseISO(`${c}-01`), "MM/yyyy");
@@ -109,15 +110,10 @@ export default function PagamentosPJ() {
 
   return (
     <PageShell>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight">Pagamentos PJ</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Histórico de pagamentos anteriores. Novos lançamentos são feitos em{" "}
-            <strong>Contas a Pagar</strong>.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        titulo="Pagamentos PJ"
+        estado={<>Histórico de pagamentos anteriores. Novos lançamentos são feitos em <strong>Contas a Pagar</strong>.</>}
+      />
 
       {/* Stats */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-4">

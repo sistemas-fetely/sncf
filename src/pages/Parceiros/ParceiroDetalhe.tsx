@@ -13,6 +13,7 @@ import { descricaoNaturezaJuridica } from "@/lib/natureza-juridica";
 import { PedidosDoParceiroSection } from "@/components/parceiros/PedidosDoParceiroSection";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 function Linha({
@@ -87,13 +88,10 @@ export default function ParceiroDetalhe() {
       </Button>
 
       {/* Header */}
-      <div className="space-y-1">
-        <h1 className="text-2xl font-medium">{parceiro.razao_social}</h1>
-        {parceiro.nome_fantasia && (
-          <p className="text-sm text-muted-foreground">{parceiro.nome_fantasia}</p>
-        )}
-        <p className="text-xs text-muted-foreground">CNPJ {parceiro.cnpj}</p>
-      </div>
+      <PageHeader
+        titulo={parceiro.razao_social}
+        estado={<>{parceiro.nome_fantasia && `${parceiro.nome_fantasia} · `}CNPJ {parceiro.cnpj}</>}
+      />
 
       {/* Badges */}
       <div className="flex flex-wrap items-center gap-2">
