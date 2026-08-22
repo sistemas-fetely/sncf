@@ -19,6 +19,7 @@ export default function Logistica() {
   const isGeral = ativaId === "geral";
   const isRastreio = ativaId === "rastreio";
   const isAtencao = ativaId === "atencao";
+  const isImportarFases = ativaId === "importar-fases";
 
   return (
     <PageShell>
@@ -71,6 +72,17 @@ export default function Logistica() {
               )}
             >
               <AlertTriangle className="h-3.5 w-3.5" /> Fila de atenção
+            </button>
+            <button
+              onClick={() => setAtivaId("importar-fases")}
+              className={cn(
+                "rounded-full px-3 py-1 text-sm border transition inline-flex items-center gap-1.5",
+                isImportarFases
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card text-foreground hover:bg-muted border-border"
+              )}
+            >
+              <FileUp className="h-3.5 w-3.5" /> Importar fases (XPM)
             </button>
             {transportadoras.map((t) => {
               const nome = nomeExibicao(t.razao_social, t.nome_fantasia);
