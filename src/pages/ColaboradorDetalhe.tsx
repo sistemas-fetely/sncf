@@ -38,6 +38,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { Tables } from "@/integrations/supabase/types";
 
 import { SmartBackButton } from "@/components/SmartBackButton";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { StepDadosPessoais } from "@/components/colaborador-clt/StepDadosPessoais";
 import { StepDocumentos } from "@/components/colaborador-clt/StepDocumentos";
 import { StepDadosProfissionais } from "@/components/colaborador-clt/StepDadosProfissionais";
@@ -525,8 +526,11 @@ export default function ColaboradorDetalhe() {
                 </div>
               )}
               <div className="flex-1">
-                <h1 className="text-2xl font-medium">{colaborador.nome_completo}</h1>
-                <p className="text-muted-foreground">{colaborador.cargo}</p>
+                <PageHeader
+                  titulo={colaborador.nome_completo}
+                  estado={colaborador.cargo}
+                  className="mb-2"
+                />
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                   <Badge variant="outline" className={statusStyles[colaborador.status] || ""}>
                     {statusMap[colaborador.status] || colaborador.status}
@@ -800,7 +804,7 @@ export default function ColaboradorDetalhe() {
           </Button>
         </div>
 
-        <h1 className="text-2xl font-medium tracking-tight">Editar: {colaborador.nome_completo}</h1>
+        <PageHeader titulo={`Editar: ${colaborador.nome_completo}`} />
 
         <Tabs defaultValue="pessoais">
           <TabsList className="w-full justify-start">

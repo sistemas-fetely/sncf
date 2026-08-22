@@ -45,6 +45,7 @@ import { useIniciarCompraPedido } from "@/hooks/compras/useIniciarCompraPedido";
 import type { PedidoCompraFull } from "@/lib/compras/types";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 const fmtBRL = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
 const fmtDate = (d?: string | null) =>
@@ -206,26 +207,20 @@ export default function ComprasAComprar() {
   return (
     <PageShell>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/compras">
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Meus Pedidos
-            </Link>
-          </Button>
-          <div className="h-6 w-px bg-border" />
-          <div
-            className="p-2 rounded-lg flex items-center justify-center"
-            style={{ backgroundColor: "#1A4A3A" }}
-          >
-            <Truck className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-medium">Pedidos a Comprar</h1>
-            <p className="text-sm text-muted-foreground">Fila do Comprador</p>
-          </div>
-        </div>
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/compras">
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Meus Pedidos
+          </Link>
+        </Button>
+        <div className="h-6 w-px bg-border" />
+        <PageHeader
+          titulo="Pedidos a Comprar"
+          estado="Fila do Comprador"
+          icone={Truck}
+          className="mb-0 flex-1"
+        />
       </div>
 
       {/* Stats */}

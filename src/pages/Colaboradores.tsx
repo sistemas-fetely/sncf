@@ -29,6 +29,7 @@ import { SalarioMasked } from "@/components/SalarioMasked";
 type ColaboradorRow = Tables<"colaboradores_clt">;
 import { format, parseISO } from "date-fns";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const statusMap: Record<string, string> = {
   ativo: "Ativo",
@@ -120,18 +121,16 @@ export default function Colaboradores() {
 
   return (
     <PageShell>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight">Colaboradores</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Gerenciamento de colaboradores CLT e PJ
-          </p>
-        </div>
-        <Button className="gap-2" onClick={() => navigate("/colaboradores/novo")}>
-          <Plus className="h-4 w-4" />
-          Novo Colaborador
-        </Button>
-      </div>
+      <PageHeader
+        titulo="Colaboradores"
+        estado="Gerenciamento de colaboradores CLT e PJ"
+        acoes={
+          <Button className="gap-2" onClick={() => navigate("/colaboradores/novo")}>
+            <Plus className="h-4 w-4" />
+            Novo Colaborador
+          </Button>
+        }
+      />
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="card-shadow">
