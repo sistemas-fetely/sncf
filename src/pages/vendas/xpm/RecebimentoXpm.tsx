@@ -13,6 +13,7 @@ import { Download, Upload, FileSpreadsheet, Loader2, CheckCircle2, Scale } from 
 import { SincronizacaoEstoqueShopify } from "@/components/acervo/SincronizacaoEstoqueShopify";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 type IngestResult = {
   termo: string;
   linhas_termo: number;
@@ -295,12 +296,10 @@ export default function RecebimentoXpm() {
 
   return (
     <PageShell className="md:px-8">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-medium tracking-tight">Recebimento XPM</h1>
-        <p className="text-sm text-muted-foreground">
-          Envie a planilha de cadastro pra XPM e ingira o Termo de Conferência de volta pra dar entrada no estoque.
-        </p>
-      </header>
+      <PageHeader
+        titulo="Recebimento XPM"
+        estado="Envie a planilha de cadastro pra XPM e ingira o Termo de Conferência de volta pra dar entrada no estoque."
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* AÇÃO 1 */}

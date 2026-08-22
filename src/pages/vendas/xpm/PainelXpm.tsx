@@ -22,6 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 type CicloXpm = {
   codigo: string;
@@ -340,24 +341,22 @@ export default function PainelXpm() {
 
   return (
     <PageShell>
-      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-medium tracking-tight">Painel XPM</h1>
-          <p className="text-sm text-muted-foreground">
-            Ciclo do armazém, do pedido solicitado à expedição efetiva.
-          </p>
-        </div>
-        <Select value={periodo} onValueChange={setPeriodo}>
-          <SelectTrigger className="md:w-[180px]">
-            <SelectValue placeholder="Período" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="30">Últimos 30 dias</SelectItem>
-            <SelectItem value="60">Últimos 60 dias</SelectItem>
-            <SelectItem value="90">Últimos 90 dias</SelectItem>
-          </SelectContent>
-        </Select>
-      </header>
+      <PageHeader
+        titulo="Painel XPM"
+        estado="Ciclo do armazém, do pedido solicitado à expedição efetiva."
+        acoes={
+          <Select value={periodo} onValueChange={setPeriodo}>
+            <SelectTrigger className="md:w-[180px]">
+              <SelectValue placeholder="Período" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="30">Últimos 30 dias</SelectItem>
+              <SelectItem value="60">Últimos 60 dias</SelectItem>
+              <SelectItem value="90">Últimos 90 dias</SelectItem>
+            </SelectContent>
+          </Select>
+        }
+      />
 
       <AlertaDivergencia />
 

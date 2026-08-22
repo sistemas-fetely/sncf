@@ -39,6 +39,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { BaixaManualDialog } from "@/components/credito/BaixaManualDialog";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 type Titulo = {
   id: string;
   numero_titulo: string | null;
@@ -283,15 +284,11 @@ export default function ContasReceberSops() {
 
   return (
     <PageShell>
-      <div className="flex items-center gap-3">
-        <ArrowDownToLine className="h-7 w-7 text-admin" />
-        <div>
-          <h1 className="text-2xl font-medium">Contas a Receber</h1>
-          <p className="text-sm text-muted-foreground">
-            Recebíveis por parcela — acompanhe boletos, aging e confirmações.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        titulo="Contas a Receber"
+        icone={ArrowDownToLine}
+        estado="Recebíveis por parcela — acompanhe boletos, aging e confirmações."
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
