@@ -139,10 +139,25 @@ export const CASA_APPS: CasaApp[] = [
     appChaves: ["meu_espaco"],
   },
   {
+    // TI virou pilar próprio em 22/08/2026 (Regra de Ouro dos Menus: TI = infra,
+    // pilar próprio; Mesa = config global). Estava dobrado dentro de Mesa, que
+    // é hiddenFromTopNav — então o TI só era alcançável pelo menu do avatar.
+    //
+    // Sem impacto de acesso: as 5 pessoas com tela.ti são todas super_admin, e
+    // o TILayout já libera super_admin por papel antes de qualquer checagem.
+    id: "ti",
+    label: "TI",
+    defaultRoute: "/ti",
+    routeMatchers: ["/ti"],
+    icon: Monitor,
+    tela_slug: "tela.ti",
+    appChaves: ["ti"],
+  },
+  {
     id: "mesa",
     label: "Mesa",
     defaultRoute: "/admin",
-    routeMatchers: ["/admin", "/ti"],
+    routeMatchers: ["/admin"],
     icon: Shield,
     tela_slug: null,
     hiddenFromTopNav: true,
