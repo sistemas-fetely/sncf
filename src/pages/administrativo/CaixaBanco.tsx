@@ -14,6 +14,7 @@
  * vw_analise_despesas depende dela e alimenta AnaliseDespesas.tsx.
  */
 import { useEffect, useMemo, useState } from "react";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
@@ -414,18 +415,11 @@ export default function CaixaBanco() {
     <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden">
       {/* HEADER STICKY */}
       <div className="sticky top-0 z-20 bg-background px-6 pt-6 pb-3 border-b backdrop-blur">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
-              <PieChart className="h-6 w-6 text-admin" />
-              Gerencial
-            </h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Resultado por competência — todas as origens de despesa, em camadas de
-              natureza.
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          titulo="Gerencial"
+          icone={PieChart}
+          estado="Resultado por competência — todas as origens de despesa, em camadas de natureza."
+        />
       </div>
 
       {/* CONTEÚDO */}

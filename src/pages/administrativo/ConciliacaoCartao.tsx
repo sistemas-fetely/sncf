@@ -1,4 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Fragment, useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -286,15 +287,11 @@ function AbaConciliarExtrato() {
 export default function ConciliacaoCartao() {
   return (
     <PageShell>
-      <div>
-        <h1 className="text-2xl font-medium flex items-center gap-2">
-          <CreditCard className="h-6 w-6 text-admin" />
-          Conciliação de Cartão
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          SafraPay × OFX × títulos. Vincule a venda ao pedido e concilie o extrato.
-        </p>
-      </div>
+      <PageHeader
+        titulo="Conciliação de Cartão"
+        icone={CreditCard}
+        estado="SafraPay × OFX × títulos. Vincule a venda ao pedido e concilie o extrato."
+      />
 
       <Tabs defaultValue="vincular">
         <TabsList>

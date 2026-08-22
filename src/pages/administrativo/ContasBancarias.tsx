@@ -1,4 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -192,21 +193,17 @@ export default function ContasBancarias() {
   return (
     <PageShell>
       {/* Header contas */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-medium flex items-center gap-2">
-            <Landmark className="h-6 w-6 text-admin" />
-            Contas Bancárias
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Cadastro de contas correntes, poupanças e caixas físicos.
-          </p>
-        </div>
-        <Button onClick={handleNova} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Nova conta bancária
-        </Button>
-      </div>
+      <PageHeader
+        titulo="Contas Bancárias"
+        icone={Landmark}
+        estado="Cadastro de contas correntes, poupanças e caixas físicos."
+        acoes={
+          <Button onClick={handleNova} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Nova conta bancária
+          </Button>
+        }
+      />
 
       {/* KPIs contas */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
