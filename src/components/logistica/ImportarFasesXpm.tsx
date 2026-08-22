@@ -59,6 +59,7 @@ const COLUNAS = ["PEDIDO", "STATUSNF", "IMPORTADOEM", "SEPARADOEM", "CONFERIDOEM
 
 function normCabecalho(s: string): string {
   return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+
 }
 
 // "yyyy-MM-dd HH:mm[:ss]" -> ISO (data local -> toISOString, mesma doutrina do parseDataBR).
