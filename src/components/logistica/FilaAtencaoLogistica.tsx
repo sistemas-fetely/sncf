@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   AlertTriangle,
@@ -109,15 +109,15 @@ function DialogNovaTarefa({
   const [dataLimite, setDataLimite] = useState("");
 
   // Preenche quando uma linha nova é aberta no dialog.
-  const [ultimoPedido, setUltimoPedido] = useState<string | null>(null);
-  if (linha && linha.pedido_id !== ultimoPedido) {
-    setUltimoPedido(linha.pedido_id);
+  useEffect(() => {
+    if (!linha) return;
     setTitulo(linha.diagnostico ?? MOTIVO_ROTULO[linha.motivo] ?? "");
     setDescricao("");
     setResponsavelId("");
     setPrioridade(linha.severidade <= 2 ? "alta" : "media");
     setDataLimite("");
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linha?.pedido_id]);
 
   const salvar = () => {
     if (!linha || !titulo.trim() || !responsavelId) return;
