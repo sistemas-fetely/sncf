@@ -58,8 +58,8 @@ const MESES: Record<string, number> = {
 const COLUNAS = ["PEDIDO", "STATUSNF", "IMPORTADOEM", "SEPARADOEM", "CONFERIDOEM", "FATURADOEM"] as const;
 
 function normCabecalho(s: string): string {
+  // NFD + faixa de diacriticos combinantes (U+0300-U+036F) -> remove acentos
   return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-
 }
 
 // "yyyy-MM-dd HH:mm[:ss]" -> ISO (data local -> toISOString, mesma doutrina do parseDataBR).
