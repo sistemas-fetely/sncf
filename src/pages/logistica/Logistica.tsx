@@ -21,6 +21,7 @@ export default function Logistica() {
   const isRastreio = ativaId === "rastreio";
   const isAtencao = ativaId === "atencao";
   const isImportarFases = ativaId === "importar-fases";
+  const isComparativo = ativaId === "comparativo-fontes";
 
   return (
     <PageShell>

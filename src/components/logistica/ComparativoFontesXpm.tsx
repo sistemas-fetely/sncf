@@ -136,13 +136,13 @@ export function ComparativoFontesXpm() {
 
           <div className="flex items-center gap-4 bg-muted/30 rounded-md px-3 py-2">
             <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <Switch size="sm" checked={mostrarSoApi} onCheckedChange={setMostrarSoApi} />
+              <Switch checked={mostrarSoApi} onCheckedChange={setMostrarSoApi} />
               <span className="inline-flex items-center gap-1">
                 <Radio className="h-3.5 w-3.5 text-muted-foreground" /> Só API ({contagem.soApi})
               </span>
             </label>
             <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <Switch size="sm" checked={mostrarSoArquivo} onCheckedChange={setMostrarSoArquivo} />
+              <Switch checked={mostrarSoArquivo} onCheckedChange={setMostrarSoArquivo} />
               <span className="inline-flex items-center gap-1">
                 <FileUp className="h-3.5 w-3.5 text-muted-foreground" /> Só arquivo ({contagem.soArquivo})
               </span>
