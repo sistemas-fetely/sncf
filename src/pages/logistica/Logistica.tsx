@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Truck, Loader2, Plus, LayoutGrid, Package, AlertTriangle, FileUp } from "lucide-react";
+import { Truck, Loader2, Plus, LayoutGrid, Package, AlertTriangle, FileUp, GitCompare } from "lucide-react";
 import { useTransportadorasLogistica } from "@/hooks/logistica/useTransportadorasLogistica";
 import { AbaTransportadora } from "@/components/logistica/AbaTransportadora";
 import { VisaoGeralLogistica } from "@/components/logistica/VisaoGeralLogistica";
 import { EntregasControle } from "@/components/logistica/EntregasControle";
 import { FilaAtencaoLogistica } from "@/components/logistica/FilaAtencaoLogistica";
 import { ImportarFasesXpm } from "@/components/logistica/ImportarFasesXpm";
+import { ComparativoFontesXpm } from "@/components/logistica/ComparativoFontesXpm";
 import { cn } from "@/lib/utils";
 import { nomeExibicao } from "@/lib/parceiros/nome";
 import { PageShell } from "@/components/layout/PageShell";
@@ -20,6 +21,7 @@ export default function Logistica() {
   const isRastreio = ativaId === "rastreio";
   const isAtencao = ativaId === "atencao";
   const isImportarFases = ativaId === "importar-fases";
+  const isComparativo = ativaId === "comparativo-fontes";
 
   return (
     <PageShell>
@@ -84,6 +86,17 @@ export default function Logistica() {
             >
               <FileUp className="h-3.5 w-3.5" /> Importar fases (XPM)
             </button>
+            <button
+              onClick={() => setAtivaId("comparativo-fontes")}
+              className={cn(
+                "rounded-full px-3 py-1 text-sm border transition inline-flex items-center gap-1.5",
+                isComparativo
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card text-foreground hover:bg-muted border-border"
+              )}
+            >
+              <GitCompare className="h-3.5 w-3.5" /> Funil (API x Arquivo)
+            </button>
             {transportadoras.map((t) => {
               const nome = nomeExibicao(t.razao_social, t.nome_fantasia);
               const ativo = t.id === ativaId;
@@ -115,6 +128,8 @@ export default function Logistica() {
             <FilaAtencaoLogistica />
           ) : isImportarFases ? (
             <ImportarFasesXpm />
+          ) : isComparativo ? (
+            <ComparativoFontesXpm />
           ) : ativa ? (
             <AbaTransportadora transportadora={ativa} />
           ) : (
