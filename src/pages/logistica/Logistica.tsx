@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Truck, Loader2, Plus, LayoutGrid, Package, AlertTriangle } from "lucide-react";
+import { Truck, Loader2, Plus, LayoutGrid, Package, AlertTriangle, FileUp } from "lucide-react";
 import { useTransportadorasLogistica } from "@/hooks/logistica/useTransportadorasLogistica";
 import { AbaTransportadora } from "@/components/logistica/AbaTransportadora";
 import { VisaoGeralLogistica } from "@/components/logistica/VisaoGeralLogistica";
 import { EntregasControle } from "@/components/logistica/EntregasControle";
 import { FilaAtencaoLogistica } from "@/components/logistica/FilaAtencaoLogistica";
+import { ImportarFasesXpm } from "@/components/logistica/ImportarFasesXpm";
 import { cn } from "@/lib/utils";
 import { nomeExibicao } from "@/lib/parceiros/nome";
 import { PageShell } from "@/components/layout/PageShell";
