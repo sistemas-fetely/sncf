@@ -478,29 +478,29 @@ export default function ContratosPJ() {
 
   return (
     <PageShell>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight">Contratos PJ</h1>
-          <p className="text-muted-foreground text-sm mt-1">Gestão de contratos de prestadores de serviço</p>
-        </div>
-        {canCreate && (
-          <div className="flex gap-2">
-            <Button className="gap-2" onClick={() => navigate("/contratos-pj/novo")}>
-              <Plus className="h-4 w-4" /> Novo Contrato
-            </Button>
-            {(isSuperAdmin || isAdminRH) && (
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={() => navigate("/contratos-pj/novo-manual")}
-                title="Formulário único para casos emergenciais"
-              >
-                <ShieldAlert className="h-4 w-4" /> Manual
+      <PageHeader
+        titulo="Contratos PJ"
+        estado="Gestão de contratos de prestadores de serviço"
+        acoes={
+          canCreate && (
+            <div className="flex gap-2">
+              <Button className="gap-2" onClick={() => navigate("/contratos-pj/novo")}>
+                <Plus className="h-4 w-4" /> Novo Contrato
               </Button>
-            )}
-          </div>
-        )}
-      </div>
+              {(isSuperAdmin || isAdminRH) && (
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => navigate("/contratos-pj/novo-manual")}
+                  title="Formulário único para casos emergenciais"
+                >
+                  <ShieldAlert className="h-4 w-4" /> Manual
+                </Button>
+              )}
+            </div>
+          )
+        }
+      />
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
         <Card className="card-shadow">

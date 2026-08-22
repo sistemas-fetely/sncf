@@ -785,56 +785,59 @@ export default function ConviteDetalhe() {
     <div className="space-y-6">
       <SystemReadinessBanner />
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-4">
-          <SmartBackButton fallback="/convites-cadastro" fallbackLabel="Convites" />
-          <div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl font-medium">{convite.nome}</h1>
+      <div className="flex items-start gap-4">
+        <SmartBackButton fallback="/convites-cadastro" fallbackLabel="Convites" />
+        <PageHeader
+          className="flex-1"
+          titulo={convite.nome}
+          estado={
+            <>
+              {convite.email} • {convite.cargo && `${convite.cargo} • `}{convite.departamento || ""}
+              {convite.preenchido_em && ` • Preenchido em ${format(parseISO(convite.preenchido_em), "dd/MM/yyyy HH:mm")}`}
+            </>
+          }
+          acoes={
+            <>
               <Badge variant="outline" className={statusStyles[displayStatus] || ""}>
                 {statusLabels[displayStatus] || displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
               </Badge>
               <Badge variant="outline" className="text-xs">{convite.tipo.toUpperCase()}</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              {convite.email} • {convite.cargo && `${convite.cargo} • `}{convite.departamento || ""}
-              {convite.preenchido_em && ` • Preenchido em ${format(parseISO(convite.preenchido_em), "dd/MM/yyyy HH:mm")}`}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {editing ? (
-            <>
-              <Button variant="outline" onClick={() => { setEditing(false); setFormData(convite.dados_preenchidos || {}); }}>
-                <X className="h-4 w-4 mr-2" /> Cancelar
-              </Button>
-              <Button onClick={handleSave} disabled={saving}>
-                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                Salvar
-              </Button>
             </>
-          ) : (
-            <>
-              {hasDados && !isCadastrado && (
-                <Button variant="outline" size="sm" onClick={handleResendEmail} disabled={sendingEmail}>
-                  {sendingEmail ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Mail className="h-4 w-4 mr-2" />}
-                  Reenviar Email
-                </Button>
-              )}
-              {canEdit && hasDados && (
-                <Button variant="outline" onClick={() => setEditing(true)}>
-                  <Edit className="h-4 w-4 mr-2" /> Editar Dados
-                </Button>
-              )}
-              {canExport && convite.status !== "aprovado" && (
-                <Button onClick={handleCriarColaborador} disabled={criando}>
-                  {criando ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <UserPlus className="h-4 w-4 mr-2" />}
-                  {isClt ? "Criar Colaborador CLT" : "Criar Contrato PJ"}
-                </Button>
-              )}
-            </>
-          )}
-        </div>
+          }
+        />
+      </div>
+      <div className="flex items-center justify-end gap-2 flex-wrap">
+        {editing ? (
+          <>
+            <Button variant="outline" onClick={() => { setEditing(false); setFormData(convite.dados_preenchidos || {}); }}>
+              <X className="h-4 w-4 mr-2" /> Cancelar
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+              Salvar
+            </Button>
+          </>
+        ) : (
+          <>
+            {hasDados && !isCadastrado && (
+              <Button variant="outline" size="sm" onClick={handleResendEmail} disabled={sendingEmail}>
+                {sendingEmail ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Mail className="h-4 w-4 mr-2" />}
+                Reenviar Email
+              </Button>
+            )}
+            {canEdit && hasDados && (
+              <Button variant="outline" onClick={() => setEditing(true)}>
+                <Edit className="h-4 w-4 mr-2" /> Editar Dados
+              </Button>
+            )}
+            {canExport && convite.status !== "aprovado" && (
+              <Button onClick={handleCriarColaborador} disabled={criando}>
+                {criando ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <UserPlus className="h-4 w-4 mr-2" />}
+                {isClt ? "Criar Colaborador CLT" : "Criar Contrato PJ"}
+              </Button>
+            )}
+          </>
+        )}
       </div>
 
       {isAprovado && !alreadyLinked && hasDados && (

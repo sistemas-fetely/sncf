@@ -664,12 +664,10 @@ function DashboardGestao() {
 export default function Dashboard() {
   return (
     <PageShell>
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground text-sm mt-1">Fetély · Visão de Gestão</p>
-        </div>
-      </div>
+      <PageHeader
+        titulo="Dashboard"
+        estado="Fetély · Visão de Gestão"
+      />
       <DashboardGestao />
     </PageShell>
   );
