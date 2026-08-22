@@ -795,9 +795,9 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir usuário {excluirConfirm?.nome}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação é irreversível e remove todos os dados de acesso do usuário. Se o
-              usuário tiver histórico vinculado (pedidos, processos, auditoria), o sistema
-              vai recusar e sugerir Inativar em vez de excluir.
+              Esta ação é irreversível e remove todos os dados de acesso do usuário. Se ele
+              tiver histórico vinculado (pedidos, processos, auditoria), o sistema recusa
+              e sugere Inativar em vez de excluir.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
