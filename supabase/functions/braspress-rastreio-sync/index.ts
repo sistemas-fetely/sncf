@@ -254,6 +254,11 @@ Deno.serve(async (req) => {
             : null;
           const ultimoEm = ultimo ? ultimo.iso : null;
 
+          const textoOcorrencia =
+            ultimoDesc ??
+            (typeof escolhido?.ultimaOcorrencia === "string" ? String(escolhido.ultimaOcorrencia).trim() : null);
+          registro.ocorrencia_codigo = resolverOcorrenciaCodigo(transportadoraId, textoOcorrencia);
+
           const cabecalhoEntregue =
             !!escolhido?.dataEntrega ||
             String(escolhido?.status ?? "").toUpperCase() === "FINALIZADO" ||
