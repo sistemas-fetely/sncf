@@ -57,7 +57,6 @@ export function usePrefetchTelas() {
       void import("@/pages/Parametros");
 
       // Layouts (chunks distintos por layout)
-      void import("@/layouts/AdminFinanceiroLayout");
       void import("@/layouts/AdministrativoLayout");
       void import("@/layouts/AdminLayout");
       void import("@/layouts/TILayout");

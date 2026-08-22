@@ -14,13 +14,11 @@ import { TarefaAbertaGlobal } from "@/components/tarefas/detalhe/TarefaAbertaGlo
 // Layouts — importados diretamente (não lazy) para evitar Suspense na raiz e soluço de navegação.
 // Layouts são pequenos (~30-80L cada) e não justificam code-splitting.
 import { AppLayout } from "@/components/AppLayout";
-import AdminFinanceiroLayout from "@/layouts/AdminFinanceiroLayout";
 const FinancasLayout = lazy(() => import("./layouts/FinancasLayout"));
 const Faturamento = lazy(() => import("@/pages/administrativo/Faturamento"));
 import AdministrativoLayout from "@/layouts/AdministrativoLayout";
 import TILayout from "@/layouts/TILayout";
 import AdminLayout from "@/layouts/AdminLayout";
-import SNCFLayout from "@/layouts/SNCFLayout";
 import GestaoVistaLayout from "@/layouts/GestaoVistaLayout";
 import PublicLayout from "@/layouts/PublicLayout";
 import AcervoLayout from "@/layouts/AcervoLayout";
