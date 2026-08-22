@@ -190,14 +190,10 @@ export default function Pessoas() {
 
   return (
     <PageShell>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight">Pessoas</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Cadastro unificado de pessoas e seus vínculos com a Fetely
-          </p>
-        </div>
-        <div className="flex gap-2">
+      <PageHeader
+        titulo="Pessoas"
+        estado="Cadastro unificado de pessoas e seus vínculos com a Fetely"
+        acoes={<>
           <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas/panorama")}>
             <BarChart3 className="h-4 w-4" /> Panorama de Áreas
           </Button>
@@ -222,8 +218,8 @@ export default function Pessoas() {
           <Button className="gap-2" onClick={() => navigate("/pessoas/novo")}>
             <Plus className="h-4 w-4" /> Nova Pessoa
           </Button>
-        </div>
-      </div>
+        </>}
+      />
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-4">
         <Card className="card-shadow"><CardContent className="p-4 flex items-center gap-3">
