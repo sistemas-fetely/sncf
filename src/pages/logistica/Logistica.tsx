@@ -113,6 +113,8 @@ export default function Logistica() {
             <EntregasControle />
           ) : isAtencao ? (
             <FilaAtencaoLogistica />
+          ) : isImportarFases ? (
+            <ImportarFasesXpm />
           ) : ativa ? (
             <AbaTransportadora transportadora={ativa} />
           ) : (
