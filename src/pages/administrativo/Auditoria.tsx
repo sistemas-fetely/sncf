@@ -9,6 +9,7 @@
  * Escrita SEMPRE por RPC — nunca UPDATE direto no achado.
  */
 import { useState } from "react";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { PageShell } from "@/components/layout/PageShell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AchadosTab from "@/components/auditoria/AchadosTab";

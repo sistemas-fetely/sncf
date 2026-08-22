@@ -14,6 +14,7 @@
  * vw_analise_despesas depende dela e alimenta AnaliseDespesas.tsx.
  */
 import { useEffect, useMemo, useState } from "react";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
