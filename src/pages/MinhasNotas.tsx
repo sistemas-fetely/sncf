@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 export default function MinhasNotas() {
   const { data: contrato, isLoading: loadingContrato } = useMeuContratoPJ();
   const { data: notas, isLoading: loadingNotas } = useMinhasNotas();
@@ -24,10 +25,7 @@ export default function MinhasNotas() {
   if (!contrato) {
     return (
       <PageShell variant="leitura">
-        <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
-          <FileText className="h-6 w-6" />
-          Minhas Notas Fiscais
-        </h1>
+        <PageHeader icone={FileText} titulo="Minhas Notas Fiscais" />
         <Alert>
           <AlertDescription>
             Não encontramos contrato PJ ativo vinculado ao seu usuário. Se acha que isso é um engano,
@@ -40,15 +38,11 @@ export default function MinhasNotas() {
 
   return (
     <PageShell variant="leitura">
-      <div>
-        <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
-          <FileText className="h-6 w-6" />
-          Minhas Notas Fiscais
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Acompanhe sua jornada mensal de emissão. Cada mês tem seu ritmo. 💚
-        </p>
-      </div>
+      <PageHeader
+        icone={FileText}
+        titulo="Minhas Notas Fiscais"
+        estado="Acompanhe sua jornada mensal de emissão. Cada mês tem seu ritmo. 💚"
+      />
 
       <CardContratoAtivo contrato={contrato} />
 

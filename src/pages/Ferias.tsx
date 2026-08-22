@@ -4,6 +4,7 @@ import { Users, Briefcase } from "lucide-react";
 import { FeriasCLTView } from "@/components/ferias/FeriasCLTView";
 import { FeriasPJView } from "@/components/ferias/FeriasPJView";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export default function Ferias() {
   const { hasAnyRole, roles } = useAuth();
@@ -17,10 +18,10 @@ export default function Ferias() {
 
   return (
     <PageShell>
-      <div>
-        <h1 className="text-2xl font-medium">Gestão de Férias</h1>
-        <p className="text-muted-foreground">Controle de períodos aquisitivos, programação e recessos</p>
-      </div>
+      <PageHeader
+        titulo="Gestão de Férias"
+        estado="Controle de períodos aquisitivos, programação e recessos"
+      />
 
       <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList>

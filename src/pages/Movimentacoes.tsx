@@ -20,6 +20,7 @@ import {
   type MovimentacaoComNome,
 } from "@/hooks/useMovimentacoes";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const TIPOS = [
   { value: "promocao", label: "Promoção", icon: TrendingUp },
@@ -152,17 +153,15 @@ export default function Movimentacoes() {
 
   return (
     <PageShell>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-medium">Promoções e Movimentações</h1>
-          <p className="text-muted-foreground text-sm">Registro de promoções, transferências e alterações</p>
-        </div>
-        {canManage && (
+      <PageHeader
+        titulo="Promoções e Movimentações"
+        estado="Registro de promoções, transferências e alterações"
+        acoes={canManage && (
           <Button onClick={() => setDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" /> Nova Movimentação
           </Button>
         )}
-      </div>
+      />
 
       {/* KPIs */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">

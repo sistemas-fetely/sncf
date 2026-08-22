@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 interface AcessoSalario {
   id: string;
   ator_user_id: string | null;
@@ -47,16 +48,11 @@ export default function MeusAcessos() {
 
   return (
     <PageShell>
-      <div>
-        <h1 className="text-2xl font-medium flex items-center gap-2">
-          <ShieldCheck className="h-6 w-6 text-primary" />
-          Acessos ao meu salário
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Transparência LGPD: quem consultou seu salário, quando e por quê. Suas próprias
-          consultas não aparecem aqui.
-        </p>
-      </div>
+      <PageHeader
+        icone={ShieldCheck}
+        titulo="Acessos ao meu salário"
+        estado="Transparência LGPD: quem consultou seu salário, quando e por quê. Suas próprias consultas não aparecem aqui."
+      />
 
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando…</p>
