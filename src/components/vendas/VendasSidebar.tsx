@@ -49,18 +49,17 @@ export function VendasSidebar() {
     );
   };
 
-  const renderItem = (item: ItemMenu, irmaos: ItemMenu[]) => {
+  const renderItem = (item: ItemMenu) => {
     const Icone = resolverIcone(item.icone);
-    // 'end' evita que este item fique marcado ativo quando uma rota irmã
-    // mais específica (ex: /vendas/produto/estoque) está aberta.
-    const end = irmaos.some((o) => o.chave !== item.chave && o.rota.startsWith(item.rota + "/"));
     return (
       <FinancasSidebarItem
         key={item.chave}
         to={item.rota}
         icon={Icone}
         label={item.label}
-        end={end}
+        // 'exato' vem derivado da árvore pelo useMenuApp (22/08/2026) — antes
+        // era calculado à mão aqui, uma segunda implementação da mesma regra.
+        end={item.exato}
         badge={renderBadge(item)}
       />
     );
@@ -83,14 +82,14 @@ export function VendasSidebar() {
             // Grupo "Operação" — sem título/seção colapsável, igual hoje.
             <SidebarGroup key={g.chave} className="pb-3">
               <SidebarGroupContent>
-                <SidebarMenu>{g.itens.map((item) => renderItem(item, g.itens))}</SidebarMenu>
+                <SidebarMenu>{g.itens.map(renderItem)}</SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
           ) : (
             <SidebarGroup key={g.chave} className="pb-3">
               <SidebarGroupContent>
                 <FinancasSidebarSection title={g.label} defaultOpen>
-                  {g.itens.map((item) => renderItem(item, g.itens))}
+                  {g.itens.map(renderItem)}
                 </FinancasSidebarSection>
               </SidebarGroupContent>
             </SidebarGroup>

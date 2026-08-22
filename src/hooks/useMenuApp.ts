@@ -26,6 +26,13 @@ export interface ItemMenu {
   icone: string | null;
   rota: string;
   badge_fonte: string | null;
+  /**
+   * true quando esta rota é prefixo de outra rota do mesmo app — aí o link
+   * precisa de match exato, senão fica destacado junto com as filhas
+   * (ex: /vendas/produto vs /vendas/produto/estoque). Derivado da árvore,
+   * nunca declarado à mão.
+   */
+  exato: boolean;
 }
 
 export interface GrupoMenu {
@@ -59,7 +66,7 @@ export function useNavegacaoMenu() {
  * mesma precedencia — nunca duas implementacoes de autorizacao.
  */
 export function useMenuApp(appChave: string) {
-  const { data: linhas, isLoading } = useNavegacaoMenu();
+  const { data: linhas, isLoading, isError, refetch } = useNavegacaoMenu();
 
   const doApp = useMemo(
     () => (linhas ?? []).filter((l) => l.app_chave === appChave),
@@ -84,6 +91,21 @@ export function useMenuApp(appChave: string) {
         visiveis.has(l.rota)
     );
 
+    // `exato` derivado da arvore: rota que e prefixo de outra rota visivel do
+    // mesmo app precisa de match exato, senao fica destacada junto com as
+    // filhas. Calculado uma vez aqui em vez de a mao em cada sidebar.
+    const rotasVisiveis = itensVisiveis.map((i) => i.rota as string);
+    const paraItem = (i: LinhaMenu): ItemMenu => ({
+      chave: i.chave,
+      label: i.label,
+      icone: i.icone,
+      rota: i.rota as string,
+      badge_fonte: i.badge_fonte,
+      exato: rotasVisiveis.some(
+        (r) => r !== i.rota && r.startsWith((i.rota as string) + "/")
+      ),
+    });
+
     const grupos: GrupoMenu[] = doApp
       .filter((l) => l.nivel === "grupo")
       .sort((a, b) => a.ordem - b.ordem)
@@ -93,13 +115,7 @@ export function useMenuApp(appChave: string) {
         itens: itensVisiveis
           .filter((i) => i.pai_chave === g.chave)
           .sort((a, b) => a.ordem - b.ordem)
-          .map((i) => ({
-            chave: i.chave,
-            label: i.label,
-            icone: i.icone,
-            rota: i.rota as string,
-            badge_fonte: i.badge_fonte,
-          })),
+          .map(paraItem),
       }))
       .filter((g) => g.itens.length > 0);
 
@@ -108,14 +124,8 @@ export function useMenuApp(appChave: string) {
     const soltos: ItemMenu[] = itensVisiveis
       .filter((i) => !i.pai_chave || !chavesDeGrupo.has(i.pai_chave))
       .sort((a, b) => a.ordem - b.ordem)
-      .map((i) => ({
-        chave: i.chave,
-        label: i.label,
-        icone: i.icone,
-        rota: i.rota as string,
-        badge_fonte: i.badge_fonte,
-      }));
+      .map(paraItem);
 
-    return { grupos, soltos, isLoading };
-  }, [doApp, visiveis, isLoading]);
+    return { grupos, soltos, isLoading, isError, refetch };
+  }, [doApp, visiveis, isLoading, isError, refetch]);
 }

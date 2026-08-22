@@ -10,27 +10,42 @@ import {
 } from "@/components/ui/sidebar";
 import { FinancasSidebarItem } from "./FinancasSidebarItem";
 import { FinancasSidebarSection } from "./FinancasSidebarSection";
-import { useSidebarApp, type BlocoSidebar } from "@/hooks/useSidebarApp";
-import { iconeDe } from "@/lib/iconesNavegacao";
+import { useMenuApp, type ItemMenu } from "@/hooks/useMenuApp";
+import { resolverIcone } from "@/config/iconesNavegacao";
 
 /**
+ * Sidebar de Finanças — MENU-VIA-TABELA.
+ *
  * Estrutura vem da sncf_navegacao (app 'financas'), não de JSX literal.
  * Para mover, renomear ou reordenar item: UPDATE em sncf_navegacao.
- * Cache de 5 min — recarregar a página traz a mudança na hora.
+ *
+ * Migrada em 22/08/2026 de `useSidebarApp` para `useMenuApp`, fechando a
+ * última sidebar viva fora do padrão. O hook antigo reimplementava a
+ * precedência de autorização por conta própria — duas implementações de
+ * autorização, contra a doutrina de que menu e portão leem a mesma linha.
+ * Também usava um segundo mapa de ícones (`lib/iconesNavegacao`), que não
+ * conhecia `Zap` e já caía em ícone genérico silenciosamente.
+ *
+ * O `exato` de cada item agora vem derivado do próprio hook.
  */
 export function FinancasContextSidebar() {
-  const { blocos, isLoading, isError, refetch } = useSidebarApp("financas");
+  const { grupos, soltos, isLoading, isError, refetch } = useMenuApp("financas");
 
-  const itensDo = (b: BlocoSidebar) =>
-    b.itens.map((i) => (
-      <FinancasSidebarItem
-        key={i.chave}
-        to={i.rota}
-        icon={iconeDe(i.icone)}
-        label={i.label}
-        end={i.exato}
-      />
-    ));
+  const renderItem = (i: ItemMenu) => (
+    <FinancasSidebarItem
+      key={i.chave}
+      to={i.rota}
+      icon={resolverIcone(i.icone)}
+      label={i.label}
+      end={i.exato}
+    />
+  );
+
+  // Itens pendurados direto no app (sem grupo) vêm primeiro, sem cabeçalho.
+  const blocos: Array<{ chave: string; label: string | null; itens: ItemMenu[] }> = [
+    ...(soltos.length ? [{ chave: "financas::soltos", label: null, itens: soltos }] : []),
+    ...grupos.map((g) => ({ chave: g.chave, label: g.label, itens: g.itens })),
+  ];
 
   return (
     <Sidebar collapsible="icon">
@@ -81,7 +96,7 @@ export function FinancasContextSidebar() {
                 className={idx === 0 ? "pb-3" : "border-t border-gold/10 py-3"}
               >
                 <SidebarGroupContent>
-                  <SidebarMenu>{itensDo(b)}</SidebarMenu>
+                  <SidebarMenu>{b.itens.map(renderItem)}</SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
             );
@@ -95,7 +110,7 @@ export function FinancasContextSidebar() {
                   {b.label}
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
-                  <SidebarMenu>{itensDo(b)}</SidebarMenu>
+                  <SidebarMenu>{b.itens.map(renderItem)}</SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
             );
@@ -105,7 +120,7 @@ export function FinancasContextSidebar() {
             <SidebarGroup key={b.chave} className="border-t border-gold/10 py-3">
               <SidebarGroupContent>
                 <FinancasSidebarSection title={b.label} variant="primary">
-                  {itensDo(b)}
+                  {b.itens.map(renderItem)}
                 </FinancasSidebarSection>
               </SidebarGroupContent>
             </SidebarGroup>
