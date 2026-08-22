@@ -13,6 +13,7 @@ import { Download, Upload, FileSpreadsheet, Loader2, CheckCircle2, Scale } from 
 import { SincronizacaoEstoqueShopify } from "@/components/acervo/SincronizacaoEstoqueShopify";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 type IngestResult = {
   termo: string;
   linhas_termo: number;
