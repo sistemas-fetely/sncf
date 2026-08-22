@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 export function fmtDate(s: string | null | undefined): string {
   if (!s) return "—";
   try { return format(new Date(s), "dd/MM/yyyy HH:mm"); } catch { return "—"; }
