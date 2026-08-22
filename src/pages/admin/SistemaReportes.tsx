@@ -37,6 +37,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const PRIORIDADE_COR: Record<string, string> = {
   critica: "bg-destructive/10 text-destructive border-destructive/30",
@@ -125,15 +126,11 @@ export default function SistemaReportes() {
 
   return (
     <PageShell>
-      <div>
-        <h1 className="text-2xl font-medium flex items-center gap-2">
-          <MessageSquareWarning className="h-6 w-6 text-primary" />
-          Reportes do Sistema
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Inbox colaborativa — bugs, sugestões e confusões reportados pelos usuários.
-        </p>
-      </div>
+      <PageHeader
+        icone={MessageSquareWarning}
+        titulo="Reportes do Sistema"
+        estado="Inbox colaborativa — bugs, sugestões e confusões reportados pelos usuários."
+      />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Card>

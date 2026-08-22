@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 interface RotaNavAdmin {
   rota: string;
   chave: string;
@@ -84,11 +85,10 @@ export default function GerenciarVisibilidade() {
     <TooltipProvider>
       <PageShell variant="leitura">
         <div className="space-y-2">
-          <h1 className="text-2xl font-medium tracking-tight">Visibilidade de Telas</h1>
-          <p className="text-sm text-muted-foreground">
-            Ligue ou desligue telas para os usuários. Telas em construção ficam ocultas
-            para todos exceto super_admin. Você (super_admin) sempre vê tudo.
-          </p>
+          <PageHeader
+            titulo="Visibilidade de Telas"
+            estado="Ligue ou desligue telas para os usuários. Telas em construção ficam ocultas para todos exceto super_admin. Você (super_admin) sempre vê tudo."
+          />
           <p className="text-xs text-muted-foreground">
             Fonte: <code className="text-[11px]">sncf_navegacao</code> — a mesma linha que o portão
             e o menu leem. O que você desliga aqui desaparece dos dois.

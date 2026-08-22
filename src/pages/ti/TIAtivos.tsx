@@ -18,6 +18,7 @@ import { toast } from "@/hooks/use-toast";
 import TIAtivoForm from "./TIAtivoForm";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const TI_COLOR = "#3A7D6B";
 
@@ -159,18 +160,16 @@ export default function TIAtivos() {
 
   return (
     <PageShell>
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight" style={{ color: TI_COLOR }}>
-            Gestão de Ativos
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">Inventário e movimentação de equipamentos</p>
-        </div>
-        <Button onClick={handleNovo} style={{ backgroundColor: TI_COLOR }} className="text-white hover:opacity-90">
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Ativo
-        </Button>
-      </div>
+      <PageHeader
+        titulo="Gestão de Ativos"
+        estado="Inventário e movimentação de equipamentos"
+        acoes={(
+          <Button onClick={handleNovo} style={{ backgroundColor: TI_COLOR }} className="text-white hover:opacity-90">
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Ativo
+          </Button>
+        )}
+      />
 
       <Card>
         <CardContent className="pt-6 space-y-4">
