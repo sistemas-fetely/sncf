@@ -1,4 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -256,39 +257,41 @@ export default function ExtratoConta() {
   return (
     <PageShell>
       {/* Cabeçalho */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-1.5 -ml-2 h-7 text-muted-foreground"
-            onClick={() => navigate("/administrativo/caixa-banco/contas")}
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Contas bancárias
-          </Button>
-          <h1 className="text-2xl font-medium flex items-center gap-2">
-            <Landmark className="h-6 w-6 text-admin" />
-            {nomeConta}
-          </h1>
-          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <span>Extrato da conta · somente leitura</span>
-            {ultimo && <span>· último lançamento em {formatDateBR(ultimo)}</span>}
-            {defasado && (
-              <Badge
-                variant="outline"
-                className="gap-1 border-warning text-warning text-[10px]"
-              >
-                <AlertTriangle className="h-3 w-3" />
-                extrato defasado — última importação em {formatDateBR(ultimo)}
-              </Badge>
-            )}
-          </div>
-        </div>
-        <Button variant="outline" size="sm" className="gap-2" onClick={exportarCsv}>
-          <Download className="h-4 w-4" />
-          Exportar CSV
+      <div className="space-y-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-1.5 -ml-2 h-7 text-muted-foreground"
+          onClick={() => navigate("/administrativo/caixa-banco/contas")}
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Contas bancárias
         </Button>
+        <PageHeader
+          titulo={nomeConta}
+          icone={Landmark}
+          estado={
+            <div className="flex flex-wrap items-center gap-2">
+              <span>Extrato da conta · somente leitura</span>
+              {ultimo && <span>· último lançamento em {formatDateBR(ultimo)}</span>}
+              {defasado && (
+                <Badge
+                  variant="outline"
+                  className="gap-1 border-warning text-warning text-[10px]"
+                >
+                  <AlertTriangle className="h-3 w-3" />
+                  extrato defasado — última importação em {formatDateBR(ultimo)}
+                </Badge>
+              )}
+            </div>
+          }
+          acoes={
+            <Button variant="outline" size="sm" className="gap-2" onClick={exportarCsv}>
+              <Download className="h-4 w-4" />
+              Exportar CSV
+            </Button>
+          }
+        />
       </div>
 
       {/* Números grandes */}

@@ -11,6 +11,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
@@ -257,12 +258,10 @@ export default function Despesas() {
 
   return (
     <PageShell>
-      <div>
-        <h1 className="text-2xl font-serif text-foreground">Despesas</h1>
-        <p className="text-sm text-muted-foreground">
-          Registro único de despesas — todas as origens, por competência.
-        </p>
-      </div>
+      <PageHeader
+        titulo="Despesas"
+        estado="Registro único de despesas — todas as origens, por competência."
+      />
 
       {error && (
         <Card className="border-destructive">

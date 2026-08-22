@@ -1,4 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useMemo, useState } from "react";
 import { AlertTriangle, ChevronDown, ChevronRight, Info, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -276,41 +277,39 @@ export default function Dre() {
 
   return (
     <PageShell>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-medium">DRE — Demonstração do Resultado</h1>
-          <p className="text-xs text-muted-foreground mt-1">
-            dados de {fmtDataHora(refreshQ.data?.refreshed_em)}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Select value={mesAtivo ?? ""} onValueChange={(v) => setMes(v)}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Selecione o mês" />
-            </SelectTrigger>
-            <SelectContent>
-              {meses.map((m) => (
-                <SelectItem key={m} value={m}>{rotuloMes(m)}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {mesEmCurso && (
-            <Badge
+      <PageHeader
+        titulo="DRE — Demonstração do Resultado"
+        estado={`dados de ${fmtDataHora(refreshQ.data?.refreshed_em)}`}
+        acoes={
+          <div className="flex items-center gap-2">
+            <Select value={mesAtivo ?? ""} onValueChange={(v) => setMes(v)}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Selecione o mês" />
+              </SelectTrigger>
+              <SelectContent>
+                {meses.map((m) => (
+                  <SelectItem key={m} value={m}>{rotuloMes(m)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {mesEmCurso && (
+              <Badge
+                variant="outline"
+                className="font-normal border-warning/40 bg-warning/10 text-warning"
+              >
+                mês em curso — parcial
+              </Badge>
+            )}
+            <Button
               variant="outline"
-              className="font-normal border-warning/40 bg-warning/10 text-warning"
+              size="sm"
+              onClick={() => setMostrarZeradas((v) => !v)}
             >
-              mês em curso — parcial
-            </Badge>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setMostrarZeradas((v) => !v)}
-          >
-            {mostrarZeradas ? "Ocultar linhas zeradas" : "Mostrar linhas zeradas"}
-          </Button>
-        </div>
-      </div>
+              {mostrarZeradas ? "Ocultar linhas zeradas" : "Mostrar linhas zeradas"}
+            </Button>
+          </div>
+        }
+      />
 
       {refreshQ.data?.erro && (
         <Alert variant="destructive">

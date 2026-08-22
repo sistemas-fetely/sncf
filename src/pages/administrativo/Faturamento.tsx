@@ -26,6 +26,7 @@ import {
 
 } from "@/hooks/financas/useFaturamento";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 
 const CANAIS = ["B2B", "B2C", "SEM CANAL"] as const;
@@ -322,9 +323,7 @@ export default function Faturamento() {
   if (errMensal) {
     return (
       <PageShell>
-        <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
-          <Receipt className="h-6 w-6 text-gold" /> Faturamento
-        </h1>
+        <PageHeader titulo="Faturamento" icone={Receipt} />
         <Card className="border-destructive/50">
           <CardContent className="py-6 text-sm text-destructive">
             Falha ao carregar o faturamento mensal: {(errorMensal as any)?.message ?? String(errorMensal)}
@@ -336,16 +335,11 @@ export default function Faturamento() {
 
   return (
     <PageShell>
-      <div>
-        <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
-          <Receipt className="h-6 w-6 text-gold" />
-          Faturamento
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Faturamento é fato fiscal — NF autorizada. Não é recebível: não bate com Contas a Receber por
-          definição. Custo pela safra de {safra}.
-        </p>
-      </div>
+      <PageHeader
+        titulo="Faturamento"
+        icone={Receipt}
+        estado={`Faturamento é fato fiscal — NF autorizada. Não é recebível: não bate com Contas a Receber por definição. Custo pela safra de ${safra}.`}
+      />
 
       {/* Filtros */}
       <Card>
