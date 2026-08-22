@@ -93,6 +93,7 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
   const [vinculoEscolhido, setVinculoEscolhido] = useState("");
 
   const [banConfirm, setBanConfirm] = useState<{ userId: string; nome: string } | null>(null);
+  const [reativarConfirm, setReativarConfirm] = useState<{ userId: string; nome: string } | null>(null);
   const [excluirConfirm, setExcluirConfirm] = useState<{ userId: string; nome: string } | null>(null);
   const [duplaConfirm, setDuplaConfirm] = useState<
     { userId: string; nome: string; mode: "ban" | "delete" } | null
@@ -533,7 +534,7 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
                           size="sm"
                           variant="ghost"
                           disabled={toggleBan.isPending}
-                          onClick={() => toggleBan.mutate({ user_id: l.userId, ban: false })}
+                          onClick={() => setReativarConfirm({ userId: l.userId, nome: l.nome })}
                         >
                           <ShieldCheck className="h-3.5 w-3.5" /> Reativar acesso
                         </Button>
@@ -746,8 +747,7 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
           <AlertDialogHeader>
             <AlertDialogTitle>Inativar acesso de {banConfirm?.nome}?</AlertDialogTitle>
             <AlertDialogDescription>
-              O usuário não conseguirá mais acessar o sistema. Você pode reativar o acesso
-              a qualquer momento nesta mesma tela.
+              O usuário perde acesso ao sistema imediatamente. Pode ser revertido a qualquer momento.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -765,15 +765,39 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Reativar acesso */}
+      <AlertDialog open={!!reativarConfirm} onOpenChange={(v) => !v && setReativarConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reativar acesso de {reativarConfirm?.nome}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O usuário volta a acessar o sistema normalmente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={toggleBan.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (reativarConfirm) toggleBan.mutate({ user_id: reativarConfirm.userId, ban: false });
+              }}
+            >
+              Reativar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Excluir usuário (não super admin) */}
       <AlertDialog open={!!excluirConfirm} onOpenChange={(v) => !v && setExcluirConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir usuário {excluirConfirm?.nome}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação é irreversível e remove todos os dados de acesso do usuário. Se o
-              usuário tiver histórico vinculado (pedidos, processos, auditoria), o sistema
-              vai recusar e sugerir Inativar em vez de excluir.
+              Esta ação é irreversível e remove todos os dados de acesso do usuário. Se ele
+              tiver histórico vinculado (pedidos, processos, auditoria), o sistema recusa
+              e sugere Inativar em vez de excluir.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
