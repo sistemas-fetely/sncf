@@ -68584,6 +68584,22 @@ export type Database = {
         Args: { _dados: Json; _token: string }
         Returns: boolean
       }
+      sugerir_batimento_titulos_pagos: {
+        Args: never
+        Returns: {
+          data_mov: string
+          data_pagamento_titulo: string
+          id_externo_pedido: string
+          movimentacao_id: string
+          nivel_prova: string
+          numero_titulo: string
+          referencia_pedido_mov: string
+          score: number
+          titulo_id: string
+          valor_mov: number
+          valor_titulo: number
+        }[]
+      }
       sugerir_categoria: {
         Args: {
           p_cnpj?: string
