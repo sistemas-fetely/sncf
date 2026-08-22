@@ -1,8 +1,8 @@
-import { Home, Users, Wallet, Sparkles, CreditCard, HandCoins, BookOpen, Shield, LucideIcon } from "lucide-react";
+import { Home, Users, Wallet, Landmark, CreditCard, HandCoins, BookOpen, User, Shield, LucideIcon } from "lucide-react";
 
 export interface CasaApp {
   /** Identificador interno */
-  id: "casa" | "pessoas" | "financas" | "marca" | "credito" | "recebimento" | "acervo" | "mesa";
+  id: "casa" | "pessoas" | "financas" | "patrimonio" | "credito" | "recebimento" | "acervo" | "meu_espaco" | "mesa";
   /** Label exibido no top nav */
   label: string;
   /** Rota default ao clicar no app */
@@ -78,11 +78,13 @@ export const CASA_APPS: CasaApp[] = [
     appChaves: ["financas"],
   },
   {
-    id: "marca",
-    label: "Marca",
+    // Renomeado de "Marca" para "Patrimônio" em 22/08/2026 — a decisão é de
+    // 29/07 e estava só na sncf_navegacao; a tela seguia dizendo "Marca".
+    id: "patrimonio",
+    label: "Patrimônio",
     defaultRoute: "/administrativo-fetely",
     routeMatchers: ["/administrativo-fetely"],
-    icon: Sparkles,
+    icon: Landmark,
     tela_slug: "tela.admin_fetely",
     appChaves: ["patrimonio"],
   },
@@ -113,14 +115,28 @@ export const CASA_APPS: CasaApp[] = [
       "/processos",
       "/fala-fetely",
       "/sncf",
+    ],
+    icon: BookOpen,
+    tela_slug: "tela.sncf",
+    appChaves: ["acervo"],
+  },
+  {
+    // Meu Espaço virou pilar próprio em 22/08/2026. Estava engolido dentro de
+    // Acervo, apesar de ser um dos 5 fixos do rodapé desde a decisão de 29/07.
+    // tela.self é pública — aparece pra todo mundo, é a área pessoal.
+    id: "meu_espaco",
+    label: "Meu Espaço",
+    defaultRoute: "/tarefas/hoje",
+    routeMatchers: [
       "/tarefas",
       "/meus-dados",
       "/meus-acessos",
       "/minhas-notas",
+      "/fala-fetely/memorias",
     ],
-    icon: BookOpen,
-    tela_slug: "tela.sncf",
-    appChaves: ["acervo", "meu_espaco"],
+    icon: User,
+    tela_slug: "tela.self",
+    appChaves: ["meu_espaco"],
   },
   {
     id: "mesa",
