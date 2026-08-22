@@ -82,11 +82,13 @@ export function RecentesEFavoritos() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        void toggleFavorito(f.rota, f.titulo, f.pilar || undefined);
+                        // Assinatura nova (22/08/2026): só a rota.
+                        void toggleFavorito(f.rota);
                       }}
                       className="shrink-0 p-1 hover:bg-muted rounded"
                       aria-label="Remover dos favoritos"
                     >
+
                       <Star className="h-3.5 w-3.5 fill-warning text-warning" />
                     </button>
                   </div>
@@ -139,11 +141,13 @@ export function RecentesEFavoritos() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      void toggleFavorito(r.rota, r.titulo, r.pilar || undefined);
+                      // Assinatura nova (22/08/2026): só a rota.
+                      void toggleFavorito(r.rota);
                     }}
                     className="shrink-0 p-1 hover:bg-muted rounded"
                     aria-label={isFavorito(r.rota) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
                   >
+
                     <Star
                       className={`h-3.5 w-3.5 ${
                         isFavorito(r.rota)

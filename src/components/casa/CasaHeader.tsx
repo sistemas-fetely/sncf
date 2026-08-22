@@ -9,7 +9,9 @@ import { CasaThemeToggle } from "./CasaThemeToggle";
 import { CasaAvatarMenu } from "./CasaAvatarMenu";
 import { CasaFalaFetelyButton } from "./CasaFalaFetelyButton";
 import { CasaConfigButton } from "./CasaConfigButton";
+import { RecentesEFavoritos } from "@/components/navegacao/RecentesEFavoritos";
 import { useCasaApp } from "@/hooks/useCasaApp";
+
 
 export function CasaHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -59,11 +61,16 @@ export function CasaHeader() {
 
         {/* Utilitários */}
         <div className="flex items-center gap-1 ml-auto lg:ml-4">
+          {/* PORTA-DOS-FAVORITOS (22/08/2026): antes o popover so existia no
+              AppHeader/LayoutHeader, que nao sao montados em lugar nenhum —
+              a funcionalidade inteira estava inalcancavel fora do ⌘K. */}
+          <RecentesEFavoritos />
           <CasaFalaFetelyButton />
           <CasaConfigButton />
           <CasaThemeToggle />
           <CasaAvatarMenu />
         </div>
+
       </div>
     </header>
   );
