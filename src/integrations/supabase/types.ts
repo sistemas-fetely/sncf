@@ -41701,7 +41701,15 @@ export type Database = {
           titulo?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "usuario_paginas_recentes_pilar_fkey"
+            columns: ["pilar"]
+            isOneToOne: false
+            referencedRelation: "sncf_navegacao"
+            referencedColumns: ["chave"]
+          },
+        ]
       }
       vagas: {
         Row: {

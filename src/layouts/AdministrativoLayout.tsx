@@ -2,12 +2,10 @@ import { Suspense } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AdministrativoSidebar } from "@/components/AdministrativoSidebar";
-import { useTrackPageVisit } from "@/hooks/useTrackPageVisit";
 import { usePrefetchTelas } from "@/hooks/usePrefetchTelas";
 import { CommandPaletteProvider } from "@/components/navegacao/CommandPaletteProvider";
 
 export default function AdministrativoLayout() {
-  useTrackPageVisit();
   usePrefetchTelas();
   const { pathname } = useLocation();
   const semSidebar = pathname === "/administrativo-fetely/parceiros";

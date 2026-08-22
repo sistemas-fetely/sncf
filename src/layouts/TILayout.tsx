@@ -5,7 +5,6 @@ import { TISidebar } from "@/components/TISidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
-import { useTrackPageVisit } from "@/hooks/useTrackPageVisit";
 import { usePrefetchTelas } from "@/hooks/usePrefetchTelas";
 import { CommandPaletteProvider } from "@/components/navegacao/CommandPaletteProvider";
 
@@ -14,7 +13,6 @@ export default function TILayout() {
   const { user, roles } = useAuth();
   const [checking, setChecking] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
-  useTrackPageVisit();
   usePrefetchTelas();
 
   useEffect(() => {

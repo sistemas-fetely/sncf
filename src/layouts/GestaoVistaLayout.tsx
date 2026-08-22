@@ -2,12 +2,10 @@ import { Suspense } from "react";
 import { Outlet } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { GestaoVistaSidebar } from "@/components/GestaoVistaSidebar";
-import { useTrackPageVisit } from "@/hooks/useTrackPageVisit";
 import { usePrefetchTelas } from "@/hooks/usePrefetchTelas";
 import { CommandPaletteProvider } from "@/components/navegacao/CommandPaletteProvider";
 
 export default function GestaoVistaLayout() {
-  useTrackPageVisit();
   usePrefetchTelas();
   return (
     <SidebarProvider>

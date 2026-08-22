@@ -3,11 +3,15 @@ import { Outlet } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { CasaHeader } from "@/components/casa/CasaHeader";
 import { CasaBottomNav } from "@/components/casa/CasaBottomNav";
-import { useRegistrarNavegacao } from "@/hooks/useRegistrarNavegacao";
+import { useTrackPageVisit } from "@/hooks/useTrackPageVisit";
 import { usePrefetchTelas } from "@/hooks/usePrefetchTelas";
 
 function CasaLayoutInner() {
-  useRegistrarNavegacao();
+  // FONTE-ÚNICA-DE-NAVEGAÇÃO (22/08/2026): um único ponto de rastreio, aqui,
+  // que envolve o sistema inteiro. Antes havia dois — useRegistrarNavegacao
+  // (navegacao_log) neste layout e useTrackPageVisit (usuario_paginas_recentes)
+  // espalhado em 7 layouts, 2 deles mortos. As duas tabelas estavam vazias.
+  useTrackPageVisit();
   usePrefetchTelas();
 
   return (

@@ -1,43 +1,18 @@
-import { useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
-const ROTAS_IGNORADAS = ["/", "/login", "/logout", "/sncf"];
-
 /**
- * Registra navegação do usuário autenticado nas rotas visitadas.
- * Usar 1x no AppLayout — aplica globalmente. Debounce de 3s por rota.
+ * Atalhos personalizados do Portal — as telas que a pessoa mais acessa.
+ *
+ * FONTE-ÚNICA-DE-NAVEGAÇÃO (22/08/2026): este arquivo tinha também um
+ * `useRegistrarNavegacao`, que gravava em `navegacao_log` — um SEGUNDO rastreio
+ * paralelo ao `useTrackPageVisit` (usuario_paginas_recentes). Duas tabelas
+ * guardando a mesma coisa, ambas vazias. Consolidado: o rastreio agora é único
+ * e vive no CasaLayout; a RPC `meus_atalhos_personalizados` foi repontada pra
+ * `usuario_paginas_recentes`. A tabela `navegacao_log` ficou órfã — candidata a
+ * DROP depois de um período de observação.
  */
-export function useRegistrarNavegacao() {
-  const { user } = useAuth();
-  const location = useLocation();
-  const ultimaRotaRef = useRef<string | null>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    const rota = location.pathname;
-    if (ROTAS_IGNORADAS.includes(rota)) return;
-    if (rota === ultimaRotaRef.current) return;
-
-    ultimaRotaRef.current = rota;
-    if (timerRef.current) clearTimeout(timerRef.current);
-
-    timerRef.current = setTimeout(() => {
-      void supabase.from("navegacao_log" as any).insert({
-        user_id: user.id,
-        rota,
-        titulo: document.title || rota,
-      } as any);
-    }, 3000);
-
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [user, location.pathname]);
-}
 
 export interface AtalhoPersonalizado {
   rota: string;

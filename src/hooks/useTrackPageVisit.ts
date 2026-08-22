@@ -1,79 +1,74 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavegacaoMenu } from "@/hooks/useMenuApp";
 
-// Mapa de rotas → títulos legíveis + pilar
-const ROUTE_MAP: Record<string, { titulo: string; pilar: "sncf" | "people" | "ti" | "admin" }> = {
-  "/sncf": { titulo: "Portal Uauuu", pilar: "sncf" },
-  "/dashboard": { titulo: "Dashboard People", pilar: "people" },
-  "/pessoas": { titulo: "Pessoas", pilar: "people" },
-  "/colaboradores": { titulo: "Colaboradores", pilar: "people" },
-  "/contratos-pj": { titulo: "Contratos PJ", pilar: "people" },
-  "/recrutamento": { titulo: "Recrutamento", pilar: "people" },
-  "/convites-cadastro": { titulo: "Convites de Cadastro", pilar: "people" },
-  "/onboarding": { titulo: "Onboarding", pilar: "people" },
-  "/movimentacoes": { titulo: "Movimentações", pilar: "people" },
-  "/folha-pagamento": { titulo: "Folha de Pagamento", pilar: "people" },
-  "/pagamentos-pj": { titulo: "Pagamentos PJ", pilar: "people" },
-  "/notas-fiscais": { titulo: "Notas Fiscais PJ", pilar: "people" },
-  "/ferias": { titulo: "Férias", pilar: "people" },
-  "/beneficios": { titulo: "Benefícios", pilar: "people" },
-  "/organograma": { titulo: "Organograma", pilar: "people" },
-  "/tarefas": { titulo: "Minhas Tarefas", pilar: "sncf" },
-  "/tarefas/time": { titulo: "Tarefas do Time", pilar: "sncf" },
-  "/processos": { titulo: "Processos", pilar: "sncf" },
-  "/documentacao": { titulo: "Documentação", pilar: "sncf" },
-  "/fala-fetely": { titulo: "Fala Fetely", pilar: "sncf" },
-  "/mural": { titulo: "Mural Fetely", pilar: "sncf" },
-  "/ti": { titulo: "Dashboard TI", pilar: "ti" },
-  "/admin/cargos": { titulo: "Cargos e Salários", pilar: "admin" },
-  "/admin/parametros": { titulo: "Parâmetros", pilar: "admin" },
-  "/admin/configuracoes": { titulo: "Configurações", pilar: "admin" },
-  "/admin/usuarios": { titulo: "Gerenciar Usuários", pilar: "admin" },
-  "/admin/reportes": { titulo: "Reportes do Sistema", pilar: "admin" },
-  "/admin/importacoes-pdf": { titulo: "Importações PDF", pilar: "admin" },
-};
-
-function resolveRoute(pathname: string): { rota: string; titulo: string; pilar: "sncf" | "people" | "ti" | "admin" } | null {
-  if (ROUTE_MAP[pathname]) {
-    return { rota: pathname, ...ROUTE_MAP[pathname] };
-  }
-  const segments = pathname.split("/").filter(Boolean);
-  for (let i = segments.length; i > 0; i--) {
-    const candidate = "/" + segments.slice(0, i).join("/");
-    if (ROUTE_MAP[candidate]) {
-      const base = ROUTE_MAP[candidate];
-      return { rota: pathname, titulo: base.titulo, pilar: base.pilar };
-    }
-  }
-  return null;
-}
+const ROTAS_IGNORADAS = new Set(["/", "/login", "/logout"]);
 
 /**
- * Hook silencioso — registra cada visita de página em usuario_paginas_recentes.
- * Debounce: não registra a mesma rota 2x em 10 segundos.
+ * Registra a visita de página em usuario_paginas_recentes — FONTE-ÚNICA-DE-
+ * NAVEGAÇÃO (22/08/2026).
+ *
+ * Alimenta duas leituras: o popover de Recentes e a RPC
+ * meus_atalhos_personalizados (widget de atalhos do Portal). Antes existiam
+ * DOIS rastreios paralelos gravando em tabelas diferentes — este e o
+ * useRegistrarNavegacao (navegacao_log) — e as duas tabelas estavam vazias.
+ *
+ * Duas causas do vazio, corrigidas aqui:
+ *  1. O título/pilar vinham de um ROUTE_MAP hardcoded com ~28 rotas. Rota
+ *     fora da lista devolvia null e NÃO gravava — a maior parte do sistema
+ *     nunca entrou. Agora resolve contra a sncf_navegacao (MENU-VIA-TABELA),
+ *     que conhece todas as telas declaradas.
+ *  2. Este hook era montado só em layouts de pouco/nenhum uso. Agora vive no
+ *     CasaLayout, que envolve o sistema inteiro — montar em mais de um lugar
+ *     duplicaria o registro.
  */
 export function useTrackPageVisit() {
   const location = useLocation();
   const { user } = useAuth();
+  const { data: nav } = useNavegacaoMenu();
+  // Guarda a última rota gravada nesta sessão de componente, pra não repetir
+  // no re-render. O debounce de 10s em sessionStorage cobre o F5.
+  const ultimaRota = useRef<string | null>(null);
+
+  // Dep é user?.id (string) e não user (objeto): com o objeto, qualquer
+  // re-render do AuthContext reexecutava o efeito.
+  const userId = user?.id;
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!userId || !nav?.length) return;
 
-    const info = resolveRoute(location.pathname);
-    if (!info) return;
+    const pathname = location.pathname;
+    if (ROTAS_IGNORADAS.has(pathname)) return;
+    if (ultimaRota.current === pathname) return;
 
-    const debounceKey = `track_${info.rota}`;
-    const lastTrack = sessionStorage.getItem(debounceKey);
-    if (lastTrack && Date.now() - parseInt(lastTrack) < 10000) return;
-    sessionStorage.setItem(debounceKey, Date.now().toString());
+    // Resolve contra a tabela: casa exata, senão o prefixo declarado mais
+    // longo (ex: /pedidos/123 registra como Pedidos B2B).
+    const comRota = nav.filter((l) => !!l.rota);
+    let alvo = comRota.find((l) => l.rota === pathname) ?? null;
+    if (!alvo) {
+      for (const l of comRota) {
+        const r = l.rota as string;
+        if (r !== "/" && pathname.startsWith(r + "/")) {
+          if (!alvo || r.length > (alvo.rota as string).length) alvo = l;
+        }
+      }
+    }
+    // Rota não declarada não vira histórico (guarda de nascimento).
+    if (!alvo) return;
+
+    const chaveDebounce = `track_${pathname}`;
+    const ultimo = sessionStorage.getItem(chaveDebounce);
+    if (ultimo && Date.now() - parseInt(ultimo) < 10000) return;
+    sessionStorage.setItem(chaveDebounce, Date.now().toString());
+    ultimaRota.current = pathname;
 
     void supabase.from("usuario_paginas_recentes").insert({
-      user_id: user.id,
-      rota: info.rota,
-      titulo: info.titulo,
-      pilar: info.pilar,
+      user_id: userId,
+      rota: pathname,
+      titulo: alvo.label,
+      pilar: alvo.app_chave,
     });
-  }, [location.pathname, user?.id]);
+  }, [location.pathname, userId, nav]);
 }
