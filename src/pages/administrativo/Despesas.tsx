@@ -11,6 +11,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";

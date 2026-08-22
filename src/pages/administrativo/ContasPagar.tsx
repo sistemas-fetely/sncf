@@ -1,4 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useMemo, useState, type ComponentProps } from "react";
 import { getStatusCprMeta, STATUS_CPR_VALIDOS } from "@/lib/financeiro/status-cpr";
 import { useQuery, useQueryClient } from "@tanstack/react-query";

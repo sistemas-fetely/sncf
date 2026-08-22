@@ -26,6 +26,7 @@ import {
 
 } from "@/hooks/financas/useFaturamento";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 
 const CANAIS = ["B2B", "B2C", "SEM CANAL"] as const;
