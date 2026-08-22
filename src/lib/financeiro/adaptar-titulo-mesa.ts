@@ -43,6 +43,13 @@ export interface LinhaMesa {
   regua_motivo_inelegivel?: string | null;
   regua_cobrar_sem_boleto?: boolean | null;
   /**
+   * VENCIDO-EXIGE-COBRA-PELA-REGUA: dias_atraso é matemática de data pura —
+   * não sabe se o título é cobrável. Badge/texto de "vencido" só deve contar
+   * um título quando cobra_pela_regua=true; senão contradiz a própria fila
+   * NAO_COBRAVEL (ex: conta_corrente/consignado, cartão parcela futura).
+   */
+  cobra_pela_regua?: boolean | null;
+  /**
    * MESA-É-FILA-DE-AÇÃO: true só quando existe ato a praticar. Cartão a vencer
    * e "Em curso" são estado, não trabalho — a view decide, a tela obedece.
    */
