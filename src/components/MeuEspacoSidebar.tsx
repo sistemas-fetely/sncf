@@ -17,8 +17,9 @@ import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
 import { useMenuApp, type ItemMenu } from "@/hooks/useMenuApp";
+import { useFavoritos } from "@/hooks/useFavoritos";
 import { resolverIcone } from "@/config/iconesNavegacao";
-import { ListChecks } from "lucide-react";
+import { ListChecks, Star } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
@@ -30,8 +31,15 @@ export function MeuEspacoSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { grupos, isLoading } = useMenuApp("meu_espaco");
+  const { favoritos } = useFavoritos();
 
   const isItemActive = (rota: string) => location.pathname.startsWith(rota);
+
+  const linhaClasse = (active: boolean) =>
+    cn(
+      "flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200",
+      active && "bg-sidebar-accent font-medium border-l-[3px] border-l-gold text-gold shadow-sm"
+    );
 
   const renderItem = (item: ItemMenu) => {
     const active = isItemActive(item.rota);
@@ -41,10 +49,7 @@ export function MeuEspacoSidebar() {
         <SidebarMenuButton asChild>
           <NavLink
             to={item.rota}
-            className={cn(
-              "flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200",
-              active && "bg-sidebar-accent font-medium border-l-[3px] border-l-gold text-gold shadow-sm"
-            )}
+            className={linhaClasse(active)}
           >
             <Icone className={cn("h-[18px] w-[18px] shrink-0", active && "text-gold")} />
             {!collapsed && <span>{item.label}</span>}
@@ -71,6 +76,38 @@ export function MeuEspacoSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-2 space-y-1">
+        {/* FIXOS — favoritos do próprio usuário, no topo. Vêm da
+            usuario_paginas_favoritas, com rótulo/ícone resolvidos da
+            sncf_navegacao. Ordem definida por ele no popover do header. */}
+        {favoritos.length > 0 && (
+          <SidebarGroup>
+            {!collapsed && (
+              <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4 flex items-center gap-1.5">
+                <Star className="h-3 w-3 fill-gold text-gold" />
+                Fixos
+              </SidebarGroupLabel>
+            )}
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {favoritos.map((f) => {
+                  const active = isItemActive(f.rota);
+                  const Icone = resolverIcone(f.icone);
+                  return (
+                    <SidebarMenuItem key={f.id}>
+                      <SidebarMenuButton asChild>
+                        <NavLink to={f.rota} className={linhaClasse(active)}>
+                          <Icone className={cn("h-[18px] w-[18px] shrink-0", active && "text-gold")} />
+                          {!collapsed && <span className="truncate">{f.titulo}</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
         {!isLoading && grupos.map((g) => (
           <SidebarGroup key={g.chave}>
             {!collapsed && (
