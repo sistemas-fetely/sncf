@@ -8,32 +8,36 @@ import { BlocoPrazo, Selo, fmtDataCurta, proveniencia } from "@/components/pedid
 export function LinhaNfFila({ info }: { info: EntregaLinhaInfo | undefined }) {
   const { baixar, baixando } = useDownloadNfPdf();
   if (!info?.nf_numero) return null;
+  const naoAutorizada = !!info.nf_situacao && info.nf_situacao !== "autorizada";
   return (
-    <p className="text-[11px] text-muted-foreground">
-      NF{" "}
-      {info.nf_id ? (
-        <button
-          type="button"
-          disabled={baixando}
-          className="underline text-primary disabled:opacity-60"
-          onClick={(e) => {
-            e.stopPropagation();
-            baixar({ nf_id: info.nf_id!, nome: `NF-${info.nf_numero}${info.nf_serie ? `-${info.nf_serie}` : ""}` });
-          }}
-          title="Baixar PDF da NF"
-        >
-          {baixando ? <Loader2 className="inline h-3 w-3 animate-spin" /> : info.nf_numero}
-        </button>
-      ) : (
-        info.nf_numero
-      )}
-      {info.nf_serie ? ` · série ${info.nf_serie}` : ""}
-      {info.nf_situacao && info.nf_situacao !== "autorizada" ? (
-        <span className="ml-1 text-warning">
-          · {info.nf_situacao === "pendente" ? "pendente de autorização" : info.nf_situacao}
-        </span>
-      ) : null}
-    </p>
+    <button
+      type="button"
+      disabled={baixando || !info.nf_id}
+      className="w-fit disabled:opacity-60"
+      onClick={(e) => {
+        e.stopPropagation();
+        if (info.nf_id) {
+          baixar({ nf_id: info.nf_id, nome: `NF-${info.nf_numero}${info.nf_serie ? `-${info.nf_serie}` : ""}` });
+        }
+      }}
+      title={info.nf_id ? "Baixar PDF da NF" : undefined}
+    >
+      <Selo
+        className={cn(
+          "inline-flex items-center gap-1",
+          naoAutorizada
+            ? "bg-warning/15 text-warning border-warning/40 font-medium"
+            : "bg-muted text-muted-foreground border-border",
+        )}
+      >
+        {baixando && <Loader2 className="h-3 w-3 animate-spin" />}
+        NF {info.nf_numero}
+        {info.nf_serie ? ` · série ${info.nf_serie}` : ""}
+        {naoAutorizada
+          ? ` · ${info.nf_situacao === "pendente" ? "pendente de autorização" : info.nf_situacao}`
+          : ""}
+      </Selo>
+    </button>
   );
 }
 

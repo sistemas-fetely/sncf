@@ -130,45 +130,55 @@ export function PedidosDoParceiroSection({ parceiroId }: { parceiroId: string })
                     <TableCell className="text-right whitespace-nowrap">
                       {(() => {
                         const nf = nfsPorPedido?.get(p.id);
-                        if (!nf?.nf_id || !nf.pode_baixar) return null;
+                        if (!nf?.nf_id) return <span className="text-muted-foreground">—</span>;
                         const emDownload = baixando && nfEmDownload === nf.nf_id;
                         return (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              disabled={emDownload}
-                              title={`NF ${nf.numero ?? ""} — baixar DANFE`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                baixar({
-                                  nf_id: nf.nf_id!,
-                                  nome: `NF-${nf.numero ?? nf.nf_id}`,
-                                  formato: "pdf",
-                                });
-                              }}
-                            >
-                              <FileText className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              disabled={emDownload}
-                              title={`NF ${nf.numero ?? ""} — baixar XML`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                baixar({
-                                  nf_id: nf.nf_id!,
-                                  nome: `NF-${nf.numero ?? nf.nf_id}`,
-                                  formato: "xml",
-                                });
-                              }}
-                            >
-                              <Code className="h-3.5 w-3.5" />
-                            </Button>
-                          </>
+                          <span className="inline-flex items-center justify-end gap-1">
+                            {nf.numero && (
+                              <span className="font-mono text-xs text-muted-foreground">
+                                NF {nf.numero}
+                                {nf.serie ? ` · ${nf.serie}` : ""}
+                              </span>
+                            )}
+                            {nf.pode_baixar && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  disabled={emDownload}
+                                  title={`NF ${nf.numero ?? ""} — baixar DANFE`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    baixar({
+                                      nf_id: nf.nf_id!,
+                                      nome: `NF-${nf.numero ?? nf.nf_id}`,
+                                      formato: "pdf",
+                                    });
+                                  }}
+                                >
+                                  <FileText className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  disabled={emDownload}
+                                  title={`NF ${nf.numero ?? ""} — baixar XML`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    baixar({
+                                      nf_id: nf.nf_id!,
+                                      nome: `NF-${nf.numero ?? nf.nf_id}`,
+                                      formato: "xml",
+                                    });
+                                  }}
+                                >
+                                  <Code className="h-3.5 w-3.5" />
+                                </Button>
+                              </>
+                            )}
+                          </span>
                         );
                       })()}
                     </TableCell>
