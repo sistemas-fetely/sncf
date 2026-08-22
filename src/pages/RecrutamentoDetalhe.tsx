@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useUrlAssinada } from "@/lib/storage/arquivoPrivado";
 import { publicUrl, PUBLIC_APP_URL } from "@/lib/urls";
 import { useParams, useNavigate } from "react-router-dom";
@@ -905,31 +906,33 @@ export default function RecrutamentoDetalhe() {
       <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
         <div className="flex items-center gap-3">
           <SmartBackButton fallback="/recrutamento" fallbackLabel="Recrutamento" />
-          <div>
-            <h1 className="text-lg font-medium">{vaga.titulo}</h1>
-            <div className="flex items-center gap-2">
-              <p className="text-xs text-muted-foreground">
-                {vaga.area}
-                {vaga.tipo_contrato ? ` · ${vaga.tipo_contrato.toUpperCase()}` : ""}
-                {vaga.local_trabalho ? ` · ${vaga.local_trabalho}` : ""}
-              </p>
-              {((vaga as any)?.num_vagas ?? 1) > 1 && (() => {
-                const nv = (vaga as any).num_vagas ?? 1;
-                const vr = nv - ((vaga as any).vagas_preenchidas ?? 0);
-                return (
-                  <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-                    style={{
-                      backgroundColor: vr > 0 ? "#D8F3DC" : "#FEE2E2",
-                      color: vr > 0 ? "#1A4A3A" : "#DC2626",
-                    }}>
-                    {vr > 0
-                      ? `${(vaga as any).vagas_preenchidas ?? 0}/${nv} · ${vr} restante${vr > 1 ? "s" : ""}`
-                      : "Todas as vagas preenchidas"}
-                  </span>
-                );
-              })()}
-            </div>
-          </div>
+          <PageHeader
+            titulo={vaga.titulo}
+            estado={(
+              <div className="flex items-center gap-2">
+                <p>
+                  {vaga.area}
+                  {vaga.tipo_contrato ? ` · ${vaga.tipo_contrato.toUpperCase()}` : ""}
+                  {vaga.local_trabalho ? ` · ${vaga.local_trabalho}` : ""}
+                </p>
+                {((vaga as any)?.num_vagas ?? 1) > 1 && (() => {
+                  const nv = (vaga as any).num_vagas ?? 1;
+                  const vr = nv - ((vaga as any).vagas_preenchidas ?? 0);
+                  return (
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                      style={{
+                        backgroundColor: vr > 0 ? "#D8F3DC" : "#FEE2E2",
+                        color: vr > 0 ? "#1A4A3A" : "#DC2626",
+                      }}>
+                      {vr > 0
+                        ? `${(vaga as any).vagas_preenchidas ?? 0}/${nv} · ${vr} restante${vr > 1 ? "s" : ""}`
+                        : "Todas as vagas preenchidas"}
+                    </span>
+                  );
+                })()}
+              </div>
+            )}
+          />
         </div>
         <div className="flex items-center gap-2">
           {(isSuperAdmin || isAdminRH) && (

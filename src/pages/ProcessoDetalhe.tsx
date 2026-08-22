@@ -28,6 +28,7 @@ import remarkGfm from "remark-gfm";
 import { MermaidRenderer } from "@/components/processos/MermaidRenderer";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 const STATUS_COR: Record<string, string> = {
   vigente: "bg-success/10 text-success border-success/30",
   em_revisao: "bg-warning/10 text-warning border-warning/30",
@@ -211,28 +212,26 @@ export default function ProcessoDetalhe() {
       {/* Cabeçalho */}
       <Card>
         <CardContent className="p-6 space-y-4">
-          <div className="flex items-start justify-between gap-3 flex-wrap">
-            <div className="flex-1 min-w-0">
-              <h1 className="text-2xl font-medium tracking-tight">{processo.nome}</h1>
-              {processo.descricao && (
-                <p className="text-sm text-muted-foreground mt-1">{processo.descricao}</p>
-              )}
-              {importacaoInfo && (
-                <Badge
-                  variant="outline"
-                  className="mt-2 gap-1 border-info/40 bg-info/5 text-info"
-                >
-                  <Sparkles className="h-3 w-3" />
-                  Importado de PDF · {importacaoInfo.arquivo_nome}
-                  {importacaoInfo.importado_por_nome && <> · por {importacaoInfo.importado_por_nome}</>}
-                  <> · em {new Date(importacaoInfo.created_at).toLocaleDateString("pt-BR")}</>
-                </Badge>
-              )}
-            </div>
-            <Badge variant="outline" className={STATUS_COR[processo.status_valor] || ""}>
-              {processo.status_valor}
+          <PageHeader
+            titulo={processo.nome}
+            estado={processo.descricao || undefined}
+            acoes={(
+              <Badge variant="outline" className={STATUS_COR[processo.status_valor] || ""}>
+                {processo.status_valor}
+              </Badge>
+            )}
+          />
+          {importacaoInfo && (
+            <Badge
+              variant="outline"
+              className="mt-2 gap-1 border-info/40 bg-info/5 text-info"
+            >
+              <Sparkles className="h-3 w-3" />
+              Importado de PDF · {importacaoInfo.arquivo_nome}
+              {importacaoInfo.importado_por_nome && <> · por {importacaoInfo.importado_por_nome}</>}
+              <> · em {new Date(importacaoInfo.created_at).toLocaleDateString("pt-BR")}</>
             </Badge>
-          </div>
+          )}
 
           <Separator />
 

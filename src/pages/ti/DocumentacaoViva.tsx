@@ -12,6 +12,7 @@ import {
 import { BookOpen, Plus, Search, Sparkles, Copy, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const TI_COLOR = "#3A7D6B";
 
@@ -80,16 +81,10 @@ export default function DocumentacaoViva() {
 
   return (
     <PageShell>
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight" style={{ color: TI_COLOR }}>
-            Documentação Viva
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Apenas 2 documentos vivos: <strong>RunBook Técnico</strong> e <strong>Estado & Roadmap</strong>. Para dúvidas operacionais, use o <strong>Fala Fetely</strong>.
-          </p>
-        </div>
-        {isAdmin && (
+      <PageHeader
+        titulo="Documentação Viva"
+        estado={<>Apenas 2 documentos vivos: <strong>RunBook Técnico</strong> e <strong>Estado & Roadmap</strong>. Para dúvidas operacionais, use o <strong>Fala Fetely</strong>.</>}
+        acoes={isAdmin && (
           <Button
             onClick={() => navigate("/ti/documentacao/novo")}
             variant="outline"
@@ -99,7 +94,7 @@ export default function DocumentacaoViva() {
             Novo Documento
           </Button>
         )}
-      </div>
+      />
 
       {/* Card de destaque — Prompt de continuidade */}
       <Card className="border-l-4" style={{ borderLeftColor: TI_COLOR }}>

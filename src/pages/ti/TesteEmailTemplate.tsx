@@ -13,6 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Send, AlertCircle, CheckCircle2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const TI_COLOR = "#3A7D6B";
 
@@ -163,17 +164,11 @@ export default function TesteEmailTemplate() {
 
   return (
     <PageShell variant="leitura">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: TI_COLOR }}>
-          <Send className="h-5 w-5 text-white" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight">Diagnóstico — Teste de Email</h1>
-          <p className="text-sm text-muted-foreground">
-            Dispara um email de qualquer template registrado para um destinatário escolhido.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icone={Send}
+        titulo="Diagnóstico — Teste de Email"
+        estado="Dispara um email de qualquer template registrado para um destinatário escolhido."
+      />
 
       <Card>
         <CardHeader>

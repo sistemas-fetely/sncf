@@ -17,6 +17,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/layout/PageHeader";
 import SolicitacaoDrawer from "@/components/pessoas/reembolso/SolicitacaoDrawer";
 import {
   useCiclos, useLotes, useSolicitacoes, useSolicitacoesDoLote, useFecharCiclo,
@@ -73,23 +74,19 @@ export default function ReembolsoCiclos() {
 
   return (
     <div className="p-6 space-y-5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
-            <CalendarRange className="h-6 w-6" />
-            Ciclos e pagamentos
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Feche o ciclo, gere os lotes por pessoa e registre o pagamento feito.
-          </p>
-        </div>
-        <Button variant="outline" size="sm" asChild>
-          <Link to="/pessoas/reembolsos">
-            <ArrowLeft className="h-4 w-4" />
-            Voltar
-          </Link>
-        </Button>
-      </div>
+      <PageHeader
+        icone={CalendarRange}
+        titulo="Ciclos e pagamentos"
+        estado="Feche o ciclo, gere os lotes por pessoa e registre o pagamento feito."
+        acoes={(
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/pessoas/reembolsos">
+              <ArrowLeft className="h-4 w-4" />
+              Voltar
+            </Link>
+          </Button>
+        )}
+      />
 
       {avisoAdiados && (
         <div className="rounded-md border border-warning/40 bg-warning/10 p-4 text-sm text-warning space-y-2">

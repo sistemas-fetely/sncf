@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import { MermaidRenderer } from "@/components/processos/MermaidRenderer";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 export default function ProcessoEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -338,16 +339,12 @@ export default function ProcessoEditor() {
         </div>
       </div>
 
-      <div>
-        <h1 className="text-2xl font-medium tracking-tight">
-          {isNovo ? "Novo processo" : `Editar: ${processo?.nome}`}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {isNovo
-            ? "Crie um novo processo da Fetely."
-            : `Versão atual: v${processo?.versao_atual}. Publique uma nova versão quando as mudanças estiverem prontas.`}
-        </p>
-      </div>
+      <PageHeader
+        titulo={isNovo ? "Novo processo" : `Editar: ${processo?.nome}`}
+        estado={isNovo
+          ? "Crie um novo processo da Fetely."
+          : `Versão atual: v${processo?.versao_atual}. Publique uma nova versão quando as mudanças estiverem prontas.`}
+      />
 
       <Tabs defaultValue="identidade">
         <TabsList>

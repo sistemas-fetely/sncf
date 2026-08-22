@@ -22,6 +22,7 @@ import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface LinhaSaneamento {
   vinculo_id: string;
@@ -199,24 +200,19 @@ export default function ReembolsoSaneamento() {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="p-6 space-y-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
-              <Receipt className="h-6 w-6" />
-              Saneamento de cadastro para reembolso
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Complete e-mail corporativo, chave PIX, gestor, centro de custo e previsão
-              contratual. O submódulo de reembolso só aceita solicitação de vínculo completo.
-            </p>
-          </div>
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/pessoas/reembolsos">
-              <ArrowLeft className="h-4 w-4" />
-              Voltar
-            </Link>
-          </Button>
-        </div>
+        <PageHeader
+          icone={Receipt}
+          titulo="Saneamento de cadastro para reembolso"
+          estado="Complete e-mail corporativo, chave PIX, gestor, centro de custo e previsão contratual. O submódulo de reembolso só aceita solicitação de vínculo completo."
+          acoes={(
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/pessoas/reembolsos">
+                <ArrowLeft className="h-4 w-4" />
+                Voltar
+              </Link>
+            </Button>
+          )}
+        />
 
         <Card className="card-shadow">
           <CardContent className="flex flex-wrap items-center gap-x-8 gap-y-3 py-4 text-sm">

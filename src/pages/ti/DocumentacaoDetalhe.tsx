@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SmartBackButton } from "@/components/SmartBackButton";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -231,10 +232,10 @@ export default function DocumentacaoDetalhe() {
               />
             </>
           ) : (
-            <>
-              <h1 className="text-2xl font-medium tracking-tight">{doc.titulo}</h1>
-              {doc.descricao && <p className="text-muted-foreground">{doc.descricao}</p>}
-            </>
+            <PageHeader
+              titulo={doc.titulo}
+              estado={doc.descricao || undefined}
+            />
           )}
 
           <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground pt-1">
