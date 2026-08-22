@@ -1,4 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -85,15 +86,11 @@ export default function ParesTransferencia() {
 
   return (
     <PageShell>
-      <div>
-        <h1 className="text-2xl font-medium flex items-center gap-2">
-          <ArrowLeftRight className="h-6 w-6 text-admin" />
-          Pares de Transferência Sugeridos
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Débito em uma conta + crédito em outra, mesmo valor, datas próximas. Confirme para classificar como transferência interna.
-        </p>
-      </div>
+      <PageHeader
+        titulo="Pares de Transferência Sugeridos"
+        icone={ArrowLeftRight}
+        estado="Débito em uma conta + crédito em outra, mesmo valor, datas próximas. Confirme para classificar como transferência interna."
+      />
 
       <Card>
         <CardContent className="p-0">
