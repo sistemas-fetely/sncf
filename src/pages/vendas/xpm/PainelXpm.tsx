@@ -22,6 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 type CicloXpm = {
   codigo: string;
