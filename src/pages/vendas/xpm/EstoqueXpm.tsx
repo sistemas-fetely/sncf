@@ -26,6 +26,7 @@ import {
 import { Upload, Loader2, AlertTriangle, CheckCircle2, PackageX, RefreshCw } from "lucide-react";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 type ConciliacaoApi = {
   sku: string;
   nome_comercial: string | null;
