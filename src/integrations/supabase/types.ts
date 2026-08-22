@@ -58348,14 +58348,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -65376,6 +65376,35 @@ export type Database = {
           ultimo_evento_em: string | null
         }
         Relationships: []
+      }
+      vw_xpm_comparativo_fontes: {
+        Row: {
+          api_atualizado_em: string | null
+          api_dias_parado: number | null
+          api_fase_codigo: string | null
+          api_fase_rotulo: string | null
+          api_fase_seq: number | null
+          arquivo_atualizado_em: string | null
+          arquivo_fase_codigo: string | null
+          arquivo_fase_ordem: number | null
+          arquivo_fase_rotulo: string | null
+          arquivo_faturadoem: string | null
+          cliente_sncf: string | null
+          expedicao_codigo: string | null
+          pedido_sncf: string | null
+          situacao: string | null
+          so_na_api: boolean | null
+          so_no_arquivo: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xpm_arquivo_fase_evento_fase_codigo_fkey"
+            columns: ["arquivo_fase_codigo"]
+            isOneToOne: false
+            referencedRelation: "xpm_arquivo_fase_dim"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       vw_xpm_divergencia_estagio: {
         Row: {
