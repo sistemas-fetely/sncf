@@ -13,7 +13,7 @@ export async function gerarHashMov(
   // Se tem FITID, usar como chave principal — elimina duplicatas do Itaú
   // (mesmo evento, descrições diferentes em arquivos consecutivos)
   const base = fitid
-    ? `${contaId}|${fitid}`
+    ? `${contaId}|${fitid}|${valor.toFixed(2)}`
     : `${contaId}|${data}|${valor.toFixed(2)}|${descricao.trim().toLowerCase()}`;
   if (typeof crypto !== "undefined" && crypto.subtle) {
     const buf = new TextEncoder().encode(base);
