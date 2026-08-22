@@ -55,8 +55,9 @@ export function useTrackPageVisit() {
         }
       }
     }
-    // Rota não declarada não vira histórico (guarda de nascimento).
-    if (!alvo) return;
+    // Rota não declarada TAMBÉM é gravada (22/08/2026), com rota_declarada
+    // null ou apontando pro ancestral que a cobriu. É esse registro que
+    // alimenta o diagnóstico de tela nascida sem declaração.
 
     const chaveDebounce = `track_${pathname}`;
     const ultimo = sessionStorage.getItem(chaveDebounce);
@@ -67,8 +68,14 @@ export function useTrackPageVisit() {
     void supabase.from("usuario_paginas_recentes").insert({
       user_id: userId,
       rota: pathname,
-      titulo: alvo.label,
-      pilar: alvo.app_chave,
+      // SENSOR-É-A-NAVEGAÇÃO-REAL (22/08/2026): grava COMO a rota resolveu.
+      // rota_declarada igual a rota = declarada explicitamente; diferente =
+      // herdou por prefixo de um ancestral; null = não resolveu com nada.
+      // A view vw_navegacao_nao_declarada usa isso pra acusar tela que nasceu
+      // sem declaração — acusa, não bloqueia (CONSTRAINT-NÃO-CEGA).
+      rota_declarada: alvo ? (alvo.rota as string) : null,
+      titulo: alvo?.label ?? pathname,
+      pilar: alvo?.app_chave ?? null,
     });
   }, [location.pathname, userId, nav]);
 }
