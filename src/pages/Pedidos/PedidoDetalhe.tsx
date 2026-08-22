@@ -46,7 +46,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PedidoStepper } from "@/components/pedidos/PedidoStepper";
 import { PedidoTimeline } from "@/components/pedidos/PedidoTimeline";
-import { PedidoTarefasTab } from "@/components/pedidos/PedidoTarefasTab";
+import { PedidoTarefasVinculadasTab } from "@/components/pedidos/PedidoTarefasVinculadasTab";
+import { STATUS_ABERTOS, usePedidoTarefasVinculadas } from "@/hooks/pedidos/usePedidoTarefasVinculadas";
 import { BadgePriorizacao } from "@/components/pedidos/BadgePriorizacao";
 import { MarcacaoPedido } from "@/components/pedidos/MarcacaoPedido";
 import { EstagioBadge, FormatoIdade, NaturezaOperacaoBadge } from "@/components/pedidos/BadgesPedido";
@@ -1206,6 +1207,12 @@ export default function PedidoDetalhe() {
     enabled: !!id,
   });
 
+  // Tarefas vinculadas (vw_pedido_tarefas) — alimenta o dot da aba Tarefas.
+  const { data: tarefasVinculadas } = usePedidoTarefasVinculadas(id);
+  const tarefasAbertas = (tarefasVinculadas ?? []).filter((t) =>
+    STATUS_ABERTOS.includes(t.status),
+  ).length;
+
   const recalcularPeso = async () => {
     if (!id) return;
     setRecalculandoPeso(true);
@@ -2226,7 +2233,12 @@ export default function PedidoDetalhe() {
                       <span className="h-1.5 w-1.5 rounded-full bg-info" />
                     )}
                   </TabsTrigger>
-                  <TabsTrigger value="tarefas">Tarefas</TabsTrigger>
+                  <TabsTrigger value="tarefas" className="gap-1.5">
+                    Tarefas
+                    {tarefasAbertas > 0 && (
+                      <span className="h-1.5 w-1.5 rounded-full bg-warning" />
+                    )}
+                  </TabsTrigger>
                   <TabsTrigger value="parcelas">Parcelas</TabsTrigger>
                 </TabsList>
 
@@ -2336,7 +2348,7 @@ export default function PedidoDetalhe() {
                     <CanalFopTab pedidoId={pedido.id} eventos={eventos ?? []} />
                   </TabsContent>
                   <TabsContent value="tarefas">
-                  <PedidoTarefasTab pedidoId={pedido.id} />
+                  <PedidoTarefasVinculadasTab pedidoId={pedido.id} />
                 </TabsContent>
                 <TabsContent value="parcelas">
                   <div className="space-y-3">
