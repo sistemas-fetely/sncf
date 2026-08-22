@@ -224,17 +224,11 @@ function AtalhosPeriodo({ onPick }: { onPick: (de: string, ate: string) => void 
 export default function ContasReceber() {
   return (
     <PageShell>
-      <div className="flex items-center gap-3">
-        <ArrowDownToLine className="h-7 w-7 text-admin" />
-        <div className="flex-1">
-          <h1 className="text-2xl font-medium">Recebíveis</h1>
-          <p className="text-sm text-muted-foreground">
-            Recebíveis B2B por parcela — somente títulos faturados, com NF emitida. Para todos os
-            títulos, ver Cobrança em Controladoria. Valor efetivo inclui juros e desconto. Somente
-            leitura.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        titulo="Recebíveis"
+        icone={ArrowDownToLine}
+        estado="Recebíveis B2B por parcela — somente títulos faturados, com NF emitida. Para todos os títulos, ver Cobrança em Controladoria. Valor efetivo inclui juros e desconto. Somente leitura."
+      />
 
       <Tabs defaultValue="b2b">
         <TabsList>

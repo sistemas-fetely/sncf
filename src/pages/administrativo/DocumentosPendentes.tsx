@@ -635,21 +635,17 @@ export default function DocumentosPendentes() {
     <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden">
       {/* HEADER */}
       <div className="px-6 pt-6 pb-3 border-b bg-background/95 backdrop-blur sticky top-0 z-20 space-y-4">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
-              <FileWarning className="h-6 w-6 text-admin" />
-              Documentos
-            </h1>
-            <p className="text-muted-foreground text-sm mt-0.5">
-              Cobrar fornecedores e administrar envios ao contador.
-            </p>
-          </div>
-          <Button variant="outline" onClick={() => setUploadOpen(true)} className="gap-2">
-            <Upload className="h-4 w-4" />
-            Upload em Massa
-          </Button>
-        </div>
+        <PageHeader
+          titulo="Documentos"
+          icone={FileWarning}
+          estado="Cobrar fornecedores e administrar envios ao contador."
+          acoes={
+            <Button variant="outline" onClick={() => setUploadOpen(true)} className="gap-2">
+              <Upload className="h-4 w-4" />
+              Upload em Massa
+            </Button>
+          }
+        />
 
         {/* TABS */}
         <Tabs value={aba} onValueChange={(v) => trocarAba(v as Aba)}>

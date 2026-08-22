@@ -383,33 +383,33 @@ export default function Contratos() {
   return (
     <PageShell>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-medium">Contratos</h1>
-          <p className="text-sm text-muted-foreground mt-1">Gestão de compromissos e recorrência</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setMostrarBanner(!mostrarBanner)}
-            className="text-muted-foreground text-xs"
-          >
-            <Info className="h-3.5 w-3.5 mr-1.5" />
-            Como criar
-            {mostrarBanner ? <ChevronUp className="h-3.5 w-3.5 ml-1" /> : <ChevronDown className="h-3.5 w-3.5 ml-1" />}
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => setNovoContratoOpen(true)}
-            style={{ background: VERDE }}
-            className="text-white hover:opacity-90"
-          >
-            <Plus className="h-3.5 w-3.5 mr-1.5" />
-            Novo Contrato
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        titulo="Contratos"
+        estado="Gestão de compromissos e recorrência"
+        acoes={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setMostrarBanner(!mostrarBanner)}
+              className="text-muted-foreground text-xs"
+            >
+              <Info className="h-3.5 w-3.5 mr-1.5" />
+              Como criar
+              {mostrarBanner ? <ChevronUp className="h-3.5 w-3.5 ml-1" /> : <ChevronDown className="h-3.5 w-3.5 ml-1" />}
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setNovoContratoOpen(true)}
+              style={{ background: VERDE }}
+              className="text-white hover:opacity-90"
+            >
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              Novo Contrato
+            </Button>
+          </div>
+        }
+      />
 
       {mostrarBanner && (
         <div className="rounded-lg border bg-muted/10 p-3 text-sm text-muted-foreground">

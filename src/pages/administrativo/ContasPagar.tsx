@@ -397,36 +397,27 @@ export default function ContasPagar() {
     <PageShell>
       {/* Header sticky */}
       <div className="sticky top-0 z-20 bg-background -mx-6 -mt-6 px-6 pt-6 pb-4 border-b space-y-4 backdrop-blur">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <div
-              className="p-2 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: "#1A4A3A" }}
-            >
-              <ArrowUpFromLine className="h-6 w-6 text-white" />
+        <PageHeader
+          titulo="Contas a Pagar"
+          icone={ArrowUpFromLine}
+          estado="Vencimentos a parceiros — abertos, pagos e atrasados."
+          acoes={
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => setImportarNFOpen(true)} className="gap-2">
+                <Upload className="h-4 w-4" />
+                Importar NF
+              </Button>
+              <Button
+                onClick={abrirNovaAvulsa}
+                style={{ backgroundColor: "#1A4A3A", color: "white" }}
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Nova Despesa
+              </Button>
             </div>
-            <div>
-              <h1 className="text-2xl font-medium">Contas a Pagar</h1>
-              <p className="text-sm text-muted-foreground">
-                Vencimentos a parceiros — abertos, pagos e atrasados.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setImportarNFOpen(true)} className="gap-2">
-              <Upload className="h-4 w-4" />
-              Importar NF
-            </Button>
-            <Button
-              onClick={abrirNovaAvulsa}
-              style={{ backgroundColor: "#1A4A3A", color: "white" }}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Nova Despesa
-            </Button>
-          </div>
-        </div>
+          }
+        />
 
         {/* KPI cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

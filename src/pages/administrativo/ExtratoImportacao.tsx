@@ -1143,16 +1143,11 @@ export default function ExtratoImportacao() {
 
   return (
     <PageShell>
-      <div>
-        <h1 className="text-2xl font-medium flex items-center gap-2">
-          <Upload className="h-6 w-6 text-admin" />
-          Importar Extratos
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Porta única para arquivo de banco: extratos, relatórios auxiliares e faturas de cartão —
-          com um só histórico.
-        </p>
-      </div>
+      <PageHeader
+        titulo="Importar Extratos"
+        icone={Upload}
+        estado="Porta única para arquivo de banco: extratos, relatórios auxiliares e faturas de cartão — com um só histórico."
+      />
 
       {/* 1 — EXTRATOS */}
       <div className="space-y-2">

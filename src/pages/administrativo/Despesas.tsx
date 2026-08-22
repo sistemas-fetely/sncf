@@ -258,12 +258,10 @@ export default function Despesas() {
 
   return (
     <PageShell>
-      <div>
-        <h1 className="text-2xl font-serif text-foreground">Despesas</h1>
-        <p className="text-sm text-muted-foreground">
-          Registro único de despesas — todas as origens, por competência.
-        </p>
-      </div>
+      <PageHeader
+        titulo="Despesas"
+        estado="Registro único de despesas — todas as origens, por competência."
+      />
 
       {error && (
         <Card className="border-destructive">
