@@ -15,6 +15,7 @@ import { mesclarFaixasSalariais } from "@/hooks/useCargos";
 import { toast } from "sonner";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 const NIVEIS = [
   { value: "jr", label: "Júnior" },
   { value: "pl", label: "Pleno" },
@@ -288,7 +289,10 @@ export default function CargoForm() {
     <PageShell>
       <div className="flex items-center gap-3">
         <SmartBackButton fallback="/admin/cargos" fallbackLabel="Cargos" />
-        <h1 className="text-2xl font-medium">{isNovo ? "Novo Cargo" : "Editar Cargo"}</h1>
+        <PageHeader
+          titulo={isNovo ? "Novo Cargo" : "Editar Cargo"}
+          className="mb-0 flex-1"
+        />
       </div>
 
       <div className="space-y-6">

@@ -27,6 +27,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 const nivelLabels: Record<string, string> = {
   jr: "Júnior", pl: "Pleno", sr: "Sênior",
   coordenacao: "Coordenação", especialista: "Especialista", c_level: "C-Level",
@@ -282,23 +283,23 @@ export default function Cargos() {
 
   return (
     <PageShell>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-medium text-foreground">Cargos e Salários</h1>
-          <p className="text-sm text-muted-foreground">Plano de Posições e Remuneração</p>
-        </div>
-        <div className="flex gap-2">
-          {(isSuperAdmin || isAdminRH) && (
-            <Button variant="outline" onClick={() => navigate("/cargos/enriquecimento")}>
-              <Sparkles className="h-4 w-4 mr-2" />
-              Enriquecer em lote
+      <PageHeader
+        titulo="Cargos e Salários"
+        estado="Plano de Posições e Remuneração"
+        acoes={
+          <div className="flex gap-2">
+            {(isSuperAdmin || isAdminRH) && (
+              <Button variant="outline" onClick={() => navigate("/cargos/enriquecimento")}>
+                <Sparkles className="h-4 w-4 mr-2" />
+                Enriquecer em lote
+              </Button>
+            )}
+            <Button className="gap-2" onClick={() => navigate("/cargos/novo", { state: { from: "/admin/cargos", fromLabel: "Cargos" } })}>
+              <Plus className="h-4 w-4" /> Novo Cargo
             </Button>
-          )}
-          <Button className="gap-2" onClick={() => navigate("/cargos/novo", { state: { from: "/admin/cargos", fromLabel: "Cargos" } })}>
-            <Plus className="h-4 w-4" /> Novo Cargo
-          </Button>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-sm">

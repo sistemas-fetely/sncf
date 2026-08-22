@@ -57,6 +57,7 @@ import { PedidoCompraDialog } from "@/components/compras/PedidoCompraDialog";
 import type { PedidoCompraFull, PedidoCompraStatus } from "@/lib/compras/types";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 const fmtBRL = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
 
@@ -149,59 +150,49 @@ export default function Compras() {
   return (
     <PageShell>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div
-            className="p-2 rounded-lg flex items-center justify-center"
-            style={{ backgroundColor: "#1A4A3A" }}
-          >
-            <ShoppingCart className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-medium">Compras</h1>
-            <p className="text-sm text-muted-foreground">
-              Insumo, material e serviço — pedido de compra interna
-            </p>
-
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            onClick={async () => {
-              try {
-                await gerarTemplateItens();
-              } catch (e) {
-                const msg = e instanceof Error ? e.message : "Falha ao gerar o template";
-                toast.error(msg);
-              }
-            }}
-          >
-            <Download className="h-4 w-4 mr-1" />
-            Baixar template
-          </Button>
-          <Button onClick={abrirCriar} style={{ backgroundColor: "#1A4A3A", color: "white" }}>
-            <Plus className="h-4 w-4 mr-1" />
-            Novo Pedido
-          </Button>
-          {podeComprar && (
+      <PageHeader
+        titulo="Compras"
+        estado="Insumo, material e serviço — pedido de compra interna"
+        icone={ShoppingCart}
+        acoes={
+          <>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  await gerarTemplateItens();
+                } catch (e) {
+                  const msg = e instanceof Error ? e.message : "Falha ao gerar o template";
+                  toast.error(msg);
+                }
+              }}
+            >
+              <Download className="h-4 w-4 mr-1" />
+              Baixar template
+            </Button>
+            <Button onClick={abrirCriar} style={{ backgroundColor: "#1A4A3A", color: "white" }}>
+              <Plus className="h-4 w-4 mr-1" />
+              Novo Pedido
+            </Button>
+            {podeComprar && (
+              <Link
+                to="/compras/a-comprar"
+                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Truck className="h-4 w-4" />
+                Fila do Comprador
+              </Link>
+            )}
             <Link
-              to="/compras/a-comprar"
+              to="/compras/mercadoria"
               className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              <Truck className="h-4 w-4" />
-              Fila do Comprador
+              <Boxes className="h-4 w-4" />
+              Compras de Mercadoria
             </Link>
-          )}
-          <Link
-            to="/compras/mercadoria"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Boxes className="h-4 w-4" />
-            Compras de Mercadoria
-          </Link>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       <p className="-mt-3 text-xs text-muted-foreground">
         Comprando mercadoria para revenda? Use{" "}

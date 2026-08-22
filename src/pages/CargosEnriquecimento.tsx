@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Sparkles, Pause, Play, RefreshCw } from "lucide-react";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 const DELAY_MS = 3500;
 
 export default function CargosEnriquecimento() {
@@ -191,12 +192,11 @@ export default function CargosEnriquecimento() {
         <Button variant="ghost" size="icon" onClick={() => navigate("/cargos")}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div>
-          <h1 className="text-2xl font-medium">Enriquecimento em lote</h1>
-          <p className="text-sm text-muted-foreground">
-            A IA preenche missão, skills e faixas salariais para cada cargo
-          </p>
-        </div>
+        <PageHeader
+          titulo="Enriquecimento em lote"
+          estado="A IA preenche missão, skills e faixas salariais para cada cargo"
+          className="mb-0 flex-1"
+        />
       </div>
 
       {/* Métricas */}
