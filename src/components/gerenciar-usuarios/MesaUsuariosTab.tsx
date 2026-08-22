@@ -93,6 +93,7 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
   const [vinculoEscolhido, setVinculoEscolhido] = useState("");
 
   const [banConfirm, setBanConfirm] = useState<{ userId: string; nome: string } | null>(null);
+  const [reativarConfirm, setReativarConfirm] = useState<{ userId: string; nome: string } | null>(null);
   const [excluirConfirm, setExcluirConfirm] = useState<{ userId: string; nome: string } | null>(null);
   const [duplaConfirm, setDuplaConfirm] = useState<
     { userId: string; nome: string; mode: "ban" | "delete" } | null
