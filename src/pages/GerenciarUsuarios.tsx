@@ -38,8 +38,6 @@ import DiagnosticoAcessoTab from "@/components/gerenciar-usuarios/DiagnosticoAce
 import RastroAcessoTab from "@/components/gerenciar-usuarios/RastroAcessoTab";
 
 
-import { ReenviarLinkAcessoButton } from "@/components/auth/ReenviarLinkAcessoButton";
-import { DefinirSenhaButton } from "@/components/gerenciar-usuarios/DefinirSenhaButton";
 import { useUnidades } from "@/hooks/useUnidades";
 import { useTemplates } from "@/hooks/useTemplates";
 import { useDepartamentoInfo } from "@/hooks/useEstruturaOrganizacional";
