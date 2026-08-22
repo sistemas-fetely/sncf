@@ -455,7 +455,6 @@ export default function GerenciarUsuarios() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <Card className="border-l-[3px] border-l-info/40">
