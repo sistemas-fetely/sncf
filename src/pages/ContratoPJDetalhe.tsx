@@ -35,6 +35,7 @@ import { useCLevelCargos } from "@/hooks/useCLevelCargos";
 import type { Tables } from "@/integrations/supabase/types";
 
 import { SmartBackButton } from "@/components/SmartBackButton";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { StepDadosPessoaisPJ } from "@/components/contrato-pj/StepDadosPessoaisPJ";
 import { StepDocumentosPJ } from "@/components/contrato-pj/StepDocumentosPJ";
 import { StepDadosProfissionaisPJ } from "@/components/contrato-pj/StepDadosProfissionaisPJ";
