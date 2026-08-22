@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Truck, Loader2, Plus, LayoutGrid, Package, AlertTriangle } from "lucide-react";
+import { Truck, Loader2, Plus, LayoutGrid, Package, AlertTriangle, FileUp } from "lucide-react";
 import { useTransportadorasLogistica } from "@/hooks/logistica/useTransportadorasLogistica";
 import { AbaTransportadora } from "@/components/logistica/AbaTransportadora";
 import { VisaoGeralLogistica } from "@/components/logistica/VisaoGeralLogistica";
 import { EntregasControle } from "@/components/logistica/EntregasControle";
 import { FilaAtencaoLogistica } from "@/components/logistica/FilaAtencaoLogistica";
+import { ImportarFasesXpm } from "@/components/logistica/ImportarFasesXpm";
 import { cn } from "@/lib/utils";
 import { nomeExibicao } from "@/lib/parceiros/nome";
 import { PageShell } from "@/components/layout/PageShell";
@@ -18,6 +19,7 @@ export default function Logistica() {
   const isGeral = ativaId === "geral";
   const isRastreio = ativaId === "rastreio";
   const isAtencao = ativaId === "atencao";
+  const isImportarFases = ativaId === "importar-fases";
 
   return (
     <PageShell>
@@ -71,6 +73,17 @@ export default function Logistica() {
             >
               <AlertTriangle className="h-3.5 w-3.5" /> Fila de atenção
             </button>
+            <button
+              onClick={() => setAtivaId("importar-fases")}
+              className={cn(
+                "rounded-full px-3 py-1 text-sm border transition inline-flex items-center gap-1.5",
+                isImportarFases
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card text-foreground hover:bg-muted border-border"
+              )}
+            >
+              <FileUp className="h-3.5 w-3.5" /> Importar fases (XPM)
+            </button>
             {transportadoras.map((t) => {
               const nome = nomeExibicao(t.razao_social, t.nome_fantasia);
               const ativo = t.id === ativaId;
@@ -100,6 +113,8 @@ export default function Logistica() {
             <EntregasControle />
           ) : isAtencao ? (
             <FilaAtencaoLogistica />
+          ) : isImportarFases ? (
+            <ImportarFasesXpm />
           ) : ativa ? (
             <AbaTransportadora transportadora={ativa} />
           ) : (
