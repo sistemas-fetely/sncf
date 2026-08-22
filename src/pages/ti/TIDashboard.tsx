@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const TI_COLOR = "#3A7D6B";
 
@@ -175,12 +176,10 @@ export default function TIDashboard() {
 
   return (
     <PageShell>
-      <div>
-        <h1 className="text-2xl font-medium tracking-tight" style={{ color: TI_COLOR }}>
-          TI Fetély — Dashboard
-        </h1>
-        <p className="text-muted-foreground text-sm mt-1">Visão geral do inventário de TI</p>
-      </div>
+      <PageHeader
+        titulo="TI Fetély — Dashboard"
+        estado="Visão geral do inventário de TI"
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {cards.map((c) => (
