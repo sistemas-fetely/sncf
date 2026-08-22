@@ -170,6 +170,10 @@ export default function Compras() {
               <Download className="h-4 w-4 mr-1" />
               Baixar template
             </Button>
+            <Button onClick={abrirCriar} style={{ backgroundColor: "#1A4A3A", color: "white" }}>
+              <Plus className="h-4 w-4 mr-1" />
+              Novo Pedido
+            </Button>
             {podeComprar && (
               <Link
                 to="/compras/a-comprar"
