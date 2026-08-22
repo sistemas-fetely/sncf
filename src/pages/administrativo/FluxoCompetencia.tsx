@@ -1,4 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
@@ -547,17 +548,11 @@ export default function FluxoCompetencia() {
 
   return (
     <PageShell>
-      <div>
-        <h1 className="flex items-center gap-2 text-2xl font-medium tracking-tight">
-          <ArrowLeftRight className="h-6 w-6 text-gold" />
-          Fluxo &amp; Competência
-        </h1>
-        <p className="mt-1 max-w-4xl text-sm text-muted-foreground">
-          Três datas do mesmo título, nunca somadas entre si: competência é a NF, caixa é a
-          movimentação bancária, previsto é a régua de recebimento. A diferença entre elas é o que
-          ainda não entrou mais o que entrou sem nota.
-        </p>
-      </div>
+      <PageHeader
+        titulo="Fluxo & Competência"
+        icone={ArrowLeftRight}
+        estado="Três datas do mesmo título, nunca somadas entre si: competência é a NF, caixa é a movimentação bancária, previsto é a régua de recebimento. A diferença entre elas é o que ainda não entrou mais o que entrou sem nota."
+      />
 
       {/* Filtros */}
       <Card>

@@ -1,4 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -245,15 +246,11 @@ export default function FluxoCaixaFuturo() {
 
   return (
     <PageShell>
-      <div>
-        <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
-          <TrendingUp className="h-6 w-6 text-admin" />
-          Fluxo de Caixa Futuro
-        </h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Parcelas firmadas (cartão e parcelamentos manuais) que vão impactar o caixa nos próximos meses.
-        </p>
-      </div>
+      <PageHeader
+        titulo="Fluxo de Caixa Futuro"
+        icone={TrendingUp}
+        estado="Parcelas firmadas (cartão e parcelamentos manuais) que vão impactar o caixa nos próximos meses."
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
