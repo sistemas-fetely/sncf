@@ -475,15 +475,11 @@ export default function ConciliacaoDespesas() {
 
   return (
     <PageShell>
-      <div>
-        <h1 className="text-2xl font-medium flex items-center gap-2">
-          <GitCompare className="h-6 w-6 text-admin" />
-          Conciliar Despesas
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Débitos bancários sem destino: casar com NFs revisadas ou CPRs, ou registrar como furo real.
-        </p>
-      </div>
+      <PageHeader
+        titulo="Conciliar Despesas"
+        icone={GitCompare}
+        estado="Débitos bancários sem destino: casar com NFs revisadas ou CPRs, ou registrar como furo real."
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

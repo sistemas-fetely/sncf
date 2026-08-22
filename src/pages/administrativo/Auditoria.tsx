@@ -25,15 +25,11 @@ export default function Auditoria() {
 
   return (
     <PageShell>
-      <div className="flex items-start gap-3">
-        <ShieldAlert className="mt-1 h-6 w-6 text-muted-foreground" />
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight">Auditoria</h1>
-          <p className="text-sm text-muted-foreground">
-            O motor acha; o humano trata. Cada monitoria é uma regra com SQL versionado.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        titulo="Auditoria"
+        icone={ShieldAlert}
+        estado="O motor acha; o humano trata. Cada monitoria é uma regra com SQL versionado."
+      />
 
       <Tabs value={aba} onValueChange={setAba}>
         <TabsList>

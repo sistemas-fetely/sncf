@@ -404,15 +404,11 @@ export default function ConfiguracaoIntegracao() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
-          <Settings2 className="h-6 w-6 text-admin" />
-          Integrações
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Configure as integrações externas do sistema.
-        </p>
-      </div>
+      <PageHeader
+        titulo="Integrações"
+        icone={Settings2}
+        estado="Configure as integrações externas do sistema."
+      />
 
       <Tabs defaultValue="bling" className="space-y-4">
         <TabsList>

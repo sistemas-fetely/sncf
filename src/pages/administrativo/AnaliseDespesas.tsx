@@ -504,19 +504,17 @@ export default function AnaliseDespesas() {
 
   return (
     <PageShell>
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <BarChart3 className="h-5 w-5" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-medium tracking-tight">Análise de Despesas · Notas Fiscais</h1>
-          <p className="text-sm text-muted-foreground">Cobre apenas despesas com NF (porta fiscal), por competência de emissão. A visão consolidada de todas as origens está no Gerencial.</p>
-        </div>
-        <Button variant="outline" size="sm" onClick={exportarMes} disabled={!mesSel || !linhasMes.length}>
-          <Download className="h-3.5 w-3.5 mr-2" />
-          Exportar mês (XLSX)
-        </Button>
-      </div>
+      <PageHeader
+        titulo="Análise de Despesas · Notas Fiscais"
+        icone={BarChart3}
+        estado="Cobre apenas despesas com NF (porta fiscal), por competência de emissão. A visão consolidada de todas as origens está no Gerencial."
+        acoes={
+          <Button variant="outline" size="sm" onClick={exportarMes} disabled={!mesSel || !linhasMes.length}>
+            <Download className="h-3.5 w-3.5 mr-2" />
+            Exportar mês (XLSX)
+          </Button>
+        }
+      />
 
       {/* Seletor de mês */}
       <div className="flex flex-wrap items-center gap-3">

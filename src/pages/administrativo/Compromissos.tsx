@@ -232,38 +232,33 @@ export default function Compromissos() {
   return (
     <PageShell>
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-medium flex items-center gap-2">
-            <Repeat className="h-6 w-6 text-primary" />
-            Contratos Recorrentes
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Obrigações financeiras recorrentes e parceladas. Geram parcelas
-            previstas no fluxo de caixa futuro.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setDialogParceladoAberto(true)}
-            className="gap-1"
-          >
-            <Plus className="h-4 w-4" />
-            Parcelado Manual
-          </Button>
-          <Button
-            onClick={() => {
-              setRecorrenteEditando(null);
-              setDialogRecorrenteAberto(true);
-            }}
-            className="gap-1"
-          >
-            <Plus className="h-4 w-4" />
-            Novo Recorrente
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        titulo="Contratos Recorrentes"
+        icone={Repeat}
+        estado="Obrigações financeiras recorrentes e parceladas. Geram parcelas previstas no fluxo de caixa futuro."
+        acoes={
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDialogParceladoAberto(true)}
+              className="gap-1"
+            >
+              <Plus className="h-4 w-4" />
+              Parcelado Manual
+            </Button>
+            <Button
+              onClick={() => {
+                setRecorrenteEditando(null);
+                setDialogRecorrenteAberto(true);
+              }}
+              className="gap-1"
+            >
+              <Plus className="h-4 w-4" />
+              Novo Recorrente
+            </Button>
+          </div>
+        }
+      />
 
       {/* Filtros */}
       <div className="flex gap-2 flex-wrap">

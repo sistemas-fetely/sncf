@@ -390,18 +390,11 @@ export default function Conciliacao() {
   return (
     <PageShell>
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-2">
-          <h1 className="text-2xl font-medium flex items-center gap-2">
-            <ArrowLeftRight className="h-6 w-6" />
-            Conciliação Bancária
-          </h1>
-          <p className="text-sm text-muted-foreground max-w-2xl">
-            A IA cruza planilha × movimentação × OFX simultaneamente. Verde = concilia tudo em 1 clique.
-            Amarelo = Stage 1 agora, OFX depois.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        titulo="Conciliação Bancária"
+        icone={ArrowLeftRight}
+        estado="A IA cruza planilha × movimentação × OFX simultaneamente. Verde = concilia tudo em 1 clique. Amarelo = Stage 1 agora, OFX depois."
+      />
 
       {/* Seletor conta */}
       <div className="flex items-center gap-3">
