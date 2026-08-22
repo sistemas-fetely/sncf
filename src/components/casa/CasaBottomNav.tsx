@@ -1,14 +1,28 @@
 import { NavLink } from "react-router-dom";
-import { Home, Users, Wallet, BookOpen, Sparkles } from "lucide-react";
+import { Home, Users, Wallet, HandCoins, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCasaApp } from "@/hooks/useCasaApp";
 
+/**
+ * Menu inferior do mobile — os 5 pilares fixos.
+ *
+ * Corrigido em 22/08/2026 para os 5 decididos em 29/07 e já gravados na
+ * sncf_navegacao (apps com superficie 'bottom'): Casa, SOPs, Finanças,
+ * Pessoas, Meu Espaço.
+ *
+ * Antes trazia Marca e Acervo no lugar de SOPs e Meu Espaço — ou seja, o app
+ * de maior tráfego da operação não tinha atalho no celular, e "Marca" ocupava
+ * um dos 5 lugares mesmo tendo sido renomeada pra Patrimônio há quase um mês.
+ *
+ * Continua hardcoded de propósito: tornar top/bottom nav table-driven exige o
+ * padrão "5 fixos + Mais", que ainda não existe (fatia própria).
+ */
 const ITEMS: Array<{ id: string; to: string; label: string; icon: typeof Home; end?: boolean }> = [
   { id: "casa", to: "/", label: "Casa", icon: Home, end: true },
-  { id: "pessoas", to: "/pessoas", label: "Pessoas", icon: Users },
+  { id: "recebimento", to: "/pedidos", label: "SOPs", icon: HandCoins },
   { id: "financas", to: "/administrativo", label: "Finanças", icon: Wallet },
-  { id: "marca", to: "/administrativo-fetely", label: "Marca", icon: Sparkles },
-  { id: "acervo", to: "/documentacao", label: "Acervo", icon: BookOpen },
+  { id: "pessoas", to: "/pessoas", label: "Pessoas", icon: Users },
+  { id: "meu_espaco", to: "/tarefas/hoje", label: "Meu Espaço", icon: User },
 ];
 
 export function CasaBottomNav() {
