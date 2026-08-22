@@ -16,9 +16,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
-  Link2, Loader2, ShieldPlus, Unlink, UserPlus, Users2, X,
+  Link2, Loader2, ShieldCheck, ShieldOff, ShieldPlus, Trash2, Unlink, UserPlus, Users2, X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ConfirmacaoDupla } from "@/components/ConfirmacaoDupla";
+import { ReenviarLinkAcessoButton } from "@/components/auth/ReenviarLinkAcessoButton";
+import { DefinirSenhaButton } from "@/components/gerenciar-usuarios/DefinirSenhaButton";
 import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
@@ -89,6 +92,12 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
   const [vinculoDialog, setVinculoDialog] = useState<{ userId: string; nome: string } | null>(null);
   const [vinculoEscolhido, setVinculoEscolhido] = useState("");
 
+  const [banConfirm, setBanConfirm] = useState<{ userId: string; nome: string } | null>(null);
+  const [excluirConfirm, setExcluirConfirm] = useState<{ userId: string; nome: string } | null>(null);
+  const [duplaConfirm, setDuplaConfirm] = useState<
+    { userId: string; nome: string; mode: "ban" | "delete" } | null
+  >(null);
+
   // ---------------- queries ----------------
   const { data: profiles = [], isLoading } = useQuery({
     queryKey: ["admin-profiles"],
@@ -110,19 +119,18 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
       });
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
-      return (data?.users || []) as Array<{ id: string; email?: string }>;
+      return (data?.users || []) as Array<{ id: string; email?: string; banned?: boolean }>;
     },
   });
 
   const { data: vinculosLigados = [] } = useQuery({
     queryKey: ["mesa-vinculos-ligados"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("vinculos")
-        .select("id, usuario_id, tipo_vinculo, status, pessoa_id, pessoas!vinculos_pessoa_id_fkey(nome_completo), cargos(nome)")
-        .not("usuario_id", "is", null);
+      // MESA-VE-VINCULO-MESMO-SEM-VER-PESSOA: RPC SECURITY DEFINER expõe só a
+      // existência do vínculo (sem salário/dados bancários), furando a RLS de pode_ver_pessoa()
+      const { data, error } = await supabase.rpc("mesa_listar_vinculos");
       if (error) throw error;
-      return data;
+      return (data || []).filter((v) => v.usuario_id !== null);
     },
   });
 
@@ -170,13 +178,9 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
     queryKey: ["mesa-vinculos-livres"],
     enabled: !!vinculoDialog,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("vinculos")
-        .select("id, tipo_vinculo, pessoas!vinculos_pessoa_id_fkey(nome_completo)")
-        .is("usuario_id", null)
-        .eq("status", "ativo");
+      const { data, error } = await supabase.rpc("mesa_listar_vinculos");
       if (error) throw error;
-      return data;
+      return (data || []).filter((v) => v.usuario_id === null && v.status === "ativo");
     },
   });
 
@@ -186,6 +190,14 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
     qc.invalidateQueries({ queryKey: ["mesa-vinculos-ligados"] });
     qc.invalidateQueries({ queryKey: ["mesa-vinculos-livres"] });
     qc.invalidateQueries({ queryKey: ["admin-profiles"] });
+  };
+
+  const invalidarAcesso = () => {
+    qc.invalidateQueries({ queryKey: ["admin-auth-users"] });
+    qc.invalidateQueries({ queryKey: ["admin-profiles"] });
+    qc.invalidateQueries({ queryKey: ["mesa-vinculos-ligados"] });
+    qc.invalidateQueries({ queryKey: ["mesa-vinculos-livres"] });
+    qc.invalidateQueries({ queryKey: ["mesa-user-roles"] });
   };
 
   // ---------------- mutations ----------------
@@ -284,12 +296,63 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const toggleBan = useMutation({
+    mutationFn: async ({ user_id, ban }: { user_id: string; ban: boolean }) => {
+      const { data, error } = await supabase.functions.invoke("manage-user", {
+        body: { action: "toggle_ban", user_id, ban },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+    },
+    onSuccess: (_, { ban }) => {
+      invalidarAcesso();
+      toast.success(ban ? "Acesso inativado" : "Acesso reativado");
+      setBanConfirm(null);
+      setDuplaConfirm(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteUser = useMutation({
+    mutationFn: async (user_id: string) => {
+      const { data, error } = await supabase.functions.invoke("manage-user", {
+        body: { action: "delete_user", user_id },
+      });
+      if (error) {
+        // Erro 409 (FK) vem no corpo da resposta — mensagem já é pronta e amigável
+        let msg = error.message;
+        try {
+          const body = await (error as { context?: Response }).context?.json();
+          if (body?.error) msg = body.error;
+        } catch { /* mantém msg original */ }
+        throw new Error(msg);
+      }
+      if (data?.error) throw new Error(data.error);
+    },
+    onSuccess: () => {
+      invalidarAcesso();
+      toast.success("Usuário excluído");
+      setExcluirConfirm(null);
+      setDuplaConfirm(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   // ---------------- derivados ----------------
   const emailPorUser = useMemo(() => {
     const m = new Map<string, string>();
     authUsers.forEach((u) => m.set(u.id, u.email || ""));
     return m;
   }, [authUsers]);
+
+  const bannedPorUser = useMemo(() => {
+    const m = new Map<string, boolean>();
+    authUsers.forEach((u) => m.set(u.id, !!u.banned));
+    return m;
+  }, [authUsers]);
+
+  const ehSuperAdmin = (userId: string) =>
+    papeisAtivos.some((r) => r.user_id === userId && r.role === "super_admin");
 
   const linhas = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -301,6 +364,7 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
           userId: p.user_id,
           nome: p.full_name || "—",
           email: emailPorUser.get(p.user_id) || "",
+          banned: bannedPorUser.get(p.user_id) || false,
           vinculo,
           papeis: papeisAtivos.filter((r) => r.user_id === p.user_id),
           grupos: gruposDoUsuario.filter((g) => g.user_id === p.user_id),
@@ -310,9 +374,9 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
         !termo ||
         l.nome.toLowerCase().includes(termo) ||
         l.email.toLowerCase().includes(termo) ||
-        (l.vinculo?.pessoas?.nome_completo || "").toLowerCase().includes(termo),
+        (l.vinculo?.nome_completo || "").toLowerCase().includes(termo),
       );
-  }, [profiles, vinculosLigados, papeisAtivos, gruposDoUsuario, emailPorUser, busca]);
+  }, [profiles, vinculosLigados, papeisAtivos, gruposDoUsuario, emailPorUser, bannedPorUser, busca]);
 
   const semVinculo = linhas.filter((l) => !l.vinculo).length;
 
@@ -365,13 +429,13 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
                   <TableCell>
                     {l.vinculo ? (
                       <div className="space-y-1">
-                        <p className="text-sm">{l.vinculo.pessoas?.nome_completo || "—"}</p>
+                        <p className="text-sm">{l.vinculo.nome_completo || "—"}</p>
                         <div className="flex items-center gap-1">
                           <Badge variant="outline" className="text-xs uppercase">
                             {l.vinculo.tipo_vinculo}
                           </Badge>
-                          {l.vinculo.cargos?.nome && (
-                            <span className="text-xs text-muted-foreground">{l.vinculo.cargos.nome}</span>
+                          {l.vinculo.cargo_nome && (
+                            <span className="text-xs text-muted-foreground">{l.vinculo.cargo_nome}</span>
                           )}
                         </div>
                       </div>
@@ -462,6 +526,44 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
                           <Link2 className="h-3.5 w-3.5" /> Vincular
                         </Button>
                       )}
+                      <ReenviarLinkAcessoButton variant="icon" userId={l.userId} nome={l.nome} />
+                      <DefinirSenhaButton userId={l.userId} nome={l.nome} />
+                      {l.banned ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={toggleBan.isPending}
+                          onClick={() => toggleBan.mutate({ user_id: l.userId, ban: false })}
+                        >
+                          <ShieldCheck className="h-3.5 w-3.5" /> Reativar acesso
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={toggleBan.isPending}
+                          onClick={() =>
+                            ehSuperAdmin(l.userId)
+                              ? setDuplaConfirm({ userId: l.userId, nome: l.nome, mode: "ban" })
+                              : setBanConfirm({ userId: l.userId, nome: l.nome })
+                          }
+                        >
+                          <ShieldOff className="h-3.5 w-3.5" /> Inativar acesso
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive"
+                        disabled={deleteUser.isPending}
+                        onClick={() =>
+                          ehSuperAdmin(l.userId)
+                            ? setDuplaConfirm({ userId: l.userId, nome: l.nome, mode: "delete" })
+                            : setExcluirConfirm({ userId: l.userId, nome: l.nome })
+                        }
+                      >
+                        <Trash2 className="h-3.5 w-3.5" /> Excluir
+                      </Button>
                     </TableCell>
                   )}
                 </TableRow>
@@ -616,7 +718,7 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
               <SelectContent>
                 {vinculosLivres.map((v) => (
                   <SelectItem key={v.id} value={v.id}>
-                    {(v.pessoas?.nome_completo || "Sem nome") + ` · ${String(v.tipo_vinculo).toUpperCase()}`}
+                    {(v.nome_completo || "Sem nome") + ` · ${String(v.tipo_vinculo).toUpperCase()}`}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -637,6 +739,83 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Inativar acesso (não super admin) */}
+      <AlertDialog open={!!banConfirm} onOpenChange={(v) => !v && setBanConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Inativar acesso de {banConfirm?.nome}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O usuário não conseguirá mais acessar o sistema. Você pode reativar o acesso
+              a qualquer momento nesta mesma tela.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={toggleBan.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (banConfirm) toggleBan.mutate({ user_id: banConfirm.userId, ban: true });
+              }}
+            >
+              Inativar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Excluir usuário (não super admin) */}
+      <AlertDialog open={!!excluirConfirm} onOpenChange={(v) => !v && setExcluirConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir usuário {excluirConfirm?.nome}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação é irreversível e remove todos os dados de acesso do usuário. Se o
+              usuário tiver histórico vinculado (pedidos, processos, auditoria), o sistema
+              vai recusar e sugerir Inativar em vez de excluir.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteUser.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (excluirConfirm) deleteUser.mutate(excluirConfirm.userId);
+              }}
+            >
+              {deleteUser.isPending ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirmação dupla: inativar/excluir Super Admin */}
+      <ConfirmacaoDupla
+        open={!!duplaConfirm}
+        onOpenChange={(o) => !o && setDuplaConfirm(null)}
+        titulo={duplaConfirm?.mode === "delete" ? "Excluir Super Admin" : "Inativar Super Admin"}
+        descricao={
+          <p>
+            Você está prestes a {duplaConfirm?.mode === "delete" ? "excluir" : "inativar"} o
+            Super Admin <strong>{duplaConfirm?.nome}</strong>. Essa ação afeta o acesso total
+            ao sistema e é registrada em auditoria.
+          </p>
+        }
+        textoConfirmacao={duplaConfirm?.mode === "delete" ? "EXCLUIR SUPER ADMIN" : "INATIVAR SUPER ADMIN"}
+        placeholder={duplaConfirm?.mode === "delete" ? "EXCLUIR SUPER ADMIN" : "INATIVAR SUPER ADMIN"}
+        acaoLabel={duplaConfirm?.mode === "delete" ? "Excluir Super Admin" : "Inativar Super Admin"}
+        onConfirmar={async () => {
+          if (!duplaConfirm) return;
+          if (duplaConfirm.mode === "delete") {
+            await deleteUser.mutateAsync(duplaConfirm.userId);
+          } else {
+            await toggleBan.mutateAsync({ user_id: duplaConfirm.userId, ban: true });
+          }
+        }}
+      />
     </Card>
   );
 }
