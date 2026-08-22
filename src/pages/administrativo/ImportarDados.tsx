@@ -17,6 +17,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ImportadorNFs } from "@/components/financeiro/ImportadorNFs";
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export default function ImportarDados() {
   const [syncing, setSyncing] = useState(false);
@@ -88,15 +89,11 @@ export default function ImportarDados() {
 
   return (
     <PageShell>
-      <div>
-        <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
-          <Upload className="h-6 w-6 text-admin" />
-          Importar Dados
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Sincronize com o Bling ou importe NFs por CSV (Qive), XML ou PDF.
-        </p>
-      </div>
+      <PageHeader
+        titulo="Importar Dados"
+        icone={Upload}
+        estado="Sincronize com o Bling ou importe NFs por CSV (Qive), XML ou PDF."
+      />
 
       {/* Card destaque integração Bling */}
       <Card className="border-admin/40 bg-admin/5">
