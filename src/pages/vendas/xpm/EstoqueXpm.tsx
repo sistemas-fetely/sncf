@@ -301,32 +301,30 @@ export default function EstoqueXpm() {
 
   return (
     <PageShell className="md:px-8">
-      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-medium tracking-tight">Estoque XPM</h1>
-          <p className="text-sm text-muted-foreground">
-            Posição sincronizada direto da XPM. Atualiza sozinha todo dia às 03:25.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground">
-            posição de {fmtPosicao(kpis.posicao ?? posicaoMaisRecente)}
-          </span>
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={handleSincronizar}
-            disabled={sincronizando}
-          >
-            {sincronizando ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-            Sincronizar agora
-          </Button>
-        </div>
-      </header>
+      <PageHeader
+        titulo="Estoque XPM"
+        estado="Posição sincronizada direto da XPM. Atualiza sozinha todo dia às 03:25."
+        acoes={
+          <>
+            <span className="text-xs text-muted-foreground">
+              posição de {fmtPosicao(kpis.posicao ?? posicaoMaisRecente)}
+            </span>
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={handleSincronizar}
+              disabled={sincronizando}
+            >
+              {sincronizando ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              Sincronizar agora
+            </Button>
+          </>
+        }
+      />
 
       {conciliacaoQ.isError && (
         <Card className="border-destructive">
