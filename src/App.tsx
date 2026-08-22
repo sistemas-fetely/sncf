@@ -94,7 +94,7 @@ const TIAtivos = lazy(() => import("@/pages/ti/TIAtivos"));
 const TesteEmailTemplate = lazy(() => import("@/pages/ti/TesteEmailTemplate"));
 const DocumentacaoDetalhe = lazy(() => import("@/pages/ti/DocumentacaoDetalhe"));
 const DocumentacaoForm = lazy(() => import("@/pages/ti/DocumentacaoForm"));
-const TarefasLayout = lazy(() => import("@/layouts/TarefasLayout"));
+const MeuEspacoLayout = lazy(() => import("@/layouts/MeuEspacoLayout"));
 const GestaoLayout = lazy(() => import("@/layouts/GestaoLayout"));
 const GestaoSalas = lazy(() => import("@/pages/gestao/Salas"));
 const GestaoSalaDetalhe = lazy(() => import("@/pages/gestao/SalaDetalhe"));
@@ -425,7 +425,7 @@ const App = () => (
               {/* Doutrina CASA-2: SNCFLayout removido — rotas ficam direto no CasaLayout */}
               <Route path="/sncf" element={<PortalSNCF />} />
               <Route path="/tarefas" element={<Navigate to="/tarefas/hoje" replace />} />
-              <Route element={<TarefasLayout />}>
+              <Route element={<MeuEspacoLayout />}>
                 <Route path="/tarefas/hoje" element={<TarefasHoje />} />
                 <Route path="/tarefas/minhas" element={<MinhasTarefasNovo />} />
                 <Route path="/tarefas/projetos" element={<ProjetosGrid />} />
@@ -437,7 +437,6 @@ const App = () => (
                 <Route path="/tarefas/templates" element={<TemplatesTarefas />} />
                 <Route path="/tarefas/notificacoes" element={<NotificacoesPreferencias />} />
                 <Route path="/tarefas/fila" element={<FilaProcessos />} />
-                {/* Sala de Gestão — aba dentro de Tarefas (GESTAO-E-ABA-DE-TAREFAS) */}
                 <Route element={<GestaoLayout />}>
                   <Route path="/tarefas/gestao" element={<GestaoSalas />} />
                   <Route path="/tarefas/gestao/sala/:salaId" element={<GestaoSalaDetalhe />} />
@@ -446,14 +445,14 @@ const App = () => (
                   <Route path="/tarefas/gestao/decisoes" element={<GestaoDecisoes />} />
                   <Route path="/tarefas/gestao/riscos" element={<GestaoRiscos />} />
                 </Route>
+                <Route path="/fala-fetely/memorias" element={<MinhasMemorias />} />
+                <Route path="/meus-dados" element={<MeusDados />} />
+                <Route path="/meus-acessos" element={<MeusAcessos />} />
+                <Route path="/minhas-notas" element={<MinhasNotas />} />
               </Route>
 
               <Route path="/fala-fetely" element={<FalaFetely />} />
               <Route path="/fala-fetely/conhecimento" element={<FalaFetelyConhecimento />} />
-              <Route path="/fala-fetely/memorias" element={<MinhasMemorias />} />
-              <Route path="/meus-dados" element={<MeusDados />} />
-              <Route path="/meus-acessos" element={<MeusAcessos />} />
-              <Route path="/minhas-notas" element={<MinhasNotas />} />
               <Route element={<FinancasLayout />}>
                 <Route path="/compras" element={<Compras />} />
                 <Route path="/compras/a-comprar" element={<ComprasAComprar />} />
