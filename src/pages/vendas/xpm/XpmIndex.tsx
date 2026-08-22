@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageHeader } from "@/components/layout/PageHeader";
 import RecebimentoXpm from "./RecebimentoXpm";
 import EstoqueXpm from "./EstoqueXpm";
 import ExpedicoesXpm from "./ExpedicoesXpm";
