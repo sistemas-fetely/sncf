@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 export function fmtDate(s: string | null | undefined): string {
   if (!s) return "—";
   try { return format(new Date(s), "dd/MM/yyyy HH:mm"); } catch { return "—"; }
@@ -64,15 +65,17 @@ export function ShopifyListPage<T extends Record<string, any>>({
 
   return (
     <PageShell>
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-serif">{titulo}</h1>
-        <Input
-          placeholder="Buscar..."
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          className="max-w-xs"
-        />
-      </div>
+      <PageHeader
+        titulo={titulo}
+        acoes={
+          <Input
+            placeholder="Buscar..."
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            className="max-w-xs"
+          />
+        }
+      />
 
       <div className="rounded-md border bg-card">
         <Table>
