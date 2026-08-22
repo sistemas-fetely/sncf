@@ -1,4 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -160,35 +161,31 @@ export default function RegrasInbox() {
 
   return (
     <PageShell>
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-medium flex items-center gap-2">
-            <Filter className="h-6 w-6 text-admin" />
-            Regras Automáticas — Extrato
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Padrões aplicados sobre movimentações abertas para classificação automática.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={aplicarRegras}
-            disabled={aplicando}
-            className="gap-2"
-          >
-            {aplicando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-            Aplicar regras agora
-          </Button>
-          <Button
-            onClick={() => setEditando({ ...VAZIO })}
-            className="bg-admin hover:bg-admin/90 text-admin-foreground gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Nova regra
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        titulo="Regras Automáticas — Extrato"
+        icone={Filter}
+        estado="Padrões aplicados sobre movimentações abertas para classificação automática."
+        acoes={
+          <>
+            <Button
+              variant="outline"
+              onClick={aplicarRegras}
+              disabled={aplicando}
+              className="gap-2"
+            >
+              {aplicando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+              Aplicar regras agora
+            </Button>
+            <Button
+              onClick={() => setEditando({ ...VAZIO })}
+              className="bg-admin hover:bg-admin/90 text-admin-foreground gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Nova regra
+            </Button>
+          </>
+        }
+      />
 
       <Card>
         <CardContent className="p-0">

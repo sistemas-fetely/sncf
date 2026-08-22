@@ -1,4 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -231,17 +232,11 @@ export default function RecebimentosConciliar() {
 
   return (
     <PageShell>
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight flex items-center gap-2">
-            <ArrowDownToLine className="h-6 w-6 text-admin" />
-            Conciliação de recebimento
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Em que nível de prova está cada recebimento, pedido por pedido — e o extrato sem dono do lado.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        titulo="Conciliação de recebimento"
+        icone={ArrowDownToLine}
+        estado="Em que nível de prova está cada recebimento, pedido por pedido — e o extrato sem dono do lado."
+      />
 
       <Tabs defaultValue="por_pedido" className="space-y-4">
         <TabsList>
