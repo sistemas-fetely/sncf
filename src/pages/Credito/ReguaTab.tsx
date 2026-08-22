@@ -204,15 +204,19 @@ function CardTitulo({
   const ultima = (titulo as any)._mesa?.etapa_ultima_em as string | null | undefined;
   const vencimento = mesa?.vencimento ?? titulo.data_vencimento_atual ?? null;
   const atraso = titulo.dias_atraso ?? 0;
+  const vencido = atraso > 0;
   return (
     <div
       className={cn(
         "rounded-md border bg-card p-3 space-y-2",
-        acaoAtrasada && "border-destructive/60 ring-1 ring-destructive/30 bg-destructive/5",
+        acaoAtrasada && vencido && "border-destructive/60 ring-1 ring-destructive/30 bg-destructive/5",
       )}
     >
       {acaoAtrasada && (
-        <div className="flex items-center gap-1 text-[10px] font-medium text-destructive">
+        <div className={cn(
+          "flex items-center gap-1 text-[10px] font-medium",
+          vencido ? "text-destructive" : "text-muted-foreground"
+        )}>
           <AlertTriangle className="h-3 w-3" />
           Ação da régua atrasada
           {proxima && <span className="font-normal">· prevista para {String(proxima).slice(0, 10).split("-").reverse().join("/")}</span>}
