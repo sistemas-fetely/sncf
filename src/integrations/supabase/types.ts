@@ -43014,6 +43014,159 @@ export type Database = {
         }
         Relationships: []
       }
+      xpm_arquivo_fase_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          observacao: string | null
+          ordem: number
+          rotulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          observacao?: string | null
+          ordem: number
+          rotulo: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          observacao?: string | null
+          ordem?: number
+          rotulo?: string
+        }
+        Relationships: []
+      }
+      xpm_arquivo_fase_evento: {
+        Row: {
+          arquivo_gerado_em: string | null
+          arquivo_numero_envio: string | null
+          conferidoem: string | null
+          criado_em: string
+          criado_por: string | null
+          expedicao_codigo_resolvido: string | null
+          fase_codigo: string
+          faturadoem: string | null
+          id: string
+          importadoem: string | null
+          pedido_referencia: string
+          separadoem: string | null
+          statusnf_bruto: string
+        }
+        Insert: {
+          arquivo_gerado_em?: string | null
+          arquivo_numero_envio?: string | null
+          conferidoem?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          expedicao_codigo_resolvido?: string | null
+          fase_codigo: string
+          faturadoem?: string | null
+          id?: string
+          importadoem?: string | null
+          pedido_referencia: string
+          separadoem?: string | null
+          statusnf_bruto: string
+        }
+        Update: {
+          arquivo_gerado_em?: string | null
+          arquivo_numero_envio?: string | null
+          conferidoem?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          expedicao_codigo_resolvido?: string | null
+          fase_codigo?: string
+          faturadoem?: string | null
+          id?: string
+          importadoem?: string | null
+          pedido_referencia?: string
+          separadoem?: string | null
+          statusnf_bruto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xpm_arquivo_fase_evento_expedicao_codigo_resolvido_fkey"
+            columns: ["expedicao_codigo_resolvido"]
+            isOneToOne: false
+            referencedRelation: "vw_embalagem_calibracao"
+            referencedColumns: ["expedicao_codigo"]
+          },
+          {
+            foreignKeyName: "xpm_arquivo_fase_evento_expedicao_codigo_resolvido_fkey"
+            columns: ["expedicao_codigo_resolvido"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_b2c"
+            referencedColumns: ["xpm_codigo"]
+          },
+          {
+            foreignKeyName: "xpm_arquivo_fase_evento_expedicao_codigo_resolvido_fkey"
+            columns: ["expedicao_codigo_resolvido"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_b2c_pedido"
+            referencedColumns: ["xpm_codigo"]
+          },
+          {
+            foreignKeyName: "xpm_arquivo_fase_evento_expedicao_codigo_resolvido_fkey"
+            columns: ["expedicao_codigo_resolvido"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_ciclo"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "xpm_arquivo_fase_evento_expedicao_codigo_resolvido_fkey"
+            columns: ["expedicao_codigo_resolvido"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_divergencia_estagio"
+            referencedColumns: ["expedicao_codigo"]
+          },
+          {
+            foreignKeyName: "xpm_arquivo_fase_evento_expedicao_codigo_resolvido_fkey"
+            columns: ["expedicao_codigo_resolvido"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "xpm_arquivo_fase_evento_expedicao_codigo_resolvido_fkey"
+            columns: ["expedicao_codigo_resolvido"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_expedicao_b2c"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "xpm_arquivo_fase_evento_expedicao_codigo_resolvido_fkey"
+            columns: ["expedicao_codigo_resolvido"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_expedicao_sem_ponte"
+            referencedColumns: ["expedicao_codigo"]
+          },
+          {
+            foreignKeyName: "xpm_arquivo_fase_evento_expedicao_codigo_resolvido_fkey"
+            columns: ["expedicao_codigo_resolvido"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_risco_atraso"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "xpm_arquivo_fase_evento_expedicao_codigo_resolvido_fkey"
+            columns: ["expedicao_codigo_resolvido"]
+            isOneToOne: false
+            referencedRelation: "xpm_expedicao"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "xpm_arquivo_fase_evento_fase_codigo_fkey"
+            columns: ["fase_codigo"]
+            isOneToOne: false
+            referencedRelation: "xpm_arquivo_fase_dim"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
       xpm_envios_log: {
         Row: {
           duracao_ms: number | null
@@ -64959,6 +65112,112 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_xpm_arquivo_fase_atual: {
+        Row: {
+          arquivo_gerado_em: string | null
+          conferidoem: string | null
+          expedicao_codigo_resolvido: string | null
+          fase_codigo: string | null
+          fase_ordem: number | null
+          fase_rotulo: string | null
+          faturadoem: string | null
+          importadoem: string | null
+          observado_em: string | null
+          pedido_referencia: string | null
+          separadoem: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xpm_arquivo_fase_evento_expedicao_codigo_resolvido_fkey"
+            columns: ["expedicao_codigo_resolvido"]
+            isOneToOne: false
+            referencedRelation: "vw_embalagem_calibracao"
+            referencedColumns: ["expedicao_codigo"]
+          },
+          {
+            foreignKeyName: "xpm_arquivo_fase_evento_expedicao_codigo_resolvido_fkey"
+            columns: ["expedicao_codigo_resolvido"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_b2c"
+            referencedColumns: ["xpm_codigo"]
+          },
+          {
+            foreignKeyName: "xpm_arquivo_fase_evento_expedicao_codigo_resolvido_fkey"
+            columns: ["expedicao_codigo_resolvido"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_b2c_pedido"
+            referencedColumns: ["xpm_codigo"]
+          },
+          {
+            foreignKeyName: "xpm_arquivo_fase_evento_expedicao_codigo_resolvido_fkey"
+            columns: ["expedicao_codigo_resolvido"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_ciclo"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "xpm_arquivo_fase_evento_expedicao_codigo_resolvido_fkey"
+            columns: ["expedicao_codigo_resolvido"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_divergencia_estagio"
+            referencedColumns: ["expedicao_codigo"]
+          },
+          {
+            foreignKeyName: "xpm_arquivo_fase_evento_expedicao_codigo_resolvido_fkey"
+            columns: ["expedicao_codigo_resolvido"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "xpm_arquivo_fase_evento_expedicao_codigo_resolvido_fkey"
+            columns: ["expedicao_codigo_resolvido"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_expedicao_b2c"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "xpm_arquivo_fase_evento_expedicao_codigo_resolvido_fkey"
+            columns: ["expedicao_codigo_resolvido"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_expedicao_sem_ponte"
+            referencedColumns: ["expedicao_codigo"]
+          },
+          {
+            foreignKeyName: "xpm_arquivo_fase_evento_expedicao_codigo_resolvido_fkey"
+            columns: ["expedicao_codigo_resolvido"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_risco_atraso"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "xpm_arquivo_fase_evento_expedicao_codigo_resolvido_fkey"
+            columns: ["expedicao_codigo_resolvido"]
+            isOneToOne: false
+            referencedRelation: "xpm_expedicao"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "xpm_arquivo_fase_evento_fase_codigo_fkey"
+            columns: ["fase_codigo"]
+            isOneToOne: false
+            referencedRelation: "xpm_arquivo_fase_dim"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
+      vw_xpm_arquivo_retrocesso: {
+        Row: {
+          arquivo_anterior_em: string | null
+          arquivo_atual_em: string | null
+          ordem_anterior: number | null
+          ordem_atual: number | null
+          pedido_referencia: string | null
+          statusnf_anterior: string | null
+          statusnf_atual: string | null
+        }
+        Relationships: []
+      }
       vw_xpm_cad_item: {
         Row: {
           alocacao_parcial: boolean | null
@@ -66956,6 +67215,14 @@ export type Database = {
           severidade: string
           total: number
         }[]
+      }
+      fn_ingerir_fases_arquivo_xpm: {
+        Args: {
+          p_arquivo_gerado_em: string
+          p_arquivo_numero_envio?: string
+          p_linhas: Json
+        }
+        Returns: Json
       }
       fn_liquido_pedido: {
         Args: {
