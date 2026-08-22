@@ -4,7 +4,6 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/AdminSidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
-import { useTrackPageVisit } from "@/hooks/useTrackPageVisit";
 import { usePrefetchTelas } from "@/hooks/usePrefetchTelas";
 import { CommandPaletteProvider } from "@/components/navegacao/CommandPaletteProvider";
 
@@ -13,7 +12,6 @@ export default function AdminLayout() {
   const { user, roles, loading } = useAuth();
   const { pathname } = useLocation();
   const hideSidebar = pathname === "/admin/configuracoes" || pathname === "/admin/usuarios";
-  useTrackPageVisit();
   usePrefetchTelas();
 
   if (loading) {
