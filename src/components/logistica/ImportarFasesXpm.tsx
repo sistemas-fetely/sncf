@@ -449,9 +449,9 @@ export function ImportarFasesXpm() {
           )}
 
           {resultado.nao_resolvidos_na_xpm_expedicao.length > 0 && (
-            <div className="border border-warning/40 bg-warning/10 rounded-md p-3 text-sm space-y-1">
-              <p className="text-warning font-medium flex items-center gap-1.5">
-                <AlertTriangle className="h-4 w-4" /> {resultado.nao_resolvidos_na_xpm_expedicao.length} pedido(s) não resolvidos na expedição XPM
+            <div className="border border-border bg-muted/30 rounded-md p-3 text-sm space-y-1">
+              <p className="text-foreground font-medium flex items-center gap-1.5">
+                <AlertTriangle className="h-4 w-4 text-muted-foreground" /> {resultado.nao_resolvidos_na_xpm_expedicao.length} pedido(s) não resolvidos na expedição XPM
               </p>
               <p className="text-muted-foreground text-xs">
                 Gravados no log sem vínculo com <code>xpm_expedicao</code>.
