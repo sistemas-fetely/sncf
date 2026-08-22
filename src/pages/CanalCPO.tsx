@@ -8,6 +8,7 @@ import { MessageCircle, ArrowRight } from "lucide-react";
 import type { EstagioPedido } from "@/types/pedido";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { ESTAGIO_SELO } from "@/components/pedidos/BadgesPedido";
 
 const DATA_FMT = new Intl.DateTimeFormat("pt-BR", {
@@ -84,20 +85,18 @@ export default function CanalCPO() {
 
   return (
     <PageShell>
-      <div>
-        <div className="flex items-center gap-2">
-          <MessageCircle className="h-5 w-5" style={{ color: "#185FA5" }} />
-          <h1 className="text-xl font-medium">Central de Mensagens</h1>
-          {pendentes.length > 0 && (
+      <PageHeader
+        titulo="Central de Mensagens"
+        icone={MessageCircle}
+        estado="Mensagens do comercial aguardando resposta do SOPS · atualiza a cada 60s"
+        acoes={
+          pendentes.length > 0 && (
             <span className="text-xs px-2 py-0.5 rounded-full bg-info text-white">
               {pendentes.length}
             </span>
-          )}
-        </div>
-        <p className="text-sm text-muted-foreground mt-1">
-          Mensagens do comercial aguardando resposta do SOPS · atualiza a cada 60s
-        </p>
-      </div>
+          )
+        }
+      />
 
       <div className="flex gap-2">
         <button
