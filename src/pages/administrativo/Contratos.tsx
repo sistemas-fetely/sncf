@@ -644,7 +644,7 @@ export default function Contratos() {
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigate(`/administrativo-fetely/ged?pasta=${c.pasta_id}`);
+                            navigate(`/ti/ged?pasta=${c.pasta_id}`);
                           }}
                           title="Abrir no GED"
                           className="text-muted-foreground hover:text-muted-foreground"
@@ -868,7 +868,7 @@ function ContratoDetalheDrawer({
         <div className="flex justify-between gap-2 mt-6 pt-4 border-t">
           <Button
             variant="outline"
-            onClick={() => navigate(`/administrativo-fetely/ged?pasta=${contrato.pasta_id}`)}
+            onClick={() => navigate(`/ti/ged?pasta=${contrato.pasta_id}`)}
           >
             <FolderOpen className="h-4 w-4 mr-2" /> Ver no GED
           </Button>

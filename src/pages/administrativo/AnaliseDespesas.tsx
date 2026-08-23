@@ -601,7 +601,7 @@ export default function AnaliseDespesas() {
                     <span className="inline-flex items-center gap-1">
                       <AlertTriangle className="h-3 w-3 text-warning" />
                       {classifMes.naoClass} não classificada(s) —
-                      <Link to="/administrativo-fetely/nfs-stage" className="underline text-primary">revisar</Link>
+                      <Link to="/administrativo/nfs-stage" className="underline text-primary">revisar</Link>
                     </span>
                   ) : (
                     <span>Todas as linhas classificadas</span>
@@ -639,7 +639,7 @@ export default function AnaliseDespesas() {
                   style={{ width: `${Math.min(100, coberturaMes.pctValor)}%`, background: "#1A4A3A" }}
                 />
               </div>
-              <Button variant="outline" size="sm" onClick={() => navigate("/administrativo-fetely/conciliacao-despesas")}>
+              <Button variant="outline" size="sm" onClick={() => navigate("/administrativo/conciliacao-despesas")}>
                 Conciliar →
               </Button>
             </div>
@@ -859,7 +859,7 @@ export default function AnaliseDespesas() {
                     <AlertTriangle className="h-4 w-4" />
                     Não classificado no mês: <span className="font-medium tabular-nums">{formatBRL(totaisMes.nao_classificado)}</span>
                   </span>
-                  <Button variant="link" size="sm" onClick={() => navigate("/administrativo-fetely/nfs-stage")} className="h-auto p-0 text-warning">
+                  <Button variant="link" size="sm" onClick={() => navigate("/administrativo/nfs-stage")} className="h-auto p-0 text-warning">
                     Revisar em NFs Stage →
                   </Button>
                 </div>
@@ -1179,7 +1179,7 @@ export default function AnaliseDespesas() {
                   <span className="text-warning">
                     {classifMes.naoClass} não classificada{classifMes.naoClass > 1 ? "s" : ""} —
                   </span>
-                  <Link to="/administrativo-fetely/nfs-stage" className="ml-1 underline text-primary">
+                  <Link to="/administrativo/nfs-stage" className="ml-1 underline text-primary">
                     revisar
                   </Link>
                 </div>

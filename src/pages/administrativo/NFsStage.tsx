@@ -1136,7 +1136,7 @@ export default function NFsStage() {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => navigate("/administrativo-fetely/motor-classificacao")}
+                onClick={() => navigate("/administrativo/motor-classificacao")}
                 className="gap-2"
               >
                 <Gauge className="h-4 w-4" />
@@ -1730,7 +1730,7 @@ export default function NFsStage() {
                             variant="ghost"
                             size="sm"
                             className="h-7 gap-1 text-xs"
-                            onClick={() => navigate(`/administrativo-fetely/ged?pasta=${pastaIdPorParceiro.get(nf.parceiro_id!)}`)}
+                            onClick={() => navigate(`/ti/ged?pasta=${pastaIdPorParceiro.get(nf.parceiro_id!)}`)}
                           >
                             <FolderOpen className="h-3.5 w-3.5" />
                             Abrir
