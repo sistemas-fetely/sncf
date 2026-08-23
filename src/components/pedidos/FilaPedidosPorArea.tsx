@@ -1494,6 +1494,7 @@ function AcoesLinha({ p, temMsg, risco, nfInfo }: { p: PedidoFilaItem; temMsg: b
       )}
 
       {/* Secundárias */}
+      {/* CONTRATO DE NÍVEL: 1 vê · 2 edita · 3 aprova · 4 apaga · 5 lê sensível · 6 tudo. Item que ESCREVE ou EXPORTA dado exige nível 2. */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="h-8 w-8" title="Mais ações">
@@ -1511,10 +1512,12 @@ function AcoesLinha({ p, temMsg, risco, nfInfo }: { p: PedidoFilaItem; temMsg: b
               Mensagem pendente
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem onSelect={() => setMarcacaoOpen(true)}>
-            <Tag className="h-4 w-4 mr-2" />
-            Marcação
-          </DropdownMenuItem>
+          {temNivel(2) && (
+            <DropdownMenuItem onSelect={() => setMarcacaoOpen(true)}>
+              <Tag className="h-4 w-4 mr-2" />
+              Marcação
+            </DropdownMenuItem>
+          )}
           {podeDeclararUrgencia && (
             <DropdownMenuItem onSelect={abrirUrgencia}>
               <Flame className="h-4 w-4 mr-2" />
@@ -1543,10 +1546,12 @@ function AcoesLinha({ p, temMsg, risco, nfInfo }: { p: PedidoFilaItem; temMsg: b
             <FileSpreadsheet className="h-4 w-4 mr-2" />
             Cadastro
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => setExportarOpen(true)}>
-            <Download className="h-4 w-4 mr-2" />
-            Exportar pedido
-          </DropdownMenuItem>
+          {temNivel(2) && (
+            <DropdownMenuItem onSelect={() => setExportarOpen(true)}>
+              <Download className="h-4 w-4 mr-2" />
+              Exportar pedido
+            </DropdownMenuItem>
+          )}
           <BotaoSplitPedido
             pedido_id={p.id}
             id_externo={p.id_externo}
