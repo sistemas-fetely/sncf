@@ -50,7 +50,7 @@ export function usePrefetchTelas() {
       void import("@/pages/administrativo/FaturasCartao");
       void import("@/pages/administrativo/ImportarDados");
       void import("@/pages/Movimentacoes");
-      void import("@/pages/Recrutamento");
+      
       void import("@/pages/Ferias");
       void import("@/pages/Processos");
       void import("@/pages/DocumentacaoGeral");
