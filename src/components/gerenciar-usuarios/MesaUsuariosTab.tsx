@@ -234,7 +234,6 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
       toast.success("Papel concedido");
       setPapelDialog(null);
       setNovoPapel("");
-      setNovoEscopo("tudo");
       setValidoAte("");
     },
     onError: (e: Error) => toast.error(e.message),
