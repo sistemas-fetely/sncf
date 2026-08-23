@@ -597,8 +597,8 @@ export default function FalaFetely() {
       {/* Área principal */}
       <main className="flex-1 flex flex-col min-w-0">
         <header className="flex items-center justify-between p-4 border-b bg-white/40">
-          <Button variant="ghost" onClick={() => navigate("/sncf")} className="gap-1">
-            <ArrowLeft className="h-4 w-4" /> Voltar ao SNCF
+          <Button variant="ghost" onClick={() => navigate("/")} className="gap-1">
+            <ArrowLeft className="h-4 w-4" /> Voltar à Casa
           </Button>
           <div className="flex items-center gap-2">
             <div

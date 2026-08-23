@@ -127,7 +127,6 @@ export const CASA_APPS: CasaApp[] = [
       "/documentacao",
       "/processos",
       "/fala-fetely",
-      "/sncf",
     ],
     icon: BookOpen,
     tela_slug: "tela.sncf",

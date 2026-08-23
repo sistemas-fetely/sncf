@@ -18,8 +18,7 @@ export function usePrefetchTelas() {
 
     // ===== ONDA 1 (50ms): telas mais frequentes =====
     const onda1 = setTimeout(() => {
-      // Portal + transversais
-      void import("@/pages/PortalSNCF");
+      // Transversais (Portal SNCF desmontado em 23/08/2026 — a Casa assumiu)
       void import("@/pages/FalaFetely");
 
       // Financeiro/Administrativo (alto volume)

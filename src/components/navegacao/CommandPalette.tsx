@@ -28,7 +28,7 @@ interface PageItem {
 
 const ALL_PAGES: PageItem[] = [
   // SNCF
-  { rota: "/sncf", titulo: "Portal Uauuu", pilar: "sncf", icon: LayoutGrid, tags: ["portal", "home", "início"] },
+  
   { rota: "/tarefas", titulo: "Minhas Tarefas", pilar: "sncf", icon: ClipboardList, tags: ["tarefas", "pendências"] },
   { rota: "/tarefas/time", titulo: "Tarefas do Time", pilar: "sncf", icon: ClipboardList, tags: ["tarefas", "time", "equipe"] },
   { rota: "/processos", titulo: "Processos", pilar: "sncf", icon: Workflow, tags: ["processos", "mapeamento"] },

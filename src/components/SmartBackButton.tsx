@@ -18,7 +18,8 @@ interface Props {
  *   navigate('/destino', { state: { from: '/origem', fromLabel: 'Minhas Tarefas' } })
  */
 export function SmartBackButton({
-  fallback = "/sncf",
+  // DESMONTE-PORTAL-SNCF (23/08/2026): fallback era /sncf; a Casa (/) assumiu
+  fallback = "/",
   fallbackLabel = "Voltar",
   className = "",
 }: Props) {

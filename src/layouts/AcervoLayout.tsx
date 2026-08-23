@@ -5,9 +5,9 @@
  * no mesmo padrão dos outros pilares (MeuEspacoLayout/TILayout). A cor do
  * pilar (#1A4A3A) migrou da constante ACERVO_COLOR para a AcervoSidebar.
  *
- * Além das listagens, o layout também envolve o Portal SNCF (/sncf) e as
- * telas do Fala Fetely (/fala-fetely, /fala-fetely/conhecimento) — exceto
- * /fala-fetely/memorias, que é do Meu Espaço.
+ * Além das listagens, o layout também envolve as telas do Fala Fetely
+ * (/fala-fetely, /fala-fetely/conhecimento) — exceto /fala-fetely/memorias,
+ * que é do Meu Espaço. O Portal SNCF (/sncf) foi desmontado em 23/08/2026.
  */
 
 import { Suspense } from "react";

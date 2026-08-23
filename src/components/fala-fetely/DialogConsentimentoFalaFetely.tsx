@@ -108,7 +108,7 @@ export function DialogConsentimentoFalaFetely({ open, onAceite }: Props) {
         </div>
 
         <DialogFooter className="gap-2 sm:gap-2">
-          <Button variant="outline" onClick={() => navigate("/sncf")} disabled={salvando}>
+          <Button variant="outline" onClick={() => navigate("/")} disabled={salvando}>
             Agora não
           </Button>
           <Button onClick={aceitar} disabled={!todasMarcadas || salvando}>
