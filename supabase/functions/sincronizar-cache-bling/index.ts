@@ -4,7 +4,7 @@ import { ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
 const json = (status: number, body: unknown) =>
