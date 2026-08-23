@@ -80,6 +80,8 @@ import { MigrarOportunidadeDialog } from "@/components/comercial/MigrarOportunid
 import { RetomarOportunidadeDialog } from "@/components/comercial/RetomarOportunidadeDialog";
 
 import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
+import { useNivel } from "@/hooks/useNivel";
+import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { useAuth } from "@/contexts/AuthContext";
 
 
@@ -281,6 +283,7 @@ function ParcelasTab({ pedidoId }: { pedidoId: string }) {
   const { data: familia, isLoading: loadFamilia, isError: errFamilia } = useRecebivelFamilia(pedidoId);
   const { data: eixos } = useTituloEixosPedido(pedidoId);
   const { data: dimEixos } = useTituloEixosDim();
+  const { temNivel } = useNivel();
   const [convertendo, setConvertendo] = useState<{ id: string; numero: string; valor: number } | null>(null);
   if (isLoading) return <Skeleton className="h-48 w-full" />;
   if (!titulos || titulos.length === 0) {
@@ -325,7 +328,7 @@ function ParcelasTab({ pedidoId }: { pedidoId: string }) {
                 <TableCell className="text-sm">{TIPO_LABEL[t.tipo_pagamento]}</TableCell>
                 <TableCell>
                   <BadgeEstadoParcela titulo={t} eixos={eixos} dim={dimEixos} />
-                  {(t.status === "pago" || t.status === "pago_com_atraso") && (
+                  {(t.status === "pago" || t.status === "pago_com_atraso") && temNivel(3) && (
                     <button
                       onClick={() => setConvertendo({
                         id: t.id,
@@ -348,7 +351,7 @@ function ParcelasTab({ pedidoId }: { pedidoId: string }) {
         <span className="font-medium">{fmtBRL.format(total)}</span>
       </div>
 
-      {convertendo && (
+      {convertendo && temNivel(3) && (
         <ConverterTituloHaverDialog
           open={!!convertendo}
           onOpenChange={(v) => !v && setConvertendo(null)}
@@ -374,6 +377,8 @@ const ESTAGIOS_BLOQUEIAM_MIGRAR = new Set([
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function BotaoMigrarComercial({ pedido }: { pedido: any }) {
   const [open, setOpen] = useState(false);
+  const { temNivel } = useNivel();
+  if (!temNivel(3)) return null;
   if (ESTAGIOS_BLOQUEIAM_MIGRAR.has(pedido.estagio)) return null;
   return (
     <>
@@ -401,6 +406,8 @@ function BotaoMigrarComercial({ pedido }: { pedido: any }) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function BotaoRetomarOportunidade({ pedido }: { pedido: any }) {
   const [open, setOpen] = useState(false);
+  const { temNivel } = useNivel();
+  if (!temNivel(3)) return null;
   return (
     <>
       <Button
@@ -426,6 +433,8 @@ function BotaoRetomarOportunidade({ pedido }: { pedido: any }) {
 
 function AcoesPedidoPreFaturado({ pedido, parceiro }: { pedido: any; parceiro: any }) {
   const [reverterOpen, setReverterOpen] = useState(false);
+  const { temNivel } = useNivel();
+  if (!temNivel(3)) return null;
   return (
     <div className="space-y-2">
       <Button
@@ -449,6 +458,8 @@ function AcoesPedidoPreFaturado({ pedido, parceiro }: { pedido: any; parceiro: a
 
 function BotaoEmailCobrancaPedido({ pedido_id, parceiro_id }: { pedido_id: string; parceiro_id: string }) {
   const [open, setOpen] = useState(false);
+  const { temNivel } = useNivel();
+  if (!temNivel(2)) return null;
   return (
     <>
       <Button size="sm" variant="outline" className="w-full gap-1.5" onClick={() => setOpen(true)}>
@@ -466,7 +477,9 @@ function BotaoEmailCobrancaPedido({ pedido_id, parceiro_id }: { pedido_id: strin
 
 function BotaoEmailNfFaturado({ pedido }: { pedido: any }) {
   const [open, setOpen] = useState(false);
+  const { temNivel } = useNivel();
   const enviado = pedido.nf_email_enviado_em as string | null | undefined;
+  if (!temNivel(2)) return null;
 
   if (enviado) {
     return (
@@ -513,8 +526,10 @@ function BotaoEmailNfFaturado({ pedido }: { pedido: any }) {
 
 function BotaoEmailNfBoletos({ pedido }: { pedido: any }) {
   const [open, setOpen] = useState(false);
+  const { temNivel } = useNivel();
   const { data: boletosInfo, isLoading } = useBoletosDoPedido(pedido.id);
   const enviado = pedido.nf_email_enviado_em as string | null | undefined;
+  if (!temNivel(2)) return null;
 
   const qtdTotal = boletosInfo?.qtdTotal ?? 0;
   const qtdRegistrados = boletosInfo?.qtdRegistrados ?? 0;
@@ -706,6 +721,7 @@ function BotaoSplitPedidoInline({ pedido, estagio }: { pedido: any; estagio: str
 function AcaoDescerPreSeparacao({ pedido, estagio }: { pedido: any; estagio: EstagioPedido }) {
   const transicionar = useTransicionarPedido();
   const [splitOpen, setSplitOpen] = useState(false);
+  const { permitido: podeLiberarSemProva } = usePermissaoAcao("acao.liberar_sem_prova");
   const falta = transicionar.faltaLastro;
 
   return (
@@ -723,19 +739,21 @@ function AcaoDescerPreSeparacao({ pedido, estagio }: { pedido: any; estagio: Est
         Descer para pré-separação
       </Button>
 
-      <ForcarSemLastroDialog
-        open={!!falta}
-        onOpenChange={(v) => { if (!v) transicionar.limparFaltaLastro(); }}
-        faltantes={falta?.faltantes ?? []}
-        isPending={transicionar.isPending}
-        onDividirRemessa={() => setSplitOpen(true)}
-        onForcar={(motivo) => {
-          transicionar.mutate(
-            { pedido_id: pedido.id, para_estagio: "pre_separacao", motivo },
-            { onSuccess: () => transicionar.limparFaltaLastro() },
-          );
-        }}
-      />
+      {podeLiberarSemProva && (
+        <ForcarSemLastroDialog
+          open={!!falta}
+          onOpenChange={(v) => { if (!v) transicionar.limparFaltaLastro(); }}
+          faltantes={falta?.faltantes ?? []}
+          isPending={transicionar.isPending}
+          onDividirRemessa={() => setSplitOpen(true)}
+          onForcar={(motivo) => {
+            transicionar.mutate(
+              { pedido_id: pedido.id, para_estagio: "pre_separacao", motivo },
+              { onSuccess: () => transicionar.limparFaltaLastro() },
+            );
+          }}
+        />
+      )}
 
       <SplitPedidoDialog
         open={splitOpen}
@@ -779,9 +797,10 @@ function AcoesPedidoFaturado({ pedido }: { pedido: any }) {
 
 function AcaoPrimaria({ pedido, parceiro, estagio, geraTituloReceber }: { pedido: any; parceiro: any; estagio: EstagioPedido; geraTituloReceber: boolean }) {
   const navigate = useNavigate();
-  if (estagio === "recebido") return (
+  const { temNivel } = useNivel();
+  if (estagio === "recebido") return temNivel(3) ? (
     <TriarPedidoDialog pedido_id={pedido.id} perfil_credito={parceiro?.perfil_credito} estagio_atual={estagio} forma_solicitada={pedido.forma_solicitada} triggerLabel="Encaminhar pedido" triggerVariant="default" />
-  );
+  ) : null;
   if (estagio === "cobranca") return (
     <AcoesPedidoCobranca pedido={pedido} parceiro={parceiro} />
   );
@@ -819,6 +838,7 @@ function AcaoPrimaria({ pedido, parceiro, estagio, geraTituloReceber }: { pedido
  */
 function AcoesAguardandoPagamento({ pedido }: { pedido: any; geraTituloReceber?: boolean }) {
   const { data: plano } = usePlanoAbertoPedido(pedido.id);
+  const { temNivel } = useNivel();
 
   const cartao = (plano ?? []).filter((l) => (l.tipo_pagamento ?? "").toLowerCase() === "cartao");
   const linhaALinha = (plano ?? []).filter((l) =>
@@ -838,21 +858,21 @@ function AcoesAguardandoPagamento({ pedido }: { pedido: any; geraTituloReceber?:
 
   return (
     <div className="flex flex-col gap-2 w-full">
-      {cartao.length > 0 && (
+      {temNivel(3) && cartao.length > 0 && (
         <ConfirmarCartaoCapturadoDialog
           pedidoId={pedido.id}
           parcelasAbertas={cartao.length}
           valorAberto={cartao.reduce((acc, l) => acc + Number(l.valor ?? 0), 0)}
         />
       )}
-      {linhaALinha.length > 0 && (
+      {temNivel(3) && linhaALinha.length > 0 && (
         <ConfirmarPortaoPagoDialog
           pedido_id={pedido.id}
           meios={["pix", "boleto"]}
           faltaLabel={cartao.length ? resumoMeios(cartao) : null}
         />
       )}
-      {!cartao.length && !linhaALinha.length && (
+      {temNivel(3) && !cartao.length && !linhaALinha.length && (
         <ConfirmarPortaoPagoDialog pedido_id={pedido.id} />
       )}
     </div>
@@ -1025,6 +1045,8 @@ function EnviarParaSeparacaoAcao({ pedidoId }: { pedidoId: string }) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function BotaoConsolidarPedido({ pedido, qtdTitulosAtivos }: { pedido: any; qtdTitulosAtivos: number }) {
   const [open, setOpen] = useState(false);
+  const { temNivel } = useNivel();
+  if (!temNivel(2)) return null;
   return (
     <>
       <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={() => setOpen(true)}>
@@ -1051,6 +1073,8 @@ function BotaoConsolidarPedido({ pedido, qtdTitulosAtivos }: { pedido: any; qtdT
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function BotaoReterEstoque({ pedido }: { pedido: any }) {
   const [open, setOpen] = useState(false);
+  const { temNivel } = useNivel();
+  if (!temNivel(2)) return null;
   return (
     <>
       <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={() => setOpen(true)}>
@@ -1108,6 +1132,9 @@ export default function PedidoDetalhe() {
   const { user } = useAuth();
   const { roles: authRoles } = useAuth();
   const isSuperAdmin = (authRoles ?? []).includes("super_admin");
+  const { temNivel } = useNivel();
+  const { permitido: podeCancelarPedido } = usePermissaoAcao("acao.cancelar_pedido");
+  const { permitido: podeLiberarSemProva } = usePermissaoAcao("acao.liberar_sem_prova");
 
   const parceiroIdAtual = data?.pedido?.parceiro_id as string | undefined;
 
@@ -1652,20 +1679,22 @@ export default function PedidoDetalhe() {
         </div>
       )}
 
-      <AlterarNaturezaDialog
-        open={naturezaDialogOpen}
-        onOpenChange={(v) => {
-          setNaturezaDialogOpen(v);
-          if (!v) setNaturezaSugerida(null);
-        }}
-        pedidoId={naturezaRefPedidoId}
-        pedidoFilhoId={naturezaRefPedidoId !== pedido.id ? pedido.id : undefined}
-        ehRemessaFilha={naturezaRefPedidoId !== pedido.id}
-        codigoAtual={natureza?.codigo ?? null}
-        codigoSugerido={naturezaSugerida}
-        focarMotivo={!!naturezaSugerida}
+      {temNivel(3) && (
+        <AlterarNaturezaDialog
+          open={naturezaDialogOpen}
+          onOpenChange={(v) => {
+            setNaturezaDialogOpen(v);
+            if (!v) setNaturezaSugerida(null);
+          }}
+          pedidoId={naturezaRefPedidoId}
+          pedidoFilhoId={naturezaRefPedidoId !== pedido.id ? pedido.id : undefined}
+          ehRemessaFilha={naturezaRefPedidoId !== pedido.id}
+          codigoAtual={natureza?.codigo ?? null}
+          codigoSugerido={naturezaSugerida}
+          focarMotivo={!!naturezaSugerida}
 
-      />
+        />
+      )}
 
       {/* Canal único de alerta operacional: achados vivos da auditoria. */}
       <AlertasPedidoPanel pedidoId={pedido.id} />
@@ -2184,21 +2213,23 @@ export default function PedidoDetalhe() {
                     {salvarDadosEnvio.isPending ? (<><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</>) : ("Salvar")}
                   </Button>
 
-                  <CompararTransportadorasDialog
-                    open={compararOpen}
-                    onOpenChange={setCompararOpen}
-                    isLoading={freteComparativo.isFetching}
-                    data={freteComparativo.data}
-                    valorAtual={parseFloat(valorFrete) || 0}
-                    onEscolher={(opcao) => {
-                      if (opcao.transportadora_id) setTransportadoraId(opcao.transportadora_id);
-                      setCompararOpen(false);
-                      toast({
-                        title: `${opcao.transportadora_nome} selecionada`,
-                        description: `Estimativa de custo ${(opcao.valor_estimado ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} · o valor cobrado do cliente não foi alterado. Confirme em Salvar.`,
-                      });
-                    }}
-                  />
+                  {temNivel(2) && (
+                    <CompararTransportadorasDialog
+                      open={compararOpen}
+                      onOpenChange={setCompararOpen}
+                      isLoading={freteComparativo.isFetching}
+                      data={freteComparativo.data}
+                      valorAtual={parseFloat(valorFrete) || 0}
+                      onEscolher={(opcao) => {
+                        if (opcao.transportadora_id) setTransportadoraId(opcao.transportadora_id);
+                        setCompararOpen(false);
+                        toast({
+                          title: `${opcao.transportadora_nome} selecionada`,
+                          description: `Estimativa de custo ${(opcao.valor_estimado ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} · o valor cobrado do cliente não foi alterado. Confirme em Salvar.`,
+                        });
+                      }}
+                    />
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -2700,16 +2731,18 @@ export default function PedidoDetalhe() {
                     Itens do pedido
                     <span className="text-xs font-normal text-muted-foreground">{itens.length} {itens.length === 1 ? "item" : "itens"}</span>
                   </CardTitle>
-                  <EditarItensDialog
-                    pedidoId={pedido.id}
-                    estagioAtual={estagio}
-                    itensAtuais={itens.map((i: any) => ({
-                      sku: i.sku,
-                      descricao: i.descricao,
-                      quantidade: i.quantidade,
-                      valor_unitario: i.valor_unitario,
-                    }))}
-                  />
+                  {temNivel(2) && (
+                    <EditarItensDialog
+                      pedidoId={pedido.id}
+                      estagioAtual={estagio}
+                      itensAtuais={itens.map((i: any) => ({
+                        sku: i.sku,
+                        descricao: i.descricao,
+                        quantidade: i.quantidade,
+                        valor_unitario: i.valor_unitario,
+                      }))}
+                    />
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
@@ -2732,10 +2765,11 @@ export default function PedidoDetalhe() {
         {(estagio === "entregue" || !estagioFinal) && (
           <aside className="order-first lg:order-none px-6 py-5 lg:w-72 lg:shrink-0 lg:pl-5 lg:border-l lg:border-border/60 lg:sticky lg:top-4 lg:self-start">
             <div className="space-y-3">
+              {/* CONTRATO DE NÍVEL: 1 vê · 2 edita · 3 aprova · 4 apaga · 5 lê sensível · 6 tudo. Ato excepcional (cancelar, forçar, declarar por terceiro) usa AÇÃO NOMEADA, não nível. */}
               {!estagioFinal && (
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Ações</p>
               )}
-              <BotaoEditarPedido pedido={pedido} itens={itens} />
+              {temNivel(2) && <BotaoEditarPedido pedido={pedido} itens={itens} />}
               <div className="border-t border-border/40" />
               {!estagioFinal && (
                 <AcaoPrimaria pedido={pedido} parceiro={parceiro} estagio={estagio} geraTituloReceber={geraTituloReceber} />
@@ -2772,7 +2806,7 @@ export default function PedidoDetalhe() {
                   gera_titulo_receber={geraTituloReceber}
                 />
               )}
-              <ExportarPedidoDialog pedidoId={pedido.id} />
+              {temNivel(2) && <ExportarPedidoDialog pedidoId={pedido.id} />}
 
               {geraTituloReceber ? (
                 <LinkPagamentoCard pedido={pedido} titulos={titulosData ?? []} />
@@ -2781,7 +2815,7 @@ export default function PedidoDetalhe() {
                   Natureza de operação sem cobrança{natureza?.nome ? ` · ${natureza.nome}` : ""}.
                 </p>
               )}
-              {!estagioFinal && !(pedido as any).atencao_nivel && (
+              {!estagioFinal && !(pedido as any).atencao_nivel && temNivel(2) && (
                 <AtencaoPedidoDialog pedidoId={pedido.id}>
                   <Button variant="outline" size="sm" className="w-full gap-2">
                     <PauseCircle className="h-4 w-4" />
@@ -2795,7 +2829,7 @@ export default function PedidoDetalhe() {
               {!estagioFinal && (
                 <BotaoMigrarComercial pedido={pedido} />
               )}
-              {!estagioFinal && (
+              {!estagioFinal && podeCancelarPedido && (
                 <div className="pt-3 mt-1 border-t border-border/40">
                   <CancelarPedidoDialog
                     pedido_id={pedido.id}
@@ -2813,8 +2847,8 @@ export default function PedidoDetalhe() {
                   consolidado_em_pedido_id={(pedido as any).consolidado_em_pedido_id ?? null}
                   pedido_origem_id={pedido.pedido_origem_id ?? null}
                   acoesBling={(() => {
-                    // Ação de exceção: só super_admin, só antes de faturar, e só se houver vínculo vivo.
-                    if (!isSuperAdmin) return null;
+                    // Ação de exceção: só gerente+ (nível 4), só antes de faturar, e só se houver vínculo vivo.
+                    if (!temNivel(4)) return null;
                     if (!["pre_separacao", "em_separacao"].includes(estagio)) return null;
                     const remessas = (remessasData ?? []) as any[];
                     if ((pedido as any).nf_numero) return null;
@@ -2868,7 +2902,7 @@ export default function PedidoDetalhe() {
         )}
       </div>
 
-      {pedido && (
+      {pedido && temNivel(3) && (
         <AplicarHaverPedidoDialog
           open={aplicarHaverOpen}
           onOpenChange={setAplicarHaverOpen}
