@@ -631,19 +631,8 @@ const App = () => (
                   Administração (zona restrita: super_admin + admin_rh)
                   ═══════════════════════════════════════════════ */}
               <Route path="/admin" element={<AdminLayout />}>
-                <Route index element={<Navigate to="/admin/cargos" replace />} />
-                <Route path="cargos" element={
-                  <ProtectedRoute><Cargos /></ProtectedRoute>
-                } />
-                <Route path="cargos/novo" element={
-                  <ProtectedRoute><CargoForm /></ProtectedRoute>
-                } />
-                <Route path="cargos/enriquecimento" element={
-                  <ProtectedRoute><CargosEnriquecimento /></ProtectedRoute>
-                } />
-                <Route path="cargos/:id" element={
-                  <ProtectedRoute><CargoForm /></ProtectedRoute>
-                } />
+                {/* Cargos migrou para /pessoas/cargos (CARGOS-MORA-EM-PESSOAS, 23/08/2026) */}
+                <Route index element={<Navigate to="/admin/usuarios" replace />} />
                 <Route path="parametros" element={
                   <ProtectedRoute><Parametros /></ProtectedRoute>
                 } />
