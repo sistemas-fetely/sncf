@@ -171,6 +171,19 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
     },
   });
 
+  const { data: niveisConcediveis = [] } = useQuery({
+    queryKey: ["niveis-concediveis"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vw_nivel_resumo")
+        .select("nivel, rotulo, papel")
+        .eq("legado", false)
+        .order("nivel");
+      if (error) throw error;
+      return (data || []) as { nivel: number; rotulo: string; papel: string }[];
+    },
+  });
+
   const { data: vinculosLivres = [] } = useQuery({
     queryKey: ["mesa-vinculos-livres"],
     enabled: !!vinculoDialog,
