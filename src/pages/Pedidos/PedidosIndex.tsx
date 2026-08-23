@@ -74,7 +74,9 @@ export default function PedidosIndex() {
       <Tabs value={aba} onValueChange={setAba} className="space-y-4">
         <TabsList>
           <TabsTrigger value="fila">Fila</TabsTrigger>
-          <TabsTrigger value="dash">Dash</TabsTrigger>
+          <AbaPermitida slug="tela.dash_pedidos">
+            <TabsTrigger value="dash">Dash</TabsTrigger>
+          </AbaPermitida>
           {/* Separador: à esquerda, duas leituras da carteira ativa;
               à direita, salas separadas. */}
           <div className="w-px bg-border mx-1.5 self-stretch" aria-hidden />
@@ -119,7 +121,9 @@ export default function PedidosIndex() {
         </TabsContent>
 
         <TabsContent value="dash">
-          <PainelDashPedidos />
+          <ConteudoAba slug="tela.dash_pedidos">
+            <PainelDashPedidos />
+          </ConteudoAba>
         </TabsContent>
 
         <TabsContent value="recuperacao">
