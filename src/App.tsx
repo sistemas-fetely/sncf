@@ -136,7 +136,8 @@ const NFsStage = lazy(() => import("@/pages/administrativo/NFsStage"));
 const MotorClassificacao = lazy(() => import("@/pages/administrativo/MotorClassificacao"));
 const FaturasCartao = lazy(() => import("@/pages/administrativo/FaturasCartao"));
 
-const FluxoCaixaFuturo = lazy(() => import("@/pages/administrativo/FluxoCaixaFuturo"));
+// DESMONTE-PROJECOES (23/08/2026): FluxoCaixaFuturo, FluxoFuturoInvestimento e
+// InvestimentoLancamento removidos — absorvidos pela classificação de despesa.
 const PrevisaoRecebimentos = lazy(() => import("@/pages/administrativo/PrevisaoRecebimentos"));
 const Compromissos = lazy(() => import("@/pages/administrativo/Compromissos"));
 const DocumentosPendentes = lazy(() => import("@/pages/administrativo/DocumentosPendentes"));
@@ -155,8 +156,6 @@ const ExtratoConta = lazy(() => import("@/pages/administrativo/ExtratoConta"));
 const Conciliacao = lazy(() => import("@/pages/administrativo/Conciliacao"));
 const RegrasOFX = lazy(() => import("@/pages/administrativo/RegrasOFX"));
 const DashboardFinanceiro = lazy(() => import("@/pages/administrativo/DashboardFinanceiro"));
-const InvestimentoLancamento = lazy(() => import("@/pages/administrativo/InvestimentoLancamento"));
-const FluxoFuturoInvestimento = lazy(() => import("@/pages/administrativo/FluxoFuturoInvestimento"));
 const ExtratoImportacao = lazy(() => import("@/pages/administrativo/ExtratoImportacao"));
 const ExtratoInbox = lazy(() => import("@/pages/administrativo/ExtratoInbox"));
 const RegrasInbox = lazy(() => import("@/pages/administrativo/RegrasInbox"));
@@ -676,7 +675,6 @@ const App = () => (
                 <Route index element={<DashboardFinanceiro />} />
                 <Route path="analise-despesas" element={<AnaliseDespesas />} />
                 <Route path="plano-contas" element={<PlanoDeContas />} />
-                <Route path="investimento-lancamento" element={<InvestimentoLancamento />} />
 
                 <Route path="fluxo-caixa" element={<FluxoCaixa />} />
                 <Route path="contas-pagar" element={<ContasPagar />} />
@@ -707,9 +705,7 @@ const App = () => (
 
                 <Route path="faturas-cartao" element={<FaturasCartao />} />
                 
-                <Route path="fluxo-futuro" element={<FluxoCaixaFuturo />} />
                 <Route path="previsao-recebimentos" element={<PrevisaoRecebimentos />} />
-                <Route path="fluxo-futuro-investimento" element={<FluxoFuturoInvestimento />} />
                 <Route path="compromissos" element={<Compromissos />} />
                 <Route path="configuracao-integracao" element={<ConfiguracaoIntegracao />} />
                 {/* MIGRADOS na Sprint 2 (29/04/2026) → Administrativo Fetely:

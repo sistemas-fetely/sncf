@@ -21,9 +21,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -402,29 +400,6 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
               <SelectContent>
                 {centros.map((c) => (
                   <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Linha de investimento (opcional)</Label>
-            <Select
-              value={linhaInvId || "none"}
-              onValueChange={(v) => setLinhaInvId(v === "none" ? "" : v)}
-              disabled={!podeEditar}
-            >
-              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-              <SelectContent className="max-h-[400px]">
-                <SelectItem value="none">—</SelectItem>
-                {linhasAgrupadas.map((grupo) => (
-                  <SelectGroup key={grupo.tema_id}>
-                    <SelectLabel className="text-xs uppercase tracking-wider text-muted-foreground">
-                      {grupo.tema_nome}
-                    </SelectLabel>
-                    {grupo.linhas.map((l) => (
-                      <SelectItem key={l.id} value={l.id} className="pl-6">{l.descricao}</SelectItem>
-                    ))}
-                  </SelectGroup>
                 ))}
               </SelectContent>
             </Select>
