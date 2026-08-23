@@ -35,6 +35,7 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
   const sync = useSyncContato();
   const { roles } = useAuth();
   const isSuperAdmin = (roles ?? []).includes("super_admin");
+  const { permitido: podeDeclararCancelamentoXpm } = usePermissaoAcao("acao.declarar_cancelamento_xpm");
 
   const { data: parceiroBling, refetch: recheckBling } = useQuery({
     queryKey: ["parceiro-bling-check", parceiro_id],
