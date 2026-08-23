@@ -31,7 +31,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { roles, signOut } = useAuth();
+  const { signOut } = useAuth();
   const { grupos, isLoading: carregandoMenu } = useMenuApp("pessoas");
 
   const isItemActive = (url: string) => location.pathname === url;

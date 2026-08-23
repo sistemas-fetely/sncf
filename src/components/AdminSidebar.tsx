@@ -18,7 +18,6 @@ const ADMIN_COLOR = "#1A4A3A";
 export function AdminSidebar() {
   const location = useLocation();
   const { state } = useSidebar();
-  const { roles } = useAuth();
   const collapsed = state === "collapsed";
 
   // MENU-VIA-TABELA (21/08/2026): grupos, itens, rotulos, icones e ordem vem
