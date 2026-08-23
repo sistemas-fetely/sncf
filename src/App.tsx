@@ -139,7 +139,8 @@ const FaturasCartao = lazy(() => import("@/pages/administrativo/FaturasCartao"))
 // DESMONTE-PROJECOES (23/08/2026): FluxoCaixaFuturo, FluxoFuturoInvestimento e
 // InvestimentoLancamento removidos — absorvidos pela classificação de despesa.
 const PrevisaoRecebimentos = lazy(() => import("@/pages/administrativo/PrevisaoRecebimentos"));
-const Compromissos = lazy(() => import("@/pages/administrativo/Compromissos"));
+// Compromissos removido — DESMONTE-CONTRATOS-RECORRENTES (23/08/2026):
+// gestão de títulos vive na Cobrança.
 const DocumentosPendentes = lazy(() => import("@/pages/administrativo/DocumentosPendentes"));
 const AdminContratos = lazy(() => import("@/pages/administrativo/Contratos"));
 const AdminImoveis = lazy(() => import("@/pages/administrativo/Imoveis"));
@@ -706,7 +707,7 @@ const App = () => (
                 <Route path="faturas-cartao" element={<FaturasCartao />} />
                 
                 <Route path="previsao-recebimentos" element={<PrevisaoRecebimentos />} />
-                <Route path="compromissos" element={<Compromissos />} />
+                {/* compromissos removido — DESMONTE-CONTRATOS-RECORRENTES (23/08/2026) */}
                 <Route path="configuracao-integracao" element={<ConfiguracaoIntegracao />} />
                 {/* MIGRADOS na Sprint 2 (29/04/2026) → Administrativo Fetely:
                     pedidos, produtos, contratos, imoveis, seguros, ged.
@@ -759,6 +760,8 @@ const App = () => (
             <Route path="/administrativo/fluxo-futuro" element={<Navigate to="/administrativo/fluxo-caixa" replace />} />
             <Route path="/administrativo/fluxo-futuro-investimento" element={<Navigate to="/administrativo/fluxo-caixa" replace />} />
             <Route path="/administrativo/investimento-lancamento" element={<Navigate to="/administrativo/despesas" replace />} />
+            {/* DESMONTE-CONTRATOS-RECORRENTES (23/08/2026): gestão de títulos vive na Cobrança */}
+            <Route path="/administrativo/compromissos" element={<Navigate to="/administrativo/contas-pagar" replace />} />
             <Route path="/vendas/produtos" element={<Navigate to="/vendas/produto" replace />} />
             <Route path="/vendas/produto/estoque" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
             <Route path="/logistica/analise-custo" element={<Navigate to="/logistica" replace />} />
