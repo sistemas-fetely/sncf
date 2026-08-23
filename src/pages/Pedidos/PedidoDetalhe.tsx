@@ -720,6 +720,7 @@ function BotaoSplitPedidoInline({ pedido, estagio }: { pedido: any; estagio: str
 function AcaoDescerPreSeparacao({ pedido, estagio }: { pedido: any; estagio: EstagioPedido }) {
   const transicionar = useTransicionarPedido();
   const [splitOpen, setSplitOpen] = useState(false);
+  const { permitido: podeLiberarSemProva } = usePermissaoAcao("acao.liberar_sem_prova");
   const falta = transicionar.faltaLastro;
 
   return (
