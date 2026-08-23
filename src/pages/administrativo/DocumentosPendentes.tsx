@@ -340,7 +340,7 @@ export default function DocumentosPendentes() {
   const [remessaParaDesfazer, setRemessaParaDesfazer] = useState<Remessa | null>(null);
   const [contaParaBuscar, setContaParaBuscar] = useState<ContaItem | null>(null);
 
-  // Reseta seleção ao trocar de abaAtual
+  // Reseta seleção ao trocar de aba
   function trocarAba(nova: Aba) {
     setAba(nova);
     setSelecionadas(new Set());
@@ -810,7 +810,7 @@ export default function DocumentosPendentes() {
                             <ItemLinha
                               key={c.plano_contas_id}
                               conta={c}
-                              abaAtual={abaAtual}
+                              aba={abaAtual}
                               isSelected={selecionadas.has(c.plano_contas_id)}
                               onToggleSelecao={() => toggleSelecao(c.plano_contas_id)}
                               onAbrirDrawer={(id) => setContaIdDrawer(id)}
