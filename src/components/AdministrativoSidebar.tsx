@@ -5,14 +5,14 @@
  * Seguros, GED) vem da sncf_navegacao (app "patrimonio") via useMenuApp.
  * Mudar esse menu passa a ser UPDATE, sem deploy.
  *
- * "Documentos" (NFs em Stage, Importar Dados, Motor de Classificação,
- * Documentos Pendentes) continua HARDCODED de propósito: essas 4 telas
- * pertencem ao app "financas" na tabela (grupo fin.entrada_docs), não a
- * Patrimônio — é atalho cross-app, mesmo padrão do link de Tarefas em toda
- * sidebar já migrada. A tabela não modela "atalho" (débito conhecido desde
- * 01/08). Migrar via useMenuApp("patrimonio") faria essas 4 telas sumirem
- * daqui sem reaparecer em nenhum outro menu.
+ * Em 23/08/2026 o grupo "Documentos" (NFs em Stage, Importar Dados, Motor de
+ * Classificação, Documentos Pendentes) foi movido na sncf_navegacao de
+ * `financas` para `patrimonio` — as 4 rotas sempre viveram sob
+ * /administrativo-fetely. Antes disso apareciam nos DOIS menus: aqui por
+ * hardcode, e em Finanças pela tabela. Agora vêm só da tabela, como o resto.
+ * A permissão segue `tela.fin_documentos`: menu é lugar, permissão é quem pode.
  */
+
 
 import { Building2, ShieldCheck, FileSignature, FolderArchive, Landmark, Upload, Layers, FileWarning, Filter } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
