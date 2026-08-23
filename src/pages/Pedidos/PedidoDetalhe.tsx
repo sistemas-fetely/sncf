@@ -2025,7 +2025,7 @@ export default function PedidoDetalhe() {
                 <CardContent className="space-y-3">
                   <div className="space-y-1.5">
                     <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Transportadora</label>
-                    <Select value={transportadoraId || "__none__"} onValueChange={(v) => setTransportadoraId(v === "__none__" ? "" : v)}>
+                    <Select value={transportadoraId || "__none__"} onValueChange={(v) => setTransportadoraId(v === "__none__" ? "" : v)} disabled={!temNivel(2)}>
                       <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__none__">— Nenhuma —</SelectItem>
