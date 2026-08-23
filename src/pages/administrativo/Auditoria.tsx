@@ -8,7 +8,7 @@
  * Fontes: vw_auditoria_achado (aba Achados) e vw_auditoria_painel (aba Painel).
  * Escrita SEMPRE por RPC — nunca UPDATE direto no achado.
  */
-import { useState } from "react";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PageShell } from "@/components/layout/PageShell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,7 +18,7 @@ import { useExecucoesAuditoria } from "@/hooks/auditoria/useAuditoria";
 import { ShieldAlert } from "lucide-react";
 
 export default function Auditoria() {
-  const [aba, setAba] = useState("achados");
+  const [aba, setAba] = useAbaUrl("achados");
   const [regraFiltro, setRegraFiltro] = useState<string | null>(null);
   const execucoes = useExecucoesAuditoria();
   const ultimaExecucaoEm = execucoes.data?.[0]?.iniciado_em ?? null;

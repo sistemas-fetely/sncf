@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, Briefcase } from "lucide-react";
 import { FeriasCLTView } from "@/components/ferias/FeriasCLTView";
@@ -15,6 +16,7 @@ export default function Ferias() {
   const showPJ = true;
 
   const defaultTab = showCLT ? "clt" : "pj";
+  const [aba, setAba] = useAbaUrl(defaultTab);
 
   return (
     <PageShell>
@@ -23,7 +25,7 @@ export default function Ferias() {
         estado="Controle de períodos aquisitivos, programação e recessos"
       />
 
-      <Tabs defaultValue={defaultTab} className="w-full">
+      <Tabs value={aba} onValueChange={setAba} className="w-full">
         <TabsList>
           {showCLT && (
             <TabsTrigger value="clt" className="gap-1.5">
