@@ -408,14 +408,96 @@ function AdicionarUsuarioDialog({
 }
 
 // =====================================================
-// Sessão: Permissões do grupo (agrupadas por pilar)
+// Sessão: Permissões do grupo (agrupadas por app do menu)
 // =====================================================
 
+interface CatalogoAppRow {
+  permissao_id: string;
+  slug: string;
+  tipo: "tela" | "ficha" | "processo";
+  nome_exibicao: string;
+  app_chave: string;
+  app_label: string;
+  app_ordem: number;
+  telas_cobertas: number;
+  telas_lista: string | null;
+}
+
+interface SecaoApp {
+  app_chave: string;
+  app_label: string;
+  app_ordem: number;
+  itens: CatalogoAppRow[];
+}
+
+function useCatalogoPorApp() {
+  return useQuery({
+    queryKey: ["permissoes-catalogo"],
+    queryFn: async (): Promise<CatalogoAppRow[]> => {
+      const { data, error } = await supabase
+        .from("vw_catalogo_por_app")
+        .select("permissao_id, slug, tipo, nome_exibicao, app_chave, app_label, app_ordem, telas_cobertas, telas_lista");
+      if (error) throw error;
+      return (data || [])
+        .filter((r) => r.permissao_id && r.app_chave)
+        .map((r) => ({
+          permissao_id: r.permissao_id!,
+          slug: r.slug ?? "",
+          tipo: (r.tipo ?? "tela") as CatalogoAppRow["tipo"],
+          nome_exibicao: r.nome_exibicao ?? r.slug ?? "",
+          app_chave: r.app_chave!,
+          app_label: r.app_label ?? r.app_chave!,
+          app_ordem: r.app_ordem ?? 9999,
+          telas_cobertas: r.telas_cobertas ?? 0,
+          telas_lista: r.telas_lista,
+        }));
+    },
+  });
+}
+
+// "Liberar tudo" da seção: recebe os itens da seção (calculados no client a
+// partir do agrupamento) e insere apenas os permissao_id ainda não concedidos.
+function useLiberarSecao() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      grupoId,
+      itens,
+      jaConcedidas,
+    }: {
+      grupoId: string;
+      itens: CatalogoAppRow[];
+      jaConcedidas: Set<string>;
+    }) => {
+      const novas = itens.filter((p) => !jaConcedidas.has(p.permissao_id));
+      if (!novas.length) return;
+      const rows = novas.map((p) => ({
+        grupo_acesso_id: grupoId,
+        permissao_id: p.permissao_id,
+        pode_ver: true,
+        pode_criar: p.tipo === "ficha",
+        pode_editar: p.tipo === "ficha",
+        pode_apagar: p.tipo === "ficha",
+      }));
+      const { error } = await supabase
+        .from("grupo_acesso_permissoes")
+        .insert(rows);
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["grupo-permissoes", vars.grupoId] });
+      queryClient.invalidateQueries({ queryKey: ["grupos-acesso-v2"] });
+      toast.success("Pilar liberado");
+    },
+    onError: (e: Error) => toast.error(`Erro: ${e.message}`),
+  });
+}
+
 function PermissoesDoGrupo({ grupoId }: { grupoId: string }) {
-  const { data: catalogo = [], isLoading: cl } = usePermissoesCatalogo();
+  const { data: catalogo = [], isLoading: cl } = useCatalogoPorApp();
   const { data: permsGrupo = [], isLoading: gl } = usePermissoesDoGrupo(grupoId);
   const toggle = useTogglePermissao();
-  const liberarPilar = useLiberarPilar();
+  const liberarSecao = useLiberarSecao();
 
   // Index permissões do grupo por permissao_id
   const grupoPermsMap = useMemo(() => {
@@ -424,14 +506,26 @@ function PermissoesDoGrupo({ grupoId }: { grupoId: string }) {
     return m;
   }, [permsGrupo]);
 
-  // Catálogo agrupado por pilar
-  const catalogoPorPilar = useMemo(() => {
-    const m: Record<string, PermissaoCatalogo[]> = {};
+  // Catálogo agrupado por app (hierarquia real do menu), ordenado por
+  // app_ordem; dentro de cada seção, por nome_exibicao.
+  const secoes = useMemo<SecaoApp[]>(() => {
+    const m = new Map<string, SecaoApp>();
     catalogo.forEach((p) => {
-      if (!m[p.pilar]) m[p.pilar] = [];
-      m[p.pilar].push(p);
+      if (!m.has(p.app_chave)) {
+        m.set(p.app_chave, {
+          app_chave: p.app_chave,
+          app_label: p.app_label,
+          app_ordem: p.app_ordem,
+          itens: [],
+        });
+      }
+      m.get(p.app_chave)!.itens.push(p);
     });
-    return m;
+    const arr = Array.from(m.values()).sort((a, b) => a.app_ordem - b.app_ordem);
+    arr.forEach((s) =>
+      s.itens.sort((a, b) => a.nome_exibicao.localeCompare(b.nome_exibicao, "pt-BR"))
+    );
+    return arr;
   }, [catalogo]);
 
   if (cl || gl) {
@@ -452,21 +546,26 @@ function PermissoesDoGrupo({ grupoId }: { grupoId: string }) {
           O que pode acessar
         </CardTitle>
         <p className="text-xs text-muted-foreground mt-1">
-          Marque por pilar. Telas têm só "Ver". Fichas têm Ver / Criar / Editar / Apagar.
+          Marque por módulo. Telas têm só "Ver". Fichas têm Ver / Criar / Editar / Apagar.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        {Object.entries(catalogoPorPilar).map(([pilar, perms]) => (
-          <PilarBloco
-            key={pilar}
-            pilar={pilar}
-            permissoes={perms}
+        {secoes.map((secao) => (
+          <SecaoBloco
+            key={secao.app_chave}
+            secao={secao}
             grupoPermsMap={grupoPermsMap}
             onToggle={(permissaoId, campo, valor) =>
               toggle.mutate({ grupoId, permissaoId, campo, valor })
             }
-            onLiberarTudo={() => liberarPilar.mutate({ grupoId, pilar })}
-            disabled={toggle.isPending || liberarPilar.isPending}
+            onLiberarTudo={() =>
+              liberarSecao.mutate({
+                grupoId,
+                itens: secao.itens,
+                jaConcedidas: new Set(grupoPermsMap.keys()),
+              })
+            }
+            disabled={toggle.isPending || liberarSecao.isPending}
           />
         ))}
       </CardContent>
@@ -474,19 +573,21 @@ function PermissoesDoGrupo({ grupoId }: { grupoId: string }) {
   );
 }
 
-function PilarBloco({
-  pilar, permissoes, grupoPermsMap, onToggle, onLiberarTudo, disabled,
+function SecaoBloco({
+  secao, grupoPermsMap, onToggle, onLiberarTudo, disabled,
 }: {
-  pilar: string;
-  permissoes: PermissaoCatalogo[];
+  secao: SecaoApp;
   grupoPermsMap: Map<string, { pode_ver: boolean; pode_criar: boolean; pode_editar: boolean; pode_apagar: boolean }>;
   onToggle: (permissaoId: string, campo: "pode_ver" | "pode_criar" | "pode_editar" | "pode_apagar", valor: boolean) => void;
   onLiberarTudo: () => void;
   disabled?: boolean;
 }) {
   const [aberto, setAberto] = useState(false);
-  const cor = PILAR_CORES[pilar] || "#666";
-  const liberadas = permissoes.filter((p) => grupoPermsMap.get(p.id)?.pode_ver).length;
+  const permissoes = secao.itens;
+  const cor = corDoApp(secao.app_chave);
+  const liberadas = permissoes.filter((p) => grupoPermsMap.get(p.permissao_id)?.pode_ver).length;
+  const subtituloReserva = SUBTITULO_SECAO_RESERVA[secao.app_ordem];
+  const atenuado = !!subtituloReserva;
 
   return (
     <div className="border rounded-lg overflow-hidden">
