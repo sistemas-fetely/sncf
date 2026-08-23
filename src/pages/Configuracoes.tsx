@@ -4,18 +4,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Search,
-  SlidersHorizontal,
-  Users,
-  Shield,
   Briefcase,
   FileBarChart,
-  FileText,
   ChevronRight,
-  Eye,
   FolderTree,
   Wand2,
   Filter,
-  Timer,
 } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -30,24 +24,16 @@ interface ConfigItem {
 }
 
 const ITENS: ConfigItem[] = [
-  // Acessos
-  { value: "usuarios", label: "Usuários", description: "Gerenciar usuários do sistema", icon: Users, path: "/admin/usuarios", secao: "Acessos" },
-  { value: "perfis", label: "Perfis de Acesso", description: "Permissões por perfil e módulo", icon: Shield, path: "/admin/usuarios/perfis", secao: "Acessos" },
-  { value: "cargos", label: "Cargos", description: "Cargos e estrutura de função", icon: Briefcase, path: "/pessoas/cargos", secao: "Acessos" },
-  { value: "visibilidade", label: "Visibilidade", description: "O que cada perfil enxerga em cada tela", icon: Eye, path: "/admin/visibilidade", secao: "Acessos" },
+  // Pessoas
+  { value: "cargos", label: "Cargos", description: "Cargos e estrutura de função", icon: Briefcase, path: "/pessoas/cargos", secao: "Pessoas" },
 
-  // Cadastros
-  { value: "parametros", label: "Parâmetros", description: "Listas de cadastro: áreas, departamentos, sistemas, benefícios, unidades e empresas", icon: SlidersHorizontal, path: "/admin/parametros", secao: "Cadastros" },
-  { value: "plano-contas", label: "Plano de Contas", description: "Estrutura contábil de receitas e despesas", icon: FolderTree, path: "/administrativo/plano-contas", secao: "Cadastros" },
+  // Financeiro
+  { value: "plano-contas", label: "Plano de Contas", description: "Estrutura contábil de receitas e despesas", icon: FolderTree, path: "/administrativo/plano-contas", secao: "Financeiro" },
+  { value: "regras-ofx", label: "Regras de OFX", description: "Classificação automática de lançamentos do extrato", icon: Wand2, path: "/administrativo/regras-ofx", secao: "Financeiro" },
+  { value: "extrato-regras", label: "Regras do Inbox", description: "Tratamento automático de entradas do extrato", icon: Filter, path: "/administrativo/extrato-regras", secao: "Financeiro" },
 
-  // Regras
-  { value: "regras-ofx", label: "Regras de OFX", description: "Classificação automática de lançamentos do extrato", icon: Wand2, path: "/administrativo/regras-ofx", secao: "Regras" },
-  { value: "extrato-regras", label: "Regras do Inbox", description: "Tratamento automático de entradas do extrato", icon: Filter, path: "/administrativo/extrato-regras", secao: "Regras" },
-  { value: "sla", label: "SLA da Operação", description: "Prazos e limiares da operação: XPM, fases do pedido, frete e vigilância", icon: Timer, path: "/admin/sla", secao: "Regras" },
-
-  // Sistema
-  { value: "reportes", label: "Reportes do Sistema", description: "Logs e relatórios técnicos", icon: FileBarChart, path: "/ti/reportes", secao: "Sistema" },
-  { value: "importacoes", label: "Importações PDF", description: "Histórico de importações de documentos", icon: FileText, path: "/admin/importacoes-pdf", secao: "Sistema" },
+  // TI
+  { value: "reportes", label: "Reportes do Sistema", description: "Logs e relatórios técnicos", icon: FileBarChart, path: "/ti/reportes", secao: "TI" },
 ];
 
 export default function Configuracoes() {
