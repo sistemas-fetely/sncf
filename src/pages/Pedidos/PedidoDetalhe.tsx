@@ -432,6 +432,8 @@ function BotaoRetomarOportunidade({ pedido }: { pedido: any }) {
 
 function AcoesPedidoPreFaturado({ pedido, parceiro }: { pedido: any; parceiro: any }) {
   const [reverterOpen, setReverterOpen] = useState(false);
+  const { temNivel } = useNivel();
+  if (!temNivel(3)) return null;
   return (
     <div className="space-y-2">
       <Button
