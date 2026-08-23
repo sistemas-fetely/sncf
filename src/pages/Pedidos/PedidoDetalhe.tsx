@@ -2787,7 +2787,7 @@ export default function PedidoDetalhe() {
                   Natureza de operação sem cobrança{natureza?.nome ? ` · ${natureza.nome}` : ""}.
                 </p>
               )}
-              {!estagioFinal && !(pedido as any).atencao_nivel && (
+              {!estagioFinal && !(pedido as any).atencao_nivel && temNivel(2) && (
                 <AtencaoPedidoDialog pedidoId={pedido.id}>
                   <Button variant="outline" size="sm" className="w-full gap-2">
                     <PauseCircle className="h-4 w-4" />
