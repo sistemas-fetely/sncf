@@ -508,6 +508,7 @@ export default function GerenciarUsuarios() {
         <TabsList>
           <TabsTrigger value="usuarios" className="gap-2"><Users className="h-4 w-4" /> Usuários</TabsTrigger>
           <TabsTrigger value="grupos" className="gap-2"><ShieldCheck className="h-4 w-4" /> Grupos de Acesso</TabsTrigger>
+          <TabsTrigger value="papeis" className="gap-2"><Shield className="h-4 w-4" /> Papéis</TabsTrigger>
           {podeAuditarAcesso && (
             <TabsTrigger value="fantasmas" className="gap-2">
               <Ghost className="h-4 w-4" /> Contas sem perfil
