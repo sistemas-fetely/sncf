@@ -11,7 +11,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { type EstagioPedido } from "@/types/pedido";
 import { SolicitacoesSopsAba } from "@/components/pedidos/SolicitacoesSopsAba";
 import { useContagemSolicitacoes } from "@/hooks/pedidos/useSolicitacoesComercial";
-import { useNivel } from "@/hooks/useNivel";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AbaPermitida, ConteudoAba } from "@/components/AbaGate";
 
@@ -31,7 +30,7 @@ export default function PedidosIndex() {
   const aba: Aba = ABAS.includes(abaParam as Aba) ? (abaParam as Aba) : "fila";
   const [incluirCancelados, setIncluirCancelados] = useState(false);
   const [riscoAltoAtivo, setRiscoAltoAtivo] = useState(false);
-  const { temNivel } = useNivel();
+
 
   // FONTE-UNICA: o contador da aba le a MESMA view que a tabela da Mesa Comercial.
   const { data: qtdMesaComercial = 0 } = useQuery({
@@ -71,8 +70,8 @@ export default function PedidosIndex() {
 
   return (
     <PageShell>
-      {/* Exportação em MASSA: leva a base para fora do sistema. Nível 2 (Operador) para cima. */}
-      <PageHeader titulo="Casa dos Pedidos" acoes={temNivel(2) ? <ExportarPedidosButton /> : undefined} />
+      {/* Exportação leva a base para fora: nível 3 (Coordenador) para cima — o componente se autoprotege. */}
+      <PageHeader titulo="Casa dos Pedidos" acoes={<ExportarPedidosButton />} />
 
       <Tabs value={aba} onValueChange={setAba} className="space-y-4">
         <TabsList>
