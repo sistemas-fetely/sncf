@@ -51,7 +51,7 @@ export function AnaliseDetalheEntrada({ analiseId }: Props) {
     <div className="space-y-6">
       {/* Header */}
       <div className="space-y-3">
-        <Button variant="ghost" size="sm" className="gap-2 -ml-2" onClick={() => navigate("/credito?tab=entrada")}>
+        <Button variant="ghost" size="sm" className="gap-2 -ml-2" onClick={() => navigate("/credito?aba=entrada")}>
           <ArrowLeft className="h-4 w-4" />
           Fila (Entrada)
         </Button>

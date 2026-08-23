@@ -103,7 +103,7 @@ export function AnaliseDetalheDecisao({ analiseId }: Props) {
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
-          { label: "Crédito", to: "/credito?tab=decisao" },
+          { label: "Crédito", to: "/credito?aba=decisao" },
           { label: razao },
         ]}
         title={razao}

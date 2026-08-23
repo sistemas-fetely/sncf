@@ -392,7 +392,7 @@ function UsageBadge({ count }: { count: number | undefined }) {
 /* ── Main page ── */
 export default function Parametros() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const modulo = searchParams.get("modulo") || "geral";
+  const modulo = searchParams.get("aba") || searchParams.get("modulo") || "geral";
   const { roles: authRoles } = useAuth();
   const isSuperAdmin = (authRoles ?? []).includes("super_admin");
 
@@ -409,7 +409,7 @@ export default function Parametros() {
   const [searchTerm, setSearchTerm] = useState("");
 
   const handleModuloChange = (value: string) => {
-    setSearchParams({ modulo: value });
+    setSearchParams({ aba: value });
     setSearchTerm("");
   };
 
