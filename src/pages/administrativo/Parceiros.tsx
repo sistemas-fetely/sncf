@@ -45,6 +45,7 @@ import { ParceiroFormSheet, Parceiro } from "@/components/financeiro/ParceiroFor
 import { CategoriaOption } from "@/components/financeiro/CategoriaCombobox";
 import { GruposLista } from "@/components/financeiro/GruposLista";
 import { useGruposEmpresariais } from "@/hooks/useGruposEmpresariais";
+import { useNivel } from "@/hooks/useNivel";
 
 const TIPO_BADGE: Record<string, string> = {
   fornecedor: "bg-[#8B1A2F] text-white hover:bg-[#8B1A2F]",
@@ -101,6 +102,7 @@ export default function Parceiros() {
   });
   const [filtroIncompleto, setFiltroIncompleto] = useState<"sem_categoria" | "sem_meio_pgto" | "sem_centro_custo" | null>(null);
   const queryClient = useQueryClient();
+  const { temNivel } = useNivel();
 
   useEffect(() => {
     if (!abrirParceiroId) return;
@@ -402,16 +404,19 @@ export default function Parceiros() {
         acoes={
           tabAtiva !== "grupos" && (
             <>
-              <Button
-                variant="outline"
-                onClick={handleExportar}
-                className="gap-2"
-                disabled={isLoading || !filtered.length}
-                title="Exporta os parceiros filtrados para Excel"
-              >
-                <Download className="h-4 w-4" />
-                Exportar Excel
-              </Button>
+              {/* Exportação em MASSA: leva a base para fora do sistema. Nível 2 (Operador) para cima. */}
+              {temNivel(2) && (
+                <Button
+                  variant="outline"
+                  onClick={handleExportar}
+                  className="gap-2"
+                  disabled={isLoading || !filtered.length}
+                  title="Exporta os parceiros filtrados para Excel"
+                >
+                  <Download className="h-4 w-4" />
+                  Exportar Excel
+                </Button>
+              )}
               <Button
                 variant="outline"
                 onClick={handleImportarClick}

@@ -26,6 +26,7 @@ import {
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissoesDoUsuario, temPermissaoTela } from "@/hooks/usePermissoesDoUsuario";
+import { useNivel } from "@/hooks/useNivel";
 
 /**
  * Casa do B2C — mesma linguagem da Casa dos Pedidos, regras do canal loja.
@@ -69,6 +70,7 @@ export default function ShopifyB2c() {
   // marketing, separado de operar a fila de pedidos.
   const { roles } = useAuth();
   const { data: permitidas } = usePermissoesDoUsuario();
+  const { temNivel } = useNivel();
   const podeVerCarrinhos =
     (roles ?? []).includes("super_admin") ||
     temPermissaoTela("tela.b2c_carrinhos", permitidas);
@@ -156,7 +158,8 @@ export default function ShopifyB2c() {
         breadcrumb={[{ label: "Vendas" }, { label: "Loja B2C" }]}
         title="Loja · B2C"
         subtitle="Pedidos da loja Shopify. Pagamento vem resolvido na porta — o funil aqui é faturar, expedir, rastrear e entregar."
-        actions={<ExportarB2cButton linhas={filtrados} />}
+        // Exportação em MASSA: leva a base para fora do sistema. Nível 2 (Operador) para cima.
+        actions={temNivel(2) ? <ExportarB2cButton linhas={filtrados} /> : undefined}
       />
 
         <Tabs value={aba} onValueChange={setAba} className="space-y-4">
