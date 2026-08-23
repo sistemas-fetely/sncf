@@ -454,7 +454,7 @@ function useCatalogoPorApp() {
     queryFn: async (): Promise<CatalogoAppRow[]> => {
       const { data, error } = await supabase
         .from("vw_catalogo_por_app")
-        .select("permissao_id, slug, tipo, nome_exibicao, app_chave, app_label, app_ordem, submenu_chave, submenu_label, submenu_ordem, ordem_menu, item_chave, item_label, eh_aba, fora_do_menu, descricao, telas_cobertas, telas_lista, contem_dado_sensivel, feature_em_teste");
+        .select("permissao_id, slug, tipo, nome_exibicao, app_chave, app_label, app_ordem, submenu_chave, submenu_label, submenu_ordem, ordem_menu, item_chave, item_label, eh_aba, fora_do_menu, descricao, telas_cobertas, telas_lista, contem_dado_sensivel, feature_em_teste, filhas_herdadas");
       if (error) throw error;
       return (data || [])
         .filter((r) => r.permissao_id && r.app_chave)
@@ -479,6 +479,9 @@ function useCatalogoPorApp() {
           telas_lista: r.telas_lista,
           contem_dado_sensivel: r.contem_dado_sensivel ?? false,
           feature_em_teste: r.feature_em_teste ?? false,
+          filhas_herdadas: Array.isArray(r.filhas_herdadas)
+            ? (r.filhas_herdadas as unknown as CatalogoAppRow["filhas_herdadas"])
+            : null,
         }));
     },
   });
