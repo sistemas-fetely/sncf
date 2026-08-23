@@ -151,7 +151,7 @@ export default function ImportarDados() {
                 )}
               </div>
               <Link
-                to="/administrativo/configuracao-integracao"
+                to="/ti/integracoes"
                 className="inline-flex items-center gap-1.5 text-xs text-admin hover:underline"
               >
                 <Settings2 className="h-3.5 w-3.5" />

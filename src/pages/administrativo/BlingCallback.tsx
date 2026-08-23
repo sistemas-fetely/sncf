@@ -42,7 +42,7 @@ export default function BlingCallback() {
       } catch (e: any) {
         toast.error("Falha: " + (e?.message || String(e)));
       } finally {
-        navigate("/administrativo/configuracao-integracao", { replace: true });
+        navigate("/ti/integracoes", { replace: true });
       }
     })();
   }, [loading, user, params, navigate]);
