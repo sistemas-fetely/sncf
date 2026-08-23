@@ -15,34 +15,37 @@ import {
 } from "@/components/ui/select";
 import { Plus, Users, ShieldCheck, Trash2, Lock, FileText, Layers, Loader2, ChevronRight, ArrowLeft, Sparkles } from "lucide-react";
 import {
-  useGruposAcessoV2, usePermissoesCatalogo, usePermissoesDoGrupo,
+  useGruposAcessoV2, usePermissoesDoGrupo,
   useUsuariosDoGrupo, useCriarGrupo, useDeletarGrupo, useTogglePermissao,
-  useLiberarPilar, useAdicionarUsuarioAoGrupo, useRemoverUsuarioDoGrupo,
-  type GrupoAcesso, type PermissaoCatalogo,
+  useAdicionarUsuarioAoGrupo, useRemoverUsuarioDoGrupo,
+  type GrupoAcesso,
 } from "@/hooks/useGruposAcessoV2";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-const PILAR_LABELS: Record<string, string> = {
-  portal: "Portal",
-  people: "People Fetely",
-  financeiro: "Financeiro Fetely",
-  administrativo: "Administrativo Fetely",
-  ti: "TI Fetely",
-  produto: "Produto Fetely",
-  "gestao-vista": "Gestão à Vista",
-  "adm-sncf": "ADM SNCF",
-};
+// CATALOGO-HERDA-NAVEGACAO (23/08/2026): o agrupamento do catálogo passa a ser
+// a hierarquia real do menu (app de sncf_navegacao), via vw_catalogo_por_app.
+// A cor da seção é derivada do app_chave por hash — estável entre renders,
+// sem mapa hardcoded de pilar.
+const PALETA_APPS = [
+  "#1A4A3A", "#6B5B45", "#3A7D6B", "#C77CA0", "#2C5F7C",
+  "#8A6FBF", "#B25E4B", "#4E7C2C", "#9C7A1F", "#5B6B8C",
+];
 
-const PILAR_CORES: Record<string, string> = {
-  portal: "#1A4A3A",
-  people: "#1A4A3A",
-  financeiro: "#1A4A3A",
-  administrativo: "#6B5B45",
-  ti: "#3A7D6B",
-  produto: "#C77CA0",
-  "gestao-vista": "#2C5F7C",
-  "adm-sncf": "#1A4A3A",
+function corDoApp(appChave: string): string {
+  let h = 0;
+  for (let i = 0; i < appChave.length; i++) {
+    h = (h * 31 + appChave.charCodeAt(i)) >>> 0;
+  }
+  return PALETA_APPS[h % PALETA_APPS.length];
+}
+
+// Seções-reserva da view (app_ordem 9998/9999) renderizam por último,
+// com visual atenuado e subtítulo explicativo.
+const SUBTITULO_SECAO_RESERVA: Record<number, string> = {
+  9998: "Permissões de ação, não de tela",
+  9999: "Sem tela cabeada — legado ou reserva",
 };
 
 export default function GruposAcessoTabV2() {
