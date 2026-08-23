@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { useFluxoCompetencia, type CicloTituloRow } from "@/hooks/financas/useFluxoCompetencia";
+import { useNivel } from "@/hooks/useNivel";
 
 const fmtBRL = (v: number | null | undefined) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v ?? 0));
@@ -192,6 +193,7 @@ function QuebraTipos({ linhas }: { linhas: CicloTituloRow[] }) {
 
 export default function FluxoCompetencia() {
   const navigate = useNavigate();
+  const { temNivel } = useNivel();
   const { data = [], isLoading, isError, error } = useFluxoCompetencia();
 
   const [mes, setMes] = useState<string>("");
@@ -684,9 +686,12 @@ export default function FluxoCompetencia() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Mês a mês — competência, caixa e previsto</CardTitle>
-          <Button variant="outline" size="sm" onClick={exportarMensal}>
-            <Download className="mr-2 h-4 w-4" /> XLSX
-          </Button>
+          {/* Exportação leva a base para fora: nível 3 (Coordenador) para cima. */}
+          {temNivel(3) && (
+            <Button variant="outline" size="sm" onClick={exportarMensal}>
+              <Download className="mr-2 h-4 w-4" /> XLSX
+            </Button>
+          )}
         </CardHeader>
         <CardContent className="space-y-6">
           <p className="text-sm">
@@ -807,13 +812,16 @@ export default function FluxoCompetencia() {
             >
               Por título
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={visao === "pedido" ? exportarPedidos : exportarTitulos}
-            >
-              <Download className="mr-2 h-4 w-4" /> XLSX
-            </Button>
+            {/* Exportação leva a base para fora: nível 3 (Coordenador) para cima. */}
+            {temNivel(3) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={visao === "pedido" ? exportarPedidos : exportarTitulos}
+              >
+                <Download className="mr-2 h-4 w-4" /> XLSX
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
