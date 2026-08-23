@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { type EstagioPedido } from "@/types/pedido";
 import { SolicitacoesSopsAba } from "@/components/pedidos/SolicitacoesSopsAba";
 import { useContagemSolicitacoes } from "@/hooks/pedidos/useSolicitacoesComercial";
+import { useNivel } from "@/hooks/useNivel";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AbaPermitida, ConteudoAba } from "@/components/AbaGate";
 
