@@ -1,9 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Accordion,
@@ -20,16 +21,32 @@ interface AlcanceLinha {
   sensivel: boolean;
 }
 
-interface PapelResumo {
+interface NivelResumo {
+  nivel: number;
+  rotulo: string;
   papel: string;
+  descricao: string;
+  legado: boolean;
   usuarios: number;
   tabelas: number;
   escreve: number;
   sensiveis: number;
-  linhas: AlcanceLinha[];
 }
 
 export default function PapeisTab() {
+  const [mostrarLegados, setMostrarLegados] = useState(false);
+
+  const { data: niveis = [], isLoading: loadingNiveis, error: erroNiveis } = useQuery({
+    queryKey: ["nivel-resumo"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vw_nivel_resumo")
+        .select("nivel, rotulo, papel, descricao, legado, usuarios, tabelas, escreve, sensiveis");
+      if (error) throw error;
+      return (data || []) as NivelResumo[];
+    },
+  });
+
   const { data: alcance = [], isLoading: loadingAlcance, error: erroAlcance } = useQuery({
     queryKey: ["papel-alcance"],
     queryFn: async () => {
@@ -41,62 +58,33 @@ export default function PapeisTab() {
     },
   });
 
-  const { data: usuariosPapel = [], isLoading: loadingUsuarios, error: erroUsuarios } = useQuery({
-    queryKey: ["papel-usuarios"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role, user_id")
-        .is("revogado_em", null);
-      if (error) throw error;
-      return (data || []) as { role: string; user_id: string }[];
-    },
-  });
+  const { principais, legados, totalLegados } = useMemo(() => {
+    const principais = niveis
+      .filter((n) => !n.legado)
+      .sort((a, b) => a.nivel - b.nivel);
+    const legados = niveis
+      .filter((n) => n.legado)
+      .sort((a, b) => a.rotulo.localeCompare(b.rotulo));
+    return { principais, legados, totalLegados: legados.length };
+  }, [niveis]);
 
-  const papeis = useMemo<PapelResumo[]>(() => {
-    const usuariosPorPapel = usuariosPapel.reduce<Record<string, Set<string>>>((acc, u) => {
-      acc[u.role] = acc[u.role] || new Set();
-      acc[u.role].add(u.user_id);
-      return acc;
-    }, {});
-
-    const porPapel = alcance.reduce<Record<string, AlcanceLinha[]>>((acc, linha) => {
+  const porPapel = useMemo(() => {
+    return alcance.reduce<Record<string, AlcanceLinha[]>>((acc, linha) => {
       acc[linha.papel] = acc[linha.papel] || [];
       acc[linha.papel].push(linha);
       return acc;
     }, {});
+  }, [alcance]);
 
-    const todosOsPapeis = new Set([
-      ...Object.keys(porPapel),
-      ...Object.keys(usuariosPorPapel),
-    ]);
+  const loading = loadingNiveis || loadingAlcance;
+  const erro = erroNiveis || erroAlcance;
 
-    const lista = Array.from(todosOsPapeis).map((papel) => {
-      const linhas = (porPapel[papel] || []).slice().sort((a, b) => {
-        if (a.sensivel !== b.sensivel) return a.sensivel ? -1 : 1;
-        if (a.pode_escrever !== b.pode_escrever) return a.pode_escrever ? -1 : 1;
-        return a.tabela.localeCompare(b.tabela);
-      });
-
-      return {
-        papel,
-        usuarios: usuariosPorPapel[papel]?.size || 0,
-        tabelas: linhas.length,
-        escreve: linhas.filter((l) => l.pode_escrever).length,
-        sensiveis: linhas.filter((l) => l.sensivel).length,
-        linhas,
-      };
-    });
-
-    return lista.sort((a, b) => b.tabelas - a.tabelas);
-  }, [alcance, usuariosPapel]);
-
-  if (loadingAlcance || loadingUsuarios) {
+  if (loading) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            <Shield className="h-5 w-5" /> O que cada papel alcança
+            <Shield className="h-5 w-5" /> Níveis de acesso
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -108,17 +96,17 @@ export default function PapeisTab() {
     );
   }
 
-  if (erroAlcance || erroUsuarios) {
+  if (erro) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            <Shield className="h-5 w-5" /> O que cada papel alcança
+            <Shield className="h-5 w-5" /> Níveis de acesso
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-destructive">
-            Falha ao carregar alcance dos papéis. Tente recarregar a página.
+            Falha ao carregar níveis de acesso. Tente recarregar a página.
           </p>
         </CardContent>
       </Card>
@@ -129,73 +117,131 @@ export default function PapeisTab() {
     <Card>
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
-          <Shield className="h-5 w-5" /> O que cada papel alcança
+          <Shield className="h-5 w-5" /> Níveis de acesso
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Papel controla DADO, não tela. Ele decide o que as consultas da pessoa podem tocar no banco — é invisível na interface. Esta lista é derivada automaticamente das políticas do banco; não é editável por aqui: mudar o alcance de um papel exige alterar as políticas.
+          Grupo diz ONDE a pessoa atua — telas e ações. Nível diz QUÃO FUNDO ela vai no dado. São 5 níveis cumulativos; atos sensíveis não entram nesta escala, são concedidos um a um em Grupos de Acesso.
         </p>
       </CardHeader>
-      <CardContent>
-        <Accordion type="multiple" className="w-full">
-          {papeis.map((p) => (
-            <AccordionItem key={p.papel} value={p.papel}>
-              <AccordionTrigger>
-                <div className="flex items-center gap-2 flex-wrap mr-2">
-                  <span className="font-mono text-sm">{p.papel}</span>
+      <CardContent className="space-y-6">
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium">Os 5 níveis</h3>
+          <div className="space-y-2">
+            {principais.map((n) => (
+              <div
+                key={n.nivel}
+                className="flex items-center gap-3 rounded-lg border p-3"
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border bg-muted">
+                  <span className="font-mono text-lg">{n.nivel}</span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">{n.rotulo}</p>
+                  <p className="text-xs text-muted-foreground">{n.descricao}</p>
+                </div>
+                <div className="flex flex-wrap items-center justify-end gap-1.5">
                   <Badge variant="secondary" className="text-[10px]">
-                    {p.usuarios} usuário(s)
+                    {n.usuarios} usuário(s)
                   </Badge>
-                  <Badge variant="outline" className="text-[10px]">
-                    {p.tabelas} tabelas
-                  </Badge>
-                  {p.escreve > 0 && (
-                    <Badge className="text-[10px]">{p.escreve} com escrita</Badge>
-                  )}
-                  {p.sensiveis > 0 && (
+                  {n.sensiveis > 0 && (
                     <Badge variant="destructive" className="text-[10px]">
-                      {p.sensiveis} sensível(is)
-                    </Badge>
-                  )}
-                  {p.tabelas === 0 && (
-                    <Badge variant="outline" className="text-[10px]">
-                      não faz nada
+                      {n.sensiveis} tabela(s) sensível(is)
                     </Badge>
                   )}
                 </div>
-              </AccordionTrigger>
-              <AccordionContent>
-                {p.linhas.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">
-                    Nenhuma política do banco cita este papel — conceder não destrava nada.
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
-                    {p.linhas.map((l) => (
-                      <div
-                        key={`${p.papel}-${l.tabela}`}
-                        className="flex items-center gap-1.5 rounded border px-2 py-1"
-                      >
-                        <span
-                          className={`font-mono text-xs ${l.sensivel ? "text-destructive" : ""}`}
-                          title={
-                            l.sensivel
-                              ? "Tabela com remuneração, dado pessoal ou bancário"
-                              : undefined
-                          }
-                        >
-                          {l.tabela}
-                        </span>
-                        <span className="text-[9px] text-muted-foreground uppercase">
-                          {l.pode_escrever ? "escrita" : "leitura"}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Cumulativo — nível 3 já inclui tudo do 2 e do 1.
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setMostrarLegados((v) => !v)}
+          >
+            {mostrarLegados ? "Ocultar papéis antigos" : `Mostrar papéis antigos (${totalLegados})`}
+          </Button>
+
+          {mostrarLegados && (
+            <>
+              <p className="text-xs text-muted-foreground">
+                Papéis do modelo antigo. Continuam existindo porque políticas do banco ainda os citam — vão sendo desativados conforme cada domínio migra. Não conceda estes.
+              </p>
+              <Accordion type="multiple" className="w-full">
+                {legados.map((p) => {
+                  const linhas = (porPapel[p.papel] || []).slice().sort((a, b) => {
+                    if (a.sensivel !== b.sensivel) return a.sensivel ? -1 : 1;
+                    if (a.pode_escrever !== b.pode_escrever) return a.pode_escrever ? -1 : 1;
+                    return a.tabela.localeCompare(b.tabela);
+                  });
+
+                  return (
+                    <AccordionItem key={p.papel} value={p.papel}>
+                      <AccordionTrigger>
+                        <div className="flex items-center gap-2 flex-wrap mr-2">
+                          <span className="font-mono text-sm">{p.papel}</span>
+                          <Badge variant="secondary" className="text-[10px]">
+                            {p.usuarios} usuário(s)
+                          </Badge>
+                          <Badge variant="outline" className="text-[10px]">
+                            {p.tabelas} tabelas
+                          </Badge>
+                          {p.escreve > 0 && (
+                            <Badge className="text-[10px]">{p.escreve} com escrita</Badge>
+                          )}
+                          {p.sensiveis > 0 && (
+                            <Badge variant="destructive" className="text-[10px]">
+                              {p.sensiveis} sensível(is)
+                            </Badge>
+                          )}
+                          {p.tabelas === 0 && (
+                            <Badge variant="outline" className="text-[10px]">
+                              não faz nada
+                            </Badge>
+                          )}
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        {linhas.length === 0 ? (
+                          <p className="text-xs text-muted-foreground">
+                            Nenhuma política do banco cita este papel — conceder não destrava nada.
+                          </p>
+                        ) : (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
+                            {linhas.map((l) => (
+                              <div
+                                key={`${p.papel}-${l.tabela}`}
+                                className="flex items-center gap-1.5 rounded border px-2 py-1"
+                              >
+                                <span
+                                  className={`font-mono text-xs ${l.sensivel ? "text-destructive" : ""}`}
+                                  title={
+                                    l.sensivel
+                                      ? "Tabela com remuneração, dado pessoal ou bancário"
+                                      : undefined
+                                  }
+                                >
+                                  {l.tabela}
+                                </span>
+                                <span className="text-[9px] text-muted-foreground uppercase">
+                                  {l.pode_escrever ? "escrita" : "leitura"}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </AccordionContent>
+                    </AccordionItem>
+                  );
+                })}
+              </Accordion>
+            </>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
