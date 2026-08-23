@@ -1862,7 +1862,19 @@ export default function PedidoDetalhe() {
                   </div>
                   {parceiro?.id && (
                     <div className="mt-3 pt-3 border-t border-border/40">
-                      <EditarProgramaInline parceiro_id={parceiro.id} nivel_atual={parceiro.nivel_programa || "convive"} categoria_ka_atual={parceiro.categoria_ka ?? null} />
+                      {temNivel(2) ? (
+                        <EditarProgramaInline parceiro_id={parceiro.id} nivel_atual={parceiro.nivel_programa || "convive"} categoria_ka_atual={parceiro.categoria_ka ?? null} />
+                      ) : (
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">Programa de Parceiros</Label>
+                          <p className="text-sm capitalize">
+                            {(parceiro.nivel_programa || "convive").replace("_", " ")}
+                            {parceiro.categoria_ka && (
+                              <span className="text-muted-foreground"> · KA {parceiro.categoria_ka}</span>
+                            )}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                   <div className="mt-3">
