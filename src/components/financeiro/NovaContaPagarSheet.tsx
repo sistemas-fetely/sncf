@@ -87,7 +87,7 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
   const [competenciaTocada, setCompetenciaTocada] = useState(false);
   const [categoriaId, setCategoriaId] = useState<string | null>(null);
   const [centroCustoId, setCentroCustoId] = useState<string | null>(null);
-  const [linhaInvestimentoId, setLinhaInvestimentoId] = useState<string | null>(null);
+  // DESMONTE-PROJECOES (23/08/2026): linha_investimento_id removido — tabela dropada
   const [unidadeId, setUnidadeId] = useState<string | null>(null);
   const [formaPgtoId, setFormaPgtoId] = useState<string>("");
   const [cartaoId, setCartaoId] = useState<string>("");
@@ -273,7 +273,6 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
       setCompetenciaTocada(false);
       setCategoriaId(null);
       setCentroCustoId(null);
-      setLinhaInvestimentoId(null);
       setUnidadeId(null);
       setFormaPgtoId("");
       setParcelas(1);
@@ -389,7 +388,6 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
           
           fornecedor_cliente: fornecedorNome,
           centro_custo_id: centroCustoId,
-          linha_investimento_id: linhaInvestimentoId,
           unidade_id: unidadeId,
           forma_pagamento_id: formaPgtoId || null,
           cartao_id: cartaoId || null,
@@ -658,13 +656,6 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-                <div>
-                  <Label>Linha de Investimento</Label>
-                  <LinhaInvestimentoCombobox
-                    value={linhaInvestimentoId}
-                    onChange={setLinhaInvestimentoId}
-                  />
                 </div>
                 <div>
                   <Label>Unidade</Label>
