@@ -121,7 +121,9 @@ export default function PedidosIndex() {
         </TabsContent>
 
         <TabsContent value="dash">
-          <PainelDashPedidos />
+          <ConteudoAba slug="tela.dash_pedidos">
+            <PainelDashPedidos />
+          </ConteudoAba>
         </TabsContent>
 
         <TabsContent value="recuperacao">
