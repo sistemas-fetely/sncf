@@ -28706,39 +28706,6 @@ export type Database = {
           },
         ]
       }
-      perfil_packs: {
-        Row: {
-          criado_em: string
-          pack_id: string
-          perfil_id: string
-        }
-        Insert: {
-          criado_em?: string
-          pack_id: string
-          perfil_id: string
-        }
-        Update: {
-          criado_em?: string
-          pack_id?: string
-          perfil_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "perfil_packs_pack_id_fkey"
-            columns: ["pack_id"]
-            isOneToOne: false
-            referencedRelation: "permission_packs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "perfil_packs_perfil_id_fkey"
-            columns: ["perfil_id"]
-            isOneToOne: false
-            referencedRelation: "perfis"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       perfis: {
         Row: {
           area: string | null
@@ -28777,41 +28744,6 @@ export type Database = {
           tipo?: string
         }
         Relationships: []
-      }
-      permission_pack_items: {
-        Row: {
-          acao: string
-          criado_em: string
-          id: string
-          modulo: string
-          nivel_minimo: string | null
-          pack_id: string
-        }
-        Insert: {
-          acao: string
-          criado_em?: string
-          id?: string
-          modulo: string
-          nivel_minimo?: string | null
-          pack_id: string
-        }
-        Update: {
-          acao?: string
-          criado_em?: string
-          id?: string
-          modulo?: string
-          nivel_minimo?: string | null
-          pack_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "permission_pack_items_pack_id_fkey"
-            columns: ["pack_id"]
-            isOneToOne: false
-            referencedRelation: "permission_packs"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       permission_packs: {
         Row: {
@@ -67698,20 +67630,8 @@ export type Database = {
         Returns: string[]
       }
       get_vault_secret: { Args: { p_name: string }; Returns: string }
-      has_module_permission: {
-        Args: { _acao: string; _modulo: string; _user_id: string }
-        Returns: boolean
-      }
       has_role: {
         Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
-      has_role_with_level: {
-        Args: {
-          _nivel_minimo?: Database["public"]["Enums"]["nivel_cargo"]
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
@@ -68927,15 +68847,6 @@ export type Database = {
       }
       tem_nivel: {
         Args: { _nivel: number; _user_id?: string }
-        Returns: boolean
-      }
-      tem_permissao: {
-        Args: {
-          _acao: string
-          _modulo: string
-          _unidade_id?: string
-          _user_id: string
-        }
         Returns: boolean
       }
       template_sugerido_para_cargo: {
