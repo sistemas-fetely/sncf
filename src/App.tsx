@@ -85,6 +85,7 @@ const TIDashboard = lazy(() => import("@/pages/ti/TIDashboard"));
 const TIAtivos = lazy(() => import("@/pages/ti/TIAtivos"));
 const TesteEmailTemplate = lazy(() => import("@/pages/ti/TesteEmailTemplate"));
 const NavegacaoSaude = lazy(() => import("@/pages/ti/NavegacaoSaude"));
+const SincronizarBling = lazy(() => import("@/pages/ti/SincronizarBling"));
 const DocumentacaoDetalhe = lazy(() => import("@/pages/ti/DocumentacaoDetalhe"));
 const DocumentacaoForm = lazy(() => import("@/pages/ti/DocumentacaoForm"));
 const MeuEspacoLayout = lazy(() => import("@/layouts/MeuEspacoLayout"));
@@ -465,6 +466,9 @@ const App = () => (
                 } />
                 <Route path="integracoes" element={
                   <ProtectedRoute><ConfiguracaoIntegracao /></ProtectedRoute>
+                } />
+                <Route path="sincronizar-bling" element={
+                  <ProtectedRoute><SincronizarBling /></ProtectedRoute>
                 } />
                 <Route path="diagnosticos/teste-email" element={<TesteEmailTemplate />} />
                 
