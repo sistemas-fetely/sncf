@@ -677,8 +677,18 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
               {gruposDoUsuario
                 .filter((g) => g.user_id === gruposDialog?.userId)
                 .map((g) => (
-                  <Badge key={g.id} variant="secondary" className="text-xs gap-1 font-normal">
-                    {g.grupos_acesso?.nome || "Grupo"}
+                  <Badge
+                    key={g.id}
+                    variant="secondary"
+                    className="text-xs gap-1 font-normal"
+                    title={g.grupos_acesso?.ativo === false ? "Grupo desativado — este vínculo não concede mais nenhuma permissão" : undefined}
+                  >
+                    <span className={g.grupos_acesso?.ativo === false ? "line-through opacity-60" : ""}>
+                      {g.grupos_acesso?.nome || "Grupo"}
+                    </span>
+                    {g.grupos_acesso?.ativo === false && (
+                      <span className="ml-1 text-[8px] uppercase tracking-wide">inativo</span>
+                    )}
                     <button
                       type="button"
                       className="opacity-60 hover:opacity-100"
