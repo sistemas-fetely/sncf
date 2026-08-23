@@ -16,7 +16,7 @@ import {
 import { Plus, Users, ShieldCheck, Trash2, Lock, FileText, Layers, Loader2, ChevronRight, ArrowLeft, Sparkles } from "lucide-react";
 import {
   useGruposAcessoV2, usePermissoesDoGrupo,
-  useUsuariosDoGrupo, useCriarGrupo, useDeletarGrupo, useReativarGrupo, useTogglePermissao,
+  useUsuariosDoGrupo, useCriarGrupo, useExcluirGrupo, useReativarGrupo, useTogglePermissao,
   useAdicionarUsuarioAoGrupo, useRemoverUsuarioDoGrupo,
   type GrupoAcesso,
 } from "@/hooks/useGruposAcessoV2";
