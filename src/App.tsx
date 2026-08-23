@@ -84,6 +84,7 @@ const PedidoMercadoriaDetalhe = lazy(() => import("@/pages/compras/PedidoMercado
 const TIDashboard = lazy(() => import("@/pages/ti/TIDashboard"));
 const TIAtivos = lazy(() => import("@/pages/ti/TIAtivos"));
 const TesteEmailTemplate = lazy(() => import("@/pages/ti/TesteEmailTemplate"));
+const NavegacaoSaude = lazy(() => import("@/pages/ti/NavegacaoSaude"));
 const DocumentacaoDetalhe = lazy(() => import("@/pages/ti/DocumentacaoDetalhe"));
 const DocumentacaoForm = lazy(() => import("@/pages/ti/DocumentacaoForm"));
 const MeuEspacoLayout = lazy(() => import("@/layouts/MeuEspacoLayout"));
