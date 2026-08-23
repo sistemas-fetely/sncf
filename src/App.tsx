@@ -355,7 +355,7 @@ const App = () => (
                       <NomesBling />
                     </ProtectedRoute>
                   } />
-                  <Route path="/acervo/destinos-cadastro" element={<DestinosCadastro />} />
+                  <Route path="/vendas/produto/estoque/destinos" element={<DestinosCadastro />} />
 
                 </Route>
                 <Route path="/vendas/xpm" element={<XpmIndex />} />
@@ -757,6 +757,8 @@ const App = () => (
                 adiantamento vive na aba da Cobrança; estágio do pedido, na Casa dos Pedidos */}
             <Route path="/recebimento/entradas" element={<Navigate to="/recebimento/cobranca?aba=adiantamento" replace />} />
             <Route path="/recebimento/aguardando-pagamento" element={<Navigate to="/pedidos" replace />} />
+            {/* Destinos de Cadastro é do SOPs, não do Acervo (23/08/2026) */}
+            <Route path="/acervo/destinos-cadastro" element={<Navigate to="/vendas/produto/estoque/destinos" replace />} />
             {/* Integrações moveu para TI (23/08/2026): é infra, não financeiro */}
             <Route path="/administrativo/configuracao-integracao" element={<Navigate to="/ti/integracoes" replace />} />
             <Route path="/vendas/produtos" element={<Navigate to="/vendas/produto" replace />} />
