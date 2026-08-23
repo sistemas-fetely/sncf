@@ -2874,7 +2874,7 @@ export default function PedidoDetalhe() {
         )}
       </div>
 
-      {pedido && (
+      {pedido && temNivel(3) && (
         <AplicarHaverPedidoDialog
           open={aplicarHaverOpen}
           onOpenChange={setAplicarHaverOpen}
