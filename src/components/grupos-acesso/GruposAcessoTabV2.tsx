@@ -16,7 +16,7 @@ import {
 import { Plus, Users, ShieldCheck, Trash2, Lock, FileText, Layers, Loader2, ChevronRight, ArrowLeft, Sparkles } from "lucide-react";
 import {
   useGruposAcessoV2, usePermissoesDoGrupo,
-  useUsuariosDoGrupo, useCriarGrupo, useDeletarGrupo, useTogglePermissao,
+  useUsuariosDoGrupo, useCriarGrupo, useDeletarGrupo, useReativarGrupo, useTogglePermissao,
   useAdicionarUsuarioAoGrupo, useRemoverUsuarioDoGrupo,
   type GrupoAcesso,
 } from "@/hooks/useGruposAcessoV2";
@@ -52,7 +52,8 @@ export default function GruposAcessoTabV2() {
   const [grupoSelecionado, setGrupoSelecionado] = useState<GrupoAcesso | null>(null);
   const [busca, setBusca] = useState("");
   const [novoGrupoOpen, setNovoGrupoOpen] = useState(false);
-  const { data: grupos = [], isLoading } = useGruposAcessoV2();
+  const [mostrarInativos, setMostrarInativos] = useState(false);
+  const { data: grupos = [], isLoading } = useGruposAcessoV2(mostrarInativos);
 
   const filtrados = useMemo(
     () => grupos.filter((g) => g.nome.toLowerCase().includes(busca.toLowerCase())),
@@ -80,6 +81,13 @@ export default function GruposAcessoTabV2() {
             className="h-9"
           />
         </div>
+        <Button
+          variant={mostrarInativos ? "secondary" : "ghost"}
+          size="sm"
+          onClick={() => setMostrarInativos((v) => !v)}
+        >
+          {mostrarInativos ? "Ocultar inativos" : "Mostrar inativos"}
+        </Button>
         <Dialog open={novoGrupoOpen} onOpenChange={setNovoGrupoOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -121,18 +129,41 @@ export default function GruposAcessoTabV2() {
 // =====================================================
 
 function CardGrupo({ grupo, onAbrir }: { grupo: GrupoAcesso; onAbrir: () => void }) {
+  const reativar = useReativarGrupo();
+  const inativo = grupo.ativo === false;
+
   return (
     <Card
-      onClick={onAbrir}
-      className="cursor-pointer hover:border-primary/50 hover:shadow-sm transition-all"
+      onClick={inativo ? undefined : onAbrir}
+      className={`transition-all ${inativo ? "opacity-60" : "cursor-pointer hover:border-primary/50 hover:shadow-sm"}`}
     >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base flex items-center gap-2">
             {grupo.pre_cadastrado && <Lock className="h-3.5 w-3.5 text-muted-foreground" />}
             {grupo.nome}
+            {inativo && (
+              <Badge variant="outline" className="text-[9px] py-0 px-1">
+                inativo
+              </Badge>
+            )}
           </CardTitle>
-          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+          {inativo ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={(e) => {
+                e.stopPropagation();
+                reativar.mutate(grupo.id);
+              }}
+              disabled={reativar.isPending}
+            >
+              {reativar.isPending && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+              Reativar
+            </Button>
+          ) : (
+            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+          )}
         </div>
         {grupo.descricao && (
           <p className="text-xs text-muted-foreground line-clamp-2">{grupo.descricao}</p>
@@ -223,7 +254,7 @@ function DetalheGrupo({ grupo, onVoltar }: { grupo: GrupoAcesso; onVoltar: () =>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Voltar para grupos
         </Button>
-        {!grupo.pre_cadastrado && <DeletarGrupoButton grupoId={grupo.id} onDeleted={onVoltar} />}
+        {!grupo.pre_cadastrado && <DeletarGrupoButton grupo={grupo} onDeleted={onVoltar} />}
       </div>
 
       <Card>
@@ -259,11 +290,12 @@ function DetalheGrupo({ grupo, onVoltar }: { grupo: GrupoAcesso; onVoltar: () =>
   );
 }
 
-function DeletarGrupoButton({ grupoId, onDeleted }: { grupoId: string; onDeleted: () => void }) {
+function DeletarGrupoButton({ grupo, onDeleted }: { grupo: GrupoAcesso; onDeleted: () => void }) {
   const deletar = useDeletarGrupo();
   const handleClick = async () => {
-    if (!confirm("Desativar este grupo? Os usuários perdem acesso pelas permissões deste grupo.")) return;
-    await deletar.mutateAsync(grupoId);
+    const msg = `Desativar "${grupo.nome}"?\n\n${grupo.qtd_usuarios} usuário(s) perdem imediatamente as ${grupo.qtd_permissoes} permissões concedidas por este grupo.\n\nO grupo continua existindo e pode ser reativado depois em "Mostrar inativos".`;
+    if (!confirm(msg)) return;
+    await deletar.mutateAsync(grupo.id);
     onDeleted();
   };
   return (
