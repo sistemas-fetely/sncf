@@ -2045,7 +2045,8 @@ export default function PedidoDetalhe() {
                     </div>
 
                     {/* RASTREIO-B2B-MANUAL (22/08/2026): vínculo manual de código Correios */}
-                    {id && <RastreioPedidoBloco pedidoId={id} />}
+                    {/* CONTRATO DE NÍVEL: nível 1 lê o rastreio; nível 2+ pode vincular/trocar. */}
+                    {id && (temNivel(2) ? <RastreioPedidoBloco pedidoId={id} /> : <RastreioLeitura pedidoId={id} />)}
 
                     <div className="space-y-1.5">
                     <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Peso bruto total (kg)</label>
