@@ -1061,6 +1061,8 @@ function BotaoConsolidarPedido({ pedido, qtdTitulosAtivos }: { pedido: any; qtdT
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function BotaoReterEstoque({ pedido }: { pedido: any }) {
   const [open, setOpen] = useState(false);
+  const { temNivel } = useNivel();
+  if (!temNivel(2)) return null;
   return (
     <>
       <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={() => setOpen(true)}>
