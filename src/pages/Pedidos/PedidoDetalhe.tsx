@@ -2225,7 +2225,8 @@ export default function PedidoDetalhe() {
                         value={valorFrete}
                         onChange={(e) => setValorFrete(e.target.value)}
                         placeholder="0,00"
-                        className="w-full h-8 text-sm rounded-md border border-input bg-background px-3 mt-0.5 focus:outline-none focus:ring-1 focus:ring-ring"
+                        disabled={!temNivel(2)}
+                        className="w-full h-8 text-sm rounded-md border border-input bg-background px-3 mt-0.5 focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-60 disabled:cursor-not-allowed"
                       />
                       <p className="text-[10px] text-muted-foreground mt-1 leading-tight">
                         Cobrado do cliente — não muda ao escolher transportadora.
