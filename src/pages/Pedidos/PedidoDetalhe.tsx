@@ -451,6 +451,8 @@ function AcoesPedidoPreFaturado({ pedido, parceiro }: { pedido: any; parceiro: a
 
 function BotaoEmailCobrancaPedido({ pedido_id, parceiro_id }: { pedido_id: string; parceiro_id: string }) {
   const [open, setOpen] = useState(false);
+  const { temNivel } = useNivel();
+  if (!temNivel(2)) return null;
   return (
     <>
       <Button size="sm" variant="outline" className="w-full gap-1.5" onClick={() => setOpen(true)}>
