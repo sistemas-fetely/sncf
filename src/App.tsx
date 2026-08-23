@@ -463,6 +463,9 @@ const App = () => (
                 <Route path="reportes" element={
                   <ProtectedRoute><SistemaReportes /></ProtectedRoute>
                 } />
+                <Route path="integracoes" element={
+                  <ProtectedRoute><ConfiguracaoIntegracao /></ProtectedRoute>
+                } />
                 <Route path="diagnosticos/teste-email" element={<TesteEmailTemplate />} />
                 
               </Route>
@@ -708,7 +711,7 @@ const App = () => (
                 
                 <Route path="previsao-recebimentos" element={<PrevisaoRecebimentos />} />
                 {/* compromissos removido — DESMONTE-CONTRATOS-RECORRENTES (23/08/2026) */}
-                <Route path="configuracao-integracao" element={<ConfiguracaoIntegracao />} />
+                {/* Integrações moveu para /ti/integracoes (23/08/2026): é infra, não financeiro */}
                 {/* MIGRADOS na Sprint 2 (29/04/2026) → Administrativo Fetely:
                     pedidos, produtos, contratos, imoveis, seguros, ged.
                     Redirects logo abaixo mantêm compatibilidade com URLs antigas. */}
@@ -762,6 +765,8 @@ const App = () => (
             <Route path="/administrativo/investimento-lancamento" element={<Navigate to="/administrativo/despesas" replace />} />
             {/* DESMONTE-CONTRATOS-RECORRENTES (23/08/2026): gestão de títulos vive na Cobrança */}
             <Route path="/administrativo/compromissos" element={<Navigate to="/administrativo/contas-pagar" replace />} />
+            {/* Integrações moveu para TI (23/08/2026): é infra, não financeiro */}
+            <Route path="/administrativo/configuracao-integracao" element={<Navigate to="/ti/integracoes" replace />} />
             <Route path="/vendas/produtos" element={<Navigate to="/vendas/produto" replace />} />
             <Route path="/vendas/produto/estoque" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
             <Route path="/logistica/analise-custo" element={<Navigate to="/logistica" replace />} />
