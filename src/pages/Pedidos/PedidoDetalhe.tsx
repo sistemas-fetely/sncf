@@ -2801,7 +2801,7 @@ export default function PedidoDetalhe() {
               {!estagioFinal && (
                 <BotaoMigrarComercial pedido={pedido} />
               )}
-              {!estagioFinal && (
+              {!estagioFinal && podeCancelarPedido && (
                 <div className="pt-3 mt-1 border-t border-border/40">
                   <CancelarPedidoDialog
                     pedido_id={pedido.id}
