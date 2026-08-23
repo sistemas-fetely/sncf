@@ -405,6 +405,8 @@ function BotaoMigrarComercial({ pedido }: { pedido: any }) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function BotaoRetomarOportunidade({ pedido }: { pedido: any }) {
   const [open, setOpen] = useState(false);
+  const { temNivel } = useNivel();
+  if (!temNivel(3)) return null;
   return (
     <>
       <Button
