@@ -528,7 +528,8 @@ function PermissoesDoGrupo({ grupoId }: { grupoId: string }) {
 
   // Catálogo agrupado por app e, dentro de cada app, por submenu (mesma
   // hierarquia do menu lateral). Ordenado por app_ordem, depois submenu_ordem,
-  // depois nome_exibicao. Itens sem submenu ficam em primeiro lugar no app.
+  // depois ordem_menu (ordem real do menu lateral) e, em empate, nome_exibicao.
+  // Itens sem submenu ficam em primeiro lugar no app.
   const secoes = useMemo<SecaoApp[]>(() => {
     const apps = new Map<string, SecaoApp>();
     catalogo.forEach((p) => {
@@ -569,7 +570,10 @@ function PermissoesDoGrupo({ grupoId }: { grupoId: string }) {
       });
 
       subgrupos.forEach((sg) => {
-        sg.itens.sort((a, b) => a.nome_exibicao.localeCompare(b.nome_exibicao, "pt-BR"));
+        sg.itens.sort((a, b) => {
+          if (a.ordem_menu !== b.ordem_menu) return a.ordem_menu - b.ordem_menu;
+          return a.nome_exibicao.localeCompare(b.nome_exibicao, "pt-BR");
+        });
       });
 
       secao.subgrupos = subgrupos;
