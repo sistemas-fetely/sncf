@@ -524,25 +524,55 @@ function PermissoesDoGrupo({ grupoId }: { grupoId: string }) {
     return m;
   }, [permsGrupo]);
 
-  // Catálogo agrupado por app (hierarquia real do menu), ordenado por
-  // app_ordem; dentro de cada seção, por nome_exibicao.
+  // Catálogo agrupado por app e, dentro de cada app, por submenu (mesma
+  // hierarquia do menu lateral). Ordenado por app_ordem, depois submenu_ordem,
+  // depois nome_exibicao. Itens sem submenu ficam em primeiro lugar no app.
   const secoes = useMemo<SecaoApp[]>(() => {
-    const m = new Map<string, SecaoApp>();
+    const apps = new Map<string, SecaoApp>();
     catalogo.forEach((p) => {
-      if (!m.has(p.app_chave)) {
-        m.set(p.app_chave, {
+      if (!apps.has(p.app_chave)) {
+        apps.set(p.app_chave, {
           app_chave: p.app_chave,
           app_label: p.app_label,
           app_ordem: p.app_ordem,
           itens: [],
+          subgrupos: [],
         });
       }
-      m.get(p.app_chave)!.itens.push(p);
+      apps.get(p.app_chave)!.itens.push(p);
     });
-    const arr = Array.from(m.values()).sort((a, b) => a.app_ordem - b.app_ordem);
-    arr.forEach((s) =>
-      s.itens.sort((a, b) => a.nome_exibicao.localeCompare(b.nome_exibicao, "pt-BR"))
-    );
+
+    const arr = Array.from(apps.values()).sort((a, b) => a.app_ordem - b.app_ordem);
+
+    arr.forEach((secao) => {
+      const subMap = new Map<string, { submenu_chave: string | null; submenu_label: string | null; submenu_ordem: number; itens: CatalogoAppRow[] }>();
+      secao.itens.forEach((p) => {
+        const key = p.submenu_chave ?? "__sem_submenu__";
+        if (!subMap.has(key)) {
+          subMap.set(key, {
+            submenu_chave: p.submenu_chave,
+            submenu_label: p.submenu_label,
+            submenu_ordem: p.submenu_ordem,
+            itens: [],
+          });
+        }
+        subMap.get(key)!.itens.push(p);
+      });
+
+      const subgrupos = Array.from(subMap.values()).sort((a, b) => {
+        if (a.submenu_chave === null && b.submenu_chave !== null) return -1;
+        if (a.submenu_chave !== null && b.submenu_chave === null) return 1;
+        if (a.submenu_ordem !== b.submenu_ordem) return a.submenu_ordem - b.submenu_ordem;
+        return (a.submenu_label ?? "").localeCompare(b.submenu_label ?? "", "pt-BR");
+      });
+
+      subgrupos.forEach((sg) => {
+        sg.itens.sort((a, b) => a.nome_exibicao.localeCompare(b.nome_exibicao, "pt-BR"));
+      });
+
+      secao.subgrupos = subgrupos;
+    });
+
     return arr;
   }, [catalogo]);
 
