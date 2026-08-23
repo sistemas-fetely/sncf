@@ -14,6 +14,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
+import { useNivel } from "@/hooks/useNivel";
 import { Tag, Loader2 } from "lucide-react";
 
 const SUGESTOES_PADRAO = [
