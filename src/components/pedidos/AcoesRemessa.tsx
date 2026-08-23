@@ -233,10 +233,13 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
           <p className="text-xs text-muted-foreground px-1 tabular-nums">
             XPM: expedição {pedidoXpm!.xpm_expedicao_codigo}
           </p>
-          <DeclararCancelamentoXpmDialog
-            pedidoId={pedido_id}
-            expedicaoCodigo={String(pedidoXpm!.xpm_expedicao_codigo)}
-          />
+          {/* Ato excepcional: declara por TERCEIRO (operador logístico), sem retorno da XPM. Ação nomeada, não nível. */}
+          {podeDeclararCancelamentoXpm && (
+            <DeclararCancelamentoXpmDialog
+              pedidoId={pedido_id}
+              expedicaoCodigo={String(pedidoXpm!.xpm_expedicao_codigo)}
+            />
+          )}
         </>
       )}
 
