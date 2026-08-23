@@ -1,4 +1,4 @@
-import { Home, Users, Wallet, Landmark, CreditCard, HandCoins, BookOpen, User, Monitor, Shield, LucideIcon } from "lucide-react";
+import { Home, Users, Wallet, CreditCard, HandCoins, BookOpen, User, Monitor, Shield, LucideIcon } from "lucide-react";
 
 export interface CasaApp {
   /** Identificador interno */
