@@ -606,8 +606,10 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
               <Select value={novoPapel} onValueChange={(v) => setNovoPapel(v as AppRole)}>
                 <SelectTrigger><SelectValue placeholder="Selecione o papel" /></SelectTrigger>
                 <SelectContent>
-                  {ROLE_OPTIONS.map((r) => (
-                    <SelectItem key={r} value={r}>{roleLabel(r)}</SelectItem>
+                  {niveisConcediveis.map((n) => (
+                    <SelectItem key={n.papel} value={n.papel}>
+                      {n.nivel} · {n.rotulo}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
