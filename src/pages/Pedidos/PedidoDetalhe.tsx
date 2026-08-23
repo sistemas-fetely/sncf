@@ -2058,7 +2058,8 @@ export default function PedidoDetalhe() {
                         value={pesoBruto}
                         onChange={(e) => setPesoBruto(e.target.value)}
                         placeholder="0.000"
-                        className="flex-1 min-w-0 h-9 text-sm rounded-md border border-input bg-background px-3 focus:outline-none focus:ring-1 focus:ring-ring"
+                        disabled={!temNivel(2)}
+                        className="flex-1 min-w-0 h-9 text-sm rounded-md border border-input bg-background px-3 focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-60 disabled:cursor-not-allowed"
                       />
                       <Button type="button" size="sm" variant="outline" className="h-9 w-9 p-0" title="Recalcular peso a partir dos itens" disabled={recalculandoPeso} onClick={recalcularPeso}>
                         {recalculandoPeso ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
