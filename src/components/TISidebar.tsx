@@ -1,13 +1,13 @@
-import { Monitor, LogOut, ClipboardList, UsersRound } from "lucide-react";
+import { Monitor, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { getHighestRoleLabel } from "@/lib/user-role";
+import { AtalhoMeuEspaco } from "@/components/navegacao/AtalhoMeuEspaco";
 import { useMenuApp } from "@/hooks/useMenuApp";
 import { resolverIcone } from "@/config/iconesNavegacao";
-import { useVisibilidadeMenuFixo } from "@/hooks/useVisibilidadeMenu";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
@@ -26,7 +26,6 @@ export function TISidebar() {
   // MENU-VIA-TABELA: grupos, itens, rotulos, icones e ordem vem da
   // sncf_navegacao. Mudar o menu de TI passa a ser UPDATE, sem deploy.
   const { grupos, soltos } = useMenuApp("ti");
-  const { podeVer, isLoading: carregandoVisibilidade } = useVisibilidadeMenuFixo();
 
   const initials = profile?.full_name
     ? profile.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
@@ -80,40 +79,8 @@ export function TISidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-2 space-y-1">
-        {/* Atalhos de Meu Espaco. Ficam hardcoded de proposito: pela tabela
-            pertencem ao app meu_espaco, nao a ti. Transformar em atalho
-            declarado exige modelar isso na sncf_navegacao — frente separada. */}
-        {!carregandoVisibilidade && podeVer("/tarefas") && (
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink to="/tarefas" end className={linkClass(location.pathname === "/tarefas")} style={linkStyle(location.pathname === "/tarefas")}>
-                    <ClipboardList className="h-[18px] w-[18px] shrink-0" style={location.pathname === "/tarefas" ? { color: TI_COLOR } : undefined} />
-                    {!collapsed && <span>Minhas Tarefas</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              {roles.some((r) => ["gestor_direto", "gestor_rh", "admin_rh", "super_admin"].includes(r)) && podeVer("/tarefas/time") && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to="/tarefas/time"
-                      className="flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200"
-                    >
-                      <UsersRound className="h-[18px] w-[18px] shrink-0" />
-                      {!collapsed && <span>Tarefas do Time</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        )}
+        <AtalhoMeuEspaco />
         <div className="mx-4 border-t border-sidebar-border/40" />
-
 
         {soltos.length > 0 && (
           <SidebarGroup>
