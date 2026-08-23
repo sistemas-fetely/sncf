@@ -254,7 +254,7 @@ function DetalheGrupo({ grupo, onVoltar }: { grupo: GrupoAcesso; onVoltar: () =>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Voltar para grupos
         </Button>
-        {!grupo.pre_cadastrado && <DeletarGrupoButton grupo={grupo} onDeleted={onVoltar} />}
+        {!grupo.pre_cadastrado && <ExcluirGrupoButton grupo={grupo} onDeleted={onVoltar} />}
       </div>
 
       <Card>
@@ -290,18 +290,18 @@ function DetalheGrupo({ grupo, onVoltar }: { grupo: GrupoAcesso; onVoltar: () =>
   );
 }
 
-function DeletarGrupoButton({ grupo, onDeleted }: { grupo: GrupoAcesso; onDeleted: () => void }) {
-  const deletar = useDeletarGrupo();
+function ExcluirGrupoButton({ grupo, onDeleted }: { grupo: GrupoAcesso; onDeleted: () => void }) {
+  const excluir = useExcluirGrupo();
   const handleClick = async () => {
-    const msg = `Desativar "${grupo.nome}"?\n\n${grupo.qtd_usuarios} usuário(s) perdem imediatamente as ${grupo.qtd_permissoes} permissões concedidas por este grupo.\n\nO grupo continua existindo e pode ser reativado depois em "Mostrar inativos".`;
+    const msg = `Excluir "${grupo.nome}" DEFINITIVAMENTE?\n\n${grupo.qtd_usuarios} usuário(s) perdem imediatamente as ${grupo.qtd_permissoes} permissões concedidas por este grupo.\n\nEsta ação NÃO pode ser desfeita — as permissões configuradas neste grupo serão perdidas.`;
     if (!confirm(msg)) return;
-    await deletar.mutateAsync(grupo.id);
+    await excluir.mutateAsync(grupo.id);
     onDeleted();
   };
   return (
-    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={handleClick} disabled={deletar.isPending}>
+    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={handleClick} disabled={excluir.isPending}>
       <Trash2 className="h-4 w-4 mr-2" />
-      Desativar grupo
+      Excluir grupo
     </Button>
   );
 }
