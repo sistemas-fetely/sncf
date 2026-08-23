@@ -11,7 +11,7 @@ import { CommandPaletteProvider } from "@/components/navegacao/CommandPalettePro
 export default function AdminLayout() {
   const { user, roles, loading } = useAuth();
   const { pathname } = useLocation();
-  const hideSidebar = pathname === "/admin/configuracoes" || pathname === "/admin/usuarios";
+  const hideSidebar = pathname === "/admin/usuarios";
   usePrefetchTelas();
 
   if (loading) {
