@@ -47442,6 +47442,7 @@ export type Database = {
           feature_em_teste: boolean | null
           nome_catalogo: string | null
           nome_exibicao: string | null
+          ordem_menu: number | null
           permissao_id: string | null
           pilar_legado: string | null
           slug: string | null
@@ -56693,14 +56694,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
