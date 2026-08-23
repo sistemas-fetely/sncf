@@ -26,7 +26,7 @@ export const ROTAS: RegraRota[] = [
   // Comercial
   { prefixo: "/comercial",     status: "pronta",        tela_slug: "tela.comercial"   },
   // SNCF
-  { prefixo: "/sncf",          status: "pronta",        tela_slug: "tela.sncf"        },
+  
   { prefixo: "/tarefas",       status: "pronta",        tela_slug: "tela.tarefas"     },
   { prefixo: "/processos",     status: "pronta",        tela_slug: "tela.processos"   },
   { prefixo: "/templates",     status: "pronta",        tela_slug: "tela.processos"   },

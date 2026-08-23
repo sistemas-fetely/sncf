@@ -76,7 +76,7 @@ const Cargos = lazy(() => import("@/pages/Cargos"));
 const CargoForm = lazy(() => import("@/pages/CargoForm"));
 const CargosEnriquecimento = lazy(() => import("@/pages/CargosEnriquecimento"));
 
-const PortalSNCF = lazy(() => import("@/pages/PortalSNCF"));
+
 const Compras = lazy(() => import("@/pages/Compras"));
 const ComprasAComprar = lazy(() => import("@/pages/ComprasAComprar"));
 const ComprasMercadoria = lazy(() => import("@/pages/compras/ComprasMercadoria"));
@@ -384,16 +384,13 @@ const App = () => (
               {/* ═══════════════════════════════════════════════
                   App Acervo — sidebar lateral (23/08/2026, MENU-VIA-TABELA).
                   Antes era tab bar só com Processos | Documentação; a sidebar
-                  vem da sncf_navegacao (Conhecimento, Fala Fetely, Portal).
+                  vem da sncf_navegacao (Conhecimento, Fala Fetely).
                   Doutrina CASA-2: AcervoLayout envolve apenas as listagens.
                   Detalhes e editores ficam direto no CasaLayout (sem sidebar).
-                  ATENÇÃO: /sncf é tela de marca (tipografia própria) — entrou
-                  na sidebar por decisão do Flavio, ajuste visual pendente.
                   ═══════════════════════════════════════════════ */}
               <Route element={<AcervoLayout />}>
                 <Route path="/processos" element={<Processos />} />
                 <Route path="/documentacao" element={<DocumentacaoGeral />} />
-                <Route path="/sncf" element={<PortalSNCF />} />
                 <Route path="/fala-fetely" element={<FalaFetely />} />
                 <Route path="/fala-fetely/conhecimento" element={<FalaFetelyConhecimento />} />
               </Route>
@@ -774,6 +771,8 @@ const App = () => (
             <Route path="/vendas/farol-pedidos" element={<Navigate to="/pedidos" replace />} />
             {/* Retorno de Devolução emancipado do Estoque (23/08/2026) */}
             <Route path="/vendas/produto/estoque/devolucoes" element={<Navigate to="/devolucoes" replace />} />
+            {/* Portal SNCF desmontado (23/08/2026): a Casa já faz essa função */}
+            <Route path="/sncf" element={<Navigate to="/" replace />} />
             <Route path="/comercial/consignados" element={<Navigate to="/pedidos?aba=consignados" replace />} />
             <Route path="/produto" element={<Navigate to="/vendas/produto" replace />} />
             <Route path="/produto/estoque/virtual" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
