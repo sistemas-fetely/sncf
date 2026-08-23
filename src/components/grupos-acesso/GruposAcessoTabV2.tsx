@@ -507,9 +507,9 @@ function useLiberarSecao() {
         grupo_acesso_id: grupoId,
         permissao_id: p.permissao_id,
         pode_ver: true,
-        pode_criar: p.tipo === "ficha",
-        pode_editar: p.tipo === "ficha",
-        pode_apagar: p.tipo === "ficha",
+        pode_criar: false,
+        pode_editar: false,
+        pode_apagar: false,
       }));
       const { error } = await supabase
         .from("grupo_acesso_permissoes")
@@ -612,7 +612,7 @@ function PermissoesDoGrupo({ grupoId }: { grupoId: string }) {
           O que pode acessar
         </CardTitle>
         <p className="text-xs text-muted-foreground mt-1">
-          Marque por módulo. Telas têm só "Ver". Fichas têm Ver / Criar / Editar / Apagar. Abas em cinza herdam a permissão de outra tela.
+          Marque por módulo. "Ver" abre a tela; "Editar" libera mexer nela. Ato específico se concede na seção Ações. Abas em cinza herdam a permissão de outra tela.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -703,12 +703,10 @@ function SecaoBloco({
       {aberto && (
         <div className="border-t bg-muted/10">
           {/* Header colunas */}
-          <div className="grid grid-cols-[1fr_60px_60px_60px_60px] gap-2 px-4 py-2 text-[10px] uppercase tracking-wide text-muted-foreground font-medium border-b">
+          <div className="grid grid-cols-[1fr_60px_60px] gap-2 px-4 py-2 text-[10px] uppercase tracking-wide text-muted-foreground font-medium border-b">
             <span>Permissão</span>
             <span className="text-center">Ver</span>
-            <span className="text-center">Criar</span>
             <span className="text-center">Editar</span>
-            <span className="text-center">Apagar</span>
           </div>
 
           {secao.subgrupos.map((sub) => {
@@ -730,7 +728,7 @@ function SecaoBloco({
                   return (
                     <Fragment key={p.permissao_id}>
                       <div
-                        className="grid grid-cols-[1fr_60px_60px_60px_60px] gap-2 px-4 py-2 items-center text-sm hover:bg-muted/20 border-b last:border-b-0"
+                        className="grid grid-cols-[1fr_60px_60px] gap-2 px-4 py-2 items-center text-sm hover:bg-muted/20 border-b last:border-b-0"
                       >
                         <div className={`flex flex-col min-w-0 justify-center ${p.eh_aba ? "pl-6" : ""}`}>
                           <div className="flex items-center gap-2 min-w-0">
@@ -782,45 +780,27 @@ function SecaoBloco({
                         </div>
                         <div className="flex justify-center">
                           <Checkbox
-                            checked={gp?.pode_criar || false}
-                            onCheckedChange={(v) => onToggle(p.permissao_id, "pode_criar", !!v)}
-                            disabled={disabled || !isFicha}
-                            className={!isFicha ? "opacity-30" : ""}
-                          />
-                        </div>
-                        <div className="flex justify-center">
-                          <Checkbox
                             checked={gp?.pode_editar || false}
                             onCheckedChange={(v) => onToggle(p.permissao_id, "pode_editar", !!v)}
                             disabled={disabled || !isFicha}
                             className={!isFicha ? "opacity-30" : ""}
                           />
                         </div>
-                        <div className="flex justify-center">
-                          <Checkbox
-                            checked={gp?.pode_apagar || false}
-                            onCheckedChange={(v) => onToggle(p.permissao_id, "pode_apagar", !!v)}
-                            disabled={disabled || !isFicha}
-                            className={!isFicha ? "opacity-30" : ""}
-                          />
-                        </div>
                       </div>
-                      {p.filhas_herdadas?.map((filha) => (
-                        <div
-                          key={`${p.permissao_id}-${filha.label}`}
-                          className="grid grid-cols-[1fr_60px_60px_60px_60px] gap-2 px-4 py-1.5 border-b last:border-b-0 bg-muted/5"
-                        >
-                          <div className="flex items-center gap-2 min-w-0 pl-12">
-                            <span className="text-muted-foreground/40 shrink-0">↳</span>
-                            <span className="text-[13px] text-muted-foreground truncate">{filha.label}</span>
-                            <span className="text-[9px] text-muted-foreground/60 shrink-0">herda de {filha.herda_de}</span>
+                        {p.filhas_herdadas?.map((filha) => (
+                          <div
+                            key={`${p.permissao_id}-${filha.label}`}
+                            className="grid grid-cols-[1fr_60px_60px] gap-2 px-4 py-1.5 border-b last:border-b-0 bg-muted/5"
+                          >
+                            <div className="flex items-center gap-2 min-w-0 pl-12">
+                              <span className="text-muted-foreground/40 shrink-0">↳</span>
+                              <span className="text-[13px] text-muted-foreground truncate">{filha.label}</span>
+                              <span className="text-[9px] text-muted-foreground/60 shrink-0">herda de {filha.herda_de}</span>
+                            </div>
+                            <div />
+                            <div />
                           </div>
-                          <div />
-                          <div />
-                          <div />
-                          <div />
-                        </div>
-                      ))}
+                        ))}
                     </Fragment>
                   );
                 })}
