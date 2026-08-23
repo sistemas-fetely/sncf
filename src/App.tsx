@@ -355,7 +355,7 @@ const App = () => (
                       <NomesBling />
                     </ProtectedRoute>
                   } />
-                  <Route path="/acervo/destinos-cadastro" element={<DestinosCadastro />} />
+                  <Route path="/vendas/produto/estoque/destinos" element={<DestinosCadastro />} />
 
                 </Route>
                 <Route path="/vendas/xpm" element={<XpmIndex />} />
