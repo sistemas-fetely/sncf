@@ -328,7 +328,7 @@ function ParcelasTab({ pedidoId }: { pedidoId: string }) {
                 <TableCell className="text-sm">{TIPO_LABEL[t.tipo_pagamento]}</TableCell>
                 <TableCell>
                   <BadgeEstadoParcela titulo={t} eixos={eixos} dim={dimEixos} />
-                  {(t.status === "pago" || t.status === "pago_com_atraso") && (
+                  {(t.status === "pago" || t.status === "pago_com_atraso") && temNivel(3) && (
                     <button
                       onClick={() => setConvertendo({
                         id: t.id,
