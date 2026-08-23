@@ -13,8 +13,7 @@
  * A permissão segue `tela.fin_documentos`: menu é lugar, permissão é quem pode.
  */
 
-
-import { Building2, ShieldCheck, FileSignature, FolderArchive, Landmark } from "lucide-react";
+import { Landmark } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
@@ -25,11 +24,11 @@ import { AtalhoMeuEspaco } from "@/components/navegacao/AtalhoMeuEspaco";
 import { useMenuApp, type ItemMenu } from "@/hooks/useMenuApp";
 import { resolverIcone } from "@/config/iconesNavegacao";
 import {
-
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
   SidebarHeader, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
+
 
 const ADM_FETELY_COLOR = "#6B5B45"; // tom terroso, distinto do verde Financeiro
 
