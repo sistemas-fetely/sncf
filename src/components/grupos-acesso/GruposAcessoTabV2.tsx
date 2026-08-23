@@ -659,6 +659,12 @@ function SecaoBloco({
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="truncate">{p.nome_exibicao}</span>
+                  {p.contem_dado_sensivel && (
+                    <Badge variant="outline" className="text-[9px] py-0 px-1">LGPD</Badge>
+                  )}
+                  {p.feature_em_teste && (
+                    <Badge variant="outline" className="text-[9px] py-0 px-1 bg-warning/10">BETA</Badge>
+                  )}
                   {p.telas_cobertas > 1 && (
                     <Badge
                       variant="outline"
