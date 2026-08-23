@@ -1,47 +1,44 @@
-import { NavLink, Outlet } from "react-router-dom";
-import { FileText, BookOpen } from "lucide-react";
-import { cn } from "@/lib/utils";
+/**
+ * AcervoLayout — MENU-VIA-TABELA (23/08/2026).
+ *
+ * Substitui a barra de abas (Processos | Documentação) por sidebar lateral,
+ * no mesmo padrão dos outros pilares (MeuEspacoLayout/TILayout). A cor do
+ * pilar (#1A4A3A) migrou da constante ACERVO_COLOR para a AcervoSidebar.
+ *
+ * Além das listagens, o layout também envolve o Portal SNCF (/sncf) e as
+ * telas do Fala Fetely (/fala-fetely, /fala-fetely/conhecimento) — exceto
+ * /fala-fetely/memorias, que é do Meu Espaço.
+ */
 
-const ACERVO_COLOR = "#1A4A3A";
-
-const TABS = [
-  { to: "/processos", label: "Processos", icon: FileText },
-  { to: "/documentacao", label: "Documentação", icon: BookOpen },
-];
+import { Suspense } from "react";
+import { Outlet } from "react-router-dom";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AcervoSidebar } from "@/components/AcervoSidebar";
+import { CommandPaletteProvider } from "@/components/navegacao/CommandPaletteProvider";
 
 export default function AcervoLayout() {
   return (
-    <div className="flex flex-col h-full">
-      <div className="border-b bg-card">
-        <nav className="flex gap-1 px-4 pt-2">
-          {TABS.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-2 px-4 py-2.5 text-sm border-b-2 transition-colors -mb-px whitespace-nowrap",
-                  isActive
-                    ? "font-medium border-b-2"
-                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-                )
-              }
-              style={({ isActive }) =>
-                isActive
-                  ? { color: ACERVO_COLOR, borderColor: ACERVO_COLOR }
-                  : {}
+    <SidebarProvider>
+      <div className="flex w-full min-h-screen bg-background">
+        <AcervoSidebar />
+        <div className="flex-1 flex flex-col min-w-0">
+          <header className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b bg-card/80 px-3 backdrop-blur-sm">
+            <SidebarTrigger className="-ml-1" />
+          </header>
+          <main className="flex-1 overflow-auto relative min-w-0">
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center h-full p-12">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+                </div>
               }
             >
-              <Icon className="h-4 w-4" />
-              {label}
-            </NavLink>
-          ))}
-        </nav>
+              <Outlet />
+            </Suspense>
+          </main>
+        </div>
       </div>
-      <div className="flex-1 overflow-auto">
-        <Outlet />
-      </div>
-    </div>
+      <CommandPaletteProvider />
+    </SidebarProvider>
   );
 }
