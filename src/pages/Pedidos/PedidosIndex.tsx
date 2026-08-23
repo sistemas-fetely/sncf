@@ -31,6 +31,7 @@ export default function PedidosIndex() {
   const aba: Aba = ABAS.includes(abaParam as Aba) ? (abaParam as Aba) : "fila";
   const [incluirCancelados, setIncluirCancelados] = useState(false);
   const [riscoAltoAtivo, setRiscoAltoAtivo] = useState(false);
+  const { temNivel } = useNivel();
 
   // FONTE-UNICA: o contador da aba le a MESMA view que a tabela da Mesa Comercial.
   const { data: qtdMesaComercial = 0 } = useQuery({
