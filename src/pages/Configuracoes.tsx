@@ -18,7 +18,7 @@ import {
   Timer,
 } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
-import { PageTitle } from "@/components/layout/PageTitle";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface ConfigItem {
   value: string;
@@ -38,11 +38,11 @@ const ITENS: ConfigItem[] = [
 
   // Cadastros
   { value: "parametros", label: "Parâmetros", description: "Listas de cadastro: áreas, departamentos, sistemas, benefícios, unidades e empresas", icon: SlidersHorizontal, path: "/admin/parametros", secao: "Cadastros" },
-  { value: "plano-contas", label: "Plano de Contas", description: "Estrutura contábil de receitas e despesas", icon: FolderTree, path: "/admin/plano-contas", secao: "Cadastros" },
+  { value: "plano-contas", label: "Plano de Contas", description: "Estrutura contábil de receitas e despesas", icon: FolderTree, path: "/administrativo/plano-contas", secao: "Cadastros" },
 
   // Regras
-  { value: "regras-ofx", label: "Regras de OFX", description: "Classificação automática de lançamentos do extrato", icon: Wand2, path: "/admin/regras-ofx", secao: "Regras" },
-  { value: "extrato-regras", label: "Regras do Inbox", description: "Tratamento automático de entradas do extrato", icon: Filter, path: "/admin/extrato-regras", secao: "Regras" },
+  { value: "regras-ofx", label: "Regras de OFX", description: "Classificação automática de lançamentos do extrato", icon: Wand2, path: "/administrativo/regras-ofx", secao: "Regras" },
+  { value: "extrato-regras", label: "Regras do Inbox", description: "Tratamento automático de entradas do extrato", icon: Filter, path: "/administrativo/extrato-regras", secao: "Regras" },
   { value: "sla", label: "SLA da Operação", description: "Prazos e limiares da operação: XPM, fases do pedido, frete e vigilância", icon: Timer, path: "/admin/sla", secao: "Regras" },
 
   // Sistema
@@ -76,7 +76,7 @@ export default function Configuracoes() {
 
   return (
     <PageShell>
-      <PageTitle titulo="Configurações" estado="Ajustes e parâmetros gerais do sistema" />
+      <PageHeader titulo="Configurações" estado="Ajustes e parâmetros gerais do sistema" />
 
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

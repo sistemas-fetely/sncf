@@ -2122,7 +2122,6 @@ export type Database = {
       }
       auditoria_duplicidade_suspeita: {
         Row: {
-          compromisso_existente_id: string | null
           created_at: string
           data_primeira_parcela: string
           id: string
@@ -2135,7 +2134,6 @@ export type Database = {
           valor_total: number
         }
         Insert: {
-          compromisso_existente_id?: string | null
           created_at?: string
           data_primeira_parcela: string
           id?: string
@@ -2148,7 +2146,6 @@ export type Database = {
           valor_total: number
         }
         Update: {
-          compromisso_existente_id?: string | null
           created_at?: string
           data_primeira_parcela?: string
           id?: string
@@ -2160,15 +2157,7 @@ export type Database = {
           revisado_por?: string | null
           valor_total?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "auditoria_duplicidade_suspeita_compromisso_existente_id_fkey"
-            columns: ["compromisso_existente_id"]
-            isOneToOne: false
-            referencedRelation: "compromissos_parcelados"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       auditoria_entidade_dim: {
         Row: {
@@ -6136,402 +6125,6 @@ export type Database = {
           },
         ]
       }
-      compromissos_parcelados: {
-        Row: {
-          centro_custo_id: string | null
-          conta_bancaria_id: string | null
-          created_at: string
-          criado_por: string | null
-          data_compra: string
-          data_primeira_parcela: string
-          descricao: string
-          descricao_normalizada: string | null
-          fatura_origem_id: string | null
-          id: string
-          nf_origem_id: string | null
-          observacao: string | null
-          origem: string
-          parceiro_id: string | null
-          parcelas_pagas: number
-          parcelas_previstas: number
-          plano_contas_id: string | null
-          qtd_parcelas: number
-          status: string
-          updated_at: string
-          valor_parcela: number
-          valor_total: number
-        }
-        Insert: {
-          centro_custo_id?: string | null
-          conta_bancaria_id?: string | null
-          created_at?: string
-          criado_por?: string | null
-          data_compra: string
-          data_primeira_parcela: string
-          descricao: string
-          descricao_normalizada?: string | null
-          fatura_origem_id?: string | null
-          id?: string
-          nf_origem_id?: string | null
-          observacao?: string | null
-          origem: string
-          parceiro_id?: string | null
-          parcelas_pagas?: number
-          parcelas_previstas?: number
-          plano_contas_id?: string | null
-          qtd_parcelas: number
-          status?: string
-          updated_at?: string
-          valor_parcela: number
-          valor_total: number
-        }
-        Update: {
-          centro_custo_id?: string | null
-          conta_bancaria_id?: string | null
-          created_at?: string
-          criado_por?: string | null
-          data_compra?: string
-          data_primeira_parcela?: string
-          descricao?: string
-          descricao_normalizada?: string | null
-          fatura_origem_id?: string | null
-          id?: string
-          nf_origem_id?: string | null
-          observacao?: string | null
-          origem?: string
-          parceiro_id?: string | null
-          parcelas_pagas?: number
-          parcelas_previstas?: number
-          plano_contas_id?: string | null
-          qtd_parcelas?: number
-          status?: string
-          updated_at?: string
-          valor_parcela?: number
-          valor_total?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "compromissos_parcelados_centro_custo_id_fkey"
-            columns: ["centro_custo_id"]
-            isOneToOne: false
-            referencedRelation: "centros_custo"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "compromissos_parcelados_centro_custo_id_fkey"
-            columns: ["centro_custo_id"]
-            isOneToOne: false
-            referencedRelation: "vw_custo_pessoas"
-            referencedColumns: ["centro_custo_id"]
-          },
-          {
-            foreignKeyName: "compromissos_parcelados_centro_custo_id_fkey"
-            columns: ["centro_custo_id"]
-            isOneToOne: false
-            referencedRelation: "vw_dimensionamento_areas"
-            referencedColumns: ["centro_custo_id"]
-          },
-          {
-            foreignKeyName: "compromissos_parcelados_conta_bancaria_id_fkey"
-            columns: ["conta_bancaria_id"]
-            isOneToOne: false
-            referencedRelation: "contas_bancarias"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "compromissos_parcelados_fatura_origem_id_fkey"
-            columns: ["fatura_origem_id"]
-            isOneToOne: false
-            referencedRelation: "faturas_cartao"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "compromissos_parcelados_fatura_origem_id_fkey"
-            columns: ["fatura_origem_id"]
-            isOneToOne: false
-            referencedRelation: "vw_faturas_cartao_resumo"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "compromissos_parcelados_nf_origem_id_fkey"
-            columns: ["nf_origem_id"]
-            isOneToOne: false
-            referencedRelation: "contas_pagar"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "compromissos_parcelados_nf_origem_id_fkey"
-            columns: ["nf_origem_id"]
-            isOneToOne: false
-            referencedRelation: "contas_pagar_receber"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "compromissos_parcelados_nf_origem_id_fkey"
-            columns: ["nf_origem_id"]
-            isOneToOne: false
-            referencedRelation: "contas_pagar_receber_ativas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "compromissos_parcelados_nf_origem_id_fkey"
-            columns: ["nf_origem_id"]
-            isOneToOne: false
-            referencedRelation: "v_cpr_bola_redonda"
-            referencedColumns: ["cpr_id"]
-          },
-          {
-            foreignKeyName: "compromissos_parcelados_nf_origem_id_fkey"
-            columns: ["nf_origem_id"]
-            isOneToOne: false
-            referencedRelation: "vw_conciliacao_furos"
-            referencedColumns: ["sugestao_cpr_id"]
-          },
-          {
-            foreignKeyName: "compromissos_parcelados_nf_origem_id_fkey"
-            columns: ["nf_origem_id"]
-            isOneToOne: false
-            referencedRelation: "vw_contas_pagar_consolidado"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "compromissos_parcelados_nf_origem_id_fkey"
-            columns: ["nf_origem_id"]
-            isOneToOne: false
-            referencedRelation: "vw_cpr_cobertura"
-            referencedColumns: ["cpr_id"]
-          },
-          {
-            foreignKeyName: "compromissos_parcelados_nf_origem_id_fkey"
-            columns: ["nf_origem_id"]
-            isOneToOne: false
-            referencedRelation: "vw_despesas_match_sugestoes"
-            referencedColumns: ["cpr_id"]
-          },
-          {
-            foreignKeyName: "compromissos_parcelados_nf_origem_id_fkey"
-            columns: ["nf_origem_id"]
-            isOneToOne: false
-            referencedRelation: "vw_documentos_envio_estados"
-            referencedColumns: ["conta_id"]
-          },
-          {
-            foreignKeyName: "compromissos_parcelados_nf_origem_id_fkey"
-            columns: ["nf_origem_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pj_pagamentos"
-            referencedColumns: ["cpr_id"]
-          },
-          {
-            foreignKeyName: "compromissos_parcelados_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "parceiros_comerciais"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "compromissos_parcelados_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "v_credito_resumo_financeiro"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "compromissos_parcelados_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_consignado_valor_a_acertar"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "compromissos_parcelados_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_conta_corrente_cliente"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "compromissos_parcelados_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_estoque_estimado_parceiro"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "compromissos_parcelados_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_oportunidades_comercial"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "compromissos_parcelados_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_parceiro_historico_comercial"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "compromissos_parcelados_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_parceiro_nome"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "compromissos_parcelados_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_recebivel_por_conta"
-            referencedColumns: ["conta_id"]
-          },
-          {
-            foreignKeyName: "compromissos_parcelados_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
-            isOneToOne: false
-            referencedRelation: "plano_contas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      compromissos_recorrentes: {
-        Row: {
-          centro_custo: string | null
-          conta_bancaria_id: string | null
-          created_at: string
-          criado_por: string | null
-          data_fim: string | null
-          data_inicio: string
-          descricao: string
-          descricao_normalizada: string | null
-          dia_vencimento: number
-          id: string
-          observacao: string | null
-          parceiro_id: string | null
-          periodicidade: string
-          plano_contas_id: string | null
-          status: string
-          updated_at: string
-          valor: number
-        }
-        Insert: {
-          centro_custo?: string | null
-          conta_bancaria_id?: string | null
-          created_at?: string
-          criado_por?: string | null
-          data_fim?: string | null
-          data_inicio: string
-          descricao: string
-          descricao_normalizada?: string | null
-          dia_vencimento: number
-          id?: string
-          observacao?: string | null
-          parceiro_id?: string | null
-          periodicidade: string
-          plano_contas_id?: string | null
-          status?: string
-          updated_at?: string
-          valor: number
-        }
-        Update: {
-          centro_custo?: string | null
-          conta_bancaria_id?: string | null
-          created_at?: string
-          criado_por?: string | null
-          data_fim?: string | null
-          data_inicio?: string
-          descricao?: string
-          descricao_normalizada?: string | null
-          dia_vencimento?: number
-          id?: string
-          observacao?: string | null
-          parceiro_id?: string | null
-          periodicidade?: string
-          plano_contas_id?: string | null
-          status?: string
-          updated_at?: string
-          valor?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "compromissos_recorrentes_conta_bancaria_id_fkey"
-            columns: ["conta_bancaria_id"]
-            isOneToOne: false
-            referencedRelation: "contas_bancarias"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "compromissos_recorrentes_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "parceiros_comerciais"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "compromissos_recorrentes_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "v_credito_resumo_financeiro"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "compromissos_recorrentes_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_consignado_valor_a_acertar"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "compromissos_recorrentes_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_conta_corrente_cliente"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "compromissos_recorrentes_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_estoque_estimado_parceiro"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "compromissos_recorrentes_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_oportunidades_comercial"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "compromissos_recorrentes_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_parceiro_historico_comercial"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "compromissos_recorrentes_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_parceiro_nome"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "compromissos_recorrentes_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_recebivel_por_conta"
-            referencedColumns: ["conta_id"]
-          },
-          {
-            foreignKeyName: "compromissos_recorrentes_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
-            isOneToOne: false
-            referencedRelation: "plano_contas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       comprovante_pagamento: {
         Row: {
           beneficiario_cnpj_lido: string | null
@@ -8407,8 +8000,6 @@ export type Database = {
           centro_custo_id: string | null
           competencia: string | null
           compra_registrada_id: string | null
-          compromisso_parcelado_id: string | null
-          compromisso_recorrente_id: string | null
           comprovante_url: string | null
           conciliado_em: string | null
           conciliado_por: string | null
@@ -8499,8 +8090,6 @@ export type Database = {
           centro_custo_id?: string | null
           competencia?: string | null
           compra_registrada_id?: string | null
-          compromisso_parcelado_id?: string | null
-          compromisso_recorrente_id?: string | null
           comprovante_url?: string | null
           conciliado_em?: string | null
           conciliado_por?: string | null
@@ -8591,8 +8180,6 @@ export type Database = {
           centro_custo_id?: string | null
           competencia?: string | null
           compra_registrada_id?: string | null
-          compromisso_parcelado_id?: string | null
-          compromisso_recorrente_id?: string | null
           comprovante_url?: string | null
           conciliado_em?: string | null
           conciliado_por?: string | null
@@ -8712,20 +8299,6 @@ export type Database = {
             columns: ["compra_registrada_id"]
             isOneToOne: false
             referencedRelation: "compras_registradas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_compromisso_parcelado_id_fkey"
-            columns: ["compromisso_parcelado_id"]
-            isOneToOne: false
-            referencedRelation: "compromissos_parcelados"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_compromisso_recorrente_id_fkey"
-            columns: ["compromisso_recorrente_id"]
-            isOneToOne: false
-            referencedRelation: "compromissos_recorrentes"
             referencedColumns: ["id"]
           },
           {
@@ -44447,8 +44020,6 @@ export type Database = {
           categoria_confirmada: boolean | null
           categoria_sugerida_ia: boolean | null
           centro_custo_id: string | null
-          compromisso_parcelado_id: string | null
-          compromisso_recorrente_id: string | null
           comprovante_url: string | null
           conciliado_em: string | null
           conciliado_por: string | null
@@ -44540,20 +44111,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_dimensionamento_areas"
             referencedColumns: ["centro_custo_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_compromisso_parcelado_id_fkey"
-            columns: ["compromisso_parcelado_id"]
-            isOneToOne: false
-            referencedRelation: "compromissos_parcelados"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_compromisso_recorrente_id_fkey"
-            columns: ["compromisso_recorrente_id"]
-            isOneToOne: false
-            referencedRelation: "compromissos_recorrentes"
-            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "contas_pagar_receber_forma_pagamento_id_fkey"
@@ -44769,8 +44326,6 @@ export type Database = {
           categoria_confirmada: boolean | null
           categoria_sugerida_ia: boolean | null
           centro_custo_id: string | null
-          compromisso_parcelado_id: string | null
-          compromisso_recorrente_id: string | null
           comprovante_url: string | null
           conciliado_em: string | null
           conciliado_por: string | null
@@ -44866,20 +44421,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_dimensionamento_areas"
             referencedColumns: ["centro_custo_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_compromisso_parcelado_id_fkey"
-            columns: ["compromisso_parcelado_id"]
-            isOneToOne: false
-            referencedRelation: "compromissos_parcelados"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_compromisso_recorrente_id_fkey"
-            columns: ["compromisso_recorrente_id"]
-            isOneToOne: false
-            referencedRelation: "compromissos_recorrentes"
-            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "contas_pagar_receber_forma_pagamento_id_fkey"
@@ -52634,15 +52175,6 @@ export type Database = {
           receita_faturada: number | null
           resultado_competencia: number | null
           ticket_medio: number | null
-        }
-        Relationships: []
-      }
-      vw_fluxo_caixa_futuro: {
-        Row: {
-          mes_referencia: string | null
-          qtd_compromissos: number | null
-          qtd_parcelas: number | null
-          valor_total: number | null
         }
         Relationships: []
       }
