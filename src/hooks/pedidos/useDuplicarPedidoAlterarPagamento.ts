@@ -31,7 +31,6 @@ export function useDuplicarPedidoAlterarPagamento() {
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["cobranca-fila"] });
       qc.invalidateQueries({ queryKey: ["cobranca-proposta"] });
-      qc.invalidateQueries({ queryKey: ["aguardando-pagamento-fila"] });
       toast({
         title: "Pagamento alterado",
         description: `Novo pedido criado: ${data.novo_id_externo}`,
