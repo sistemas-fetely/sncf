@@ -14,6 +14,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
+import { useNivel } from "@/hooks/useNivel";
 import { Tag, Loader2 } from "lucide-react";
 
 const SUGESTOES_PADRAO = [
@@ -71,6 +72,7 @@ export function MarcacaoPedido({
   hideTrigger = false,
 }: Props) {
   const qc = useQueryClient();
+  const { temNivel } = useNivel();
   const [openInterno, setOpenInterno] = useState(false);
   const controlado = openProp !== undefined;
   const open = controlado ? openProp : openInterno;
@@ -91,13 +93,24 @@ export function MarcacaoPedido({
 
   const persist = async (novo: string | null) => {
     setSaving(true);
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("pedidos")
       .update({ marcacao: novo })
-      .eq("id", pedidoId);
+      .eq("id", pedidoId)
+      .select("id");
     setSaving(false);
     if (error) {
       toast({ title: "Erro ao salvar marcação", description: error.message, variant: "destructive" });
+      return;
+    }
+    // FAIL-LOUD: RLS bloqueando UPDATE não gera erro — apenas afeta 0 linhas.
+    // Sem esta checagem a tela diz "salvo" quando o banco recusou.
+    if (!data || data.length === 0) {
+      toast({
+        title: "Não foi possível salvar",
+        description: "Você não tem permissão para marcar este pedido.",
+        variant: "destructive",
+      });
       return;
     }
     toast({ title: novo ? "Marcação salva" : "Marcação removida" });
@@ -111,7 +124,7 @@ export function MarcacaoPedido({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {!hideTrigger && (
+      {!hideTrigger && temNivel(2) && (
         <DialogTrigger asChild>
           <Button
             variant="outline"
