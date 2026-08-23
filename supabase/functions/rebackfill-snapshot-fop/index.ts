@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -28,8 +28,17 @@ Deno.serve(async (req) => {
   const sncf           = createClient(sncfUrl, sncfServiceKey);
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return jsonResponse(401, { error: "Authorization obrigatório" });
+    // Job que roda com service_role — exige cron secret ou sessão autenticada válida (achado crítico 23/08/2026).
+    const cronSecret = req.headers.get("x-cron-secret");
+    if (cronSecret) {
+      const { data: esperado } = await sncf.rpc("get_vault_secret", { p_name: "SYNC_CRON_SECRET" });
+      if (!esperado || cronSecret !== esperado) return jsonResponse(401, { error: "x-cron-secret inválido." });
+    } else {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader) return jsonResponse(401, { error: "Authorization obrigatório" });
+      const { data: userData, error: userErr } = await sncf.auth.getUser(authHeader.replace("Bearer ", ""));
+      if (userErr || !userData?.user) return jsonResponse(401, { error: "Não autorizado: sessão inválida." });
+    }
 
     const { data: sncfToken, error: vaultErr } = await sncf.rpc("get_vault_secret", {
       p_name: "FOP_INBOUND_TOKEN",

@@ -8,7 +8,7 @@ import { ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
 const json = (status: number, body: unknown) =>
@@ -73,6 +73,21 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
+    // Job que roda com service_role — exige cron secret ou super_admin (achado crítico 23/08/2026).
+    const cronSecret = req.headers.get("x-cron-secret");
+    if (cronSecret) {
+      const { data: esperado } = await supabase.rpc("get_vault_secret", { p_name: "SYNC_CRON_SECRET" });
+      if (!esperado || cronSecret !== esperado) return json(401, { error: "x-cron-secret inválido." });
+    } else {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader) return json(401, { error: "Não autorizado: token ausente." });
+      const { data: userData, error: userErr } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
+      if (userErr || !userData?.user) return json(401, { error: "Não autorizado: sessão inválida." });
+      const { data: ehSuper, error: roleErr } = await supabase.rpc("has_role", { _user_id: userData.user.id, _role: "super_admin" });
+      if (roleErr) return json(500, { error: `Falha ao checar permissão: ${roleErr.message}` });
+      if (!ehSuper) return json(403, { error: "Apenas super_admin pode enriquecer o cadastro Bling." });
+    }
 
     // ---- body (opcional) ----
     let dryRun = false;

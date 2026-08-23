@@ -68545,6 +68545,18 @@ export type Database = {
         Returns: Json
       }
       revogar_acessos_ex_colaboradores: { Args: never; Returns: number }
+      rh_eh_gestor_de_checklist: {
+        Args: { _checklist_id: string }
+        Returns: boolean
+      }
+      rh_eh_gestor_de_clt: {
+        Args: { _colaborador_id: string }
+        Returns: boolean
+      }
+      rh_eh_gestor_de_pj: {
+        Args: { _contrato_pj_id: string }
+        Returns: boolean
+      }
       rh_pode_ver_sensivel: { Args: { _user_id: string }; Returns: boolean }
       rotear_documento_para_boleto: {
         Args: { p_ged_documento_id: string }

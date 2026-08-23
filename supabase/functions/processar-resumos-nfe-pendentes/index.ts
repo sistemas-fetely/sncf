@@ -20,7 +20,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
 const LOTE_MAX = 10;
@@ -41,6 +41,20 @@ Deno.serve(async (req) => {
   }
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+
+  // Worker com service_role — exige cron secret ou sessão autenticada (achado crítico 23/08/2026).
+  const authFail = (msg: string, status = 401) =>
+    new Response(JSON.stringify({ error: msg }), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  const cronSecret = req.headers.get("x-cron-secret");
+  if (cronSecret) {
+    const { data: esperado } = await admin.rpc("get_vault_secret", { p_name: "SYNC_CRON_SECRET" });
+    if (!esperado || cronSecret !== esperado) return authFail("x-cron-secret inválido.");
+  } else {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) return authFail("Não autorizado: token ausente.");
+    const { data: userData, error: userErr } = await admin.auth.getUser(authHeader.replace("Bearer ", ""));
+    if (userErr || !userData?.user) return authFail("Não autorizado: sessão inválida.");
+  }
 
   let body: { nfs_stage_ids?: string[]; nfs_stage_id?: string } = {};
   try {

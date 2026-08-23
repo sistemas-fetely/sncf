@@ -3,8 +3,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
+
+const authFail = (msg: string, status = 401) =>
+  new Response(JSON.stringify({ error: msg }), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
 const num = (x: any) => { const n = parseFloat(String(x ?? "").replace(",", ".")); return isNaN(n) ? 0 : n; };
 
@@ -20,6 +23,13 @@ const required = (form: FormData) => {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
+    // Ingere planilha de conferência com service_role — exige sessão autenticada (achado crítico 23/08/2026).
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) return authFail("Não autorizado: token ausente.");
+    const { data: userData, error: userErr } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
+    if (userErr || !userData?.user) return authFail("Não autorizado: sessão inválida.");
+
     const form = await req.formData();
     const missing = required(form);
     if (missing) {
@@ -52,7 +62,6 @@ serve(async (req) => {
       if (rows.length) break;
     }
     if (!rows.length) throw new Error("Nenhuma linha de conferência (DECLARADO/RECEBIDO) encontrada no arquivo.");
-    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data, error } = await supabase.rpc("ingerir_termo_conferencia", {
       p_termo: termo,
       p_rows: rows,
