@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, Fragment } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -432,6 +432,7 @@ interface CatalogoAppRow {
   telas_lista: string | null;
   contem_dado_sensivel: boolean;
   feature_em_teste: boolean;
+  filhas_herdadas: Array<{ label: string; slug: string; herda_de: string }> | null;
 }
 
 interface SecaoApp {
@@ -453,7 +454,7 @@ function useCatalogoPorApp() {
     queryFn: async (): Promise<CatalogoAppRow[]> => {
       const { data, error } = await supabase
         .from("vw_catalogo_por_app")
-        .select("permissao_id, slug, tipo, nome_exibicao, app_chave, app_label, app_ordem, submenu_chave, submenu_label, submenu_ordem, ordem_menu, item_chave, item_label, eh_aba, fora_do_menu, descricao, telas_cobertas, telas_lista, contem_dado_sensivel, feature_em_teste");
+        .select("permissao_id, slug, tipo, nome_exibicao, app_chave, app_label, app_ordem, submenu_chave, submenu_label, submenu_ordem, ordem_menu, item_chave, item_label, eh_aba, fora_do_menu, descricao, telas_cobertas, telas_lista, contem_dado_sensivel, feature_em_teste, filhas_herdadas");
       if (error) throw error;
       return (data || [])
         .filter((r) => r.permissao_id && r.app_chave)
@@ -478,6 +479,9 @@ function useCatalogoPorApp() {
           telas_lista: r.telas_lista,
           contem_dado_sensivel: r.contem_dado_sensivel ?? false,
           feature_em_teste: r.feature_em_teste ?? false,
+          filhas_herdadas: Array.isArray(r.filhas_herdadas)
+            ? (r.filhas_herdadas as unknown as CatalogoAppRow["filhas_herdadas"])
+            : null,
         }));
     },
   });
@@ -608,7 +612,7 @@ function PermissoesDoGrupo({ grupoId }: { grupoId: string }) {
           O que pode acessar
         </CardTitle>
         <p className="text-xs text-muted-foreground mt-1">
-          Marque por módulo. Telas têm só "Ver". Fichas têm Ver / Criar / Editar / Apagar.
+          Marque por módulo. Telas têm só "Ver". Fichas têm Ver / Criar / Editar / Apagar. Abas em cinza herdam a permissão de outra tela.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -724,83 +728,100 @@ function SecaoBloco({
                   const gp = grupoPermsMap.get(p.permissao_id);
                   const isFicha = p.tipo === "ficha" || p.tipo === "processo";
                   return (
-                    <div
-                      key={p.permissao_id}
-                      className="grid grid-cols-[1fr_60px_60px_60px_60px] gap-2 px-4 py-2 items-center text-sm hover:bg-muted/20 border-b last:border-b-0"
-                    >
-                      <div className={`flex flex-col min-w-0 justify-center ${p.eh_aba ? "pl-6" : ""}`}>
-                        <div className="flex items-center gap-2 min-w-0">
-                          {p.eh_aba && <span className="text-muted-foreground/50 shrink-0">↳</span>}
-                          <span className="truncate">{p.nome_exibicao}</span>
-                          {p.contem_dado_sensivel && (
-                            <Badge variant="outline" className="text-[9px] py-0 px-1">LGPD</Badge>
-                          )}
-                          {p.feature_em_teste && (
-                            <Badge variant="outline" className="text-[9px] py-0 px-1 bg-warning/10">BETA</Badge>
-                          )}
-                          {p.telas_cobertas > 1 && (
-                            <Badge
-                              variant="outline"
-                              className="text-[9px] py-0 px-1 shrink-0"
-                              title={p.telas_lista ?? undefined}
+                    <Fragment key={p.permissao_id}>
+                      <div
+                        className="grid grid-cols-[1fr_60px_60px_60px_60px] gap-2 px-4 py-2 items-center text-sm hover:bg-muted/20 border-b last:border-b-0"
+                      >
+                        <div className={`flex flex-col min-w-0 justify-center ${p.eh_aba ? "pl-6" : ""}`}>
+                          <div className="flex items-center gap-2 min-w-0">
+                            {p.eh_aba && <span className="text-muted-foreground/50 shrink-0">↳</span>}
+                            <span className="truncate">{p.nome_exibicao}</span>
+                            {p.contem_dado_sensivel && (
+                              <Badge variant="outline" className="text-[9px] py-0 px-1">LGPD</Badge>
+                            )}
+                            {p.feature_em_teste && (
+                              <Badge variant="outline" className="text-[9px] py-0 px-1 bg-warning/10">BETA</Badge>
+                            )}
+                            {p.telas_cobertas > 1 && (
+                              <Badge
+                                variant="outline"
+                                className="text-[9px] py-0 px-1 shrink-0"
+                                title={p.telas_lista ?? undefined}
+                              >
+                                {p.telas_cobertas} telas
+                              </Badge>
+                            )}
+                            {p.fora_do_menu && (
+                              <Badge
+                                variant="outline"
+                                className="text-[9px] py-0 px-1 shrink-0 text-muted-foreground"
+                                title="Tela sem entrada no menu lateral — acessível por busca ou link direto"
+                              >
+                                fora do menu
+                              </Badge>
+                            )}
+                            {p.tipo === "tela" && (
+                              <span className="text-[9px] text-muted-foreground/60">tela</span>
+                            )}
+                          </div>
+                          {p.descricao && (
+                            <span
+                              className="text-[10px] text-muted-foreground/70 truncate"
+                              title={p.descricao}
                             >
-                              {p.telas_cobertas} telas
-                            </Badge>
-                          )}
-                          {p.fora_do_menu && (
-                            <Badge
-                              variant="outline"
-                              className="text-[9px] py-0 px-1 shrink-0 text-muted-foreground"
-                              title="Tela sem entrada no menu lateral — acessível por busca ou link direto"
-                            >
-                              fora do menu
-                            </Badge>
-                          )}
-                          {p.tipo === "tela" && (
-                            <span className="text-[9px] text-muted-foreground/60">tela</span>
+                              {p.descricao}
+                            </span>
                           )}
                         </div>
-                        {p.descricao && (
-                          <span
-                            className="text-[10px] text-muted-foreground/70 truncate"
-                            title={p.descricao}
-                          >
-                            {p.descricao}
-                          </span>
-                        )}
+                        <div className="flex justify-center">
+                          <Checkbox
+                            checked={gp?.pode_ver || false}
+                            onCheckedChange={(v) => onToggle(p.permissao_id, "pode_ver", !!v)}
+                            disabled={disabled}
+                          />
+                        </div>
+                        <div className="flex justify-center">
+                          <Checkbox
+                            checked={gp?.pode_criar || false}
+                            onCheckedChange={(v) => onToggle(p.permissao_id, "pode_criar", !!v)}
+                            disabled={disabled || !isFicha}
+                            className={!isFicha ? "opacity-30" : ""}
+                          />
+                        </div>
+                        <div className="flex justify-center">
+                          <Checkbox
+                            checked={gp?.pode_editar || false}
+                            onCheckedChange={(v) => onToggle(p.permissao_id, "pode_editar", !!v)}
+                            disabled={disabled || !isFicha}
+                            className={!isFicha ? "opacity-30" : ""}
+                          />
+                        </div>
+                        <div className="flex justify-center">
+                          <Checkbox
+                            checked={gp?.pode_apagar || false}
+                            onCheckedChange={(v) => onToggle(p.permissao_id, "pode_apagar", !!v)}
+                            disabled={disabled || !isFicha}
+                            className={!isFicha ? "opacity-30" : ""}
+                          />
+                        </div>
                       </div>
-                      <div className="flex justify-center">
-                        <Checkbox
-                          checked={gp?.pode_ver || false}
-                          onCheckedChange={(v) => onToggle(p.permissao_id, "pode_ver", !!v)}
-                          disabled={disabled}
-                        />
-                      </div>
-                      <div className="flex justify-center">
-                        <Checkbox
-                          checked={gp?.pode_criar || false}
-                          onCheckedChange={(v) => onToggle(p.permissao_id, "pode_criar", !!v)}
-                          disabled={disabled || !isFicha}
-                          className={!isFicha ? "opacity-30" : ""}
-                        />
-                      </div>
-                      <div className="flex justify-center">
-                        <Checkbox
-                          checked={gp?.pode_editar || false}
-                          onCheckedChange={(v) => onToggle(p.permissao_id, "pode_editar", !!v)}
-                          disabled={disabled || !isFicha}
-                          className={!isFicha ? "opacity-30" : ""}
-                        />
-                      </div>
-                      <div className="flex justify-center">
-                        <Checkbox
-                          checked={gp?.pode_apagar || false}
-                          onCheckedChange={(v) => onToggle(p.permissao_id, "pode_apagar", !!v)}
-                          disabled={disabled || !isFicha}
-                          className={!isFicha ? "opacity-30" : ""}
-                        />
-                      </div>
-                    </div>
+                      {p.filhas_herdadas?.map((filha) => (
+                        <div
+                          key={`${p.permissao_id}-${filha.label}`}
+                          className="grid grid-cols-[1fr_60px_60px_60px_60px] gap-2 px-4 py-1.5 border-b last:border-b-0 bg-muted/5"
+                        >
+                          <div className="flex items-center gap-2 min-w-0 pl-12">
+                            <span className="text-muted-foreground/40 shrink-0">↳</span>
+                            <span className="text-[13px] text-muted-foreground truncate">{filha.label}</span>
+                            <span className="text-[9px] text-muted-foreground/60 shrink-0">herda de {filha.herda_de}</span>
+                          </div>
+                          <div />
+                          <div />
+                          <div />
+                          <div />
+                        </div>
+                      ))}
+                    </Fragment>
                   );
                 })}
               </div>
