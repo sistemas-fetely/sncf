@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  Users, Search, MoreHorizontal, Eye, Edit, Plus, UserCheck, Briefcase, Building2, UserMinus, BarChart3, AlertTriangle, Wallet, CalendarDays, Network, Handshake,
+  Users, Search, MoreHorizontal, Eye, Edit, Plus, UserCheck, Briefcase, Building2, UserMinus, BarChart3, AlertTriangle, Handshake,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -197,19 +197,9 @@ export default function Pessoas() {
           <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas/panorama")}>
             <BarChart3 className="h-4 w-4" /> Panorama de Áreas
           </Button>
-          <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas/custo", { state: { from: "/pessoas", fromLabel: "Pessoas" } })}>
-            <Wallet className="h-4 w-4" /> Custo
-          </Button>
-          <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas/folha")}>
-            <CalendarDays className="h-4 w-4" /> Folha
-          </Button>
-          <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas/organograma")}>
-            <Network className="h-4 w-4" /> Organograma
-          </Button>
           {isSocio && (
             <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas/socios")}>
               <Handshake className="h-4 w-4" /> Diretoria
-
             </Button>
           )}
           <Button className="gap-2" onClick={() => navigate("/pessoas/novo")}>
