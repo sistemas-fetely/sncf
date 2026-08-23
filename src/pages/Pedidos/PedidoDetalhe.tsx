@@ -739,19 +739,20 @@ function AcaoDescerPreSeparacao({ pedido, estagio }: { pedido: any; estagio: Est
       </Button>
 
       {podeLiberarSemProva && (
-      <ForcarSemLastroDialog
-        open={!!falta}
-        onOpenChange={(v) => { if (!v) transicionar.limparFaltaLastro(); }}
-        faltantes={falta?.faltantes ?? []}
-        isPending={transicionar.isPending}
-        onDividirRemessa={() => setSplitOpen(true)}
-        onForcar={(motivo) => {
-          transicionar.mutate(
-            { pedido_id: pedido.id, para_estagio: "pre_separacao", motivo },
-            { onSuccess: () => transicionar.limparFaltaLastro() },
-          );
-        }}
-      />
+        <ForcarSemLastroDialog
+          open={!!falta}
+          onOpenChange={(v) => { if (!v) transicionar.limparFaltaLastro(); }}
+          faltantes={falta?.faltantes ?? []}
+          isPending={transicionar.isPending}
+          onDividirRemessa={() => setSplitOpen(true)}
+          onForcar={(motivo) => {
+            transicionar.mutate(
+              { pedido_id: pedido.id, para_estagio: "pre_separacao", motivo },
+              { onSuccess: () => transicionar.limparFaltaLastro() },
+            );
+          }}
+        />
+      )}
 
       <SplitPedidoDialog
         open={splitOpen}
