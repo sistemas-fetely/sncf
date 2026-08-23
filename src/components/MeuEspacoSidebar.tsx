@@ -19,6 +19,7 @@ import { useLocation } from "react-router-dom";
 import { useMenuApp, type ItemMenu } from "@/hooks/useMenuApp";
 import { useFavoritos } from "@/hooks/useFavoritos";
 import { resolverIcone } from "@/config/iconesNavegacao";
+import { AtalhosFixos } from "@/components/navegacao/AtalhosFixos";
 import { ListChecks, Star } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -76,6 +77,12 @@ export function MeuEspacoSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-2 space-y-1">
+        {/* ATALHO-APONTA-PRO-PILAR (23/08/2026): Casa e Meu Espaço no topo.
+            Aqui, dentro do Meu Espaço, só a Casa aparece — atalho para onde
+            já se está é ruído. */}
+        <AtalhosFixos />
+        <div className="mx-4 border-t border-sidebar-border/40" />
+
         {/* FIXOS — favoritos do próprio usuário, no topo. Vêm da
             usuario_paginas_favoritas, com rótulo/ícone resolvidos da
             sncf_navegacao. Ordem definida por ele no popover do header. */}

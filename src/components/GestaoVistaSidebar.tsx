@@ -14,7 +14,7 @@ import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { getHighestRoleLabel } from "@/lib/user-role";
-import { AtalhoMeuEspaco } from "@/components/navegacao/AtalhoMeuEspaco";
+import { AtalhosFixos } from "@/components/navegacao/AtalhosFixos";
 import { useVisibilidadeMenuFixo } from "@/hooks/useVisibilidadeMenu";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -69,7 +69,7 @@ export function GestaoVistaSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-2 space-y-1">
-        <AtalhoMeuEspaco />
+        <AtalhosFixos />
         <div className="mx-4 border-t border-sidebar-border/40" />
 
         {itensVisiveis.length > 0 && (

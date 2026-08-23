@@ -18,7 +18,7 @@ import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { AtalhoMeuEspaco } from "@/components/navegacao/AtalhoMeuEspaco";
+import { AtalhosFixos } from "@/components/navegacao/AtalhosFixos";
 import { useMenuApp, type ItemMenu } from "@/hooks/useMenuApp";
 import { resolverIcone } from "@/config/iconesNavegacao";
 import {
@@ -77,7 +77,7 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-2 space-y-1">
-        <AtalhoMeuEspaco />
+        <AtalhosFixos />
         <div className="mx-4 border-t border-sidebar-border/40" />
 
         {!carregandoMenu && grupos.map((g) => (
