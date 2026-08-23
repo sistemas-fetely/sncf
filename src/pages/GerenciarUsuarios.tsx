@@ -62,6 +62,9 @@ const ROLE_LABELS: Record<AppRole, string> = {
   fiscal: "Fiscal",
   estagiario: "Estagiário",
   colaborador: "Colaborador",
+  coordenador: "Coordenador",
+  diretor: "Diretor",
+  operador: "Operador",
   // Legados (mantidos só por compatibilidade — não aparecem na UI nova)
   admin_rh: "Admin RH",
   admin_ti: "Admin TI",
