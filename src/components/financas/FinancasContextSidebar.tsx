@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/sidebar";
 import { FinancasSidebarItem } from "./FinancasSidebarItem";
 import { FinancasSidebarSection } from "./FinancasSidebarSection";
+import { AtalhoMeuEspaco } from "@/components/navegacao/AtalhoMeuEspaco";
 import { useMenuApp, type ItemMenu } from "@/hooks/useMenuApp";
 import { resolverIcone } from "@/config/iconesNavegacao";
 
@@ -59,6 +60,9 @@ export function FinancasContextSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="pt-4 gap-0">
+        <AtalhoMeuEspaco />
+        <div className="mx-4 border-t border-sidebar-border/40" />
+
         {isLoading && (
           <div className="px-3 py-2 space-y-2 group-data-[collapsible=icon]:hidden">
             {Array.from({ length: 8 }).map((_, i) => (
