@@ -35343,6 +35343,7 @@ export type Database = {
       }
       sncf_navegacao: {
         Row: {
+          acesso_por: string
           apenas_super_admin: boolean
           ativo: boolean
           badge_fonte: string | null
@@ -35362,6 +35363,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          acesso_por?: string
           apenas_super_admin?: boolean
           ativo?: boolean
           badge_fonte?: string | null
@@ -35381,6 +35383,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          acesso_por?: string
           apenas_super_admin?: boolean
           ativo?: boolean
           badge_fonte?: string | null
@@ -68837,6 +68840,7 @@ export type Database = {
       set_navegacao_status: {
         Args: { p_rota: string; p_status: string }
         Returns: {
+          acesso_por: string
           apenas_super_admin: boolean
           ativo: boolean
           badge_fonte: string | null

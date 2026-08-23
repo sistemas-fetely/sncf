@@ -13,12 +13,12 @@
  * são PlaceholderPage de verdade, confirmado no código.
  */
 
-import { Users, ClipboardList, UsersRound, LogOut } from "lucide-react";
+import { Users, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useVisibilidadeMenuFixo } from "@/hooks/useVisibilidadeMenu";
+import { AtalhoMeuEspaco } from "@/components/navegacao/AtalhoMeuEspaco";
 import { useMenuApp, type ItemMenu } from "@/hooks/useMenuApp";
 import { resolverIcone } from "@/config/iconesNavegacao";
 import {
@@ -31,8 +31,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { roles, signOut } = useAuth();
-  const { podeVer, isLoading: carregandoVisibilidade } = useVisibilidadeMenuFixo();
+  const { signOut } = useAuth();
   const { grupos, isLoading: carregandoMenu } = useMenuApp("pessoas");
 
   const isItemActive = (url: string) => location.pathname === url;
@@ -78,45 +77,7 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-2 space-y-1">
-        {/* Tarefas — acesso direto, ferramenta do dia-a-dia */}
-        {!carregandoVisibilidade && podeVer("/tarefas") && (
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink
-                    to="/tarefas"
-                    end
-                    className={cn(
-                      "flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200",
-                      location.pathname === "/tarefas" && "bg-sidebar-primary/20 text-sidebar-primary font-medium border-l-[3px] border-sidebar-primary shadow-sm"
-                    )}
-                  >
-                    <ClipboardList className="h-[18px] w-[18px] shrink-0" />
-                    {!collapsed && <span>Minhas Tarefas</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              {roles.some((r) => ["gestor_direto", "gestor_rh", "admin_rh", "super_admin"].includes(r)) && podeVer("/tarefas/time") && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to="/tarefas/time"
-                      className={cn(
-                        "flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200"
-                      )}
-                    >
-                      <UsersRound className="h-[18px] w-[18px] shrink-0" />
-                      {!collapsed && <span>Tarefas do Time</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        )}
+        <AtalhoMeuEspaco />
         <div className="mx-4 border-t border-sidebar-border/40" />
 
         {!carregandoMenu && grupos.map((g) => (

@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/sidebar";
 import { FinancasSidebarItem } from "@/components/financas/FinancasSidebarItem";
 import { FinancasSidebarSection } from "@/components/financas/FinancasSidebarSection";
+import { AtalhoMeuEspaco } from "@/components/navegacao/AtalhoMeuEspaco";
 import { useMenuApp, type ItemMenu } from "@/hooks/useMenuApp";
 import { useBadgesNavegacao } from "@/hooks/useBadgesNavegacao";
 import { resolverIcone } from "@/config/iconesNavegacao";
@@ -77,6 +78,9 @@ export function VendasSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="pt-4 gap-0">
+        <AtalhoMeuEspaco />
+        <div className="mx-4 border-t border-sidebar-border/40" />
+
         {!isLoading && grupos.map((g) =>
           g.chave === "sops.operacao" ? (
             // Grupo "Operação" — sem título/seção colapsável, igual hoje.
