@@ -58,7 +58,6 @@ export function useConfirmarPagamentoPortao() {
         ["contas-receber-titulos"],
         ["primeiro-pagamento-fila"],
         ["cobranca-fila"],
-        ["aguardando-pagamento-fila"],
       ];
       keys.forEach((queryKey) => qc.invalidateQueries({ queryKey }));
     },

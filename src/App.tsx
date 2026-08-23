@@ -179,10 +179,7 @@ const CreditoClientesIndex = lazy(() => import("@/pages/Credito/CreditoClientesI
 const CobrancaFila = lazy(() => import("@/pages/Credito/CobrancaFila"));
 const MesaCobranca = lazy(() => import("@/pages/Credito/MesaCobranca"));
 const CobrancaDetalhe = lazy(() => import("@/pages/Credito/CobrancaDetalhe"));
-const AguardandoPagamentoFila = lazy(() => import("@/pages/Credito/AguardandoPagamentoFila"));
-const AguardandoPagamentoDetalhe = lazy(() => import("@/pages/Credito/AguardandoPagamentoDetalhe"));
 const RecebimentoLayout = lazy(() => import("@/pages/Recebimento/RecebimentoLayout"));
-const EntradasRecebidas = lazy(() => import("@/pages/Recebimento/EntradasRecebidas"));
 
 const RegrasCadencia = lazy(() => import("@/pages/Credito/RegrasCadencia"));
 const ReguaEtapas = lazy(() => import("@/pages/Credito/ReguaEtapas"));
@@ -324,10 +321,8 @@ const App = () => (
               <Route path="/credito/clientes/:id" element={<ClienteDetalhe />} />
               <Route path="/recebimento" element={<RecebimentoLayout />}>
                 <Route index element={<Navigate to="/pedidos" replace />} />
-                <Route path="aguardando-pagamento" element={<AguardandoPagamentoFila />} />
               </Route>
               <Route path="/recebimento/cobranca/:pedidoId" element={<CobrancaDetalhe />} />
-              <Route path="/recebimento/aguardando-pagamento/:pedidoId" element={<AguardandoPagamentoDetalhe />} />
               <Route path="/credito/regras-cadencia" element={<RegrasCadencia />} />
               <Route path="/credito/regua-etapas" element={<ReguaEtapas />} />
 
@@ -343,7 +338,6 @@ const App = () => (
               <Route element={<VendasLayout />}>
                 <Route path="/pedidos" element={<PedidosIndex />} />
                 <Route path="/recebimento/cobranca" element={<CobrancaFila />} />
-                <Route path="/recebimento/entradas" element={<EntradasRecebidas />} />
 
                 <Route path="/vendas/nfs" element={<NfsDeVenda />} />
                 <Route path="/vendas/bling-pedidos" element={<PedidosVenda />} />
@@ -760,6 +754,10 @@ const App = () => (
             <Route path="/administrativo/investimento-lancamento" element={<Navigate to="/administrativo/despesas" replace />} />
             {/* DESMONTE-CONTRATOS-RECORRENTES (23/08/2026): gestão de títulos vive na Cobrança */}
             <Route path="/administrativo/compromissos" element={<Navigate to="/administrativo/contas-pagar" replace />} />
+            {/* Entradas Recebidas e Aguardando Pagamento desmontados (23/08/2026):
+                adiantamento vive na aba da Cobrança; estágio do pedido, na Casa dos Pedidos */}
+            <Route path="/recebimento/entradas" element={<Navigate to="/recebimento/cobranca?aba=adiantamento" replace />} />
+            <Route path="/recebimento/aguardando-pagamento" element={<Navigate to="/pedidos" replace />} />
             {/* Integrações moveu para TI (23/08/2026): é infra, não financeiro */}
             <Route path="/administrativo/configuracao-integracao" element={<Navigate to="/ti/integracoes" replace />} />
             <Route path="/vendas/produtos" element={<Navigate to="/vendas/produto" replace />} />

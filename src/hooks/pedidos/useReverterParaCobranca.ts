@@ -22,7 +22,6 @@ export function useReverterParaCobranca() {
       qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
       qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
       qc.invalidateQueries({ queryKey: ["cobranca-fila"] });
-      qc.invalidateQueries({ queryKey: ["aguardando-pagamento-fila"] });
       qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedidoId] });
       qc.invalidateQueries({ queryKey: ["pedido-titulos", pedidoId] });
       qc.invalidateQueries({ queryKey: ["cobranca-plano-existente", pedidoId] });

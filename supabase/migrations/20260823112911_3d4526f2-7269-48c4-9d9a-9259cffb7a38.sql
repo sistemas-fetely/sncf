@@ -1,0 +1,1 @@
+DELETE FROM sncf_navegacao WHERE chave IN ('sops.entradas', 'sops.aguard_pgto');

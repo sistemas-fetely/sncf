@@ -37,7 +37,6 @@ export function useReabrirAnalisePedido() {
       qc.invalidateQueries({ queryKey: ["cobranca-fila"] });
       qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
       qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
-      qc.invalidateQueries({ queryKey: ["aguardando-pagamento-fila"] });
       qc.invalidateQueries({ queryKey: ["avaliar-impacto-edicao", vars.pedidoId] });
       qc.invalidateQueries({ queryKey: ["avaliar-impacto-plano", vars.pedidoId] });
       toast({
