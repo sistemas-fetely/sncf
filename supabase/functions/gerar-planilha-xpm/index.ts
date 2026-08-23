@@ -4,12 +4,30 @@ import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 
+const jsonErr = (body: unknown, status: number) =>
+  new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    // Gera planilha com itens de pedido — exige sessão e permissão de Logística (achado crítico 23/08/2026).
+    const auth = req.headers.get("Authorization");
+    if (!auth) return jsonErr({ error: "Não autorizado: token ausente." }, 401);
+    const { data: userData, error: userErr } = await supabase.auth.getUser(auth.replace("Bearer ", ""));
+    if (userErr || !userData?.user) return jsonErr({ error: "Não autorizado: sessão inválida." }, 401);
+    const { data: telas } = await supabase.rpc("usuario_telas_permitidas", { p_user_id: userData.user.id });
+    let permitido = Array.isArray(telas) && telas.some((t: any) =>
+      typeof t === "string" ? t === "tela.logistica" : t?.slug === "tela.logistica");
+    if (!permitido) {
+      const { data: ehSuper } = await supabase.rpc("has_role", { _user_id: userData.user.id, _role: "super_admin" });
+      permitido = !!ehSuper;
+    }
+    if (!permitido) return jsonErr({ error: "Sem permissão para gerar a planilha XPM." }, 403);
+
     const { pedido_ref, fase } = await req.json();
     if (!pedido_ref) return new Response(JSON.stringify({ error: "pedido_ref obrigatório" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
-    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     let q = supabase.from("vw_xpm_cad_item").select("*").eq("pedido_ref", pedido_ref).order("codigo_material");
     if (fase === 1 || fase === 2) q = q.eq("fase", fase);
     const { data, error } = await q;
