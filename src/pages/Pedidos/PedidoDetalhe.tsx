@@ -376,6 +376,8 @@ const ESTAGIOS_BLOQUEIAM_MIGRAR = new Set([
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function BotaoMigrarComercial({ pedido }: { pedido: any }) {
   const [open, setOpen] = useState(false);
+  const { temNivel } = useNivel();
+  if (!temNivel(3)) return null;
   if (ESTAGIOS_BLOQUEIAM_MIGRAR.has(pedido.estagio)) return null;
   return (
     <>
