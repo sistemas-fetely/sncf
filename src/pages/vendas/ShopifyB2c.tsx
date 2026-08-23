@@ -24,6 +24,8 @@ import {
   usePedidosB2c, useCarrinhosAbandonados, useDevolucoesB2c, type PedidoB2cRow,
 } from "@/hooks/vendas/useB2c";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { useAuth } from "@/contexts/AuthContext";
+import { usePermissoesDoUsuario, temPermissaoTela } from "@/hooks/usePermissoesDoUsuario";
 
 /**
  * Casa do B2C — mesma linguagem da Casa dos Pedidos, regras do canal loja.
@@ -63,6 +65,13 @@ export default function ShopifyB2c() {
   const abaParam = searchParams.get("aba");
   const aba: Aba = ABAS.includes(abaParam as Aba) ? (abaParam as Aba) : "fila";
   const estagioParam = searchParams.get("estagio");
+  // Carrinhos abandonados: dado de contato de quem NÃO comprou — uso de
+  // marketing, separado de operar a fila de pedidos.
+  const { roles } = useAuth();
+  const { data: permitidas } = usePermissoesDoUsuario();
+  const podeVerCarrinhos =
+    (roles ?? []).includes("super_admin") ||
+    temPermissaoTela("tela.b2c_carrinhos", permitidas);
 
   const [busca, setBusca] = useState("");
   const [uf, setUf] = useState("todas");
@@ -150,16 +159,18 @@ export default function ShopifyB2c() {
         actions={<ExportarB2cButton linhas={filtrados} />}
       />
 
-      <Tabs value={aba} onValueChange={setAba} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="fila">Fila</TabsTrigger>
-          <TabsTrigger value="dash">Dash</TabsTrigger>
-          <div className="w-px bg-border mx-1.5 self-stretch" aria-hidden />
-          <TabsTrigger value="carrinhos">
-            Carrinhos{carrinhosResumo.qtd > 0 ? ` (${carrinhosResumo.qtd})` : ""}
-          </TabsTrigger>
-          <TabsTrigger value="posvenda">Pós-venda</TabsTrigger>
-        </TabsList>
+        <Tabs value={aba} onValueChange={setAba} className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="fila">Fila</TabsTrigger>
+            <TabsTrigger value="dash">Dash</TabsTrigger>
+            <div className="w-px bg-border mx-1.5 self-stretch" aria-hidden />
+            {podeVerCarrinhos && (
+              <TabsTrigger value="carrinhos">
+                Carrinhos{carrinhosResumo.qtd > 0 ? ` (${carrinhosResumo.qtd})` : ""}
+              </TabsTrigger>
+            )}
+            <TabsTrigger value="posvenda">Pós-venda</TabsTrigger>
+          </TabsList>
 
         <TabsContent value="fila" className="space-y-4">
           <div className="sticky top-14 z-20 -mx-6 border-b border-border bg-background px-6 py-2">
@@ -378,77 +389,79 @@ export default function ShopifyB2c() {
           <DashB2c pedidos={lista} isLoading={isLoading} />
         </TabsContent>
 
-        <TabsContent value="carrinhos" className="space-y-3">
-          <p className="text-xs text-muted-foreground">
-            {carrinhosResumo.qtd} carrinho(s) abandonado(s) · {formatBRL(carrinhosResumo.valor)} em jogo.
-          </p>
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>E-mail</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Idade</TableHead>
-                    <TableHead>Checkout</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {carregandoCarrinhos ? (
+        {podeVerCarrinhos && (
+          <TabsContent value="carrinhos" className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              {carrinhosResumo.qtd} carrinho(s) abandonado(s) · {formatBRL(carrinhosResumo.valor)} em jogo.
+            </p>
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={5} className="py-8 text-center">
-                        <Skeleton className="mx-auto h-4 w-32" />
-                      </TableCell>
+                      <TableHead>E-mail</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Idade</TableHead>
+                      <TableHead>Checkout</TableHead>
                     </TableRow>
-                  ) : (carrinhos ?? []).length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
-                        Nenhum carrinho abandonado.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    (carrinhos ?? []).map((c) => {
-                      const idade = c.created_at_shopify
-                        ? Math.floor(
-                            (Date.now() - new Date(c.created_at_shopify).getTime()) / 86400000,
-                          )
-                        : null;
-                      return (
-                        <TableRow key={c.token}>
-                          <TableCell className="text-xs">{txt(c.email)}</TableCell>
-                          <TableCell className="text-right text-xs tabular-nums">
-                            {formatBRL(c.total_price)}
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap text-xs">
-                            {formatDateBR(c.created_at_shopify)}
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                            {idade != null ? `${idade} d` : "—"}
-                          </TableCell>
-                          <TableCell>
-                            {c.abandoned_checkout_url ? (
-                              <a
-                                href={c.abandoned_checkout_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-gold"
-                              >
-                                Abrir <ExternalLink className="h-3.5 w-3.5" />
-                              </a>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">—</span>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                  </TableHeader>
+                  <TableBody>
+                    {carregandoCarrinhos ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="py-8 text-center">
+                          <Skeleton className="mx-auto h-4 w-32" />
+                        </TableCell>
+                      </TableRow>
+                    ) : (carrinhos ?? []).length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                          Nenhum carrinho abandonado.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      (carrinhos ?? []).map((c) => {
+                        const idade = c.created_at_shopify
+                          ? Math.floor(
+                              (Date.now() - new Date(c.created_at_shopify).getTime()) / 86400000,
+                            )
+                          : null;
+                        return (
+                          <TableRow key={c.token}>
+                            <TableCell className="text-xs">{txt(c.email)}</TableCell>
+                            <TableCell className="text-right text-xs tabular-nums">
+                              {formatBRL(c.total_price)}
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap text-xs">
+                              {formatDateBR(c.created_at_shopify)}
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                              {idade != null ? `${idade} d` : "—"}
+                            </TableCell>
+                            <TableCell>
+                              {c.abandoned_checkout_url ? (
+                                <a
+                                  href={c.abandoned_checkout_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-gold"
+                                >
+                                  Abrir <ExternalLink className="h-3.5 w-3.5" />
+                                </a>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
         <TabsContent value="posvenda">
           <Card>
