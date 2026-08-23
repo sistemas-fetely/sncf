@@ -5,10 +5,12 @@
  * useMenuApp. Mudar esse menu passa a ser UPDATE, sem deploy.
  *
  * Achados na migração:
- *  - "Entradas Recebidas" (/recebimento/entradas) não existia na tabela —
- *    adicionada (sops.entradas), senão sumiria do menu.
- *  - "Aguardando Pagamento" e "Destinos de Cadastro" já estavam na tabela
- *    mas nunca apareciam em nenhum menu — órfãs corrigidas de graça.
+ *  - "Entradas Recebidas" chegou a existir aqui (sops.entradas), mas a tela foi
+ *    desmontada em 23/08/2026 — adiantamento vive na aba da Cobrança.
+ *  - "Aguardando Pagamento" idem (sops.aguard_pgto) — estágio visível na Casa
+ *    dos Pedidos. Linhas removidas da sncf_navegacao na mesma data.
+ *  - "Destinos de Cadastro" já estava na tabela mas nunca aparecia em nenhum
+ *    menu — órfã corrigida de graça.
  *  - Badge de "Central de Mensagens" (badge_fonte='msgs_comercial_pendentes')
  *    já estava modelado, mas fn_badges() não sabia calculá-lo — completado
  *    na mesma sessão (replica exata da contagem que vivia inline aqui).
