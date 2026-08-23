@@ -439,8 +439,6 @@ const App = () => (
                 <Route path="/minhas-notas" element={<MinhasNotas />} />
               </Route>
 
-              <Route path="/fala-fetely" element={<FalaFetely />} />
-              <Route path="/fala-fetely/conhecimento" element={<FalaFetelyConhecimento />} />
               <Route element={<FinancasLayout />}>
                 <Route path="/compras" element={<Compras />} />
                 <Route path="/compras/a-comprar" element={<ComprasAComprar />} />
