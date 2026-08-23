@@ -8,13 +8,9 @@ const corsHeaders = {
 };
 
 interface DashboardData {
-  convitesPendentes: number;
   onboardingsAtrasados: number;
-  vagasAbertas: number;
-  candidatosTriagem: number;
   contratosVencendo: number;
   tarefasBloqueantes: number;
-  tempoMedioContratacao: number;
 }
 
 Deno.serve(async (req) => {
@@ -52,13 +48,9 @@ Deno.serve(async (req) => {
     const prompt = `Você é o assistente inteligente do Fetély, sistema de RH da Fetely — uma empresa brasileira de artigos de festa, papelaria e decoração com espírito comemorativo.
 
 DADOS ATUAIS DO SISTEMA:
-- ${data.convitesPendentes} convites de cadastro pendentes
 - ${data.onboardingsAtrasados} tarefas de onboarding atrasadas
-- ${data.vagasAbertas} vagas abertas
-- ${data.candidatosTriagem} candidatos para triagem
 - ${data.contratosVencendo} contratos PJ vencendo nos próximos 30 dias
 - ${data.tarefasBloqueantes} tarefas legais bloqueantes atrasadas
-- Tempo médio de contratação: ${data.tempoMedioContratacao} dias
 
 Use a ferramenta de busca para encontrar UMA notícia recente e relevante sobre RH no Brasil (eSocial, legislação trabalhista, gestão de pessoas, tendências). Depois retorne APENAS um JSON válido (sem markdown, sem backticks, sem texto antes ou depois) com EXATAMENTE esta estrutura:
 
