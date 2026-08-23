@@ -348,7 +348,6 @@ const App = () => (
                   <Route path="/vendas/produto/estoque/virtual" element={<EstoqueVirtual />} />
                   <Route path="/vendas/produto/estoque/saude" element={<SaudeEstoque />} />
                   <Route path="/vendas/produto/estoque/entradas" element={<EntradasEstoque />} />
-                  <Route path="/vendas/produto/estoque/devolucoes" element={<RetornoDevolucao />} />
                   <Route path="/vendas/produto/estoque/conciliacao" element={<ConciliacaoCadastro />} />
                   <Route path="/vendas/produto/estoque/nomes-bling" element={
                     <ProtectedRoute>
@@ -374,6 +373,7 @@ const App = () => (
                 <Route path="/administrativo-fetely/parceiros" element={<Parceiros />} />
 
                 <Route path="/canal-cpo" element={<CanalCPO />} />
+                <Route path="/devolucoes" element={<RetornoDevolucao />} />
               </Route>
 
               <Route path="/comercial/consignados/:parceiroId" element={<ConsignadoDetalhe />} />
@@ -769,6 +769,8 @@ const App = () => (
             <Route path="/comercial/oportunidades" element={<Navigate to="/pedidos?aba=recuperacao" replace />} />
             {/* DESMONTE-FAROL-PEDIDOS (23/08/2026): função permanece no banco (sla_fase_pedido/fn_previsao_entrega); tela substituída pela Casa dos Pedidos */}
             <Route path="/vendas/farol-pedidos" element={<Navigate to="/pedidos" replace />} />
+            {/* Retorno de Devolução emancipado do Estoque (23/08/2026) */}
+            <Route path="/vendas/produto/estoque/devolucoes" element={<Navigate to="/devolucoes" replace />} />
             <Route path="/comercial/consignados" element={<Navigate to="/pedidos?aba=consignados" replace />} />
             <Route path="/produto" element={<Navigate to="/vendas/produto" replace />} />
             <Route path="/produto/estoque/virtual" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
