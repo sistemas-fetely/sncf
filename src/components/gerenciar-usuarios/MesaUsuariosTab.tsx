@@ -77,7 +77,6 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
   // dialogs
   const [papelDialog, setPapelDialog] = useState<{ userId: string; nome: string } | null>(null);
   const [novoPapel, setNovoPapel] = useState<AppRole | "">("");
-  const [novoEscopo, setNovoEscopo] = useState<Escopo>("tudo");
   const [validoAte, setValidoAte] = useState("");
 
   const [revogar, setRevogar] = useState<{ id: string; label: string } | null>(null);
