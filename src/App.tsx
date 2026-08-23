@@ -200,7 +200,7 @@ const DestinosCadastro = lazy(() => import("@/pages/acervo/DestinosCadastro"));
 const VendasLayout = lazy(() => import("@/layouts/VendasLayout"));
 const ProdutoEstoqueLayout = lazy(() => import("@/layouts/ProdutoEstoqueLayout"));
 const NfsDeVenda = lazy(() => import("@/pages/Vendas/NfsDeVenda"));
-const FarolPedidos = lazy(() => import("@/pages/vendas/FarolPedidos"));
+
 const DashPedidos = lazy(() => import("@/pages/vendas/DashPedidos"));
 const GestaoPedidos = lazy(() => import("@/pages/vendas/GestaoPedidos"));
 
