@@ -15,7 +15,7 @@ export type CompraAnexoTipo = Database["public"]["Enums"]["compra_anexo_tipo_enu
 
 export interface PedidoCompraFull extends PedidoCompraRow {
   centros_custo: { id: string; codigo: string; nome: string } | null;
-  linhas_investimento: { id: string; descricao: string } | null;
+  // DESMONTE-PROJECOES (23/08/2026): linhas_investimento removido — tabela dropada
   parceiros_comerciais: { id: string; nome_fantasia: string | null; razao_social: string } | null;
   pedidos_compra_itens: PedidoCompraItemRow[];
   pedidos_compra_anexos: PedidoCompraAnexoRow[];
