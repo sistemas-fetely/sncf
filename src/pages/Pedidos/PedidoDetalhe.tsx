@@ -519,8 +519,10 @@ function BotaoEmailNfFaturado({ pedido }: { pedido: any }) {
 
 function BotaoEmailNfBoletos({ pedido }: { pedido: any }) {
   const [open, setOpen] = useState(false);
+  const { temNivel } = useNivel();
   const { data: boletosInfo, isLoading } = useBoletosDoPedido(pedido.id);
   const enviado = pedido.nf_email_enviado_em as string | null | undefined;
+  if (!temNivel(2)) return null;
 
   const qtdTotal = boletosInfo?.qtdTotal ?? 0;
   const qtdRegistrados = boletosInfo?.qtdRegistrados ?? 0;
