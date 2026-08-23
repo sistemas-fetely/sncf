@@ -1,63 +1,70 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { Search, ChevronRight, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  Search,
-  Briefcase,
-  FileBarChart,
-  ChevronRight,
-  FolderTree,
-  Wand2,
-  Filter,
-} from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { supabase } from "@/integrations/supabase/client";
+import { resolverIcone } from "@/config/iconesNavegacao";
 
-interface ConfigItem {
-  value: string;
+interface ItemAtalhoConfig {
+  chave: string;
   label: string;
-  description: string;
-  icon: React.ComponentType<{ className?: string }>;
-  path: string;
-  secao: string;
+  rota: string;
+  icone: string | null;
+  dominio: string;
+  ordem: number;
 }
 
-const ITENS: ConfigItem[] = [
-  // Pessoas
-  { value: "cargos", label: "Cargos", description: "Cargos e estrutura de função", icon: Briefcase, path: "/pessoas/cargos", secao: "Pessoas" },
+// Silent dimension: a tela não conhece a tabela de domínios, só precisa
+// de rótulos legíveis pros poucos domínios que recebem atalho_config.
+const DOMINIO_LABEL: Record<string, string> = {
+  pessoa: "Pessoas",
+  tesouraria: "Financeiro",
+  sistema: "TI",
+};
 
-  // Financeiro
-  { value: "plano-contas", label: "Plano de Contas", description: "Estrutura contábil de receitas e despesas", icon: FolderTree, path: "/administrativo/plano-contas", secao: "Financeiro" },
-  { value: "regras-ofx", label: "Regras de OFX", description: "Classificação automática de lançamentos do extrato", icon: Wand2, path: "/administrativo/regras-ofx", secao: "Financeiro" },
-  { value: "extrato-regras", label: "Regras do Inbox", description: "Tratamento automático de entradas do extrato", icon: Filter, path: "/administrativo/extrato-regras", secao: "Financeiro" },
-
-  // TI
-  { value: "reportes", label: "Reportes do Sistema", description: "Logs e relatórios técnicos", icon: FileBarChart, path: "/ti/reportes", secao: "TI" },
-];
+function labelDominio(dominio: string): string {
+  return DOMINIO_LABEL[dominio] ?? dominio.charAt(0).toUpperCase() + dominio.slice(1);
+}
 
 export default function Configuracoes() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
 
+  const { data: itens, isLoading } = useQuery({
+    queryKey: ["navegacao-atalhos-config"],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sncf_navegacao")
+        .select("chave, label, rota, icone, dominio, ordem")
+        .contains("tags", ["atalho_config"])
+        .eq("status", "pronta")
+        .order("dominio", { ascending: true })
+        .order("ordem", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as ItemAtalhoConfig[];
+    },
+  });
+
   const filtered = useMemo(() => {
-    const lower = searchTerm.toLowerCase();
-    if (!lower) return ITENS;
-    return ITENS.filter(
-      (i) =>
-        i.label.toLowerCase().includes(lower) ||
-        i.description.toLowerCase().includes(lower)
-    );
-  }, [searchTerm]);
+    const lower = searchTerm.toLowerCase().trim();
+    if (!lower) return itens ?? [];
+    return (itens ?? []).filter((i) => i.label.toLowerCase().includes(lower));
+  }, [searchTerm, itens]);
 
   const secoes = useMemo(() => {
-    const map = new Map<string, ConfigItem[]>();
+    const map = new Map<string, ItemAtalhoConfig[]>();
     for (const item of filtered) {
-      const list = map.get(item.secao) ?? [];
+      const secao = labelDominio(item.dominio);
+      const list = map.get(secao) ?? [];
       list.push(item);
-      map.set(item.secao, list);
+      map.set(secao, list);
     }
-    return map;
+    return Array.from(map.entries());
   }, [filtered]);
 
   return (
@@ -74,7 +81,11 @@ export default function Configuracoes() {
         />
       </div>
 
-      {filtered.length === 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : filtered.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-sm text-muted-foreground">
             Nenhuma configuração com esse termo. Tente o nome do módulo.
@@ -82,16 +93,16 @@ export default function Configuracoes() {
         </Card>
       ) : (
         <div className="space-y-6">
-          {Array.from(secoes.entries()).map(([secao, itens]) => (
+          {secoes.map(([secao, secaoItens]) => (
             <div key={secao} className="space-y-3">
               <h2 className="text-[15px] font-medium">{secao}</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-                {itens.map((item) => {
-                  const Icon = item.icon;
+                {secaoItens.map((item) => {
+                  const Icon = resolverIcone(item.icone);
                   return (
                     <button
-                      key={item.value}
-                      onClick={() => navigate(item.path)}
+                      key={item.chave}
+                      onClick={() => navigate(item.rota)}
                       className="group text-left"
                     >
                       <Card className="h-full transition-colors hover:bg-muted/50 hover:border-primary/40">
@@ -104,9 +115,6 @@ export default function Configuracoes() {
                               <p className="font-medium text-sm">{item.label}</p>
                               <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                             </div>
-                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                              {item.description}
-                            </p>
                           </div>
                         </CardContent>
                       </Card>
