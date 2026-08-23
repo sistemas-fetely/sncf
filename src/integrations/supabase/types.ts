@@ -67363,6 +67363,7 @@ export type Database = {
         Returns: string
       }
       fn_snapshot_coerente: { Args: { p_snap: Json }; Returns: Json }
+      fn_split_all_delete: { Args: { p_limite?: number }; Returns: number }
       fn_sugerir_cobranca_molde_pai: {
         Args: { p_ancora?: string; p_pedido_id: string }
         Returns: Json
