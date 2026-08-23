@@ -233,7 +233,7 @@ export default function ContasReceber() {
         estado="Recebíveis B2B por parcela — somente títulos faturados, com NF emitida. Para todos os títulos, ver Cobrança em Controladoria. Valor efetivo inclui juros e desconto. Somente leitura."
       />
 
-      <Tabs defaultValue="b2b">
+      <Tabs value={aba} onValueChange={setAba}>
         <TabsList>
           <TabsTrigger value="b2b">B2B</TabsTrigger>
           <TabsTrigger value="b2c">B2C</TabsTrigger>

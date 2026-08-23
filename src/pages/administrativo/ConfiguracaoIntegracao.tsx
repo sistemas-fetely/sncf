@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,6 +37,7 @@ const ENTIDADES: Array<{ id: EntidadeBling; label: string }> = [
 
 export default function ConfiguracaoIntegracao() {
   const qc = useQueryClient();
+  const [aba, setAba] = useAbaUrl("bling");
   const [showSecret, setShowSecret] = useState(false);
   const [showAccess, setShowAccess] = useState(false);
   const [showRefresh, setShowRefresh] = useState(false);
@@ -410,7 +412,7 @@ export default function ConfiguracaoIntegracao() {
         estado="Configure as integrações externas do sistema."
       />
 
-      <Tabs defaultValue="bling" className="space-y-4">
+      <Tabs value={aba} onValueChange={setAba} className="space-y-4">
         <TabsList>
           <TabsTrigger value="bling">Bling</TabsTrigger>
           <TabsTrigger value="email">Email Externo</TabsTrigger>
