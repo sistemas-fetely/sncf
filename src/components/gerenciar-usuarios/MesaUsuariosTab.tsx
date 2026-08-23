@@ -615,17 +615,6 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Escopo</Label>
-              <Select value={novoEscopo} onValueChange={(v) => setNovoEscopo(v as Escopo)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {ESCOPO_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
               <Label>Válido até (opcional)</Label>
               <Input
                 type="datetime-local"
