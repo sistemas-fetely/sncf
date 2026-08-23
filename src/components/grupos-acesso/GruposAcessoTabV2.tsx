@@ -419,6 +419,10 @@ interface CatalogoAppRow {
   app_chave: string;
   app_label: string;
   app_ordem: number;
+  submenu_chave: string | null;
+  submenu_label: string | null;
+  submenu_ordem: number;
+  descricao: string | null;
   telas_cobertas: number;
   telas_lista: string | null;
   contem_dado_sensivel: boolean;
@@ -430,6 +434,12 @@ interface SecaoApp {
   app_label: string;
   app_ordem: number;
   itens: CatalogoAppRow[];
+  subgrupos: Array<{
+    submenu_chave: string | null;
+    submenu_label: string | null;
+    submenu_ordem: number;
+    itens: CatalogoAppRow[];
+  }>;
 }
 
 function useCatalogoPorApp() {
@@ -438,7 +448,7 @@ function useCatalogoPorApp() {
     queryFn: async (): Promise<CatalogoAppRow[]> => {
       const { data, error } = await supabase
         .from("vw_catalogo_por_app")
-        .select("permissao_id, slug, tipo, nome_exibicao, app_chave, app_label, app_ordem, telas_cobertas, telas_lista, contem_dado_sensivel, feature_em_teste");
+        .select("permissao_id, slug, tipo, nome_exibicao, app_chave, app_label, app_ordem, submenu_chave, submenu_label, submenu_ordem, descricao, telas_cobertas, telas_lista, contem_dado_sensivel, feature_em_teste");
       if (error) throw error;
       return (data || [])
         .filter((r) => r.permissao_id && r.app_chave)
@@ -450,6 +460,10 @@ function useCatalogoPorApp() {
           app_chave: r.app_chave!,
           app_label: r.app_label ?? r.app_chave!,
           app_ordem: r.app_ordem ?? 9999,
+          submenu_chave: r.submenu_chave ?? null,
+          submenu_label: r.submenu_label ?? null,
+          submenu_ordem: r.submenu_ordem ?? 0,
+          descricao: r.descricao ?? null,
           telas_cobertas: r.telas_cobertas ?? 0,
           telas_lista: r.telas_lista,
           contem_dado_sensivel: r.contem_dado_sensivel ?? false,
@@ -510,25 +524,55 @@ function PermissoesDoGrupo({ grupoId }: { grupoId: string }) {
     return m;
   }, [permsGrupo]);
 
-  // Catálogo agrupado por app (hierarquia real do menu), ordenado por
-  // app_ordem; dentro de cada seção, por nome_exibicao.
+  // Catálogo agrupado por app e, dentro de cada app, por submenu (mesma
+  // hierarquia do menu lateral). Ordenado por app_ordem, depois submenu_ordem,
+  // depois nome_exibicao. Itens sem submenu ficam em primeiro lugar no app.
   const secoes = useMemo<SecaoApp[]>(() => {
-    const m = new Map<string, SecaoApp>();
+    const apps = new Map<string, SecaoApp>();
     catalogo.forEach((p) => {
-      if (!m.has(p.app_chave)) {
-        m.set(p.app_chave, {
+      if (!apps.has(p.app_chave)) {
+        apps.set(p.app_chave, {
           app_chave: p.app_chave,
           app_label: p.app_label,
           app_ordem: p.app_ordem,
           itens: [],
+          subgrupos: [],
         });
       }
-      m.get(p.app_chave)!.itens.push(p);
+      apps.get(p.app_chave)!.itens.push(p);
     });
-    const arr = Array.from(m.values()).sort((a, b) => a.app_ordem - b.app_ordem);
-    arr.forEach((s) =>
-      s.itens.sort((a, b) => a.nome_exibicao.localeCompare(b.nome_exibicao, "pt-BR"))
-    );
+
+    const arr = Array.from(apps.values()).sort((a, b) => a.app_ordem - b.app_ordem);
+
+    arr.forEach((secao) => {
+      const subMap = new Map<string, { submenu_chave: string | null; submenu_label: string | null; submenu_ordem: number; itens: CatalogoAppRow[] }>();
+      secao.itens.forEach((p) => {
+        const key = p.submenu_chave ?? "__sem_submenu__";
+        if (!subMap.has(key)) {
+          subMap.set(key, {
+            submenu_chave: p.submenu_chave,
+            submenu_label: p.submenu_label,
+            submenu_ordem: p.submenu_ordem,
+            itens: [],
+          });
+        }
+        subMap.get(key)!.itens.push(p);
+      });
+
+      const subgrupos = Array.from(subMap.values()).sort((a, b) => {
+        if (a.submenu_chave === null && b.submenu_chave !== null) return -1;
+        if (a.submenu_chave !== null && b.submenu_chave === null) return 1;
+        if (a.submenu_ordem !== b.submenu_ordem) return a.submenu_ordem - b.submenu_ordem;
+        return (a.submenu_label ?? "").localeCompare(b.submenu_label ?? "", "pt-BR");
+      });
+
+      subgrupos.forEach((sg) => {
+        sg.itens.sort((a, b) => a.nome_exibicao.localeCompare(b.nome_exibicao, "pt-BR"));
+      });
+
+      secao.subgrupos = subgrupos;
+    });
+
     return arr;
   }, [catalogo]);
 
@@ -649,66 +693,92 @@ function SecaoBloco({
             <span className="text-center">Apagar</span>
           </div>
 
-          {permissoes.map((p) => {
-            const gp = grupoPermsMap.get(p.permissao_id);
-            const isFicha = p.tipo === "ficha" || p.tipo === "processo";
+          {secao.subgrupos.map((sub) => {
+            const mostrarSubmenu =
+              secao.subgrupos.length > 1 ||
+              (secao.subgrupos.length === 1 && sub.submenu_label !== null);
             return (
-              <div
-                key={p.permissao_id}
-                className="grid grid-cols-[1fr_60px_60px_60px_60px] gap-2 px-4 py-2 items-center text-sm hover:bg-muted/20 border-b last:border-b-0"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="truncate">{p.nome_exibicao}</span>
-                  {p.contem_dado_sensivel && (
-                    <Badge variant="outline" className="text-[9px] py-0 px-1">LGPD</Badge>
-                  )}
-                  {p.feature_em_teste && (
-                    <Badge variant="outline" className="text-[9px] py-0 px-1 bg-warning/10">BETA</Badge>
-                  )}
-                  {p.telas_cobertas > 1 && (
-                    <Badge
-                      variant="outline"
-                      className="text-[9px] py-0 px-1 shrink-0"
-                      title={p.telas_lista ?? undefined}
+              <div key={sub.submenu_chave ?? "__sem_submenu__"}>
+                {mostrarSubmenu && (
+                  <div className="px-4 py-1.5 text-[11px] uppercase tracking-wide text-muted-foreground bg-muted/30 border-b">
+                    {sub.submenu_chave === null
+                      ? "Sem submenu"
+                      : (sub.submenu_label ?? sub.submenu_chave)}
+                  </div>
+                )}
+                {sub.itens.map((p) => {
+                  const gp = grupoPermsMap.get(p.permissao_id);
+                  const isFicha = p.tipo === "ficha" || p.tipo === "processo";
+                  return (
+                    <div
+                      key={p.permissao_id}
+                      className="grid grid-cols-[1fr_60px_60px_60px_60px] gap-2 px-4 py-2 items-center text-sm hover:bg-muted/20 border-b last:border-b-0"
                     >
-                      {p.telas_cobertas} telas
-                    </Badge>
-                  )}
-                  {p.tipo === "tela" && (
-                    <span className="text-[9px] text-muted-foreground/60">tela</span>
-                  )}
-                </div>
-                <div className="flex justify-center">
-                  <Checkbox
-                    checked={gp?.pode_ver || false}
-                    onCheckedChange={(v) => onToggle(p.permissao_id, "pode_ver", !!v)}
-                    disabled={disabled}
-                  />
-                </div>
-                <div className="flex justify-center">
-                  <Checkbox
-                    checked={gp?.pode_criar || false}
-                    onCheckedChange={(v) => onToggle(p.permissao_id, "pode_criar", !!v)}
-                    disabled={disabled || !isFicha}
-                    className={!isFicha ? "opacity-30" : ""}
-                  />
-                </div>
-                <div className="flex justify-center">
-                  <Checkbox
-                    checked={gp?.pode_editar || false}
-                    onCheckedChange={(v) => onToggle(p.permissao_id, "pode_editar", !!v)}
-                    disabled={disabled || !isFicha}
-                    className={!isFicha ? "opacity-30" : ""}
-                  />
-                </div>
-                <div className="flex justify-center">
-                  <Checkbox
-                    checked={gp?.pode_apagar || false}
-                    onCheckedChange={(v) => onToggle(p.permissao_id, "pode_apagar", !!v)}
-                    disabled={disabled || !isFicha}
-                    className={!isFicha ? "opacity-30" : ""}
-                  />
-                </div>
+                      <div className="flex flex-col min-w-0 justify-center">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="truncate">{p.nome_exibicao}</span>
+                          {p.contem_dado_sensivel && (
+                            <Badge variant="outline" className="text-[9px] py-0 px-1">LGPD</Badge>
+                          )}
+                          {p.feature_em_teste && (
+                            <Badge variant="outline" className="text-[9px] py-0 px-1 bg-warning/10">BETA</Badge>
+                          )}
+                          {p.telas_cobertas > 1 && (
+                            <Badge
+                              variant="outline"
+                              className="text-[9px] py-0 px-1 shrink-0"
+                              title={p.telas_lista ?? undefined}
+                            >
+                              {p.telas_cobertas} telas
+                            </Badge>
+                          )}
+                          {p.tipo === "tela" && (
+                            <span className="text-[9px] text-muted-foreground/60">tela</span>
+                          )}
+                        </div>
+                        {p.descricao && (
+                          <span
+                            className="text-[10px] text-muted-foreground/70 truncate"
+                            title={p.descricao}
+                          >
+                            {p.descricao}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex justify-center">
+                        <Checkbox
+                          checked={gp?.pode_ver || false}
+                          onCheckedChange={(v) => onToggle(p.permissao_id, "pode_ver", !!v)}
+                          disabled={disabled}
+                        />
+                      </div>
+                      <div className="flex justify-center">
+                        <Checkbox
+                          checked={gp?.pode_criar || false}
+                          onCheckedChange={(v) => onToggle(p.permissao_id, "pode_criar", !!v)}
+                          disabled={disabled || !isFicha}
+                          className={!isFicha ? "opacity-30" : ""}
+                        />
+                      </div>
+                      <div className="flex justify-center">
+                        <Checkbox
+                          checked={gp?.pode_editar || false}
+                          onCheckedChange={(v) => onToggle(p.permissao_id, "pode_editar", !!v)}
+                          disabled={disabled || !isFicha}
+                          className={!isFicha ? "opacity-30" : ""}
+                        />
+                      </div>
+                      <div className="flex justify-center">
+                        <Checkbox
+                          checked={gp?.pode_apagar || false}
+                          onCheckedChange={(v) => onToggle(p.permissao_id, "pode_apagar", !!v)}
+                          disabled={disabled || !isFicha}
+                          className={!isFicha ? "opacity-30" : ""}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             );
           })}
