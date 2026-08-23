@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatCard } from "@/components/StatCard";
-import { useAuth } from "@/contexts/AuthContext";
+import { useNivel } from "@/hooks/useNivel";
 import { SelectDepartamentoHierarquico } from "@/components/shared/SelectDepartamentoHierarquico";
 import { SalarioMasked } from "@/components/SalarioMasked";
 import { useCargos } from "@/hooks/useCargos";
@@ -40,8 +40,8 @@ const STATUS_BADGE: Record<string, string> = {
 const TIPO_LABEL: Record<string, string> = Object.fromEntries(TIPOS.map((t) => [t.value, t.label]));
 
 export default function Movimentacoes() {
-  const { hasAnyRole } = useAuth();
-  const canManage = hasAnyRole(["super_admin", "gestor_rh", "financeiro"]);
+  const { temNivel } = useNivel();
+  const canManage = temNivel(3);
 
   const { data: movimentacoes = [], isLoading } = useMovimentacoes();
   const { data: colaboradores = [] } = useColaboradoresAtivos();

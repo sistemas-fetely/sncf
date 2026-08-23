@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "@/contexts/AuthContext";
+import { useNivel } from "@/hooks/useNivel";
 import type { ViewMode, OrgFilters, PosicaoNode } from "@/types/organograma";
 
 interface Props {
@@ -16,8 +16,8 @@ interface Props {
 }
 
 export function OrgToolbar({ viewMode, onViewModeChange, filters, onFiltersChange, allNodes, onCreatePosition }: Props) {
-  const { hasAnyRole } = useAuth();
-  const canManage = hasAnyRole(["super_admin", "gestor_rh"]);
+  const { temNivel } = useNivel();
+  const canManage = temNivel(3);
   const departamentos = [...new Set(allNodes.map(n => n.departamento).filter(Boolean).filter(d => d.trim() !== ""))].sort();
   const filiais = [...new Set(allNodes.map(n => n.filial).filter(Boolean).filter(f => (f as string).trim() !== ""))].sort();
 

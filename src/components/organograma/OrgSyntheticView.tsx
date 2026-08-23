@@ -3,7 +3,7 @@ import { ChevronRight, ChevronDown, Users, Minus } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext";
+import { useNivel } from "@/hooks/useNivel";
 import { SalarioMasked } from "@/components/SalarioMasked";
 import type { PosicaoNode, OrgFilters } from "@/types/organograma";
 
@@ -146,8 +146,8 @@ interface Props {
 }
 
 export function OrgSyntheticView({ tree, flat, filters, onNodeClick }: Props) {
-  const { hasAnyRole } = useAuth();
-  const canSeeSalary = hasAnyRole(["super_admin", "gestor_rh", "financeiro"]);
+  const { temNivel } = useNivel();
+  const canSeeSalary = temNivel(3);
   const [showPrevisto, setShowPrevisto] = useState(false);
 
   // Start with first 3 levels expanded

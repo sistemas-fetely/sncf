@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAuth } from "@/contexts/AuthContext";
+import { useNivel } from "@/hooks/useNivel";
 import { useCreatePosicao, useDeletePosicao, materializarSeVirtual } from "@/hooks/useOrgMutations";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -34,8 +34,8 @@ const nivelLabels: Record<number, string> = {
 };
 
 export function OrgPosicaoModal({ open, onClose, editNode, allNodes }: Props) {
-  const { hasAnyRole } = useAuth();
-  const canSeeSalary = hasAnyRole(["super_admin", "gestor_rh", "financeiro"]);
+  const { temNivel } = useNivel();
+  const canSeeSalary = temNivel(3);
   const qc = useQueryClient();
   const createMutation = useCreatePosicao();
   const deleteMutation = useDeletePosicao();

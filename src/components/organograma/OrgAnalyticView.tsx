@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, Building2, CircleDot, BarChart3 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useNivel } from "@/hooks/useNivel";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, LineChart, Line,
@@ -20,8 +20,8 @@ interface Props {
 }
 
 export function OrgAnalyticView({ flat, filters }: Props) {
-  const { hasAnyRole } = useAuth();
-  const canSeeCost = hasAnyRole(["super_admin", "gestor_rh", "financeiro"]);
+  const { temNivel } = useNivel();
+  const canSeeCost = temNivel(3);
 
   const stats = useMemo(() => {
     const occupied = flat.filter(n => n.status === "ocupado");
