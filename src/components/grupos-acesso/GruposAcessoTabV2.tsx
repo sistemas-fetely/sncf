@@ -600,7 +600,14 @@ function SecaoBloco({
             className="h-2 w-2 rounded-full"
             style={{ backgroundColor: cor }}
           />
-          <span className="font-medium text-sm">{PILAR_LABELS[pilar] || pilar}</span>
+          <div className="flex flex-col items-start gap-0.5 min-w-0">
+            <span className={`font-medium text-sm ${atenuado ? "text-muted-foreground" : ""}`}>
+              {secao.app_label}
+            </span>
+            {subtituloReserva && (
+              <span className="text-[10px] text-muted-foreground/70">{subtituloReserva}</span>
+            )}
+          </div>
           <Badge variant="secondary" className="text-[10px]">
             {liberadas}/{permissoes.length}
           </Badge>
@@ -639,20 +646,23 @@ function SecaoBloco({
           </div>
 
           {permissoes.map((p) => {
-            const gp = grupoPermsMap.get(p.id);
+            const gp = grupoPermsMap.get(p.permissao_id);
             const isFicha = p.tipo === "ficha" || p.tipo === "processo";
             return (
               <div
-                key={p.id}
+                key={p.permissao_id}
                 className="grid grid-cols-[1fr_60px_60px_60px_60px] gap-2 px-4 py-2 items-center text-sm hover:bg-muted/20 border-b last:border-b-0"
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="truncate">{p.nome_exibicao}</span>
-                  {p.contem_dado_sensivel && (
-                    <Badge variant="outline" className="text-[9px] py-0 px-1">LGPD</Badge>
-                  )}
-                  {p.feature_em_teste && (
-                    <Badge variant="outline" className="text-[9px] py-0 px-1 bg-warning/10">BETA</Badge>
+                  {p.telas_cobertas > 1 && (
+                    <Badge
+                      variant="outline"
+                      className="text-[9px] py-0 px-1 shrink-0"
+                      title={p.telas_lista ?? undefined}
+                    >
+                      {p.telas_cobertas} telas
+                    </Badge>
                   )}
                   {p.tipo === "tela" && (
                     <span className="text-[9px] text-muted-foreground/60">tela</span>
@@ -661,14 +671,14 @@ function SecaoBloco({
                 <div className="flex justify-center">
                   <Checkbox
                     checked={gp?.pode_ver || false}
-                    onCheckedChange={(v) => onToggle(p.id, "pode_ver", !!v)}
+                    onCheckedChange={(v) => onToggle(p.permissao_id, "pode_ver", !!v)}
                     disabled={disabled}
                   />
                 </div>
                 <div className="flex justify-center">
                   <Checkbox
                     checked={gp?.pode_criar || false}
-                    onCheckedChange={(v) => onToggle(p.id, "pode_criar", !!v)}
+                    onCheckedChange={(v) => onToggle(p.permissao_id, "pode_criar", !!v)}
                     disabled={disabled || !isFicha}
                     className={!isFicha ? "opacity-30" : ""}
                   />
@@ -676,7 +686,7 @@ function SecaoBloco({
                 <div className="flex justify-center">
                   <Checkbox
                     checked={gp?.pode_editar || false}
-                    onCheckedChange={(v) => onToggle(p.id, "pode_editar", !!v)}
+                    onCheckedChange={(v) => onToggle(p.permissao_id, "pode_editar", !!v)}
                     disabled={disabled || !isFicha}
                     className={!isFicha ? "opacity-30" : ""}
                   />
@@ -684,7 +694,7 @@ function SecaoBloco({
                 <div className="flex justify-center">
                   <Checkbox
                     checked={gp?.pode_apagar || false}
-                    onCheckedChange={(v) => onToggle(p.id, "pode_apagar", !!v)}
+                    onCheckedChange={(v) => onToggle(p.permissao_id, "pode_apagar", !!v)}
                     disabled={disabled || !isFicha}
                     className={!isFicha ? "opacity-30" : ""}
                   />
