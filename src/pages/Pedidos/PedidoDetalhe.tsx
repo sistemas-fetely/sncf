@@ -2186,36 +2186,38 @@ export default function PedidoDetalhe() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="col-span-2 grid grid-cols-2 gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-8 w-full"
-                        onClick={() => {
-                          setCompararOpen(true);
-                          freteComparativo.refetch();
-                        }}
-                      >
-                        <Scale className="h-3.5 w-3.5 mr-1.5" />
-                        Comparar transportadoras
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-8 w-full"
-                        disabled={!id || recotar.isPending}
-                        onClick={() => id && recotar.mutate({ pedidoId: id, forcar: true })}
-                      >
-                        {recotar.isPending ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                        ) : (
-                          <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-                        )}
-                        Recotar
-                      </Button>
-                    </div>
+                    {temNivel(2) && (
+                      <div className="col-span-2 grid grid-cols-2 gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-8 w-full"
+                          onClick={() => {
+                            setCompararOpen(true);
+                            freteComparativo.refetch();
+                          }}
+                        >
+                          <Scale className="h-3.5 w-3.5 mr-1.5" />
+                          Comparar transportadoras
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-8 w-full"
+                          disabled={!id || recotar.isPending}
+                          onClick={() => id && recotar.mutate({ pedidoId: id, forcar: true })}
+                        >
+                          {recotar.isPending ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                          ) : (
+                            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                          )}
+                          Recotar
+                        </Button>
+                      </div>
+                    )}
                     <div>
                       <label className="text-[10px] text-muted-foreground uppercase tracking-wide">Valor frete (R$)</label>
                       <input
@@ -2347,8 +2349,8 @@ export default function PedidoDetalhe() {
                       <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
                       <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Urgência</p>
                     </div>
-                    <Select value={urgencia} onValueChange={(v) => setUrgencia(v as UrgenciaDeclarada)}>
-                      <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                    <Select value={urgencia} onValueChange={(v) => setUrgencia(v as UrgenciaDeclarada)} disabled={!temNivel(3)}>
+                      <SelectTrigger className="h-8 text-sm disabled:opacity-60 disabled:cursor-not-allowed"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="normal"><span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-muted" />{URGENCIA_LABELS.normal}</span></SelectItem>
                         <SelectItem value="alta"><span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-warning" />{URGENCIA_LABELS.alta}</span></SelectItem>
@@ -2360,13 +2362,16 @@ export default function PedidoDetalhe() {
                       onChange={(e) => setObsUrgencia(e.target.value)}
                       placeholder="Justificativa opcional…"
                       rows={2}
-                      className="w-full text-xs rounded-md border border-input bg-background px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
+                      disabled={!temNivel(3)}
+                      className="w-full text-xs rounded-md border border-input bg-background px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground disabled:opacity-60 disabled:cursor-not-allowed"
                     />
-                    <Button size="sm" variant="outline" className="w-full"
-                      onClick={() => id && atualizarUrgencia.mutate({ pedidoId: id, urgencia, observacao: obsUrgencia })}
-                      disabled={atualizarUrgencia.isPending}>
-                      {atualizarUrgencia.isPending ? <><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</> : "Salvar urgência"}
-                    </Button>
+                    {temNivel(3) && (
+                      <Button size="sm" variant="outline" className="w-full"
+                        onClick={() => id && atualizarUrgencia.mutate({ pedidoId: id, urgencia, observacao: obsUrgencia })}
+                        disabled={atualizarUrgencia.isPending}>
+                        {atualizarUrgencia.isPending ? <><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</> : "Salvar urgência"}
+                      </Button>
+                    )}
                   </div>
                 </TabsContent>
                 <TabsContent value="obs_sop">
@@ -2383,26 +2388,29 @@ export default function PedidoDetalhe() {
                       onChange={(e) => setObsSop(e.target.value)}
                       placeholder="Ex.: cliente exige NF antes do envio; conferir lote XYZ; SOP de embalagem dupla…"
                       rows={4}
-                      className="w-full text-xs rounded-md border border-input bg-background px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
+                      disabled={!temNivel(2)}
+                      className="w-full text-xs rounded-md border border-input bg-background px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground disabled:opacity-60 disabled:cursor-not-allowed"
                     />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-full"
-                      disabled={!obsSop.trim() || registrarEvento.isPending}
-                      onClick={async () => {
-                        if (!id || !obsSop.trim()) return;
-                        await registrarEvento.mutateAsync({
-                          pedido_id: id,
-                          tipo_evento: "anotacao",
-                          descricao: `[SOP] ${obsSop.trim()}`,
-                          metadata: { categoria: "sop" },
-                        });
-                        setObsSop("");
-                      }}
-                    >
-                      {registrarEvento.isPending ? <><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</> : "Registrar na timeline"}
-                    </Button>
+                    {temNivel(2) && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full"
+                        disabled={!obsSop.trim() || registrarEvento.isPending}
+                        onClick={async () => {
+                          if (!id || !obsSop.trim()) return;
+                          await registrarEvento.mutateAsync({
+                            pedido_id: id,
+                            tipo_evento: "anotacao",
+                            descricao: `[SOP] ${obsSop.trim()}`,
+                            metadata: { categoria: "sop" },
+                          });
+                          setObsSop("");
+                        }}
+                      >
+                        {registrarEvento.isPending ? <><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</> : "Registrar na timeline"}
+                      </Button>
+                    )}
 
                     {(() => {
                       const sopEventos = (eventos || []).filter((ev: any) =>
@@ -2558,6 +2566,7 @@ export default function PedidoDetalhe() {
                       {snap.backfill && (
                         <Badge variant="secondary" className="ml-1 text-[10px] font-normal h-5 px-1.5">via backfill</Badge>
                       )}
+                      {/* Mantido em super_admin de propósito: corrige o dado de ORIGEM vindo do FOP, é manutenção, não operação. */}
                       {isSuperAdmin && (snap as any)?.backfill === true && pedido.recebido_via === 'api' && (
                         <Button
                           variant="ghost"
