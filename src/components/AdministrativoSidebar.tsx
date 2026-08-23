@@ -14,7 +14,7 @@
  */
 
 
-import { Building2, ShieldCheck, FileSignature, FolderArchive, Landmark, Upload, Layers, FileWarning, Filter } from "lucide-react";
+import { Building2, ShieldCheck, FileSignature, FolderArchive, Landmark } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
@@ -24,8 +24,8 @@ import { getHighestRoleLabel } from "@/lib/user-role";
 import { AtalhoMeuEspaco } from "@/components/navegacao/AtalhoMeuEspaco";
 import { useMenuApp, type ItemMenu } from "@/hooks/useMenuApp";
 import { resolverIcone } from "@/config/iconesNavegacao";
-import { useVisibilidadeMenuFixo } from "@/hooks/useVisibilidadeMenu";
 import {
+
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
   SidebarHeader, SidebarFooter, useSidebar,
