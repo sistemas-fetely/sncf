@@ -87,7 +87,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 import { AREA_LABELS, STATUS_TITULO_LABELS, URGENCIA_LABELS } from "@/types/pedido";
 import type { AreaPedido, EstagioPedido, StatusTitulo, TipoTituloPagamento, TituloAReceber, UrgenciaDeclarada } from "@/types/pedido";
-import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, Copy, Truck, RefreshCw, Scissors, Mail, MailCheck, ShieldAlert, MessageCircle, Link2, Wallet, PauseCircle, Bell, XCircle, History, RotateCcw, Scale, PackageX, Link2Off } from "lucide-react";
+import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, PackageSearch, Copy, Truck, RefreshCw, Scissors, Mail, MailCheck, ShieldAlert, MessageCircle, Link2, Wallet, PauseCircle, Bell, XCircle, History, RotateCcw, Scale, PackageX, Link2Off } from "lucide-react";
 import { useFreteComparativo } from "@/hooks/pedidos/useFreteComparativo";
 import { CompararTransportadorasDialog } from "@/components/pedidos/dialogs/CompararTransportadorasDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -105,6 +105,7 @@ import { useTransportadoraOrigem } from "@/hooks/pedidos/useTransportadoraOrigem
 import { useRecotarTransportadora } from "@/hooks/pedidos/useRecotarTransportadora";
 import { useSalvarDadosEnvio } from "@/hooks/pedidos/useSalvarDadosEnvio";
 import { RastreioPedidoBloco } from "@/components/pedidos/RastreioPedidoBloco";
+import { useRastreioPedido } from "@/hooks/pedidos/useRastreioPedido";
 import { useRemessas } from "@/hooks/pedidos/useRemessas";
 import { useFreteEstimado } from "@/hooks/transportadoras/useFreteEstimado";
 import { useEnviarEmailPedidoCobranca } from "@/hooks/pedidos/useEnviarEmailPedidoCobranca";
@@ -147,6 +148,39 @@ function Linha({ label, value, destaque }: { label: string; value?: string | num
     <div className="flex justify-between gap-3 text-sm border-b border-border/40 last:border-0">
       <span className="text-muted-foreground shrink-0">{label}</span>
       <span className={cn("text-right", destaque && "font-medium")}>{value ?? "—"}</span>
+    </div>
+  );
+}
+
+/**
+ * Versão somente-leitura do código de rastreio para nível 1.
+ * CONTRATO DE NÍVEL: campos editáveis ficam disabled, não escondidos.
+ */
+function RastreioLeitura({ pedidoId }: { pedidoId: string }) {
+  const rastreio = useRastreioPedido(pedidoId);
+  if (rastreio.isLoading) return <p className="text-xs text-muted-foreground">Verificando rastreio…</p>;
+  const vinculado = rastreio.data;
+  if (!vinculado) return <p className="text-sm text-muted-foreground">—</p>;
+  return (
+    <div className="rounded-md border border-border/60 bg-muted/20 p-2.5 space-y-1.5">
+      <p className="text-sm font-medium tracking-wide flex items-center gap-1.5">
+        <PackageSearch className="h-3.5 w-3.5 text-muted-foreground" />
+        {vinculado.codigo_rastreio}
+      </p>
+      <div className="flex items-center gap-2 flex-wrap">
+        {vinculado.entregue ? (
+          <Badge variant="outline" className="text-[10px] border-success/60 text-success">Entregue</Badge>
+        ) : vinculado.status_atual ? (
+          <Badge variant="outline" className="text-[10px]">{vinculado.status_atual}</Badge>
+        ) : (
+          <Badge variant="outline" className="text-[10px] text-muted-foreground">Aguardando primeira leitura</Badge>
+        )}
+        {vinculado.data_ultima_atualizacao && (
+          <span className="text-[10px] text-muted-foreground">
+            Atualizado em {new Date(vinculado.data_ultima_atualizacao).toLocaleDateString("pt-BR")}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -1664,7 +1698,7 @@ export default function PedidoDetalhe() {
               )}
             </div>
           </div>
-          {naturezaAlerta.pode_trocar && (
+          {naturezaAlerta.pode_trocar && temNivel(3) && (
             <Button
               size="sm"
               className="shrink-0"
@@ -1793,7 +1827,7 @@ export default function PedidoDetalhe() {
                             </Tooltip>
                           </TooltipProvider>
                         )}
-                        {naturezaTrocaLiberada && (
+                        {naturezaTrocaLiberada && temNivel(3) && (
                           <Button
                             variant="ghost"
                             size="icon"
@@ -1828,7 +1862,19 @@ export default function PedidoDetalhe() {
                   </div>
                   {parceiro?.id && (
                     <div className="mt-3 pt-3 border-t border-border/40">
-                      <EditarProgramaInline parceiro_id={parceiro.id} nivel_atual={parceiro.nivel_programa || "convive"} categoria_ka_atual={parceiro.categoria_ka ?? null} />
+                      {temNivel(2) ? (
+                        <EditarProgramaInline parceiro_id={parceiro.id} nivel_atual={parceiro.nivel_programa || "convive"} categoria_ka_atual={parceiro.categoria_ka ?? null} />
+                      ) : (
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">Programa de Parceiros</Label>
+                          <p className="text-sm capitalize">
+                            {(parceiro.nivel_programa || "convive").replace("_", " ")}
+                            {parceiro.categoria_ka && (
+                              <span className="text-muted-foreground"> · KA {parceiro.categoria_ka}</span>
+                            )}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                   <div className="mt-3">
@@ -1979,7 +2025,7 @@ export default function PedidoDetalhe() {
                 <CardContent className="space-y-3">
                   <div className="space-y-1.5">
                     <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Transportadora</label>
-                    <Select value={transportadoraId || "__none__"} onValueChange={(v) => setTransportadoraId(v === "__none__" ? "" : v)}>
+                    <Select value={transportadoraId || "__none__"} onValueChange={(v) => setTransportadoraId(v === "__none__" ? "" : v)} disabled={!temNivel(2)}>
                       <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__none__">— Nenhuma —</SelectItem>
@@ -1999,7 +2045,8 @@ export default function PedidoDetalhe() {
                     </div>
 
                     {/* RASTREIO-B2B-MANUAL (22/08/2026): vínculo manual de código Correios */}
-                    {id && <RastreioPedidoBloco pedidoId={id} />}
+                    {/* CONTRATO DE NÍVEL: nível 1 lê o rastreio; nível 2+ pode vincular/trocar. */}
+                    {id && (temNivel(2) ? <RastreioPedidoBloco pedidoId={id} /> : <RastreioLeitura pedidoId={id} />)}
 
                     <div className="space-y-1.5">
                     <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Peso bruto total (kg)</label>
@@ -2011,11 +2058,14 @@ export default function PedidoDetalhe() {
                         value={pesoBruto}
                         onChange={(e) => setPesoBruto(e.target.value)}
                         placeholder="0.000"
-                        className="flex-1 min-w-0 h-9 text-sm rounded-md border border-input bg-background px-3 focus:outline-none focus:ring-1 focus:ring-ring"
+                        disabled={!temNivel(2)}
+                        className="flex-1 min-w-0 h-9 text-sm rounded-md border border-input bg-background px-3 focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-60 disabled:cursor-not-allowed"
                       />
-                      <Button type="button" size="sm" variant="outline" className="h-9 w-9 p-0" title="Recalcular peso a partir dos itens" disabled={recalculandoPeso} onClick={recalcularPeso}>
-                        {recalculandoPeso ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-                      </Button>
+                      {temNivel(2) && (
+                        <Button type="button" size="sm" variant="outline" className="h-9 w-9 p-0" title="Recalcular peso a partir dos itens" disabled={recalculandoPeso} onClick={recalcularPeso}>
+                          {recalculandoPeso ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                        </Button>
+                      )}
                     </div>
                   </div>
 
@@ -2125,7 +2175,7 @@ export default function PedidoDetalhe() {
                   <div className="grid grid-cols-2 gap-2 pt-3 border-t border-border/40">
                     <div className="col-span-2">
                       <label className="text-[10px] text-muted-foreground uppercase tracking-wide">Tipo frete</label>
-                      <Select value={freteTipo} onValueChange={setFreteTipo}>
+                      <Select value={freteTipo} onValueChange={setFreteTipo} disabled={!temNivel(2)}>
                         <SelectTrigger className="h-8 text-sm mt-0.5"><SelectValue placeholder="Selecionar..." /></SelectTrigger>
                         <SelectContent>
                           {freteTiposAtivos.map((t) => (
@@ -2175,7 +2225,8 @@ export default function PedidoDetalhe() {
                         value={valorFrete}
                         onChange={(e) => setValorFrete(e.target.value)}
                         placeholder="0,00"
-                        className="w-full h-8 text-sm rounded-md border border-input bg-background px-3 mt-0.5 focus:outline-none focus:ring-1 focus:ring-ring"
+                        disabled={!temNivel(2)}
+                        className="w-full h-8 text-sm rounded-md border border-input bg-background px-3 mt-0.5 focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-60 disabled:cursor-not-allowed"
                       />
                       <p className="text-[10px] text-muted-foreground mt-1 leading-tight">
                         Cobrado do cliente — não muda ao escolher transportadora.
@@ -2194,24 +2245,26 @@ export default function PedidoDetalhe() {
 
                   </div>
 
-                  <Button
-                    size="sm"
-                    className="h-9 w-full"
-                    disabled={salvarDadosEnvio.isPending}
-                    onClick={() =>
-                      id && salvarDadosEnvio.mutate({
-                        pedidoId: id,
-                        transportadoraId: transportadoraId || null,
-                        pesoBrutoTotal: parseFloat(pesoBruto) || 0,
-                        freteTipo: freteTipo || null,
-                        valorFrete: parseFloat(valorFrete) || 0,
-                        estimativaValor: freteEst.data?.valor_estimado ?? null,
-                        estimativaJson: freteEst.data ?? null,
-                      })
-                    }
-                  >
-                    {salvarDadosEnvio.isPending ? (<><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</>) : ("Salvar")}
-                  </Button>
+                  {temNivel(2) && (
+                    <Button
+                      size="sm"
+                      className="h-9 w-full"
+                      disabled={salvarDadosEnvio.isPending}
+                      onClick={() =>
+                        id && salvarDadosEnvio.mutate({
+                          pedidoId: id,
+                          transportadoraId: transportadoraId || null,
+                          pesoBrutoTotal: parseFloat(pesoBruto) || 0,
+                          freteTipo: freteTipo || null,
+                          valorFrete: parseFloat(valorFrete) || 0,
+                          estimativaValor: freteEst.data?.valor_estimado ?? null,
+                          estimativaJson: freteEst.data ?? null,
+                        })
+                      }
+                    >
+                      {salvarDadosEnvio.isPending ? (<><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</>) : ("Salvar")}
+                    </Button>
+                  )}
 
                   {temNivel(2) && (
                     <CompararTransportadorasDialog
