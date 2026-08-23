@@ -411,9 +411,7 @@ const App = () => (
 
 
 
-              {/* SNCF — Portal + transversais — App Simples, CasaLayout direto */}
-              {/* Doutrina CASA-2: SNCFLayout removido — rotas ficam direto no CasaLayout */}
-              <Route path="/sncf" element={<PortalSNCF />} />
+              {/* SNCF — Portal SNCF movido para dentro do AcervoLayout (23/08/2026) */}
               <Route path="/tarefas" element={<Navigate to="/tarefas/hoje" replace />} />
               <Route element={<MeuEspacoLayout />}>
                 <Route path="/tarefas/hoje" element={<TarefasHoje />} />
