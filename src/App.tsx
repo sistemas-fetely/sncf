@@ -755,6 +755,10 @@ const App = () => (
                 ela não exibe nada, e o destino tem o portão dele.
                 NÃO adicionar tela real aqui.
                 ═══════════════════════════════════════════════ */}
+            {/* DESMONTE-PROJECOES (23/08/2026): absorvido pela classificação de despesa */}
+            <Route path="/administrativo/fluxo-futuro" element={<Navigate to="/administrativo/fluxo-caixa" replace />} />
+            <Route path="/administrativo/fluxo-futuro-investimento" element={<Navigate to="/administrativo/fluxo-caixa" replace />} />
+            <Route path="/administrativo/investimento-lancamento" element={<Navigate to="/administrativo/despesas" replace />} />
             <Route path="/vendas/produtos" element={<Navigate to="/vendas/produto" replace />} />
             <Route path="/vendas/produto/estoque" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
             <Route path="/logistica/analise-custo" element={<Navigate to="/logistica" replace />} />
