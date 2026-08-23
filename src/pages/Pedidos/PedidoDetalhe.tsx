@@ -834,6 +834,7 @@ function AcaoPrimaria({ pedido, parceiro, estagio, geraTituloReceber }: { pedido
  */
 function AcoesAguardandoPagamento({ pedido }: { pedido: any; geraTituloReceber?: boolean }) {
   const { data: plano } = usePlanoAbertoPedido(pedido.id);
+  const { temNivel } = useNivel();
 
   const cartao = (plano ?? []).filter((l) => (l.tipo_pagamento ?? "").toLowerCase() === "cartao");
   const linhaALinha = (plano ?? []).filter((l) =>
