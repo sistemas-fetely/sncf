@@ -43,7 +43,6 @@ export function usePrefetchTelas() {
     // ===== ONDA 2 (1500ms): telas secundárias =====
     const onda2 = setTimeout(() => {
       void import("@/pages/administrativo/FluxoCaixa");
-      void import("@/pages/administrativo/Compromissos");
       void import("@/pages/administrativo/NFsStage");
       void import("@/pages/administrativo/FaturasCartao");
       void import("@/pages/administrativo/ImportarDados");

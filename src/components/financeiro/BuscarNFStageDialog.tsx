@@ -106,30 +106,10 @@ export default function BuscarNFStageDialog({
     }
   }, [open]);
 
-  // Busca info do compromisso parcelado (se houver)
-  const { data: compromissoInfo } = useQuery({
-    queryKey: ["compromisso-info-busca-nf", contaId],
-    enabled: open && !!contaId,
-    queryFn: async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: conta } = await (supabase as any)
-        .from("contas_pagar_receber")
-        .select("compromisso_parcelado_id")
-        .eq("id", contaId)
-        .maybeSingle();
-      const compId = conta?.compromisso_parcelado_id;
-      if (!compId) return null;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: comp } = await (supabase as any)
-        .from("compromissos_parcelados")
-        .select("id, descricao, valor_total, qtd_parcelas")
-        .eq("id", compId)
-        .maybeSingle();
-      return comp || null;
-    },
-  });
-
-  const valorParaMatch = Number(compromissoInfo?.valor_total ?? contaValor ?? 0);
+  // DESMONTE-CONTRATOS-RECORRENTES (23/08/2026): a busca de info do
+  // compromisso parcelado saiu — a tabela não existe mais. O match de
+  // valor passa a ser sempre pelo valor da conta.
+  const valorParaMatch = Number(contaValor ?? 0);
 
   const { data: candidatos = [], isLoading } = useQuery({
     queryKey: ["buscar-nfs-stage", contaId],
@@ -457,15 +437,6 @@ export default function BuscarNFStageDialog({
                 Conta: <span className="font-medium">{contaDescricao}</span> —{" "}
                 {formatBRL(contaValor)}
               </div>
-              {compromissoInfo && (
-                <div className="text-xs text-info bg-info/10 border border-info/40 rounded px-2 py-1">
-                  ✨ Buscando NF do compromisso completo (
-                  {compromissoInfo.qtd_parcelas} parcelas) —{" "}
-                  <span className="font-medium">
-                    {formatBRL(Number(compromissoInfo.valor_total))}
-                  </span>
-                </div>
-              )}
               <div className="text-xs">
                 IA busca match por CNPJ, valor, razão social, nome fantasia e
                 data de emissão.
