@@ -9,7 +9,8 @@ import { usePedidoRisco, usePedidoRiscoFaixas, RISCO_COR_TOKEN } from "@/hooks/p
 import { usePedidoAlerta, ALERTA_COR_TOKEN, type PedidoAlerta } from "@/hooks/pedidos/usePedidoAlerta";
 import { usePedidoRelogio } from "@/hooks/pedidos/usePedidoRelogio";
 import type { PedidoRisco } from "@/hooks/pedidos/usePedidoRisco";
-import { usePedidosEntregaLote } from "@/hooks/pedidos/usePedidoEntrega";
+import { usePedidosEntregaLote, type EntregaLinhaInfo } from "@/hooks/pedidos/usePedidoEntrega";
+import { useDownloadNfPdf } from "@/hooks/nf/useDownloadNfPdf";
 import { useLiberacaoExpedicaoLote, type LiberacaoExpedicao } from "@/hooks/pedidos/useLiberacaoExpedicao";
 import { CelulaEntregaFila, LinhaNfFila } from "@/components/pedidos/CelulasFilaPedidos";
 import {
@@ -17,7 +18,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageCircle, MoreHorizontal, FileSpreadsheet, Tag, Download, Flame, Loader2 } from "lucide-react";
+import { Search, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageCircle, MoreHorizontal, FileSpreadsheet, Tag, Download, Flame, Loader2, FileText } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import {
@@ -1033,7 +1034,7 @@ export function FilaPedidosPorArea({
                   </TableCell>
 
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    <AcoesLinha p={p} temMsg={pedidosComMsg.has(p.id)} risco={risco} />
+                    <AcoesLinha p={p} temMsg={pedidosComMsg.has(p.id)} risco={risco} nfInfo={entregaMap?.get(p.id)} />
                   </TableCell>
 
                 </TableRow>
@@ -1394,10 +1395,16 @@ function FarolRisco({
 }
 
 /** Coluna de ações: uma ação primária por estágio + resto no menu "⋯". */
-function AcoesLinha({ p, temMsg, risco }: { p: PedidoFilaItem; temMsg: boolean; risco: PedidoRisco | undefined }) {
+function AcoesLinha({ p, temMsg, risco, nfInfo }: { p: PedidoFilaItem; temMsg: boolean; risco: PedidoRisco | undefined; nfInfo: EntregaLinhaInfo | undefined }) {
   const navigate = useNavigate();
   const { hasAnyRole } = useAuth();
   const { mutate: atualizarUrgencia, isPending } = useAtualizarUrgencia();
+  const { baixar: baixarNf, baixando: baixandoNf } = useDownloadNfPdf();
+
+  // NF-EM-ACOES-RAPIDAS (22/08/2026): download direto no menu "⋯", pra faturado→entregue.
+  // Mesma fonte do chip clicável na coluna Valor (LinhaNfFila) — sem NF, o item simplesmente não aparece.
+  const podeBaixarNf =
+    ["faturado", "em_transporte", "entregue"].includes(p.estagio) && !!nfInfo?.nf_id;
   const [cadastroOpen, setCadastroOpen] = useState(false);
   const [exportarOpen, setExportarOpen] = useState(false);
   const [splitOpen, setSplitOpen] = useState(false);
@@ -1512,6 +1519,24 @@ function AcoesLinha({ p, temMsg, risco }: { p: PedidoFilaItem; temMsg: boolean; 
             <DropdownMenuItem onSelect={abrirUrgencia}>
               <Flame className="h-4 w-4 mr-2" />
               Declarar urgência
+            </DropdownMenuItem>
+          )}
+          {podeBaixarNf && (
+            <DropdownMenuItem
+              disabled={baixandoNf}
+              onSelect={() =>
+                baixarNf({
+                  nf_id: nfInfo!.nf_id!,
+                  nome: `NF-${nfInfo!.nf_numero}${nfInfo!.nf_serie ? `-${nfInfo!.nf_serie}` : ""}`,
+                })
+              }
+            >
+              {baixandoNf ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <FileText className="h-4 w-4 mr-2" />
+              )}
+              Baixar NF
             </DropdownMenuItem>
           )}
           <DropdownMenuItem onSelect={() => setCadastroOpen(true)}>
