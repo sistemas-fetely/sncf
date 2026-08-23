@@ -7,13 +7,14 @@
  * URLs preservadas (/dashboard, /relatorios) — só layout muda.
  */
 
-import { LayoutDashboard, BarChart3, Tv, ClipboardList, UsersRound } from "lucide-react";
+import { LayoutDashboard, BarChart3, Tv } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { getHighestRoleLabel } from "@/lib/user-role";
+import { AtalhoMeuEspaco } from "@/components/navegacao/AtalhoMeuEspaco";
 import { useVisibilidadeMenuFixo } from "@/hooks/useVisibilidadeMenu";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -68,44 +69,7 @@ export function GestaoVistaSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-2 space-y-1">
-        {/* Tarefas — acesso direto */}
-        {!carregandoVisibilidade && podeVer("/tarefas") && (
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink
-                    to="/tarefas"
-                    end
-                    className={cn(
-                      "flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200",
-                      location.pathname === "/tarefas" && "bg-sidebar-accent text-sidebar-foreground font-medium border-l-[3px] shadow-sm"
-                    )}
-                    style={location.pathname === "/tarefas" ? { borderLeftColor: GV_COLOR, color: GV_COLOR } : undefined}
-                  >
-                    <ClipboardList className="h-[18px] w-[18px] shrink-0" style={location.pathname === "/tarefas" ? { color: GV_COLOR } : undefined} />
-                    {!collapsed && <span>Minhas Tarefas</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              {roles.some((r) => ["gestor_direto", "gestor_rh", "admin_rh", "super_admin"].includes(r)) && podeVer("/tarefas/time") && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to="/tarefas/time"
-                      className="flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200"
-                    >
-                      <UsersRound className="h-[18px] w-[18px] shrink-0" />
-                      {!collapsed && <span>Tarefas do Time</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        )}
+        <AtalhoMeuEspaco />
         <div className="mx-4 border-t border-sidebar-border/40" />
 
         {itensVisiveis.length > 0 && (
