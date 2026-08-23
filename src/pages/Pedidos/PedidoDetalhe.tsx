@@ -1827,7 +1827,7 @@ export default function PedidoDetalhe() {
                             </Tooltip>
                           </TooltipProvider>
                         )}
-                        {naturezaTrocaLiberada && (
+                        {naturezaTrocaLiberada && temNivel(3) && (
                           <Button
                             variant="ghost"
                             size="icon"
