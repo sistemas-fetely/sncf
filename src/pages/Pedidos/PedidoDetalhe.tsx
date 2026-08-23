@@ -738,6 +738,7 @@ function AcaoDescerPreSeparacao({ pedido, estagio }: { pedido: any; estagio: Est
         Descer para pré-separação
       </Button>
 
+      {podeLiberarSemProva && (
       <ForcarSemLastroDialog
         open={!!falta}
         onOpenChange={(v) => { if (!v) transicionar.limparFaltaLastro(); }}
