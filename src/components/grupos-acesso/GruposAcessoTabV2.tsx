@@ -426,6 +426,7 @@ interface CatalogoAppRow {
   item_chave: string | null;
   item_label: string | null;
   eh_aba: boolean;
+  fora_do_menu: boolean;
   descricao: string | null;
   telas_cobertas: number;
   telas_lista: string | null;
@@ -452,7 +453,7 @@ function useCatalogoPorApp() {
     queryFn: async (): Promise<CatalogoAppRow[]> => {
       const { data, error } = await supabase
         .from("vw_catalogo_por_app")
-        .select("permissao_id, slug, tipo, nome_exibicao, app_chave, app_label, app_ordem, submenu_chave, submenu_label, submenu_ordem, ordem_menu, item_chave, item_label, eh_aba, descricao, telas_cobertas, telas_lista, contem_dado_sensivel, feature_em_teste");
+        .select("permissao_id, slug, tipo, nome_exibicao, app_chave, app_label, app_ordem, submenu_chave, submenu_label, submenu_ordem, ordem_menu, item_chave, item_label, eh_aba, fora_do_menu, descricao, telas_cobertas, telas_lista, contem_dado_sensivel, feature_em_teste");
       if (error) throw error;
       return (data || [])
         .filter((r) => r.permissao_id && r.app_chave)
@@ -471,6 +472,7 @@ function useCatalogoPorApp() {
           item_chave: r.item_chave ?? null,
           item_label: r.item_label ?? null,
           eh_aba: r.eh_aba ?? false,
+          fora_do_menu: r.fora_do_menu ?? false,
           descricao: r.descricao ?? null,
           telas_cobertas: r.telas_cobertas ?? 0,
           telas_lista: r.telas_lista,
@@ -743,6 +745,15 @@ function SecaoBloco({
                               title={p.telas_lista ?? undefined}
                             >
                               {p.telas_cobertas} telas
+                            </Badge>
+                          )}
+                          {p.fora_do_menu && (
+                            <Badge
+                              variant="outline"
+                              className="text-[9px] py-0 px-1 shrink-0 text-muted-foreground"
+                              title="Tela sem entrada no menu lateral — acessível por busca ou link direto"
+                            >
+                              fora do menu
                             </Badge>
                           )}
                           {p.tipo === "tela" && (
