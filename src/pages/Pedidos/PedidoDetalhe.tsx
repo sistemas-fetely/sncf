@@ -2737,6 +2737,7 @@ export default function PedidoDetalhe() {
         {(estagio === "entregue" || !estagioFinal) && (
           <aside className="order-first lg:order-none px-6 py-5 lg:w-72 lg:shrink-0 lg:pl-5 lg:border-l lg:border-border/60 lg:sticky lg:top-4 lg:self-start">
             <div className="space-y-3">
+              {/* CONTRATO DE NÍVEL: 1 vê · 2 edita · 3 aprova · 4 apaga · 5 lê sensível · 6 tudo. Ato excepcional (cancelar, forçar, declarar por terceiro) usa AÇÃO NOMEADA, não nível. */}
               {!estagioFinal && (
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Ações</p>
               )}
