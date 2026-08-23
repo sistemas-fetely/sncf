@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { exportarPedidosComercial } from "@/lib/exportPedidosComercial";
 import { gerarRelatorioAuditoria } from "@/lib/exports/relatorioAuditoria";
+import { useNivel } from "@/hooks/useNivel";
 
 function iso(d: Date) {
   return d.toISOString().slice(0, 10);
@@ -28,6 +29,7 @@ function iso(d: Date) {
 type Modo = "comercial" | "auditoria";
 
 export function ExportarPedidosButton() {
+  const { temNivel } = useNivel();
   const hoje = new Date();
   const noventa = new Date(hoje.getTime() - 90 * 24 * 60 * 60 * 1000);
 
@@ -72,6 +74,9 @@ export function ExportarPedidosButton() {
       setLoading(false);
     }
   };
+
+  // Exportação leva a base para fora: nível 3 (Coordenador) para cima.
+  if (!temNivel(3)) return null;
 
   return (
     <>

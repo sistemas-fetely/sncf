@@ -4,12 +4,14 @@ import ExcelJS from "exceljs";
 import { toast } from "sonner";
 import { formatError } from "@/lib/format-error";
 import { Button } from "@/components/ui/button";
+import { useNivel } from "@/hooks/useNivel";
 import type { PedidoB2cRow } from "@/hooks/vendas/useB2c";
 
 /**
  * Exporta exatamente as linhas que a Fila está mostrando — nada de segunda query.
  */
 export function ExportarB2cButton({ linhas }: { linhas: PedidoB2cRow[] }) {
+  const { temNivel } = useNivel();
   const [loading, setLoading] = useState(false);
 
   const exportar = async () => {
@@ -69,6 +71,9 @@ export function ExportarB2cButton({ linhas }: { linhas: PedidoB2cRow[] }) {
       setLoading(false);
     }
   };
+
+  // Exportação leva a base para fora: nível 3 (Coordenador) para cima.
+  if (!temNivel(3)) return null;
 
   return (
     <Button variant="outline" size="sm" onClick={() => void exportar()} disabled={loading}>
