@@ -70,13 +70,7 @@ type Conta = {
   plano_contas_id: string | null;
   centro_custo_id: string | null;
   centros_custo?: { codigo: string; nome: string } | null;
-  linhas_investimento?: {
-    descricao: string | null;
-    temas_investimento?: {
-      nome: string | null;
-      frentes_investimento?: { nome: string | null } | null;
-    } | null;
-  } | null;
+  // DESMONTE-PROJECOES (23/08/2026): linhas_investimento removido — tabela dropada
   forma_pagamento_id: string | null;
   origem: string | null;
   observacao?: string | null;
@@ -480,14 +474,6 @@ export default function ContaPagarDetalheDrawer({
                 }
               />
               <Linha label="Centro de custo" value={conta.centros_custo?.nome || "—"} />
-              {(() => {
-                const li = conta.linhas_investimento;
-                const frente = li?.temas_investimento?.frentes_investimento?.nome;
-                const tema = li?.temas_investimento?.nome;
-                const desc = li?.descricao;
-                const txt = li ? [frente, tema, desc].filter(Boolean).join(" · ") : "";
-                return <Linha label="Linha de investimento" value={txt || "—"} />;
-              })()}
               <Linha label="Forma de pagamento" value={conta.formas_pagamento?.nome || "—"} />
               {isCartao && faturaVinculada?.faturas_cartao && (
                 <Linha
