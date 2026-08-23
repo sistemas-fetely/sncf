@@ -124,7 +124,7 @@ export function MarcacaoPedido({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {!hideTrigger && (
+      {!hideTrigger && temNivel(2) && (
         <DialogTrigger asChild>
           <Button
             variant="outline"
