@@ -4,8 +4,8 @@
  * Itens, rótulos, ícones e ordem vêm da sncf_navegacao (app "pessoas") via
  * useMenuApp. Mudar esse menu passa a ser UPDATE, sem deploy.
  *
- * Achado na migração: 8 telas reais e funcionando (Recrutamento, Convites de
- * Cadastro, Onboarding, Movimentações, Férias, Benefícios, Pagamentos PJ,
+ * Achado na migração: 6 telas reais e funcionando (Onboarding, Movimentações,
+ * Férias, Benefícios, Pagamentos PJ,
  * Notas Fiscais PJ) estavam com status='em_construcao' na tabela — dado
  * desatualizado, não o app. Corrigido pra 'pronta' antes desta migração
  * (senão useTelasVisiveis esconderia todas de quem não é super_admin).
