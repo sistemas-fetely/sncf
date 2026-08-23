@@ -1657,20 +1657,22 @@ export default function PedidoDetalhe() {
         </div>
       )}
 
-      <AlterarNaturezaDialog
-        open={naturezaDialogOpen}
-        onOpenChange={(v) => {
-          setNaturezaDialogOpen(v);
-          if (!v) setNaturezaSugerida(null);
-        }}
-        pedidoId={naturezaRefPedidoId}
-        pedidoFilhoId={naturezaRefPedidoId !== pedido.id ? pedido.id : undefined}
-        ehRemessaFilha={naturezaRefPedidoId !== pedido.id}
-        codigoAtual={natureza?.codigo ?? null}
-        codigoSugerido={naturezaSugerida}
-        focarMotivo={!!naturezaSugerida}
+      {temNivel(3) && (
+        <AlterarNaturezaDialog
+          open={naturezaDialogOpen}
+          onOpenChange={(v) => {
+            setNaturezaDialogOpen(v);
+            if (!v) setNaturezaSugerida(null);
+          }}
+          pedidoId={naturezaRefPedidoId}
+          pedidoFilhoId={naturezaRefPedidoId !== pedido.id ? pedido.id : undefined}
+          ehRemessaFilha={naturezaRefPedidoId !== pedido.id}
+          codigoAtual={natureza?.codigo ?? null}
+          codigoSugerido={naturezaSugerida}
+          focarMotivo={!!naturezaSugerida}
 
-      />
+        />
+      )}
 
       {/* Canal único de alerta operacional: achados vivos da auditoria. */}
       <AlertasPedidoPanel pedidoId={pedido.id} />
