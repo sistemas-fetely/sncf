@@ -726,8 +726,9 @@ function SecaoBloco({
                       key={p.permissao_id}
                       className="grid grid-cols-[1fr_60px_60px_60px_60px] gap-2 px-4 py-2 items-center text-sm hover:bg-muted/20 border-b last:border-b-0"
                     >
-                      <div className="flex flex-col min-w-0 justify-center">
+                      <div className={`flex flex-col min-w-0 justify-center ${p.eh_aba ? "pl-6" : ""}`}>
                         <div className="flex items-center gap-2 min-w-0">
+                          {p.eh_aba && <span className="text-muted-foreground/50 shrink-0">↳</span>}
                           <span className="truncate">{p.nome_exibicao}</span>
                           {p.contem_dado_sensivel && (
                             <Badge variant="outline" className="text-[9px] py-0 px-1">LGPD</Badge>
