@@ -421,6 +421,8 @@ interface CatalogoAppRow {
   app_ordem: number;
   telas_cobertas: number;
   telas_lista: string | null;
+  contem_dado_sensivel: boolean;
+  feature_em_teste: boolean;
 }
 
 interface SecaoApp {
@@ -436,7 +438,7 @@ function useCatalogoPorApp() {
     queryFn: async (): Promise<CatalogoAppRow[]> => {
       const { data, error } = await supabase
         .from("vw_catalogo_por_app")
-        .select("permissao_id, slug, tipo, nome_exibicao, app_chave, app_label, app_ordem, telas_cobertas, telas_lista");
+        .select("permissao_id, slug, tipo, nome_exibicao, app_chave, app_label, app_ordem, telas_cobertas, telas_lista, contem_dado_sensivel, feature_em_teste");
       if (error) throw error;
       return (data || [])
         .filter((r) => r.permissao_id && r.app_chave)
@@ -450,6 +452,8 @@ function useCatalogoPorApp() {
           app_ordem: r.app_ordem ?? 9999,
           telas_cobertas: r.telas_cobertas ?? 0,
           telas_lista: r.telas_lista,
+          contem_dado_sensivel: r.contem_dado_sensivel ?? false,
+          feature_em_teste: r.feature_em_teste ?? false,
         }));
     },
   });
@@ -655,6 +659,12 @@ function SecaoBloco({
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="truncate">{p.nome_exibicao}</span>
+                  {p.contem_dado_sensivel && (
+                    <Badge variant="outline" className="text-[9px] py-0 px-1">LGPD</Badge>
+                  )}
+                  {p.feature_em_teste && (
+                    <Badge variant="outline" className="text-[9px] py-0 px-1 bg-warning/10">BETA</Badge>
+                  )}
                   {p.telas_cobertas > 1 && (
                     <Badge
                       variant="outline"
