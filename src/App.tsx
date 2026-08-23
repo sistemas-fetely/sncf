@@ -200,7 +200,7 @@ const DestinosCadastro = lazy(() => import("@/pages/acervo/DestinosCadastro"));
 const VendasLayout = lazy(() => import("@/layouts/VendasLayout"));
 const ProdutoEstoqueLayout = lazy(() => import("@/layouts/ProdutoEstoqueLayout"));
 const NfsDeVenda = lazy(() => import("@/pages/Vendas/NfsDeVenda"));
-const FarolPedidos = lazy(() => import("@/pages/vendas/FarolPedidos"));
+
 const DashPedidos = lazy(() => import("@/pages/vendas/DashPedidos"));
 const GestaoPedidos = lazy(() => import("@/pages/vendas/GestaoPedidos"));
 
@@ -359,7 +359,6 @@ const App = () => (
 
                 </Route>
                 <Route path="/vendas/xpm" element={<XpmIndex />} />
-                <Route path="/vendas/farol-pedidos" element={<FarolPedidos />} />
                 <Route path="/vendas/dash-pedidos" element={<DashPedidos />} />
                 <Route path="/vendas/gestao-pedidos" element={<GestaoPedidos />} />
                 
@@ -766,6 +765,8 @@ const App = () => (
             <Route path="/comercial/estoque-virtual" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
             <Route path="/comercial" element={<Navigate to="/pedidos" replace />} />
             <Route path="/comercial/oportunidades" element={<Navigate to="/pedidos?aba=recuperacao" replace />} />
+            {/* DESMONTE-FAROL-PEDIDOS (23/08/2026): função permanece no banco (sla_fase_pedido/fn_previsao_entrega); tela substituída pela Casa dos Pedidos */}
+            <Route path="/vendas/farol-pedidos" element={<Navigate to="/pedidos" replace />} />
             <Route path="/comercial/consignados" element={<Navigate to="/pedidos?aba=consignados" replace />} />
             <Route path="/produto" element={<Navigate to="/vendas/produto" replace />} />
             <Route path="/produto/estoque/virtual" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
