@@ -1033,6 +1033,8 @@ function EnviarParaSeparacaoAcao({ pedidoId }: { pedidoId: string }) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function BotaoConsolidarPedido({ pedido, qtdTitulosAtivos }: { pedido: any; qtdTitulosAtivos: number }) {
   const [open, setOpen] = useState(false);
+  const { temNivel } = useNivel();
+  if (!temNivel(2)) return null;
   return (
     <>
       <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={() => setOpen(true)}>
