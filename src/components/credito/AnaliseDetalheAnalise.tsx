@@ -77,7 +77,7 @@ export function AnaliseDetalheAnalise({ analiseId }: Props) {
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
-          { label: "Crédito", to: "/credito?tab=analise" },
+          { label: "Crédito", to: "/credito?aba=analise" },
           { label: razao },
         ]}
         title={razao}
@@ -135,7 +135,7 @@ export function AnaliseDetalheAnalise({ analiseId }: Props) {
           loading={confirmarPre.isPending}
           onConfirmar={() =>
             confirmarPre.mutate(analise.id, {
-              onSuccess: () => navigate("/credito?tab=analise"),
+              onSuccess: () => navigate("/credito?aba=analise"),
             })
           }
         />

@@ -16,11 +16,11 @@ export default function CreditoIndex() {
   const navigate = useNavigate();
   const { roles } = useAuth();
   const isAdmin = roles?.some((r) => ["super_admin", "admin_rh"].includes(r));
-  const tabParam = searchParams.get("tab");
+  const tabParam = searchParams.get("aba") ?? searchParams.get("tab");
   const tabAtiva = tabParam && TABS_VALIDAS.includes(tabParam) ? tabParam : "analise";
 
   const handleTabChange = (v: string) => {
-    setSearchParams({ tab: v });
+    setSearchParams({ aba: v });
   };
 
   return (

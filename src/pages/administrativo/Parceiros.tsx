@@ -71,7 +71,7 @@ export default function Parceiros() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const tabParam = searchParams.get("tab");
+  const tabParam = searchParams.get("aba") ?? searchParams.get("tab");
   const tabAtiva =
     tabParam === "grupos"
       ? "grupos"
@@ -80,8 +80,8 @@ export default function Parceiros() {
         : "fornecedores";
   const setTabAtiva = (v: string) => {
     const next = new URLSearchParams(searchParams);
-    if (v === "fornecedores") next.delete("tab");
-    else next.set("tab", v);
+    if (v === "fornecedores") next.delete("aba");
+    else next.set("aba", v);
     setSearchParams(next, { replace: true });
   };
 

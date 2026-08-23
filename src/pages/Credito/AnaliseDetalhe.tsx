@@ -53,7 +53,7 @@ export default function AnaliseDetalhe() {
               variant="ghost"
               size="sm"
               className="gap-2"
-              onClick={() => navigate("/credito?tab=decididas")}
+              onClick={() => navigate("/credito?aba=decididas")}
             >
               <ArrowLeft className="h-4 w-4" />
               Fila (Decididas)
