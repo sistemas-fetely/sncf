@@ -4,6 +4,7 @@ import { COLUNAS_CADASTRO as COLUNAS, buildLinhas, buildWorkbook } from "@/lib/c
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useNivel } from "@/hooks/useNivel";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter,
   DialogHeader, DialogTitle, DialogTrigger,
@@ -45,6 +46,7 @@ export function TabelaCadastroDialog({
 
   const [enviandoEmail, setEnviandoEmail] = useState(false);
   const { toast } = useToast();
+  const { temNivel } = useNivel();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["tabela-catalogo", pedido_id],
@@ -141,6 +143,10 @@ export function TabelaCadastroDialog({
       setEnviandoEmail(false);
     }
   }
+
+  // Este diálogo exporta planilha (Baixar Excel / envio por e-mail):
+  // Exportação leva a base para fora: nível 3 (Coordenador) para cima.
+  if (!temNivel(3)) return null;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

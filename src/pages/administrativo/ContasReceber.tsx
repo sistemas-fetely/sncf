@@ -35,6 +35,7 @@ import {
 import { ArrowDownToLine, Inbox, ArrowUpDown, ArrowUp, ArrowDown, Download, ChevronDown, ChevronRight } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import * as XLSX from "xlsx";
+import { useNivel } from "@/hooks/useNivel";
 
 import {
   BadgeProva,
@@ -253,6 +254,7 @@ export default function ContasReceber() {
 
 function AbaB2B() {
   const navigate = useNavigate();
+  const { temNivel } = useNivel();
   const [busca, setBusca] = useState("");
   const [dataBase, setDataBase] = useState<DataBase>("emissao");
   const [dataDe, setDataDe] = useState("");
@@ -882,15 +884,18 @@ function AbaB2B() {
   return (
     <div className="space-y-6">
       <div className="flex justify-end">
-        <Button
-          variant="outline"
-          onClick={handleExportXLSX}
-          disabled={filtrados.length === 0}
-          className="gap-2"
-        >
-          <Download className="h-4 w-4" />
-          Exportar XLSX
-        </Button>
+        {/* Exportação leva a base para fora: nível 3 (Coordenador) para cima. */}
+        {temNivel(3) && (
+          <Button
+            variant="outline"
+            onClick={handleExportXLSX}
+            disabled={filtrados.length === 0}
+            className="gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Exportar XLSX
+          </Button>
+        )}
       </div>
 
       {/* KPIs */}
@@ -1684,6 +1689,7 @@ function diasDesde(iso: string | null | undefined): number | null {
 }
 
 function AbaB2C() {
+  const { temNivel } = useNivel();
   const [dataDe, setDataDe] = useState("");
   const [dataAte, setDataAte] = useState("");
   const [page, setPage] = useState(1);
@@ -1900,15 +1906,18 @@ function AbaB2C() {
           aqui, e estes valores não somam com os do B2B. Mercado Pago liquida em D+14: venda recente
           ainda não caiu.
         </p>
-        <Button
-          variant="outline"
-          onClick={handleExportXLSX}
-          disabled={ordenados.length === 0}
-          className="gap-2"
-        >
-          <Download className="h-4 w-4" />
-          Exportar XLSX
-        </Button>
+        {/* Exportação leva a base para fora: nível 3 (Coordenador) para cima. */}
+        {temNivel(3) && (
+          <Button
+            variant="outline"
+            onClick={handleExportXLSX}
+            disabled={ordenados.length === 0}
+            className="gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Exportar XLSX
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">

@@ -43,6 +43,7 @@ import {
 } from "@/components/shared/SortableTableHead";
 import { FiltroMultiSelect } from "@/components/financeiro/FiltroMultiSelect";
 import { ExtratoLinhaSheet } from "@/components/financeiro/ExtratoLinhaSheet";
+import { useNivel } from "@/hooks/useNivel";
 import {
   useExtratoConta,
   useExtratoContaOpcoes,
@@ -95,6 +96,7 @@ function intervaloPreset(p: Preset): { inicio: string | null; fim: string | null
 export default function ExtratoConta() {
   const { contaId } = useParams<{ contaId: string }>();
   const navigate = useNavigate();
+  const { temNivel } = useNivel();
 
   const [preset, setPreset] = useState<Preset>("este_mes");
   const [dataInicio, setDataInicio] = useState<string>(
@@ -286,10 +288,13 @@ export default function ExtratoConta() {
             </div>
           }
           acoes={
-            <Button variant="outline" size="sm" className="gap-2" onClick={exportarCsv}>
-              <Download className="h-4 w-4" />
-              Exportar CSV
-            </Button>
+            // Exportação leva a base para fora: nível 3 (Coordenador) para cima.
+            temNivel(3) ? (
+              <Button variant="outline" size="sm" className="gap-2" onClick={exportarCsv}>
+                <Download className="h-4 w-4" />
+                Exportar CSV
+              </Button>
+            ) : undefined
           }
         />
       </div>

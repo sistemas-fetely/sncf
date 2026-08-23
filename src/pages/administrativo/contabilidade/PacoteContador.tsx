@@ -26,6 +26,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { rawMessage } from "@/lib/format-error";
+import { useNivel } from "@/hooks/useNivel";
 
 /* ────────────────────────────── tipos ────────────────────────────── */
 
@@ -126,6 +127,7 @@ const dataXlsx = (iso: string | null | undefined) => (iso ? new Date(`${iso}T00:
 
 export default function PacoteContador() {
   const qc = useQueryClient();
+  const { temNivel } = useNivel();
   const [selecionada, setSelecionada] = useState<string | null>(null);
   const [destinatarios, setDestinatarios] = useState("");
   const [observacao, setObservacao] = useState("");
@@ -551,14 +553,17 @@ export default function PacoteContador() {
               />
             </div>
           </div>
-          <Button
-            size="sm"
-            disabled={!fechada || carregandoPrevia || gerar.isPending}
-            onClick={() => gerar.mutate()}
-          >
-            <Package className="mr-1.5 h-4 w-4" aria-hidden="true" />
-            {gerar.isPending ? "Gerando…" : "Gerar pacote"}
-          </Button>
+          {/* Exportação leva a base para fora: nível 3 (Coordenador) para cima. */}
+          {temNivel(3) && (
+            <Button
+              size="sm"
+              disabled={!fechada || carregandoPrevia || gerar.isPending}
+              onClick={() => gerar.mutate()}
+            >
+              <Package className="mr-1.5 h-4 w-4" aria-hidden="true" />
+              {gerar.isPending ? "Gerando…" : "Gerar pacote"}
+            </Button>
+          )}
         </section>
       )}
 

@@ -7,6 +7,7 @@ import { usePedidoParaExportar } from "@/hooks/pedidos/usePedidoParaExportar";
 import { gerarPedidoPdf, conferirTotaisPedido } from "@/lib/pedidoPdf";
 import { buildLinhas, buildWorkbook, COLUNAS_CADASTRO } from "@/lib/cadastroXlsx";
 import { formatError } from "@/lib/format-error";
+import { useNivel } from "@/hooks/useNivel";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter,
   DialogHeader, DialogTitle, DialogTrigger,
@@ -66,6 +67,7 @@ export function ExportarPedidoDialog({
   };
 
   const { toast } = useToast();
+  const { temNivel } = useNivel();
   const { data: exp, isLoading, error } = usePedidoParaExportar(open ? pedidoId : undefined);
 
   // Linhas da planilha de cadastro (mesma fonte do TabelaCadastroDialog).
@@ -273,6 +275,9 @@ export function ExportarPedidoDialog({
       setEnviando(false);
     }
   }
+
+  // Exportação leva a base para fora: nível 3 (Coordenador) para cima.
+  if (!temNivel(3)) return null;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

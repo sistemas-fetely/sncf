@@ -17,6 +17,7 @@ import { useDownloadNfPdf } from "@/hooks/nf/useDownloadNfPdf";
 import { cn } from "@/lib/utils";
 import { apelidoParceiro } from "@/lib/parceiros/nome";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNivel } from "@/hooks/useNivel";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
@@ -111,6 +112,7 @@ function AbaNFs() {
   const navigate = useNavigate();
   const { baixar, baixando, nfEmDownload } = useDownloadNfPdf();
   const { roles } = useAuth();
+  const { temNivel } = useNivel();
   const isSuperAdmin = (roles ?? []).includes("super_admin");
   const [busca, setBusca] = useState("");
   const [situacaoFiltro, setSituacaoFiltro] = useState<string>("todas");
@@ -250,16 +252,19 @@ function AbaNFs() {
         <span className="text-xs text-muted-foreground ml-auto">
           {filtrados.length} {filtrados.length === 1 ? "NF" : "NFs"}
         </span>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-8"
-          disabled={filtrados.length === 0}
-          onClick={handleExportXLSX}
-        >
-          <Download className="h-4 w-4 mr-1.5" />
-          Exportar XLSX
-        </Button>
+        {/* Exportação leva a base para fora: nível 3 (Coordenador) para cima. */}
+        {temNivel(3) && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8"
+            disabled={filtrados.length === 0}
+            onClick={handleExportXLSX}
+          >
+            <Download className="h-4 w-4 mr-1.5" />
+            Exportar XLSX
+          </Button>
+        )}
         <Button
           variant="outline"
           size="sm"

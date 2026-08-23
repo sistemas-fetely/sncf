@@ -28,6 +28,7 @@ import {
 } from "@/hooks/financas/useFaturamento";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { useNivel } from "@/hooks/useNivel";
 
 
 const CANAIS = ["B2B", "B2C", "SEM CANAL"] as const;
@@ -641,6 +642,7 @@ function AbaNfs({
   mes: string;
   onPedido: (id: string) => void;
 }) {
+  const { temNivel } = useNivel();
   const [sortCol, setSortCol] = useState<NfCol>("resultado");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
@@ -714,9 +716,12 @@ function AbaNfs({
       <CardHeader>
         <div className="flex flex-row items-center justify-between gap-3">
           <CardTitle className="text-base">NFs consideradas · {lista.length}</CardTitle>
-          <Button variant="outline" size="sm" disabled={lista.length === 0} onClick={exportar}>
-            <Download className="h-4 w-4 mr-1.5" /> Exportar XLSX
-          </Button>
+          {/* Exportação leva a base para fora: nível 3 (Coordenador) para cima. */}
+          {temNivel(3) && (
+            <Button variant="outline" size="sm" disabled={lista.length === 0} onClick={exportar}>
+              <Download className="h-4 w-4 mr-1.5" /> Exportar XLSX
+            </Button>
+          )}
         </div>
         <p className="text-xs text-muted-foreground">{NOTA_HONESTIDADE}</p>
       </CardHeader>
@@ -852,6 +857,7 @@ function AbaProduto({
   componente: Componente;
   mes: string;
 }) {
+  const { temNivel } = useNivel();
   const [busca, setBusca] = useState("");
   const [colecao, setColecao] = useState("todas");
   const [sortCol, setSortCol] = useState<ProdCol>("resultado");
@@ -954,9 +960,12 @@ function AbaProduto({
               {colecoes.map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm" className="ml-auto" disabled={lista.length === 0} onClick={exportar}>
-            <Download className="h-4 w-4 mr-1.5" /> Exportar XLSX
-          </Button>
+          {/* Exportação leva a base para fora: nível 3 (Coordenador) para cima. */}
+          {temNivel(3) && (
+            <Button variant="outline" size="sm" className="ml-auto" disabled={lista.length === 0} onClick={exportar}>
+              <Download className="h-4 w-4 mr-1.5" /> Exportar XLSX
+            </Button>
+          )}
         </div>
         <p className="text-xs text-muted-foreground">{NOTA_HONESTIDADE}</p>
       </CardHeader>

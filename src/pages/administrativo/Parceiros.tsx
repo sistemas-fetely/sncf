@@ -404,8 +404,8 @@ export default function Parceiros() {
         acoes={
           tabAtiva !== "grupos" && (
             <>
-              {/* Exportação em MASSA: leva a base para fora do sistema. Nível 2 (Operador) para cima. */}
-              {temNivel(2) && (
+              {/* Exportação leva a base para fora: nível 3 (Coordenador) para cima. */}
+              {temNivel(3) && (
                 <Button
                   variant="outline"
                   onClick={handleExportar}
