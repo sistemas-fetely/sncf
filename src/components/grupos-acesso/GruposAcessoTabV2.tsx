@@ -423,6 +423,9 @@ interface CatalogoAppRow {
   submenu_label: string | null;
   submenu_ordem: number;
   ordem_menu: number;
+  item_chave: string | null;
+  item_label: string | null;
+  eh_aba: boolean;
   descricao: string | null;
   telas_cobertas: number;
   telas_lista: string | null;
@@ -449,7 +452,7 @@ function useCatalogoPorApp() {
     queryFn: async (): Promise<CatalogoAppRow[]> => {
       const { data, error } = await supabase
         .from("vw_catalogo_por_app")
-        .select("permissao_id, slug, tipo, nome_exibicao, app_chave, app_label, app_ordem, submenu_chave, submenu_label, submenu_ordem, ordem_menu, descricao, telas_cobertas, telas_lista, contem_dado_sensivel, feature_em_teste");
+        .select("permissao_id, slug, tipo, nome_exibicao, app_chave, app_label, app_ordem, submenu_chave, submenu_label, submenu_ordem, ordem_menu, item_chave, item_label, eh_aba, descricao, telas_cobertas, telas_lista, contem_dado_sensivel, feature_em_teste");
       if (error) throw error;
       return (data || [])
         .filter((r) => r.permissao_id && r.app_chave)
@@ -465,6 +468,9 @@ function useCatalogoPorApp() {
           submenu_label: r.submenu_label ?? null,
           submenu_ordem: r.submenu_ordem ?? 0,
           ordem_menu: r.ordem_menu ?? 9999,
+          item_chave: r.item_chave ?? null,
+          item_label: r.item_label ?? null,
+          eh_aba: r.eh_aba ?? false,
           descricao: r.descricao ?? null,
           telas_cobertas: r.telas_cobertas ?? 0,
           telas_lista: r.telas_lista,
@@ -720,8 +726,9 @@ function SecaoBloco({
                       key={p.permissao_id}
                       className="grid grid-cols-[1fr_60px_60px_60px_60px] gap-2 px-4 py-2 items-center text-sm hover:bg-muted/20 border-b last:border-b-0"
                     >
-                      <div className="flex flex-col min-w-0 justify-center">
+                      <div className={`flex flex-col min-w-0 justify-center ${p.eh_aba ? "pl-6" : ""}`}>
                         <div className="flex items-center gap-2 min-w-0">
+                          {p.eh_aba && <span className="text-muted-foreground/50 shrink-0">↳</span>}
                           <span className="truncate">{p.nome_exibicao}</span>
                           {p.contem_dado_sensivel && (
                             <Badge variant="outline" className="text-[9px] py-0 px-1">LGPD</Badge>
