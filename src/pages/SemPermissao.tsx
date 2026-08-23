@@ -8,7 +8,7 @@ const SLUG_PARA_ROTA: Record<string, string> = {
   "tela.credito":       "/credito",
   "tela.pedidos":       "/pedidos",
   "tela.financeiro":    "/administrativo",
-  "tela.admin_fetely":  "/administrativo-fetely",
+  "tela.admin_fetely":  "/administrativo/contratos",
   "tela.sncf":          "/sncf",
   "tela.tarefas":       "/tarefas",
   "tela.processos":     "/processos",

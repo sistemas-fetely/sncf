@@ -35,7 +35,9 @@ export const ROTAS: RegraRota[] = [
   { prefixo: "/compras",       status: "pronta",        tela_slug: "tela.compras"     },
   { prefixo: "/ti",            status: "pronta",        tela_slug: "tela.ti"          },
   // Financeiro
-  { prefixo: "/administrativo-fetely", status: "pronta", tela_slug: "tela.admin_fetely" },
+  // Contratos era do pilar Patrimônio (DESMONTE-PATRIMONIO, 23/08/2026): preserva o
+  // slug tela.admin_fetely para quem já tinha acesso. Prefixo mais longo vence o /administrativo.
+  { prefixo: "/administrativo/contratos", status: "pronta", tela_slug: "tela.admin_fetely" },
   // Telas de Finanças com slug próprio (recorte Board). Match por prefixo mais
   // longo: estas vencem o /administrativo base. As não listadas caem em
   // tela.financeiro (guarda-chuva) — só quem tem acesso total as vê.
