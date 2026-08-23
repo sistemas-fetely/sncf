@@ -351,7 +351,7 @@ function ParcelasTab({ pedidoId }: { pedidoId: string }) {
         <span className="font-medium">{fmtBRL.format(total)}</span>
       </div>
 
-      {convertendo && (
+      {convertendo && temNivel(3) && (
         <ConverterTituloHaverDialog
           open={!!convertendo}
           onOpenChange={(v) => !v && setConvertendo(null)}
