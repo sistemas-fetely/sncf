@@ -854,21 +854,21 @@ function AcoesAguardandoPagamento({ pedido }: { pedido: any; geraTituloReceber?:
 
   return (
     <div className="flex flex-col gap-2 w-full">
-      {cartao.length > 0 && (
+      {temNivel(3) && cartao.length > 0 && (
         <ConfirmarCartaoCapturadoDialog
           pedidoId={pedido.id}
           parcelasAbertas={cartao.length}
           valorAberto={cartao.reduce((acc, l) => acc + Number(l.valor ?? 0), 0)}
         />
       )}
-      {linhaALinha.length > 0 && (
+      {temNivel(3) && linhaALinha.length > 0 && (
         <ConfirmarPortaoPagoDialog
           pedido_id={pedido.id}
           meios={["pix", "boleto"]}
           faltaLabel={cartao.length ? resumoMeios(cartao) : null}
         />
       )}
-      {!cartao.length && !linhaALinha.length && (
+      {temNivel(3) && !cartao.length && !linhaALinha.length && (
         <ConfirmarPortaoPagoDialog pedido_id={pedido.id} />
       )}
     </div>
