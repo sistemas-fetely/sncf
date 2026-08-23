@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -210,6 +211,7 @@ export default function Faturamento() {
   const [mes, setMes] = useState<string>("");
   const [canal, setCanal] = useState<string>("todos");
   const [componente, setComponente] = useState<Componente>("tudo");
+  const [aba, setAba] = useAbaUrl("nfs");
 
   const { data: mensal = [], isLoading: loadingMensal, isError: errMensal, error: errorMensal } =
     useFaturamentoMensal();
@@ -525,7 +527,7 @@ export default function Faturamento() {
         </Card>
       )}
 
-      <Tabs defaultValue="nfs">
+      <Tabs value={aba} onValueChange={setAba}>
         <TabsList>
           <TabsTrigger value="nfs">NFs consideradas</TabsTrigger>
           {componente !== "frete" && <TabsTrigger value="produto">Rentabilidade por produto</TabsTrigger>}

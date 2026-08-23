@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/layout/PageHeader";
 import RecebimentoXpm from "./RecebimentoXpm";
@@ -14,7 +14,7 @@ const TABS = [
 ];
 
 export default function XpmIndex() {
-  const [tab, setTab] = useState(TABS[0].value);
+  const [tab, setTab] = useAbaUrl(TABS[0].value);
 
   return (
     <div className="flex flex-col h-full">

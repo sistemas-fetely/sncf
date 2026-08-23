@@ -13,6 +13,7 @@ import { STATUS_ROTULO } from "@/components/tarefas/detalhe/comuns";
 import {
   PAPEL_ROTULO, PAPEL_SO_LEITURA, type Papel, useMinhasTarefasPapel,
 } from "@/hooks/tarefas/useMinhasTarefasPapel";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
 
 const TEXTOS_VAZIO: Record<Papel, string> = {
   r: "Nada sob sua execução.",
@@ -26,12 +27,13 @@ const PAPEIS: Papel[] = ["r", "a", "c", "i"];
 export default function MinhasTarefasNovo() {
   const { user } = useAuth();
   const [filtro, setFiltro] = useState<FiltroStatus>("abertas");
-  const [aba, setAba] = useState<Papel>("r");
+  const [aba, setAba] = useAbaUrl("r");
+  const abaAtual = aba as Papel;
   const { data: tarefas, isLoading } = useMinhasTarefasPapel(user?.id, filtro);
   const { data: projetos } = useProjetos();
 
   const grupos = useMemo(() => {
-    const recorte = (tarefas ?? []).filter((t) => t.papeis.includes(aba));
+    const recorte = (tarefas ?? []).filter((t) => t.papeis.includes(abaAtual));
     const mapa = new Map<string, typeof tarefas>();
     for (const t of recorte) {
       const chave = t.projeto_id ?? "__sem__";
@@ -43,8 +45,8 @@ export default function MinhasTarefasNovo() {
   const nomeProjeto = (id: string) =>
     id === "__sem__" ? "Sem projeto" : projetos?.find((p) => p.id === id)?.nome ?? "Projeto";
 
-  const totalAba = (tarefas ?? []).filter((t) => t.papeis.includes(aba)).length;
-  const somenteLeitura = PAPEL_SO_LEITURA.includes(aba);
+  const totalAba = (tarefas ?? []).filter((t) => t.papeis.includes(abaAtual)).length;
+  const somenteLeitura = PAPEL_SO_LEITURA.includes(abaAtual);
 
   return (
     <PageShell variant="dados">
@@ -72,7 +74,7 @@ export default function MinhasTarefasNovo() {
         <span className="text-xs text-muted-foreground">{totalAba} tarefa(s)</span>
       </div>
 
-      <Tabs value={aba} onValueChange={(v) => setAba(v as Papel)}>
+      <Tabs value={aba} onValueChange={setAba}>
         <TabsList>
           {PAPEIS.map((p) => {
             const n = (tarefas ?? []).filter((t) => t.papeis.includes(p)).length;
