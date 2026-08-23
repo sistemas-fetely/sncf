@@ -1698,7 +1698,7 @@ export default function PedidoDetalhe() {
               )}
             </div>
           </div>
-          {naturezaAlerta.pode_trocar && (
+          {naturezaAlerta.pode_trocar && temNivel(3) && (
             <Button
               size="sm"
               className="shrink-0"
