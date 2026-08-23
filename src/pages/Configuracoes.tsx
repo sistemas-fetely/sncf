@@ -33,7 +33,7 @@ const ITENS: ConfigItem[] = [
   // Acessos
   { value: "usuarios", label: "Usuários", description: "Gerenciar usuários do sistema", icon: Users, path: "/admin/usuarios", secao: "Acessos" },
   { value: "perfis", label: "Perfis de Acesso", description: "Permissões por perfil e módulo", icon: Shield, path: "/admin/usuarios/perfis", secao: "Acessos" },
-  { value: "cargos", label: "Cargos", description: "Cargos e estrutura de função", icon: Briefcase, path: "/admin/cargos", secao: "Acessos" },
+  { value: "cargos", label: "Cargos", description: "Cargos e estrutura de função", icon: Briefcase, path: "/pessoas/cargos", secao: "Acessos" },
   { value: "visibilidade", label: "Visibilidade", description: "O que cada perfil enxerga em cada tela", icon: Eye, path: "/admin/visibilidade", secao: "Acessos" },
 
   // Cadastros
@@ -46,7 +46,7 @@ const ITENS: ConfigItem[] = [
   { value: "sla", label: "SLA da Operação", description: "Prazos e limiares da operação: XPM, fases do pedido, frete e vigilância", icon: Timer, path: "/admin/sla", secao: "Regras" },
 
   // Sistema
-  { value: "reportes", label: "Reportes do Sistema", description: "Logs e relatórios técnicos", icon: FileBarChart, path: "/admin/reportes", secao: "Sistema" },
+  { value: "reportes", label: "Reportes do Sistema", description: "Logs e relatórios técnicos", icon: FileBarChart, path: "/ti/reportes", secao: "Sistema" },
   { value: "importacoes", label: "Importações PDF", description: "Histórico de importações de documentos", icon: FileText, path: "/admin/importacoes-pdf", secao: "Sistema" },
 ];
 

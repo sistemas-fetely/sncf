@@ -47,8 +47,8 @@ export const ROTAS: RegraRota[] = [
   { prefixo: "/administrativo/auditoria", status: "pronta", tela_slug: "tela.fin_auditoria" },
   { prefixo: "/administrativo",        status: "pronta", tela_slug: "tela.financeiro"   },
   // Admin do sistema — slug null = só super_admin via bypass
-  // EXCETO /admin/cargos, que o Board pode ver com slug próprio
-  { prefixo: "/admin/cargos",  status: "pronta",        tela_slug: "tela.cargos"      },
+  // EXCETO /pessoas/cargos, que o Board pode ver com slug próprio
+  { prefixo: "/pessoas/cargos",  status: "pronta",        tela_slug: "tela.cargos"      },
   { prefixo: "/admin",         status: "pronta",        tela_slug: null               },
   // People — abertas para Board (em_construcao para os demais)
   { prefixo: "/pessoas",       status: "pronta",        tela_slug: "tela.pessoas"     },

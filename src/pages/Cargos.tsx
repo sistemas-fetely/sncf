@@ -200,7 +200,7 @@ function CargoDrawer({ cargo, onClose }: { cargo: Cargo; onClose: () => void }) 
             <Button
               className="w-full"
               variant="outline"
-              onClick={() => navigate(`/cargos/${cargo.id}`, { state: { from: "/admin/cargos", fromLabel: "Cargos" } })}
+              onClick={() => navigate(`/pessoas/cargos/${cargo.id}`, { state: { from: "/pessoas/cargos", fromLabel: "Cargos" } })}
             >
               <Pencil className="h-4 w-4 mr-2" />
               Editar cargo completo
@@ -290,7 +290,7 @@ export default function Cargos() {
                 Enriquecer em lote
               </Button>
             )}
-            <Button className="gap-2" onClick={() => navigate("/cargos/novo", { state: { from: "/admin/cargos", fromLabel: "Cargos" } })}>
+            <Button className="gap-2" onClick={() => navigate("/pessoas/cargos/novo", { state: { from: "/pessoas/cargos", fromLabel: "Cargos" } })}>
               <Plus className="h-4 w-4" /> Novo Cargo
             </Button>
           </div>
@@ -390,7 +390,7 @@ export default function Cargos() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => navigate(`/cargos/${cargo.id}`, { state: { from: "/admin/cargos", fromLabel: "Cargos" } })} className="gap-2">
+                        <DropdownMenuItem onClick={() => navigate(`/pessoas/cargos/${cargo.id}`, { state: { from: "/pessoas/cargos", fromLabel: "Cargos" } })} className="gap-2">
                           <Pencil className="h-4 w-4" /> Editar
                         </DropdownMenuItem>
                         {(isSuperAdmin || isAdminRH) && (
