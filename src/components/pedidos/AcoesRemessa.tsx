@@ -10,6 +10,7 @@ import { useEmpurrarXpm } from "@/hooks/pedidos/useEmpurrarXpm";
 import { usePreviaEmpurrarXpm } from "@/hooks/pedidos/usePreviaEmpurrarXpm";
 import { useSyncContato } from "@/hooks/parceiros/useSyncContato";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { ReenviarBlingDialog } from "@/components/pedidos/dialogs/ReenviarBlingDialog";
 import { ForcarXpmDialog } from "@/components/pedidos/dialogs/ForcarXpmDialog";
 import { DeclararCancelamentoXpmDialog } from "@/components/pedidos/dialogs/DeclararCancelamentoXpmDialog";
