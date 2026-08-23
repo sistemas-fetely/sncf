@@ -8,6 +8,7 @@
  * Fontes: vw_auditoria_achado (aba Achados) e vw_auditoria_painel (aba Painel).
  * Escrita SEMPRE por RPC — nunca UPDATE direto no achado.
  */
+import { useState } from "react";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PageShell } from "@/components/layout/PageShell";
