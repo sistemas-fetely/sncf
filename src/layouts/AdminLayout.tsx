@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/AdminSidebar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,8 +10,6 @@ import { CommandPaletteProvider } from "@/components/navegacao/CommandPalettePro
 
 export default function AdminLayout() {
   const { user, roles, loading } = useAuth();
-  const { pathname } = useLocation();
-  const hideSidebar = pathname === "/admin/usuarios";
   usePrefetchTelas();
 
   if (loading) {
@@ -34,7 +32,7 @@ export default function AdminLayout() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        {!hideSidebar && <AdminSidebar />}
+        <AdminSidebar />
         <div className="flex-1 flex flex-col min-w-0">
 
           <main className="flex-1 overflow-auto relative min-w-0">
