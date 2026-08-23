@@ -46,6 +46,8 @@ const ROLE_LABEL: Partial<Record<AppRole, string>> = {
   coordenacao_op_fin: "Coordenação Op/Fin",
   auditor: "Auditor",
   socio: "Sócio",
+  folha: "Folha",
+  gerente: "Gerente",
 };
 
 const ESCOPO_OPTIONS: { value: Escopo; label: string }[] = [
