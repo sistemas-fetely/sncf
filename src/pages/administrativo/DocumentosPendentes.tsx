@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -321,7 +322,8 @@ const STATUS_CONTA_LABEL: Record<string, string> = {
 
 export default function DocumentosPendentes() {
   const qc = useQueryClient();
-  const [aba, setAba] = useState<Aba>("cobrar");
+  const [aba, setAba] = useAbaUrl("cobrar");
+  const abaAtual = aba as Aba;
   const [periodoInicio, setPeriodoInicio] = useState("");
   const [periodoFim, setPeriodoFim] = useState("");
   const [busca, setBusca] = useState("");
@@ -343,6 +345,8 @@ export default function DocumentosPendentes() {
     setAba(nova);
     setSelecionadas(new Set());
   }
+
+  const abaParam = abaAtual;
 
   // ============================================================
   // QUERY 1: agrupado por fornecedor (abas Cobrar e Pronto)

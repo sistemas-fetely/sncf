@@ -1,5 +1,6 @@
 import { PageTitle } from "@/components/layout/PageTitle";
 import { PageShell } from "@/components/layout/PageShell";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -43,6 +44,7 @@ function TarefasHojeConteudo() {
   const { user } = useAuth();
   const userId = user?.id;
   const { podeCriar, podeEditar } = usePermissaoTelaContext();
+  const [aba, setAba] = useAbaUrl("hoje");
 
   const hoje = useTarefasHoje(userId);
   const proximos = useTarefasProximos7(userId);
@@ -72,7 +74,7 @@ function TarefasHojeConteudo() {
         </Card>
       )}
 
-      <Tabs defaultValue="hoje">
+      <Tabs value={aba} onValueChange={setAba}>
         <TabsList>
           <TabsTrigger value="hoje">
             Hoje{contadores?.hoje ? ` (${contadores.hoje})` : ""}
