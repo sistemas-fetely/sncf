@@ -541,6 +541,9 @@ export default function GerenciarUsuarios() {
           <GruposAcessoTabV2 />
         </TabsContent>
 
+        <TabsContent value="papeis" className="mt-4">
+          <PapeisTab />
+        </TabsContent>
 
         {podeAuditarAcesso && (
           <TabsContent value="fantasmas" className="mt-4">
