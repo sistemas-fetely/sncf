@@ -539,7 +539,7 @@ export default function CaixaBanco() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => navigate("/administrativo-fetely/nfs-stage")}
+                  onClick={() => navigate("/administrativo/nfs-stage")}
                   className="gap-2"
                 >
                   <ArrowUpRight className="h-3.5 w-3.5" />

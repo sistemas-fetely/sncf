@@ -1,8 +1,8 @@
-import { Home, Users, Wallet, Landmark, CreditCard, HandCoins, BookOpen, User, Monitor, Shield, LucideIcon } from "lucide-react";
+import { Home, Users, Wallet, CreditCard, HandCoins, BookOpen, User, Monitor, Shield, LucideIcon } from "lucide-react";
 
 export interface CasaApp {
   /** Identificador interno */
-  id: "casa" | "pessoas" | "financas" | "patrimonio" | "credito" | "recebimento" | "acervo" | "meu_espaco" | "ti" | "mesa";
+  id: "casa" | "pessoas" | "financas" | "credito" | "recebimento" | "acervo" | "meu_espaco" | "ti" | "mesa";
   /** Label exibido no top nav */
   label: string;
   /** Rota default ao clicar no app */
@@ -75,17 +75,8 @@ export const CASA_APPS: CasaApp[] = [
     slugPrefix: "tela.fin_",
     appChaves: ["financas"],
   },
-  {
-    // Renomeado de "Marca" para "Patrimônio" em 22/08/2026 — a decisão é de
-    // 29/07 e estava só na sncf_navegacao; a tela seguia dizendo "Marca".
-    id: "patrimonio",
-    label: "Patrimônio",
-    defaultRoute: "/administrativo-fetely",
-    routeMatchers: ["/administrativo-fetely"],
-    icon: Landmark,
-    tela_slug: "tela.admin_fetely",
-    appChaves: ["patrimonio"],
-  },
+  // Pilar "Patrimônio" desmontado em 23/08/2026 (DESMONTE-PATRIMONIO):
+  // Contratos → Finanças, GED → TI, Imóveis/Seguros nunca construídos.
   {
     id: "credito",
     label: "Crédito",

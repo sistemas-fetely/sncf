@@ -99,7 +99,7 @@ export default function MotorClassificacao() {
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => navigate("/administrativo-fetely/nfs-stage")}
+        onClick={() => navigate("/administrativo/nfs-stage")}
         className="gap-2 text-muted-foreground -ml-2 mb-2"
       >
         <ArrowLeft className="h-4 w-4" /> Voltar para NFs Stage

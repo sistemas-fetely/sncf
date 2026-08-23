@@ -198,7 +198,7 @@ export default function LancarNfXmlTab({ pedidoId, fornecedorId, onGravado }: Pr
           <b>Digitar manualmente</b>, ou aguarde a captura.
         </div>
         <Link
-          to="/administrativo-fetely/nfs-stage"
+          to="/administrativo/nfs-stage"
           className="inline-flex items-center gap-1 text-xs underline"
         >
           Abrir captura de NFs (stage) <ExternalLink className="h-3 w-3" />

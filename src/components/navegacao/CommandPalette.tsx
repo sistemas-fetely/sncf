@@ -8,7 +8,7 @@ import {
   Receipt, Calendar, Heart, Building2, ChevronRight,
   CreditCard, UserSearch,
   ShoppingCart, Truck, Store, DollarSign, Wallet, TrendingUp, GitCompare,
-  FileSignature, Home, Shield, FolderArchive, Route, ListChecks,
+  FileSignature, FolderArchive, Route, ListChecks,
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -59,11 +59,9 @@ const ALL_PAGES: PageItem[] = [
   { rota: "/administrativo/conciliacao", titulo: "Conciliação", pilar: "financas", icon: GitCompare, tags: ["conciliação", "extrato", "bancária"] },
   { rota: "/administrativo/fluxo-caixa", titulo: "Fluxo de Caixa", pilar: "financas", icon: TrendingUp, tags: ["fluxo", "caixa", "financeiro"] },
 
-  // Marca
-  { rota: "/administrativo-fetely/contratos", titulo: "Contratos", pilar: "marca", icon: FileSignature, tags: ["contratos", "jurídico", "documentos"] },
-  { rota: "/administrativo-fetely/imoveis", titulo: "Imóveis", pilar: "marca", icon: Home, tags: ["imóveis", "aluguel", "propriedades"] },
-  { rota: "/administrativo-fetely/seguros", titulo: "Seguros", pilar: "marca", icon: Shield, tags: ["seguros", "apólice"] },
-  { rota: "/administrativo-fetely/ged", titulo: "GED", pilar: "marca", icon: FolderArchive, tags: ["ged", "documentos", "arquivo"] },
+  // DESMONTE-PATRIMONIO (23/08/2026): Contratos → Finanças, GED → TI. Imóveis/Seguros nunca construídos.
+  { rota: "/administrativo/contratos", titulo: "Contratos", pilar: "financas", icon: FileSignature, tags: ["contratos", "jurídico", "documentos"] },
+  { rota: "/ti/ged", titulo: "GED", pilar: "ti", icon: FolderArchive, tags: ["ged", "documentos", "arquivo"] },
 
   // Crédito
   { rota: "/credito/clientes", titulo: "Clientes", pilar: "credito", icon: UserSearch, tags: ["clientes", "crédito", "parceiros"] },

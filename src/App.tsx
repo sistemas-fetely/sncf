@@ -16,7 +16,7 @@ import { TarefaAbertaGlobal } from "@/components/tarefas/detalhe/TarefaAbertaGlo
 import { AppLayout } from "@/components/AppLayout";
 const FinancasLayout = lazy(() => import("./layouts/FinancasLayout"));
 const Faturamento = lazy(() => import("@/pages/administrativo/Faturamento"));
-import AdministrativoLayout from "@/layouts/AdministrativoLayout";
+
 import TILayout from "@/layouts/TILayout";
 import AdminLayout from "@/layouts/AdminLayout";
 import GestaoVistaLayout from "@/layouts/GestaoVistaLayout";
@@ -144,8 +144,6 @@ const PrevisaoRecebimentos = lazy(() => import("@/pages/administrativo/PrevisaoR
 // gestão de títulos vive na Cobrança.
 const DocumentosPendentes = lazy(() => import("@/pages/administrativo/DocumentosPendentes"));
 const AdminContratos = lazy(() => import("@/pages/administrativo/Contratos"));
-const AdminImoveis = lazy(() => import("@/pages/administrativo/Imoveis"));
-const AdminSeguros = lazy(() => import("@/pages/administrativo/Seguros"));
 const AdminGED = lazy(() => import("@/pages/administrativo/GED"));
 const ConfiguracaoIntegracao = lazy(() => import("@/pages/administrativo/ConfiguracaoIntegracao"));
 const BlingCallback = lazy(() => import("@/pages/administrativo/BlingCallback"));
@@ -470,6 +468,10 @@ const App = () => (
                 <Route path="sincronizar-bling" element={
                   <ProtectedRoute><SincronizarBling /></ProtectedRoute>
                 } />
+                {/* GED moveu para TI (DESMONTE-PATRIMONIO, 23/08/2026): governança de arquivo é infra */}
+                <Route path="ged" element={
+                  <ProtectedRoute><AdminGED /></ProtectedRoute>
+                } />
                 <Route path="diagnosticos/teste-email" element={<TesteEmailTemplate />} />
                 
               </Route>
@@ -716,27 +718,16 @@ const App = () => (
                 <Route path="previsao-recebimentos" element={<PrevisaoRecebimentos />} />
                 {/* compromissos removido — DESMONTE-CONTRATOS-RECORRENTES (23/08/2026) */}
                 {/* Integrações moveu para /ti/integracoes (23/08/2026): é infra, não financeiro */}
-                {/* MIGRADOS na Sprint 2 (29/04/2026) → Administrativo Fetely:
-                    pedidos, produtos, contratos, imoveis, seguros, ged.
-                    Redirects logo abaixo mantêm compatibilidade com URLs antigas. */}
-              </Route>
-
-              {/* ═══════════════════════════════════════════════
-                  ADMINISTRATIVO FETELY — Pilar novo (Sprint 2 — 29/04/2026)
-                  Recebe Contratos, Imóveis, Seguros, GED + Pedidos/Produtos (provisórios)
-                  ═══════════════════════════════════════════════ */}
-              <Route path="/administrativo-fetely" element={<AdministrativoLayout />}>
-                <Route index element={<Navigate to="/administrativo-fetely/contratos" replace />} />
+                {/* DESMONTE-PATRIMONIO (23/08/2026): pilar /administrativo-fetely extinto.
+                    Contratos e o grupo Documentos voltam para Finanças; GED foi para /ti/ged;
+                    Imóveis e Seguros nunca foram construídos. */}
                 <Route path="contratos" element={<AdminContratos />} />
-                <Route path="imoveis" element={<AdminImoveis />} />
-                <Route path="seguros" element={<AdminSeguros />} />
-                <Route path="ged" element={<AdminGED />} />
-                {/* parceiros movido para SOPsLayout */}
                 <Route path="importar" element={<ImportarDados />} />
                 <Route path="nfs-stage" element={<NFsStage />} />
                 <Route path="motor-classificacao" element={<MotorClassificacao />} />
                 <Route path="documentos-pendentes" element={<DocumentosPendentes />} />
               </Route>
+
 
               {/* ═══════════════════════════════════════════════
                   GESTÃO À VISTA — Sistema novo (Sprint 2 — 29/04/2026)
@@ -814,17 +805,25 @@ const App = () => (
             <Route path="/gestao/sala/:salaId" element={<GestaoSalaRedirect />} />
             <Route path="/gestao/ata/:reuniaoId" element={<GestaoAtaRedirect />} />
             <Route path="/administrativo/parceiros" element={<Navigate to="/administrativo-fetely/parceiros" replace />} />
-            <Route path="/administrativo/importar" element={<Navigate to="/administrativo-fetely/importar" replace />} />
-            <Route path="/administrativo/nfs-stage" element={<Navigate to="/administrativo-fetely/nfs-stage" replace />} />
-            <Route path="/administrativo/documentos-pendentes" element={<Navigate to="/administrativo-fetely/documentos-pendentes" replace />} />
             <Route path="/administrativo/pedidos" element={<Navigate to="/pedidos" replace />} />
             <Route path="/administrativo/produtos" element={<Navigate to="/vendas/produto" replace />} />
-            <Route path="/administrativo/contratos" element={<Navigate to="/administrativo-fetely/contratos" replace />} />
-            <Route path="/administrativo/imoveis" element={<Navigate to="/administrativo-fetely/imoveis" replace />} />
-            <Route path="/administrativo/seguros" element={<Navigate to="/administrativo-fetely/seguros" replace />} />
-            <Route path="/administrativo/ged" element={<Navigate to="/administrativo-fetely/ged" replace />} />
+            {/* DESMONTE-PATRIMONIO (23/08/2026): pilar extinto — Contratos → Finanças, GED → TI,
+                Imóveis/Seguros nunca construídos. importar/nfs-stage/motor-classificacao/
+                documentos-pendentes viraram rotas reais em Finanças. */}
+            <Route path="/administrativo/imoveis" element={<Navigate to="/administrativo" replace />} />
+            <Route path="/administrativo/seguros" element={<Navigate to="/administrativo" replace />} />
+            <Route path="/administrativo/ged" element={<Navigate to="/ti/ged" replace />} />
+            <Route path="/administrativo-fetely/contratos" element={<Navigate to="/administrativo/contratos" replace />} />
+            <Route path="/administrativo-fetely/ged" element={<Navigate to="/ti/ged" replace />} />
+            <Route path="/administrativo-fetely/imoveis" element={<Navigate to="/administrativo" replace />} />
+            <Route path="/administrativo-fetely/seguros" element={<Navigate to="/administrativo" replace />} />
+            <Route path="/administrativo-fetely/importar" element={<Navigate to="/administrativo/importar" replace />} />
+            <Route path="/administrativo-fetely/nfs-stage" element={<Navigate to="/administrativo/nfs-stage" replace />} />
+            <Route path="/administrativo-fetely/motor-classificacao" element={<Navigate to="/administrativo/motor-classificacao" replace />} />
+            <Route path="/administrativo-fetely/documentos-pendentes" element={<Navigate to="/administrativo/documentos-pendentes" replace />} />
             <Route path="/administrativo-fetely/pedidos" element={<Navigate to="/pedidos" replace />} />
             <Route path="/administrativo-fetely/produtos" element={<Navigate to="/vendas/produto" replace />} />
+            <Route path="/administrativo-fetely" element={<Navigate to="/administrativo" replace />} />
 
             {/* 404 — dentro do PublicLayout pra reaproveitar a boundary de Suspense */}
             <Route element={<PublicLayout />}>
