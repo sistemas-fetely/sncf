@@ -153,6 +153,39 @@ function Linha({ label, value, destaque }: { label: string; value?: string | num
 }
 
 /**
+ * Versão somente-leitura do código de rastreio para nível 1.
+ * CONTRATO DE NÍVEL: campos editáveis ficam disabled, não escondidos.
+ */
+function RastreioLeitura({ pedidoId }: { pedidoId: string }) {
+  const rastreio = useRastreioPedido(pedidoId);
+  if (rastreio.isLoading) return <p className="text-xs text-muted-foreground">Verificando rastreio…</p>;
+  const vinculado = rastreio.data;
+  if (!vinculado) return <p className="text-sm text-muted-foreground">—</p>;
+  return (
+    <div className="rounded-md border border-border/60 bg-muted/20 p-2.5 space-y-1.5">
+      <p className="text-sm font-medium tracking-wide flex items-center gap-1.5">
+        <PackageSearch className="h-3.5 w-3.5 text-muted-foreground" />
+        {vinculado.codigo_rastreio}
+      </p>
+      <div className="flex items-center gap-2 flex-wrap">
+        {vinculado.entregue ? (
+          <Badge variant="outline" className="text-[10px] border-success/60 text-success">Entregue</Badge>
+        ) : vinculado.status_atual ? (
+          <Badge variant="outline" className="text-[10px]">{vinculado.status_atual}</Badge>
+        ) : (
+          <Badge variant="outline" className="text-[10px] text-muted-foreground">Aguardando primeira leitura</Badge>
+        )}
+        {vinculado.data_ultima_atualizacao && (
+          <span className="text-[10px] text-muted-foreground">
+            Atualizado em {new Date(vinculado.data_ultima_atualizacao).toLocaleDateString("pt-BR")}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
  * RESERVA-NASCE-DA-PRE-SEPARACAO: a partir da pré-separação a peça já está
  * reservada para o pedido, então tag de lastro vira ruído — nesses estágios
  * não mostramos faixa, badge nem fundo de linha.
