@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
 import { useMenuApp, type ItemMenu } from "@/hooks/useMenuApp";
 import { resolverIcone } from "@/config/iconesNavegacao";
-import { AtalhoMeuEspaco } from "@/components/navegacao/AtalhoMeuEspaco";
+import { AtalhosFixos } from "@/components/navegacao/AtalhosFixos";
 import { BookOpen } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -85,9 +85,9 @@ export function AcervoSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-2 space-y-1">
-        {/* ATALHO-APONTA-PRO-PILAR (23/08/2026): link único para o Meu Espaço,
+        {/* ATALHO-APONTA-PRO-PILAR (23/08/2026): Casa e Meu Espaço no topo,
             mesmo padrão das outras sidebars. */}
-        <AtalhoMeuEspaco />
+        <AtalhosFixos />
         <div className="mx-4 border-t border-sidebar-border/40" />
 
         {!isLoading && soltos.length > 0 && (
