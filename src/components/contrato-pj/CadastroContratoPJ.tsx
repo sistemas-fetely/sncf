@@ -43,7 +43,7 @@ export function CadastroContratoPJ() {
   const location = useLocation();
   const { user } = useAuth();
 
-  const conviteId = (location.state as any)?.conviteId || null;
+  
   const initialData = (location.state as any)?.initialData || null;
 
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>(
@@ -178,13 +178,6 @@ export function CadastroContratoPJ() {
 
       if (error) throw error;
 
-      // Update convite status if created from invitation
-      if (conviteId) {
-        await supabase
-          .from("convites_cadastro")
-          .update({ contrato_pj_id: inserted.id, status: "cadastrado" })
-          .eq("id", conviteId);
-      }
 
       // Criar acesso ao portal automaticamente (opt-out)
       if (criarAcesso && inserted?.id) {

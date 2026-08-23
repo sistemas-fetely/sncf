@@ -50,7 +50,7 @@ export function CadastroColaboradorCLT() {
   const location = useLocation();
   const { user, profile } = useAuth();
 
-  const conviteId = (location.state as any)?.conviteId || null;
+  
   const initialData = (location.state as any)?.initialData || null;
 
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>(
@@ -138,13 +138,6 @@ export function CadastroColaboradorCLT() {
         if (depError) throw depError;
       }
 
-      // Update convite status if created from invitation
-      if (conviteId) {
-        await supabase
-          .from("convites_cadastro")
-          .update({ colaborador_id: inserted.id, status: "cadastrado" })
-          .eq("id", conviteId);
-      }
 
       // Criar acesso ao portal automaticamente (opt-out)
       if (criarAcesso && inserted?.id) {
@@ -181,22 +174,13 @@ export function CadastroColaboradorCLT() {
 
       // Gerar onboarding automático
       try {
-        let provisionamento = null;
-        if (conviteId) {
-          const { data: conviteData } = await supabase
-            .from("convites_cadastro")
-            .select("dados_contratacao, data_inicio_prevista, lider_direto_id")
-            .eq("id", conviteId)
-            .single();
-          provisionamento = (conviteData as any)?.dados_contratacao || null;
-        }
 
         const { data: newChecklist } = await supabase
           .from("onboarding_checklists")
           .insert({
             colaborador_id: inserted.id,
             colaborador_tipo: "clt",
-            convite_id: conviteId || null,
+            
             coordenador_user_id: user?.id || null,
             coordenador_nome: profile?.full_name || null,
           } as any)
@@ -213,7 +197,7 @@ export function CadastroColaboradorCLT() {
             gestorUserId = gp?.user_id || null;
           }
 
-          const tarefaTemplates = await getTarefasDinamicas("clt", provisionamento, supabase);
+          const tarefaTemplates = await getTarefasDinamicas("clt", null, supabase);
           const tarefas = tarefaTemplates.map((t) => {
             const prazoDate = new Date(dataAdmissao);
             prazoDate.setDate(prazoDate.getDate() + t.prazo_dias);

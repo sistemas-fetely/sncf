@@ -497,24 +497,6 @@ export function useDashboardData() {
     },
   });
 
-  // Convites preenchidos pendentes de cadastro
-  const convitesPreenchidosQuery = useQuery({
-    queryKey: ["dashboard_convites_preenchidos"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("convites_cadastro")
-        .select("id, nome, tipo, cargo, departamento")
-        .eq("status", "preenchido");
-
-      return (data || []).map((c) => ({
-        id: c.id,
-        nome: c.nome,
-        tipo: c.tipo,
-        cargo: c.cargo,
-        depto: c.departamento,
-      }));
-    },
-  });
 
   // Salário médio CLT
   const salarioMedioQuery = useQuery({
@@ -572,7 +554,7 @@ export function useDashboardData() {
     aniversariosEmpresa: anivEmpresaQuery.data ?? [],
     semBeneficio: semBeneficioQuery.data ?? [],
     contratosPendentes: contratosPendentesQuery.data ?? [],
-    convitesPreenchidos: convitesPreenchidosQuery.data ?? [],
+    
     custoPj: custoPjComparativoQuery.data ?? { totalAtual: 0, totalAnterior: 0, pagosAtual: 0, pendentesAtual: 0 },
     custoEvolucao: custoEvolucaoQuery.data ?? [],
     custoDept: custoDeptQuery.data ?? [],

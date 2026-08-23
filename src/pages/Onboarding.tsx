@@ -36,7 +36,7 @@ type Checklist = {
   id: string;
   colaborador_id: string | null;
   colaborador_tipo: string;
-  convite_id: string | null;
+  
   status: string;
   created_at: string;
   concluido_em: string | null;
