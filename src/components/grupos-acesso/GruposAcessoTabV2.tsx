@@ -423,6 +423,9 @@ interface CatalogoAppRow {
   submenu_label: string | null;
   submenu_ordem: number;
   ordem_menu: number;
+  item_chave: string | null;
+  item_label: string | null;
+  eh_aba: boolean;
   descricao: string | null;
   telas_cobertas: number;
   telas_lista: string | null;
