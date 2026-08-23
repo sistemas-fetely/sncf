@@ -1,6 +1,6 @@
 /**
  * URL pública do app — usada para gerar links externos
- * (candidatos, convites, portais públicos).
+ * (links de pagamento, portais públicos).
  * Nunca usar window.location.origin para links compartilhados externamente.
  */
 export const PUBLIC_APP_URL = import.meta.env.VITE_PUBLIC_APP_URL
