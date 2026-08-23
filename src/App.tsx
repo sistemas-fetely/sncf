@@ -267,7 +267,8 @@ function RedirectToPessoasPJ() {
 // Redirects para rotas legadas migradas para /admin
 function CargosIdRedirect() {
   const { id } = useParams();
-  return <Navigate to={`/admin/cargos/${id}`} replace />;
+  // CARGOS-MORA-EM-PESSOAS (23/08/2026): rota oficial é /pessoas/cargos/:id
+  return <Navigate to={`/pessoas/cargos/${id}`} replace />;
 }
 
 // GESTAO-E-ABA-DE-TAREFAS (21/08/2026): rotas legadas /gestao/* → /tarefas/gestao/*
@@ -473,6 +474,19 @@ const App = () => (
                 <Route path="/pessoas/custo" element={<CustoPessoas />} />
                 <Route path="/pessoas/folha" element={<FolhaMensal />} />
                 <Route path="/pessoas/organograma" element={<Organograma />} />
+                {/* CARGOS-MORA-EM-PESSOAS (23/08/2026): saiu de /admin/* para o pilar certo */}
+                <Route path="/pessoas/cargos" element={
+                  <ProtectedRoute><Cargos /></ProtectedRoute>
+                } />
+                <Route path="/pessoas/cargos/novo" element={
+                  <ProtectedRoute><CargoForm /></ProtectedRoute>
+                } />
+                <Route path="/pessoas/cargos/enriquecimento" element={
+                  <ProtectedRoute><CargosEnriquecimento /></ProtectedRoute>
+                } />
+                <Route path="/pessoas/cargos/:id" element={
+                  <ProtectedRoute><CargoForm /></ProtectedRoute>
+                } />
                 <Route path="/pessoas/socios" element={<Socios />} />
                 <Route path="/pessoas/reembolsos" element={<Reembolsos />} />
                 <Route
