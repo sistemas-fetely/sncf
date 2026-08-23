@@ -12,12 +12,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { CASA_APPS } from "./CasaApps";
+import { useNivel } from "@/hooks/useNivel";
 
 export function CasaAvatarMenu() {
   const navigate = useNavigate();
-  const { profile, hasAnyRole } = useAuth();
+  const { profile } = useAuth();
+  const { temNivel } = useNivel();
 
-  const canSeeMesa = hasAnyRole(["super_admin", "admin_rh"]);
+  const canSeeMesa = temNivel(3);
   const mesaApp = CASA_APPS.find((a) => a.id === "mesa");
 
   const handleLogout = async () => {

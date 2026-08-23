@@ -49,8 +49,9 @@ interface Versao {
 export default function DocumentacaoDetalhe() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { user, profile, hasAnyRole } = useAuth();
-  const isAdmin = hasAnyRole(["super_admin", "admin_rh"]);
+  const { user, profile } = useAuth();
+  const { temNivel } = useNivel();
+  const isAdmin = temNivel(3);
 
   const [doc, setDoc] = useState<Documento | null>(null);
   const [loading, setLoading] = useState(true);

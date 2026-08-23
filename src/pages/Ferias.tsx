@@ -1,5 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
+import { useNivel } from "@/hooks/useNivel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, Briefcase } from "lucide-react";
 import { FeriasCLTView } from "@/components/ferias/FeriasCLTView";
@@ -9,7 +10,8 @@ import { PageHeader } from "@/components/layout/PageHeader";
 
 export default function Ferias() {
   const { hasAnyRole, roles } = useAuth();
-  const canManage = hasAnyRole(["super_admin", "gestor_rh", "financeiro"]);
+  const { temNivel } = useNivel();
+  const canManage = temNivel(5);
   const isAdmin = hasAnyRole(["super_admin"]);
 
   const showCLT = true;
