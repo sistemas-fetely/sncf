@@ -25,6 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissoesDoUsuario, temPermissaoTela } from "@/hooks/usePermissoesDoUsuario";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -110,6 +111,13 @@ export default function Conhecimento() {
   const isAdminRH = (authRoles ?? []).includes("admin_rh") || (authRoles ?? []).includes("rh" as never);
   const userRoles = authRoles;
   const isLoading = false;
+  // ABA-QUE-É-TELA-VIRA-LINHA (23/08/2026): moderar sugestões é decidir o que
+  // a IA passa a saber sobre a empresa — governança, diferente de ler a base.
+  const { roles } = useAuth();
+  const { data: permitidas } = usePermissoesDoUsuario();
+  const podeModerar =
+    (roles ?? []).includes("super_admin") ||
+    temPermissaoTela("tela.conhecimento_moderar", permitidas);
   const [aba, setAba] = useAbaUrl("base");
   const [mostrarUploadPdf, setMostrarUploadPdf] = useState(false);
   const [itens, setItens] = useState<Conhecimento[]>([]);
@@ -418,14 +426,16 @@ export default function Conhecimento() {
             <TabsTrigger value="base" className="gap-2">
               📚 Base Ativa ({itens.filter((i) => i.ativo).length})
             </TabsTrigger>
-            <TabsTrigger value="sugestoes" className="gap-2">
-              <GraduationCap className="h-3.5 w-3.5" /> Sugestões Pendentes
-              {sugestoes.length > 0 && (
-                <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">
-                  {sugestoes.length}
-                </Badge>
-              )}
-            </TabsTrigger>
+            {podeModerar && (
+              <TabsTrigger value="sugestoes" className="gap-2">
+                <GraduationCap className="h-3.5 w-3.5" /> Sugestões Pendentes
+                {sugestoes.length > 0 && (
+                  <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">
+                    {sugestoes.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="base">
@@ -504,13 +514,15 @@ export default function Conhecimento() {
             )}
           </TabsContent>
 
-          <TabsContent value="sugestoes">
-            <SugestoesPendentes
-              sugestoes={sugestoes}
-              onAprovar={abrirAprovarSugestao}
-              onAtualizar={() => void carregarSugestoes()}
-            />
-          </TabsContent>
+          {podeModerar && (
+            <TabsContent value="sugestoes">
+              <SugestoesPendentes
+                sugestoes={sugestoes}
+                onAprovar={abrirAprovarSugestao}
+                onAtualizar={() => void carregarSugestoes()}
+              />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 
