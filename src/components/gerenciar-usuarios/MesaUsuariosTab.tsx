@@ -46,6 +46,8 @@ const ROLE_LABEL: Partial<Record<AppRole, string>> = {
   coordenacao_op_fin: "Coordenação Op/Fin",
   auditor: "Auditor",
   socio: "Sócio",
+  folha: "Folha",
+  gerente: "Gerente",
 };
 
 const ESCOPO_OPTIONS: { value: Escopo; label: string }[] = [
@@ -77,7 +79,6 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
   // dialogs
   const [papelDialog, setPapelDialog] = useState<{ userId: string; nome: string } | null>(null);
   const [novoPapel, setNovoPapel] = useState<AppRole | "">("");
-  const [novoEscopo, setNovoEscopo] = useState<Escopo>("tudo");
   const [validoAte, setValidoAte] = useState("");
 
   const [revogar, setRevogar] = useState<{ id: string; label: string } | null>(null);
@@ -217,7 +218,9 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
       const { error } = await supabase.from("user_roles").insert({
         user_id: papelDialog.userId,
         role: novoPapel as AppRole,
-        escopo: novoEscopo,
+        // escopo fixo em "tudo": nenhuma política de RLS lê este campo hoje (verificado 23/08/2026).
+        // Campo removido da UI para não prometer recorte que o banco não aplica.
+        escopo: "tudo",
         valido_ate: validoAte ? new Date(validoAte).toISOString() : null,
         atribuido_manualmente: true,
       });
@@ -233,7 +236,6 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
       toast.success("Papel concedido");
       setPapelDialog(null);
       setNovoPapel("");
-      setNovoEscopo("tudo");
       setValidoAte("");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -610,17 +612,6 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
                     <SelectItem key={n.papel} value={n.papel}>
                       {n.nivel} · {n.rotulo}
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Escopo</Label>
-              <Select value={novoEscopo} onValueChange={(v) => setNovoEscopo(v as Escopo)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {ESCOPO_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
