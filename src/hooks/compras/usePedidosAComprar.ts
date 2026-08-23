@@ -15,7 +15,6 @@ export function usePedidosAComprar(tab: ComprarTab) {
         .select(`
           *,
           centros_custo:centro_custo_id (id, codigo, nome),
-          linhas_investimento:linha_investimento_id (id, descricao),
           parceiros_comerciais:parceiro_preferencial_id (id, razao_social, nome_fantasia),
           pedidos_compra_itens (*),
           pedidos_compra_anexos (*)

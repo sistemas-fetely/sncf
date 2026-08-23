@@ -7,7 +7,7 @@ export interface AtualizarPedidoInput {
   pedido_id: string;
   cabecalho: {
     centro_custo_id?: string | null;
-    linha_investimento_id?: string | null;
+    // DESMONTE-PROJECOES (23/08/2026): linha_investimento_id removido — tabela dropada
     parceiro_preferencial_id?: string | null;
     descricao_geral?: string | null;
     justificativa?: string | null;

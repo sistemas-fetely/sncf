@@ -21,9 +21,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -72,7 +70,7 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
   const [justificativa, setJustificativa] = useState("");
   const [solicitanteExterno, setSolicitanteExterno] = useState("");
   const [centroCustoId, setCentroCustoId] = useState<string>("");
-  const [linhaInvId, setLinhaInvId] = useState<string>("");
+  // DESMONTE-PROJECOES (23/08/2026): linha_investimento_id removido — tabela dropada
   const [parceiroId, setParceiroId] = useState<string>("");
   const [dataNecessidade, setDataNecessidade] = useState<Date | undefined>(undefined);
   const [urgente, setUrgente] = useState(false);
@@ -101,7 +99,6 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
       setJustificativa("");
       setSolicitanteExterno("");
       setCentroCustoId("");
-      setLinhaInvId("");
       setParceiroId("");
       setDataNecessidade(undefined);
       setUrgente(false);
@@ -127,7 +124,6 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
       setJustificativa(pedido.justificativa || "");
       setSolicitanteExterno(pedido.solicitante_externo || "");
       setCentroCustoId(pedido.centro_custo_id || "");
-      setLinhaInvId(pedido.linha_investimento_id || "");
       setParceiroId(pedido.parceiro_preferencial_id || "");
       setDataNecessidade(
         pedido.data_necessidade ? parseISO(pedido.data_necessidade) : undefined,
@@ -170,49 +166,6 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
       return data || [];
     },
   });
-
-  const { data: linhas = [] } = useQuery({
-    queryKey: ["compras", "linhas-investimento-com-tema"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("linhas_investimento")
-        .select(`
-          id,
-          descricao,
-          tema_id,
-          ativa,
-          temas_investimento:tema_id (id, nome, ordem)
-        `)
-        .eq("ativa", true);
-      return (data || []) as Array<{
-        id: string;
-        descricao: string;
-        tema_id: string;
-        ativa: boolean;
-        temas_investimento: { id: string; nome: string; ordem: number } | null;
-      }>;
-    },
-  });
-
-  const linhasAgrupadas = useMemo(() => {
-    const grupos = new Map<string, { tema_nome: string; tema_ordem: number; linhas: typeof linhas }>();
-    for (const l of linhas) {
-      const temaId = l.temas_investimento?.id || "_sem_tema";
-      const temaNome = l.temas_investimento?.nome || "Sem tema";
-      const temaOrdem = l.temas_investimento?.ordem ?? 9999;
-      if (!grupos.has(temaId)) {
-        grupos.set(temaId, { tema_nome: temaNome, tema_ordem: temaOrdem, linhas: [] });
-      }
-      grupos.get(temaId)!.linhas.push(l);
-    }
-    return Array.from(grupos.entries())
-      .sort((a, b) => a[1].tema_ordem - b[1].tema_ordem)
-      .map(([temaId, g]) => ({
-        tema_id: temaId,
-        tema_nome: g.tema_nome,
-        linhas: [...g.linhas].sort((a, b) => a.descricao.localeCompare(b.descricao)),
-      }));
-  }, [linhas]);
 
   const { data: parceiros = [] } = useQuery({
     queryKey: ["compras", "parceiros"],
@@ -258,11 +211,10 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
       descricao_geral: descricaoGeral || null,
       justificativa: justificativa || null,
       centro_custo_id: centroCustoId || null,
-      linha_investimento_id: linhaInvId || null,
       parceiro_preferencial_id: parceiroId || null,
       solicitante_externo: solicitanteExterno.trim() || null,
     }),
-    [descricaoGeral, justificativa, centroCustoId, linhaInvId, parceiroId, solicitanteExterno],
+    [descricaoGeral, justificativa, centroCustoId, parceiroId, solicitanteExterno],
   );
 
   const handleSalvar = async (enviar_apos: boolean) => {
@@ -448,29 +400,6 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
               <SelectContent>
                 {centros.map((c) => (
                   <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Linha de investimento (opcional)</Label>
-            <Select
-              value={linhaInvId || "none"}
-              onValueChange={(v) => setLinhaInvId(v === "none" ? "" : v)}
-              disabled={!podeEditar}
-            >
-              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-              <SelectContent className="max-h-[400px]">
-                <SelectItem value="none">—</SelectItem>
-                {linhasAgrupadas.map((grupo) => (
-                  <SelectGroup key={grupo.tema_id}>
-                    <SelectLabel className="text-xs uppercase tracking-wider text-muted-foreground">
-                      {grupo.tema_nome}
-                    </SelectLabel>
-                    {grupo.linhas.map((l) => (
-                      <SelectItem key={l.id} value={l.id} className="pl-6">{l.descricao}</SelectItem>
-                    ))}
-                  </SelectGroup>
                 ))}
               </SelectContent>
             </Select>

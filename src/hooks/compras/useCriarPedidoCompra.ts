@@ -5,7 +5,7 @@ import type { NovoItem } from "@/lib/compras/types";
 
 export interface CriarPedidoInput {
   centro_custo_id?: string | null;
-  linha_investimento_id?: string | null;
+  // DESMONTE-PROJECOES (23/08/2026): linha_investimento_id removido — tabela dropada
   parceiro_preferencial_id?: string | null;
   descricao_geral?: string | null;
   justificativa?: string | null;
@@ -31,7 +31,8 @@ export function useCriarPedidoCompra() {
       }));
       const { data, error } = await supabase.rpc("criar_pedido_compra", {
         p_centro_custo_id: input.centro_custo_id ?? null,
-        p_linha_investimento_id: input.linha_investimento_id ?? null,
+        // DESMONTE-PROJECOES (23/08/2026): coluna dropada; RPC ainda exige o parâmetro
+        p_linha_investimento_id: null,
         p_parceiro_preferencial_id: input.parceiro_preferencial_id ?? null,
         p_descricao_geral: input.descricao_geral ?? null,
         p_justificativa: input.justificativa ?? null,

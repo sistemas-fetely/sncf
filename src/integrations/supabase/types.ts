@@ -8434,7 +8434,6 @@ export type Database = {
           fornecedor_cliente: string | null
           fornecedor_id: string | null
           id: string
-          linha_investimento_id: string | null
           meio_pagamento_id: string
           movimentacao_bancaria_id: string | null
           nf_aplicavel: boolean
@@ -8527,7 +8526,6 @@ export type Database = {
           fornecedor_cliente?: string | null
           fornecedor_id?: string | null
           id?: string
-          linha_investimento_id?: string | null
           meio_pagamento_id: string
           movimentacao_bancaria_id?: string | null
           nf_aplicavel?: boolean
@@ -8620,7 +8618,6 @@ export type Database = {
           fornecedor_cliente?: string | null
           fornecedor_id?: string | null
           id?: string
-          linha_investimento_id?: string | null
           meio_pagamento_id?: string
           movimentacao_bancaria_id?: string | null
           nf_aplicavel?: boolean
@@ -8751,20 +8748,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "formas_pagamento"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_linha_investimento_id_fkey"
-            columns: ["linha_investimento_id"]
-            isOneToOne: false
-            referencedRelation: "linhas_investimento"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_linha_investimento_id_fkey"
-            columns: ["linha_investimento_id"]
-            isOneToOne: false
-            referencedRelation: "vw_linhas_investimento_kpis"
-            referencedColumns: ["linha_id"]
           },
           {
             foreignKeyName: "contas_pagar_receber_meio_pagamento_id_fkey"
@@ -14057,39 +14040,6 @@ export type Database = {
         }
         Relationships: []
       }
-      frentes_investimento: {
-        Row: {
-          ativa: boolean
-          codigo: string
-          created_at: string
-          descricao: string | null
-          id: string
-          nome: string
-          ordem: number
-          updated_at: string
-        }
-        Insert: {
-          ativa?: boolean
-          codigo: string
-          created_at?: string
-          descricao?: string | null
-          id?: string
-          nome: string
-          ordem?: number
-          updated_at?: string
-        }
-        Update: {
-          ativa?: boolean
-          codigo?: string
-          created_at?: string
-          descricao?: string | null
-          id?: string
-          nome?: string
-          ordem?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
       frete_canal_contratacao: {
         Row: {
           ativo: boolean
@@ -19009,66 +18959,6 @@ export type Database = {
         }
         Relationships: []
       }
-      linhas_investimento: {
-        Row: {
-          ativa: boolean
-          created_at: string
-          created_by: string | null
-          data_prevista_pagamento: string | null
-          descricao: string
-          id: string
-          observacao: string | null
-          responsavel_id: string | null
-          tema_id: string
-          updated_at: string
-          valor_fechado: number | null
-          valor_inicial: number
-        }
-        Insert: {
-          ativa?: boolean
-          created_at?: string
-          created_by?: string | null
-          data_prevista_pagamento?: string | null
-          descricao: string
-          id?: string
-          observacao?: string | null
-          responsavel_id?: string | null
-          tema_id: string
-          updated_at?: string
-          valor_fechado?: number | null
-          valor_inicial?: number
-        }
-        Update: {
-          ativa?: boolean
-          created_at?: string
-          created_by?: string | null
-          data_prevista_pagamento?: string | null
-          descricao?: string
-          id?: string
-          observacao?: string | null
-          responsavel_id?: string | null
-          tema_id?: string
-          updated_at?: string
-          valor_fechado?: number | null
-          valor_inicial?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "linhas_investimento_tema_id_fkey"
-            columns: ["tema_id"]
-            isOneToOne: false
-            referencedRelation: "temas_investimento"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "linhas_investimento_tema_id_fkey"
-            columns: ["tema_id"]
-            isOneToOne: false
-            referencedRelation: "vw_temas_investimento_kpis"
-            referencedColumns: ["tema_id"]
-          },
-        ]
-      }
       logistica_feed_sla: {
         Row: {
           ativo: boolean
@@ -23856,7 +23746,6 @@ export type Database = {
           descricao: string | null
           dia_vencimento: number | null
           id: string
-          linha_investimento_id: string | null
           meio_pagamento_id: string | null
           numero: string
           numero_parcelas: number | null
@@ -23889,7 +23778,6 @@ export type Database = {
           descricao?: string | null
           dia_vencimento?: number | null
           id?: string
-          linha_investimento_id?: string | null
           meio_pagamento_id?: string | null
           numero: string
           numero_parcelas?: number | null
@@ -23922,7 +23810,6 @@ export type Database = {
           descricao?: string | null
           dia_vencimento?: number | null
           id?: string
-          linha_investimento_id?: string | null
           meio_pagamento_id?: string | null
           numero?: string
           numero_parcelas?: number | null
@@ -23944,20 +23831,6 @@ export type Database = {
           vigencia_inicio?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "pasta_contratos_linha_investimento_id_fkey"
-            columns: ["linha_investimento_id"]
-            isOneToOne: false
-            referencedRelation: "linhas_investimento"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pasta_contratos_linha_investimento_id_fkey"
-            columns: ["linha_investimento_id"]
-            isOneToOne: false
-            referencedRelation: "vw_linhas_investimento_kpis"
-            referencedColumns: ["linha_id"]
-          },
           {
             foreignKeyName: "pasta_contratos_meio_pagamento_id_fkey"
             columns: ["meio_pagamento_id"]
@@ -28514,7 +28387,6 @@ export type Database = {
           id: string
           iniciado_em: string | null
           justificativa: string | null
-          linha_investimento_id: string | null
           parceiro_preferencial_id: string | null
           recebido_em: string | null
           recebido_por: string | null
@@ -28546,7 +28418,6 @@ export type Database = {
           id?: string
           iniciado_em?: string | null
           justificativa?: string | null
-          linha_investimento_id?: string | null
           parceiro_preferencial_id?: string | null
           recebido_em?: string | null
           recebido_por?: string | null
@@ -28578,7 +28449,6 @@ export type Database = {
           id?: string
           iniciado_em?: string | null
           justificativa?: string | null
-          linha_investimento_id?: string | null
           parceiro_preferencial_id?: string | null
           recebido_em?: string | null
           recebido_por?: string | null
@@ -28623,20 +28493,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "departamentos"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pedidos_compra_linha_investimento_id_fkey"
-            columns: ["linha_investimento_id"]
-            isOneToOne: false
-            referencedRelation: "linhas_investimento"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pedidos_compra_linha_investimento_id_fkey"
-            columns: ["linha_investimento_id"]
-            isOneToOne: false
-            referencedRelation: "vw_linhas_investimento_kpis"
-            referencedColumns: ["linha_id"]
           },
           {
             foreignKeyName: "pedidos_compra_parceiro_preferencial_id_fkey"
@@ -38020,57 +37876,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
-      }
-      temas_investimento: {
-        Row: {
-          ativa: boolean
-          codigo: string
-          created_at: string
-          descricao: string | null
-          frente_id: string
-          id: string
-          nome: string
-          ordem: number
-          updated_at: string
-        }
-        Insert: {
-          ativa?: boolean
-          codigo: string
-          created_at?: string
-          descricao?: string | null
-          frente_id: string
-          id?: string
-          nome: string
-          ordem?: number
-          updated_at?: string
-        }
-        Update: {
-          ativa?: boolean
-          codigo?: string
-          created_at?: string
-          descricao?: string | null
-          frente_id?: string
-          id?: string
-          nome?: string
-          ordem?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "temas_investimento_frente_id_fkey"
-            columns: ["frente_id"]
-            isOneToOne: false
-            referencedRelation: "frentes_investimento"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "temas_investimento_frente_id_fkey"
-            columns: ["frente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_frentes_investimento_kpis"
-            referencedColumns: ["frente_id"]
-          },
-        ]
       }
       ti_ativos: {
         Row: {
@@ -52841,25 +52646,6 @@ export type Database = {
         }
         Relationships: []
       }
-      vw_fluxo_futuro_investimento: {
-        Row: {
-          data_evento: string | null
-          evento_descricao: string | null
-          evento_id: string | null
-          frente_codigo: string | null
-          frente_id: string | null
-          frente_nome: string | null
-          frente_ordem: number | null
-          linha_descricao: string | null
-          linha_id: string | null
-          origem: string | null
-          status_cpr: string | null
-          tema_id: string | null
-          tema_nome: string | null
-          valor: number | null
-        }
-        Relationships: []
-      }
       vw_fonte_prova_cobertura: {
         Row: {
           coberto_ate: string | null
@@ -53016,26 +52802,6 @@ export type Database = {
             referencedColumns: ["sku"]
           },
         ]
-      }
-      vw_frentes_investimento_kpis: {
-        Row: {
-          ativa: boolean | null
-          codigo: string | null
-          descricao: string | null
-          frente_id: string | null
-          nome: string | null
-          ordem: number | null
-          qtd_cpr_pagos: number | null
-          qtd_linhas: number | null
-          qtd_temas_com_linhas: number | null
-          total_fechado: number | null
-          total_inicial: number | null
-          total_lancado: number | null
-          total_pago: number | null
-          total_saldo: number | null
-          total_saving: number | null
-        }
-        Relationships: []
       }
       vw_frete_pedido: {
         Row: {
@@ -54913,56 +54679,6 @@ export type Database = {
         }
         Relationships: []
       }
-      vw_linhas_investimento_kpis: {
-        Row: {
-          ativa: boolean | null
-          data_prevista_pagamento: string | null
-          descricao: string | null
-          frente_id: string | null
-          linha_id: string | null
-          observacao: string | null
-          qtd_cpr: number | null
-          qtd_cpr_pagos: number | null
-          responsavel_id: string | null
-          saldo: number | null
-          saving: number | null
-          tema_id: string | null
-          valor_fechado: number | null
-          valor_inicial: number | null
-          valor_lancado: number | null
-          valor_pago: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "linhas_investimento_tema_id_fkey"
-            columns: ["tema_id"]
-            isOneToOne: false
-            referencedRelation: "temas_investimento"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "linhas_investimento_tema_id_fkey"
-            columns: ["tema_id"]
-            isOneToOne: false
-            referencedRelation: "vw_temas_investimento_kpis"
-            referencedColumns: ["tema_id"]
-          },
-          {
-            foreignKeyName: "temas_investimento_frente_id_fkey"
-            columns: ["frente_id"]
-            isOneToOne: false
-            referencedRelation: "frentes_investimento"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "temas_investimento_frente_id_fkey"
-            columns: ["frente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_frentes_investimento_kpis"
-            referencedColumns: ["frente_id"]
-          },
-        ]
-      }
       vw_logistica_custo_transportadora: {
         Row: {
           apelido: string | null
@@ -56411,14 +56127,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -64035,41 +63751,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tarefas_tipos_processo"
             referencedColumns: ["chave"]
-          },
-        ]
-      }
-      vw_temas_investimento_kpis: {
-        Row: {
-          ativa: boolean | null
-          codigo: string | null
-          frente_id: string | null
-          nome: string | null
-          ordem: number | null
-          qtd_cpr: number | null
-          qtd_cpr_pagos: number | null
-          qtd_linhas: number | null
-          tema_id: string | null
-          total_fechado: number | null
-          total_inicial: number | null
-          total_lancado: number | null
-          total_pago: number | null
-          total_saldo: number | null
-          total_saving: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "temas_investimento_frente_id_fkey"
-            columns: ["frente_id"]
-            isOneToOne: false
-            referencedRelation: "frentes_investimento"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "temas_investimento_frente_id_fkey"
-            columns: ["frente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_frentes_investimento_kpis"
-            referencedColumns: ["frente_id"]
           },
         ]
       }

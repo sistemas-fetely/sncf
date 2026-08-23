@@ -16,7 +16,7 @@ import { Receipt, Loader2 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { toast } from "sonner";
 import { CategoriaCombobox, type CategoriaOption } from "./CategoriaCombobox";
-import { LinhaInvestimentoCombobox } from "./LinhaInvestimentoCombobox";
+// DESMONTE-PROJECOES (23/08/2026): linha de investimento removida — tabela dropada
 import { useCentrosCusto } from "@/hooks/financeiro/useCentrosCusto";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -42,7 +42,6 @@ export function DespesaDiretaDialog({ open, onClose, movimentacao, onConciliado 
   const [descricao, setDescricao] = useState<string>("");
   const [parceiroId, setParceiroId] = useState<string>("");
   const [enviando, setEnviando] = useState(false);
-  const [linhaInvestimentoId, setLinhaInvestimentoId] = useState<string | null>(null);
   const { data: centrosCusto = [] } = useCentrosCusto();
 
   // Carrega parceiros pra o select opcional
@@ -102,11 +101,10 @@ export function DespesaDiretaDialog({ open, onClose, movimentacao, onConciliado 
       const r = Array.isArray(data) ? data[0] : data;
       if (!r?.ok) throw new Error(r?.erro || "Falha desconhecida");
 
-      // Vincular centro de custo + linha de investimento (UPDATE pós-RPC)
+      // Vincular centro de custo (UPDATE pós-RPC)
       const cprId = r?.conta_pagar_id;
-      if (cprId && (linhaInvestimentoId || centroCustoId)) {
+      if (cprId && centroCustoId) {
         const updatePayload: Record<string, string | null> = {};
-        if (linhaInvestimentoId) updatePayload.linha_investimento_id = linhaInvestimentoId;
         if (centroCustoId) updatePayload.centro_custo_id = centroCustoId;
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -139,7 +137,6 @@ export function DespesaDiretaDialog({ open, onClose, movimentacao, onConciliado 
     setCentroCustoId(null);
     setDescricao("");
     setParceiroId("");
-    setLinhaInvestimentoId(null);
     onClose();
   }
 
@@ -211,16 +208,6 @@ export function DespesaDiretaDialog({ open, onClose, movimentacao, onConciliado 
             </SelectContent>
           </Select>
         </div>
-
-        {/* Linha de Investimento (opcional) */}
-        <div className="space-y-1">
-          <Label className="text-xs">Linha de Investimento (opcional)</Label>
-          <LinhaInvestimentoCombobox
-            value={linhaInvestimentoId}
-            onChange={setLinhaInvestimentoId}
-          />
-        </div>
-
 
         <div className="space-y-1">
           <Label className="text-xs">Descrição</Label>

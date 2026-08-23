@@ -184,10 +184,7 @@ export function PedidoDetalheComprador({
                     <span className="text-muted-foreground">Centro de custo:</span>{" "}
                     {pedido.centros_custo?.nome || "—"}
                   </div>
-                  <div>
-                    <span className="text-muted-foreground">Linha de invest.:</span>{" "}
-                    {pedido.linhas_investimento?.descricao || "—"}
-                  </div>
+                  {/* DESMONTE-PROJECOES (23/08/2026): linha de investimento removida — tabela dropada */}
                   <div className="col-span-2">
                     <span className="text-muted-foreground">Fornecedor preferencial:</span>{" "}
                     {pedido.parceiros_comerciais?.razao_social || "—"}

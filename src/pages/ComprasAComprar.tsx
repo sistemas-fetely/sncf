@@ -159,7 +159,7 @@ export default function ComprasAComprar() {
     const { data: proximos } = await supabase
       .from("pedidos_compra")
       .select(
-        "*, centros_custo(id, codigo, nome), linhas_investimento(id, descricao), parceiros_comerciais:parceiro_preferencial_id(id, nome_fantasia, razao_social), pedidos_compra_itens(*), pedidos_compra_anexos(*)",
+        "*, centros_custo(id, codigo, nome), parceiros_comerciais:parceiro_preferencial_id(id, nome_fantasia, razao_social), pedidos_compra_itens(*), pedidos_compra_anexos(*)",
       )
       .eq("status", "em_compra")
       .eq("comprador_id", user.id)
