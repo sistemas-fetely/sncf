@@ -43,6 +43,7 @@ import { useUnidades } from "@/hooks/useUnidades";
 import { useTemplates } from "@/hooks/useTemplates";
 import { useDepartamentoInfo } from "@/hooks/useEstruturaOrganizacional";
 import { SelectDepartamentoHierarquico } from "@/components/shared/SelectDepartamentoHierarquico";
+import { usePermissoesDoUsuario, temPermissaoTela } from "@/hooks/usePermissoesDoUsuario";
 import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
@@ -137,6 +138,13 @@ export default function GerenciarUsuarios() {
   };
   const { roles: myRoles } = useAuth();
   const isSuperAdmin = myRoles.includes("super_admin");
+  // ABA-QUE-É-TELA-VIRA-LINHA (23/08/2026): as abas de auditoria de acesso
+  // (Contas sem Perfil, Diagnóstico, Rastro) eram escondidas por
+  // `isSuperAdmin &&` no JSX — regra de acesso em código, invisível ao
+  // catálogo. Agora vêm de tela.acesso_auditoria, que já está declarada em
+  // sncf_navegacao e concedida aos mesmos grupos de hoje.
+  const { data: permitidas } = usePermissoesDoUsuario();
+  const podeAuditarAcesso = isSuperAdmin || temPermissaoTela("tela.acesso_auditoria", permitidas);
   const isAdminRH = myRoles.includes("admin_rh");
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
@@ -499,17 +507,17 @@ export default function GerenciarUsuarios() {
         <TabsList>
           <TabsTrigger value="usuarios" className="gap-2"><Users className="h-4 w-4" /> Usuários</TabsTrigger>
           <TabsTrigger value="grupos" className="gap-2"><ShieldCheck className="h-4 w-4" /> Grupos de Acesso</TabsTrigger>
-          {isSuperAdmin && (
+          {podeAuditarAcesso && (
             <TabsTrigger value="fantasmas" className="gap-2">
               <Ghost className="h-4 w-4" /> Contas sem perfil
             </TabsTrigger>
           )}
-          {isSuperAdmin && (
+          {podeAuditarAcesso && (
             <TabsTrigger value="diagnostico" className="gap-2">
               <ScanSearch className="h-4 w-4" /> Diagnóstico
             </TabsTrigger>
           )}
-          {isSuperAdmin && (
+          {podeAuditarAcesso && (
             <TabsTrigger value="rastro" className="gap-2">
               <History className="h-4 w-4" /> Rastro
             </TabsTrigger>
@@ -532,7 +540,7 @@ export default function GerenciarUsuarios() {
         </TabsContent>
 
 
-        {isSuperAdmin && (
+        {podeAuditarAcesso && (
           <TabsContent value="fantasmas" className="mt-4">
             <ContasSemPerfilTab
               profileUserIds={new Set((profiles || []).map((p: any) => p.user_id))}
@@ -540,13 +548,13 @@ export default function GerenciarUsuarios() {
           </TabsContent>
         )}
 
-        {isSuperAdmin && (
+        {podeAuditarAcesso && (
           <TabsContent value="diagnostico" className="mt-4">
             <DiagnosticoAcessoTab />
           </TabsContent>
         )}
 
-        {isSuperAdmin && (
+        {podeAuditarAcesso && (
           <TabsContent value="rastro" className="mt-4">
             <RastroAcessoTab />
           </TabsContent>
