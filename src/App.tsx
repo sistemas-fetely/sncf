@@ -37,7 +37,7 @@ const FolhaMensal = lazy(() => import("@/pages/FolhaMensal"));
 const ColaboradorDetalhe = lazy(() => import("@/pages/ColaboradorDetalhe"));
 const CadastroColaboradorCLTWrapper = lazy(() => import("@/components/colaborador-clt/CadastroColaboradorCLT").then(m => ({ default: m.CadastroColaboradorCLTWrapper })));
 const PlaceholderPage = lazy(() => import("@/pages/PlaceholderPage"));
-const Configuracoes = lazy(() => import("@/pages/Configuracoes"));
+
 const Organograma = lazy(() => import("@/pages/Organograma"));
 const Reembolsos = lazy(() => import("@/pages/pessoas/Reembolsos"));
 const Socios = lazy(() => import("@/pages/pessoas/Socios"));
@@ -640,9 +640,7 @@ const App = () => (
                 <Route path="parametros" element={
                   <ProtectedRoute><Parametros /></ProtectedRoute>
                 } />
-                <Route path="configuracoes" element={
-                  <ProtectedRoute><Configuracoes /></ProtectedRoute>
-                } />
+                <Route path="configuracoes" element={<Navigate to="/admin" replace />} />
                 <Route path="usuarios" element={
                   <ProtectedRoute><GerenciarUsuarios /></ProtectedRoute>
                 } />
