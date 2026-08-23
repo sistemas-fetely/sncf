@@ -84,6 +84,7 @@ const PedidoMercadoriaDetalhe = lazy(() => import("@/pages/compras/PedidoMercado
 const TIDashboard = lazy(() => import("@/pages/ti/TIDashboard"));
 const TIAtivos = lazy(() => import("@/pages/ti/TIAtivos"));
 const TesteEmailTemplate = lazy(() => import("@/pages/ti/TesteEmailTemplate"));
+const NavegacaoSaude = lazy(() => import("@/pages/ti/NavegacaoSaude"));
 const DocumentacaoDetalhe = lazy(() => import("@/pages/ti/DocumentacaoDetalhe"));
 const DocumentacaoForm = lazy(() => import("@/pages/ti/DocumentacaoForm"));
 const MeuEspacoLayout = lazy(() => import("@/layouts/MeuEspacoLayout"));
@@ -457,6 +458,7 @@ const App = () => (
               <Route path="/ti" element={<TILayout />}>
                 <Route index element={<TIDashboard />} />
                 <Route path="ativos" element={<TIAtivos />} />
+                <Route path="navegacao-saude" element={<NavegacaoSaude />} />
                 <Route path="diagnosticos/teste-email" element={<TesteEmailTemplate />} />
                 
               </Route>
@@ -808,8 +810,8 @@ const App = () => (
             {/* 404 — dentro do PublicLayout pra reaproveitar a boundary de Suspense */}
             <Route element={<PublicLayout />}>
               <Route path="/rastreamento" element={<Navigate to="/logistica" replace />} />
-              <Route path="/teste-frete" element={<Navigate to="/ti/diagnosticos/teste-frete" replace />} />
-              <Route path="/teste-rastreio" element={<Navigate to="/ti/diagnosticos/teste-frete" replace />} />
+              <Route path="/teste-frete" element={<Navigate to="/ti" replace />} />
+              <Route path="/teste-rastreio" element={<Navigate to="/ti" replace />} />
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>

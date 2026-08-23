@@ -55585,6 +55585,18 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_navegacao_saude: {
+        Row: {
+          achado: string | null
+          chave: string | null
+          detalhe: string | null
+          explicacao: string | null
+          label: string | null
+          rota: string | null
+          severidade: string | null
+        }
+        Relationships: []
+      }
       vw_nf_em_pedido_cancelado: {
         Row: {
           cancelado_em: string | null
