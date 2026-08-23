@@ -102,6 +102,7 @@ export default function Parceiros() {
   });
   const [filtroIncompleto, setFiltroIncompleto] = useState<"sem_categoria" | "sem_meio_pgto" | "sem_centro_custo" | null>(null);
   const queryClient = useQueryClient();
+  const { temNivel } = useNivel();
 
   useEffect(() => {
     if (!abrirParceiroId) return;
