@@ -422,6 +422,7 @@ interface CatalogoAppRow {
   submenu_chave: string | null;
   submenu_label: string | null;
   submenu_ordem: number;
+  ordem_menu: number;
   descricao: string | null;
   telas_cobertas: number;
   telas_lista: string | null;
@@ -448,7 +449,7 @@ function useCatalogoPorApp() {
     queryFn: async (): Promise<CatalogoAppRow[]> => {
       const { data, error } = await supabase
         .from("vw_catalogo_por_app")
-        .select("permissao_id, slug, tipo, nome_exibicao, app_chave, app_label, app_ordem, submenu_chave, submenu_label, submenu_ordem, descricao, telas_cobertas, telas_lista, contem_dado_sensivel, feature_em_teste");
+        .select("permissao_id, slug, tipo, nome_exibicao, app_chave, app_label, app_ordem, submenu_chave, submenu_label, submenu_ordem, ordem_menu, descricao, telas_cobertas, telas_lista, contem_dado_sensivel, feature_em_teste");
       if (error) throw error;
       return (data || [])
         .filter((r) => r.permissao_id && r.app_chave)
@@ -463,6 +464,7 @@ function useCatalogoPorApp() {
           submenu_chave: r.submenu_chave ?? null,
           submenu_label: r.submenu_label ?? null,
           submenu_ordem: r.submenu_ordem ?? 0,
+          ordem_menu: r.ordem_menu ?? 9999,
           descricao: r.descricao ?? null,
           telas_cobertas: r.telas_cobertas ?? 0,
           telas_lista: r.telas_lista,
@@ -526,7 +528,8 @@ function PermissoesDoGrupo({ grupoId }: { grupoId: string }) {
 
   // Catálogo agrupado por app e, dentro de cada app, por submenu (mesma
   // hierarquia do menu lateral). Ordenado por app_ordem, depois submenu_ordem,
-  // depois nome_exibicao. Itens sem submenu ficam em primeiro lugar no app.
+  // depois ordem_menu (ordem real do menu lateral) e, em empate, nome_exibicao.
+  // Itens sem submenu ficam em primeiro lugar no app.
   const secoes = useMemo<SecaoApp[]>(() => {
     const apps = new Map<string, SecaoApp>();
     catalogo.forEach((p) => {
@@ -567,7 +570,10 @@ function PermissoesDoGrupo({ grupoId }: { grupoId: string }) {
       });
 
       subgrupos.forEach((sg) => {
-        sg.itens.sort((a, b) => a.nome_exibicao.localeCompare(b.nome_exibicao, "pt-BR"));
+        sg.itens.sort((a, b) => {
+          if (a.ordem_menu !== b.ordem_menu) return a.ordem_menu - b.ordem_menu;
+          return a.nome_exibicao.localeCompare(b.nome_exibicao, "pt-BR");
+        });
       });
 
       secao.subgrupos = subgrupos;
