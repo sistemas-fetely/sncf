@@ -217,7 +217,32 @@ export function useCriarGrupo() {
         })
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        if (
+          error.code === "23505" ||
+          error.message?.includes("grupos_acesso_slug_key")
+        ) {
+          const { data: existente } = await supabase
+            .from("grupos_acesso")
+            .select("nome, ativo")
+            .eq("slug", slug)
+            .maybeSingle();
+          if (existente) {
+            if (existente.ativo === false) {
+              throw new Error(
+                `Já existe um grupo chamado "${existente.nome}", mas ele está desativado. Use "Mostrar inativos" para reativá-lo, ou escolha outro nome.`
+              );
+            }
+            throw new Error(
+              `Já existe um grupo chamado "${existente.nome}". Escolha outro nome.`
+            );
+          }
+          throw new Error(
+            "Já existe um grupo com esse nome. Escolha outro."
+          );
+        }
+        throw error;
+      }
       return data;
     },
     onSuccess: () => {
