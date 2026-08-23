@@ -22696,6 +22696,33 @@ export type Database = {
           },
         ]
       }
+      papel_nivel: {
+        Row: {
+          descricao: string | null
+          legado: boolean
+          nivel: number
+          papel: Database["public"]["Enums"]["app_role"]
+          rotulo: string
+          updated_at: string
+        }
+        Insert: {
+          descricao?: string | null
+          legado?: boolean
+          nivel: number
+          papel: Database["public"]["Enums"]["app_role"]
+          rotulo: string
+          updated_at?: string
+        }
+        Update: {
+          descricao?: string | null
+          legado?: boolean
+          nivel?: number
+          papel?: Database["public"]["Enums"]["app_role"]
+          rotulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       parametros: {
         Row: {
           ativo: boolean
@@ -56088,6 +56115,42 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_nivel_resumo: {
+        Row: {
+          descricao: string | null
+          escreve: number | null
+          legado: boolean | null
+          nivel: number | null
+          papel: string | null
+          rotulo: string | null
+          sensiveis: number | null
+          tabelas: number | null
+          usuarios: number | null
+        }
+        Insert: {
+          descricao?: string | null
+          escreve?: never
+          legado?: boolean | null
+          nivel?: number | null
+          papel?: never
+          rotulo?: string | null
+          sensiveis?: never
+          tabelas?: never
+          usuarios?: never
+        }
+        Update: {
+          descricao?: string | null
+          escreve?: never
+          legado?: boolean | null
+          nivel?: number | null
+          papel?: never
+          rotulo?: string | null
+          sensiveis?: never
+          tabelas?: never
+          usuarios?: never
+        }
+        Relationships: []
+      }
       vw_nome_bling_fila: {
         Row: {
           bling_id: string | null
@@ -57997,14 +58060,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -67971,6 +68034,7 @@ export type Database = {
         }
         Returns: number
       }
+      nivel_do_usuario: { Args: { _user_id?: string }; Returns: number }
       nivel_rank: { Args: { _nivel: string }; Returns: number }
       normalizar_descricao_cartao: {
         Args: { p_descricao: string }
@@ -68861,6 +68925,10 @@ export type Database = {
         Args: { _tipo: string; _user_id: string }
         Returns: boolean
       }
+      tem_nivel: {
+        Args: { _nivel: number; _user_id?: string }
+        Returns: boolean
+      }
       tem_permissao: {
         Args: {
           _acao: string
@@ -69074,6 +69142,9 @@ export type Database = {
         | "coordenacao_op_fin"
         | "auditor"
         | "socio"
+        | "operador"
+        | "coordenador"
+        | "diretor"
       compra_anexo_tipo_enum:
         | "nf"
         | "recibo"
@@ -69269,6 +69340,9 @@ export const Constants = {
         "coordenacao_op_fin",
         "auditor",
         "socio",
+        "operador",
+        "coordenador",
+        "diretor",
       ],
       compra_anexo_tipo_enum: [
         "nf",
