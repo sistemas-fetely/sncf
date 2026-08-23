@@ -790,7 +790,7 @@ const App = () => (
             <Route path="/ti/documentacao/novo" element={<Navigate to="/documentacao/novo" replace />} />
             <Route path="/ti/documentacao/:slug" element={<TiDocSlugRedirect />} />
             <Route path="/parametros" element={<Navigate to="/admin/parametros" replace />} />
-            <Route path="/configuracoes" element={<Navigate to="/admin/configuracoes" replace />} />
+            <Route path="/configuracoes" element={<Navigate to="/admin" replace />} />
             <Route path="/configurar-perfis" element={<Navigate to="/admin/usuarios/perfis" replace />} />
             <Route path="/cargos" element={<Navigate to="/pessoas/cargos" replace />} />
             <Route path="/cargos/enriquecimento" element={<Navigate to="/pessoas/cargos/enriquecimento" replace />} />
