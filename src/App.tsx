@@ -267,7 +267,8 @@ function RedirectToPessoasPJ() {
 // Redirects para rotas legadas migradas para /admin
 function CargosIdRedirect() {
   const { id } = useParams();
-  return <Navigate to={`/admin/cargos/${id}`} replace />;
+  // CARGOS-MORA-EM-PESSOAS (23/08/2026): rota oficial é /pessoas/cargos/:id
+  return <Navigate to={`/pessoas/cargos/${id}`} replace />;
 }
 
 // GESTAO-E-ABA-DE-TAREFAS (21/08/2026): rotas legadas /gestao/* → /tarefas/gestao/*
@@ -459,6 +460,9 @@ const App = () => (
                 <Route index element={<TIDashboard />} />
                 <Route path="ativos" element={<TIAtivos />} />
                 <Route path="navegacao-saude" element={<NavegacaoSaude />} />
+                <Route path="reportes" element={
+                  <ProtectedRoute><SistemaReportes /></ProtectedRoute>
+                } />
                 <Route path="diagnosticos/teste-email" element={<TesteEmailTemplate />} />
                 
               </Route>
@@ -473,6 +477,19 @@ const App = () => (
                 <Route path="/pessoas/custo" element={<CustoPessoas />} />
                 <Route path="/pessoas/folha" element={<FolhaMensal />} />
                 <Route path="/pessoas/organograma" element={<Organograma />} />
+                {/* CARGOS-MORA-EM-PESSOAS (23/08/2026): saiu de /admin/* para o pilar certo */}
+                <Route path="/pessoas/cargos" element={
+                  <ProtectedRoute><Cargos /></ProtectedRoute>
+                } />
+                <Route path="/pessoas/cargos/novo" element={
+                  <ProtectedRoute><CargoForm /></ProtectedRoute>
+                } />
+                <Route path="/pessoas/cargos/enriquecimento" element={
+                  <ProtectedRoute><CargosEnriquecimento /></ProtectedRoute>
+                } />
+                <Route path="/pessoas/cargos/:id" element={
+                  <ProtectedRoute><CargoForm /></ProtectedRoute>
+                } />
                 <Route path="/pessoas/socios" element={<Socios />} />
                 <Route path="/pessoas/reembolsos" element={<Reembolsos />} />
                 <Route
@@ -617,19 +634,8 @@ const App = () => (
                   Administração (zona restrita: super_admin + admin_rh)
                   ═══════════════════════════════════════════════ */}
               <Route path="/admin" element={<AdminLayout />}>
-                <Route index element={<Navigate to="/admin/cargos" replace />} />
-                <Route path="cargos" element={
-                  <ProtectedRoute><Cargos /></ProtectedRoute>
-                } />
-                <Route path="cargos/novo" element={
-                  <ProtectedRoute><CargoForm /></ProtectedRoute>
-                } />
-                <Route path="cargos/enriquecimento" element={
-                  <ProtectedRoute><CargosEnriquecimento /></ProtectedRoute>
-                } />
-                <Route path="cargos/:id" element={
-                  <ProtectedRoute><CargoForm /></ProtectedRoute>
-                } />
+                {/* Cargos migrou para /pessoas/cargos (CARGOS-MORA-EM-PESSOAS, 23/08/2026) */}
+                <Route index element={<Navigate to="/admin/usuarios" replace />} />
                 <Route path="parametros" element={
                   <ProtectedRoute><Parametros /></ProtectedRoute>
                 } />
@@ -642,11 +648,7 @@ const App = () => (
                 <Route path="usuarios/perfis" element={
                   <ProtectedRoute><ConfigurarPerfis /></ProtectedRoute>
                 } />
-                <Route path="reportes" element={
-                  <ProtectedRoute>
-                    <SistemaReportes />
-                  </ProtectedRoute>
-                } />
+                {/* Reportes migrou para /ti/reportes (REPORTES-E-DE-TI, 23/08/2026) */}
                 <Route path="importacoes-pdf" element={
                   <ProtectedRoute>
                     <HistoricoImportacoesPDF />
@@ -783,10 +785,15 @@ const App = () => (
             <Route path="/parametros" element={<Navigate to="/admin/parametros" replace />} />
             <Route path="/configuracoes" element={<Navigate to="/admin/configuracoes" replace />} />
             <Route path="/configurar-perfis" element={<Navigate to="/admin/usuarios/perfis" replace />} />
-            <Route path="/cargos" element={<Navigate to="/admin/cargos" replace />} />
-            <Route path="/cargos/enriquecimento" element={<Navigate to="/admin/cargos/enriquecimento" replace />} />
-            <Route path="/cargos/novo" element={<Navigate to="/admin/cargos/novo" replace />} />
+            <Route path="/cargos" element={<Navigate to="/pessoas/cargos" replace />} />
+            <Route path="/cargos/enriquecimento" element={<Navigate to="/pessoas/cargos/enriquecimento" replace />} />
+            <Route path="/cargos/novo" element={<Navigate to="/pessoas/cargos/novo" replace />} />
             <Route path="/cargos/:id" element={<CargosIdRedirect />} />
+            {/* CARGOS-MORA-EM-PESSOAS / REPORTES-E-DE-TI (23/08/2026): rotas antigas redirecionam */}
+            <Route path="/admin/cargos" element={<Navigate to="/pessoas/cargos" replace />} />
+            <Route path="/admin/cargos/novo" element={<Navigate to="/pessoas/cargos/novo" replace />} />
+            <Route path="/admin/cargos/enriquecimento" element={<Navigate to="/pessoas/cargos/enriquecimento" replace />} />
+            <Route path="/admin/reportes" element={<Navigate to="/ti/reportes" replace />} />
             {/* Sala de Gestão virou aba de Tarefas (GESTAO-E-ABA-DE-TAREFAS) */}
             <Route path="/gestao" element={<Navigate to="/tarefas/gestao" replace />} />
             <Route path="/gestao/projetos" element={<Navigate to="/tarefas/gestao/projetos" replace />} />

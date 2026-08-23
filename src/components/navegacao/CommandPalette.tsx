@@ -86,11 +86,11 @@ const ALL_PAGES: PageItem[] = [
   { rota: "/ti", titulo: "Dashboard TI", pilar: "ti", icon: Monitor, tags: ["ti", "tecnologia", "dashboard"] },
 
   // Admin
-  { rota: "/admin/cargos", titulo: "Cargos e Salários", pilar: "admin", icon: Briefcase, tags: ["cargos", "salários", "ppr"] },
+  { rota: "/pessoas/cargos", titulo: "Cargos e Salários", pilar: "admin", icon: Briefcase, tags: ["cargos", "salários", "ppr"] },
   { rota: "/admin/parametros", titulo: "Parâmetros", pilar: "admin", icon: Sliders, tags: ["parâmetros", "configuração"] },
   { rota: "/admin/configuracoes", titulo: "Configurações", pilar: "admin", icon: Settings, tags: ["configurações", "sistema"] },
   { rota: "/admin/usuarios", titulo: "Gerenciar Usuários", pilar: "admin", icon: Users, tags: ["usuários", "acessos", "roles"] },
-  { rota: "/admin/reportes", titulo: "Reportes do Sistema", pilar: "admin", icon: FileText, tags: ["reportes", "alertas"] },
+  { rota: "/ti/reportes", titulo: "Reportes do Sistema", pilar: "admin", icon: FileText, tags: ["reportes", "alertas"] },
   { rota: "/admin/importacoes-pdf", titulo: "Importações PDF", pilar: "admin", icon: FileText, tags: ["importações", "pdf", "ia"] },
 ];
 

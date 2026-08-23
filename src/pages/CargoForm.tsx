@@ -288,7 +288,7 @@ export default function CargoForm() {
   return (
     <PageShell>
       <div className="flex items-center gap-3">
-        <SmartBackButton fallback="/admin/cargos" fallbackLabel="Cargos" />
+        <SmartBackButton fallback="/pessoas/cargos" fallbackLabel="Cargos" />
         <PageHeader
           titulo={isNovo ? "Novo Cargo" : "Editar Cargo"}
           className="mb-0 flex-1"
