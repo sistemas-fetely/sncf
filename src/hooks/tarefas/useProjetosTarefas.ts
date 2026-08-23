@@ -159,10 +159,9 @@ export function usePodeAprovarTarefas(userId: string | undefined) {
     queryKey: ["tarefas", "pode-aprovar", userId],
     enabled: !!userId,
     queryFn: async (): Promise<boolean> => {
-      const { data, error } = await supabase.rpc("has_module_permission", {
+      const { data, error } = await supabase.rpc("tem_nivel", {
+        _nivel: 3,
         _user_id: userId!,
-        _modulo: "tarefas",
-        _acao: "aprovar",
       });
       if (error) throw error;
       return !!data;

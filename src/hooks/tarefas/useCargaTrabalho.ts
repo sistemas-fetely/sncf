@@ -60,7 +60,7 @@ export function useCargaDetalhe(userId: string | null, inicio: string | null, fi
   });
 }
 
-/** só quem tem tarefas.aprovar edita capacidade */
+/** só nível 3 (coordenador) ou acima edita capacidade */
 export function usePodeEditarCapacidade() {
   return useQuery({
     queryKey: ["tarefas", "pode-editar-capacidade"],
@@ -69,10 +69,9 @@ export function usePodeEditarCapacidade() {
       const { data: auth } = await supabase.auth.getUser();
       const uid = auth.user?.id;
       if (!uid) return false;
-      const { data, error } = await supabase.rpc("has_module_permission", {
+      const { data, error } = await supabase.rpc("tem_nivel", {
+        _nivel: 3,
         _user_id: uid,
-        _modulo: "tarefas",
-        _acao: "aprovar",
       });
       if (error) throw error;
       return !!data;
