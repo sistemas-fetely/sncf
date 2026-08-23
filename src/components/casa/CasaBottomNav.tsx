@@ -14,15 +14,18 @@ import { useCasaApp } from "@/hooks/useCasaApp";
  * de maior tráfego da operação não tinha atalho no celular, e "Marca" ocupava
  * um dos 5 lugares mesmo tendo sido renomeada pra Patrimônio há quase um mês.
  *
+ * Reordenado em 23/08/2026 (ORDEM-POR-FREQUENCIA): Casa e Meu Espaço primeiro,
+ * depois SOPs, Finanças, Pessoas — mesma lógica do top nav.
+ *
  * Continua hardcoded de propósito: tornar top/bottom nav table-driven exige o
  * padrão "5 fixos + Mais", que ainda não existe (fatia própria).
  */
 const ITEMS: Array<{ id: string; to: string; label: string; icon: typeof Home; end?: boolean }> = [
   { id: "casa", to: "/", label: "Casa", icon: Home, end: true },
+  { id: "meu_espaco", to: "/tarefas/hoje", label: "Meu Espaço", icon: User },
   { id: "recebimento", to: "/pedidos", label: "SOPs", icon: HandCoins },
   { id: "financas", to: "/administrativo", label: "Finanças", icon: Wallet },
   { id: "pessoas", to: "/pessoas", label: "Pessoas", icon: Users },
-  { id: "meu_espaco", to: "/tarefas/hoje", label: "Meu Espaço", icon: User },
 ];
 
 export function CasaBottomNav() {
