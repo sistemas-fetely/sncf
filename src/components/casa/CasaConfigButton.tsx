@@ -9,7 +9,7 @@ export function CasaConfigButton() {
     <Button
       variant="ghost"
       size="icon"
-      onClick={() => navigate("/admin/configuracoes")}
+      onClick={() => navigate("/admin")}
       className="h-9 w-9 text-gold hover:text-gold-light hover:bg-gold/10"
       aria-label="Configurações"
     >
