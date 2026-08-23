@@ -693,66 +693,92 @@ function SecaoBloco({
             <span className="text-center">Apagar</span>
           </div>
 
-          {permissoes.map((p) => {
-            const gp = grupoPermsMap.get(p.permissao_id);
-            const isFicha = p.tipo === "ficha" || p.tipo === "processo";
+          {secao.subgrupos.map((sub) => {
+            const mostrarSubmenu =
+              secao.subgrupos.length > 1 ||
+              (secao.subgrupos.length === 1 && sub.submenu_label !== null);
             return (
-              <div
-                key={p.permissao_id}
-                className="grid grid-cols-[1fr_60px_60px_60px_60px] gap-2 px-4 py-2 items-center text-sm hover:bg-muted/20 border-b last:border-b-0"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="truncate">{p.nome_exibicao}</span>
-                  {p.contem_dado_sensivel && (
-                    <Badge variant="outline" className="text-[9px] py-0 px-1">LGPD</Badge>
-                  )}
-                  {p.feature_em_teste && (
-                    <Badge variant="outline" className="text-[9px] py-0 px-1 bg-warning/10">BETA</Badge>
-                  )}
-                  {p.telas_cobertas > 1 && (
-                    <Badge
-                      variant="outline"
-                      className="text-[9px] py-0 px-1 shrink-0"
-                      title={p.telas_lista ?? undefined}
+              <div key={sub.submenu_chave ?? "__sem_submenu__"}>
+                {mostrarSubmenu && (
+                  <div className="px-4 py-1.5 text-[11px] uppercase tracking-wide text-muted-foreground bg-muted/30 border-b">
+                    {sub.submenu_chave === null
+                      ? "Sem submenu"
+                      : (sub.submenu_label ?? sub.submenu_chave)}
+                  </div>
+                )}
+                {sub.itens.map((p) => {
+                  const gp = grupoPermsMap.get(p.permissao_id);
+                  const isFicha = p.tipo === "ficha" || p.tipo === "processo";
+                  return (
+                    <div
+                      key={p.permissao_id}
+                      className="grid grid-cols-[1fr_60px_60px_60px_60px] gap-2 px-4 py-2 items-center text-sm hover:bg-muted/20 border-b last:border-b-0"
                     >
-                      {p.telas_cobertas} telas
-                    </Badge>
-                  )}
-                  {p.tipo === "tela" && (
-                    <span className="text-[9px] text-muted-foreground/60">tela</span>
-                  )}
-                </div>
-                <div className="flex justify-center">
-                  <Checkbox
-                    checked={gp?.pode_ver || false}
-                    onCheckedChange={(v) => onToggle(p.permissao_id, "pode_ver", !!v)}
-                    disabled={disabled}
-                  />
-                </div>
-                <div className="flex justify-center">
-                  <Checkbox
-                    checked={gp?.pode_criar || false}
-                    onCheckedChange={(v) => onToggle(p.permissao_id, "pode_criar", !!v)}
-                    disabled={disabled || !isFicha}
-                    className={!isFicha ? "opacity-30" : ""}
-                  />
-                </div>
-                <div className="flex justify-center">
-                  <Checkbox
-                    checked={gp?.pode_editar || false}
-                    onCheckedChange={(v) => onToggle(p.permissao_id, "pode_editar", !!v)}
-                    disabled={disabled || !isFicha}
-                    className={!isFicha ? "opacity-30" : ""}
-                  />
-                </div>
-                <div className="flex justify-center">
-                  <Checkbox
-                    checked={gp?.pode_apagar || false}
-                    onCheckedChange={(v) => onToggle(p.permissao_id, "pode_apagar", !!v)}
-                    disabled={disabled || !isFicha}
-                    className={!isFicha ? "opacity-30" : ""}
-                  />
-                </div>
+                      <div className="flex flex-col min-w-0 justify-center">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="truncate">{p.nome_exibicao}</span>
+                          {p.contem_dado_sensivel && (
+                            <Badge variant="outline" className="text-[9px] py-0 px-1">LGPD</Badge>
+                          )}
+                          {p.feature_em_teste && (
+                            <Badge variant="outline" className="text-[9px] py-0 px-1 bg-warning/10">BETA</Badge>
+                          )}
+                          {p.telas_cobertas > 1 && (
+                            <Badge
+                              variant="outline"
+                              className="text-[9px] py-0 px-1 shrink-0"
+                              title={p.telas_lista ?? undefined}
+                            >
+                              {p.telas_cobertas} telas
+                            </Badge>
+                          )}
+                          {p.tipo === "tela" && (
+                            <span className="text-[9px] text-muted-foreground/60">tela</span>
+                          )}
+                        </div>
+                        {p.descricao && (
+                          <span
+                            className="text-[10px] text-muted-foreground/70 truncate"
+                            title={p.descricao}
+                          >
+                            {p.descricao}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex justify-center">
+                        <Checkbox
+                          checked={gp?.pode_ver || false}
+                          onCheckedChange={(v) => onToggle(p.permissao_id, "pode_ver", !!v)}
+                          disabled={disabled}
+                        />
+                      </div>
+                      <div className="flex justify-center">
+                        <Checkbox
+                          checked={gp?.pode_criar || false}
+                          onCheckedChange={(v) => onToggle(p.permissao_id, "pode_criar", !!v)}
+                          disabled={disabled || !isFicha}
+                          className={!isFicha ? "opacity-30" : ""}
+                        />
+                      </div>
+                      <div className="flex justify-center">
+                        <Checkbox
+                          checked={gp?.pode_editar || false}
+                          onCheckedChange={(v) => onToggle(p.permissao_id, "pode_editar", !!v)}
+                          disabled={disabled || !isFicha}
+                          className={!isFicha ? "opacity-30" : ""}
+                        />
+                      </div>
+                      <div className="flex justify-center">
+                        <Checkbox
+                          checked={gp?.pode_apagar || false}
+                          onCheckedChange={(v) => onToggle(p.permissao_id, "pode_apagar", !!v)}
+                          disabled={disabled || !isFicha}
+                          className={!isFicha ? "opacity-30" : ""}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             );
           })}
