@@ -45,6 +45,7 @@ import { ParceiroFormSheet, Parceiro } from "@/components/financeiro/ParceiroFor
 import { CategoriaOption } from "@/components/financeiro/CategoriaCombobox";
 import { GruposLista } from "@/components/financeiro/GruposLista";
 import { useGruposEmpresariais } from "@/hooks/useGruposEmpresariais";
+import { useNivel } from "@/hooks/useNivel";
 
 const TIPO_BADGE: Record<string, string> = {
   fornecedor: "bg-[#8B1A2F] text-white hover:bg-[#8B1A2F]",
