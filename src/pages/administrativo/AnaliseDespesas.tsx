@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { formatBRL } from "@/lib/format-currency";
+import { useNivel } from "@/hooks/useNivel";
 
 // ─── Tipos ────────────────────────────────────────────────────────
 type Bloco = "operacional" | "capex" | "imposto" | "nao_classificado";
@@ -95,6 +96,7 @@ interface Movimento {
 // ─── Página ───────────────────────────────────────────────────────
 export default function AnaliseDespesas() {
   const navigate = useNavigate();
+  const { temNivel } = useNivel();
   const [mesSel, setMesSel] = useState<string | null>(null);
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
   const [modoGrafico, setModoGrafico] = useState<"empilhado" | "tendencia">("empilhado");
@@ -509,10 +511,13 @@ export default function AnaliseDespesas() {
         icone={BarChart3}
         estado="Cobre apenas despesas com NF (porta fiscal), por competência de emissão. A visão consolidada de todas as origens está no Gerencial."
         acoes={
-          <Button variant="outline" size="sm" onClick={exportarMes} disabled={!mesSel || !linhasMes.length}>
-            <Download className="h-3.5 w-3.5 mr-2" />
-            Exportar mês (XLSX)
-          </Button>
+          // Exportação leva a base para fora: nível 3 (Coordenador) para cima.
+          temNivel(3) ? (
+            <Button variant="outline" size="sm" onClick={exportarMes} disabled={!mesSel || !linhasMes.length}>
+              <Download className="h-3.5 w-3.5 mr-2" />
+              Exportar mês (XLSX)
+            </Button>
+          ) : undefined
         }
       />
 
