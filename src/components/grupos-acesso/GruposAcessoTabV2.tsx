@@ -419,6 +419,10 @@ interface CatalogoAppRow {
   app_chave: string;
   app_label: string;
   app_ordem: number;
+  submenu_chave: string | null;
+  submenu_label: string | null;
+  submenu_ordem: number;
+  descricao: string | null;
   telas_cobertas: number;
   telas_lista: string | null;
   contem_dado_sensivel: boolean;
@@ -430,6 +434,12 @@ interface SecaoApp {
   app_label: string;
   app_ordem: number;
   itens: CatalogoAppRow[];
+  subgrupos: Array<{
+    submenu_chave: string | null;
+    submenu_label: string | null;
+    submenu_ordem: number;
+    itens: CatalogoAppRow[];
+  }>;
 }
 
 function useCatalogoPorApp() {
