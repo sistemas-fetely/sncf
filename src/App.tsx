@@ -382,13 +382,20 @@ const App = () => (
 
 
               {/* ═══════════════════════════════════════════════
-                  App Acervo — índices com tab bar (Processos | Documentação)
+                  App Acervo — sidebar lateral (23/08/2026, MENU-VIA-TABELA).
+                  Antes era tab bar só com Processos | Documentação; a sidebar
+                  vem da sncf_navegacao (Conhecimento, Fala Fetely, Portal).
                   Doutrina CASA-2: AcervoLayout envolve apenas as listagens.
-                  Detalhes e editores ficam direto no CasaLayout (sem tab bar).
+                  Detalhes e editores ficam direto no CasaLayout (sem sidebar).
+                  ATENÇÃO: /sncf é tela de marca (tipografia própria) — entrou
+                  na sidebar por decisão do Flavio, ajuste visual pendente.
                   ═══════════════════════════════════════════════ */}
               <Route element={<AcervoLayout />}>
                 <Route path="/processos" element={<Processos />} />
                 <Route path="/documentacao" element={<DocumentacaoGeral />} />
+                <Route path="/sncf" element={<PortalSNCF />} />
+                <Route path="/fala-fetely" element={<FalaFetely />} />
+                <Route path="/fala-fetely/conhecimento" element={<FalaFetelyConhecimento />} />
               </Route>
 
               {/* Acervo — detalhes e editores (sem tab bar) */}
