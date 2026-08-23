@@ -348,7 +348,6 @@ const App = () => (
                   <Route path="/vendas/produto/estoque/virtual" element={<EstoqueVirtual />} />
                   <Route path="/vendas/produto/estoque/saude" element={<SaudeEstoque />} />
                   <Route path="/vendas/produto/estoque/entradas" element={<EntradasEstoque />} />
-                  <Route path="/vendas/produto/estoque/devolucoes" element={<RetornoDevolucao />} />
                   <Route path="/vendas/produto/estoque/conciliacao" element={<ConciliacaoCadastro />} />
                   <Route path="/vendas/produto/estoque/nomes-bling" element={
                     <ProtectedRoute>
@@ -374,6 +373,7 @@ const App = () => (
                 <Route path="/administrativo-fetely/parceiros" element={<Parceiros />} />
 
                 <Route path="/canal-cpo" element={<CanalCPO />} />
+                <Route path="/devolucoes" element={<RetornoDevolucao />} />
               </Route>
 
               <Route path="/comercial/consignados/:parceiroId" element={<ConsignadoDetalhe />} />
