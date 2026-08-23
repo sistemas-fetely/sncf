@@ -27,16 +27,6 @@ import type { Database } from "@/integrations/supabase/types";
 type AppRole = Database["public"]["Enums"]["app_role"];
 type Escopo = Database["public"]["Enums"]["escopo_acesso"];
 
-// Lista deliberadamente menor que o enum app_role (22 valores).
-// Ficam DE FORA os legados de alto peso de RLS e zero usuários:
-// admin_rh, gestor_rh, gestor_direto, recrutador, admin_ti.
-// socio entrou em 22/08/2026 porque já havia usuários com esse papel no banco.
-const ROLE_OPTIONS: AppRole[] = [
-  "super_admin", "diretoria_executiva", "rh", "gestao_direta", "financeiro",
-  "administrativo", "operacional", "ti", "recrutamento", "fiscal",
-  "estagiario", "colaborador", "comprador", "triagem", "coordenacao_op_fin", "auditor",
-  "socio",
-];
 
 const ROLE_LABEL: Partial<Record<AppRole, string>> = {
   super_admin: "Super Admin",
@@ -178,6 +168,19 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
         .order("nome");
       if (error) throw error;
       return data;
+    },
+  });
+
+  const { data: niveisConcediveis = [] } = useQuery({
+    queryKey: ["niveis-concediveis"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vw_nivel_resumo")
+        .select("nivel, rotulo, papel")
+        .eq("legado", false)
+        .order("nivel");
+      if (error) throw error;
+      return (data || []) as { nivel: number; rotulo: string; papel: string }[];
     },
   });
 
@@ -603,8 +606,10 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
               <Select value={novoPapel} onValueChange={(v) => setNovoPapel(v as AppRole)}>
                 <SelectTrigger><SelectValue placeholder="Selecione o papel" /></SelectTrigger>
                 <SelectContent>
-                  {ROLE_OPTIONS.map((r) => (
-                    <SelectItem key={r} value={r}>{roleLabel(r)}</SelectItem>
+                  {niveisConcediveis.map((n) => (
+                    <SelectItem key={n.papel} value={n.papel}>
+                      {n.nivel} · {n.rotulo}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>

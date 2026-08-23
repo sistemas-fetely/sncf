@@ -62,6 +62,9 @@ const ROLE_LABELS: Record<AppRole, string> = {
   fiscal: "Fiscal",
   estagiario: "Estagiário",
   colaborador: "Colaborador",
+  coordenador: "Coordenador",
+  diretor: "Diretor",
+  operador: "Operador",
   // Legados (mantidos só por compatibilidade — não aparecem na UI nova)
   admin_rh: "Admin RH",
   admin_ti: "Admin TI",
@@ -88,6 +91,9 @@ const ROLE_DESCRIPTIONS: Record<AppRole, string> = {
   fiscal: "Fiscal e tributário. NF-e e integração ERP.",
   estagiario: "Estagiário de qualquer área. Permissões reduzidas conforme nível.",
   colaborador: "Portal self-service. Acessa apenas seus próprios dados.",
+  coordenador: "Coordenador de área ou operação. Acesso conforme nível.",
+  diretor: "Diretor. Visibilidade ampla da área. Acesso conforme nível.",
+  operador: "Operador de processo ou sistema. Acesso conforme nível.",
   // Legados (não exibidos)
   admin_rh: "[Legado] substituído por RH",
   admin_ti: "[Legado] substituído por TI",
