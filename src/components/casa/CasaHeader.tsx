@@ -10,6 +10,7 @@ import { CasaAvatarMenu } from "./CasaAvatarMenu";
 import { CasaFalaFetelyButton } from "./CasaFalaFetelyButton";
 import { CasaConfigButton } from "./CasaConfigButton";
 import { RecentesEFavoritos } from "@/components/navegacao/RecentesEFavoritos";
+import { ReportarErroBotao } from "@/components/shared/ReportarErroBotao";
 import { useCasaApp } from "@/hooks/useCasaApp";
 
 
@@ -65,6 +66,11 @@ export function CasaHeader() {
               AppHeader/LayoutHeader, que nao sao montados em lugar nenhum —
               a funcionalidade inteira estava inalcancavel fora do ⌘K. */}
           <RecentesEFavoritos />
+          {/* Reportar erro/sugestão. O componente existia completo mas estava
+              órfão — nenhum layout o montava. Fica ao lado de Favoritos porque
+              é a mesma natureza: ação do usuário sobre o sistema, não sobre o
+              dado da tela. */}
+          <ReportarErroBotao />
           <CasaFalaFetelyButton />
           <CasaConfigButton />
           <CasaThemeToggle />
