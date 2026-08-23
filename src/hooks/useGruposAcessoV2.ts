@@ -62,16 +62,19 @@ export interface GrupoUsuario {
 // Lista de grupos com contagem
 // =====================================================
 
-export function useGruposAcessoV2() {
+export function useGruposAcessoV2(incluirInativos = false) {
   return useQuery({
-    queryKey: ["grupos-acesso-v2"],
+    queryKey: ["grupos-acesso-v2", incluirInativos],
     queryFn: async (): Promise<GrupoAcesso[]> => {
-      const { data: grupos, error } = await supabase
+      let query = supabase
         .from("grupos_acesso")
         .select("id, slug, nome, descricao, pre_cadastrado, ativo")
-        .eq("ativo", true)
         .order("pre_cadastrado", { ascending: false })
         .order("nome");
+      if (!incluirInativos) {
+        query = query.eq("ativo", true);
+      }
+      const { data: grupos, error } = await query;
       if (error) throw error;
 
       // Contagens em queries paralelas (não bloqueantes)
@@ -273,7 +276,22 @@ export function useDeletarGrupo() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["grupos-acesso-v2"] });
-      toast.success("Grupo desativado");
+      toast.success("Grupo desativado — usuários perderam o acesso concedido por ele");
+    },
+    onError: (e: Error) => toast.error(`Erro: ${e.message}`),
+  });
+}
+
+export function useReativarGrupo() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("grupos_acesso").update({ ativo: true }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["grupos-acesso-v2"] });
+      toast.success("Grupo reativado");
     },
     onError: (e: Error) => toast.error(`Erro: ${e.message}`),
   });
