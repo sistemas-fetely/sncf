@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { Warehouse, HeartPulse, GitCompare, Undo2, Share2, Tags, PackagePlus } from "lucide-react";
+import { Warehouse, HeartPulse, GitCompare, Tags, PackagePlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -7,11 +7,8 @@ const TABS = [
   { to: "/vendas/produto/estoque/virtual", label: "Estoque Geral", icon: Warehouse },
   { to: "/vendas/produto/estoque/saude", label: "Saúde do Estoque", icon: HeartPulse },
   { to: "/vendas/produto/estoque/entradas", label: "Entradas", icon: PackagePlus },
-  { to: "/vendas/produto/estoque/devolucoes", label: "Retorno de devolução", icon: Undo2 },
-
   { to: "/vendas/produto/estoque/conciliacao", label: "Conciliação", icon: GitCompare },
   { to: "/vendas/produto/estoque/nomes-bling", label: "Nomes no Bling", icon: Tags, superAdmin: true },
-  { to: "/acervo/destinos-cadastro", label: "Destinos de cadastro", icon: Share2 },
 ];
 
 
