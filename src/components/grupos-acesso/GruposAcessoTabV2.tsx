@@ -432,6 +432,7 @@ interface CatalogoAppRow {
   telas_lista: string | null;
   contem_dado_sensivel: boolean;
   feature_em_teste: boolean;
+  filhas_herdadas: Array<{ label: string; slug: string; herda_de: string }> | null;
 }
 
 interface SecaoApp {
