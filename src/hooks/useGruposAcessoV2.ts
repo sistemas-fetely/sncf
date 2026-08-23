@@ -279,7 +279,7 @@ export function useEditarGrupo() {
   });
 }
 
-export function useDeletarGrupo() {
+export function useExcluirGrupo() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
@@ -292,16 +292,16 @@ export function useDeletarGrupo() {
       if (g?.pre_cadastrado) {
         throw new Error("Grupo pré-cadastrado não pode ser deletado");
       }
-      // Soft delete via ativo=false
+      // DELETAR-É-DELETAR (23/08/2026): soft delete escondia o grupo da lista mas mantinha o slug ocupado no índice único, gerando erro de chave duplicada na criação. FKs em cascade removem permissões e vínculos junto.
       const { error } = await supabase
         .from("grupos_acesso")
-        .update({ ativo: false })
+        .delete()
         .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["grupos-acesso-v2"] });
-      toast.success("Grupo desativado — usuários perderam o acesso concedido por ele");
+      toast.success("Grupo excluído");
     },
     onError: (e: Error) => toast.error(`Erro: ${e.message}`),
   });
