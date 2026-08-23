@@ -47437,6 +47437,8 @@ export type Database = {
           app_chave: string | null
           app_label: string | null
           app_ordem: number | null
+          contem_dado_sensivel: boolean | null
+          feature_em_teste: boolean | null
           nome_exibicao: string | null
           permissao_id: string | null
           pilar_legado: string | null
@@ -56039,14 +56041,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
