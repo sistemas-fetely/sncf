@@ -67074,6 +67074,7 @@ export type Database = {
         Returns: undefined
       }
       fn_meu_vinculo: { Args: never; Returns: string }
+      fn_migra_lote: { Args: { p_limite?: number }; Returns: number }
       fn_mov_duplicata_fonte_candidato: {
         Args: {
           p_conta: string
@@ -67445,6 +67446,10 @@ export type Database = {
           p_motivo_codigo?: string
           p_pedido_id: string
         }
+        Returns: string
+      }
+      fn_troca_papel: {
+        Args: { expr: string; sensivel: boolean }
         Returns: string
       }
       fn_uf_por_cep: { Args: { p_cep: string }; Returns: string }
@@ -69068,6 +69073,8 @@ export type Database = {
         | "operador"
         | "coordenador"
         | "diretor"
+        | "folha"
+        | "gerente"
       compra_anexo_tipo_enum:
         | "nf"
         | "recibo"
@@ -69266,6 +69273,8 @@ export const Constants = {
         "operador",
         "coordenador",
         "diretor",
+        "folha",
+        "gerente",
       ],
       compra_anexo_tipo_enum: [
         "nf",
