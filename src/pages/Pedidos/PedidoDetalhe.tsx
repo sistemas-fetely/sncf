@@ -283,6 +283,7 @@ function ParcelasTab({ pedidoId }: { pedidoId: string }) {
   const { data: familia, isLoading: loadFamilia, isError: errFamilia } = useRecebivelFamilia(pedidoId);
   const { data: eixos } = useTituloEixosPedido(pedidoId);
   const { data: dimEixos } = useTituloEixosDim();
+  const { temNivel } = useNivel();
   const [convertendo, setConvertendo] = useState<{ id: string; numero: string; valor: number } | null>(null);
   if (isLoading) return <Skeleton className="h-48 w-full" />;
   if (!titulos || titulos.length === 0) {
