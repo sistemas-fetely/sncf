@@ -2847,8 +2847,8 @@ export default function PedidoDetalhe() {
                   consolidado_em_pedido_id={(pedido as any).consolidado_em_pedido_id ?? null}
                   pedido_origem_id={pedido.pedido_origem_id ?? null}
                   acoesBling={(() => {
-                    // Ação de exceção: só super_admin, só antes de faturar, e só se houver vínculo vivo.
-                    if (!isSuperAdmin) return null;
+                    // Ação de exceção: só gerente+ (nível 4), só antes de faturar, e só se houver vínculo vivo.
+                    if (!temNivel(4)) return null;
                     if (!["pre_separacao", "em_separacao"].includes(estagio)) return null;
                     const remessas = (remessasData ?? []) as any[];
                     if ((pedido as any).nf_numero) return null;
