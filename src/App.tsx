@@ -359,7 +359,6 @@ const App = () => (
 
                 </Route>
                 <Route path="/vendas/xpm" element={<XpmIndex />} />
-                <Route path="/vendas/farol-pedidos" element={<FarolPedidos />} />
                 <Route path="/vendas/dash-pedidos" element={<DashPedidos />} />
                 <Route path="/vendas/gestao-pedidos" element={<GestaoPedidos />} />
                 
