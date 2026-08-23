@@ -216,7 +216,9 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
       const { error } = await supabase.from("user_roles").insert({
         user_id: papelDialog.userId,
         role: novoPapel as AppRole,
-        escopo: novoEscopo,
+        // escopo fixo em "tudo": nenhuma política de RLS lê este campo hoje (verificado 23/08/2026).
+        // Campo removido da UI para não prometer recorte que o banco não aplica.
+        escopo: "tudo",
         valido_ate: validoAte ? new Date(validoAte).toISOString() : null,
         atribuido_manualmente: true,
       });
