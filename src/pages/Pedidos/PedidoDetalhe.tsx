@@ -2245,24 +2245,26 @@ export default function PedidoDetalhe() {
 
                   </div>
 
-                  <Button
-                    size="sm"
-                    className="h-9 w-full"
-                    disabled={salvarDadosEnvio.isPending}
-                    onClick={() =>
-                      id && salvarDadosEnvio.mutate({
-                        pedidoId: id,
-                        transportadoraId: transportadoraId || null,
-                        pesoBrutoTotal: parseFloat(pesoBruto) || 0,
-                        freteTipo: freteTipo || null,
-                        valorFrete: parseFloat(valorFrete) || 0,
-                        estimativaValor: freteEst.data?.valor_estimado ?? null,
-                        estimativaJson: freteEst.data ?? null,
-                      })
-                    }
-                  >
-                    {salvarDadosEnvio.isPending ? (<><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</>) : ("Salvar")}
-                  </Button>
+                  {temNivel(2) && (
+                    <Button
+                      size="sm"
+                      className="h-9 w-full"
+                      disabled={salvarDadosEnvio.isPending}
+                      onClick={() =>
+                        id && salvarDadosEnvio.mutate({
+                          pedidoId: id,
+                          transportadoraId: transportadoraId || null,
+                          pesoBrutoTotal: parseFloat(pesoBruto) || 0,
+                          freteTipo: freteTipo || null,
+                          valorFrete: parseFloat(valorFrete) || 0,
+                          estimativaValor: freteEst.data?.valor_estimado ?? null,
+                          estimativaJson: freteEst.data ?? null,
+                        })
+                      }
+                    >
+                      {salvarDadosEnvio.isPending ? (<><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</>) : ("Salvar")}
+                    </Button>
+                  )}
 
                   {temNivel(2) && (
                     <CompararTransportadorasDialog
