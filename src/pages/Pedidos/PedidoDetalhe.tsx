@@ -470,7 +470,9 @@ function BotaoEmailCobrancaPedido({ pedido_id, parceiro_id }: { pedido_id: strin
 
 function BotaoEmailNfFaturado({ pedido }: { pedido: any }) {
   const [open, setOpen] = useState(false);
+  const { temNivel } = useNivel();
   const enviado = pedido.nf_email_enviado_em as string | null | undefined;
+  if (!temNivel(2)) return null;
 
   if (enviado) {
     return (
