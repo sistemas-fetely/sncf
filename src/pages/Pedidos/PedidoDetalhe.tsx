@@ -794,9 +794,9 @@ function AcoesPedidoFaturado({ pedido }: { pedido: any }) {
 function AcaoPrimaria({ pedido, parceiro, estagio, geraTituloReceber }: { pedido: any; parceiro: any; estagio: EstagioPedido; geraTituloReceber: boolean }) {
   const navigate = useNavigate();
   const { temNivel } = useNivel();
-  if (estagio === "recebido") return (
+  if (estagio === "recebido") return temNivel(3) ? (
     <TriarPedidoDialog pedido_id={pedido.id} perfil_credito={parceiro?.perfil_credito} estagio_atual={estagio} forma_solicitada={pedido.forma_solicitada} triggerLabel="Encaminhar pedido" triggerVariant="default" />
-  );
+  ) : null;
   if (estagio === "cobranca") return (
     <AcoesPedidoCobranca pedido={pedido} parceiro={parceiro} />
   );
