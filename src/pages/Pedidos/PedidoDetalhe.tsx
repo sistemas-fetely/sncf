@@ -2191,21 +2191,23 @@ export default function PedidoDetalhe() {
                     {salvarDadosEnvio.isPending ? (<><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</>) : ("Salvar")}
                   </Button>
 
-                  <CompararTransportadorasDialog
-                    open={compararOpen}
-                    onOpenChange={setCompararOpen}
-                    isLoading={freteComparativo.isFetching}
-                    data={freteComparativo.data}
-                    valorAtual={parseFloat(valorFrete) || 0}
-                    onEscolher={(opcao) => {
-                      if (opcao.transportadora_id) setTransportadoraId(opcao.transportadora_id);
-                      setCompararOpen(false);
-                      toast({
-                        title: `${opcao.transportadora_nome} selecionada`,
-                        description: `Estimativa de custo ${(opcao.valor_estimado ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} · o valor cobrado do cliente não foi alterado. Confirme em Salvar.`,
-                      });
-                    }}
-                  />
+                  {temNivel(2) && (
+                    <CompararTransportadorasDialog
+                      open={compararOpen}
+                      onOpenChange={setCompararOpen}
+                      isLoading={freteComparativo.isFetching}
+                      data={freteComparativo.data}
+                      valorAtual={parseFloat(valorFrete) || 0}
+                      onEscolher={(opcao) => {
+                        if (opcao.transportadora_id) setTransportadoraId(opcao.transportadora_id);
+                        setCompararOpen(false);
+                        toast({
+                          title: `${opcao.transportadora_nome} selecionada`,
+                          description: `Estimativa de custo ${(opcao.valor_estimado ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} · o valor cobrado do cliente não foi alterado. Confirme em Salvar.`,
+                        });
+                      }}
+                    />
+                  )}
                 </CardContent>
               </Card>
             )}
