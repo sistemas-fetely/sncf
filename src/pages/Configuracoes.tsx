@@ -18,7 +18,7 @@ import {
   Timer,
 } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
-import { PageTitle } from "@/components/layout/PageTitle";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface ConfigItem {
   value: string;
