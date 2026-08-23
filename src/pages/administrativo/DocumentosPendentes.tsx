@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -321,7 +322,8 @@ const STATUS_CONTA_LABEL: Record<string, string> = {
 
 export default function DocumentosPendentes() {
   const qc = useQueryClient();
-  const [aba, setAba] = useState<Aba>("cobrar");
+  const [aba, setAba] = useAbaUrl("cobrar");
+  const abaAtual = aba as Aba;
   const [periodoInicio, setPeriodoInicio] = useState("");
   const [periodoFim, setPeriodoFim] = useState("");
   const [busca, setBusca] = useState("");
@@ -344,18 +346,20 @@ export default function DocumentosPendentes() {
     setSelecionadas(new Set());
   }
 
+
+
   // ============================================================
   // QUERY 1: agrupado por fornecedor (abas Cobrar e Pronto)
   // ============================================================
   const { data: grupos = [], isLoading: loadingGrupos } = useQuery({
-    queryKey: ["docs-envio-agrupados", aba, periodoInicio, periodoFim, busca],
-    enabled: aba !== "enviado",
+    queryKey: ["docs-envio-agrupados", abaAtual, periodoInicio, periodoFim, busca],
+    enabled: abaAtual !== "enviado",
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any).rpc(
         "documentos_envio_agrupados",
         {
-          p_estado: aba,
+          p_estado: abaAtual,
           p_periodo_inicio: periodoInicio || null,
           p_periodo_fim: periodoFim || null,
           p_busca: busca.trim() || null,
@@ -367,11 +371,11 @@ export default function DocumentosPendentes() {
   });
 
   // ============================================================
-  // QUERY 2: lista de remessas (aba Enviado)
+  // QUERY 2: lista de remessas (abaAtual Enviado)
   // ============================================================
   const { data: remessas = [], isLoading: loadingRemessas } = useQuery({
     queryKey: ["remessas-contador", periodoInicio, periodoFim, busca],
-    enabled: aba === "enviado",
+    enabled: abaAtual === "enviado",
     queryFn: async () => {
       let q = supabase
         .from("remessas_contador")
@@ -421,10 +425,10 @@ export default function DocumentosPendentes() {
   });
 
   // ============================================================
-  // KPIs por aba
+  // KPIs por abaAtual
   // ============================================================
   const kpis = useMemo(() => {
-    if (aba === "enviado") {
+    if (abaAtual === "enviado") {
       const totalContas = remessas.reduce((s, r) => s + r.qtd_contas, 0);
       const totalValor = remessas.reduce((s, r) => s + (r.total_valor || 0), 0);
       const ultima = remessas[0];
@@ -448,7 +452,7 @@ export default function DocumentosPendentes() {
       ? Math.max(...grupos.map((g) => g.mais_antigo_dias || 0))
       : 0;
 
-    if (aba === "cobrar") {
+    if (abaAtual === "cobrar") {
       return {
         principal: { label: "Contas a cobrar", valor: String(totalContas), icon: AlertCircle, cor: "text-destructive" },
         secundario1: { label: "Fornecedores", valor: String(totalFornecedores), icon: Users, cor: "text-info" },
@@ -464,15 +468,15 @@ export default function DocumentosPendentes() {
       secundario2: { label: "Valor pronto", valor: formatBRL(totalValor), icon: Package, cor: "text-success" },
       secundario3: { label: "Mais antigo", valor: maisAntigo + " dias", icon: Clock, cor: "text-warning" },
     };
-  }, [aba, grupos, remessas]);
+  }, [abaAtual, grupos, remessas]);
 
   // ============================================================
-  // SELEÇÃO (aba pronto)
+  // SELEÇÃO (abaAtual pronto)
   // ============================================================
   const todasContasPronto = useMemo(() => {
-    if (aba !== "pronto") return [];
+    if (abaAtual !== "pronto") return [];
     return grupos.flatMap((g) => g.contas_json);
-  }, [aba, grupos]);
+  }, [abaAtual, grupos]);
 
   const totalSelecionadoValor = useMemo(() => {
     return todasContasPronto
@@ -648,7 +652,7 @@ export default function DocumentosPendentes() {
         />
 
         {/* TABS */}
-        <Tabs value={aba} onValueChange={(v) => trocarAba(v as Aba)}>
+        <Tabs value={abaAtual} onValueChange={(v) => trocarAba(v as Aba)}>
           <TabsList>
             <TabsTrigger value="cobrar" className="gap-1">
               <AlertCircle className="h-3.5 w-3.5" />
@@ -702,12 +706,12 @@ export default function DocumentosPendentes() {
             />
           </div>
           <Input
-            placeholder={aba === "enviado" ? "Buscar remessa..." : "Buscar fornecedor / NF..."}
+            placeholder={abaAtual === "enviado" ? "Buscar remessa..." : "Buscar fornecedor / NF..."}
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             className="h-8 text-xs flex-1 min-w-[200px] max-w-[300px]"
           />
-          {aba !== "enviado" && (
+          {abaAtual !== "enviado" && (
             <>
               <Button variant="ghost" size="sm" onClick={expandirTodos} className="h-8 text-xs">
                 Expandir todos
@@ -715,7 +719,7 @@ export default function DocumentosPendentes() {
               <Button variant="ghost" size="sm" onClick={colapsarTodos} className="h-8 text-xs">
                 Colapsar
               </Button>
-              {aba === "pronto" && (
+              {abaAtual === "pronto" && (
                 <>
                   <Button variant="ghost" size="sm" onClick={selecionarTodas} className="h-8 text-xs">
                     Selecionar todas
@@ -735,7 +739,7 @@ export default function DocumentosPendentes() {
       {/* LISTA */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-4 space-y-2 pb-24">
         {/* ABA COBRAR / PRONTO */}
-        {aba !== "enviado" && (
+        {abaAtual !== "enviado" && (
           <>
             {loadingGrupos ? (
               <>
@@ -747,10 +751,10 @@ export default function DocumentosPendentes() {
                 <CardContent className="py-12 text-center">
                   <CheckCircle2 className="h-12 w-12 mx-auto mb-3 text-success" />
                   <p className="font-medium">
-                    {aba === "cobrar" ? "Nada pra cobrar" : "Nada pronto pra enviar"}
+                    {abaAtual === "cobrar" ? "Nada pra cobrar" : "Nada pronto pra enviar"}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {aba === "cobrar"
+                    {abaAtual === "cobrar"
                       ? "Todos os documentos estão em ordem."
                       : "Suba documentos faltantes ou aguarde NFs chegarem."}
                   </p>
@@ -762,15 +766,15 @@ export default function DocumentosPendentes() {
                 const isOpen = expandidos.has(key);
                 const idsDoGrupo = grupo.contas_json.map((c) => c.plano_contas_id);
                 const todasSelecionadas =
-                  aba === "pronto" && idsDoGrupo.every((id) => selecionadas.has(id));
+                  abaAtual === "pronto" && idsDoGrupo.every((id) => selecionadas.has(id));
                 const algumaSelecionada =
-                  aba === "pronto" && idsDoGrupo.some((id) => selecionadas.has(id));
+                  abaAtual === "pronto" && idsDoGrupo.some((id) => selecionadas.has(id));
 
                 return (
                   <Card key={key}>
                     <Collapsible open={isOpen} onOpenChange={() => toggleExpand(key)}>
                       <div className="p-4 flex items-center gap-3 hover:bg-muted/30">
-                        {aba === "pronto" && (
+                        {abaAtual === "pronto" && (
                           <Checkbox
                             checked={todasSelecionadas}
                             onCheckedChange={() => toggleSelecaoFornecedor(grupo)}
@@ -806,7 +810,7 @@ export default function DocumentosPendentes() {
                             <ItemLinha
                               key={c.plano_contas_id}
                               conta={c}
-                              aba={aba}
+                              aba={abaAtual}
                               isSelected={selecionadas.has(c.plano_contas_id)}
                               onToggleSelecao={() => toggleSelecao(c.plano_contas_id)}
                               onAbrirDrawer={(id) => setContaIdDrawer(id)}
@@ -828,7 +832,7 @@ export default function DocumentosPendentes() {
         )}
 
         {/* ABA ENVIADO */}
-        {aba === "enviado" && (
+        {abaAtual === "enviado" && (
           <>
             {loadingRemessas ? (
               <>
@@ -841,7 +845,7 @@ export default function DocumentosPendentes() {
                   <History className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
                   <p className="font-medium">Nenhuma remessa registrada</p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Marque contas como enviadas na aba "Pronto pra enviar".
+                    Marque contas como enviadas na abaAtual "Pronto pra enviar".
                   </p>
                 </CardContent>
               </Card>
@@ -929,8 +933,8 @@ export default function DocumentosPendentes() {
         )}
       </div>
 
-      {/* BARRA FLUTUANTE (aba pronto + seleção) */}
-      {aba === "pronto" && selecionadas.size > 0 && (
+      {/* BARRA FLUTUANTE (abaAtual pronto + seleção) */}
+      {abaAtual === "pronto" && selecionadas.size > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-30 border-t bg-background shadow-lg">
           <div className="px-6 py-3 flex items-center justify-between gap-4 flex-wrap">
             <div className="text-sm">
@@ -1043,7 +1047,7 @@ export default function DocumentosPendentes() {
             <AlertDialogDescription>
               {remessaParaDesfazer && (
                 <>
-                  As {remessaParaDesfazer.qtd_contas} conta(s) desta remessa voltarão pra aba
+                  As {remessaParaDesfazer.qtd_contas} conta(s) desta remessa voltarão pra abaAtual
                   "Pronto pra enviar". O registro histórico será removido.
                 </>
               )}

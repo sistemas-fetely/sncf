@@ -1,5 +1,6 @@
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -109,6 +110,7 @@ const ORIGEM_ICON: Record<string, { icon: typeof CreditCard; label: string; cor:
 export default function Compromissos() {
   const qc = useQueryClient();
   const { data: categoriasMap } = useCategoriasPlano();
+  const [aba, setAba] = useAbaUrl("recorrentes");
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
   const [dialogRecorrenteAberto, setDialogRecorrenteAberto] = useState(false);
@@ -286,7 +288,7 @@ export default function Compromissos() {
       </div>
 
       {/* Abas */}
-      <Tabs defaultValue="recorrentes">
+      <Tabs value={aba} onValueChange={setAba}>
         <TabsList>
           <TabsTrigger value="recorrentes" className="gap-1">
             <Repeat className="h-3.5 w-3.5" />

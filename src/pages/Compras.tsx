@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { Link } from "react-router-dom";
 import { differenceInCalendarDays, format, parseISO, startOfDay, startOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -92,7 +93,8 @@ export default function Compras() {
   const { roles } = useAuth();
   const podeComprar = ehComprador(roles);
 
-  const [tab, setTab] = useState<TabValue>("todos");
+  const [tab, setTab] = useAbaUrl("todos");
+  const tabAtual = tab as TabValue;
   const [busca, setBusca] = useState("");
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -121,7 +123,7 @@ export default function Compras() {
 
   const filtrados = useMemo(() => {
     let arr = pedidos;
-    if (tab !== "todos") arr = arr.filter((p) => p.status === tab);
+    if (tabAtual !== "todos") arr = arr.filter((p) => p.status === tabAtual);
     if (busca.trim()) {
       const q = busca.toLowerCase();
       arr = arr.filter((p) => (p.descricao_geral || "").toLowerCase().includes(q));
@@ -214,7 +216,7 @@ export default function Compras() {
 
       {/* Filtros */}
       <div className="flex items-center gap-3">
-        <Tabs value={tab} onValueChange={(v) => setTab(v as TabValue)}>
+        <Tabs value={tabAtual} onValueChange={(v) => setTab(v as TabValue)}>
           <TabsList>
             <TabsTrigger value="todos">Todos</TabsTrigger>
             <TabsTrigger value="rascunho">Rascunho</TabsTrigger>

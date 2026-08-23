@@ -1,4 +1,5 @@
 import { Fragment, useState } from "react";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCobrancaFila } from "@/hooks/credito/useCobrancaFila";
@@ -1200,7 +1201,7 @@ export default function CobrancaFila() {
   const { data: pedidos = [] } = useCobrancaFila();
   const { data: titulosCobranca = [] } = useTitulosCobranca();
   const { data: baixasPendentes } = useBaixasPendentes();
-  const [tabAtiva, setTabAtiva] = useState("mesa");
+  const [tabAtiva, setTabAtiva] = useAbaUrl("mesa");
   const [subTabBanco, setSubTabBanco] = useState("remessas");
 
   const totalPedidos = pedidos.length;
