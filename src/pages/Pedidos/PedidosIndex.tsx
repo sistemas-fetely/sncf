@@ -71,7 +71,8 @@ export default function PedidosIndex() {
 
   return (
     <PageShell>
-      <PageHeader titulo="Casa dos Pedidos" acoes={<ExportarPedidosButton />} />
+      {/* Exportação em MASSA: leva a base para fora do sistema. Nível 2 (Operador) para cima. */}
+      <PageHeader titulo="Casa dos Pedidos" acoes={temNivel(2) ? <ExportarPedidosButton /> : undefined} />
 
       <Tabs value={aba} onValueChange={setAba} className="space-y-4">
         <TabsList>
