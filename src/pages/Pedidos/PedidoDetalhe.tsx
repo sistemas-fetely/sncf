@@ -2741,7 +2741,7 @@ export default function PedidoDetalhe() {
               {!estagioFinal && (
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Ações</p>
               )}
-              <BotaoEditarPedido pedido={pedido} itens={itens} />
+              {temNivel(2) && <BotaoEditarPedido pedido={pedido} itens={itens} />}
               <div className="border-t border-border/40" />
               {!estagioFinal && (
                 <AcaoPrimaria pedido={pedido} parceiro={parceiro} estagio={estagio} geraTituloReceber={geraTituloReceber} />
