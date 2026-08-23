@@ -201,7 +201,7 @@ const VendasLayout = lazy(() => import("@/layouts/VendasLayout"));
 const ProdutoEstoqueLayout = lazy(() => import("@/layouts/ProdutoEstoqueLayout"));
 const NfsDeVenda = lazy(() => import("@/pages/Vendas/NfsDeVenda"));
 
-const DashPedidos = lazy(() => import("@/pages/vendas/DashPedidos"));
+
 const GestaoPedidos = lazy(() => import("@/pages/vendas/GestaoPedidos"));
 
 const ShopifyB2c = lazy(() => import("@/pages/vendas/ShopifyB2c"));
@@ -358,7 +358,6 @@ const App = () => (
 
                 </Route>
                 <Route path="/vendas/xpm" element={<XpmIndex />} />
-                <Route path="/vendas/dash-pedidos" element={<DashPedidos />} />
                 <Route path="/vendas/gestao-pedidos" element={<GestaoPedidos />} />
                 
                 <Route path="/vendas/shopify" element={<ShopifyB2c />} />
@@ -767,6 +766,8 @@ const App = () => (
             <Route path="/comercial/estoque-virtual" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
             <Route path="/comercial" element={<Navigate to="/pedidos" replace />} />
             <Route path="/comercial/oportunidades" element={<Navigate to="/pedidos?aba=recuperacao" replace />} />
+            {/* Dash de Pedidos é aba da Casa dos Pedidos (23/08/2026) */}
+            <Route path="/vendas/dash-pedidos" element={<Navigate to="/pedidos?aba=dash" replace />} />
             {/* DESMONTE-FAROL-PEDIDOS (23/08/2026): função permanece no banco (sla_fase_pedido/fn_previsao_entrega); tela substituída pela Casa dos Pedidos */}
             <Route path="/vendas/farol-pedidos" element={<Navigate to="/pedidos" replace />} />
             {/* Retorno de Devolução emancipado do Estoque (23/08/2026) */}
