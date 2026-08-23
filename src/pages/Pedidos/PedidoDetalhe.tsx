@@ -1110,6 +1110,9 @@ export default function PedidoDetalhe() {
   const { user } = useAuth();
   const { roles: authRoles } = useAuth();
   const isSuperAdmin = (authRoles ?? []).includes("super_admin");
+  const { temNivel } = useNivel();
+  const { permitido: podeCancelarPedido } = usePermissaoAcao("acao.cancelar_pedido");
+  const { permitido: podeLiberarSemProva } = usePermissaoAcao("acao.liberar_sem_prova");
 
   const parceiroIdAtual = data?.pedido?.parceiro_id as string | undefined;
 
