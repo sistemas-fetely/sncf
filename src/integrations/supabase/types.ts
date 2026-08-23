@@ -47438,12 +47438,17 @@ export type Database = {
           app_label: string | null
           app_ordem: number | null
           contem_dado_sensivel: boolean | null
+          descricao: string | null
           feature_em_teste: boolean | null
+          nome_catalogo: string | null
           nome_exibicao: string | null
           permissao_id: string | null
           pilar_legado: string | null
           slug: string | null
           slug_multi_app: boolean | null
+          submenu_chave: string | null
+          submenu_label: string | null
+          submenu_ordem: number | null
           telas_cobertas: number | null
           telas_lista: string | null
           tipo: string | null
@@ -56688,14 +56693,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -57976,14 +57981,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
