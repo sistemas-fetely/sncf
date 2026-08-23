@@ -76,6 +76,8 @@ const ROLE_LABELS: Record<AppRole, string> = {
   coordenacao_op_fin: "Coordenação Op/Fin",
   auditor: "Auditor",
   socio: "Sócio",
+  folha: "Folha",
+  gerente: "Gerente",
 };
 
 const ROLE_DESCRIPTIONS: Record<AppRole, string> = {
