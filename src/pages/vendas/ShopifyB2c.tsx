@@ -70,6 +70,7 @@ export default function ShopifyB2c() {
   // marketing, separado de operar a fila de pedidos.
   const { roles } = useAuth();
   const { data: permitidas } = usePermissoesDoUsuario();
+  const { temNivel } = useNivel();
   const podeVerCarrinhos =
     (roles ?? []).includes("super_admin") ||
     temPermissaoTela("tela.b2c_carrinhos", permitidas);
