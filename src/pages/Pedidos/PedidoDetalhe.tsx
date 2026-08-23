@@ -2709,16 +2709,18 @@ export default function PedidoDetalhe() {
                     Itens do pedido
                     <span className="text-xs font-normal text-muted-foreground">{itens.length} {itens.length === 1 ? "item" : "itens"}</span>
                   </CardTitle>
-                  <EditarItensDialog
-                    pedidoId={pedido.id}
-                    estagioAtual={estagio}
-                    itensAtuais={itens.map((i: any) => ({
-                      sku: i.sku,
-                      descricao: i.descricao,
-                      quantidade: i.quantidade,
-                      valor_unitario: i.valor_unitario,
-                    }))}
-                  />
+                  {temNivel(2) && (
+                    <EditarItensDialog
+                      pedidoId={pedido.id}
+                      estagioAtual={estagio}
+                      itensAtuais={itens.map((i: any) => ({
+                        sku: i.sku,
+                        descricao: i.descricao,
+                        quantidade: i.quantidade,
+                        valor_unitario: i.valor_unitario,
+                      }))}
+                    />
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
