@@ -612,7 +612,7 @@ function PermissoesDoGrupo({ grupoId }: { grupoId: string }) {
           O que pode acessar
         </CardTitle>
         <p className="text-xs text-muted-foreground mt-1">
-          Marque por módulo. Telas têm só "Ver". Fichas têm Ver / Criar / Editar / Apagar.
+          Marque por módulo. Telas têm só "Ver". Fichas têm Ver / Criar / Editar / Apagar. Abas em cinza herdam a permissão de outra tela.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
