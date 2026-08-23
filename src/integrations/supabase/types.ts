@@ -20597,30 +20597,6 @@ export type Database = {
           },
         ]
       }
-      navegacao_log: {
-        Row: {
-          acessado_em: string
-          id: string
-          rota: string
-          titulo: string | null
-          user_id: string
-        }
-        Insert: {
-          acessado_em?: string
-          id?: string
-          rota: string
-          titulo?: string | null
-          user_id: string
-        }
-        Update: {
-          acessado_em?: string
-          id?: string
-          rota?: string
-          titulo?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       navegacao_rota_nao_declarada: {
         Row: {
           era_super_admin: boolean
@@ -68080,21 +68056,6 @@ export type Database = {
         Returns: {
           ordem: number
           prefixo: string
-          status: string
-          tela_slug: string
-        }[]
-      }
-      listar_sidebar_app: {
-        Args: { p_app: string }
-        Returns: {
-          apenas_super_admin: boolean
-          chave: string
-          icone: string
-          label: string
-          nivel: string
-          ordem: number
-          pai_chave: string
-          rota: string
           status: string
           tela_slug: string
         }[]
