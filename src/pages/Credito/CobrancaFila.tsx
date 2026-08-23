@@ -20,6 +20,7 @@ import { useTitulosCobranca } from "@/hooks/credito/useTitulosCobranca";
 import { useReguaFilaHoje } from "@/hooks/credito/useReguaFila";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { PageShell } from "@/components/layout/PageShell";
+import { AbaPermitida, ConteudoAba } from "@/components/AbaGate";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -1272,15 +1273,23 @@ export default function CobrancaFila() {
             { value: "regua", label: `Régua${totalReguaHoje > 0 ? ` · ${totalReguaHoje}` : ""}` },
             { value: "fila", label: `Fila${totalPedidos > 0 ? ` · ${totalPedidos}` : ""}` },
             { value: "titulos", label: `Títulos${totalTitulosAbertos > 0 ? ` · ${totalTitulosAbertos}` : ""}` },
-            { value: "adiantamento", label: `Adiantamento s/ NF${totalAdiantamentos > 0 ? ` · ${totalAdiantamentos}` : ""}` },
-            { value: "banco", label: "Banco" },
-            { value: "credito-cliente", label: "Crédito do cliente" },
-          ].map((tab) => (
-
-            <TabsTrigger key={tab.value} value={tab.value} className={tabTriggerCls}>
-              {tab.label}
-            </TabsTrigger>
-          ))}
+            { value: "adiantamento", slug: "tela.cobranca_remessa", label: `Adiantamento s/ NF${totalAdiantamentos > 0 ? ` · ${totalAdiantamentos}` : ""}` },
+            { value: "banco", slug: "tela.cobranca_remessa", label: "Banco" },
+            { value: "credito-cliente", slug: "tela.credito", label: "Crédito do cliente" },
+          ].map((tab) => {
+            const trigger = (
+              <TabsTrigger value={tab.value} className={tabTriggerCls}>
+                {tab.label}
+              </TabsTrigger>
+            );
+            return tab.slug ? (
+              <AbaPermitida key={tab.value} slug={tab.slug}>
+                {trigger}
+              </AbaPermitida>
+            ) : (
+              <Fragment key={tab.value}>{trigger}</Fragment>
+            );
+          })}
         </TabsList>
 
         <TabsContent value="mesa">
@@ -1335,32 +1344,36 @@ export default function CobrancaFila() {
         </TabsContent>
 
         <TabsContent value="adiantamento">
-          <AdiantamentoSemNfTab />
+          <ConteudoAba slug="tela.cobranca_remessa">
+            <AdiantamentoSemNfTab />
+          </ConteudoAba>
         </TabsContent>
 
-
-
         <TabsContent value="banco">
-          <Tabs value={subTabBanco} onValueChange={setSubTabBanco} className="space-y-4">
-            <TabsList className="bg-transparent p-0 h-auto gap-2">
-              <TabsTrigger value="remessas" className={pillTriggerCls}>
-                Remessas Safra
-              </TabsTrigger>
-              <TabsTrigger value="banco-safra" className={pillTriggerCls}>
-                Banco Safra
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="remessas">
-              <RemessasSafraTab />
-            </TabsContent>
-            <TabsContent value="banco-safra">
-              <BancoSafra onIrParaRemessas={() => setSubTabBanco("remessas")} />
-            </TabsContent>
-          </Tabs>
+          <ConteudoAba slug="tela.cobranca_remessa">
+            <Tabs value={subTabBanco} onValueChange={setSubTabBanco} className="space-y-4">
+              <TabsList className="bg-transparent p-0 h-auto gap-2">
+                <TabsTrigger value="remessas" className={pillTriggerCls}>
+                  Remessas Safra
+                </TabsTrigger>
+                <TabsTrigger value="banco-safra" className={pillTriggerCls}>
+                  Banco Safra
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="remessas">
+                <RemessasSafraTab />
+              </TabsContent>
+              <TabsContent value="banco-safra">
+                <BancoSafra onIrParaRemessas={() => setSubTabBanco("remessas")} />
+              </TabsContent>
+            </Tabs>
+          </ConteudoAba>
         </TabsContent>
 
         <TabsContent value="credito-cliente">
-          <CreditoClientesIndex />
+          <ConteudoAba slug="tela.credito">
+            <CreditoClientesIndex />
+          </ConteudoAba>
         </TabsContent>
       </Tabs>
     </div>
