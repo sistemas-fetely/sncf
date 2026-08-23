@@ -358,8 +358,6 @@ const App = () => (
 
                 </Route>
                 <Route path="/vendas/xpm" element={<XpmIndex />} />
-                {/* Dash de Pedidos é aba da Casa dos Pedidos (23/08/2026) */}
-                <Route path="/vendas/dash-pedidos" element={<Navigate to="/pedidos?aba=dash" replace />} />
                 <Route path="/vendas/gestao-pedidos" element={<GestaoPedidos />} />
                 
                 <Route path="/vendas/shopify" element={<ShopifyB2c />} />
