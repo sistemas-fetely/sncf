@@ -10,7 +10,7 @@ import { useEmpurrarXpm } from "@/hooks/pedidos/useEmpurrarXpm";
 import { usePreviaEmpurrarXpm } from "@/hooks/pedidos/usePreviaEmpurrarXpm";
 import { useSyncContato } from "@/hooks/parceiros/useSyncContato";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
+import { useNivel } from "@/hooks/useNivel";
 import { ReenviarBlingDialog } from "@/components/pedidos/dialogs/ReenviarBlingDialog";
 import { ForcarXpmDialog } from "@/components/pedidos/dialogs/ForcarXpmDialog";
 import { DeclararCancelamentoXpmDialog } from "@/components/pedidos/dialogs/DeclararCancelamentoXpmDialog";
@@ -35,7 +35,7 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
   const sync = useSyncContato();
   const { roles } = useAuth();
   const isSuperAdmin = (roles ?? []).includes("super_admin");
-  const { permitido: podeDeclararCancelamentoXpm } = usePermissaoAcao("acao.declarar_cancelamento_xpm");
+  const { temNivel } = useNivel();
 
   const { data: parceiroBling, refetch: recheckBling } = useQuery({
     queryKey: ["parceiro-bling-check", parceiro_id],
@@ -233,8 +233,8 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
           <p className="text-xs text-muted-foreground px-1 tabular-nums">
             XPM: expedição {pedidoXpm!.xpm_expedicao_codigo}
           </p>
-          {/* Ato excepcional: declara por TERCEIRO (operador logístico), sem retorno da XPM. Ação nomeada, não nível. */}
-          {podeDeclararCancelamentoXpm && (
+          {/* CONTRATO DE NÍVEL: cancelar/declarar cancelamento é APAGAR — nível 4 (Gerente). */}
+          {temNivel(4) && (
             <DeclararCancelamentoXpmDialog
               pedidoId={pedido_id}
               expedicaoCodigo={String(pedidoXpm!.xpm_expedicao_codigo)}
