@@ -23,8 +23,7 @@ export function usePrefetchTelas() {
       void import("@/pages/FalaFetely");
 
       // Financeiro/Administrativo (alto volume)
-      void import("@/pages/administrativo/InvestimentoLancamento");
-      void import("@/pages/administrativo/FluxoFuturoInvestimento");
+      // DESMONTE-PROJECOES (23/08/2026): InvestimentoLancamento/FluxoFuturoInvestimento/FluxoCaixaFuturo removidos
       void import("@/pages/administrativo/ContasPagar");
       void import("@/pages/administrativo/ContasReceber");
       void import("@/pages/administrativo/CaixaBanco");
@@ -44,7 +43,6 @@ export function usePrefetchTelas() {
     // ===== ONDA 2 (1500ms): telas secundárias =====
     const onda2 = setTimeout(() => {
       void import("@/pages/administrativo/FluxoCaixa");
-      void import("@/pages/administrativo/FluxoCaixaFuturo");
       void import("@/pages/administrativo/Compromissos");
       void import("@/pages/administrativo/NFsStage");
       void import("@/pages/administrativo/FaturasCartao");
