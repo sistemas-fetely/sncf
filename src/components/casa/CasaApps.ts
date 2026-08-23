@@ -2,7 +2,7 @@ import { Home, Users, Wallet, CreditCard, HandCoins, BookOpen, User, Monitor, Sh
 
 export interface CasaApp {
   /** Identificador interno */
-  id: "casa" | "pessoas" | "financas" | "credito" | "recebimento" | "acervo" | "meu_espaco" | "ti" | "mesa";
+  id: "casa" | "meu_espaco" | "recebimento" | "financas" | "pessoas" | "credito" | "acervo" | "ti" | "mesa";
   /** Label exibido no top nav */
   label: string;
   /** Rota default ao clicar no app */
