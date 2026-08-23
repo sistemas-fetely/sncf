@@ -27,16 +27,6 @@ import type { Database } from "@/integrations/supabase/types";
 type AppRole = Database["public"]["Enums"]["app_role"];
 type Escopo = Database["public"]["Enums"]["escopo_acesso"];
 
-// Lista deliberadamente menor que o enum app_role (22 valores).
-// Ficam DE FORA os legados de alto peso de RLS e zero usuários:
-// admin_rh, gestor_rh, gestor_direto, recrutador, admin_ti.
-// socio entrou em 22/08/2026 porque já havia usuários com esse papel no banco.
-const ROLE_OPTIONS: AppRole[] = [
-  "super_admin", "diretoria_executiva", "rh", "gestao_direta", "financeiro",
-  "administrativo", "operacional", "ti", "recrutamento", "fiscal",
-  "estagiario", "colaborador", "comprador", "triagem", "coordenacao_op_fin", "auditor",
-  "socio",
-];
 
 const ROLE_LABEL: Partial<Record<AppRole, string>> = {
   super_admin: "Super Admin",
