@@ -78,11 +78,17 @@ export default function PedidosIndex() {
           {/* Separador: à esquerda, duas leituras da carteira ativa;
               à direita, salas separadas. */}
           <div className="w-px bg-border mx-1.5 self-stretch" aria-hidden />
-          <TabsTrigger value="recuperacao">
-            Mesa Comercial{qtdMesaComercial > 0 ? ` (${qtdMesaComercial})` : ""}
-          </TabsTrigger>
-          <TabsTrigger value="consignados">Consignados</TabsTrigger>
-          <TabsTrigger value="solicitacoes">Solicitações ({qtdSolicitacoes})</TabsTrigger>
+          <AbaPermitida slug="tela.comercial">
+            <TabsTrigger value="recuperacao">
+              Mesa Comercial{qtdMesaComercial > 0 ? ` (${qtdMesaComercial})` : ""}
+            </TabsTrigger>
+          </AbaPermitida>
+          <AbaPermitida slug="tela.consignado">
+            <TabsTrigger value="consignados">Consignados</TabsTrigger>
+          </AbaPermitida>
+          <AbaPermitida slug="tela.solicitacoes">
+            <TabsTrigger value="solicitacoes">Solicitações ({qtdSolicitacoes})</TabsTrigger>
+          </AbaPermitida>
         </TabsList>
 
         <TabsContent value="fila" className="space-y-4">
@@ -117,18 +123,24 @@ export default function PedidosIndex() {
         </TabsContent>
 
         <TabsContent value="recuperacao">
-          <Suspense fallback={<CarregandoAba />}>
-            <Oportunidades embutido />
-          </Suspense>
+          <ConteudoAba slug="tela.comercial">
+            <Suspense fallback={<CarregandoAba />}>
+              <Oportunidades embutido />
+            </Suspense>
+          </ConteudoAba>
         </TabsContent>
 
         <TabsContent value="consignados">
-          <Suspense fallback={<CarregandoAba />}>
-            <Consignados embutido />
-          </Suspense>
+          <ConteudoAba slug="tela.consignado">
+            <Suspense fallback={<CarregandoAba />}>
+              <Consignados embutido />
+            </Suspense>
+          </ConteudoAba>
         </TabsContent>
         <TabsContent value="solicitacoes">
-          <SolicitacoesSopsAba />
+          <ConteudoAba slug="tela.solicitacoes">
+            <SolicitacoesSopsAba />
+          </ConteudoAba>
         </TabsContent>
       </Tabs>
     </PageShell>
