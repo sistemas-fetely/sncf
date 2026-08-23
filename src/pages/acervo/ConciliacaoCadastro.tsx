@@ -1,4 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
@@ -150,7 +151,7 @@ type Col3 = "sku" | "nome" | "handle" | "variantes" | "invitems" | "preco_m" | "
 
 export default function ConciliacaoCadastro() {
   const qc = useQueryClient();
-  const [aba, setAba] = useState<"cobertura" | "bling" | "shopify">("cobertura");
+  const [aba, setAba] = useAbaUrl("cobertura");
 
   // Aba 1
   const [busca1, setBusca1] = useState("");
@@ -412,7 +413,7 @@ export default function ConciliacaoCadastro() {
       </div>
 
       {/* Abas */}
-      <Tabs value={aba} onValueChange={(v) => setAba(v as typeof aba)}>
+      <Tabs value={aba} onValueChange={setAba}>
         <TabsList>
           <TabsTrigger value="cobertura">Cobertura</TabsTrigger>
           <TabsTrigger value="bling">Bling</TabsTrigger>

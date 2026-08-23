@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -33,7 +34,7 @@ const TIPOS_CONSENTIMENTO: ConsentTipo[] = [
 export default function MeusDados() {
   const { user, profile } = useAuth();
   const qc = useQueryClient();
-  const [aba, setAba] = useState("cadastrais");
+  const [aba, setAba] = useAbaUrl("cadastrais");
   const [mostrarConfirmExclusao, setMostrarConfirmExclusao] = useState(false);
   const [mostrarResultado, setMostrarResultado] = useState(false);
   const [resultadoExclusao, setResultadoExclusao] = useState<any>(null);

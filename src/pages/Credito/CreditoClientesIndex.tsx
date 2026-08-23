@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Plus, ArrowUpDown, ArrowUp, ArrowDown, Search } from "lucide-react";
 import { apelidoParceiro, parceiroCombina } from "@/lib/parceiros/nome";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
 
 import { PageShell } from "@/components/layout/PageShell";
 const fmtBRL = new Intl.NumberFormat("pt-BR", {
@@ -23,7 +24,8 @@ export default function CreditoClientesIndex() {
   const { roles } = useAuth();
   const isSuperAdmin = (roles ?? []).includes("super_admin");
   const [criarHaverOpen, setCriarHaverOpen] = useState(false);
-  const [tab, setTab] = useState<"todos" | "com_haver" | "com_vencidos">("todos");
+  const [tab, setTab] = useAbaUrl("todos");
+  const tabAtual = tab as "todos" | "com_haver" | "com_vencidos";
   const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>(null);
   const [busca, setBusca] = useState("");
 
@@ -147,8 +149,8 @@ export default function CreditoClientesIndex() {
 
   const filtrados = useMemo(() => {
     let arr = [...clientes];
-    if (tab === "com_haver") arr = arr.filter((c: any) => c.haver_disponivel > 0);
-    if (tab === "com_vencidos") arr = arr.filter((c: any) => c.vencidos > 0);
+    if (tabAtual === "com_haver") arr = arr.filter((c: any) => c.haver_disponivel > 0);
+    if (tabAtual === "com_vencidos") arr = arr.filter((c: any) => c.vencidos > 0);
     if (busca.trim()) {
       arr = arr.filter((c: any) =>
         parceiroCombina(busca, c.razao_social ?? c.cliente, c.nome_fantasia, c.cnpj)
@@ -205,7 +207,7 @@ export default function CreditoClientesIndex() {
         />
       </div>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="space-y-4">
+      <Tabs value={tab} onValueChange={setTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="todos">Todos ({clientes.length})</TabsTrigger>
           <TabsTrigger value="com_haver">

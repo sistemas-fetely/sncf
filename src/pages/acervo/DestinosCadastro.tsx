@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -174,6 +175,7 @@ function gerarCsv(header: string[], rows: string[][]): Blob {
 }
 
 export default function DestinosCadastro() {
+  const [aba, setAba] = useAbaUrl("bling");
   const inputRef = useRef<HTMLInputElement>(null);
   const [arquivoNome, setArquivoNome] = useState<string | null>(null);
   const [parsed, setParsed] = useState<ParsedCsv | null>(null);
@@ -602,7 +604,7 @@ export default function DestinosCadastro() {
         estado="Prepara arquivos de cadastro para os sistemas de destino. Nada é gravado no banco nesta tela — ela lê o arquivo, calcula e devolve outro arquivo."
       />
 
-      <Tabs defaultValue="bling">
+      <Tabs value={aba} onValueChange={setAba}>
         <TabsList>
           <TabsTrigger value="bling">Bling</TabsTrigger>
           <TabsTrigger value="xpm">XPM</TabsTrigger>

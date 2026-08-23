@@ -1,6 +1,7 @@
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Fragment, useMemo, useState } from "react";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -222,6 +223,8 @@ function AtalhosPeriodo({ onPick }: { onPick: (de: string, ate: string) => void 
 }
 
 export default function ContasReceber() {
+  const [aba, setAba] = useAbaUrl("b2b");
+
   return (
     <PageShell>
       <PageHeader
@@ -230,7 +233,7 @@ export default function ContasReceber() {
         estado="Recebíveis B2B por parcela — somente títulos faturados, com NF emitida. Para todos os títulos, ver Cobrança em Controladoria. Valor efetivo inclui juros e desconto. Somente leitura."
       />
 
-      <Tabs defaultValue="b2b">
+      <Tabs value={aba} onValueChange={setAba}>
         <TabsList>
           <TabsTrigger value="b2b">B2B</TabsTrigger>
           <TabsTrigger value="b2c">B2C</TabsTrigger>

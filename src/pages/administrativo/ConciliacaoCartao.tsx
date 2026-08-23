@@ -1,6 +1,7 @@
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Fragment, useMemo, useState } from "react";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -285,6 +286,8 @@ function AbaConciliarExtrato() {
 }
 
 export default function ConciliacaoCartao() {
+  const [aba, setAba] = useAbaUrl("vincular");
+
   return (
     <PageShell>
       <PageHeader
@@ -293,7 +296,7 @@ export default function ConciliacaoCartao() {
         estado="SafraPay × OFX × títulos. Vincule a venda ao pedido e concilie o extrato."
       />
 
-      <Tabs defaultValue="vincular">
+      <Tabs value={aba} onValueChange={setAba}>
         <TabsList>
           <TabsTrigger value="vincular">Vincular vendas</TabsTrigger>
           <TabsTrigger value="automatica">Conciliação automática</TabsTrigger>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { Link } from "react-router-dom";
 import { format, parseISO, startOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -58,14 +59,15 @@ export default function ComprasAComprar() {
   const podeAgir = ehComprador(roles);
   const podeVer = podeAgir || roles.some((r) => ROLES_LEITURA_EXTRA.includes(r));
 
-  const [tab, setTab] = useState<ComprarTab>("aguardando");
+  const [tab, setTab] = useAbaUrl("aguardando");
+  const tabAtual = tab as ComprarTab;
   const [busca, setBusca] = useState("");
   const [pedidoSelecionado, setPedidoSelecionado] = useState<PedidoCompraFull | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [registrarOpen, setRegistrarOpen] = useState(false);
   const [pedidoParaRegistrar, setPedidoParaRegistrar] = useState<PedidoCompraFull | null>(null);
 
-  const { data: pedidos = [], isLoading } = usePedidosAComprar(tab);
+  const { data: pedidos = [], isLoading } = usePedidosAComprar(tabAtual);
 
   // Sincroniza estados locais com a lista refetchada (resolve bug do item cancelado
   // continuar aparecendo no modal após cancelamento)
@@ -232,7 +234,7 @@ export default function ComprasAComprar() {
 
       {/* Filtros */}
       <div className="flex items-center gap-3">
-        <Tabs value={tab} onValueChange={(v) => setTab(v as ComprarTab)}>
+        <Tabs value={tab} onValueChange={setTab}>
           <TabsList>
             <TabsTrigger value="aguardando">Aguardando</TabsTrigger>
             <TabsTrigger value="em_compra">Em compra (suas)</TabsTrigger>
@@ -260,9 +262,9 @@ export default function ComprasAComprar() {
               <PackageCheck className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
               <h3 className="font-medium mb-1">Sem pedidos aguardando compra agora</h3>
               <p className="text-sm text-muted-foreground">
-                {tab === "aguardando" && "Quando solicitantes enviarem pedidos, eles aparecem aqui."}
-                {tab === "em_compra" && "Você não está com nenhum pedido em compra."}
-                {tab === "tudo" && "Nada pendente na fila."}
+                {tabAtual === "aguardando" && "Quando solicitantes enviarem pedidos, eles aparecem aqui."}
+                {tabAtual === "em_compra" && "Você não está com nenhum pedido em compra."}
+                {tabAtual === "tudo" && "Nada pendente na fila."}
               </p>
             </div>
           ) : (

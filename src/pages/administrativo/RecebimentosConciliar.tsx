@@ -1,6 +1,7 @@
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useState, useMemo } from "react";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -189,6 +190,7 @@ function chaveMes(mes: string | null | undefined): string | null {
 
 export default function RecebimentosConciliar() {
   const qc = useQueryClient();
+  const [aba, setAba] = useAbaUrl("por_pedido");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [naoRecebivelCredito, setNaoRecebivelCredito] = useState<Credito | null>(null);
 
@@ -238,7 +240,7 @@ export default function RecebimentosConciliar() {
         estado="Em que nível de prova está cada recebimento, pedido por pedido — e o extrato sem dono do lado."
       />
 
-      <Tabs defaultValue="por_pedido" className="space-y-4">
+      <Tabs value={aba} onValueChange={setAba} className="space-y-4">
         <TabsList>
           <TabsTrigger value="por_pedido">Por pedido</TabsTrigger>
           <TabsTrigger value="orfao">Extrato órfão</TabsTrigger>
