@@ -52,7 +52,7 @@ import {
 } from "./BadgesPedido";
 import { MarcacaoPedido } from "./MarcacaoPedido";
 import { useAtualizarUrgencia } from "@/hooks/pedidos/useAtualizarUrgencia";
-import { useAuth } from "@/contexts/AuthContext";
+import { useNivel } from "@/hooks/useNivel";
 import { URGENCIA_LABELS, type UrgenciaDeclarada, type AreaPedido, type EstagioPedido, type PedidoFilaItem } from "@/types/pedido";
 
 
@@ -1397,7 +1397,7 @@ function FarolRisco({
 /** Coluna de ações: uma ação primária por estágio + resto no menu "⋯". */
 function AcoesLinha({ p, temMsg, risco, nfInfo }: { p: PedidoFilaItem; temMsg: boolean; risco: PedidoRisco | undefined; nfInfo: EntregaLinhaInfo | undefined }) {
   const navigate = useNavigate();
-  const { hasAnyRole } = useAuth();
+  const { temNivel } = useNivel();
   const { mutate: atualizarUrgencia, isPending } = useAtualizarUrgencia();
   const { baixar: baixarNf, baixando: baixandoNf } = useDownloadNfPdf();
 
@@ -1436,7 +1436,7 @@ function AcoesLinha({ p, temMsg, risco, nfInfo }: { p: PedidoFilaItem; temMsg: b
     );
   };
 
-  const podeDeclararUrgencia = hasAnyRole(["super_admin", "financeiro", "coordenacao_op_fin"]);
+  const podeDeclararUrgencia = temNivel(3);
 
   return (
     <div className="flex justify-end items-center gap-0.5">

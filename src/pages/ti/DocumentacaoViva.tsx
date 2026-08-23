@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useNivel } from "@/hooks/useNivel";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,8 +35,8 @@ Produção: https://sncf.lovable.app`;
 
 export default function DocumentacaoViva() {
   const navigate = useNavigate();
-  const { hasAnyRole } = useAuth();
-  const isAdmin = hasAnyRole(["super_admin", "admin_rh"]);
+  const { temNivel } = useNivel();
+  const isAdmin = temNivel(3);
   const [docs, setDocs] = useState<Documento[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");

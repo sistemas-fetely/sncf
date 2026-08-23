@@ -17,7 +17,7 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/contexts/AuthContext";
+import { useNivel } from "@/hooks/useNivel";
 import {
   useCriarPeriodo, useCriarProgramacao, useAtualizarStatusProgramacao,
   type PeriodoComColaborador,
@@ -44,8 +44,8 @@ const STATUS_PROG: Record<string, { label: string; variant: "default" | "seconda
 export default function FeriasColaborador() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { hasAnyRole } = useAuth();
-  const canManage = hasAnyRole(["super_admin", "gestor_rh", "financeiro"]);
+  const { temNivel } = useNivel();
+  const canManage = temNivel(5);
 
   const criarPeriodoMut = useCriarPeriodo();
   const criarProgMut = useCriarProgramacao();

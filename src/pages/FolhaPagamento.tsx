@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useNivel } from "@/hooks/useNivel";
 import {
   useCompetencias,
   useHolerites,
@@ -18,8 +18,8 @@ import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 
 export default function FolhaPagamento() {
-  const { hasAnyRole } = useAuth();
-  const canManage = hasAnyRole(["super_admin", "gestor_rh", "financeiro"]);
+  const { temNivel } = useNivel();
+  const canManage = temNivel(5);
 
   const { data: competencias = [] } = useCompetencias();
   const { data: parametrosFolha } = useParametrosFolha();

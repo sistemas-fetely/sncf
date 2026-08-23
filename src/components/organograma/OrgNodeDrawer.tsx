@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Mail, Phone, Users, Briefcase, Pencil, Link2, Search } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useNivel } from "@/hooks/useNivel";
 import { useNavigate } from "react-router-dom";
 import { useMovePosicao } from "@/hooks/useOrgMutations";
 import type { PosicaoNode } from "@/types/organograma";
@@ -49,9 +49,9 @@ function isDescendant(nodeId: string, potentialAncestorId: string, allNodes: Pos
 }
 
 export function OrgNodeDrawer({ node, open, onClose, allNodes, onEditPosition }: Props) {
-  const { hasAnyRole } = useAuth();
+  const { temNivel } = useNivel();
   const navigate = useNavigate();
-  const canManage = hasAnyRole(["super_admin", "gestor_rh"]);
+  const canManage = temNivel(3);
   const moveMutation = useMovePosicao();
 
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
