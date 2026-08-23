@@ -404,16 +404,19 @@ export default function Parceiros() {
         acoes={
           tabAtiva !== "grupos" && (
             <>
-              <Button
-                variant="outline"
-                onClick={handleExportar}
-                className="gap-2"
-                disabled={isLoading || !filtered.length}
-                title="Exporta os parceiros filtrados para Excel"
-              >
-                <Download className="h-4 w-4" />
-                Exportar Excel
-              </Button>
+              {/* Exportação em MASSA: leva a base para fora do sistema. Nível 2 (Operador) para cima. */}
+              {temNivel(2) && (
+                <Button
+                  variant="outline"
+                  onClick={handleExportar}
+                  className="gap-2"
+                  disabled={isLoading || !filtered.length}
+                  title="Exporta os parceiros filtrados para Excel"
+                >
+                  <Download className="h-4 w-4" />
+                  Exportar Excel
+                </Button>
+              )}
               <Button
                 variant="outline"
                 onClick={handleImportarClick}
