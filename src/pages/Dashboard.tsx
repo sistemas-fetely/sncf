@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import {
   Users, Briefcase, Calendar, AlertTriangle, FileText, CreditCard, Gift,
   TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, Minus,
-  Building2, Clock, Lightbulb,
+  Building2, Lightbulb,
 } from "lucide-react";
 import InsightsIA from "@/components/dashboard/InsightsIA";
 import { StatCard } from "@/components/StatCard";
@@ -89,22 +89,14 @@ function FinancialKpiCard({
 
 const tooltipStyle = { borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))", fontSize: 12 };
 
-interface VelocidadeMetrica {
-  tempoMedioPreenchimento: number;
-  totalConvitesComMetrica: number;
-  insightsData: {
-    convitesPendentes: number;
-    onboardingsAtrasados: number;
-    vagasAbertas: number;
-    candidatosTriagem: number;
-    contratosVencendo: number;
-    tarefasBloqueantes: number;
-    tempoMedioContratacao: number;
-  };
+interface InsightsData {
+  onboardingsAtrasados: number;
+  contratosVencendo: number;
+  tarefasBloqueantes: number;
 }
 
-function VelocidadeInsightsSection() {
-  const [data, setData] = useState<VelocidadeMetrica | null>(null);
+function InsightsIASection() {
+  const [data, setData] = useState<InsightsData | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -114,39 +106,19 @@ function VelocidadeInsightsSection() {
       em30d.setDate(em30d.getDate() + 30);
       const em30dStr = em30d.toISOString().slice(0, 10);
 
-      const [convitesRes, tarefasRes, vagasRes, candidatosRes, contratosVencRes] = await Promise.all([
-        supabase.from("convites_cadastro").select("id, status, created_at, preenchido_em"),
+      const [tarefasRes, contratosVencRes] = await Promise.all([
         supabase.from("vw_tarefas").select("id, status, prazo_data, bloqueante, esta_aberta, esta_atrasada").eq("tipo_processo", "onboarding").eq("esta_aberta", true),
-        supabase.from("vagas" as any).select("id").eq("status", "aberta"),
-        supabase.from("candidatos").select("id, status").in("status", ["recebido", "triagem", "entrevista"]),
         supabase.from("contratos_pj").select("id").eq("status", "ativo").not("data_fim", "is", null).gte("data_fim", hojeStr).lte("data_fim", em30dStr),
       ]);
       if (cancelled) return;
 
-      const convites = convitesRes.data || [];
       const tarefasOnb = tarefasRes.data || [];
-      const candidatos = candidatosRes.data || [];
-
-      const convitesPreenchidos = convites.filter((c: any) => c.preenchido_em && c.created_at);
-      const tempos = convitesPreenchidos.map((c: any) =>
-        (new Date(c.preenchido_em).getTime() - new Date(c.created_at).getTime()) / (1000 * 60 * 60 * 24)
-      );
-      const tempoMedio = tempos.length > 0 ? tempos.reduce((a, b) => a + b, 0) / tempos.length : 0;
-
       const tarefasAtrasadas = tarefasOnb.filter((t: any) => t.esta_atrasada);
 
       setData({
-        tempoMedioPreenchimento: tempoMedio,
-        totalConvitesComMetrica: convitesPreenchidos.length,
-        insightsData: {
-          convitesPendentes: convites.filter((c: any) => ["pendente", "email_enviado"].includes(c.status)).length,
-          onboardingsAtrasados: tarefasAtrasadas.length,
-          vagasAbertas: (vagasRes.data || []).length,
-          candidatosTriagem: candidatos.filter((c: any) => c.status === "recebido").length,
-          contratosVencendo: (contratosVencRes.data || []).length,
-          tarefasBloqueantes: tarefasAtrasadas.filter((t: any) => t.bloqueante).length,
-          tempoMedioContratacao: Math.round(tempoMedio),
-        },
+        onboardingsAtrasados: tarefasAtrasadas.length,
+        contratosVencendo: (contratosVencRes.data || []).length,
+        tarefasBloqueantes: tarefasAtrasadas.filter((t: any) => t.bloqueante).length,
       });
     }
     void load();
@@ -155,36 +127,7 @@ function VelocidadeInsightsSection() {
 
   if (!data) return null;
 
-  return (
-    <div className="space-y-4">
-      {data.totalConvitesComMetrica >= 5 && (
-        <div>
-          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-3">
-            Velocidade operacional
-          </h3>
-          <div className="grid gap-3 grid-cols-1 md:grid-cols-3">
-            <Card className="card-shadow animate-fade-in">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                    <Clock className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-lg font-medium">{data.tempoMedioPreenchimento.toFixed(1)} dias</p>
-                    <p className="text-xs text-muted-foreground">Tempo médio de preenchimento de convite</p>
-                    <p className="text-xs text-muted-foreground/70 mt-0.5">
-                      Baseado em {data.totalConvitesComMetrica} convites
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      )}
-      <InsightsIA {...data.insightsData} />
-    </div>
-  );
+  return <InsightsIA {...data} />;
 }
 
 
@@ -193,7 +136,7 @@ function DashboardGestao() {
     clt, pj, headcount, ferias, aniversariantes,
     statusClt, turnover, folha, nfPendentes, pagPjPendentes,
     experienciaVencendo, docsVencendo, aniversariosEmpresa, semBeneficio,
-    contratosPendentes, convitesPreenchidos, custoPj, custoEvolucao, custoDept, salarioMedio,
+    contratosPendentes, custoPj, custoEvolucao, custoDept, salarioMedio,
     sugestoesPendentes, agregadosExcluemClevel,
     mesAtualLabel,
     isLoading,
@@ -269,9 +212,6 @@ function DashboardGestao() {
   }
   if (contratosPendentes.length > 0) {
     alertas.push({ titulo: `${contratosPendentes.length} contrato(s) PJ pendente(s) de assinatura`, detalhe: contratosPendentes.slice(0, 3).map((c) => c.nome).join(", ") + (contratosPendentes.length > 3 ? "..." : ""), prioridade: "alta" });
-  }
-  if (convitesPreenchidos.length > 0) {
-    alertas.push({ titulo: `${convitesPreenchidos.length} cadastro(s) preenchido(s) aguardando aprovação`, detalhe: convitesPreenchidos.slice(0, 3).map((c) => `${c.nome} (${c.tipo.toUpperCase()})`).join(", ") + (convitesPreenchidos.length > 3 ? "..." : ""), prioridade: "alta" });
   }
   if (sugestoesPendentes.length > 0) {
     const primeira = sugestoesPendentes[0] as any;
@@ -559,7 +499,7 @@ function DashboardGestao() {
       </div>
 
       {/* Velocidade + Insights IA */}
-      <VelocidadeInsightsSection />
+      <InsightsIASection />
 
       {/* Row 5: Alerts & Birthdays */}
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">

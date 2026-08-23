@@ -31,7 +31,7 @@ const Colaboradores = lazy(() => import("@/pages/Colaboradores"));
 const Pessoas = lazy(() => import("@/pages/Pessoas"));
 const PessoaForm = lazy(() => import("@/pages/PessoaForm"));
 const PanoramaAreas = lazy(() => import("@/pages/PanoramaAreas"));
-const Vagas = lazy(() => import("@/pages/Vagas"));
+
 const CustoPessoas = lazy(() => import("@/pages/CustoPessoas"));
 const FolhaMensal = lazy(() => import("@/pages/FolhaMensal"));
 const ColaboradorDetalhe = lazy(() => import("@/pages/ColaboradorDetalhe"));
@@ -66,22 +66,16 @@ const Beneficios = lazy(() => import("@/pages/Beneficios"));
 const Movimentacoes = lazy(() => import("@/pages/Movimentacoes"));
 const PagamentosPJ = lazy(() => import("@/pages/PagamentosPJ"));
 const PagamentoPJRelatorio = lazy(() => import("@/pages/PagamentoPJRelatorio"));
-const CadastroPublico = lazy(() => import("@/pages/CadastroPublico"));
+
 const PagarPix = lazy(() => import("@/pages/publico/PagarPix"));
-const ConvitesCadastro = lazy(() => import("@/pages/ConvitesCadastro"));
-const ConviteDetalhe = lazy(() => import("@/pages/ConviteDetalhe"));
 const Unsubscribe = lazy(() => import("@/pages/Unsubscribe"));
 const ConfigurarPerfis = lazy(() => import("@/pages/ConfigurarPerfis"));
 const Onboarding = lazy(() => import("@/pages/Onboarding"));
 const OnboardingDetalhe = lazy(() => import("@/pages/OnboardingDetalhe"));
-const Recrutamento = lazy(() => import("@/pages/Recrutamento"));
-const RecrutamentoDetalhe = lazy(() => import("@/pages/RecrutamentoDetalhe"));
-const PortalCandidatura = lazy(() => import("@/pages/PortalCandidatura"));
-const VagaPublica = lazy(() => import("@/pages/VagaPublica"));
 const Cargos = lazy(() => import("@/pages/Cargos"));
 const CargoForm = lazy(() => import("@/pages/CargoForm"));
 const CargosEnriquecimento = lazy(() => import("@/pages/CargosEnriquecimento"));
-const EntregaTeste = lazy(() => import("@/pages/EntregaTeste"));
+
 const PortalSNCF = lazy(() => import("@/pages/PortalSNCF"));
 const Compras = lazy(() => import("@/pages/Compras"));
 const ComprasAComprar = lazy(() => import("@/pages/ComprasAComprar"));
@@ -224,7 +218,7 @@ const PedidosVenda = lazy(() => import("@/pages/administrativo/PedidosVenda"));
 const Logistica = lazy(() => import("@/pages/logistica/Logistica"));
 
 const CanalCPO = lazy(() => import("@/pages/CanalCPO"));
-const TesteFrete = lazy(() => import("@/pages/TesteFrete"));
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -304,11 +298,8 @@ const App = () => (
               <Route path="/definir-senha" element={<DefinirSenha />} />
               <Route path="/sem-permissao" element={<SemPermissao />} />
               <Route path="/aguardando-aprovacao" element={<AguardandoAprovacao />} />
-              <Route path="/cadastro/:token" element={<CadastroPublico />} />
+              
               <Route path="/pagar/:token" element={<PagarPix />} />
-              <Route path="/vagas/:id" element={<VagaPublica />} />
-              <Route path="/vagas/:id/candidatura" element={<PortalCandidatura />} />
-              <Route path="/vagas/:id/teste" element={<EntregaTeste />} />
               <Route path="/unsubscribe" element={<Unsubscribe />} />
             </Route>
 
@@ -467,7 +458,7 @@ const App = () => (
                 <Route index element={<TIDashboard />} />
                 <Route path="ativos" element={<TIAtivos />} />
                 <Route path="diagnosticos/teste-email" element={<TesteEmailTemplate />} />
-                <Route path="diagnosticos/teste-frete" element={<TesteFrete />} />
+                
               </Route>
 
               {/* Protected routes */}
@@ -476,7 +467,7 @@ const App = () => (
                 <Route path="/desligamento/:id" element={<DesligamentoDetalhe />} />
                 <Route path="/pessoas" element={<Pessoas />} />
                 <Route path="/pessoas/panorama" element={<PanoramaAreas />} />
-                <Route path="/pessoas/vagas" element={<Vagas />} />
+                
                 <Route path="/pessoas/custo" element={<CustoPessoas />} />
                 <Route path="/pessoas/folha" element={<FolhaMensal />} />
                 <Route path="/pessoas/organograma" element={<Organograma />} />
@@ -596,16 +587,6 @@ const App = () => (
                 } />
 
                 {/* RH */}
-                <Route path="/convites-cadastro" element={
-                  <ProtectedRoute>
-                    <ConvitesCadastro />
-                  </ProtectedRoute>
-                } />
-                <Route path="/convites-cadastro/:id" element={
-                  <ProtectedRoute>
-                    <ConviteDetalhe />
-                  </ProtectedRoute>
-                } />
                 <Route path="/onboarding" element={
                   <ProtectedRoute>
                     <Onboarding />
@@ -614,16 +595,6 @@ const App = () => (
                 <Route path="/onboarding/:id" element={
                   <ProtectedRoute>
                     <OnboardingDetalhe />
-                  </ProtectedRoute>
-                } />
-                <Route path="/recrutamento" element={
-                  <ProtectedRoute>
-                    <Recrutamento />
-                  </ProtectedRoute>
-                } />
-                <Route path="/recrutamento/:id" element={
-                  <ProtectedRoute>
-                    <RecrutamentoDetalhe />
                   </ProtectedRoute>
                 } />
                 <Route path="/avaliacoes" element={

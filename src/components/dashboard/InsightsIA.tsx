@@ -10,13 +10,9 @@ const FETELY_GREEN = "#1A4A3A";
 const FETELY_GREEN_BG = "#F0F7F4";
 
 interface InsightsIAProps {
-  convitesPendentes: number;
   onboardingsAtrasados: number;
-  vagasAbertas: number;
-  candidatosTriagem: number;
   contratosVencendo: number;
   tarefasBloqueantes: number;
-  tempoMedioContratacao: number;
 }
 
 interface InsightsPayload {
@@ -80,13 +76,9 @@ export default function InsightsIA(props: InsightsIAProps) {
     // Recriar callback quando os números mudarem
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
-      props.convitesPendentes,
       props.onboardingsAtrasados,
-      props.vagasAbertas,
-      props.candidatosTriagem,
       props.contratosVencendo,
       props.tarefasBloqueantes,
-      props.tempoMedioContratacao,
     ],
   );
 

@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   LayoutGrid, Users, Monitor, Star, Search,
-  FileText, Briefcase, UserPlus, ClipboardList, Workflow,
+  FileText, Briefcase, ClipboardList, Workflow,
   BookOpen, MessageSquare, Settings, Sliders,
   Receipt, Calendar, Heart, Building2, ChevronRight,
   CreditCard, UserSearch,
@@ -73,8 +73,6 @@ const ALL_PAGES: PageItem[] = [
   // People
   { rota: "/dashboard", titulo: "Dashboard People", pilar: "people", icon: Users, tags: ["dashboard", "rh", "resumo"] },
   { rota: "/pessoas", titulo: "Pessoas", pilar: "people", icon: Users, tags: ["pessoas", "colaboradores", "lista"] },
-  { rota: "/recrutamento", titulo: "Recrutamento", pilar: "people", icon: UserPlus, tags: ["recrutamento", "vagas", "candidatos"] },
-  { rota: "/convites-cadastro", titulo: "Convites de Cadastro", pilar: "people", icon: UserPlus, tags: ["convites", "cadastro"] },
   { rota: "/onboarding", titulo: "Onboarding", pilar: "people", icon: ClipboardList, tags: ["onboarding", "integração"] },
   { rota: "/movimentacoes", titulo: "Movimentações", pilar: "people", icon: ChevronRight, tags: ["movimentações", "transferências"] },
   { rota: "/folha-pagamento", titulo: "Folha de Pagamento", pilar: "people", icon: Receipt, tags: ["folha", "pagamento", "holerite"] },

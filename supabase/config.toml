@@ -21,8 +21,6 @@ additional_redirect_urls = ["https://people-fetely.lovable.app/**"]
     verify_jwt = true
   [functions.enviar-pacote-contador]
     verify_jwt = false
-  [functions.process-invite-reminders]
-    verify_jwt = true
   [functions.importar-processo-pdf]
     verify_jwt = true
   [functions.sync-bling-financeiro]

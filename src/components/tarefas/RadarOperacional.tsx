@@ -1,6 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { Radar, Mail, ClipboardCheck, FileSignature, AlertCircle } from "lucide-react";
+import { Radar, ClipboardCheck, FileSignature, AlertCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -26,16 +26,6 @@ export function RadarOperacional() {
 
   const indicadores: IndicadorRadar[] = [];
 
-  if (data.convitesPreenchidos?.length > 0) {
-    indicadores.push({
-      label: "Convites preenchidos aguardando aprovação",
-      valor: data.convitesPreenchidos.length,
-      icone: Mail,
-      rota: "/convites-cadastro",
-      cor: "text-info",
-      alertivo: true,
-    });
-  }
 
   if (data.pj?.vencendo > 0) {
     indicadores.push({

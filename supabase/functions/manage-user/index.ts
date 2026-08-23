@@ -907,51 +907,6 @@ Deno.serve(async (req) => {
 
       await adminClient.from("profiles").update({ approved: true }).eq("user_id", user_id);
 
-      // Auto-link user to CLT/PJ record via convites_cadastro
-      try {
-        const { data: { user: targetUser } } = await adminClient.auth.admin.getUserById(user_id);
-        const { data: profile } = await adminClient.from("profiles").select("full_name, colaborador_tipo").eq("user_id", user_id).single();
-
-        if (targetUser?.email) {
-          // Find invite by email that has a linked record
-          const { data: convite } = await adminClient
-            .from("convites_cadastro")
-            .select("colaborador_id, contrato_pj_id, tipo")
-            .eq("email", targetUser.email)
-            .in("status", ["preenchido", "aprovado"])
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          if (convite?.colaborador_id) {
-            await adminClient.from("colaboradores_clt").update({ user_id }).eq("id", convite.colaborador_id);
-            // Set colaborador_tipo if not already set
-            if (!profile?.colaborador_tipo) {
-              await adminClient.from("profiles").update({ colaborador_tipo: "clt" }).eq("user_id", user_id);
-            }
-          }
-          if (convite?.contrato_pj_id) {
-            await adminClient.from("contratos_pj").update({ user_id }).eq("id", convite.contrato_pj_id);
-            if (!profile?.colaborador_tipo) {
-              const tipo = convite.colaborador_id ? "ambos" : "pj";
-              await adminClient.from("profiles").update({ colaborador_tipo: tipo }).eq("user_id", user_id);
-            }
-          }
-
-          // Send approval email — Doutrina #15
-          const r = await invokeSendTransactionalEmail(supabaseUrl, anonKey, authHeader, {
-            templateName: "cadastro-aprovado",
-            recipientEmail: targetUser.email,
-            idempotencyKey: `cadastro-aprovado-${user_id}`,
-            templateData: { nome: profile?.full_name || "" },
-          });
-          if (!r.ok) {
-            console.error("[approve] Falha em send-transactional-email:", r.status, r.body);
-          }
-        }
-      } catch (linkErr) {
-        console.error("Erro ao vincular/enviar email:", linkErr);
-      }
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

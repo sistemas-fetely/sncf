@@ -60,36 +60,7 @@ export function DocumentosAnexados({ colaboradorId, contratoPjId, currentFotoUrl
     try {
       const allFiles: StorageFile[] = [];
 
-      // 1) Files from convite (pre-cadastro uploads)
-      let query = supabase.from("convites_cadastro").select("token");
-      if (colaboradorId) query = query.eq("colaborador_id", colaboradorId);
-      else if (contratoPjId) query = query.eq("contrato_pj_id", contratoPjId);
-
-      const { data: convites } = await query;
-
-      for (const convite of convites || []) {
-        const { data: storageFiles } = await supabase.storage
-          .from("documentos-cadastro")
-          .list(convite.token, { limit: 50 });
-
-        if (storageFiles) {
-          for (const sf of storageFiles) {
-            if (sf.name === ".emptyFolderPlaceholder") continue;
-            const { data: urlData } = supabase.storage
-              .from("documentos-cadastro")
-              .getPublicUrl(`${convite.token}/${sf.name}`);
-            allFiles.push({
-              name: sf.name,
-              url: urlData.publicUrl,
-              signedUrl: await getUrlAssinada("documentos-cadastro", `${convite.token}/${sf.name}`),
-              isImage: isImageFile(sf.name),
-              folder: convite.token,
-            });
-          }
-        }
-      }
-
-      // 2) Files uploaded directly by HR
+      // Documentos enviados direto pelo RH
       if (directFolder) {
         const { data: directFiles } = await supabase.storage
           .from("documentos-cadastro")
