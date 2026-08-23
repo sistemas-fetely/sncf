@@ -1,5 +1,6 @@
 import { PageTitle } from "@/components/layout/PageTitle";
 import { PageShell } from "@/components/layout/PageShell";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { useCallback, useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -161,6 +162,7 @@ function NoTime({
 
 export default function MeuTime() {
   const hoje = hojeISO();
+  const [aba, setAba] = useAbaUrl("pessoa");
   const [pessoaFiltro, setPessoaFiltro] = useState<string>("todas");
   const [prioridadeFiltro, setPrioridadeFiltro] = useState<string>("todas");
   const { user } = useAuth();
@@ -319,7 +321,7 @@ export default function MeuTime() {
             </Select>
           </div>
 
-          <Tabs defaultValue="pessoa">
+          <Tabs value={aba} onValueChange={setAba}>
             <TabsList>
               <TabsTrigger value="pessoa">Por pessoa</TabsTrigger>
               <TabsTrigger value="atrasadas">
