@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Plus, Search, BookOpen, Edit2, EyeOff, X, Loader2, GraduationCap, FileText, Trash2,
@@ -109,6 +110,7 @@ export default function Conhecimento() {
   const isAdminRH = (authRoles ?? []).includes("admin_rh") || (authRoles ?? []).includes("rh" as never);
   const userRoles = authRoles;
   const isLoading = false;
+  const [aba, setAba] = useAbaUrl("base");
   const [mostrarUploadPdf, setMostrarUploadPdf] = useState(false);
   const [itens, setItens] = useState<Conhecimento[]>([]);
   const [sugestoes, setSugestoes] = useState<SugestaoPendente[]>([]);
@@ -411,7 +413,7 @@ export default function Conhecimento() {
         </Card>
 
         {/* Tabs: Base ativa + Sugestões pendentes */}
-        <Tabs defaultValue="base" className="space-y-4">
+        <Tabs value={aba} onValueChange={setAba} className="space-y-4">
           <TabsList>
             <TabsTrigger value="base" className="gap-2">
               📚 Base Ativa ({itens.filter((i) => i.ativo).length})
