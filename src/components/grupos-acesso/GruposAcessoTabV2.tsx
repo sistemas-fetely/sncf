@@ -15,34 +15,37 @@ import {
 } from "@/components/ui/select";
 import { Plus, Users, ShieldCheck, Trash2, Lock, FileText, Layers, Loader2, ChevronRight, ArrowLeft, Sparkles } from "lucide-react";
 import {
-  useGruposAcessoV2, usePermissoesCatalogo, usePermissoesDoGrupo,
+  useGruposAcessoV2, usePermissoesDoGrupo,
   useUsuariosDoGrupo, useCriarGrupo, useDeletarGrupo, useTogglePermissao,
-  useLiberarPilar, useAdicionarUsuarioAoGrupo, useRemoverUsuarioDoGrupo,
-  type GrupoAcesso, type PermissaoCatalogo,
+  useAdicionarUsuarioAoGrupo, useRemoverUsuarioDoGrupo,
+  type GrupoAcesso,
 } from "@/hooks/useGruposAcessoV2";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-const PILAR_LABELS: Record<string, string> = {
-  portal: "Portal",
-  people: "People Fetely",
-  financeiro: "Financeiro Fetely",
-  administrativo: "Administrativo Fetely",
-  ti: "TI Fetely",
-  produto: "Produto Fetely",
-  "gestao-vista": "Gestão à Vista",
-  "adm-sncf": "ADM SNCF",
-};
+// CATALOGO-HERDA-NAVEGACAO (23/08/2026): o agrupamento do catálogo passa a ser
+// a hierarquia real do menu (app de sncf_navegacao), via vw_catalogo_por_app.
+// A cor da seção é derivada do app_chave por hash — estável entre renders,
+// sem mapa hardcoded de pilar.
+const PALETA_APPS = [
+  "#1A4A3A", "#6B5B45", "#3A7D6B", "#C77CA0", "#2C5F7C",
+  "#8A6FBF", "#B25E4B", "#4E7C2C", "#9C7A1F", "#5B6B8C",
+];
 
-const PILAR_CORES: Record<string, string> = {
-  portal: "#1A4A3A",
-  people: "#1A4A3A",
-  financeiro: "#1A4A3A",
-  administrativo: "#6B5B45",
-  ti: "#3A7D6B",
-  produto: "#C77CA0",
-  "gestao-vista": "#2C5F7C",
-  "adm-sncf": "#1A4A3A",
+function corDoApp(appChave: string): string {
+  let h = 0;
+  for (let i = 0; i < appChave.length; i++) {
+    h = (h * 31 + appChave.charCodeAt(i)) >>> 0;
+  }
+  return PALETA_APPS[h % PALETA_APPS.length];
+}
+
+// Seções-reserva da view (app_ordem 9998/9999) renderizam por último,
+// com visual atenuado e subtítulo explicativo.
+const SUBTITULO_SECAO_RESERVA: Record<number, string> = {
+  9998: "Permissões de ação, não de tela",
+  9999: "Sem tela cabeada — legado ou reserva",
 };
 
 export default function GruposAcessoTabV2() {
@@ -405,14 +408,96 @@ function AdicionarUsuarioDialog({
 }
 
 // =====================================================
-// Sessão: Permissões do grupo (agrupadas por pilar)
+// Sessão: Permissões do grupo (agrupadas por app do menu)
 // =====================================================
 
+interface CatalogoAppRow {
+  permissao_id: string;
+  slug: string;
+  tipo: "tela" | "ficha" | "processo";
+  nome_exibicao: string;
+  app_chave: string;
+  app_label: string;
+  app_ordem: number;
+  telas_cobertas: number;
+  telas_lista: string | null;
+}
+
+interface SecaoApp {
+  app_chave: string;
+  app_label: string;
+  app_ordem: number;
+  itens: CatalogoAppRow[];
+}
+
+function useCatalogoPorApp() {
+  return useQuery({
+    queryKey: ["permissoes-catalogo"],
+    queryFn: async (): Promise<CatalogoAppRow[]> => {
+      const { data, error } = await supabase
+        .from("vw_catalogo_por_app")
+        .select("permissao_id, slug, tipo, nome_exibicao, app_chave, app_label, app_ordem, telas_cobertas, telas_lista");
+      if (error) throw error;
+      return (data || [])
+        .filter((r) => r.permissao_id && r.app_chave)
+        .map((r) => ({
+          permissao_id: r.permissao_id!,
+          slug: r.slug ?? "",
+          tipo: (r.tipo ?? "tela") as CatalogoAppRow["tipo"],
+          nome_exibicao: r.nome_exibicao ?? r.slug ?? "",
+          app_chave: r.app_chave!,
+          app_label: r.app_label ?? r.app_chave!,
+          app_ordem: r.app_ordem ?? 9999,
+          telas_cobertas: r.telas_cobertas ?? 0,
+          telas_lista: r.telas_lista,
+        }));
+    },
+  });
+}
+
+// "Liberar tudo" da seção: recebe os itens da seção (calculados no client a
+// partir do agrupamento) e insere apenas os permissao_id ainda não concedidos.
+function useLiberarSecao() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      grupoId,
+      itens,
+      jaConcedidas,
+    }: {
+      grupoId: string;
+      itens: CatalogoAppRow[];
+      jaConcedidas: Set<string>;
+    }) => {
+      const novas = itens.filter((p) => !jaConcedidas.has(p.permissao_id));
+      if (!novas.length) return;
+      const rows = novas.map((p) => ({
+        grupo_acesso_id: grupoId,
+        permissao_id: p.permissao_id,
+        pode_ver: true,
+        pode_criar: p.tipo === "ficha",
+        pode_editar: p.tipo === "ficha",
+        pode_apagar: p.tipo === "ficha",
+      }));
+      const { error } = await supabase
+        .from("grupo_acesso_permissoes")
+        .insert(rows);
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["grupo-permissoes", vars.grupoId] });
+      queryClient.invalidateQueries({ queryKey: ["grupos-acesso-v2"] });
+      toast.success("Pilar liberado");
+    },
+    onError: (e: Error) => toast.error(`Erro: ${e.message}`),
+  });
+}
+
 function PermissoesDoGrupo({ grupoId }: { grupoId: string }) {
-  const { data: catalogo = [], isLoading: cl } = usePermissoesCatalogo();
+  const { data: catalogo = [], isLoading: cl } = useCatalogoPorApp();
   const { data: permsGrupo = [], isLoading: gl } = usePermissoesDoGrupo(grupoId);
   const toggle = useTogglePermissao();
-  const liberarPilar = useLiberarPilar();
+  const liberarSecao = useLiberarSecao();
 
   // Index permissões do grupo por permissao_id
   const grupoPermsMap = useMemo(() => {
@@ -421,14 +506,26 @@ function PermissoesDoGrupo({ grupoId }: { grupoId: string }) {
     return m;
   }, [permsGrupo]);
 
-  // Catálogo agrupado por pilar
-  const catalogoPorPilar = useMemo(() => {
-    const m: Record<string, PermissaoCatalogo[]> = {};
+  // Catálogo agrupado por app (hierarquia real do menu), ordenado por
+  // app_ordem; dentro de cada seção, por nome_exibicao.
+  const secoes = useMemo<SecaoApp[]>(() => {
+    const m = new Map<string, SecaoApp>();
     catalogo.forEach((p) => {
-      if (!m[p.pilar]) m[p.pilar] = [];
-      m[p.pilar].push(p);
+      if (!m.has(p.app_chave)) {
+        m.set(p.app_chave, {
+          app_chave: p.app_chave,
+          app_label: p.app_label,
+          app_ordem: p.app_ordem,
+          itens: [],
+        });
+      }
+      m.get(p.app_chave)!.itens.push(p);
     });
-    return m;
+    const arr = Array.from(m.values()).sort((a, b) => a.app_ordem - b.app_ordem);
+    arr.forEach((s) =>
+      s.itens.sort((a, b) => a.nome_exibicao.localeCompare(b.nome_exibicao, "pt-BR"))
+    );
+    return arr;
   }, [catalogo]);
 
   if (cl || gl) {
@@ -449,21 +546,26 @@ function PermissoesDoGrupo({ grupoId }: { grupoId: string }) {
           O que pode acessar
         </CardTitle>
         <p className="text-xs text-muted-foreground mt-1">
-          Marque por pilar. Telas têm só "Ver". Fichas têm Ver / Criar / Editar / Apagar.
+          Marque por módulo. Telas têm só "Ver". Fichas têm Ver / Criar / Editar / Apagar.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        {Object.entries(catalogoPorPilar).map(([pilar, perms]) => (
-          <PilarBloco
-            key={pilar}
-            pilar={pilar}
-            permissoes={perms}
+        {secoes.map((secao) => (
+          <SecaoBloco
+            key={secao.app_chave}
+            secao={secao}
             grupoPermsMap={grupoPermsMap}
             onToggle={(permissaoId, campo, valor) =>
               toggle.mutate({ grupoId, permissaoId, campo, valor })
             }
-            onLiberarTudo={() => liberarPilar.mutate({ grupoId, pilar })}
-            disabled={toggle.isPending || liberarPilar.isPending}
+            onLiberarTudo={() =>
+              liberarSecao.mutate({
+                grupoId,
+                itens: secao.itens,
+                jaConcedidas: new Set(grupoPermsMap.keys()),
+              })
+            }
+            disabled={toggle.isPending || liberarSecao.isPending}
           />
         ))}
       </CardContent>
@@ -471,19 +573,21 @@ function PermissoesDoGrupo({ grupoId }: { grupoId: string }) {
   );
 }
 
-function PilarBloco({
-  pilar, permissoes, grupoPermsMap, onToggle, onLiberarTudo, disabled,
+function SecaoBloco({
+  secao, grupoPermsMap, onToggle, onLiberarTudo, disabled,
 }: {
-  pilar: string;
-  permissoes: PermissaoCatalogo[];
+  secao: SecaoApp;
   grupoPermsMap: Map<string, { pode_ver: boolean; pode_criar: boolean; pode_editar: boolean; pode_apagar: boolean }>;
   onToggle: (permissaoId: string, campo: "pode_ver" | "pode_criar" | "pode_editar" | "pode_apagar", valor: boolean) => void;
   onLiberarTudo: () => void;
   disabled?: boolean;
 }) {
   const [aberto, setAberto] = useState(false);
-  const cor = PILAR_CORES[pilar] || "#666";
-  const liberadas = permissoes.filter((p) => grupoPermsMap.get(p.id)?.pode_ver).length;
+  const permissoes = secao.itens;
+  const cor = corDoApp(secao.app_chave);
+  const liberadas = permissoes.filter((p) => grupoPermsMap.get(p.permissao_id)?.pode_ver).length;
+  const subtituloReserva = SUBTITULO_SECAO_RESERVA[secao.app_ordem];
+  const atenuado = !!subtituloReserva;
 
   return (
     <div className="border rounded-lg overflow-hidden">
@@ -496,7 +600,14 @@ function PilarBloco({
             className="h-2 w-2 rounded-full"
             style={{ backgroundColor: cor }}
           />
-          <span className="font-medium text-sm">{PILAR_LABELS[pilar] || pilar}</span>
+          <div className="flex flex-col items-start gap-0.5 min-w-0">
+            <span className={`font-medium text-sm ${atenuado ? "text-muted-foreground" : ""}`}>
+              {secao.app_label}
+            </span>
+            {subtituloReserva && (
+              <span className="text-[10px] text-muted-foreground/70">{subtituloReserva}</span>
+            )}
+          </div>
           <Badge variant="secondary" className="text-[10px]">
             {liberadas}/{permissoes.length}
           </Badge>
@@ -535,20 +646,23 @@ function PilarBloco({
           </div>
 
           {permissoes.map((p) => {
-            const gp = grupoPermsMap.get(p.id);
+            const gp = grupoPermsMap.get(p.permissao_id);
             const isFicha = p.tipo === "ficha" || p.tipo === "processo";
             return (
               <div
-                key={p.id}
+                key={p.permissao_id}
                 className="grid grid-cols-[1fr_60px_60px_60px_60px] gap-2 px-4 py-2 items-center text-sm hover:bg-muted/20 border-b last:border-b-0"
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="truncate">{p.nome_exibicao}</span>
-                  {p.contem_dado_sensivel && (
-                    <Badge variant="outline" className="text-[9px] py-0 px-1">LGPD</Badge>
-                  )}
-                  {p.feature_em_teste && (
-                    <Badge variant="outline" className="text-[9px] py-0 px-1 bg-warning/10">BETA</Badge>
+                  {p.telas_cobertas > 1 && (
+                    <Badge
+                      variant="outline"
+                      className="text-[9px] py-0 px-1 shrink-0"
+                      title={p.telas_lista ?? undefined}
+                    >
+                      {p.telas_cobertas} telas
+                    </Badge>
                   )}
                   {p.tipo === "tela" && (
                     <span className="text-[9px] text-muted-foreground/60">tela</span>
@@ -557,14 +671,14 @@ function PilarBloco({
                 <div className="flex justify-center">
                   <Checkbox
                     checked={gp?.pode_ver || false}
-                    onCheckedChange={(v) => onToggle(p.id, "pode_ver", !!v)}
+                    onCheckedChange={(v) => onToggle(p.permissao_id, "pode_ver", !!v)}
                     disabled={disabled}
                   />
                 </div>
                 <div className="flex justify-center">
                   <Checkbox
                     checked={gp?.pode_criar || false}
-                    onCheckedChange={(v) => onToggle(p.id, "pode_criar", !!v)}
+                    onCheckedChange={(v) => onToggle(p.permissao_id, "pode_criar", !!v)}
                     disabled={disabled || !isFicha}
                     className={!isFicha ? "opacity-30" : ""}
                   />
@@ -572,7 +686,7 @@ function PilarBloco({
                 <div className="flex justify-center">
                   <Checkbox
                     checked={gp?.pode_editar || false}
-                    onCheckedChange={(v) => onToggle(p.id, "pode_editar", !!v)}
+                    onCheckedChange={(v) => onToggle(p.permissao_id, "pode_editar", !!v)}
                     disabled={disabled || !isFicha}
                     className={!isFicha ? "opacity-30" : ""}
                   />
@@ -580,7 +694,7 @@ function PilarBloco({
                 <div className="flex justify-center">
                   <Checkbox
                     checked={gp?.pode_apagar || false}
-                    onCheckedChange={(v) => onToggle(p.id, "pode_apagar", !!v)}
+                    onCheckedChange={(v) => onToggle(p.permissao_id, "pode_apagar", !!v)}
                     disabled={disabled || !isFicha}
                     className={!isFicha ? "opacity-30" : ""}
                   />
