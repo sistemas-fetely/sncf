@@ -2175,7 +2175,7 @@ export default function PedidoDetalhe() {
                   <div className="grid grid-cols-2 gap-2 pt-3 border-t border-border/40">
                     <div className="col-span-2">
                       <label className="text-[10px] text-muted-foreground uppercase tracking-wide">Tipo frete</label>
-                      <Select value={freteTipo} onValueChange={setFreteTipo}>
+                      <Select value={freteTipo} onValueChange={setFreteTipo} disabled={!temNivel(2)}>
                         <SelectTrigger className="h-8 text-sm mt-0.5"><SelectValue placeholder="Selecionar..." /></SelectTrigger>
                         <SelectContent>
                           {freteTiposAtivos.map((t) => (
