@@ -161,7 +161,7 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
     queryFn: async () => {
       const { data, error } = await supabase
         .from("grupo_acesso_usuarios")
-        .select("id, user_id, grupo_acesso_id, grupos_acesso(nome)")
+        .select("id, user_id, grupo_acesso_id, grupos_acesso(nome, ativo)")
         .is("inativado_em", null);
       if (error) throw error;
       return data;
