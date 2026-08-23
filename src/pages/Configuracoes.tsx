@@ -76,7 +76,7 @@ export default function Configuracoes() {
 
   return (
     <PageShell>
-      <PageTitle titulo="Configurações" estado="Ajustes e parâmetros gerais do sistema" />
+      <PageHeader titulo="Configurações" estado="Ajustes e parâmetros gerais do sistema" />
 
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
