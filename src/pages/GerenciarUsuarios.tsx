@@ -36,6 +36,7 @@ import NovoUsuarioDialog from "@/components/gerenciar-usuarios/NovoUsuarioDialog
 import MesaUsuariosTab from "@/components/gerenciar-usuarios/MesaUsuariosTab";
 import DiagnosticoAcessoTab from "@/components/gerenciar-usuarios/DiagnosticoAcessoTab";
 import RastroAcessoTab from "@/components/gerenciar-usuarios/RastroAcessoTab";
+import PapeisTab from "@/components/gerenciar-usuarios/PapeisTab";
 import { PageHeader } from "@/components/layout/PageHeader";
 
 
