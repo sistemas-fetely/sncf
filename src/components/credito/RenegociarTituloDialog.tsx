@@ -74,6 +74,8 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
   ]);
   const [novoInstrumento, setNovoInstrumento] = useState<NovoInstrumento>("pix");
   const [showProrrogar, setShowProrrogar] = useState(false);
+  const [resultado, setResultado] = useState<RenegociarResultado | null>(null);
+
 
   const podeProrrogar =
     titulo.tipo_pagamento === "boleto" && titulo.boleto_status === "registrado";
