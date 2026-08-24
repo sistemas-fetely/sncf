@@ -92,5 +92,8 @@ additional_redirect_urls = ["https://people-fetely.lovable.app/**"]
   [functions.reprocessar-nf-stage]
     verify_jwt = false
 
+  [functions.processar-fila-b2c-xpm]
+    verify_jwt = false
+
 
 
