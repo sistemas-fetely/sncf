@@ -466,6 +466,13 @@ export type Database = {
             foreignKeyName: "adiantamento_aplicacao_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "adiantamento_aplicacao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -1065,6 +1072,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "adiantamento_cliente_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -1771,6 +1785,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "analises_credito_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -4235,6 +4256,13 @@ export type Database = {
             foreignKeyName: "bling_envios_log_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "bling_envios_log_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -6603,6 +6631,13 @@ export type Database = {
             foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -6946,6 +6981,13 @@ export type Database = {
             foreignKeyName: "concessao_ocorrencia_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -7199,6 +7241,13 @@ export type Database = {
             columns: ["pedido_origem_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_pedido_origem_id_fkey"
+            columns: ["pedido_origem_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -10316,6 +10365,13 @@ export type Database = {
             foreignKeyName: "devolucao_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -10794,6 +10850,13 @@ export type Database = {
             columns: ["ref_pedido_id"]
             isOneToOne: true
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "documentos_venda_ref_pedido_id_fkey"
+            columns: ["ref_pedido_id"]
+            isOneToOne: true
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -15875,6 +15938,13 @@ export type Database = {
             foreignKeyName: "haver_aplicacao_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "haver_aplicacao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -16190,6 +16260,13 @@ export type Database = {
             columns: ["origem_pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "haver_cliente_origem_pedido_id_fkey"
+            columns: ["origem_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -19344,6 +19421,13 @@ export type Database = {
             foreignKeyName: "movimentacao_estoque_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -20788,6 +20872,13 @@ export type Database = {
             foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
             columns: ["pedido_venda_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
+            columns: ["pedido_venda_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -21717,6 +21808,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_venda_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -23069,6 +23167,7 @@ export type Database = {
           cidade: string | null
           cnpj: string | null
           consignado_cadencia_dias: number | null
+          consignado_dia_acerto: number | null
           contatos: Json | null
           contexto_bureau: Json | null
           cpf: string | null
@@ -23131,6 +23230,7 @@ export type Database = {
           cidade?: string | null
           cnpj?: string | null
           consignado_cadencia_dias?: number | null
+          consignado_dia_acerto?: number | null
           contatos?: Json | null
           contexto_bureau?: Json | null
           cpf?: string | null
@@ -23193,6 +23293,7 @@ export type Database = {
           cidade?: string | null
           cnpj?: string | null
           consignado_cadencia_dias?: number | null
+          consignado_dia_acerto?: number | null
           contatos?: Json | null
           contexto_bureau?: Json | null
           cpf?: string | null
@@ -23989,6 +24090,13 @@ export type Database = {
             foreignKeyName: "pedido_email_log_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_email_log_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -24460,6 +24568,13 @@ export type Database = {
             foreignKeyName: "pedido_eventos_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_eventos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -24822,6 +24937,13 @@ export type Database = {
             foreignKeyName: "pedido_itens_origem_pedido_id_fkey"
             columns: ["origem_pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_itens_origem_pedido_id_fkey"
+            columns: ["origem_pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -25075,6 +25197,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_itens_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -25383,6 +25512,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_link_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -25759,6 +25895,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_portao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -26176,6 +26319,13 @@ export type Database = {
             foreignKeyName: "pedido_remessa_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_remessa_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -26541,6 +26691,13 @@ export type Database = {
             foreignKeyName: "pedido_tarefas_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_tarefas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -26831,6 +26988,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_transicoes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -27455,6 +27619,13 @@ export type Database = {
             foreignKeyName: "pedidos_consolidado_em_pedido_id_fkey"
             columns: ["consolidado_em_pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedidos_consolidado_em_pedido_id_fkey"
+            columns: ["consolidado_em_pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -27805,6 +27976,13 @@ export type Database = {
             foreignKeyName: "pedidos_pedido_origem_id_fkey"
             columns: ["pedido_origem_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedidos_pedido_origem_id_fkey"
+            columns: ["pedido_origem_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -28065,6 +28243,13 @@ export type Database = {
             columns: ["split_de_pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedidos_split_de_pedido_id_fkey"
+            columns: ["split_de_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -30772,6 +30957,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -36143,6 +36335,13 @@ export type Database = {
             foreignKeyName: "solicitacao_comercial_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "solicitacao_comercial_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -37941,6 +38140,7 @@ export type Database = {
           numero_titulo: string
           pausa_regua_automatica: boolean
           pedido_id: string
+          pix_a_prazo: boolean | null
           pix_qr_url: string | null
           pix_token: string | null
           pix_txid: string | null
@@ -38011,6 +38211,7 @@ export type Database = {
           numero_titulo: string
           pausa_regua_automatica?: boolean
           pedido_id: string
+          pix_a_prazo?: boolean | null
           pix_qr_url?: string | null
           pix_token?: string | null
           pix_txid?: string | null
@@ -38081,6 +38282,7 @@ export type Database = {
           numero_titulo?: string
           pausa_regua_automatica?: boolean
           pedido_id?: string
+          pix_a_prazo?: boolean | null
           pix_qr_url?: string | null
           pix_token?: string | null
           pix_txid?: string | null
@@ -38689,6 +38891,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -39830,6 +40039,13 @@ export type Database = {
             foreignKeyName: "transp_fretes_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -40472,6 +40688,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "transp_rastreio_nf_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -42303,6 +42526,7 @@ export type Database = {
           ativo: boolean
           codigo: string
           created_at: string
+          fase_api_equivalente: string | null
           observacao: string | null
           ordem: number
           rotulo: string
@@ -42311,6 +42535,7 @@ export type Database = {
           ativo?: boolean
           codigo: string
           created_at?: string
+          fase_api_equivalente?: string | null
           observacao?: string | null
           ordem: number
           rotulo: string
@@ -42319,11 +42544,27 @@ export type Database = {
           ativo?: boolean
           codigo?: string
           created_at?: string
+          fase_api_equivalente?: string | null
           observacao?: string | null
           ordem?: number
           rotulo?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "xpm_arquivo_fase_dim_fase_api_equivalente_fkey"
+            columns: ["fase_api_equivalente"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_funil_fases"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "xpm_arquivo_fase_dim_fase_api_equivalente_fkey"
+            columns: ["fase_api_equivalente"]
+            isOneToOne: false
+            referencedRelation: "wns_fases_xpm"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       xpm_arquivo_fase_evento: {
         Row: {
@@ -42748,6 +42989,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "xpm_envios_log_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -43588,6 +43836,13 @@ export type Database = {
             foreignKeyName: "xpm_nf_bloqueio_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: true
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "xpm_nf_bloqueio_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: true
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -43988,6 +44243,13 @@ export type Database = {
             foreignKeyName: "xpm_nf_fila_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "xpm_nf_fila_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -44379,6 +44641,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "xpm_pedido_fila_b2c_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -46361,6 +46630,13 @@ export type Database = {
             foreignKeyName: "adiantamento_cliente_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "adiantamento_cliente_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -47310,6 +47586,13 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -47583,6 +47866,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -47977,6 +48267,7 @@ export type Database = {
           lastro_envio: string | null
           lastro_instrumento: string | null
           linha_digitavel: string | null
+          link_pagamento: string | null
           mesa_exige_acao: boolean | null
           nf_numero: string | null
           nome_canonico: string | null
@@ -48327,6 +48618,13 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -48637,6 +48935,7 @@ export type Database = {
       vw_consignado_valor_a_acertar: {
         Row: {
           consignado_cadencia_dias: number | null
+          consignado_dia_acerto: number | null
           data_ultimo_acerto: string | null
           parceiro_id: string | null
           preco_medio: number | null
@@ -49967,6 +50266,13 @@ export type Database = {
             foreignKeyName: "devolucao_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -50307,6 +50613,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "devolucao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -50869,6 +51182,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "transp_rastreio_nf_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -52045,6 +52365,13 @@ export type Database = {
             foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
             columns: ["pedido_venda_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
+            columns: ["pedido_venda_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -52514,6 +52841,13 @@ export type Database = {
             foreignKeyName: "analises_credito_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "analises_credito_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -52861,6 +53195,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_portao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -53333,6 +53674,13 @@ export type Database = {
             foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -53586,6 +53934,13 @@ export type Database = {
             columns: ["pedido_id_legado"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_pedido_id_fkey"
+            columns: ["pedido_id_legado"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -53924,6 +54279,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -55954,6 +56316,13 @@ export type Database = {
             foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
             columns: ["pedido_venda_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
+            columns: ["pedido_venda_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -56828,6 +57197,13 @@ export type Database = {
             foreignKeyName: "pedidos_split_de_pedido_id_fkey"
             columns: ["pai_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedidos_split_de_pedido_id_fkey"
+            columns: ["pai_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -57103,14 +57479,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -57496,6 +57872,13 @@ export type Database = {
             foreignKeyName: "adiantamento_cliente_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "adiantamento_cliente_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -57777,6 +58160,13 @@ export type Database = {
             columns: ["pai_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedidos_split_de_pedido_id_fkey"
+            columns: ["pai_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -58175,6 +58565,13 @@ export type Database = {
             foreignKeyName: "pedidos_split_de_pedido_id_fkey"
             columns: ["split_de_pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedidos_split_de_pedido_id_fkey"
+            columns: ["split_de_pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -58391,14 +58788,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -58716,6 +59113,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_itens_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -59305,6 +59709,13 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -59601,6 +60012,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_link_pagamento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -59970,6 +60388,13 @@ export type Database = {
             foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "nfs_emitidas_pedido_venda_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -60243,6 +60668,13 @@ export type Database = {
             foreignKeyName: "pedidos_consolidado_em_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedidos_consolidado_em_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -60496,6 +60928,13 @@ export type Database = {
             columns: ["origem_split_de_pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedidos_split_de_pedido_id_fkey"
+            columns: ["origem_split_de_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -61620,6 +62059,13 @@ export type Database = {
             foreignKeyName: "provisao_recebimento_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -61921,6 +62367,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "provisao_recebimento_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -62233,6 +62686,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -62800,6 +63260,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -63671,6 +64138,13 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
           },
@@ -63952,6 +64426,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -64771,6 +65252,13 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "vw_xpm_expedicao"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_fase_verdade"
             referencedColumns: ["pedido_id"]
           },
           {
@@ -65769,6 +66257,41 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_xpm_fase_verdade: {
+        Row: {
+          api_atualizado_em: string | null
+          api_dias_parado: number | null
+          api_fase_codigo: string | null
+          api_fase_rotulo: string | null
+          api_fase_seq: number | null
+          arquivo_fase_codigo: string | null
+          arquivo_fase_ordem: number | null
+          arquivo_fase_rotulo: string | null
+          arquivo_gerado_em: string | null
+          arquivo_observado_em: string | null
+          arquivo_seq_equiv: number | null
+          canal: string | null
+          cliente_sncf: string | null
+          expedicao_codigo: string | null
+          fase_rotulo: string | null
+          fase_seq: number | null
+          fonte_da_verdade: string | null
+          pedido_id: string | null
+          pedido_sncf: string | null
+          so_na_api: boolean | null
+          so_no_arquivo: boolean | null
+          uf: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xpm_arquivo_fase_evento_fase_codigo_fkey"
+            columns: ["arquivo_fase_codigo"]
+            isOneToOne: false
+            referencedRelation: "xpm_arquivo_fase_dim"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
       vw_xpm_funil_fases: {
         Row: {
           codigo: string | null
@@ -65820,6 +66343,11 @@ export type Database = {
       }
       vw_xpm_risco_atraso: {
         Row: {
+          arquivo_fase_ordem: number | null
+          arquivo_fase_rotulo: string | null
+          arquivo_gerado_em: string | null
+          arquivo_observado_em: string | null
+          arquivo_seq_equiv: number | null
           canal: string | null
           cidade_entrega: string | null
           cliente_sncf: string | null
@@ -65837,6 +66365,8 @@ export type Database = {
           estouro_so_por_fim_de_semana: boolean | null
           farol: string | null
           farol_sla: string | null
+          fase_seq_verdade: number | null
+          fonte_da_verdade: string | null
           horas_ciclo_bruto: number | null
           horas_ciclo_liquido: number | null
           horas_cliente: number | null
@@ -67909,6 +68439,10 @@ export type Database = {
       }
       fn_xpm_expedicao_viva: { Args: { p_id_externo: string }; Returns: string }
       fn_xpm_nf_cfop: { Args: { p_raw: Json }; Returns: string }
+      fn_xpm_nf_ja_no_espelho: {
+        Args: { p_codigo: string; p_nf_id: string }
+        Returns: boolean
+      }
       fn_xpm_payload_atribui_nf: { Args: { p_nf_id: string }; Returns: Json }
       fn_xpm_payload_expedicao: {
         Args: { p_forcar?: boolean; p_pedido_id: string }
@@ -67948,6 +68482,7 @@ export type Database = {
       gerar_periodos_ferias_pendentes: { Args: never; Returns: undefined }
       gerar_pix_portao: { Args: { p_portao_id: string }; Returns: Json }
       gerar_pix_provisao: { Args: { p_provisao_id: string }; Returns: Json }
+      gerar_pix_titulo: { Args: { p_titulo_id: string }; Returns: Json }
       gerar_plano_pagamento: {
         Args: { p_parcelas: Json; p_stage_id: string; p_user_id?: string }
         Returns: Json
