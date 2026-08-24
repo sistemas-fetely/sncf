@@ -118,15 +118,25 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
     },
     onSuccess: async (data) => {
       await registrarAcaoRegua();
-      const qtd = (data && (data.titulos_criados ?? data.qtd_titulos_criados)) ?? parcelas.length;
-      toast.success(`Renegociação concluída — ${qtd} título(s) criado(s).`);
+      const resultado = data as RenegociarResultado;
       qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
       qc.invalidateQueries({ queryKey: ["regua-log"] });
       qc.invalidateQueries({ queryKey: ["cobranca-mesa"] });
+
+      const instrumentos = (resultado?.instrumentos ?? []).filter((i) => i?.payload);
+      const qtd = resultado?.filhos?.length ?? 0;
+
+      if (instrumentos.length > 0) {
+        // PIX-NAO-FECHA-EM-SILENCIO: o operador precisa levar o código embora.
+        setResultado({ ...resultado, instrumentos });
+        return;
+      }
+      toast.success(`Renegociação concluída — ${qtd} título(s) criado(s).`);
       onClose();
     },
     onError: (err: any) => toast.error(err?.message ?? "Erro ao renegociar."),
   });
+
 
   const opcaoProrrogarDisabled = !podeProrrogar;
 
