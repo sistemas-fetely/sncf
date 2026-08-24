@@ -26,6 +26,7 @@ import {
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissoesDoUsuario, temPermissaoTela } from "@/hooks/usePermissoesDoUsuario";
+import { AbaPermitida, ConteudoAba } from "@/components/AbaGate";
 
 /**
  * Casa do B2C — mesma linguagem da Casa dos Pedidos, regras do canal loja.
