@@ -26,6 +26,7 @@ import {
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissoesDoUsuario, temPermissaoTela } from "@/hooks/usePermissoesDoUsuario";
+import { AbaPermitida, ConteudoAba } from "@/components/AbaGate";
 
 /**
  * Casa do B2C — mesma linguagem da Casa dos Pedidos, regras do canal loja.
@@ -163,7 +164,9 @@ export default function ShopifyB2c() {
         <Tabs value={aba} onValueChange={setAba} className="space-y-4">
           <TabsList>
             <TabsTrigger value="fila">Fila</TabsTrigger>
-            <TabsTrigger value="dash">Dash</TabsTrigger>
+            <AbaPermitida slug="tela.dash_b2c">
+              <TabsTrigger value="dash">Dash</TabsTrigger>
+            </AbaPermitida>
             <div className="w-px bg-border mx-1.5 self-stretch" aria-hidden />
             {podeVerCarrinhos && (
               <TabsTrigger value="carrinhos">
@@ -387,7 +390,9 @@ export default function ShopifyB2c() {
         </TabsContent>
 
         <TabsContent value="dash">
-          <DashB2c pedidos={lista} isLoading={isLoading} />
+          <ConteudoAba slug="tela.dash_b2c">
+            <DashB2c pedidos={lista} isLoading={isLoading} />
+          </ConteudoAba>
         </TabsContent>
 
         {podeVerCarrinhos && (
