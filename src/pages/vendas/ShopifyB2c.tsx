@@ -164,7 +164,9 @@ export default function ShopifyB2c() {
         <Tabs value={aba} onValueChange={setAba} className="space-y-4">
           <TabsList>
             <TabsTrigger value="fila">Fila</TabsTrigger>
-            <TabsTrigger value="dash">Dash</TabsTrigger>
+            <AbaPermitida slug="tela.dash_b2c">
+              <TabsTrigger value="dash">Dash</TabsTrigger>
+            </AbaPermitida>
             <div className="w-px bg-border mx-1.5 self-stretch" aria-hidden />
             {podeVerCarrinhos && (
               <TabsTrigger value="carrinhos">
