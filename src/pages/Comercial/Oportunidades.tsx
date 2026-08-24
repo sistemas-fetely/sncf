@@ -400,6 +400,18 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                         </TableCell>
                         <TableCell className="text-right align-top">
                           {formatBRL(r.valor_em_jogo ?? 0)}
+                          {r.rotulo_pagamento && (
+                            <div
+                              className={cn(
+                                "text-xs leading-tight",
+                                r.rotulo_pagamento === "⚠ a revisar"
+                                  ? "text-warning"
+                                  : "text-muted-foreground",
+                              )}
+                            >
+                              {r.rotulo_pagamento}
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell className="text-right align-top">
                           <div className="text-sm">{r.dias_desde_pedido ?? 0}d do pedido</div>
