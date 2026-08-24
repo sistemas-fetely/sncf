@@ -165,9 +165,35 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
 
   const opcaoProrrogarDisabled = !podeProrrogar;
 
+  if (resultado) {
+    return (
+      <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Renegociação concluída</DialogTitle>
+            <DialogDescription>
+              {resultado.filhos?.length ?? 0} título(s) criado(s) · envie o PIX abaixo ao cliente.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {(resultado.instrumentos ?? []).map((inst, i) => (
+              <InstrumentoPixBloco key={inst.token ?? inst.txid ?? i} inst={inst} />
+            ))}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={onClose}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <>
       <Dialog open={open && !showProrrogar} onOpenChange={(v) => !v && onClose()}>
+
         <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>Renegociar título</DialogTitle>
