@@ -184,11 +184,13 @@ function LinhaCompacta({
   );
 }
 function CardTitulo({
-  titulo, etapa, acaoAtrasada, conferencia, onAcao, onPular, onPausar, onRenegociar, onEnviarPacote, onReenviar,
+  titulo, etapa, acaoAtrasada, conferencia, zonaAtraso, onAcao, onPular, onPausar, onRenegociar, onEnviarPacote, onReenviar,
 }: {
   titulo: TituloCobranca;
   etapa: ReguaEtapa | null;
   acaoAtrasada?: boolean;
+  /** Card da zona EM ATRASO: borda vermelha e valor com degrau tipográfico. */
+  zonaAtraso?: boolean;
   conferencia?: BoletoVencimentoConferencia;
   onAcao: () => void;
   onPular: () => void;
@@ -209,6 +211,7 @@ function CardTitulo({
     <div
       className={cn(
         "rounded-md border bg-card p-3 space-y-2",
+        zonaAtraso && "border-l-4 border-l-destructive",
         acaoAtrasada && vencido && "border-destructive/60 ring-1 ring-destructive/30 bg-destructive/5",
       )}
     >
@@ -235,10 +238,12 @@ function CardTitulo({
           </p>
         </div>
         <div className="text-right shrink-0">
-          <div className="font-medium text-sm">{formatBRL(titulo.valor_efetivo)}</div>
+          <div className={cn("font-medium", zonaAtraso ? "text-base text-destructive" : "text-sm")}>
+            {formatBRL(titulo.valor_efetivo)}
+          </div>
           {atraso > 0 ? (
             <Badge variant="destructive" className="text-[10px]">
-              há {titulo.dias_atraso}d
+              {zonaAtraso ? `há ${atraso} ${atraso === 1 ? "dia" : "dias"}` : `há ${atraso}d`}
             </Badge>
           ) : atraso < 0 ? (
             <Badge variant="outline" className="text-[10px]">
@@ -268,6 +273,12 @@ function CardTitulo({
 
 
       <div className="flex flex-wrap gap-1">
+        {/* ETAPA-E-BADGE-NAO-EIXO: cadência é rótulo do card, não agrupamento. */}
+        {etapa && (
+          <Badge variant="outline" className="text-[10px]">
+            {etapa.descricao_acao} · D{etapa.dias_offset >= 0 ? `+${etapa.dias_offset}` : etapa.dias_offset}
+          </Badge>
+        )}
         {etapa && (
           <Badge variant="secondary" className="text-[10px]">
             {CANAL_LABEL[etapa.canal_sugerido] ?? etapa.canal_sugerido}
