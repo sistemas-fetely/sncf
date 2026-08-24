@@ -2,11 +2,12 @@ import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { RefreshCw, Star, AlertTriangle, Users, Play, Send, ChevronRight } from "lucide-react";
+import { RefreshCw, Star, AlertTriangle, Users, Play, Send, ChevronRight, CheckCircle2, Minus } from "lucide-react";
 import {
   useReguaEtapas,
   useReguaFilaHoje,
   useReguaPausados,
+  useReguaVencidoForaDaFila,
   resolverEtapaParaTitulo,
   etapaUltimaDoTitulo,
   type ReguaEtapa,
@@ -360,6 +361,109 @@ function CardTitulo({
           );
         })()}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Zona 2 — VENCIDO FORA DA RÉGUA. Bloqueio operacional, não inadimplência
+ * confirmada: tom âmbar e SEM ação de cobrança. Motivo e ação vêm do banco
+ * já em português — a tela não traduz nem recalcula.
+ */
+function CardForaDaRegua({
+  titulo, onRenegociar, onVerTitulo,
+}: {
+  titulo: TituloCobranca;
+  onRenegociar: () => void;
+  onVerTitulo: () => void;
+}) {
+  const razao = nomeCanonico(titulo.parceiro_razao_social, "—");
+  const apelido = apelidoParceiro(titulo.parceiro_razao_social, titulo.parceiro_nome_fantasia);
+  const mesa = (titulo as any)._mesa as LinhaMesa | undefined;
+  const atraso = titulo.dias_atraso ?? 0;
+  return (
+    <div className="rounded-md border border-l-4 border-l-warning bg-card p-3 space-y-2">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-sm font-medium truncate">{razao}</p>
+          {apelido && <p className="text-xs text-muted-foreground truncate">{apelido}</p>}
+          <p className="text-xs text-muted-foreground font-mono mt-0.5">
+            {[titulo.pedido_id_externo || null, titulo.numero_titulo,
+              titulo.total_parcelas > 1 ? `parcela ${titulo.numero_parcela}/${titulo.total_parcelas}` : null]
+              .filter(Boolean).join(" · ")}
+          </p>
+        </div>
+        <div className="text-right shrink-0">
+          <div className="font-medium text-base text-warning">{formatBRL(titulo.valor_efetivo)}</div>
+          <Badge className="text-[10px] bg-warning/10 text-warning border border-warning/40">
+            há {atraso} {atraso === 1 ? "dia" : "dias"}
+          </Badge>
+        </div>
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        vence {fmtDataMesa(mesa?.vencimento ?? titulo.data_vencimento_atual)}
+      </p>
+
+      {mesa?.acao_sugerida && (
+        <div className="rounded-md border border-warning/40 bg-warning/10 px-2 py-1.5 text-[11px] font-medium text-warning">
+          <AlertTriangle className="h-3 w-3 inline mr-1 -mt-0.5" />
+          {mesa.acao_sugerida}
+        </div>
+      )}
+      {mesa?.regua_motivo_inelegivel && (
+        <p className="text-[11px] text-muted-foreground">{mesa.regua_motivo_inelegivel}</p>
+      )}
+
+      <div className="flex flex-wrap gap-1.5 pt-1">
+        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onRenegociar}>
+          Renegociar
+        </Button>
+        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onVerTitulo}>
+          Ver título
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/** Cabeçalho de zona — o eixo da tela é atraso, nunca etapa. */
+function ZonaHeader({
+  titulo, qtd, total, tom, id,
+}: {
+  titulo: string;
+  qtd: number;
+  total: number;
+  tom: "destructive" | "warning" | "muted";
+  id: string;
+}) {
+  return (
+    <div
+      id={id}
+      className={cn(
+        "flex items-center justify-between gap-2 rounded-md border px-3 py-2 scroll-mt-4",
+        tom === "destructive" && "border-destructive/40 bg-destructive/5 text-destructive",
+        tom === "warning" && "border-warning/40 bg-warning/10 text-warning",
+        tom === "muted" && "border-border bg-muted/40 text-muted-foreground",
+      )}
+    >
+      <h3 className="text-sm font-medium uppercase tracking-wide">{titulo}</h3>
+      <span className="text-xs tabular-nums">
+        {qtd} {qtd === 1 ? "título" : "títulos"} · {formatBRL(total)}
+      </span>
+    </div>
+  );
+}
+
+function ZonaVazia({ texto, tom }: { texto: string; tom: "success" | "muted" }) {
+  return (
+    <div className="flex items-center gap-2 rounded-md border border-dashed px-3 py-3 text-xs">
+      {tom === "success" ? (
+        <CheckCircle2 className="h-4 w-4 text-success" />
+      ) : (
+        <Minus className="h-4 w-4 text-muted-foreground" />
+      )}
+      <span className={tom === "success" ? "text-success" : "text-muted-foreground"}>{texto}</span>
     </div>
   );
 }
