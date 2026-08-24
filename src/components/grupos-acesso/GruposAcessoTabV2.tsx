@@ -570,6 +570,13 @@ function PermissoesDoGrupo({ grupoId }: { grupoId: string }) {
     return m;
   }, [permsGrupo]);
 
+  // slug -> permissao_id (catálogo inteiro): a filha herdada pode morar em outro app.
+  const slugParaPermissaoId = useMemo(() => {
+    const m = new Map<string, string>();
+    catalogo.forEach((p) => { if (p.slug) m.set(p.slug, p.permissao_id); });
+    return m;
+  }, [catalogo]);
+
   // Catálogo agrupado por app e, dentro de cada app, por submenu (mesma
   // hierarquia do menu lateral). Ordenado por app_ordem, depois submenu_ordem,
   // depois ordem_menu (ordem real do menu lateral) e, em empate, nome_exibicao.
@@ -653,6 +660,7 @@ function PermissoesDoGrupo({ grupoId }: { grupoId: string }) {
             key={secao.app_chave}
             secao={secao}
             grupoPermsMap={grupoPermsMap}
+            slugParaPermissaoId={slugParaPermissaoId}
             onToggle={(permissaoId, campo, valor) =>
               toggle.mutate({ grupoId, permissaoId, campo, valor })
             }
@@ -672,10 +680,11 @@ function PermissoesDoGrupo({ grupoId }: { grupoId: string }) {
 }
 
 function SecaoBloco({
-  secao, grupoPermsMap, onToggle, onLiberarTudo, disabled,
+  secao, grupoPermsMap, slugParaPermissaoId, onToggle, onLiberarTudo, disabled,
 }: {
   secao: SecaoApp;
   grupoPermsMap: Map<string, { pode_ver: boolean; pode_criar: boolean; pode_editar: boolean; pode_apagar: boolean }>;
+  slugParaPermissaoId: Map<string, string>;
   onToggle: (permissaoId: string, campo: "pode_ver" | "pode_criar" | "pode_editar" | "pode_apagar", valor: boolean) => void;
   onLiberarTudo: () => void;
   disabled?: boolean;
@@ -819,7 +828,15 @@ function SecaoBloco({
                           />
                         </div>
                       </div>
-                        {p.filhas_herdadas?.map((filha) => (
+                        {p.filhas_herdadas?.map((filha) => {
+                          // A filha só aparece pro usuário se a permissão de origem
+                          // estiver concedida. Se ela herda deste próprio pai, vale o pai.
+                          const idOrigem =
+                            filha.slug === p.slug
+                              ? p.permissao_id
+                              : slugParaPermissaoId.get(filha.slug);
+                          const origemLiberada = !!(idOrigem && grupoPermsMap.get(idOrigem)?.pode_ver);
+                          return (
                           <div
                             key={`${p.permissao_id}-${filha.label}`}
                             className="grid grid-cols-[1fr_60px_60px] gap-2 px-4 py-1.5 border-b last:border-b-0 bg-muted/5"
@@ -827,12 +844,18 @@ function SecaoBloco({
                             <div className="flex items-center gap-2 min-w-0 pl-12">
                               <span className="text-muted-foreground/40 shrink-0">↳</span>
                               <span className="text-[13px] text-muted-foreground truncate">{filha.label}</span>
-                              <span className="text-[9px] text-muted-foreground/60 shrink-0">herda de {filha.herda_de}</span>
+                              <span className="text-[9px] text-muted-foreground/60 shrink-0">usa a permissão "{filha.herda_de}"</span>
+                              {origemLiberada ? (
+                                <span className="text-[9px] text-success shrink-0">✓ liberada</span>
+                              ) : (
+                                <span className="text-[9px] text-destructive/70 shrink-0">não liberada neste grupo</span>
+                              )}
                             </div>
                             <div />
                             <div />
                           </div>
-                        ))}
+                          );
+                        })}
                     </Fragment>
                   );
                 })}
