@@ -65,6 +65,58 @@ function amanhaISO() {
   return d.toISOString().slice(0, 10);
 }
 
+function InstrumentoPixBloco({ inst }: { inst: InstrumentoRenegociado }) {
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(inst.payload);
+      toast.success("Código PIX copiado.");
+    } catch {
+      toast.error("Não foi possível copiar — selecione o código manualmente.");
+    }
+  };
+  return (
+    <div className="rounded-md border p-3 space-y-3">
+      <div>
+        <p className="text-sm font-medium">
+          {inst.titulo ?? "—"}
+          {inst.valor != null && <> · {formatBRL(inst.valor)}</>}
+        </p>
+        {inst.vencimento && (
+          <p className="text-xs text-muted-foreground">
+            Vence {formatDateBR(inst.vencimento)}
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-xs">PIX copia e cola</Label>
+        <div className="rounded-md border bg-muted/50 p-2 max-h-24 overflow-y-auto">
+          <code className="text-[11px] font-mono break-all leading-relaxed">
+            {inst.payload}
+          </code>
+        </div>
+        <Button size="sm" onClick={copiar}>
+          <Copy className="h-3.5 w-3.5 mr-1" /> Copiar código
+        </Button>
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-xs">QR Code</Label>
+        <div className="inline-flex rounded-md border bg-white p-2">
+          <QRCodeSVG value={inst.payload} size={168} level="M" marginSize={1} bgColor="#FFFFFF" />
+        </div>
+      </div>
+
+      {(inst.beneficiario || inst.banco) && (
+        <p className="text-xs text-muted-foreground">
+          {[inst.beneficiario, inst.banco].filter(Boolean).join(" · ")}
+        </p>
+      )}
+    </div>
+  );
+}
+
+
 export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) {
   const qc = useQueryClient();
   const [modalidade, setModalidade] = useState<Modalidade>(2);
