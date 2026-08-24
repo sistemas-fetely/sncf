@@ -167,6 +167,10 @@ export function PipelineHorizontal({
     (e) => !e.eh_desvio && (!e.eh_final || e.estagio === "entregue"),
   );
 
+  const permComercial = usePermissoesTela("tela.comercial");
+  // Fail-closed: enquanto carrega, o card não existe.
+  const podeVerComercial = permComercial.podeVer && !permComercial.carregando;
+
   // FONTE-UNICA: o card da Mesa Comercial le a MESMA view que a tabela da aba.
   const { data: mesaComercial } = useQuery({
     queryKey: ["mesa-comercial-card"],
