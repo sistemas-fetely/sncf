@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePedidosPipeline } from "@/hooks/pedidos/usePedidosPipeline";
+import { usePermissoesTela } from "@/hooks/usePermissoesTela";
 import {
   ESTAGIO_LABELS_CURTO,
   PIPELINE_PRINCIPAL,
@@ -166,6 +167,10 @@ export function PipelineHorizontal({
   const fases = estagios.filter(
     (e) => !e.eh_desvio && (!e.eh_final || e.estagio === "entregue"),
   );
+
+  const permComercial = usePermissoesTela("tela.comercial");
+  // Fail-closed: enquanto carrega, o card não existe.
+  const podeVerComercial = permComercial.podeVer && !permComercial.carregando;
 
   // FONTE-UNICA: o card da Mesa Comercial le a MESMA view que a tabela da aba.
   const { data: mesaComercial } = useQuery({
@@ -362,30 +367,35 @@ export function PipelineHorizontal({
           );
         })}
 
-        {/* Divisor: daqui pra frente não é passo do fluxo */}
-        <div className="w-px bg-border mx-1 self-stretch" />
+        {/* PERMISSÃO-SEGUE-O-DADO: o card entrega contagem e VALOR da Mesa Comercial. Sem tela.comercial, nem o número aparece — o portão da aba não basta se o KPI vaza por fora. */}
+        {podeVerComercial && (
+          <>
+            {/* Divisor: daqui pra frente não é passo do fluxo */}
+            <div className="w-px bg-border mx-1 self-stretch" />
 
-        {/* Mesa Comercial — fora da carteira ativa */}
-        <button
-          type="button"
-          onClick={() => onAbrirRecuperacao?.()}
-          title="Fora da carteira ativa. Pedidos que aguardam pagamento ou estoque — clique para abrir a aba Mesa Comercial."
-          className={cn(
-            "flex w-[104px] shrink-0 flex-col items-center justify-center rounded-md border border-dashed bg-muted/40 py-2 px-2 text-muted-foreground transition-all duration-200",
-            "gold-border-hover focus-visible:outline-none",
-            (mesaComercial?.qtd ?? 0) === 0 && "opacity-40",
-          )}
-        >
-          <span className="text-[10px] font-medium uppercase tracking-wide leading-tight">
-            Mesa Comercial
-          </span>
-          <span className="text-[11px] font-medium tabular-nums">
-            {mesaComercial?.qtd ?? 0} {(mesaComercial?.qtd ?? 0) === 1 ? "pedido" : "pedidos"}
-          </span>
-          <span className="text-[10px] tabular-nums">
-            {fmtBRL.format(mesaComercial?.valor ?? 0)}
-          </span>
-        </button>
+            {/* Mesa Comercial — fora da carteira ativa */}
+            <button
+              type="button"
+              onClick={() => onAbrirRecuperacao?.()}
+              title="Fora da carteira ativa. Pedidos que aguardam pagamento ou estoque — clique para abrir a aba Mesa Comercial."
+              className={cn(
+                "flex w-[104px] shrink-0 flex-col items-center justify-center rounded-md border border-dashed bg-muted/40 py-2 px-2 text-muted-foreground transition-all duration-200",
+                "gold-border-hover focus-visible:outline-none",
+                (mesaComercial?.qtd ?? 0) === 0 && "opacity-40",
+              )}
+            >
+              <span className="text-[10px] font-medium uppercase tracking-wide leading-tight">
+                Mesa Comercial
+              </span>
+              <span className="text-[11px] font-medium tabular-nums">
+                {mesaComercial?.qtd ?? 0} {(mesaComercial?.qtd ?? 0) === 1 ? "pedido" : "pedidos"}
+              </span>
+              <span className="text-[10px] tabular-nums">
+                {fmtBRL.format(mesaComercial?.valor ?? 0)}
+              </span>
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
