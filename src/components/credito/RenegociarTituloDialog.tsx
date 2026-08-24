@@ -10,14 +10,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Copy } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { formatBRL } from "@/lib/format-currency";
+import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import type { TituloCobranca } from "@/hooks/credito/useTitulosCobranca";
 import type { ReguaEtapa } from "@/hooks/credito/useReguaFila";
 import { ProrrogarVencimentoDialog } from "@/components/credito/ProrrogarVencimentoDialog";
@@ -25,10 +26,32 @@ import { ProrrogarVencimentoDialog } from "@/components/credito/ProrrogarVencime
 type Modalidade = 1 | 2 | 3;
 type NovoInstrumento = "pix" | "transferencia";
 
+/** Retorno da RPC `renegociar_titulo` (contrato de 24/08/2026). */
+export interface InstrumentoRenegociado {
+  ok?: boolean;
+  titulo: string | null;
+  payload: string;
+  txid?: string | null;
+  token?: string | null;
+  valor?: number | null;
+  vencimento?: string | null;
+  pedido?: string | null;
+  beneficiario?: string | null;
+  banco?: string | null;
+}
+
+export interface RenegociarResultado {
+  ok: boolean;
+  modalidade: 2 | 3;
+  filhos: string[];
+  instrumentos?: InstrumentoRenegociado[];
+}
+
 interface Parcela {
   valor: string;
   data_vencimento: string;
 }
+
 
 interface Props {
   titulo: TituloCobranca;
@@ -43,6 +66,58 @@ function amanhaISO() {
   return d.toISOString().slice(0, 10);
 }
 
+function InstrumentoPixBloco({ inst }: { inst: InstrumentoRenegociado }) {
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(inst.payload);
+      toast.success("Código PIX copiado.");
+    } catch {
+      toast.error("Não foi possível copiar — selecione o código manualmente.");
+    }
+  };
+  return (
+    <div className="rounded-md border p-3 space-y-3">
+      <div>
+        <p className="text-sm font-medium">
+          {inst.titulo ?? "—"}
+          {inst.valor != null && <> · {formatBRL(inst.valor)}</>}
+        </p>
+        {inst.vencimento && (
+          <p className="text-xs text-muted-foreground">
+            Vence {formatDateBR(inst.vencimento)}
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-xs">PIX copia e cola</Label>
+        <div className="rounded-md border bg-muted/50 p-2 max-h-24 overflow-y-auto">
+          <code className="text-[11px] font-mono break-all leading-relaxed">
+            {inst.payload}
+          </code>
+        </div>
+        <Button size="sm" onClick={copiar}>
+          <Copy className="h-3.5 w-3.5 mr-1" /> Copiar código
+        </Button>
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-xs">QR Code</Label>
+        <div className="inline-flex rounded-md border bg-white p-2">
+          <QRCodeSVG value={inst.payload} size={168} level="M" marginSize={1} bgColor="#FFFFFF" />
+        </div>
+      </div>
+
+      {(inst.beneficiario || inst.banco) && (
+        <p className="text-xs text-muted-foreground">
+          {[inst.beneficiario, inst.banco].filter(Boolean).join(" · ")}
+        </p>
+      )}
+    </div>
+  );
+}
+
+
 export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) {
   const qc = useQueryClient();
   const [modalidade, setModalidade] = useState<Modalidade>(2);
@@ -52,6 +127,8 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
   ]);
   const [novoInstrumento, setNovoInstrumento] = useState<NovoInstrumento>("pix");
   const [showProrrogar, setShowProrrogar] = useState(false);
+  const [resultado, setResultado] = useState<RenegociarResultado | null>(null);
+
 
   const podeProrrogar =
     titulo.tipo_pagamento === "boleto" && titulo.boleto_status === "registrado";
@@ -118,21 +195,58 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
     },
     onSuccess: async (data) => {
       await registrarAcaoRegua();
-      const qtd = (data && (data.titulos_criados ?? data.qtd_titulos_criados)) ?? parcelas.length;
-      toast.success(`Renegociação concluída — ${qtd} título(s) criado(s).`);
+      const res = data as RenegociarResultado;
       qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
       qc.invalidateQueries({ queryKey: ["regua-log"] });
       qc.invalidateQueries({ queryKey: ["cobranca-mesa"] });
+
+      const instrumentos = (res?.instrumentos ?? []).filter((i) => i?.payload);
+      const qtd = res?.filhos?.length ?? 0;
+
+      if (instrumentos.length > 0) {
+        // PIX-NAO-FECHA-EM-SILENCIO: o operador precisa levar o código embora.
+        setResultado({ ...res, instrumentos });
+        return;
+      }
+
+      toast.success(`Renegociação concluída — ${qtd} título(s) criado(s).`);
       onClose();
     },
     onError: (err: any) => toast.error(err?.message ?? "Erro ao renegociar."),
   });
 
+
   const opcaoProrrogarDisabled = !podeProrrogar;
+
+  if (resultado) {
+    return (
+      <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Renegociação concluída</DialogTitle>
+            <DialogDescription>
+              {resultado.filhos?.length ?? 0} título(s) criado(s) · envie o PIX abaixo ao cliente.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {(resultado.instrumentos ?? []).map((inst, i) => (
+              <InstrumentoPixBloco key={inst.token ?? inst.txid ?? i} inst={inst} />
+            ))}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={onClose}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <>
       <Dialog open={open && !showProrrogar} onOpenChange={(v) => !v && onClose()}>
+
         <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>Renegociar título</DialogTitle>
@@ -224,6 +338,11 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
                     O título original será encerrado como{" "}
                     <b>cancelado_recuperacao</b> e não poderá receber pagamentos. Se houver
                     boleto registrado, a baixa será solicitada automaticamente ao banco.
+                    {modalidade === 3 && novoInstrumento === "pix" && (
+                      <span className="block mt-1">
+                        O QR PIX será gerado automaticamente e aparecerá aqui para você enviar ao cliente.
+                      </span>
+                    )}
                   </AlertDescription>
                 </Alert>
 

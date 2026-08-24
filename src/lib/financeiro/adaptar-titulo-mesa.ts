@@ -15,7 +15,10 @@ export interface LinhaMesa {
   numero_parcela: number | null;
   total_parcelas: number | null;
   valor_atual: number | null;
+  /** BR Code PIX copia-e-cola do título (PIX a prazo). */
+  link_pagamento?: string | null;
   vencimento: string | null;
+
   dias_atraso: number | null;
   boleto_status: string | null;
   linha_digitavel: string | null;

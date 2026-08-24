@@ -83,6 +83,30 @@ export function useReguaFilaHoje() {
 }
 
 
+/**
+ * VENCIDO-NAO-DESAPARECE: títulos vencidos que a régua não pode escalar por
+ * falta de lastro. O banco decide (regua_elegivel=false); a tela só mostra.
+ */
+export function useReguaVencidoForaDaFila() {
+  return useQuery({
+    queryKey: ["titulos-cobranca", "cobranca-mesa", "regua-vencido-fora"],
+    queryFn: async (): Promise<TituloCobranca[]> => {
+      const { data, error } = await (supabase as any)
+        .from("vw_cobranca_mesa")
+        .select("*")
+        .gt("dias_atraso", 0)
+        .eq("regua_elegivel", false)
+        .neq("fila", "NAO_COBRAVEL")
+        .order("dias_atraso", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      return ((data ?? []) as LinhaMesa[]).map(adaptarParaTitulo);
+    },
+    staleTime: 30_000,
+  });
+}
+
+
 export function useReguaPausados() {
   return useQuery({
     queryKey: ["titulos-cobranca", "cobranca-mesa", "regua-pausados"],
