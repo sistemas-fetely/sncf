@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePedidosPipeline } from "@/hooks/pedidos/usePedidosPipeline";
+import { usePermissoesTela } from "@/hooks/usePermissoesTela";
 import {
   ESTAGIO_LABELS_CURTO,
   PIPELINE_PRINCIPAL,
