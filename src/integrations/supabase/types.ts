@@ -56913,6 +56913,7 @@ export type Database = {
           portao_id: string | null
           portao_linhas: number | null
           retomavel_para: string | null
+          rotulo_pagamento: string | null
           situacao_financeira: string | null
           situacao_rotulo: string | null
           status_portao: string | null
@@ -58788,14 +58789,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -67915,6 +67916,10 @@ export type Database = {
       fn_gtin14: {
         Args: { p_ean13: string; p_indicador?: string }
         Returns: string
+      }
+      fn_hidratar_pedido_b2c: {
+        Args: { p_dry_run?: boolean; p_pedido_id: string }
+        Returns: Json
       }
       fn_horas_fim_de_semana: {
         Args: { p_fim: string; p_ini: string }
