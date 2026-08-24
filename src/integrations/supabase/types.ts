@@ -9503,6 +9503,42 @@ export type Database = {
         }
         Relationships: []
       }
+      ddl_log: {
+        Row: {
+          aplicacao: string | null
+          client_addr: unknown
+          comando: string | null
+          id: number
+          objeto: string | null
+          ocorrido_em: string
+          sql_bruto: string | null
+          tipo_objeto: string | null
+          usuario: string
+        }
+        Insert: {
+          aplicacao?: string | null
+          client_addr?: unknown
+          comando?: string | null
+          id?: number
+          objeto?: string | null
+          ocorrido_em?: string
+          sql_bruto?: string | null
+          tipo_objeto?: string | null
+          usuario?: string
+        }
+        Update: {
+          aplicacao?: string | null
+          client_addr?: unknown
+          comando?: string | null
+          id?: number
+          objeto?: string | null
+          ocorrido_em?: string
+          sql_bruto?: string | null
+          tipo_objeto?: string | null
+          usuario?: string
+        }
+        Relationships: []
+      }
       delegacoes_gestao: {
         Row: {
           ativa: boolean
@@ -42153,6 +42189,7 @@ export type Database = {
       wns_fase_para_estagio: {
         Row: {
           ativo: boolean
+          canal: string
           created_at: string
           estagio_destino: string
           id: string
@@ -42161,6 +42198,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          canal: string
           created_at?: string
           estagio_destino: string
           id?: string
@@ -42169,6 +42207,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          canal?: string
           created_at?: string
           estagio_destino?: string
           id?: string
@@ -42177,9 +42216,16 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "wns_fase_para_estagio_destino_fkey"
+            columns: ["estagio_destino"]
+            isOneToOne: false
+            referencedRelation: "pedido_estagio"
+            referencedColumns: ["codigo"]
+          },
+          {
             foreignKeyName: "wns_fase_para_estagio_wns_fase_id_fkey"
             columns: ["wns_fase_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "wns_fases_xpm"
             referencedColumns: ["wns_id"]
           },

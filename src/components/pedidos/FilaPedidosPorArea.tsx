@@ -12,6 +12,7 @@ import type { PedidoRisco } from "@/hooks/pedidos/usePedidoRisco";
 import { usePedidosEntregaLote, type EntregaLinhaInfo } from "@/hooks/pedidos/usePedidoEntrega";
 import { useDownloadNfPdf } from "@/hooks/nf/useDownloadNfPdf";
 import { useLiberacaoExpedicaoLote, type LiberacaoExpedicao } from "@/hooks/pedidos/useLiberacaoExpedicao";
+import { useCoberturaPedidos, type CoberturaPedido } from "@/lib/pedidoDestaque";
 import { CelulaEntregaFila, LinhaNfFila } from "@/components/pedidos/CelulasFilaPedidos";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -233,8 +234,10 @@ function EstadoVazioFila({
 
 
 
-/** LASTRO-E-INSTRUMENTO (20/08/2026): a coluna Lastro diz se o dinheiro em aberto
- *  tem instrumento de cobrança (boleto registrado / em remessa / nenhum). */
+/** COBERTURA-E-COBRANCA (24/08/2026): a coluna Estoque mede cobertura de estoque
+ *  (percentual de itens do pedido com lastro, vindo de vw_pedido_cobertura).
+ *  A coluna Cobrança mede instrumento de cobrança do dinheiro em aberto
+ *  (boleto registrado / em remessa / nenhum), vindo de vw_pedido_lastro_cobranca. */
 type LastroCobranca = {
   pedido_id: string;
   lastro: "registrado" | "em_remessa" | "boleto_sem_registro" | "sem_instrumento" | "nao_aplica";
@@ -248,49 +251,99 @@ type LastroCobranca = {
   titulos: number | null;
 };
 
-const LASTRO_META: Record<string, { texto: string; classe: string }> = {
+const COBRANCA_META: Record<string, { texto: string; classe: string }> = {
   registrado: { texto: "Boleto registrado", classe: "border-success/50 text-success" },
   em_remessa: { texto: "Em remessa", classe: "border-warning/50 text-warning" },
   boleto_sem_registro: { texto: "SEM REGISTRO", classe: "border-destructive/50 text-destructive" },
   sem_instrumento: { texto: "SEM INSTRUMENTO", classe: "border-destructive/50 text-destructive" },
 };
 
-function CelulaLastro({ lastro }: { lastro: LastroCobranca | undefined }) {
-  const meta = lastro ? LASTRO_META[lastro.lastro] : undefined;
-  if (!lastro || !meta) return <span className="text-muted-foreground">—</span>;
+function CelulaCobranca({ cobranca }: { cobranca: LastroCobranca | undefined }) {
+  const meta = cobranca ? COBRANCA_META[cobranca.lastro] : undefined;
+  if (!cobranca || !meta) return <span className="text-muted-foreground">—</span>;
 
   const resumo = [
-    lastro.valor_registrado ? `Registrado ${fmtBRL.format(lastro.valor_registrado)}` : null,
-    lastro.valor_em_remessa ? `Em remessa ${fmtBRL.format(lastro.valor_em_remessa)}` : null,
-    lastro.valor_boleto_sem_registro
-      ? `Sem registro ${fmtBRL.format(lastro.valor_boleto_sem_registro)}`
+    cobranca.valor_registrado ? `Registrado ${fmtBRL.format(cobranca.valor_registrado)}` : null,
+    cobranca.valor_em_remessa ? `Em remessa ${fmtBRL.format(cobranca.valor_em_remessa)}` : null,
+    cobranca.valor_boleto_sem_registro
+      ? `Sem registro ${fmtBRL.format(cobranca.valor_boleto_sem_registro)}`
       : null,
-    lastro.valor_sem_instrumento
-      ? `Sem instrumento ${fmtBRL.format(lastro.valor_sem_instrumento)}`
+    cobranca.valor_sem_instrumento
+      ? `Sem instrumento ${fmtBRL.format(cobranca.valor_sem_instrumento)}`
       : null,
   ]
     .filter(Boolean)
     .join(" · ");
 
   const mostraValor =
-    lastro.lastro === "boleto_sem_registro" || lastro.lastro === "sem_instrumento";
+    cobranca.lastro === "boleto_sem_registro" || cobranca.lastro === "sem_instrumento";
 
   return (
     <div className="space-y-0.5">
       <Badge
         variant="outline"
         className={cn("rounded px-1.5 py-0 text-[10px]", meta.classe)}
-        title={resumo || lastro.lastro_rotulo || meta.texto}
+        title={resumo || cobranca.lastro_rotulo || meta.texto}
       >
         {meta.texto}
       </Badge>
       {mostraValor && (
         <p className="text-xs text-muted-foreground">
-          {fmtBRL.format(lastro.valor_aberto || 0)}
-          {lastro.tem_vencido_sem_lastro ? <span className="text-destructive"> · vencido</span> : null}
+          {fmtBRL.format(cobranca.valor_aberto || 0)}
+          {cobranca.tem_vencido_sem_lastro ? <span className="text-destructive"> · vencido</span> : null}
         </p>
       )}
     </div>
+  );
+}
+
+function CelulaEstoque({ cob }: { cob: CoberturaPedido | undefined }) {
+  if (!cob || cob.cobertura_pedido === "faturado") {
+    return <span className="text-muted-foreground">—</span>;
+  }
+
+  const pct = Math.round(cob.pct_coberto);
+  if (pct === 100) {
+    return <span className="text-muted-foreground tabular-nums">100%</span>;
+  }
+
+  const unCobertas = Math.round(cob.un_cobertas);
+  const unTotal = Math.round(cob.un_total);
+  const unDescobertas = Math.round(cob.un_descobertas);
+  const tooltip = cob.na_fila === false
+    ? `${unCobertas} de ${unTotal} unidades com lastro\nPedido fora da fila de reserva — estágio não reserva estoque.`
+    : `${unCobertas} de ${unTotal} unidades com lastro`;
+
+  if (pct === 0) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant="outline" className="rounded px-1.5 py-0 text-[10px] border-destructive/50 text-destructive">
+              Sem estoque
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="text-xs max-w-[200px] whitespace-pre-line">{tooltip}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge variant="outline" className="rounded px-1.5 py-0 text-[10px] tabular-nums border-warning/50 text-warning">
+            {pct}% · faltam {unDescobertas} un
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p className="text-xs max-w-[200px] whitespace-pre-line">{tooltip}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
@@ -600,8 +653,10 @@ export function FilaPedidosPorArea({
 
   const { data: liberacaoMap } = useLiberacaoExpedicaoLote(pedidoIdsSaida);
 
-  // Coluna Lastro: instrumento de cobrança do dinheiro em aberto (view pronta, poucas linhas).
-  const { data: lastroMap } = useQuery({
+  const { data: coberturaMap } = useCoberturaPedidos(pedidoIdsSaida);
+
+  // Coluna Cobrança: instrumento de cobrança do dinheiro em aberto (view pronta, poucas linhas).
+  const { data: cobrancaMap } = useQuery({
     queryKey: ["pedido-lastro-cobranca"],
     staleTime: 30 * 1000,
     queryFn: async () => {
@@ -811,12 +866,13 @@ export function FilaPedidosPorArea({
           <TableHeader>
             <TableRow className="sticky top-0 z-20 bg-card">
               <TableHead className="w-[56px]">Risco</TableHead>
-              <TableHead className="w-[240px]">Pedido</TableHead>
+              <TableHead className="w-[220px]">Pedido</TableHead>
               <TableHead className="w-[150px]">Valor</TableHead>
-              <TableHead className="w-[160px]">Pagamento</TableHead>
-              <TableHead className="w-[150px]">Lastro</TableHead>
-              <TableHead className="w-[150px]">Estágio</TableHead>
-              <TableHead className="w-[220px]">Entrega</TableHead>
+              <TableHead className="w-[130px]">Pagamento</TableHead>
+              <TableHead className="w-[100px]">Estoque</TableHead>
+              <TableHead className="w-[130px]">Cobrança</TableHead>
+              <TableHead className="w-[140px]">Estágio</TableHead>
+              <TableHead className="w-[200px]">Entrega</TableHead>
               <TableHead className="w-[96px]">Na fase</TableHead>
               <TableHead className="w-[56px] text-right text-[11px] font-normal text-muted-foreground">Ações</TableHead>
 
@@ -825,14 +881,14 @@ export function FilaPedidosPorArea({
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                   Carregando…
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && linhasFiltradas.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8">
+                <TableCell colSpan={10} className="text-center py-8">
                   <EstadoVazioFila
                     termoBusca={termoBusca}
                     estagios={estagios}
@@ -935,7 +991,10 @@ export function FilaPedidosPorArea({
                     <CelulaPagamento p={p} liberacao={liberacaoMap?.get(p.id)} />
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
-                    <CelulaLastro lastro={lastroMap?.get(p.id)} />
+                    <CelulaEstoque cob={coberturaMap?.get(p.id)} />
+                  </TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <CelulaCobranca cobranca={cobrancaMap?.get(p.id)} />
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap items-center gap-1.5 min-w-0">
