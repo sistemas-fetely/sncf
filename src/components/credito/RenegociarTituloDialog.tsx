@@ -10,14 +10,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Copy } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { formatBRL } from "@/lib/format-currency";
+import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import type { TituloCobranca } from "@/hooks/credito/useTitulosCobranca";
 import type { ReguaEtapa } from "@/hooks/credito/useReguaFila";
 import { ProrrogarVencimentoDialog } from "@/components/credito/ProrrogarVencimentoDialog";
@@ -337,6 +338,11 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
                     O título original será encerrado como{" "}
                     <b>cancelado_recuperacao</b> e não poderá receber pagamentos. Se houver
                     boleto registrado, a baixa será solicitada automaticamente ao banco.
+                    {modalidade === 3 && novoInstrumento === "pix" && (
+                      <span className="block mt-1">
+                        O QR PIX será gerado automaticamente e aparecerá aqui para você enviar ao cliente.
+                      </span>
+                    )}
                   </AlertDescription>
                 </Alert>
 
