@@ -1063,12 +1063,29 @@ export default function ExpedicoesXpm() {
                                 <CelulaSolicitado v={r.t_solicitado} />
                               </TableCell>
                               <TableCell>
-
-                                <div className="flex items-center gap-2">
-                                  <Semaforo seq={Number(r.estagio_seq)} />
-                                  <span className="text-xs text-muted-foreground truncate">
-                                    {r.estagio_descricao}
-                                  </span>
+                                <div className="flex flex-col gap-0.5">
+                                  <div className="flex items-center gap-2">
+                                    <Semaforo seq={Number(r.estagio_seq)} />
+                                    <span className="text-xs text-muted-foreground truncate">
+                                      {r.estagio_descricao}
+                                    </span>
+                                  </div>
+                                  {r.arquivo_fase_rotulo && (
+                                    <span
+                                      className={`text-xs truncate ${
+                                        r.fonte_da_verdade === "arquivo"
+                                          ? "text-warning"
+                                          : "text-muted-foreground"
+                                      }`}
+                                      title={`Relatório em arquivo da XPM, gerado em ${
+                                        r.arquivo_gerado_em
+                                          ? format(new Date(r.arquivo_gerado_em), "dd/MM HH:mm", { locale: ptBR })
+                                          : "data não informada"
+                                      }. Fonte paralela à API.`}
+                                    >
+                                      XPM diz: {r.arquivo_fase_rotulo}
+                                    </span>
+                                  )}
                                 </div>
                               </TableCell>
                               <TableCell className="text-right tabular-nums">
