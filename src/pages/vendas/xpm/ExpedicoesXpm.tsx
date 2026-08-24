@@ -61,6 +61,13 @@ type ExpedicaoXpm = {
   estagio_codigo: string;
   estagio_descricao: string;
   estagio_seq: number;
+  arquivo_fase_rotulo: string | null;
+  arquivo_fase_ordem: number | null;
+  arquivo_seq_equiv: number | null;
+  arquivo_observado_em: string | null;
+  arquivo_gerado_em: string | null;
+  fase_seq_verdade: number;
+  fonte_da_verdade: "api" | "arquivo" | "empate" | "sem_arquivo";
   ultimo_evento_em: string | null;
   dias_parado: number | null;
   canal: "B2B" | "B2C" | "SEM NF";
