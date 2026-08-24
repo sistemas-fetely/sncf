@@ -146,9 +146,9 @@ export default function ShopifyB2c() {
     return r;
   }, [lista, incluirCancelados, estagioParam, uf, alerta, busca]);
 
-  const copiar = (v: string) => {
+  const copiar = (v: string, label: string) => {
     void navigator.clipboard.writeText(v);
-    toast.success("Código de rastreio copiado.");
+    toast.success(`${label} copiado.`);
   };
 
   return (
@@ -263,6 +263,7 @@ export default function ShopifyB2c() {
                           <TableHead>Dono</TableHead>
                           <TableHead>Próxima ação</TableHead>
                           <TableHead>Financeiro</TableHead>
+                          <TableHead>Bling</TableHead>
                           <TableHead>Rastreio</TableHead>
                           <TableHead className="w-8" />
                         </TableRow>
@@ -270,13 +271,13 @@ export default function ShopifyB2c() {
                       <TableBody>
                         {isLoading ? (
                           <TableRow>
-                            <TableCell colSpan={10} className="py-8 text-center">
+                            <TableCell colSpan={11} className="py-8 text-center">
                               <Skeleton className="mx-auto h-4 w-32" />
                             </TableCell>
                           </TableRow>
                         ) : filtrados.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={10} className="py-8 text-center text-muted-foreground">
+                            <TableCell colSpan={11} className="py-8 text-center text-muted-foreground">
                               Nenhum pedido nesta seleção.
                             </TableCell>
                           </TableRow>
@@ -334,6 +335,42 @@ export default function ShopifyB2c() {
                                 </div>
                               </TableCell>
                               <TableCell className="whitespace-nowrap">
+                                {p.bling_pedido_numero || p.nf_refs ? (
+                                  <div className="flex flex-col items-start gap-0.5">
+                                    {p.bling_pedido_numero && (
+                                      <button
+                                        type="button"
+                                        title="Copiar número do pedido Bling"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          copiar(p.bling_pedido_numero!, "Pedido Bling");
+                                        }}
+                                        className="inline-flex items-center gap-1 font-mono text-xs transition-colors hover:text-gold"
+                                      >
+                                        <span>#{p.bling_pedido_numero}</span>
+                                        <Copy className="h-3 w-3 text-muted-foreground" />
+                                      </button>
+                                    )}
+                                    {p.nf_refs && (
+                                      <button
+                                        type="button"
+                                        title="Copiar NF"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          copiar(p.nf_refs!, "NF");
+                                        }}
+                                        className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground transition-colors hover:text-gold"
+                                      >
+                                        <span>NF {p.nf_refs}</span>
+                                        <Copy className="h-3 w-3" />
+                                      </button>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">—</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap">
                                 {p.tracking_number ? (
                                   <div className="flex items-center gap-1">
                                     <span className="font-mono text-xs">{p.tracking_number}</span>
@@ -342,7 +379,7 @@ export default function ShopifyB2c() {
                                       title="Copiar código"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        copiar(p.tracking_number!);
+                                        copiar(p.tracking_number!, "Código de rastreio");
                                       }}
                                       className="text-muted-foreground transition-colors hover:text-gold"
                                     >
