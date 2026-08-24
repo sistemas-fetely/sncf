@@ -83,7 +83,9 @@ interface OportunidadeRow {
   portao_linhas: number | null;
   bloqueio: string | null;
   bloqueio_rotulo: string | null;
+  rotulo_pagamento: string | null;
 }
+
 
 const BLOQUEIO_COR: Record<string, string> = {
   falta_pagar: "border-warning/50 text-warning",
