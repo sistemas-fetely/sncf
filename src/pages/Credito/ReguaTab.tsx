@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RefreshCw, Star, AlertTriangle, Users, Play, Send, ChevronRight, CheckCircle2, Minus } from "lucide-react";
@@ -34,7 +35,7 @@ import {
 } from "@/hooks/credito/useBoletoVencimentoConferencia";
 import { EnviarPacoteDialog } from "@/components/credito/EnviarPacoteDialog";
 
-type Vista = "fila" | "pausados" | "atraso";
+type Vista = "fila" | "pausados";
 
 const CANAL_LABEL: Record<string, string> = {
   email: "E-mail",
@@ -501,10 +502,11 @@ async function rodarReguaAgora(qc: ReturnType<typeof useQueryClient>) {
 
 export default function ReguaTab() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { data: etapas = [] } = useReguaEtapas();
   const { data: fila = [], isLoading: loadingFila } = useReguaFilaHoje();
+  const { data: foraDaRegua = [], isLoading: loadingFora } = useReguaVencidoForaDaFila();
   const { data: pausados = [], isLoading: loadingPausados } = useReguaPausados();
-  const { data: todosTitulos = [] } = useTitulosCobranca();
   const { data: conferencias } = useBoletoVencimentoConferencia();
 
   const [vista, setVista] = useState<Vista>("fila");
@@ -512,81 +514,6 @@ export default function ReguaTab() {
   const [pausarDialog, setPausarDialog] = useState<{ titulo: TituloCobranca; etapa: ReguaEtapa | null } | null>(null);
   const [renegociarDialog, setRenegociarDialog] = useState<{ titulo: TituloCobranca; etapa: ReguaEtapa | null } | null>(null);
   const [pacote, setPacote] = useState<LinhaMesa | null>(null);
-
-  const somaValor = (lista: TituloCobranca[]) =>
-    lista.reduce((acc, t) => acc + Number(t.valor_efetivo ?? 0), 0);
-
-  const emAtraso = useMemo(
-    () => todosTitulos.filter((t) => t.status_gestao === "atrasado"),
-    [todosTitulos],
-  );
-  const totalAtraso = emAtraso.length;
-  const somaAtraso = useMemo(() => somaValor(emAtraso), [emAtraso]);
-  const somaFila = useMemo(() => somaValor(fila), [fila]);
-  const somaPausados = useMemo(() => somaValor(pausados), [pausados]);
-
-  const lista =
-    vista === "fila" ? fila : vista === "pausados" ? pausados : emAtraso;
-  const loading =
-    vista === "fila" ? loadingFila : vista === "pausados" ? loadingPausados : false;
-  const vencidosNaLista = useMemo(
-    () => lista.filter((t) => (t.dias_atraso ?? 0) > 0),
-    [lista],
-  );
-
-  /** Próxima ação já vencida = trabalho atrasado da régua. */
-  const acaoAtrasada = (t: TituloCobranca) => {
-    const d = (t as any).data_proxima_acao_regua as string | null | undefined;
-    if (!d) return false;
-    return String(d).slice(0, 10) < new Date().toISOString().slice(0, 10);
-  };
-
-  /** Ordena por data da próxima ação crescente, nulos por último. */
-  const porProximaAcao = (a: TituloCobranca, b: TituloCobranca) => {
-    const da = ((a as any).data_proxima_acao_regua as string | null) ?? null;
-    const db = ((b as any).data_proxima_acao_regua as string | null) ?? null;
-    if (da === db) return 0;
-    if (!da) return 1;
-    if (!db) return -1;
-    return da < db ? -1 : 1;
-  };
-
-  /**
-   * RÉGUA-É-FILA-DE-AÇÃO. Três baldes:
-   *  - comAcao: tem etapa pendente → card cheio, agrupado por etapa
-   *  - jaContatado: etapa cumprida → linha compacta com selo verde
-   *  - aguardando: ainda não chegou etapa nenhuma → linha compacta neutra
-   */
-  const baldes = useMemo(() => {
-    if (vista === "atraso") {
-      return { comAcao: [], jaContatado: [], aguardando: [] };
-    }
-    const comAcao: { t: TituloCobranca; etapa: ReguaEtapa }[] = [];
-    const jaContatado: { t: TituloCobranca; em: string | null }[] = [];
-    const aguardando: TituloCobranca[] = [];
-    for (const t of [...lista].sort(porProximaAcao)) {
-      const etapa = resolverEtapaParaTitulo(t, etapas);
-      if (etapa) { comAcao.push({ t, etapa }); continue; }
-      const u = etapaUltimaDoTitulo(t, etapas);
-      if (u) jaContatado.push({ t, em: u.em });
-      else aguardando.push(t);
-    }
-    return { comAcao, jaContatado, aguardando };
-  }, [lista, etapas, vista]);
-
-  // Agrupa só os com ação, por descrição da etapa aplicável.
-  const grupos = useMemo(() => {
-    const map = new Map<string, { etapa: ReguaEtapa | null; titulos: TituloCobranca[] }>();
-    for (const { t, etapa } of baldes.comAcao) {
-      const key = etapa.descricao_acao;
-      if (!map.has(key)) map.set(key, { etapa, titulos: [] });
-      map.get(key)!.titulos.push(t);
-    }
-    return Array.from(map.entries()).sort(
-      (a, b) => porProximaAcao(a[1].titulos[0], b[1].titulos[0]),
-    );
-  }, [baldes]);
-
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
   const alternar = (id: string) =>
     setExpandidos((prev) => {
@@ -595,19 +522,110 @@ export default function ReguaTab() {
       return s;
     });
 
-  const somaLista = (ts: TituloCobranca[]) => somaValor(ts);
+  const somaValor = (lista: TituloCobranca[]) =>
+    lista.reduce((acc, t) => acc + Number(t.valor_efetivo ?? 0), 0);
 
+  /**
+   * ATRASO-E-O-EIXO: a régua ordena por atraso, não por etapa da cadência.
+   * Etapa é cronologia do roteiro; urgência é o atraso. Desempate por valor.
+   */
+  const zonaAtraso = useMemo(
+    () =>
+      fila
+        .filter((t) => (t.dias_atraso ?? 0) > 0)
+        .sort(
+          (a, b) =>
+            (b.dias_atraso ?? 0) - (a.dias_atraso ?? 0) ||
+            Number(b.valor_efetivo ?? 0) - Number(a.valor_efetivo ?? 0),
+        ),
+    [fila],
+  );
+
+  const zonaAVencer = useMemo(
+    () =>
+      fila
+        .filter((t) => (t.dias_atraso ?? 0) <= 0)
+        .sort((a, b) => (b.dias_atraso ?? 0) - (a.dias_atraso ?? 0)),
+    [fila],
+  );
+
+  const somaZona1 = useMemo(() => somaValor(zonaAtraso), [zonaAtraso]);
+  const somaZona2 = useMemo(() => somaValor(foraDaRegua), [foraDaRegua]);
+  const somaZona3 = useMemo(() => somaValor(zonaAVencer), [zonaAVencer]);
+  const somaFila = useMemo(() => somaValor(fila), [fila]);
+  const somaPausados = useMemo(() => somaValor(pausados), [pausados]);
+
+  /** Próxima ação já vencida = trabalho atrasado da régua. */
+  const acaoAtrasada = (t: TituloCobranca) => {
+    const d = (t as any).data_proxima_acao_regua as string | null | undefined;
+    if (!d) return false;
+    return String(d).slice(0, 10) < new Date().toISOString().slice(0, 10);
+  };
+
+  const irParaZona = (id: string) => {
+    setVista("fila");
+    requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
+  const abrirTitulo = (t: TituloCobranca) => {
+    const pedidoId = (t as any)._mesa?.pedido_id ?? t.pedido_id;
+    if (pedidoId) navigate(`/pedidos/${pedidoId}`);
+    else toast.info("Este título não tem pedido vinculado para abrir.");
+  };
+
+  const cardCompleto = (t: TituloCobranca, opts?: { zonaAtraso?: boolean }) => {
+    const etapa = resolverEtapaParaTitulo(t, etapas);
+    return (
+      <CardTitulo
+        titulo={t}
+        etapa={etapa}
+        zonaAtraso={opts?.zonaAtraso}
+        acaoAtrasada={vista === "fila" && acaoAtrasada(t)}
+        conferencia={conferencias?.get(t.id)}
+        onAcao={() => setAcaoDialog({ titulo: t, etapa, modo: "enviada" })}
+        onPular={() => setAcaoDialog({ titulo: t, etapa, modo: "pulada" })}
+        onPausar={() => setPausarDialog({ titulo: t, etapa })}
+        onRenegociar={() => setRenegociarDialog({ titulo: t, etapa })}
+        onEnviarPacote={(l) => setPacote(l)}
+        onReenviar={() => {
+          const u = etapaUltimaDoTitulo(t, etapas);
+          if (!u) return;
+          setAcaoDialog({ titulo: t, etapa: u.etapa, modo: "enviada", reenvio: true, ultimaEm: u.em });
+        }}
+      />
+    );
+  };
+
+  const totalEmAtraso = zonaAtraso.length + foraDaRegua.length;
 
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-2">
-        <div className="grid grid-cols-3 gap-3 flex-1 max-w-2xl">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 flex-1 max-w-3xl">
           <KpiCard
             label="Fila de hoje"
-            valor={vista === "fila" ? baldes.comAcao.length : fila.length}
-            total={vista === "fila" ? somaLista(baldes.comAcao.map((x) => x.t)) : somaFila}
+            valor={fila.length}
+            total={somaFila}
             ativo={vista === "fila"}
             onClick={() => setVista("fila")}
+          />
+          <KpiCard
+            label="Em atraso total"
+            valor={totalEmAtraso}
+            total={somaZona1 + somaZona2}
+            ativo={false}
+            onClick={() => irParaZona("zona-em-atraso")}
+            tone="danger"
+          />
+          <KpiCard
+            label="Fora da régua"
+            valor={foraDaRegua.length}
+            total={somaZona2}
+            ativo={false}
+            onClick={() => irParaZona("zona-fora-da-regua")}
+            tone="warn"
           />
           <KpiCard
             label="Pausados"
@@ -616,14 +634,6 @@ export default function ReguaTab() {
             ativo={vista === "pausados"}
             onClick={() => setVista("pausados")}
             tone="warn"
-          />
-          <KpiCard
-            label="Em atraso total"
-            valor={totalAtraso}
-            total={somaAtraso}
-            ativo={vista === "atraso"}
-            onClick={() => setVista("atraso")}
-            tone="danger"
           />
         </div>
         <Button
@@ -646,50 +656,106 @@ export default function ReguaTab() {
         </Alert>
       )}
 
-      {loading && (
+      {vista === "fila" && (loadingFila || loadingFora) && (
         <div className="space-y-2">
           <Skeleton className="h-16 w-full" />
           <Skeleton className="h-16 w-full" />
         </div>
       )}
 
-      {!loading && lista.length === 0 && (
-        <div className="rounded-md border p-8 text-center text-sm text-muted-foreground">
-          {vista === "fila"
-            ? "Fila do dia vazia — nada para cobrar hoje."
-            : vista === "pausados"
-              ? "Nenhum título com régua pausada."
-              : "Nenhum título em atraso."}
-        </div>
+      {vista === "fila" && !loadingFila && !loadingFora && (
+        <>
+          {/* ── Zona 1 — EM ATRASO ── */}
+          <section className="space-y-2">
+            <ZonaHeader
+              id="zona-em-atraso"
+              titulo="Em atraso"
+              qtd={zonaAtraso.length}
+              total={somaZona1}
+              tom="destructive"
+            />
+            {zonaAtraso.length === 0 ? (
+              <ZonaVazia texto="Nenhum título vencido na régua." tom="success" />
+            ) : (
+              <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+                {zonaAtraso.map((t) => (
+                  <div key={t.id}>{cardCompleto(t, { zonaAtraso: true })}</div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* ── Zona 2 — VENCIDO FORA DA RÉGUA ── */}
+          <section className="space-y-2">
+            <ZonaHeader
+              id="zona-fora-da-regua"
+              titulo="Vencido fora da régua"
+              qtd={foraDaRegua.length}
+              total={somaZona2}
+              tom="warning"
+            />
+            {foraDaRegua.length === 0 ? (
+              <ZonaVazia texto="Nenhum título vencido bloqueado por falta de lastro." tom="muted" />
+            ) : (
+              <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+                {foraDaRegua.map((t) => (
+                  <CardForaDaRegua
+                    key={t.id}
+                    titulo={t}
+                    onRenegociar={() => setRenegociarDialog({ titulo: t, etapa: null })}
+                    onVerTitulo={() => abrirTitulo(t)}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* ── Zona 3 — A VENCER ── */}
+          <section className="space-y-2">
+            <ZonaHeader
+              id="zona-a-vencer"
+              titulo="A vencer"
+              qtd={zonaAVencer.length}
+              total={somaZona3}
+              tom="muted"
+            />
+            {zonaAVencer.length === 0 ? (
+              <ZonaVazia texto="Nenhum título a vencer na fila de hoje." tom="muted" />
+            ) : (
+              <div className="space-y-1">
+                {zonaAVencer.map((t) => {
+                  const u = etapaUltimaDoTitulo(t, etapas);
+                  return (
+                    <div key={t.id} className="space-y-1">
+                      <LinhaCompacta
+                        titulo={t}
+                        contatadoEm={u?.em ?? null}
+                        aberto={expandidos.has(t.id)}
+                        onToggle={() => alternar(t.id)}
+                      />
+                      {expandidos.has(t.id) && cardCompleto(t)}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </>
       )}
 
-      {!loading && grupos.map(([nomeGrupo, { etapa, titulos }]) => (
-        <section key={nomeGrupo} className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium">{nomeGrupo}</h3>
-            <span className="text-xs text-muted-foreground">{titulos.length} título(s)</span>
-          </div>
-          <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-            {titulos.map((t) => (
-              <div key={t.id} className="space-y-2">
-                <CardTitulo
-                  titulo={t}
-                  etapa={etapa}
-                  acaoAtrasada={vista === "fila" && acaoAtrasada(t)}
-                  conferencia={conferencias?.get(t.id)}
-
-                  onAcao={() => setAcaoDialog({ titulo: t, etapa, modo: "enviada" })}
-                  onPular={() => setAcaoDialog({ titulo: t, etapa, modo: "pulada" })}
-                  onPausar={() => setPausarDialog({ titulo: t, etapa })}
-                  onRenegociar={() => setRenegociarDialog({ titulo: t, etapa })}
-                  onEnviarPacote={(l) => setPacote(l)}
-                  onReenviar={() => {
-                    const u = etapaUltimaDoTitulo(t, etapas);
-                    if (!u) return;
-                    setAcaoDialog({ titulo: t, etapa: u.etapa, modo: "enviada", reenvio: true, ultimaEm: u.em });
-                  }}
-                />
-                {vista === "pausados" && (
+      {vista === "pausados" && (
+        <section className="space-y-2">
+          {loadingPausados ? (
+            <Skeleton className="h-16 w-full" />
+          ) : pausados.length === 0 ? (
+            <div className="rounded-md border p-8 text-center text-sm text-muted-foreground">
+              Nenhum título com régua pausada.
+            </div>
+          ) : (
+            <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+              {pausados.map((t) => (
+                <div key={t.id} className="space-y-2">
+                  {cardCompleto(t, { zonaAtraso: (t.dias_atraso ?? 0) > 0 })}
                   <Button
                     size="sm"
                     variant="outline"
@@ -698,157 +764,10 @@ export default function ReguaTab() {
                   >
                     <Play className="h-3 w-3 mr-1" /> Despausar
                   </Button>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      ))}
-
-      {!loading && vista === "fila" && baldes.comAcao.length === 0 && lista.length > 0 && (
-        <div
-          className={cn(
-            "rounded-md border px-3 py-4 text-center text-sm",
-            vencidosNaLista.length > 0
-              ? "border-destructive/40 bg-destructive/5"
-              : "border-success/30 bg-success/5 text-muted-foreground",
+                </div>
+              ))}
+            </div>
           )}
-        >
-          <p className="font-medium">Nenhuma ação de régua pendente hoje.</p>
-          {vencidosNaLista.length > 0 ? (
-            <p className="text-destructive font-medium inline-flex items-center gap-1 mt-1">
-              <AlertTriangle className="h-3.5 w-3.5" />
-              {vencidosNaLista.length} título(s) vencido(s) na lista abaixo · {formatBRL(somaValor(vencidosNaLista))}
-              {" — já contatados, aguardando pagamento."}
-            </p>
-          ) : (
-            <p className="mt-1">
-              Os {lista.length} títulos abaixo estão dentro do prazo ou ainda não chegaram na data.
-            </p>
-          )}
-        </div>
-      )}
-
-      {!loading && vista === "atraso" && lista.length > 0 && (
-        <section className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium">Em atraso — visão informativa</h3>
-            <span className="text-xs text-muted-foreground">
-              {lista.length} título(s) · {formatBRL(somaLista(lista))}
-            </span>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Lista completa de títulos inadimplentes, independente de elegibilidade de régua. Ações da régua ficam na aba Fila de hoje.
-          </p>
-          <div className="space-y-1">
-            {lista.map((t) => (
-              <div key={t.id} className="space-y-1">
-                <LinhaCompacta
-                  titulo={t}
-                  contatadoEm={null}
-                  aberto={expandidos.has(t.id)}
-                  onToggle={() => alternar(t.id)}
-                />
-                {expandidos.has(t.id) && (
-                  <CardTitulo
-                    titulo={t}
-                    etapa={null}
-                    conferencia={conferencias?.get(t.id)}
-                    onAcao={() => setAcaoDialog({ titulo: t, etapa: null, modo: "enviada" })}
-                    onPular={() => setAcaoDialog({ titulo: t, etapa: null, modo: "pulada" })}
-                    onPausar={() => setPausarDialog({ titulo: t, etapa: null })}
-                    onRenegociar={() => setRenegociarDialog({ titulo: t, etapa: null })}
-                    onEnviarPacote={(l) => setPacote(l)}
-                    onReenviar={() => {}}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {!loading && vista === "fila" && baldes.jaContatado.length > 0 && (
-        <section className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-muted-foreground">
-              Já contatado — régua cumprida
-            </h3>
-            <span className="text-xs text-muted-foreground">
-              {baldes.jaContatado.length} título(s) · {formatBRL(somaLista(baldes.jaContatado.map((x) => x.t)))}
-            </span>
-          </div>
-          <div className="space-y-1">
-            {baldes.jaContatado.map(({ t, em }) => (
-              <div key={t.id} className="space-y-1">
-                <LinhaCompacta
-                  titulo={t}
-                  contatadoEm={em}
-                  aberto={expandidos.has(t.id)}
-                  onToggle={() => alternar(t.id)}
-                />
-                {expandidos.has(t.id) && (
-                  <CardTitulo
-                    titulo={t}
-                    etapa={null}
-                    conferencia={conferencias?.get(t.id)}
-                    onAcao={() => setAcaoDialog({ titulo: t, etapa: null, modo: "enviada" })}
-                    onPular={() => setAcaoDialog({ titulo: t, etapa: null, modo: "pulada" })}
-                    onPausar={() => setPausarDialog({ titulo: t, etapa: null })}
-                    onRenegociar={() => setRenegociarDialog({ titulo: t, etapa: null })}
-                    onEnviarPacote={(l) => setPacote(l)}
-                    onReenviar={() => {
-                      const u = etapaUltimaDoTitulo(t, etapas);
-                      if (!u) return;
-                      setAcaoDialog({ titulo: t, etapa: u.etapa, modo: "enviada", reenvio: true, ultimaEm: u.em });
-                    }}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {!loading && vista === "fila" && baldes.aguardando.length > 0 && (
-        <section className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-muted-foreground">
-              Aguardando data — nenhuma etapa ainda
-            </h3>
-            <span className="text-xs text-muted-foreground">
-              {baldes.aguardando.length} título(s) · {formatBRL(somaLista(baldes.aguardando))}
-            </span>
-          </div>
-          <div className="space-y-1">
-            {baldes.aguardando.map((t) => (
-              <div key={t.id} className="space-y-1">
-                <LinhaCompacta
-                  titulo={t}
-                  contatadoEm={null}
-                  aberto={expandidos.has(t.id)}
-                  onToggle={() => alternar(t.id)}
-                />
-                {expandidos.has(t.id) && (
-                  <CardTitulo
-                    titulo={t}
-                    etapa={null}
-                    conferencia={conferencias?.get(t.id)}
-                    onAcao={() => setAcaoDialog({ titulo: t, etapa: null, modo: "enviada" })}
-                    onPular={() => setAcaoDialog({ titulo: t, etapa: null, modo: "pulada" })}
-                    onPausar={() => setPausarDialog({ titulo: t, etapa: null })}
-                    onRenegociar={() => setRenegociarDialog({ titulo: t, etapa: null })}
-                    onEnviarPacote={(l) => setPacote(l)}
-                    onReenviar={() => {
-                      const u = etapaUltimaDoTitulo(t, etapas);
-                      if (!u) return;
-                      setAcaoDialog({ titulo: t, etapa: u.etapa, modo: "enviada", reenvio: true, ultimaEm: u.em });
-                    }}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
         </section>
       )}
 
