@@ -146,9 +146,9 @@ export default function ShopifyB2c() {
     return r;
   }, [lista, incluirCancelados, estagioParam, uf, alerta, busca]);
 
-  const copiar = (v: string) => {
+  const copiar = (v: string, label: string) => {
     void navigator.clipboard.writeText(v);
-    toast.success("Código de rastreio copiado.");
+    toast.success(`${label} copiado.`);
   };
 
   return (
@@ -263,6 +263,7 @@ export default function ShopifyB2c() {
                           <TableHead>Dono</TableHead>
                           <TableHead>Próxima ação</TableHead>
                           <TableHead>Financeiro</TableHead>
+                          <TableHead>Bling</TableHead>
                           <TableHead>Rastreio</TableHead>
                           <TableHead className="w-8" />
                         </TableRow>
@@ -270,13 +271,13 @@ export default function ShopifyB2c() {
                       <TableBody>
                         {isLoading ? (
                           <TableRow>
-                            <TableCell colSpan={10} className="py-8 text-center">
+                            <TableCell colSpan={11} className="py-8 text-center">
                               <Skeleton className="mx-auto h-4 w-32" />
                             </TableCell>
                           </TableRow>
                         ) : filtrados.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={10} className="py-8 text-center text-muted-foreground">
+                            <TableCell colSpan={11} className="py-8 text-center text-muted-foreground">
                               Nenhum pedido nesta seleção.
                             </TableCell>
                           </TableRow>
