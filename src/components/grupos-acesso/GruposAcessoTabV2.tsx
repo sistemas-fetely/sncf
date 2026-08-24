@@ -836,10 +836,11 @@ function SecaoBloco({
                               ? p.permissao_id
                               : slugParaPermissaoId.get(filha.slug);
                           const origemLiberada = !!(idOrigem && grupoPermsMap.get(idOrigem)?.pode_ver);
+                          const ehDoPai = filha.slug === p.slug;
                           return (
                           <div
                             key={`${p.permissao_id}-${filha.label}`}
-                            className="grid grid-cols-[1fr_60px_60px] gap-2 px-4 py-1.5 border-b last:border-b-0 bg-muted/5"
+                            className="grid grid-cols-[1fr_60px_60px] gap-2 px-4 py-1.5 border-b last:border-b-0 bg-muted/5 items-center"
                           >
                             <div className="flex items-center gap-2 min-w-0 pl-12">
                               <span className="text-muted-foreground/40 shrink-0">↳</span>
@@ -851,11 +852,29 @@ function SecaoBloco({
                                 <span className="text-[9px] text-destructive/70 shrink-0">não liberada neste grupo</span>
                               )}
                             </div>
-                            <div />
+                            <div className="flex justify-center">
+                              {idOrigem ? (
+                                ehDoPai ? (
+                                  <Checkbox
+                                    checked={origemLiberada}
+                                    disabled
+                                    className="opacity-40"
+                                    title="Esta aba usa a permissão da tela-mãe — marque na linha acima"
+                                  />
+                                ) : (
+                                  <Checkbox
+                                    checked={origemLiberada}
+                                    onCheckedChange={(v) => onToggle(idOrigem, "pode_ver", !!v)}
+                                    disabled={disabled}
+                                  />
+                                )
+                              ) : null}
+                            </div>
                             <div />
                           </div>
                           );
                         })}
+
                     </Fragment>
                   );
                 })}
