@@ -25,10 +25,32 @@ import { ProrrogarVencimentoDialog } from "@/components/credito/ProrrogarVencime
 type Modalidade = 1 | 2 | 3;
 type NovoInstrumento = "pix" | "transferencia";
 
+/** Retorno da RPC `renegociar_titulo` (contrato de 24/08/2026). */
+export interface InstrumentoRenegociado {
+  ok?: boolean;
+  titulo: string | null;
+  payload: string;
+  txid?: string | null;
+  token?: string | null;
+  valor?: number | null;
+  vencimento?: string | null;
+  pedido?: string | null;
+  beneficiario?: string | null;
+  banco?: string | null;
+}
+
+export interface RenegociarResultado {
+  ok: boolean;
+  modalidade: 2 | 3;
+  filhos: string[];
+  instrumentos?: InstrumentoRenegociado[];
+}
+
 interface Parcela {
   valor: string;
   data_vencimento: string;
 }
+
 
 interface Props {
   titulo: TituloCobranca;
