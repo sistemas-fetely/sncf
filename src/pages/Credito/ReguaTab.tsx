@@ -13,7 +13,7 @@ import {
   etapaUltimaDoTitulo,
   type ReguaEtapa,
 } from "@/hooks/credito/useReguaFila";
-import { useTitulosCobranca } from "@/hooks/credito/useTitulosCobranca";
+
 import type { TituloCobranca } from "@/hooks/credito/useTitulosCobranca";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
