@@ -54192,6 +54192,7 @@ export type Database = {
         Row: {
           alerta: string | null
           area_responsavel: string | null
+          bling_pedido_numero: string | null
           cancelled_at: string | null
           created_at_shopify: string | null
           data_pedido: string | null
@@ -54255,6 +54256,7 @@ export type Database = {
         Row: {
           alerta: string | null
           area_responsavel: string | null
+          bling_pedido_numero: string | null
           cancelled_at: string | null
           cliente: string | null
           coerencia_status: string | null
