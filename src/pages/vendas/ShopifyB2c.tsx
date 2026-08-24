@@ -390,7 +390,9 @@ export default function ShopifyB2c() {
         </TabsContent>
 
         <TabsContent value="dash">
-          <DashB2c pedidos={lista} isLoading={isLoading} />
+          <ConteudoAba slug="tela.dash_b2c">
+            <DashB2c pedidos={lista} isLoading={isLoading} />
+          </ConteudoAba>
         </TabsContent>
 
         {podeVerCarrinhos && (
