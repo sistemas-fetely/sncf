@@ -22,6 +22,10 @@ import { toast } from "sonner";
 import { ConfirmacaoDupla } from "@/components/ConfirmacaoDupla";
 import { ReenviarLinkAcessoButton } from "@/components/auth/ReenviarLinkAcessoButton";
 import { DefinirSenhaButton } from "@/components/gerenciar-usuarios/DefinirSenhaButton";
+import {
+  useAdicionarUsuarioAoGrupo,
+  useRemoverUsuarioDoGrupo,
+} from "@/hooks/useGruposAcessoV2";
 import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
