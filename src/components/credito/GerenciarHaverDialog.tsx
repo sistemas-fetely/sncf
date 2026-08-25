@@ -79,6 +79,8 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
   const [obsC, setObsC] = useState("");
   const [pedidoBusca, setPedidoBusca] = useState("");
   const [origemPedidoId, setOrigemPedidoId] = useState<string | null>(null);
+  const [origemPedidoRotulo, setOrigemPedidoRotulo] = useState<string | null>(null);
+  const [origemCodigo, setOrigemCodigo] = useState<string>("");
   const [validade, setValidade] = useState<string>(plusDays(180));
 
   // ===== débito state =====
