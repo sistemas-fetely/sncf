@@ -360,7 +360,8 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
     modoValor === "total" &&
     valorD > somaSaldosSelecionados;
 
-  const podeCredito = !!parceiroSel && valorC > 0 && !credMut.isPending;
+  const podeCredito =
+    !!parceiroSel && !!origemCodigo && valorC > 0 && !credMut.isPending;
   const podeDebito =
     !!parceiroSel &&
     !debMut.isPending &&
