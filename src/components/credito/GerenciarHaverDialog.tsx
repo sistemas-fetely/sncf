@@ -340,9 +340,9 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
       const { error } = await (supabase as any).rpc("ajustar_haver_cliente", payload);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Crédito adicionado com sucesso");
-      invalidate();
+      await invalidate();
       onOpenChange(false);
     },
     onError: (err: unknown) => toast.error(formatError(err)),
@@ -376,9 +376,9 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
       });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Débito registrado com sucesso");
-      invalidate();
+      await invalidate();
       onOpenChange(false);
     },
     onError: (err: unknown) => toast.error(formatError(err)),
