@@ -845,12 +845,12 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
               <Label>Motivo</Label>
               <Select value={motivoD} onValueChange={setMotivoD}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Selecione o motivo" />
                 </SelectTrigger>
                 <SelectContent>
-                  {MOTIVOS_DEBITO.map((m) => (
-                    <SelectItem key={m} value={m}>
-                      {m}
+                  {motivosDebito.map((m: any) => (
+                    <SelectItem key={m.codigo} value={m.codigo}>
+                      {m.rotulo}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -858,13 +858,19 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
             </div>
 
             <div className="space-y-2">
-              <Label>Observação (opcional)</Label>
+              <Label>{exigeObsD ? "Observação *" : "Observação (opcional)"}</Label>
               <Textarea
                 value={obsD}
                 onChange={(e) => setObsD(e.target.value)}
                 rows={2}
               />
+              {exigeObsD && (
+                <p className="text-xs text-muted-foreground">
+                  Este motivo exige detalhamento — escreva ao menos 5 caracteres.
+                </p>
+              )}
             </div>
+
 
             <DialogFooter>
               <Button variant="ghost" onClick={() => onOpenChange(false)}>
