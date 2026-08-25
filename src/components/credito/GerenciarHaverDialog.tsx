@@ -31,20 +31,6 @@ interface Props {
   parceiroId: string | null;
 }
 
-const MOTIVOS_CREDITO = [
-  "Ajuste de pedido",
-  "Frete não utilizado",
-  "Cancelamento parcial",
-  "Cortesia",
-  "Outro",
-];
-
-const MOTIVOS_DEBITO = [
-  "Correção de crédito indevido",
-  "Estorno de cortesia",
-  "Ajuste operacional",
-  "Outro",
-];
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -76,7 +62,7 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
 
   // ===== crédito state =====
   const [valorC, setValorC] = useState<number>(0);
-  const [motivoC, setMotivoC] = useState<string>(MOTIVOS_CREDITO[0]);
+  const [motivoC, setMotivoC] = useState<string>("");
   const [obsC, setObsC] = useState("");
   const [pedidoBusca, setPedidoBusca] = useState("");
   const [origemPedidoId, setOrigemPedidoId] = useState<string | null>(null);
@@ -87,7 +73,7 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
   // ===== débito state =====
   const [modoDebito, setModoDebito] = useState<"livre" | "vinculado">("livre");
   const [valorD, setValorD] = useState<number>(0);
-  const [motivoD, setMotivoD] = useState<string>(MOTIVOS_DEBITO[0]);
+  const [motivoD, setMotivoD] = useState<string>("");
   const [obsD, setObsD] = useState("");
   const [haveresSelecionados, setHaveresSelecionados] = useState<string[]>([]);
   const [modoValor, setModoValor] = useState<"total" | "individual">("total");
@@ -99,7 +85,7 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
       setParceiroSel(parceiroId);
       setBusca("");
       setValorC(0);
-      setMotivoC(MOTIVOS_CREDITO[0]);
+      setMotivoC("");
       setObsC("");
       setPedidoBusca("");
       setOrigemPedidoId(null);
@@ -108,7 +94,7 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
       setValidade(plusDays(180));
       setModoDebito("livre");
       setValorD(0);
-      setMotivoD(MOTIVOS_DEBITO[0]);
+      setMotivoD("");
       setObsD("");
       setHaveresSelecionados([]);
       setModoValor("total");
@@ -171,6 +157,44 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
     if (!origemSel) return;
     setValidade(origemSel.pode_expirar ? plusDays(180) : "");
   }, [origemSel]);
+
+  // ===== Motivos (DIMENSÃO VIA TABELA) =====
+  const motivosQ = useQuery({
+    queryKey: ["haver-motivo-dim"],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("haver_motivo_dim")
+        .select("codigo, rotulo, tipo, exige_obs")
+        .eq("ativo", true)
+        .order("ordem", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const motivosCredito = useMemo(
+    () => (motivosQ.data ?? []).filter((m: any) => m.tipo === "credito" || m.tipo === "ambos"),
+    [motivosQ.data]
+  );
+  const motivosDebito = useMemo(
+    () => (motivosQ.data ?? []).filter((m: any) => m.tipo === "debito" || m.tipo === "ambos"),
+    [motivosQ.data]
+  );
+  const motivoCSel = useMemo(
+    () => motivosCredito.find((m: any) => m.codigo === motivoC) ?? null,
+    [motivosCredito, motivoC]
+  );
+  const motivoDSel = useMemo(
+    () => motivosDebito.find((m: any) => m.codigo === motivoD) ?? null,
+    [motivosDebito, motivoD]
+  );
+  const exigeObsC = motivoCSel?.exige_obs === true;
+  const exigeObsD = motivoDSel?.exige_obs === true;
+  const obsCOk = !exigeObsC || obsC.trim().length >= 5;
+  const obsDOk = !exigeObsD || obsD.trim().length >= 5;
+
+
 
   // ===== Haveres do parceiro =====
   const haveresQ = useQuery({
@@ -291,7 +315,8 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
   // ===== Mutations =====
   const credMut = useMutation({
     mutationFn: async () => {
-      const motivoFinal = motivoC + (obsC ? `: ${obsC}` : "");
+      const rotuloC = motivoCSel?.rotulo ?? motivoC;
+      const motivoFinal = rotuloC + (obsC.trim() ? `: ${obsC.trim()}` : "");
       const payload: Record<string, unknown> = {
         p_parceiro_id: parceiroSel,
         p_tipo: "credito",
@@ -317,21 +342,19 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
 
   const debMut = useMutation({
     mutationFn: async () => {
-      const motivoFinal = motivoD + (obsD ? `: ${obsD}` : "");
+      const rotuloD = motivoDSel?.rotulo ?? motivoD;
+      const motivoFinal = rotuloD + (obsD.trim() ? `: ${obsD.trim()}` : "");
       if (modoDebito === "vinculado" && modoValor === "individual") {
-        for (const id of haveresSelecionados) {
-          const val = Number(valoresIndividuais[id] ?? 0);
-          if (val <= 0) continue;
-          const { error } = await (supabase as any).rpc("ajustar_haver_cliente", {
-            p_parceiro_id: parceiroSel,
-            p_tipo: "debito",
-            p_valor: val,
-            p_motivo: motivoFinal,
-            p_haver_ids_alvo: null,
-            p_haver_id_alvo: id,
-          });
-          if (error) throw error;
-        }
+        const itens = haveresSelecionados
+          .map((id) => ({ haver_id: id, valor: Number(valoresIndividuais[id] ?? 0) }))
+          .filter((i) => i.valor > 0);
+
+        const { error } = await (supabase as any).rpc("debitar_haveres_individual", {
+          p_parceiro_id: parceiroSel,
+          p_motivo: motivoFinal,
+          p_itens: itens,
+        });
+        if (error) throw error;
         return;
       }
       const { error } = await (supabase as any).rpc("ajustar_haver_cliente", {
@@ -362,9 +385,16 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
     valorD > somaSaldosSelecionados;
 
   const podeCredito =
-    !!parceiroSel && !!origemCodigo && valorC > 0 && !credMut.isPending;
+    !!parceiroSel &&
+    !!origemCodigo &&
+    !!motivoC &&
+    obsCOk &&
+    valorC > 0 &&
+    !credMut.isPending;
   const podeDebito =
     !!parceiroSel &&
+    !!motivoD &&
+    obsDOk &&
     !debMut.isPending &&
     (modoDebito === "livre"
       ? valorD > 0 && !excedeSaldoLivre
@@ -475,12 +505,12 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
               <Label>Motivo</Label>
               <Select value={motivoC} onValueChange={setMotivoC}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Selecione o motivo" />
                 </SelectTrigger>
                 <SelectContent>
-                  {MOTIVOS_CREDITO.map((m) => (
-                    <SelectItem key={m} value={m}>
-                      {m}
+                  {motivosCredito.map((m: any) => (
+                    <SelectItem key={m.codigo} value={m.codigo}>
+                      {m.rotulo}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -488,13 +518,19 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
             </div>
 
             <div className="space-y-2">
-              <Label>Observação (opcional)</Label>
+              <Label>{exigeObsC ? "Observação *" : "Observação (opcional)"}</Label>
               <Textarea
                 value={obsC}
                 onChange={(e) => setObsC(e.target.value)}
                 rows={2}
               />
+              {exigeObsC && (
+                <p className="text-xs text-muted-foreground">
+                  Este motivo exige detalhamento — escreva ao menos 5 caracteres.
+                </p>
+              )}
             </div>
+
 
             <div className="space-y-2">
               <Label>Pedido de origem (opcional)</Label>
@@ -816,12 +852,12 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
               <Label>Motivo</Label>
               <Select value={motivoD} onValueChange={setMotivoD}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Selecione o motivo" />
                 </SelectTrigger>
                 <SelectContent>
-                  {MOTIVOS_DEBITO.map((m) => (
-                    <SelectItem key={m} value={m}>
-                      {m}
+                  {motivosDebito.map((m: any) => (
+                    <SelectItem key={m.codigo} value={m.codigo}>
+                      {m.rotulo}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -829,13 +865,19 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
             </div>
 
             <div className="space-y-2">
-              <Label>Observação (opcional)</Label>
+              <Label>{exigeObsD ? "Observação *" : "Observação (opcional)"}</Label>
               <Textarea
                 value={obsD}
                 onChange={(e) => setObsD(e.target.value)}
                 rows={2}
               />
+              {exigeObsD && (
+                <p className="text-xs text-muted-foreground">
+                  Este motivo exige detalhamento — escreva ao menos 5 caracteres.
+                </p>
+              )}
             </div>
+
 
             <DialogFooter>
               <Button variant="ghost" onClick={() => onOpenChange(false)}>
