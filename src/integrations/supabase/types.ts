@@ -15375,6 +15375,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "grupo_acesso_permissoes_grupo_acesso_id_fkey"
+            columns: ["grupo_acesso_id"]
+            isOneToOne: false
+            referencedRelation: "vw_concessao_viva"
+            referencedColumns: ["grupo_acesso_id"]
+          },
+          {
             foreignKeyName: "grupo_acesso_permissoes_permissao_id_fkey"
             columns: ["permissao_id"]
             isOneToOne: false
@@ -15386,6 +15393,13 @@ export type Database = {
             columns: ["permissao_id"]
             isOneToOne: false
             referencedRelation: "vw_catalogo_por_app"
+            referencedColumns: ["permissao_id"]
+          },
+          {
+            foreignKeyName: "grupo_acesso_permissoes_permissao_id_fkey"
+            columns: ["permissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_concessao_viva"
             referencedColumns: ["permissao_id"]
           },
           {
@@ -15432,6 +15446,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "grupos_acesso"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grupo_acesso_usuarios_grupo_acesso_id_fkey"
+            columns: ["grupo_acesso_id"]
+            isOneToOne: false
+            referencedRelation: "vw_concessao_viva"
+            referencedColumns: ["grupo_acesso_id"]
           },
         ]
       }
@@ -20280,6 +20301,7 @@ export type Database = {
         Row: {
           ativo: boolean
           codigo: string
+          conta_corrente_efeito: string
           created_at: string
           desconto_pct: number | null
           dispensa_analise: boolean
@@ -20297,6 +20319,7 @@ export type Database = {
         Insert: {
           ativo?: boolean
           codigo: string
+          conta_corrente_efeito?: string
           created_at?: string
           desconto_pct?: number | null
           dispensa_analise?: boolean
@@ -20314,6 +20337,7 @@ export type Database = {
         Update: {
           ativo?: boolean
           codigo?: string
+          conta_corrente_efeito?: string
           created_at?: string
           desconto_pct?: number | null
           dispensa_analise?: boolean
@@ -35141,6 +35165,13 @@ export type Database = {
             foreignKeyName: "sncf_dominio_tela_slug_default_fkey"
             columns: ["tela_slug_default"]
             isOneToOne: false
+            referencedRelation: "vw_concessao_viva"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "sncf_dominio_tela_slug_default_fkey"
+            columns: ["tela_slug_default"]
+            isOneToOne: false
             referencedRelation: "vw_permissao_diagnostico"
             referencedColumns: ["slug"]
           },
@@ -35342,6 +35373,13 @@ export type Database = {
             columns: ["tela_slug"]
             isOneToOne: false
             referencedRelation: "vw_catalogo_por_app"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "sncf_navegacao_tela_slug_fkey"
+            columns: ["tela_slug"]
+            isOneToOne: false
+            referencedRelation: "vw_concessao_viva"
             referencedColumns: ["slug"]
           },
           {
@@ -48817,6 +48855,21 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_concessao_viva: {
+        Row: {
+          grupo_acesso_id: string | null
+          grupo_nome: string | null
+          permissao_id: string | null
+          pode_apagar: boolean | null
+          pode_criar: boolean | null
+          pode_editar: boolean | null
+          pode_ver: boolean | null
+          slug: string | null
+          tipo: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       vw_conciliacao_cartao_sugestoes: {
         Row: {
           bandeira: string | null
@@ -56922,14 +56975,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -58932,14 +58985,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -68591,6 +68644,10 @@ export type Database = {
         Returns: Json
       }
       fn_xpm_bloqueio_estoque: { Args: { p_itens: Json }; Returns: string }
+      fn_xpm_conciliar_fase_do_arquivo: {
+        Args: { p_dry_run?: boolean }
+        Returns: Json
+      }
       fn_xpm_declarar_cancelamento: {
         Args: {
           p_declarado_por?: string
