@@ -127,6 +127,7 @@ export function ImportarExtratoDialog({ open, onOpenChange, contaPreSelecionada 
         if (error) throw error;
       }
 
+      if (novas.length > 0) {
         const ordenadasPorData = [...novas].sort((a, b) =>
           (a.data_transacao || "").localeCompare(b.data_transacao || "")
         );
