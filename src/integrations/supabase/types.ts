@@ -9606,6 +9606,162 @@ export type Database = {
         }
         Relationships: []
       }
+      declaracao_motivo: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          label: string
+          o_que_significa: string
+          ordem: number
+          updated_at: string
+          valida_contra: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          label: string
+          o_que_significa: string
+          ordem?: number
+          updated_at?: string
+          valida_contra?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          label?: string
+          o_que_significa?: string
+          ordem?: number
+          updated_at?: string
+          valida_contra?: string | null
+        }
+        Relationships: []
+      }
+      declaracao_realidade: {
+        Row: {
+          aposentada_em: string | null
+          aposentada_motivo: string | null
+          aposentada_por: string | null
+          aposentada_por_nome: string | null
+          created_at: string
+          declarado_em: string
+          declarado_por: string | null
+          declarado_por_nome: string | null
+          entidade: string
+          entidade_id: string
+          estado_no_momento: Json | null
+          id: string
+          id_externo: string | null
+          motivo_codigo: string
+          observacao: string | null
+          tipo_codigo: string
+          updated_at: string
+          valor_declarado: Json | null
+        }
+        Insert: {
+          aposentada_em?: string | null
+          aposentada_motivo?: string | null
+          aposentada_por?: string | null
+          aposentada_por_nome?: string | null
+          created_at?: string
+          declarado_em?: string
+          declarado_por?: string | null
+          declarado_por_nome?: string | null
+          entidade: string
+          entidade_id: string
+          estado_no_momento?: Json | null
+          id?: string
+          id_externo?: string | null
+          motivo_codigo: string
+          observacao?: string | null
+          tipo_codigo: string
+          updated_at?: string
+          valor_declarado?: Json | null
+        }
+        Update: {
+          aposentada_em?: string | null
+          aposentada_motivo?: string | null
+          aposentada_por?: string | null
+          aposentada_por_nome?: string | null
+          created_at?: string
+          declarado_em?: string
+          declarado_por?: string | null
+          declarado_por_nome?: string | null
+          entidade?: string
+          entidade_id?: string
+          estado_no_momento?: Json | null
+          id?: string
+          id_externo?: string | null
+          motivo_codigo?: string
+          observacao?: string | null
+          tipo_codigo?: string
+          updated_at?: string
+          valor_declarado?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declaracao_realidade_motivo_codigo_fkey"
+            columns: ["motivo_codigo"]
+            isOneToOne: false
+            referencedRelation: "declaracao_motivo"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "declaracao_realidade_tipo_codigo_fkey"
+            columns: ["tipo_codigo"]
+            isOneToOne: false
+            referencedRelation: "declaracao_tipo"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
+      declaracao_tipo: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          dominio: string
+          entidade: string
+          exige_valor: boolean
+          grava_em: string
+          label: string
+          o_que_afirma: string
+          observacao: string | null
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          dominio?: string
+          entidade: string
+          exige_valor?: boolean
+          grava_em: string
+          label: string
+          o_que_afirma: string
+          observacao?: string | null
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          dominio?: string
+          entidade?: string
+          exige_valor?: boolean
+          grava_em?: string
+          label?: string
+          o_que_afirma?: string
+          observacao?: string | null
+          ordem?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       delegacoes_gestao: {
         Row: {
           ativa: boolean
@@ -66635,30 +66791,20 @@ export type Database = {
         Args: { p_detalhe: string; p_pedido_id: string; p_tipo: string }
         Returns: Json
       }
-      ajustar_haver_cliente:
-        | {
-            Args: {
-              p_haver_id_alvo?: string
-              p_haver_ids_alvo?: string[]
-              p_motivo: string
-              p_parceiro_id: string
-              p_tipo: string
-              p_validade_dias?: number
-              p_valor: number
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_haver_id_alvo?: string
-              p_motivo: string
-              p_parceiro_id: string
-              p_tipo: string
-              p_validade_dias?: number
-              p_valor: number
-            }
-            Returns: Json
-          }
+      ajustar_haver_cliente: {
+        Args: {
+          p_haver_id_alvo?: string
+          p_haver_ids_alvo?: string[]
+          p_motivo: string
+          p_origem?: string
+          p_origem_pedido_id?: string
+          p_parceiro_id: string
+          p_tipo: string
+          p_validade_dias?: number
+          p_valor: number
+        }
+        Returns: Json
+      }
       ajustar_vencimento_boleto_pendente: {
         Args: { p_motivo?: string; p_nova_data: string; p_titulo_id: string }
         Returns: Json
@@ -67981,6 +68127,18 @@ export type Database = {
         }[]
       }
       fn_data_entrega_rastreio: { Args: { p_eventos: Json }; Returns: string }
+      fn_declaracao_vigente: {
+        Args: { p_entidade: string; p_entidade_id: string; p_tipo?: string }
+        Returns: {
+          declarado_em: string
+          declarado_por_nome: string
+          id: string
+          motivo_codigo: string
+          observacao: string
+          tipo_codigo: string
+          valor_declarado: Json
+        }[]
+      }
       fn_depreciacao_calcular: {
         Args: { p_competencia: string; p_gravar?: boolean }
         Returns: {
