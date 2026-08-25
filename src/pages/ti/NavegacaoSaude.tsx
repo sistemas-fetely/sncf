@@ -295,8 +295,8 @@ export default function NavegacaoSaude() {
                       <TableHeader>
                         <TableRow>
                           <TableHead className="text-xs">Tela</TableHead>
-                          <TableHead className="text-xs">Rota</TableHead>
-                          <TableHead className="text-xs">Observação</TableHead>
+                          <TableHead className="text-xs hidden lg:table-cell">Rota</TableHead>
+                          <TableHead className="text-xs hidden lg:table-cell">Observação</TableHead>
                           {podeAgir && <TableHead className="text-xs text-right">Correção</TableHead>}
                         </TableRow>
                       </TableHeader>
@@ -312,14 +312,14 @@ export default function NavegacaoSaude() {
                                   <p className="text-[11px] text-muted-foreground">{linha.chave}</p>
                                 )}
                               </TableCell>
-                              <TableCell className="font-mono text-sm text-muted-foreground">
+                              <TableCell className="font-mono text-sm text-muted-foreground hidden lg:table-cell">
                                 {linha.rota ?? "—"}
                               </TableCell>
-                              <TableCell className="max-w-[180px] text-xs text-muted-foreground">
+                              <TableCell className="max-w-[160px] text-xs text-muted-foreground hidden lg:table-cell">
                                 {linha.explicacao ?? linha.detalhe ?? "—"}
                               </TableCell>
                               {podeAgir && (
-                                <TableCell className="align-top">
+                                <TableCell className="align-top whitespace-nowrap w-px">
                                   <div className="flex flex-col gap-1 items-end">
                                     {linha.tem_correcao_automatica === true ? (
                                       <Button
@@ -339,6 +339,7 @@ export default function NavegacaoSaude() {
                                         size="sm"
                                         className="text-xs gap-1"
                                         disabled={!linha.prompt_correcao}
+                                        title="Copiar prompt de correção para colar numa conversa com o Claude"
                                         onClick={() => {
                                           void navigator.clipboard.writeText(
                                             linha.prompt_correcao ?? "",
@@ -350,7 +351,7 @@ export default function NavegacaoSaude() {
                                         }}
                                       >
                                         <Clipboard className="h-3 w-3" />
-                                        Copiar prompt de correção
+                                        Copiar prompt
                                       </Button>
                                     )}
                                     <Button
