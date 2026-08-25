@@ -192,6 +192,19 @@ export function AjustarDescontoDialog({
             />
           </div>
 
+          <div className="text-sm">
+            {Number(descontoAtualValor || 0) > 0 ? (
+              <>
+                <span className="text-muted-foreground">Desconto atual: </span>
+                <span className="font-medium">
+                  {Number(descontoAtualPct || 0).toFixed(2)}% · {formatBRL(Number(descontoAtualValor || 0))}
+                </span>
+              </>
+            ) : (
+              <span className="text-muted-foreground">Sem desconto aplicado</span>
+            )}
+          </div>
+
           <div className="rounded-md border bg-muted/40 p-3 space-y-1.5 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Valor bruto</span>
