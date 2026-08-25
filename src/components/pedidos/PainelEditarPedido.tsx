@@ -456,6 +456,7 @@ function SecaoDesconto({ pedidoId, pedido, guarda }: {
   const bruto = num(pedido?.valor_bruto);
   const bonus = num(pedido?.bonus_pix_valor);
   const frete = num(pedido?.valor_frete);
+  const preenchido = String(valorStr).trim() !== "";
   const valorNum = Number(String(valorStr).replace(",", ".")) || 0;
   const desconto = tipo === "pct" ? (bruto * valorNum) / 100 : valorNum;
   // O frete só entra no líquido quando a dimensão `frete_tipos` manda.
