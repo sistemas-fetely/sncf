@@ -15418,7 +15418,6 @@ export type Database = {
           created_at: string | null
           grupo_acesso_id: string
           id: string
-          inativado_em: string | null
           user_id: string
         }
         Insert: {
@@ -15427,7 +15426,6 @@ export type Database = {
           created_at?: string | null
           grupo_acesso_id: string
           id?: string
-          inativado_em?: string | null
           user_id: string
         }
         Update: {
@@ -15436,7 +15434,6 @@ export type Database = {
           created_at?: string | null
           grupo_acesso_id?: string
           id?: string
-          inativado_em?: string | null
           user_id?: string
         }
         Relationships: [
@@ -15467,7 +15464,7 @@ export type Database = {
           nome: string
           pre_cadastrado: boolean | null
           role_automatico: Database["public"]["Enums"]["app_role"]
-          slug: string | null
+          slug: string
           tipo_colaborador: string
           updated_at: string
         }
@@ -15481,7 +15478,7 @@ export type Database = {
           nome: string
           pre_cadastrado?: boolean | null
           role_automatico?: Database["public"]["Enums"]["app_role"]
-          slug?: string | null
+          slug: string
           tipo_colaborador: string
           updated_at?: string
         }
@@ -15495,7 +15492,7 @@ export type Database = {
           nome?: string
           pre_cadastrado?: boolean | null
           role_automatico?: Database["public"]["Enums"]["app_role"]
-          slug?: string | null
+          slug?: string
           tipo_colaborador?: string
           updated_at?: string
         }
