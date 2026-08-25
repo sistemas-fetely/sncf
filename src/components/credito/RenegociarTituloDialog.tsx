@@ -15,15 +15,12 @@ import { QRCodeSVG } from "qrcode.react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import {
-  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import type { TituloCobranca } from "@/hooks/credito/useTitulosCobranca";
 import type { ReguaEtapa } from "@/hooks/credito/useReguaFila";
 import { ProrrogarVencimentoDialog } from "@/components/credito/ProrrogarVencimentoDialog";
 
-type Modalidade = 1 | 2 | 3;
+type Modalidade = 1 | 2 | 3 | 4;
 type NovoInstrumento = "pix" | "transferencia";
 
 /** Retorno da RPC `renegociar_titulo` (contrato de 24/08/2026). */
@@ -64,6 +61,28 @@ function amanhaISO() {
   const d = new Date();
   d.setDate(d.getDate() + 1);
   return d.toISOString().slice(0, 10);
+}
+
+/**
+ * TRAVA-APONTA-A-SAÍDA: opção desabilitada por regra de negócio precisa dizer
+ * o motivo e nomear o caminho certo, no mesmo lugar (não em tooltip — tooltip
+ * não existe no toque). Trava muda empurra o operador para a porta errada.
+ */
+function motivoProrrogarBloqueado(titulo: TituloCobranca): string | null {
+  const tipo = titulo.tipo_pagamento ?? "";
+  const status = titulo.boleto_status ?? null;
+
+  if (tipo !== "boleto") {
+    return `Prorrogação é instrução bancária de boleto. Este título é ${tipo || "de outro tipo"}.`;
+  }
+  if (status === "registrado") return null;
+  if (status === "vencido") {
+    return "Boleto vencido não aceita alteração de vencimento (ocorrência 06 do CNAB). Use Reemitir.";
+  }
+  if (status === null || status === "pendente" || status === "rejeitado") {
+    return "O boleto ainda não está registrado no Safra. Não há vencimento para alterar.";
+  }
+  return "Boleto em processo no banco. Aguarde o retorno antes de alterar.";
 }
 
 function InstrumentoPixBloco({ inst }: { inst: InstrumentoRenegociado }) {
@@ -129,9 +148,19 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
   const [showProrrogar, setShowProrrogar] = useState(false);
   const [resultado, setResultado] = useState<RenegociarResultado | null>(null);
 
+  // Reemissão (modalidade 4)
+  const [reemData, setReemData] = useState<string>(amanhaISO());
+  const [reemValor, setReemValor] = useState<string>("");
+  const [reemMotivo, setReemMotivo] = useState<string>("");
 
-  const podeProrrogar =
-    titulo.tipo_pagamento === "boleto" && titulo.boleto_status === "registrado";
+
+  const motivoTravaProrrogar = motivoProrrogarBloqueado(titulo);
+  const podeProrrogar = motivoTravaProrrogar === null;
+
+  const isRejeitado = titulo.boleto_status === "rejeitado";
+  const podeReemitir =
+    titulo.tipo_pagamento === "boleto" &&
+    (titulo.boleto_status === "vencido" || isRejeitado);
 
   const somaParcelas = useMemo(
     () => parcelas.reduce((acc, p) => acc + (parseFloat(p.valor.replace(",", ".")) || 0), 0),
@@ -165,6 +194,7 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
   const mutation = useMutation({
     mutationFn: async () => {
       if (modalidade === 1) throw new Error("Prorrogação usa fluxo próprio.");
+      if (modalidade === 4) throw new Error("Reemissão usa fluxo próprio.");
       if (justificativa.trim().length < 10)
         throw new Error("Justificativa deve ter pelo menos 10 caracteres.");
       if (modalidade === 3 && parcelas.length !== 1)
@@ -215,8 +245,44 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
     onError: (err: any) => toast.error(err?.message ?? "Erro ao renegociar."),
   });
 
+  /**
+   * `solicitar_reemissao_boleto` LANÇA EXCEÇÃO em caso inválido — não devolve
+   * { ok: false, erro } como a `renegociar_titulo`. Trata-se via `error`.
+   * Reemitir não é contato com o cliente: não registra ação de régua.
+   */
+  const mutationReemitir = useMutation({
+    mutationFn: async () => {
+      if (!reemData || reemData < amanhaISO()) {
+        throw new Error("Escolha uma data de vencimento a partir de amanhã.");
+      }
+      const valorNum = reemValor.trim()
+        ? parseFloat(reemValor.replace(",", "."))
+        : null;
+      if (valorNum !== null && (!Number.isFinite(valorNum) || valorNum <= 0)) {
+        throw new Error("Valor inválido.");
+      }
+
+      const { data, error } = await (supabase as any).rpc("solicitar_reemissao_boleto", {
+        p_titulo_id: titulo.id,
+        p_nova_data: reemData,
+        p_novo_valor: valorNum,
+        p_motivo: reemMotivo.trim() || null,
+      });
+      if (error) throw new Error(error.message);
+      return data as { acao: "reset_direto" | "baixa_agendada"; mensagem: string };
+    },
+    onSuccess: (data) => {
+      toast.success(data?.mensagem ?? "Reemissão solicitada.");
+      qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
+      qc.invalidateQueries({ queryKey: ["cobranca-mesa"] });
+      onClose();
+    },
+    onError: (err: any) => toast.error(err?.message ?? "Erro ao solicitar reemissão."),
+  });
+
 
   const opcaoProrrogarDisabled = !podeProrrogar;
+  const pendente = mutation.isPending || mutationReemitir.isPending;
 
   if (resultado) {
     return (
@@ -247,7 +313,7 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
     <>
       <Dialog open={open && !showProrrogar} onOpenChange={(v) => !v && onClose()}>
 
-        <DialogContent className="max-w-xl">
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Renegociar título</DialogTitle>
             <DialogDescription>
@@ -260,44 +326,54 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
             <div className="space-y-1.5">
               <Label className="text-xs">Modalidade</Label>
               <div className="grid gap-2">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div>
-                        <label
-                          className={`flex items-start gap-2 rounded-md border p-2 text-sm ${
-                            opcaoProrrogarDisabled
-                              ? "opacity-50 cursor-not-allowed"
-                              : "cursor-pointer hover:bg-muted/40"
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            className="mt-1"
-                            disabled={opcaoProrrogarDisabled}
-                            checked={modalidade === 1}
-                            onChange={() => {
-                              if (opcaoProrrogarDisabled) return;
-                              setModalidade(1);
-                              setShowProrrogar(true);
-                            }}
-                          />
-                          <div>
-                            <div className="font-medium">1 — Prorrogar vencimento (boleto)</div>
-                            <div className="text-xs text-muted-foreground">
-                              Mesmo boleto, nova data. Não cancela o título.
-                            </div>
-                          </div>
-                        </label>
+                <label
+                  className={`flex items-start gap-2 rounded-md border p-2 text-sm ${
+                    opcaoProrrogarDisabled
+                      ? "opacity-60 cursor-not-allowed"
+                      : "cursor-pointer hover:bg-muted/40"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    className="mt-1"
+                    disabled={opcaoProrrogarDisabled}
+                    checked={modalidade === 1}
+                    onChange={() => {
+                      if (opcaoProrrogarDisabled) return;
+                      setModalidade(1);
+                      setShowProrrogar(true);
+                    }}
+                  />
+                  <div>
+                    <div className="font-medium">1 — Prorrogar vencimento (boleto)</div>
+                    <div className="text-xs text-muted-foreground">
+                      Mesmo boleto, nova data. Não cancela o título.
+                    </div>
+                    {motivoTravaProrrogar && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {motivoTravaProrrogar}
                       </div>
-                    </TooltipTrigger>
-                    {opcaoProrrogarDisabled && (
-                      <TooltipContent>
-                        Disponível apenas para boleto registrado vigente.
-                      </TooltipContent>
                     )}
-                  </Tooltip>
-                </TooltipProvider>
+                  </div>
+                </label>
+
+                {podeReemitir && (
+                  <label className="flex items-start gap-2 rounded-md border p-2 text-sm cursor-pointer hover:bg-muted/40">
+                    <input
+                      type="radio"
+                      className="mt-1"
+                      checked={modalidade === 4}
+                      onChange={() => setModalidade(4)}
+                    />
+                    <div>
+                      <div className="font-medium">Reemitir boleto</div>
+                      <div className="text-xs text-muted-foreground">
+                        Baixa o boleto atual (quando existe no banco) e gera um novo, com nova
+                        data. Não cria títulos filhos.
+                      </div>
+                    </div>
+                  </label>
+                )}
 
                 <label className="flex items-start gap-2 rounded-md border p-2 text-sm cursor-pointer hover:bg-muted/40">
                   <input
@@ -330,6 +406,79 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
                 </label>
               </div>
             </div>
+
+            {modalidade === 4 && (
+              <>
+                <Alert className="border-warning/40 bg-warning/10">
+                  <AlertDescription className="text-xs text-warning">
+                    {isRejeitado ? (
+                      <>
+                        Boleto rejeitado nunca chegou a viver no banco. A reemissão vai direto
+                        para a próxima remessa de entrada, sem baixa.
+                      </>
+                    ) : (
+                      <>
+                        Reemissão tem duas viagens ao banco, mínimo 2 dias úteis.
+                        <span className="block mt-1">
+                          Hoje: gerar a remessa de baixa na aba Banco e subir no SafraNet.
+                        </span>
+                        <span className="block">
+                          Amanhã: processar o retorno, gerar a remessa de entrada, subir no SafraNet.
+                        </span>
+                        <span className="block">
+                          Depois disso: processar o novo retorno — só então o boleto novo pode ser
+                          enviado ao cliente.
+                        </span>
+                        <span className="block mt-1">
+                          O nosso número muda. O boleto antigo vira lixo.
+                        </span>
+                      </>
+                    )}
+                  </AlertDescription>
+                </Alert>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs" htmlFor="reem-data">
+                    Nova data de vencimento <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="reem-data"
+                    type="date"
+                    min={amanhaISO()}
+                    value={reemData}
+                    onChange={(e) => setReemData(e.target.value)}
+                    className="w-44"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs" htmlFor="reem-valor">Novo valor (R$)</Label>
+                  <Input
+                    id="reem-valor"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder={String((titulo.valor_efetivo ?? 0).toFixed(2))}
+                    value={reemValor}
+                    onChange={(e) => setReemValor(e.target.value)}
+                    className="w-44"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Só preencha se o valor mudou. Não é possível aumentar o valor por reemissão.
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs" htmlFor="reem-motivo">Motivo</Label>
+                  <Input
+                    id="reem-motivo"
+                    value={reemMotivo}
+                    onChange={(e) => setReemMotivo(e.target.value)}
+                    placeholder="Opcional — ex.: cliente pediu nova data"
+                  />
+                </div>
+              </>
+            )}
 
             {(modalidade === 2 || modalidade === 3) && (
               <>
@@ -429,19 +578,28 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={onClose} disabled={mutation.isPending}>
+            <Button variant="outline" onClick={onClose} disabled={pendente}>
               Cancelar
             </Button>
-            <Button
-              onClick={() => mutation.mutate()}
-              disabled={
-                modalidade === 1 ||
-                mutation.isPending ||
-                justificativa.trim().length < 10
-              }
-            >
-              {mutation.isPending ? "Renegociando..." : "Confirmar renegociação"}
-            </Button>
+            {modalidade === 4 ? (
+              <Button
+                onClick={() => mutationReemitir.mutate()}
+                disabled={pendente || !reemData}
+              >
+                {mutationReemitir.isPending ? "Reemitindo..." : "Reemitir boleto"}
+              </Button>
+            ) : (
+              <Button
+                onClick={() => mutation.mutate()}
+                disabled={
+                  modalidade === 1 ||
+                  pendente ||
+                  justificativa.trim().length < 10
+                }
+              >
+                {mutation.isPending ? "Renegociando..." : "Confirmar renegociação"}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
