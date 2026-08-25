@@ -23,6 +23,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { hojeISO } from "@/lib/data";
+import { formatError } from "@/lib/format-error";
 
 interface Props {
   open: boolean;
@@ -311,7 +312,7 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
       invalidate();
       onOpenChange(false);
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: unknown) => toast.error(formatError(err)),
   });
 
   const debMut = useMutation({
@@ -349,7 +350,7 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
       invalidate();
       onOpenChange(false);
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: unknown) => toast.error(formatError(err)),
   });
 
   // ===== Validações =====
