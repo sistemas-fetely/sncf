@@ -441,6 +441,25 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
             {parceiroPicker}
 
             <div className="space-y-2">
+              <Label>Origem do crédito</Label>
+              <Select value={origemCodigo} onValueChange={setOrigemCodigo}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a origem" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(origensQ.data ?? []).map((o: any) => (
+                    <SelectItem key={o.codigo} value={o.codigo}>
+                      {o.rotulo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {origemSel?.descricao && (
+                <p className="text-xs text-muted-foreground">{origemSel.descricao}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
               <Label>Valor (R$)</Label>
               <Input
                 type="number"
