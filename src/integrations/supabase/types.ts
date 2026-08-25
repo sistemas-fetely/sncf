@@ -1810,6 +1810,45 @@ export type Database = {
           },
         ]
       }
+      area_grupo_acesso: {
+        Row: {
+          criado_em: string
+          criado_por: string | null
+          grupo_acesso_id: string
+          id: string
+          perfil_area_codigo: string
+        }
+        Insert: {
+          criado_em?: string
+          criado_por?: string | null
+          grupo_acesso_id: string
+          id?: string
+          perfil_area_codigo: string
+        }
+        Update: {
+          criado_em?: string
+          criado_por?: string | null
+          grupo_acesso_id?: string
+          id?: string
+          perfil_area_codigo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "area_grupo_acesso_grupo_acesso_id_fkey"
+            columns: ["grupo_acesso_id"]
+            isOneToOne: false
+            referencedRelation: "grupos_acesso"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "area_grupo_acesso_grupo_acesso_id_fkey"
+            columns: ["grupo_acesso_id"]
+            isOneToOne: false
+            referencedRelation: "vw_concessao_viva"
+            referencedColumns: ["grupo_acesso_id"]
+          },
+        ]
+      }
       atribuicao_origem: {
         Row: {
           atribuicao_id: string
@@ -4699,6 +4738,7 @@ export type Database = {
           is_sistema: boolean
           nivel_sugerido: string | null
           nome: string
+          papel: Database["public"]["Enums"]["app_role"] | null
         }
         Insert: {
           area?: string | null
@@ -4712,6 +4752,7 @@ export type Database = {
           is_sistema?: boolean
           nivel_sugerido?: string | null
           nome: string
+          papel?: Database["public"]["Enums"]["app_role"] | null
         }
         Update: {
           area?: string | null
@@ -4725,6 +4766,7 @@ export type Database = {
           is_sistema?: boolean
           nivel_sugerido?: string | null
           nome?: string
+          papel?: Database["public"]["Enums"]["app_role"] | null
         }
         Relationships: [
           {
@@ -67174,6 +67216,14 @@ export type Database = {
       clonar_pedido_cancelado: { Args: { p_pedido_id: string }; Returns: Json }
       comentar_pedido: {
         Args: { p_conteudo: string; p_pedido_id: string }
+        Returns: Json
+      }
+      conceder_acesso_por_cargo: {
+        Args: {
+          p_departamento_id?: string
+          p_template_id: string
+          p_user_id: string
+        }
         Returns: Json
       }
       conciliar_cartao_grupo_por_nsu: {
