@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { parseDataPura } from "@/lib/data";
 
 const TIPO_DOC_LABEL: Record<string, string> = {
   nf: "NF",
@@ -453,7 +454,7 @@ export default function EnviarPagamentoDialog({ open, onOpenChange, conta, onDon
       const emailOk = !emailResult.error && Boolean((emailResult.data as any)?.ok);
 
       try {
-        const venc = conta.data_vencimento ? new Date(conta.data_vencimento) : null;
+        const venc = parseDataPura(conta.data_vencimento);
         const urgente =
           venc && venc.getTime() <= Date.now() + 3 * 86400000;
 

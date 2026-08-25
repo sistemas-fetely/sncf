@@ -18,6 +18,7 @@ import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { diasAte } from "@/lib/data";
 import {
   Tooltip as UiTooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
@@ -1021,7 +1022,7 @@ export default function DashboardFinanceiro() {
                     </thead>
                     <tbody>
                       {posicao.aVencerPagar.slice(0, 8).map((c: any) => {
-                        const dias = Math.round((new Date(c.data_vencimento).getTime() - Date.now()) / 86_400_000);
+                        const dias = diasAte(c.data_vencimento) ?? 0;
                         return (
                           <tr
                             key={c.id}

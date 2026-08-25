@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Check, SkipForward, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { fmtData } from "@/lib/data";
 
 type Ambiguo = {
   tipo: "categoria" | "nf";
@@ -429,7 +430,7 @@ export default function FilaRevisaoIADialog({ open, onClose }: Props) {
                                       <div className="text-[10px] text-muted-foreground mt-0.5">
                                         {formatBRL(Number(s.valor))}
                                         {" · "}
-                                        {new Date(s.data_vencimento).toLocaleDateString("pt-BR")}
+                                        {fmtData(s.data_vencimento)}
                                         {s.parceiro_nome && ` · ${s.parceiro_nome}`}
                                       </div>
                                     </div>

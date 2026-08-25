@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { fmtData } from "@/lib/data";
 
 const fmtBRL = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
@@ -133,9 +134,7 @@ export default function PedidosVenda() {
                   <TableRow key={p.id}>
                     <TableCell className="font-mono text-xs">{p.numero || "—"}</TableCell>
                     <TableCell className="text-xs">
-                      {p.data_pedido
-                        ? format(new Date(p.data_pedido), "dd/MM/yyyy", { locale: ptBR })
-                        : "—"}
+                      {fmtData(p.data_pedido)}
                     </TableCell>
                     <TableCell className="max-w-[280px] truncate">{p.cliente_nome || "—"}</TableCell>
                     <TableCell className="text-xs">{p.canal || "—"}</TableCell>
