@@ -59249,14 +59249,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -66345,6 +66345,33 @@ export type Database = {
           },
         ]
       }
+      vw_xpm_arquivo_fase_traduzida: {
+        Row: {
+          arquivo_gerado_em: string | null
+          conferidoem: string | null
+          fase_codigo: string | null
+          fase_ordem: number | null
+          fase_rotulo: string | null
+          faturadoem: string | null
+          importadoem: string | null
+          observado_em: string | null
+          pedido_referencia: string | null
+          rotulo_concluida: string | null
+          rotulo_em_andamento: string | null
+          separadoem: string | null
+          seq_concluida: number | null
+          seq_em_andamento: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xpm_arquivo_fase_evento_fase_codigo_fkey"
+            columns: ["fase_codigo"]
+            isOneToOne: false
+            referencedRelation: "xpm_arquivo_fase_dim"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
       vw_xpm_arquivo_retrocesso: {
         Row: {
           arquivo_anterior_em: string | null
@@ -66640,6 +66667,9 @@ export type Database = {
       }
       vw_xpm_expedicao: {
         Row: {
+          arquivo_fase_codigo: string | null
+          arquivo_fase_rotulo: string | null
+          arquivo_seq_equiv: number | null
           canal: string | null
           cancelada_declarada_em: string | null
           cancelada_motivo: string | null
@@ -66652,6 +66682,10 @@ export type Database = {
           estagio_codigo: string | null
           estagio_descricao: string | null
           estagio_seq: number | null
+          fase_rotulo: string | null
+          fase_rotulo_em_andamento: string | null
+          fase_seq: number | null
+          fase_seq_em_andamento: number | null
           nf_chave: string | null
           nf_numero: string | null
           nf_serie: string | null
@@ -66664,13 +66698,22 @@ export type Database = {
           quantidade_volumes: number | null
           sincronizado_em: string | null
           situacao: string | null
+          tem_casa_em_andamento: boolean | null
           tem_corte: boolean | null
           transportador_cnpj: string | null
           transportadora_nome: string | null
           uf: string | null
           ultimo_evento_em: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "xpm_arquivo_fase_evento_fase_codigo_fkey"
+            columns: ["arquivo_fase_codigo"]
+            isOneToOne: false
+            referencedRelation: "xpm_arquivo_fase_dim"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       vw_xpm_expedicao_b2c: {
         Row: {
