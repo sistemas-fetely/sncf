@@ -68,6 +68,11 @@ type ExpedicaoXpm = {
   arquivo_gerado_em: string | null;
   fase_seq_verdade: number;
   fonte_da_verdade: "api" | "arquivo" | "empate" | "sem_arquivo";
+  fase_seq: number;
+  fase_rotulo: string;
+  fase_seq_em_andamento: number | null;
+  fase_rotulo_em_andamento: string | null;
+  tem_casa_em_andamento: boolean;
   ultimo_evento_em: string | null;
   dias_parado: number | null;
   canal: "B2B" | "B2C" | "SEM NF";
