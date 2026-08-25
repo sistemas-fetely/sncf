@@ -16,6 +16,7 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
+import { hojeISO } from "@/lib/data";
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
@@ -41,7 +42,7 @@ const emptyForm = (): FormState => ({
   valor_desconto: "0",
   operadora: "",
   numero_cartao: "",
-  data_inicio: new Date().toISOString().slice(0, 10),
+  data_inicio: hojeISO(),
   status: "ativo",
 });
 
@@ -97,7 +98,7 @@ export default function VinculoBeneficiosSection({ vinculoId }: { vinculoId: str
       valor_desconto: String(item.valor_desconto ?? "0"),
       operadora: item.operadora ?? "",
       numero_cartao: item.numero_cartao ?? "",
-      data_inicio: item.data_inicio ?? new Date().toISOString().slice(0, 10),
+      data_inicio: item.data_inicio ?? hojeISO(),
       status: item.status ?? "ativo",
     });
     setOpen(true);
@@ -142,7 +143,7 @@ export default function VinculoBeneficiosSection({ vinculoId }: { vinculoId: str
     if (!encerrarId) return;
     setSaving(true);
     try {
-      const hoje = new Date().toISOString().slice(0, 10);
+      const hoje = hojeISO();
       const { error } = await (supabase as any)
         .from("vinculo_beneficios")
         .update({ status: "encerrado", data_fim: hoje })

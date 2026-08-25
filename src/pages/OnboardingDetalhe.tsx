@@ -24,6 +24,7 @@ import {
 import { SmartBackButton } from "@/components/SmartBackButton";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { formatError } from "@/lib/format-error";
+import { hojeISO } from "@/lib/data";
 
 type Tarefa = {
   id: string;
@@ -293,7 +294,7 @@ export default function OnboardingDetalhe() {
   if (!checklist) return null;
 
   const hasOverdue = stats.atrasadas > 0;
-  const hojeStr = new Date().toISOString().split("T")[0];
+  const hojeStr = hojeISO();
 
   return (
     <TooltipProvider>

@@ -15,6 +15,7 @@ import ImportarPlanilhaSheet, {
   BotaoBaixarTemplate,
 } from "@/components/pessoas/reembolso/ImportarPlanilhaSheet";
 import {
+import { hojeISO } from "@/lib/data";
   useSolicitacoes, useCiclos, useCicloDaData, formatarBRL, formatarData,
   ROTULO_ESTADO, type EstadoSolicitacao,
 } from "@/hooks/useReembolso";
@@ -65,7 +66,7 @@ export default function Reembolsos() {
 
   const listaQ = useSolicitacoes("todos");
   const ciclosQ = useCiclos();
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeISO();
   const cicloHojeQ = useCicloDaData(hoje);
 
   const todas = listaQ.data ?? [];

@@ -24,6 +24,7 @@ import {
 } from "@/hooks/estoque/useRegistrarRetornoDevolucao";
 import type { RetornoPendenteDevolucao } from "@/hooks/estoque/useDevolucoesRetornoPendente";
 import { Badge } from "@/components/ui/badge";
+import { hojeISO } from "@/lib/data";
 
 const CENTRO_PADRAO = "XPM-SC";
 const CONDICAO_PADRAO = "__default__";
@@ -35,9 +36,6 @@ interface Props {
   devolucao: RetornoPendenteDevolucao | null;
 }
 
-function hojeISO() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) {
   const { data: condicoes = [] } = useEstoqueCondicoes();

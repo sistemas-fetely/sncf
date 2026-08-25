@@ -19,6 +19,7 @@ import TIAtivoForm from "./TIAtivoForm";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { hojeISO } from "@/lib/data";
 
 const TI_COLOR = "#3A7D6B";
 
@@ -117,7 +118,7 @@ export default function TIAtivos() {
         colaborador_id: null,
         colaborador_tipo: null,
         colaborador_nome: null,
-        devolvido_em: new Date().toISOString().split("T")[0],
+        devolvido_em: hojeISO(),
       })
       .eq("id", ativo.id);
     if (error) {

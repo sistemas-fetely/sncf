@@ -12,6 +12,7 @@ import { useParametros } from "@/hooks/useParametros";
 import { Sparkles, Loader2, Camera, X } from "lucide-react";
 import ManutencoesSection from "@/components/ti/ManutencoesSection";
 import { ImagemPrivada } from "@/components/storage/ImagemPrivada";
+import { hojeISO } from "@/lib/data";
 
 
 interface TIAtivoFormProps {
@@ -232,7 +233,7 @@ export default function TIAtivoForm({ open, onOpenChange, ativoId, onSaved }: TI
         colaborador_tipo = c.tipo;
         colaborador_nome = c.nome;
         status = "atribuido";
-        atribuido_em = new Date().toISOString().split("T")[0];
+        atribuido_em = hojeISO();
       }
     } else if (status === "atribuido") {
       status = "disponivel";

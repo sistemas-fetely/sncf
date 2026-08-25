@@ -27,6 +27,7 @@ import { Upload, Loader2, AlertTriangle, CheckCircle2, PackageX, RefreshCw } fro
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { hojeISO } from "@/lib/data";
 type ConciliacaoApi = {
   sku: string;
   nome_comercial: string | null;
@@ -140,7 +141,7 @@ function fmtPosicao(iso: string | null | undefined): string {
 
 export default function EstoqueXpm() {
   const qc = useQueryClient();
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeISO();
   const [dataSnapshot, setDataSnapshot] = useState(hoje);
   const [file, setFile] = useState<File | null>(null);
   const [importando, setImportando] = useState(false);

@@ -24,6 +24,7 @@ import { useIsSocio } from "@/hooks/useIsSocio";
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { hojeISO } from "@/lib/data";
 type Dim = { id: string; nome: string; codigo?: string };
 
 interface PessoaForm {
@@ -90,7 +91,7 @@ const emptyPessoa: PessoaForm = {
 const emptyVinculo: VinculoForm = {
   tipo_vinculo: "CLT",
   cargo_id: "", departamento_id: "", centro_custo_id: "", unidade_id: "",
-  data_inicio: new Date().toISOString().slice(0, 10),
+  data_inicio: hojeISO(),
   valor_base: "", valor_transporte: "",
   forma_pagamento_id: "", dia_vencimento: "5",
   banco_nome: "", agencia: "", conta: "", tipo_conta: "", chave_pix: "",

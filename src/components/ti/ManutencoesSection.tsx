@@ -12,6 +12,7 @@ import {
 import { Plus, Wrench, CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { hojeISO } from "@/lib/data";
 
 interface Manutencao {
   id: string;
@@ -48,7 +49,7 @@ const formatBRL = (n: number | null) =>
 const formatDate = (d: string | null) =>
   d ? new Date(d + "T00:00:00").toLocaleDateString("pt-BR") : "—";
 
-const today = () => new Date().toISOString().split("T")[0];
+
 
 export default function ManutencoesSection({ ativoId, ativoStatus, onStatusChange }: ManutencoesSectionProps) {
   const { user } = useAuth();
@@ -57,14 +58,14 @@ export default function ManutencoesSection({ ativoId, ativoStatus, onStatusChang
   const [saving, setSaving] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [concluirTarget, setConcluirTarget] = useState<Manutencao | null>(null);
-  const [dataFimConcluir, setDataFimConcluir] = useState(today());
+  const [dataFimConcluir, setDataFimConcluir] = useState(hojeISO());
 
   const [form, setForm] = useState({
     tipo_manutencao: "preventiva",
     observacoes: "",
     fornecedor: "",
     valor: "",
-    data_inicio: today(),
+    data_inicio: hojeISO(),
     data_fim: "",
     garantia_servico_ate: "",
   });
@@ -91,7 +92,7 @@ export default function ManutencoesSection({ ativoId, ativoStatus, onStatusChang
       observacoes: "",
       fornecedor: "",
       valor: "",
-      data_inicio: today(),
+      data_inicio: hojeISO(),
       data_fim: "",
       garantia_servico_ate: "",
     });
@@ -210,7 +211,7 @@ export default function ManutencoesSection({ ativoId, ativoStatus, onStatusChang
                       variant="outline"
                       size="sm"
                       className="gap-1.5 h-7 text-xs"
-                      onClick={() => { setConcluirTarget(m); setDataFimConcluir(today()); }}
+                      onClick={() => { setConcluirTarget(m); setDataFimConcluir(hojeISO()); }}
                     >
                       <CheckCircle2 className="h-3.5 w-3.5" /> Concluir
                     </Button>

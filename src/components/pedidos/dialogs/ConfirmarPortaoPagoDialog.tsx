@@ -22,6 +22,7 @@ import {
   type ProvaTipo,
 } from "@/hooks/pedidos/useConfirmarPagamentoLinha";
 import {
+import { hojeISO } from "@/lib/data";
   usePlanoAbertoPedido,
   rotuloMeio,
   type LinhaPlanoAberta,
@@ -102,7 +103,7 @@ export function ConfirmarPortaoPagoDialog({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [dataPagamento, setDataPagamento] = useState<string>(() =>
-    new Date().toISOString().slice(0, 10),
+    hojeISO(),
   );
   const [provaTipo, setProvaTipo] = useState<ProvaTipo>("manual");
   const [provaRef, setProvaRef] = useState<string>("");
@@ -174,7 +175,7 @@ export function ConfirmarPortaoPagoDialog({
     setProvaRef("");
     setProvaTipo("manual");
     setEscolhida("");
-    setDataPagamento(new Date().toISOString().slice(0, 10));
+    setDataPagamento(hojeISO());
   };
 
   return (

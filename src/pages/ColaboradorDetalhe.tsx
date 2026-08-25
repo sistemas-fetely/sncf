@@ -52,6 +52,13 @@ import { ehCLevel } from "@/lib/clevel-protection";
 import { Shield } from "lucide-react";
 
 import type {
+import { hojeISO } from "@/lib/data";
+
+/** Data pura N dias após uma data pura "YYYY-MM-DD" (aritmética UTC, sem drift de fuso). */
+function isoMaisDias(baseISO: string, dias: number): string {
+  const [a, m, d] = baseISO.split("-").map(Number);
+  return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10);
+}
   DadosPessoaisForm,
   DocumentosForm,
   DadosProfissionaisForm,
@@ -118,7 +125,7 @@ export default function ColaboradorDetalhe() {
     const newStatus = isAtivo ? "desligado" : "ativo";
     const updateData: any = { status: newStatus };
     if (newStatus === "desligado") {
-      updateData.data_desligamento = new Date().toISOString().slice(0, 10);
+      updateData.data_desligamento = hojeISO();
     } else {
       updateData.data_desligamento = null;
     }
@@ -154,13 +161,9 @@ export default function ColaboradorDetalhe() {
 
         // Calculate trial period dates (always)
         try {
-          const dataInicio = colaborador.data_admissao ? new Date(colaborador.data_admissao) : new Date();
-          const fim1 = new Date(dataInicio);
-          fim1.setDate(fim1.getDate() + 45);
-          const fim2 = new Date(dataInicio);
-          fim2.setDate(fim2.getDate() + 90);
-          const fim1Str = fim1.toISOString().slice(0, 10);
-          const fim2Str = fim2.toISOString().slice(0, 10);
+          const dataInicioStr = colaborador.data_admissao || hojeISO();
+          const fim1Str = isoMaisDias(dataInicioStr, 45);
+          const fim2Str = isoMaisDias(dataInicioStr, 90);
 
           await supabase
             .from("colaboradores_clt")
@@ -171,10 +174,8 @@ export default function ColaboradorDetalhe() {
             .eq("id", id);
 
           // Create scheduled alerts for trial periods
-          const alerta1Date = new Date(fim1);
-          alerta1Date.setDate(alerta1Date.getDate() - 15);
-          const alerta2Date = new Date(fim2);
-          alerta2Date.setDate(alerta2Date.getDate() - 5);
+          const alerta1Str = isoMaisDias(fim1Str, -15);
+          const alerta2Str = isoMaisDias(fim2Str, -5);
 
           const alertas: any[] = [
             {
@@ -182,7 +183,7 @@ export default function ColaboradorDetalhe() {
               titulo: `Período de experiência: ${colaborador.nome_completo}`,
               mensagem: `O 1º período de experiência (45 dias) de ${colaborador.nome_completo} encerra em ${fim1Str}. Avalie a continuidade.`,
               link: `/colaboradores/${id}`,
-              data_alerta: alerta1Date.toISOString().slice(0, 10),
+              data_alerta: alerta1Str,
               colaborador_id: id,
               user_id: null,
             },
@@ -191,7 +192,7 @@ export default function ColaboradorDetalhe() {
               titulo: `⚠️ Fim da experiência: ${colaborador.nome_completo}`,
               mensagem: `O 2º período de experiência (90 dias) de ${colaborador.nome_completo} encerra em ${fim2Str}. Decisão de efetivação necessária.`,
               link: `/colaboradores/${id}`,
-              data_alerta: alerta2Date.toISOString().slice(0, 10),
+              data_alerta: alerta2Str,
               colaborador_id: id,
               user_id: null,
             },
@@ -212,7 +213,7 @@ export default function ColaboradorDetalhe() {
                   titulo: `Período de experiência: ${colaborador.nome_completo}`,
                   mensagem: `O 1º período de experiência de ${colaborador.nome_completo} encerra em ${fim1Str}.`,
                   link: `/colaboradores/${id}`,
-                  data_alerta: alerta1Date.toISOString().slice(0, 10),
+                  data_alerta: alerta1Str,
                   colaborador_id: id,
                   user_id: gestorProfile.user_id,
                 },
@@ -221,7 +222,7 @@ export default function ColaboradorDetalhe() {
                   titulo: `⚠️ Fim da experiência: ${colaborador.nome_completo}`,
                   mensagem: `O 2º período de experiência de ${colaborador.nome_completo} encerra em ${fim2Str}. Decisão necessária.`,
                   link: `/colaboradores/${id}`,
-                  data_alerta: alerta2Date.toISOString().slice(0, 10),
+                  data_alerta: alerta2Str,
                   colaborador_id: id,
                   user_id: gestorProfile.user_id,
                 }
@@ -264,15 +265,14 @@ export default function ColaboradorDetalhe() {
               .single();
 
             if (newChecklist) {
-              const dataInicioCl = colaborador.data_admissao ? new Date(colaborador.data_admissao) : new Date();
+              const dataInicioCl = colaborador.data_admissao || hojeISO();
               let gestorUserId: string | null = null;
               if (colaborador.gestor_direto_id) {
                 const { data: gp } = await supabase.from("profiles").select("user_id").eq("id", colaborador.gestor_direto_id).single();
                 gestorUserId = gp?.user_id || null;
               }
               const tarefas = (await getTarefasParaTipo("clt", supabase)).map((t) => {
-                const prazoDate = new Date(dataInicioCl);
-                prazoDate.setDate(prazoDate.getDate() + t.prazo_dias);
+                const prazoStr = isoMaisDias(dataInicioCl, t.prazo_dias);
                 return {
                   tipo_processo: "onboarding",
                   sistema_origem: t.sistema_origem || "people",
@@ -290,7 +290,7 @@ export default function ColaboradorDetalhe() {
                     t.responsavel_role === "gestor_direto" && gestorUserId ? gestorUserId :
                     null,
                   prazo_dias: t.prazo_dias,
-                  prazo_data: prazoDate.toISOString().slice(0, 10),
+                  prazo_data: prazoStr,
                   bloqueante: t.bloqueante || false,
                   motivo_bloqueio: t.motivo_bloqueio || null,
                   accountable_role: t.accountable_role || null,
@@ -420,7 +420,7 @@ export default function ColaboradorDetalhe() {
             tem_acesso: true,
             usuario: a.usuario || null,
             observacoes: a.observacoes || null,
-            data_concessao: new Date().toISOString().split("T")[0],
+            data_concessao: hojeISO(),
           }));
         if (acessosToInsert.length > 0) {
           const { error: aErr } = await supabase.from("colaborador_acessos_sistemas").insert(acessosToInsert);

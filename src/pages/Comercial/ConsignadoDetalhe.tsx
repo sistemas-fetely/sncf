@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { useContaCorrenteCliente } from "./Consignados";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { hojeISO } from "@/lib/data";
 const soDigitos = (v: string | null | undefined) => (v ?? "").replace(/\D/g, "");
 
 interface TituloRow {
@@ -203,7 +204,7 @@ export default function ConsignadoDetalhe() {
   ]);
   const [periodoInicio, setPeriodoInicio] = useState("");
   const [periodoFim, setPeriodoFim] = useState("");
-  const [dataRecebimento, setDataRecebimento] = useState(() => new Date().toISOString().slice(0, 10));
+  const [dataRecebimento, setDataRecebimento] = useState(() => hojeISO());
   const [fonteArquivo, setFonteArquivo] = useState("");
   const [observacao, setObservacao] = useState("");
 

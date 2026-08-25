@@ -21,21 +21,21 @@ import {
 import { exportarPedidosComercial } from "@/lib/exportPedidosComercial";
 import { gerarRelatorioAuditoria } from "@/lib/exports/relatorioAuditoria";
 import { useNivel } from "@/hooks/useNivel";
+import { hojeISO } from "@/lib/data";
 
-function iso(d: Date) {
-  return d.toISOString().slice(0, 10);
+/** Data pura N dias a partir de hoje em Brasília (aritmética UTC, sem drift). */
+function isoMaisDias(dias: number): string {
+  const [a, m, d] = hojeISO().split("-").map(Number);
+  return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10);
 }
 
 type Modo = "comercial" | "auditoria";
 
 export function ExportarPedidosButton() {
   const { temNivel } = useNivel();
-  const hoje = new Date();
-  const noventa = new Date(hoje.getTime() - 90 * 24 * 60 * 60 * 1000);
-
   const [modo, setModo] = useState<Modo | null>(null);
-  const [de, setDe] = useState(iso(noventa));
-  const [ate, setAte] = useState(iso(hoje));
+  const [de, setDe] = useState(isoMaisDias(-90));
+  const [ate, setAte] = useState(hojeISO());
   const [loading, setLoading] = useState(false);
 
   const invalido = !de || !ate || de > ate;

@@ -18,6 +18,13 @@ import { StepDadosProfissionais } from "./StepDadosProfissionais";
 import { StepDadosBancarios } from "./StepDadosBancarios";
 import { StepDependentes } from "./StepDependentes";
 import {
+import { hojeISO } from "@/lib/data";
+
+/** Data pura N dias após uma data pura "YYYY-MM-DD" (aritmética UTC, sem drift de fuso). */
+function isoMaisDias(baseISO: string, dias: number): string {
+  const [a, m, d] = baseISO.split("-").map(Number);
+  return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10);
+}
   dadosPessoaisSchema,
   documentosSchema,
   dadosProfissionaisSchema,
@@ -188,7 +195,7 @@ export function CadastroColaboradorCLT() {
           .single();
 
         if (newChecklist) {
-          const dataAdmissao = data.data_admissao ? new Date(data.data_admissao + "T12:00:00") : new Date();
+          const dataAdmissao = data.data_admissao || hojeISO();
 
           let gestorUserId: string | null = null;
           const gestorId = (data as any).lider_direto_id || (initialData as any)?.lider_direto_id;
@@ -199,8 +206,7 @@ export function CadastroColaboradorCLT() {
 
           const tarefaTemplates = await getTarefasDinamicas("clt", null, supabase);
           const tarefas = tarefaTemplates.map((t) => {
-            const prazoDate = new Date(dataAdmissao);
-            prazoDate.setDate(prazoDate.getDate() + t.prazo_dias);
+            const prazoStr = isoMaisDias(dataAdmissao, t.prazo_dias);
             return {
               tipo_processo: "onboarding",
               sistema_origem: t.sistema_origem || "people",
@@ -216,7 +222,7 @@ export function CadastroColaboradorCLT() {
               responsavel_user_id:
                 t.responsavel_role === "gestor_direto" && gestorUserId ? gestorUserId : null,
               prazo_dias: t.prazo_dias,
-              prazo_data: prazoDate.toISOString().slice(0, 10),
+              prazo_data: prazoStr,
               bloqueante: t.bloqueante || false,
               motivo_bloqueio: t.motivo_bloqueio || null,
               accountable_role: t.accountable_role || null,

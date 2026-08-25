@@ -14,6 +14,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { hojeISO } from "@/lib/data";
+
+/** Data pura N dias após uma data pura "YYYY-MM-DD" (aritmética UTC, sem drift de fuso). */
+function isoMaisDias(baseISO: string, dias: number): string {
+  const [a, m, d] = baseISO.split("-").map(Number);
+  return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10);
+}
 
 interface Props {
   open: boolean;
@@ -44,7 +51,7 @@ export default function IniciarDesligamentoDialog({
 }: Props) {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [dataDesligamento, setDataDesligamento] = useState(() => new Date().toISOString().split("T")[0]);
+  const [dataDesligamento, setDataDesligamento] = useState(() => hojeISO());
   const [motivo, setMotivo] = useState("");
   const [observacoes, setObservacoes] = useState("");
   const [avisoPrevio, setAvisoPrevio] = useState(false);
@@ -98,10 +105,8 @@ export default function IniciarDesligamentoDialog({
       if (errC) throw errC;
 
       // 4) Inserir tarefas em sncf_tarefas
-      const dataBase = new Date(dataDesligamento + "T00:00:00");
       const tarefasInsert = (tarefasTpl ?? []).map((t) => {
-        const prazoDate = new Date(dataBase);
-        prazoDate.setDate(prazoDate.getDate() + (t.prazo_dias ?? 0));
+        const prazoStr = isoMaisDias(dataDesligamento, t.prazo_dias ?? 0);
         return {
           tipo_processo: "offboarding",
           sistema_origem: t.sistema_origem ?? "people",
@@ -117,7 +122,7 @@ export default function IniciarDesligamentoDialog({
           responsavel_role: t.responsavel_role,
           accountable_role: t.accountable_role,
           prazo_dias: t.prazo_dias ?? 0,
-          prazo_data: prazoDate.toISOString().split("T")[0],
+          prazo_data: prazoStr,
           status: "pendente",
           bloqueante: t.bloqueante ?? false,
           motivo_bloqueio: t.motivo_bloqueio,

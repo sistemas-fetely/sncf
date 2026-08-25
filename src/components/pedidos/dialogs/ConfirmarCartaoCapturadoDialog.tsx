@@ -16,6 +16,7 @@ import {
 import { useConfirmarCartaoCapturado } from "@/hooks/pedidos/useConfirmarCartaoCapturado";
 import { useCriarTarefa } from "@/hooks/pedidos/usePedidoTarefas";
 import { toast } from "@/hooks/use-toast";
+import { hojeISO } from "@/lib/data";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -37,7 +38,7 @@ export function ConfirmarCartaoCapturadoDialog({
   const [open, setOpen] = useState(false);
   const [nsu, setNsu] = useState("");
   const [dataCaptura, setDataCaptura] = useState<string>(() =>
-    new Date().toISOString().slice(0, 10),
+    hojeISO(),
   );
   const [valorCapturado, setValorCapturado] = useState<string>("");
   const [observacao, setObservacao] = useState("");
@@ -87,7 +88,7 @@ export function ConfirmarCartaoCapturadoDialog({
     setNsu("");
     setValorCapturado("");
     setObservacao("");
-    setDataCaptura(new Date().toISOString().slice(0, 10));
+    setDataCaptura(hojeISO());
   };
 
   return (

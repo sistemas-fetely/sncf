@@ -11,6 +11,7 @@ import {
 import { Check, ChevronDown, Copy, Link2, Loader2, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
+import { hojeISO } from "@/lib/data";
   fmtDataBR,
   useHistoricoLinksPagamento,
   useLinkPagamentoPedido,
@@ -18,7 +19,7 @@ import {
   type LinkPagamentoPedido,
 } from "@/hooks/pedidos/useLinkPagamentoPedido";
 
-const hojeISO = () => new Date().toISOString().slice(0, 10);
+
 
 /** Badge de situação do link — reutilizada nas filas. */
 export function BadgeSituacaoLink({ linha }: { linha: LinkPagamentoPedido }) {

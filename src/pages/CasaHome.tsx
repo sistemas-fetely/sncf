@@ -7,6 +7,7 @@ import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
 
 
 import { PageShell } from "@/components/layout/PageShell";
+import { hojeISO } from "@/lib/data";
 const saudacao = () => {
   const h = new Date().getHours();
   if (h < 6) return "Boa madrugada";
@@ -82,7 +83,7 @@ export default function CasaHome() {
     queryKey: ["casa-kpi-tarefas-hoje", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      const hoje = new Date().toISOString().slice(0, 10);
+      const hoje = hojeISO();
       const { count, error } = await supabase
         .from("vw_tarefas")
         .select("*", { count: "exact", head: true })
