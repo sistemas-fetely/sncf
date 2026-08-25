@@ -257,6 +257,7 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
   const buscarPedido = async () => {
     if (!pedidoBusca.trim()) {
       setOrigemPedidoId(null);
+      setOrigemPedidoRotulo(null);
       return;
     }
     const { data, error } = await (supabase as any)
@@ -271,9 +272,11 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
     if (!data) {
       toast.error("Pedido não encontrado");
       setOrigemPedidoId(null);
+      setOrigemPedidoRotulo(null);
       return;
     }
     setOrigemPedidoId(data.id);
+    setOrigemPedidoRotulo(data.id_externo ?? null);
     toast.success(`Pedido ${data.id_externo} vinculado`);
   };
 
