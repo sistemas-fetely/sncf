@@ -539,10 +539,18 @@ function SecaoDesconto({ pedidoId, pedido, guarda }: {
 
       {guarda.exigeMotivo && <CampoMotivo value={motivo} onChange={setMotivo} />}
 
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => { setTipo("valor"); setValorStr("0"); }}
+          disabled={salvar.isPending}
+        >
+          Zerar desconto
+        </Button>
         <BotaoSalvar
           onClick={() => salvar.mutate()}
-          disabled={valorNum <= 0 || !motivoOk || !guarda.temPapel}
+          disabled={!preenchido || valorNum < 0 || !motivoOk || !guarda.temPapel}
           pending={salvar.isPending}
           motivoTooltip={tooltipPapel}
         >
