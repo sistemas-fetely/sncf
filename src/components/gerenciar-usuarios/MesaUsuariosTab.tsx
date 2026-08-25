@@ -152,8 +152,7 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
     queryFn: async () => {
       const { data, error } = await supabase
         .from("grupo_acesso_usuarios")
-        .select("id, user_id, grupo_acesso_id, grupos_acesso(nome, ativo)")
-        .is("inativado_em", null);
+        .select("id, user_id, grupo_acesso_id, grupos_acesso(nome, ativo)");
       if (error) throw error;
       return data;
     },
@@ -278,7 +277,7 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from("grupo_acesso_usuarios")
-        .update({ inativado_em: new Date().toISOString() })
+        .delete()
         .eq("id", id);
       if (error) throw new Error(error.message);
     },

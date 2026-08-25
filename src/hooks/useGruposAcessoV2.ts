@@ -53,7 +53,7 @@ export interface GrupoUsuario {
   grupo_acesso_id: string;
   user_id: string;
   ativo_em: string;
-  inativado_em: string | null;
+  
   nome?: string;
   email?: string;
 }
@@ -87,8 +87,7 @@ export function useGruposAcessoV2(incluirInativos = false) {
         supabase
           .from("grupo_acesso_usuarios")
           .select("grupo_acesso_id")
-          .in("grupo_acesso_id", ids)
-          .is("inativado_em", null),
+          .in("grupo_acesso_id", ids),
       ]);
 
       const countPerms = new Map<string, number>();
@@ -161,8 +160,7 @@ export function useUsuariosDoGrupo(grupoId: string | null) {
       const { data: vinculos, error } = await supabase
         .from("grupo_acesso_usuarios")
         .select("*")
-        .eq("grupo_acesso_id", grupoId)
-        .is("inativado_em", null);
+        .eq("grupo_acesso_id", grupoId);
       if (error) throw error;
 
       const userIds = (vinculos || []).map((v) => v.user_id);
@@ -441,7 +439,6 @@ export function useAdicionarUsuarioAoGrupo() {
             grupo_acesso_id: grupoId,
             user_id: userId,
             adicionado_por: user?.id || null,
-            inativado_em: null,
           },
           { onConflict: "grupo_acesso_id,user_id" }
         );
@@ -466,10 +463,10 @@ export function useRemoverUsuarioDoGrupo() {
       grupoId: string;
       userId: string;
     }) => {
-      // Soft delete
+      // Vínculo é estado puro: remover = DELETE (histórico fica em acesso_dados_log)
       const { error } = await supabase
         .from("grupo_acesso_usuarios")
-        .update({ inativado_em: new Date().toISOString() })
+        .delete()
         .eq("grupo_acesso_id", grupoId)
         .eq("user_id", userId);
       if (error) throw error;

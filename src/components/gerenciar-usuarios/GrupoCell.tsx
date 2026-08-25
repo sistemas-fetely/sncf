@@ -32,6 +32,7 @@ export function GrupoCell({ userId }: { userId: string }) {
     staleTime: 5 * 60 * 1000,
   });
 
+  // TODO F3: célula é 1:1 num modelo N:N — virar lista de badges multi-grupo.
   const { data: vinculo } = useQuery({
     queryKey: ["grupo-acesso-vinculo", userId],
     queryFn: async () => {
@@ -39,10 +40,9 @@ export function GrupoCell({ userId }: { userId: string }) {
         .from("grupo_acesso_usuarios")
         .select("id, grupo_acesso_id")
         .eq("user_id", userId)
-        .is("inativado_em", null)
-        .maybeSingle();
+        .order("ativo_em", { ascending: true });
       if (error) throw error;
-      return data;
+      return data?.[0] ?? null;
     },
   });
 
