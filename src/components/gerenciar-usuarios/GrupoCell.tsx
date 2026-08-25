@@ -51,7 +51,7 @@ export function GrupoCell({ userId }: { userId: string }) {
       if (vinculo?.id) {
         const { error } = await supabase
           .from("grupo_acesso_usuarios")
-          .update({ inativado_em: new Date().toISOString() })
+          .delete()
           .eq("id", vinculo.id);
         if (error) throw error;
       }
