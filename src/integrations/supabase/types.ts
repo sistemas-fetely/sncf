@@ -68363,10 +68363,16 @@ export type Database = {
         Args: { p_solicitacao_id: string }
         Returns: number
       }
-      fn_reescalar_condicao_aprovada: {
-        Args: { p_condicao: Json; p_valor_alvo: number }
-        Returns: Json
-      }
+      fn_reescalar_condicao_aprovada:
+        | { Args: { p_condicao: Json; p_valor_alvo: number }; Returns: Json }
+        | {
+            Args: {
+              p_condicao: Json
+              p_preservar_vencimentos: boolean
+              p_valor_alvo: number
+            }
+            Returns: Json
+          }
       fn_refresh_dre: { Args: never; Returns: undefined }
       fn_registrar_despacho_sem_prova: {
         Args: { p_pedido_id: string }
