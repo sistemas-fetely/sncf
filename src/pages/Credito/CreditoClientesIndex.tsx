@@ -24,7 +24,8 @@ export default function CreditoClientesIndex() {
   const { roles } = useAuth();
   const isSuperAdmin = (roles ?? []).includes("super_admin");
   const [criarHaverOpen, setCriarHaverOpen] = useState(false);
-  const [tab, setTab] = useAbaUrl("todos");
+  // param próprio: esta tela roda embutida na aba "Crédito do cliente" da Cobrança, que já usa ?aba=
+  const [tab, setTab] = useAbaUrl("todos", undefined, "filtro_credito");
   const tabAtual = tab as "todos" | "com_haver" | "com_vencidos";
   const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>(null);
   const [busca, setBusca] = useState("");
