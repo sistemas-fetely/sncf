@@ -1527,6 +1527,12 @@ export default function CobrancaDetalhe() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         bonusPixValor={Number((pedidoQ.data as any)?.bonus_pix_valor ?? 0)}
         condicaoAtual={proposta?.condicao_original ?? pedidoQ.data?.condicao_solicitada ?? null}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        estagio={(pedidoQ.data as any)?.estagio ?? null}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        freteTipo={(pedidoQ.data as any)?.frete_tipo ?? null}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        valorFrete={Number((pedidoQ.data as any)?.valor_frete ?? 0)}
       />
 
       {pedidoQ.data?.id && (pedidoQ.data as any)?.parceiro_id && (
