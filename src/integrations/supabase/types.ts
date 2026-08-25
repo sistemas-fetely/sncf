@@ -49143,12 +49143,19 @@ export type Database = {
       vw_conta_corrente_cliente: {
         Row: {
           cnpj: string | null
+          consignado_modelo: string | null
+          dia_acerto: number | null
           documentado: number | null
+          documentado_nao_classificado: number | null
           haver_disponivel: number | null
+          n_docs_nao_classificados: number | null
+          n_documentos: number | null
           n_pagamentos: number | null
           n_titulos: number | null
           nome: string | null
           pago: number | null
+          pago_credito_bancario: number | null
+          pago_titulo_acerto: number | null
           parceiro_id: string | null
           saldo_devedor: number | null
           ultimo_pagamento: string | null
@@ -49161,6 +49168,21 @@ export type Database = {
           data: string | null
           descricao: string | null
           ref: string | null
+          tipo: string | null
+          valor: number | null
+        }
+        Relationships: []
+      }
+      vw_conta_corrente_extrato_cliente: {
+        Row: {
+          cnpj: string | null
+          data: string | null
+          descricao: string | null
+          nao_classificado: boolean | null
+          parceiro_id: string | null
+          pedido_ref: string | null
+          ref: string | null
+          saldo_corrido: number | null
           tipo: string | null
           valor: number | null
         }
@@ -56975,14 +56997,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -58985,14 +59007,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
