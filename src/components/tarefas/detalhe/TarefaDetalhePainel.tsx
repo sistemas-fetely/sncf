@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
 import {
   useDecidirAprovacao, useSalvarCampoTarefa, useTarefaDetalhe,
+  type TarefaDetalhe,
 } from "@/hooks/tarefas/useTarefaDetalhe";
 import {
   BlocoCampos, BlocoCamposPersonalizados, BlocoDescricao, BlocoEtiquetas, BlocoRaci, BlocoSubtarefas,
@@ -17,6 +18,15 @@ import {
 import {
   BlocoAnexos, BlocoComentarios, BlocoDependencias, BlocoHistorico, BlocoTempo,
 } from "./BlocosExtras";
+
+/** Fallback genérico para link de origem. Novos módulos entram aqui quando existirem. */
+function resolverLinkOrigem(tarefa: TarefaDetalhe): string | null {
+  if (tarefa.acao_url) return tarefa.acao_url;
+  if (tarefa.modulo_origem === "pedidos" && tarefa.entidade_origem_id) {
+    return `/pedidos/${tarefa.entidade_origem_id}`;
+  }
+  return null;
+}
 
 interface Props {
   tarefaId: string | null;
@@ -63,6 +73,8 @@ function Conteudo({ tarefaId }: { tarefaId: string }) {
 
   const projeto = projetos?.find((p) => p.id === tarefa.projeto_id);
 
+  const linkOrigem = resolverLinkOrigem(tarefa);
+
   const salvarTitulo = () => {
     const t = titulo.trim();
     if (!t || t === tarefa.titulo) return setTitulo(tarefa.titulo);
@@ -92,8 +104,8 @@ function Conteudo({ tarefaId }: { tarefaId: string }) {
               {tarefa.tipo_tarefa === "marco" ? "Marco" : "Aprovação"}
             </Badge>
           )}
-          {tarefa.acao_url && (
-            <Button size="sm" variant="outline" onClick={() => navigate(tarefa.acao_url!)}>
+          {linkOrigem && (
+            <Button size="sm" variant="outline" onClick={() => navigate(linkOrigem)}>
               <ExternalLink className="mr-1 h-3.5 w-3.5" /> Abrir origem
             </Button>
           )}

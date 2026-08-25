@@ -9,9 +9,11 @@ import type { Tarefa, TarefaStatus, TarefaPrioridade } from "./useTarefas";
  */
 
 const CAMPOS_DETALHE =
-  "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id,data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,acao_url,ordem,criado_em,criado_por,visibilidade,tipo_tarefa,aprovacao_status,aprovacao_comentario,aprovacao_em,aprovacao_por" as const;
+  "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id,data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,modulo_origem,entidade_origem_id,acao_url,ordem,criado_em,criado_por,visibilidade,tipo_tarefa,aprovacao_status,aprovacao_comentario,aprovacao_em,aprovacao_por" as const;
 
 export interface TarefaDetalhe extends Tarefa {
+  modulo_origem: string | null;
+  entidade_origem_id: string | null;
   criado_por: string | null;
   visibilidade: "publica" | "privada";
   tipo_tarefa: "tarefa" | "marco" | "aprovacao";
