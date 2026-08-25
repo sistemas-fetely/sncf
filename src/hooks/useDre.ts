@@ -118,8 +118,8 @@ export function useDreDespesas(codigo: string | null, mes: string | null) {
     queryKey: ["dre", "despesas", codigo, mes],
     queryFn: async () => {
       const ini = mes!;
-      const d = new Date(`${ini}T00:00:00`);
-      const fim = `${new Date(d.getFullYear(), d.getMonth() + 1, 1).toISOString().slice(0, 10)}`;
+      const [ia, im] = ini.split("-").map(Number);
+      const fim = new Date(Date.UTC(ia, im, 1)).toISOString().slice(0, 10);
 
       const { data, error } = await (supabase as any)
         .from("despesas")

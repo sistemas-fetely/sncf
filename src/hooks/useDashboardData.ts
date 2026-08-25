@@ -1,17 +1,24 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { hojeISO } from "@/lib/data";
+
+/** Data pura N dias a partir de hoje em Brasília (aritmética UTC, sem drift). */
+function isoMaisDias(dias: number): string {
+  const [a, m, dd] = hojeISO().split("-").map(Number);
+  return new Date(Date.UTC(a, m - 1, dd + dias)).toISOString().slice(0, 10);
+}
 
 function getMonthRange(offset: number) {
-  const now = new Date();
-  const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
-  const start = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+  const [ano, mes] = hojeISO().split("-").map(Number);
+  const d = new Date(Date.UTC(ano, mes - 1 + offset, 1));
+  const start = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+  const end = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0));
   return {
     competencia: start,
     startDate: `${start}-01`,
     endDate: end.toISOString().slice(0, 10),
-    label: d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
+    label: d.toLocaleDateString("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" }),
   };
 }
 
@@ -34,13 +41,11 @@ export function useDashboardData() {
         .from("colaboradores_clt")
         .select("*", { count: "exact", head: true });
 
-      const d90 = new Date();
-      d90.setDate(d90.getDate() - 90);
       const { count: experiencia } = await supabase
         .from("colaboradores_clt")
         .select("*", { count: "exact", head: true })
         .eq("status", "ativo")
-        .gte("data_admissao", d90.toISOString().slice(0, 10));
+        .gte("data_admissao", isoMaisDias(-90));
 
       return { ativos: ativos ?? 0, total: total ?? 0, experiencia: experiencia ?? 0 };
     },
@@ -55,14 +60,12 @@ export function useDashboardData() {
         .select("*", { count: "exact", head: true })
         .eq("status", "ativo");
 
-      const d30 = new Date();
-      d30.setDate(d30.getDate() + 30);
       const { count: vencendo } = await supabase
         .from("contratos_pj")
         .select("*", { count: "exact", head: true })
         .eq("status", "ativo")
         .not("data_fim", "is", null)
-        .lte("data_fim", d30.toISOString().slice(0, 10));
+        .lte("data_fim", isoMaisDias(30));
 
       return { ativos: ativos ?? 0, vencendo: vencendo ?? 0 };
     },
@@ -102,7 +105,7 @@ export function useDashboardData() {
   const feriasQuery = useQuery({
     queryKey: ["dashboard_ferias"],
     queryFn: async () => {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = hojeISO();
       const { count: emGozo } = await supabase
         .from("ferias_programacoes")
         .select("*", { count: "exact", head: true })
@@ -405,16 +408,14 @@ export function useDashboardData() {
   const docsVencendoQuery = useQuery({
     queryKey: ["dashboard_docs_vencendo"],
     queryFn: async () => {
-      const d30 = new Date();
-      d30.setDate(d30.getDate() + 30);
-      const today = new Date().toISOString().slice(0, 10);
+      const today = hojeISO();
 
       const { data } = await supabase
         .from("colaboradores_clt")
         .select("nome_completo, cnh_validade, departamento")
         .eq("status", "ativo")
         .not("cnh_validade", "is", null)
-        .lte("cnh_validade", d30.toISOString().slice(0, 10));
+        .lte("cnh_validade", isoMaisDias(30));
 
       return (data || []).map((c) => ({
         nome: c.nome_completo,

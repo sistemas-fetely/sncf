@@ -6,6 +6,7 @@ import { formatError } from "@/lib/format-error";
 import { Button } from "@/components/ui/button";
 import { useNivel } from "@/hooks/useNivel";
 import type { PedidoB2cRow } from "@/hooks/vendas/useB2c";
+import { hojeISO, parseDataPura } from "@/lib/data";
 
 /**
  * Exporta exatamente as linhas que a Fila está mostrando — nada de segunda query.
@@ -41,7 +42,7 @@ export function ExportarB2cButton({ linhas }: { linhas: PedidoB2cRow[] }) {
       linhas.forEach((p) => {
         ws.addRow({
           order_name: p.order_name ?? "",
-          data_pedido: p.data_pedido ? new Date(p.data_pedido) : null,
+          data_pedido: parseDataPura(p.data_pedido),
           cliente: p.cliente ?? "",
           shipping_city: p.shipping_city ?? "",
           shipping_province: p.shipping_province ?? "",
@@ -61,7 +62,7 @@ export function ExportarB2cButton({ linhas }: { linhas: PedidoB2cRow[] }) {
       );
       const a = document.createElement("a");
       a.href = url;
-      a.download = `loja-b2c_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      a.download = `loja-b2c_${hojeISO()}.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
       toast.success(`Exportação concluída — ${linhas.length} linha(s).`);

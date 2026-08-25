@@ -48,6 +48,7 @@ import { NovaPastaDialog } from "@/pages/administrativo/GED";
 import { useParametros } from "@/hooks/useParametros";
 import { useFormasPagamento } from "@/hooks/financeiro/useFormasPagamento";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { hojeISO } from "@/lib/data";
 
 interface Pasta {
   id: string;
@@ -440,7 +441,7 @@ function ContratoCard({
     try {
       const { error } = await (supabase as any)
         .from("pasta_contratos")
-        .update({ status: "encerrado", vigencia_fim: new Date().toISOString().split("T")[0] })
+        .update({ status: "encerrado", vigencia_fim: hojeISO() })
         .eq("id", contrato.id);
       if (error) throw error;
 

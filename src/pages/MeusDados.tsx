@@ -18,6 +18,7 @@ import { ptBR } from "date-fns/locale";
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { hojeISO } from "@/lib/data";
 type ConsentTipo = {
   tipo: string;
   label: string;
@@ -227,7 +228,7 @@ export default function MeusDados() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `meus-dados-fetely-${new Date().toISOString().split("T")[0]}.json`;
+      a.download = `meus-dados-fetely-${hojeISO()}.json`;
       a.click();
       URL.revokeObjectURL(url);
 

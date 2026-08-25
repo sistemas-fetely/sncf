@@ -17,6 +17,7 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
+import { hojeISO } from "@/lib/data";
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
@@ -44,7 +45,7 @@ const emptyForm = (): FormState => ({
   natureza: "recorrente",
   valor: "",
   competencia_ym: new Date().toISOString().slice(0, 7),
-  data_inicio: new Date().toISOString().slice(0, 10),
+  data_inicio: hojeISO(),
   data_fim: "",
   observacoes: "",
   status: "ativo",

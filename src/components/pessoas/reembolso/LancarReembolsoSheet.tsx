@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import {
+import { hojeISO } from "@/lib/data";
   useCategorias, useVinculosAtivos, useCentrosCusto, usePlanoContas,
   useLancarSolicitacao, useAnexarComprovante, buscarItensDaSolicitacao,
   formatarBRL, formatarTamanho, MIMES_COMPROVANTE, LIMITE_COMPROVANTE_BYTES,
@@ -60,15 +61,12 @@ interface ItemForm {
 }
 
 
-function hoje(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function novoItem(): ItemForm {
   return {
     uid: crypto.randomUUID(),
     categoria_codigo: "",
-    data_despesa: hoje(),
+    data_despesa: hojeISO(),
     descricao: "",
     valor_solicitado: "",
     cnpj_emitente: "",
@@ -117,7 +115,7 @@ export default function LancarReembolsoSheet({ open, onOpenChange, onCriado }: P
 
   const [vinculoId, setVinculoId] = useState("");
   const [emailRemetente, setEmailRemetente] = useState("");
-  const [dataRecebimento, setDataRecebimento] = useState(hoje());
+  const [dataRecebimento, setDataRecebimento] = useState(hojeISO());
   const [threadRef, setThreadRef] = useState("");
   const [itens, setItens] = useState<ItemForm[]>([novoItem()]);
   const [progresso, setProgresso] = useState<string | null>(null);
@@ -161,7 +159,7 @@ export default function LancarReembolsoSheet({ open, onOpenChange, onCriado }: P
   function resetar() {
     setVinculoId("");
     setEmailRemetente("");
-    setDataRecebimento(hoje());
+    setDataRecebimento(hojeISO());
     setThreadRef("");
     setItens([novoItem()]);
     setProgresso(null);

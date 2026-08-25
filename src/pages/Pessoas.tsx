@@ -24,6 +24,7 @@ import { humanizeError } from "@/lib/errorMessages";
 import { useIsSocio } from "@/hooks/useIsSocio";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { hojeISO } from "@/lib/data";
 
 interface PessoaLinha {
   pessoa_id: string;
@@ -61,7 +62,7 @@ export default function Pessoas() {
   );
   const [filterStatus, setFilterStatus] = useState("todos");
   const [desligarTarget, setDesligarTarget] = useState<PessoaLinha | null>(null);
-  const [dataFim, setDataFim] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [dataFim, setDataFim] = useState<string>(hojeISO());
   const [desligando, setDesligando] = useState(false);
   const [soloIncompletos, setSoloIncompletos] = useState(false);
   const [filterCC, setFilterCC] = useState("todos");
@@ -361,7 +362,7 @@ export default function Pessoas() {
                           {p.status === "ativo" && p.vinculo_id && (
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive"
-                              onClick={(e) => { e.stopPropagation(); setDesligarTarget(p); setDataFim(new Date().toISOString().slice(0, 10)); }}
+                              onClick={(e) => { e.stopPropagation(); setDesligarTarget(p); setDataFim(hojeISO()); }}
                             >
                               <UserMinus className="mr-2 h-4 w-4" /> Desligar
                             </DropdownMenuItem>

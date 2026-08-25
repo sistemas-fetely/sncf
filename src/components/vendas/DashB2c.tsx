@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Selo } from "@/components/ui/selo";
 import { formatBRL } from "@/lib/format-currency";
 import type { PedidoB2cRow } from "@/hooks/vendas/useB2c";
+import { hojeISO } from "@/lib/data";
 
 function Kpi({ rotulo, valor, nota }: { rotulo: string; valor: string; nota?: string }) {
   return (
@@ -44,11 +45,10 @@ export function DashB2c({ pedidos, isLoading }: { pedidos: PedidoB2cRow[]; isLoa
   const { data: topSkus } = useTopSkusB2c();
 
   const kpis = useMemo(() => {
-    const agora = new Date();
+    const mesAtual = hojeISO().slice(0, 7);
     const doMes = pedidos.filter((p) => {
       if (!p.data_pedido || p.estagio === "cancelado") return false;
-      const d = new Date(p.data_pedido);
-      return d.getMonth() === agora.getMonth() && d.getFullYear() === agora.getFullYear();
+      return p.data_pedido.slice(0, 7) === mesAtual;
     });
     const receitaMes = doMes.reduce((s, p) => s + Number(p.total ?? 0), 0);
     const validos = pedidos.filter((p) => p.estagio !== "cancelado");

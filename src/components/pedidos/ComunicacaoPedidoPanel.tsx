@@ -28,6 +28,7 @@ import {
 } from "@/lib/financeiro/montar-pacote-cobranca";
 import { resolverEmailCobranca } from "@/lib/financeiro/email-cobranca-parceiro";
 import { ehBrCodePix } from "@/lib/financeiro/instrumento-pagamento";
+import { hojeISO } from "@/lib/data";
 
 type TipoEmail = "cobranca" | "portao_boleto" | "boleto" | "nf" | "nf_boletos";
 
@@ -192,9 +193,9 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
   const [novoEmail, setNovoEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [injetadoVendedorNestaAbertura, setInjetadoVendedorNestaAbertura] = useState(false);
-  const hojeISO = new Date().toISOString().slice(0, 10);
+  const hoje = hojeISO();
   const [novoLink, setNovoLink] = useState("");
-  const [geradoEm, setGeradoEm] = useState(hojeISO);
+  const [geradoEm, setGeradoEm] = useState(hojeISO());
   const [expiraEm, setExpiraEm] = useState("");
 
   // Precedência: contatos.financeiro.email > email_cobranca > email.
@@ -232,7 +233,7 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
     setInjetadoVendedorNestaAbertura(false);
     setNovoEmail("");
     setNovoLink("");
-    setGeradoEm(hojeISO);
+    setGeradoEm(hojeISO());
     setDialogOpen(true);
   };
 
@@ -555,7 +556,7 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
                   <Input
                     id="comunic-gerado-em"
                     type="date"
-                    max={hojeISO}
+                    max={hoje}
                     value={geradoEm}
                     onChange={(e) => setGeradoEm(e.target.value)}
                   />
@@ -565,7 +566,7 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
                   <Input
                     id="comunic-expira-em"
                     type="date"
-                    min={geradoEm || hojeISO}
+                    min={geradoEm || hoje}
                     value={expiraEm}
                     onChange={(e) => setExpiraEm(e.target.value)}
                   />

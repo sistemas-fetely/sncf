@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
+import { hojeISO } from "@/lib/data";
 
 
 // ---------------------------------------------------------------------------
@@ -1100,7 +1101,7 @@ export function useReembolsoParametros() {
   return useQuery({
     queryKey: ["reembolso-parametros"],
     queryFn: async (): Promise<Record<string, ParametroReembolso>> => {
-      const hojeIso = new Date().toISOString().slice(0, 10);
+      const hojeIso = hojeISO();
       const { data, error } = await supabase
         .from("reembolso_parametros")
         .select("chave,unidade,descricao,valor_numerico,valor_texto,vigencia_inicio,vigencia_fim")

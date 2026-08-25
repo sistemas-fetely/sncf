@@ -27,6 +27,7 @@ import {
   type PeriodoComColaborador,
 } from "@/hooks/useFerias";
 import type { Tables } from "@/integrations/supabase/types";
+import { parseDataPura } from "@/lib/data";
 
 const STATUS_PERIODO: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   em_aberto: { label: "Em Aberto", variant: "outline" },
@@ -143,7 +144,7 @@ export function FeriasCLTView({ canManage, isAdmin }: Props) {
 
   const openEditProg = (pr: Tables<"ferias_programacoes">) => {
     setEditingProg(pr);
-    setProgDataInicio(new Date(pr.data_inicio));
+    setProgDataInicio(parseDataPura(pr.data_inicio) ?? undefined);
     setProgDias(pr.dias);
     setProgTipo(pr.tipo);
     setProgObs(pr.observacoes || "");
@@ -255,7 +256,7 @@ export function FeriasCLTView({ canManage, isAdmin }: Props) {
                             return (
                               <div key={pr.id} className="flex items-center gap-1.5 text-xs">
                                 <Badge variant={pst.variant} className="text-[10px] px-1.5">{pst.label}</Badge>
-                                <span>{format(new Date(pr.data_inicio), "dd/MM")} - {format(new Date(pr.data_fim), "dd/MM")} ({pr.dias}d)</span>
+                                <span>{format(parseDataPura(pr.data_inicio)!, "dd/MM")} - {format(parseDataPura(pr.data_fim)!, "dd/MM")} ({pr.dias}d)</span>
                                 {canManage && (pr.status === "programada" || pr.status === "aprovada") && (
                                   <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => openEditProg(pr)}>
                                     <Pencil className="h-3 w-3" />

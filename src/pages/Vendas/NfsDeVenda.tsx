@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { hojeISO } from "@/lib/data";
 function formatDate(iso: string | null | undefined) {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -168,7 +169,7 @@ function AbaNFs() {
     const ws = XLSX.utils.json_to_sheet(linhas);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "NFs de Venda");
-    const sufixo = mesFiltro !== "todos" ? mesFiltro : new Date().toISOString().slice(0, 10);
+    const sufixo = mesFiltro !== "todos" ? mesFiltro : hojeISO();
     XLSX.writeFile(wb, `nfs-de-venda-${sufixo}.xlsx`);
   }
 

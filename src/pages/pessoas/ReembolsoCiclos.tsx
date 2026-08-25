@@ -20,14 +20,12 @@ import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/PageHeader";
 import SolicitacaoDrawer from "@/components/pessoas/reembolso/SolicitacaoDrawer";
 import {
+import { hojeISO } from "@/lib/data";
   useCiclos, useLotes, useSolicitacoes, useSolicitacoesDoLote, useFecharCiclo,
   useRegistrarPagamento, formatarBRL, formatarData, mascararPix,
   type ResultadoFechamento,
 } from "@/hooks/useReembolso";
 
-function hoje(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function BlocoErro({ mensagem, onRetry }: { mensagem: string; onRetry: () => void }) {
   return (
@@ -198,7 +196,7 @@ export default function ReembolsoCiclos() {
                         open={confirmando}
                         onOpenChange={(v) => {
                           setConfirmando(v);
-                          if (v) setDataPagamento(c.data_corte ?? hoje());
+                          if (v) setDataPagamento(c.data_corte ?? hojeISO());
                         }}
                       >
                         <DialogTrigger asChild>
@@ -393,7 +391,7 @@ function SolicitacoesDoLote({
 
 function DialogPagamento({ loteId }: { loteId: string }) {
   const [aberto, setAberto] = useState(false);
-  const [data, setData] = useState(hoje());
+  const [data, setData] = useState(hojeISO());
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [enviando, setEnviando] = useState(false);
   const registrar = useRegistrarPagamento();

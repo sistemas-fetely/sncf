@@ -15,6 +15,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
+import { hojeISO } from "@/lib/data";
   AlertTriangle, ChevronDown, Download, FileSpreadsheet, Loader2, Upload, ExternalLink, Info,
 } from "lucide-react";
 
@@ -582,7 +583,7 @@ export default function DestinosCadastro() {
       });
 
       const blob = gerarCsv(parsed.header, rows);
-      const hoje = new Date().toISOString().slice(0, 10);
+      const hoje = hojeISO();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;

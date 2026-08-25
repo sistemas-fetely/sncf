@@ -23,6 +23,7 @@ import { useRegistrarHistorico } from "@/hooks/useTarefaHistorico";
 import { toast } from "sonner";
 import { humanizeError } from "@/lib/errorMessages";
 import { cn } from "@/lib/utils";
+import { hojeISO } from "@/lib/data";
 
 interface PessoaOption {
   user_id: string;
@@ -318,9 +319,10 @@ export function NovaTarefaDialog({ open, onOpenChange, onCriada, tarefaParaEdita
 
         // Só manda prazo quando o usuário informou — senão o banco deriva da dimensão
         if (prazoDias && prazoDias > 0) {
-          const prazoData = new Date();
-          prazoData.setDate(prazoData.getDate() + prazoDias);
-          args.p_prazo_data = prazoData.toISOString().slice(0, 10);
+          const [ha, hm, hd] = hojeISO().split("-").map(Number);
+          args.p_prazo_data = new Date(Date.UTC(ha, hm - 1, hd + prazoDias))
+            .toISOString()
+            .slice(0, 10);
         }
 
         const { data: novoId, error } = await supabase.rpc("criar_tarefa", args as never);

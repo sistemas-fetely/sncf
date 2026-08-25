@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+import { hojeISO } from "@/lib/data";
   Table,
   TableBody,
   TableCell,
@@ -83,18 +84,14 @@ const fmtQtd = (v: number | null | undefined) => (v == null ? "—" : NUM.format
 const fmtCusto = (v: number | null | undefined) => (v == null ? "—" : formatBRL(Number(v)));
 
 function isoDiasAtras(dias: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - dias);
-  return d.toISOString().slice(0, 10);
+  const [a, m, d] = hojeISO().split("-").map(Number);
+  return new Date(Date.UTC(a, m - 1, d - dias)).toISOString().slice(0, 10);
 }
 
-function hojeIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 export default function EntradasEstoque() {
   const [de, setDe] = useState(() => isoDiasAtras(90));
-  const [ate, setAte] = useState(() => hojeIso());
+  const [ate, setAte] = useState(() => hojeISO());
   const [centro, setCentro] = useState("todos");
   const [motivo, setMotivo] = useState("todos");
   const [busca, setBusca] = useState("");

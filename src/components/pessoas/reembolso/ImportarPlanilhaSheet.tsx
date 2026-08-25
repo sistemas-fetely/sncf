@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { validateCNPJ } from "@/lib/cnpj";
 import { formatError } from "@/lib/format-error";
 import {
+import { hojeISO } from "@/lib/data";
   useCategorias, useVinculosAtivos, useLancarSolicitacao, useReembolsoParametros,
   formatarBRL, type Categoria, type VinculoAtivo,
 } from "@/hooks/useReembolso";
@@ -152,9 +153,6 @@ const CHAVES_PARAMETROS = [
   "prazo_maximo_envio_dias",
 ] as const;
 
-function hojeIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 export default function ImportarPlanilhaSheet({ open, onOpenChange, onCriado }: Props) {
   const vinculosQ = useVinculosAtivos();
@@ -167,7 +165,7 @@ export default function ImportarPlanilhaSheet({ open, onOpenChange, onCriado }: 
   const [linhas, setLinhas] = useState<LinhaPlanilha[]>([]);
   const [ignoradas, setIgnoradas] = useState(0);
   const [vinculoId, setVinculoId] = useState("");
-  const [dataRecebimento, setDataRecebimento] = useState(hojeIso());
+  const [dataRecebimento, setDataRecebimento] = useState(hojeISO());
   const [projetoEvento, setProjetoEvento] = useState("");
   const [lendo, setLendo] = useState(false);
 
@@ -194,7 +192,7 @@ export default function ImportarPlanilhaSheet({ open, onOpenChange, onCriado }: 
     setIgnoradas(0);
     setVinculoId("");
     setProjetoEvento("");
-    setDataRecebimento(hojeIso());
+    setDataRecebimento(hojeISO());
   }
 
   function resolverCategoria(texto: string, lista: Categoria[]): string {
@@ -249,7 +247,7 @@ export default function ImportarPlanilhaSheet({ open, onOpenChange, onCriado }: 
         // C9 é a UNIDADE (define o CNPJ da nota) — nunca vira centro_custo_id.
         unidade: textoCelula(cel(9, 2)),
         projetoEvento: textoCelula(cel(10, 2)),
-        dataRecebimento: parseDataPlanilha(cel(12, 2)) ?? hojeIso(),
+        dataRecebimento: parseDataPlanilha(cel(12, 2)) ?? hojeISO(),
       };
 
       // Dados de despesa: cabeçalho na linha 15, dados da 16 em diante.
@@ -762,7 +760,7 @@ export function BotaoBaixarTemplate() {
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, wsSolicitacao, NOME_ABA);
       XLSX.utils.book_append_sheet(wb, wsInstrucoes, "Instruções");
-      XLSX.writeFile(wb, `Fetely_Reembolso_Formulario_${hojeIso()}.xlsx`);
+      XLSX.writeFile(wb, `Fetely_Reembolso_Formulario_${hojeISO()}.xlsx`);
       toast.success("Template gerado com as categorias e os tetos vigentes.");
     } catch (err) {
       toast.error("Não foi possível gerar o template.", { description: formatError(err) });

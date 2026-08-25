@@ -49,6 +49,13 @@ import { ehCLevel } from "@/lib/clevel-protection";
 import { Shield } from "lucide-react";
 
 import type { AllPJFormData } from "@/lib/validations/contrato-pj";
+import { hojeISO } from "@/lib/data";
+
+/** Data pura N dias após uma data pura "YYYY-MM-DD" (aritmética UTC, sem drift de fuso). */
+function isoMaisDias(baseISO: string, dias: number): string {
+  const [a, m, d] = baseISO.split("-").map(Number);
+  return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10);
+}
 
 const formatCompetencia = (c: string) => {
   if (/^\d{4}-\d{2}$/.test(c)) return format(parseISO(`${c}-01`), "MM/yyyy");
@@ -124,7 +131,7 @@ export default function ContratoPJDetalhe() {
     const newStatus = isAtivo ? "encerrado" : "ativo";
     const updateData: any = { status: newStatus };
     if (newStatus === "encerrado") {
-      updateData.data_fim = new Date().toISOString().slice(0, 10);
+      updateData.data_fim = hojeISO();
     }
     const { error } = await supabase.from("contratos_pj").update(updateData).eq("id", id);
     if (error) {
@@ -186,15 +193,14 @@ export default function ContratoPJDetalhe() {
                 .single();
 
               if (newChecklist) {
-                const dataInicioPj = contrato.data_inicio ? new Date(contrato.data_inicio) : new Date();
+                const dataInicioPj = contrato.data_inicio || hojeISO();
                 let gestorUserId: string | null = null;
                 if (contrato.gestor_direto_id) {
                   const { data: gp } = await supabase.from("profiles").select("user_id").eq("id", contrato.gestor_direto_id).single();
                   gestorUserId = gp?.user_id || null;
                 }
                 const tarefas = (await getTarefasParaTipo("pj", supabase)).map((t) => {
-                  const prazoDate = new Date(dataInicioPj);
-                  prazoDate.setDate(prazoDate.getDate() + t.prazo_dias);
+                  const prazoStr = isoMaisDias(dataInicioPj, t.prazo_dias);
                   return {
                     tipo_processo: "onboarding",
                     sistema_origem: t.sistema_origem || "people",
@@ -212,7 +218,7 @@ export default function ContratoPJDetalhe() {
                       t.responsavel_role === "gestor_direto" && gestorUserId ? gestorUserId :
                       null,
                     prazo_dias: t.prazo_dias,
-                    prazo_data: prazoDate.toISOString().slice(0, 10),
+                    prazo_data: prazoStr,
                     bloqueante: t.bloqueante || false,
                     motivo_bloqueio: t.motivo_bloqueio || null,
                     accountable_role: t.accountable_role || null,
@@ -442,7 +448,7 @@ export default function ContratoPJDetalhe() {
             tem_acesso: true,
             usuario: a.usuario || null,
             observacoes: a.observacoes || null,
-            data_concessao: new Date().toISOString().split("T")[0],
+            data_concessao: hojeISO(),
           }));
         if (acessosToInsert.length > 0) {
           const { error: aErr } = await supabase.from("contrato_pj_acessos_sistemas").insert(acessosToInsert);

@@ -21,6 +21,7 @@ import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { hojeISO } from "@/lib/data";
 
 const STATUS_LABELS: Record<string, string> = {
   ativo: "Ativos", inativo: "Inativos", ferias: "Férias",
@@ -101,10 +102,9 @@ function InsightsIASection() {
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const hojeStr = new Date().toISOString().slice(0, 10);
-      const em30d = new Date();
-      em30d.setDate(em30d.getDate() + 30);
-      const em30dStr = em30d.toISOString().slice(0, 10);
+      const hojeStr = hojeISO();
+      const [ha, hm, hd] = hojeStr.split("-").map(Number);
+      const em30dStr = new Date(Date.UTC(ha, hm - 1, hd + 30)).toISOString().slice(0, 10);
 
       const [tarefasRes, contratosVencRes] = await Promise.all([
         supabase.from("vw_tarefas").select("id, status, prazo_data, bloqueante, esta_aberta, esta_atrasada").eq("tipo_processo", "onboarding").eq("esta_aberta", true),

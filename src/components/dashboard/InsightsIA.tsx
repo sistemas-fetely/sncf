@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkles, RefreshCw, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { hojeISO } from "@/lib/data";
 
 const FETELY_GREEN = "#1A4A3A";
 const FETELY_GREEN_BG = "#F0F7F4";
@@ -28,7 +29,7 @@ interface InsightsPayload {
 }
 
 function getCacheKey() {
-  const today = new Date().toISOString().split("T")[0];
+  const today = hojeISO();
   return `insights_ia_${today}`;
 }
 
