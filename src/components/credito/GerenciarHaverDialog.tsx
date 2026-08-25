@@ -73,7 +73,7 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
   // ===== débito state =====
   const [modoDebito, setModoDebito] = useState<"livre" | "vinculado">("livre");
   const [valorD, setValorD] = useState<number>(0);
-  const [motivoD, setMotivoD] = useState<string>(MOTIVOS_DEBITO[0]);
+  const [motivoD, setMotivoD] = useState<string>("");
   const [obsD, setObsD] = useState("");
   const [haveresSelecionados, setHaveresSelecionados] = useState<string[]>([]);
   const [modoValor, setModoValor] = useState<"total" | "individual">("total");
