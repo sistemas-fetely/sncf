@@ -19015,6 +19015,62 @@ export type Database = {
           },
         ]
       }
+      leitura_tabela_tela: {
+        Row: {
+          criado_em: string
+          criado_por: string | null
+          id: string
+          observacao: string | null
+          tabela: string
+          tela_slug: string
+        }
+        Insert: {
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          observacao?: string | null
+          tabela: string
+          tela_slug: string
+        }
+        Update: {
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          observacao?: string | null
+          tabela?: string
+          tela_slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leitura_tabela_tela_tela_slug_fkey"
+            columns: ["tela_slug"]
+            isOneToOne: false
+            referencedRelation: "permissoes_catalogo"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "leitura_tabela_tela_tela_slug_fkey"
+            columns: ["tela_slug"]
+            isOneToOne: false
+            referencedRelation: "vw_catalogo_por_app"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "leitura_tabela_tela_tela_slug_fkey"
+            columns: ["tela_slug"]
+            isOneToOne: false
+            referencedRelation: "vw_concessao_viva"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "leitura_tabela_tela_tela_slug_fkey"
+            columns: ["tela_slug"]
+            isOneToOne: false
+            referencedRelation: "vw_permissao_diagnostico"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       liberacao_expedicao_dim: {
         Row: {
           ativo: boolean
@@ -55767,6 +55823,13 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_leitura_sem_mapa: {
+        Row: {
+          polname: unknown
+          tabela: unknown
+        }
+        Relationships: []
+      }
       vw_logistica_custo_transportadora: {
         Row: {
           apelido: string | null
@@ -69512,6 +69575,10 @@ export type Database = {
           sem_match: number
           total_processados: number
         }[]
+      }
+      pode_ler_tabela: {
+        Args: { p_tabela: string; p_user?: string }
+        Returns: boolean
       }
       pode_ver_pessoa: { Args: { _pessoa_id: string }; Returns: boolean }
       pode_ver_salario: { Args: { _pessoa_id: string }; Returns: boolean }
