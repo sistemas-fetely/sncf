@@ -85,7 +85,7 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
       setParceiroSel(parceiroId);
       setBusca("");
       setValorC(0);
-      setMotivoC(MOTIVOS_CREDITO[0]);
+      setMotivoC("");
       setObsC("");
       setPedidoBusca("");
       setOrigemPedidoId(null);
