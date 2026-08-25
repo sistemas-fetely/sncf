@@ -42,7 +42,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 
 import { useUnidades } from "@/hooks/useUnidades";
 import { useTemplates } from "@/hooks/useTemplates";
-import { useDepartamentoInfo } from "@/hooks/useEstruturaOrganizacional";
+
 import { SelectDepartamentoHierarquico } from "@/components/shared/SelectDepartamentoHierarquico";
 import { usePermissoesDoUsuario, temPermissaoTela } from "@/hooks/usePermissoesDoUsuario";
 import type { Database } from "@/integrations/supabase/types";
@@ -172,7 +172,6 @@ export default function GerenciarUsuarios() {
   const [departamentoLabel, setDepartamentoLabel] = useState<string>("");
   const [unidadeIdNovo, setUnidadeIdNovo] = useState<string>("");
   const { data: templates } = useTemplates();
-  const { data: departamentoInfo } = useDepartamentoInfo(departamentoId || null);
   const { data: profiles = [], isLoading } = useQuery({
     queryKey: ["admin-profiles"],
     queryFn: async () => {
@@ -223,6 +222,46 @@ export default function GerenciarUsuarios() {
     },
   });
 
+  // F5 (25/08/2026) — Prévia honesta: papel/nível do template + grupos da área.
+  const { data: previaAcesso } = useQuery({
+    queryKey: ["previa-acesso-cargo", templateId, departamentoId],
+    enabled: !!templateId && !!departamentoId,
+    queryFn: async () => {
+      const [tplRes, depRes] = await Promise.all([
+        supabase.from("cargo_template").select("papel").eq("id", templateId).maybeSingle(),
+        supabase.from("departamentos").select("perfil_area_codigo").eq("id", departamentoId).maybeSingle(),
+      ]);
+      if (tplRes.error) throw tplRes.error;
+      if (depRes.error) throw depRes.error;
+      const papel = (tplRes.data as { papel?: string | null } | null)?.papel ?? null;
+      const areaCodigo = (depRes.data as { perfil_area_codigo?: string | null } | null)?.perfil_area_codigo ?? null;
+
+      let nivel: number | null = null;
+      if (papel) {
+        const { data: nv } = await supabase
+          .from("papel_nivel")
+          .select("nivel")
+          .eq("papel", papel as never)
+          .maybeSingle();
+        nivel = (nv as { nivel?: number } | null)?.nivel ?? null;
+      }
+
+      let grupos: string[] = [];
+      if (areaCodigo) {
+        const { data: ga, error: errGa } = await supabase
+          .from("area_grupo_acesso")
+          .select("grupos_acesso(nome)")
+          .eq("perfil_area_codigo", areaCodigo);
+        if (errGa) throw errGa;
+        grupos = ((ga || []) as Array<{ grupos_acesso: { nome: string } | null }>)
+          .map((r) => r.grupos_acesso?.nome)
+          .filter((n): n is string => !!n);
+      }
+
+      return { papel, nivel, areaCodigo, grupos };
+    },
+  });
+
   const createUser = useMutation({
     mutationFn: async () => {
       const result = await callManageUser("create_user_standalone", {
@@ -234,6 +273,7 @@ export default function GerenciarUsuarios() {
       });
 
       const novoUserId = result?.user_id;
+      let concessao: { papel?: string; nivel?: number; telas?: number } | null = null;
       if (novoUserId && templateId) {
         const { data: authData } = await supabase.auth.getUser();
         const { error: errTemplate } = await supabase.rpc("aplicar_template_cargo_v3", {
@@ -248,17 +288,40 @@ export default function GerenciarUsuarios() {
             "Usuário criado, mas falha ao aplicar template: " + errTemplate.message
           );
         }
+
+        // F5 — concessão real de acesso (papel em user_roles + grupos). FAIL-LOUD.
+        const { data: acesso, error: errAcesso } = await (supabase.rpc as unknown as (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => Promise<{ data: unknown; error: { message: string } | null }>)(
+          "conceder_acesso_por_cargo",
+          {
+            p_user_id: novoUserId,
+            p_template_id: templateId,
+            p_departamento_id: departamentoId || null,
+          },
+        );
+        if (errAcesso) throw new Error("Falha ao conceder acesso: " + errAcesso.message);
+        concessao = acesso as { papel?: string; nivel?: number; telas?: number };
       }
-      return result;
+      return { ...result, concessao };
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["admin-profiles"] });
       queryClient.invalidateQueries({ queryKey: ["admin-user-roles"] });
       queryClient.invalidateQueries({ queryKey: ["admin-auth-users"] });
       queryClient.invalidateQueries({ queryKey: ["unlinked-clt"] });
       queryClient.invalidateQueries({ queryKey: ["unlinked-pj"] });
       queryClient.invalidateQueries({ queryKey: ["atribuicoes-todas-v2"] });
-      toast.success("Usuário criado! Um e-mail com link de acesso foi enviado.");
+      queryClient.invalidateQueries({ queryKey: ["grupos-acesso-v2"] });
+      queryClient.invalidateQueries({ queryKey: ["grupo-acesso-vinculo"] });
+      queryClient.invalidateQueries({ queryKey: ["mesa-grupos-usuarios"] });
+      const c = (res as { concessao?: { papel?: string; nivel?: number; telas?: number } | null })?.concessao;
+      toast.success(
+        c?.papel
+          ? `Usuário criado · ${c.papel} (nível ${c.nivel ?? "?"}) · ${c.telas ?? 0} telas liberadas`
+          : "Usuário criado! Um e-mail com link de acesso foi enviado."
+      );
       setCreateOpen(false);
       setNewUser({ email: "", full_name: "", roles: ["colaborador"], tipo_acesso: "externo", colaborador_id: "", colaborador_tipo: "" });
       setTemplateId("");
@@ -268,6 +331,7 @@ export default function GerenciarUsuarios() {
     },
     onError: (err: Error) => toast.error(err.message || "Erro ao criar usuário"),
   });
+
 
   const toggleNewUserRole = (role: string) => {
     setNewUser((prev) => ({
@@ -424,22 +488,38 @@ export default function GerenciarUsuarios() {
                       setDepartamentoLabel(dep?.label || "");
                     }}
                   />
-                  {departamentoInfo && (
-                    <div className="rounded-md border border-primary/30 bg-primary/5 p-2 text-xs">
-                      <div className="flex items-center gap-1.5">
-                        <Sparkles className="h-3.5 w-3.5 text-primary" />
-                        <span className="text-muted-foreground">Receberá automaticamente:</span>
+                  {previaAcesso && (
+                    <div className="space-y-2">
+                      <div className="rounded-md border border-primary/30 bg-primary/5 p-2 text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <Sparkles className="h-3.5 w-3.5 text-primary" />
+                          <span className="text-muted-foreground">Acesso que será concedido:</span>
+                        </div>
+                        <div className="mt-1 ml-5 space-y-0.5">
+                          <div>
+                            <span className="text-muted-foreground">Papel: </span>
+                            <span className="font-medium text-primary">
+                              {previaAcesso.papel
+                                ? `${ROLE_LABELS[previaAcesso.papel as AppRole] || previaAcesso.papel} (nível ${previaAcesso.nivel ?? "?"})`
+                                : "— (template sem papel definido)"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Grupos: </span>
+                            <span className="font-medium text-primary">
+                              {["Base Fetely", ...previaAcesso.grupos].join(" + ")}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="mt-1 ml-5">
-                        <span className="font-medium text-primary">
-                          {departamentoInfo.perfil_nome || "— (só transversal do template)"}
-                        </span>
-                        {departamentoInfo.area_label && (
-                          <span className="text-muted-foreground"> · Área: {departamentoInfo.area_label}</span>
-                        )}
-                      </div>
+                      {previaAcesso.grupos.length === 0 && (
+                        <div className="rounded-md border border-warning/40 bg-warning/10 p-2 text-xs text-warning-foreground">
+                          Esta área ainda não tem grupo de acesso. A pessoa entrará só com o acesso básico (Base Fetely).
+                        </div>
+                      )}
                     </div>
                   )}
+
                 </div>
                 <div className="space-y-2">
                   <Label>Unidade *</Label>
