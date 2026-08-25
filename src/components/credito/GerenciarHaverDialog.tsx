@@ -315,7 +315,8 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
   // ===== Mutations =====
   const credMut = useMutation({
     mutationFn: async () => {
-      const motivoFinal = motivoC + (obsC ? `: ${obsC}` : "");
+      const rotuloC = motivoCSel?.rotulo ?? motivoC;
+      const motivoFinal = rotuloC + (obsC.trim() ? `: ${obsC.trim()}` : "");
       const payload: Record<string, unknown> = {
         p_parceiro_id: parceiroSel,
         p_tipo: "credito",
