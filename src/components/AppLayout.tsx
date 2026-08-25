@@ -10,7 +10,7 @@ export function AppLayout() {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col">
-          <main className="flex-1 p-6 overflow-auto relative">
+          <main className="flex-1 p-6 relative">
             <SystemReadinessBanner somenteCriticos className="mb-4" />
             <Suspense fallback={
               <div className="flex items-center justify-center h-full p-12">

@@ -8,7 +8,9 @@ export default function VendasLayout() {
     <SidebarProvider>
       <div className="flex w-full min-h-[calc(100vh-4rem)] bg-background">
         <VendasSidebar />
-        <main className="flex-1 overflow-auto relative min-w-0">
+        {/* SEM-SCROLLPORT-FALSO (24/08/2026): `overflow-auto` sem altura limitada não rola,
+            mas sequestra o sticky dos filhos. A rolagem é da janela. */}
+        <main className="flex-1 relative min-w-0">
           <Suspense
             fallback={
               <div className="flex items-center justify-center h-full p-12">

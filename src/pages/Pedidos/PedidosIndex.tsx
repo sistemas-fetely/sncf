@@ -97,7 +97,7 @@ export default function PedidosIndex() {
 
         <TabsContent value="fila" className="space-y-4">
           {/* Pipeline sticky */}
-          <div className="sticky top-14 z-20 bg-background border-b border-border px-4 md:px-6 py-2">
+          <div className="sticky top-16 z-20 bg-background border-b border-border px-4 md:px-6 py-2">
             <PipelineHorizontal
               onClickEstagio={handlePipelineClick}
               onLimparFiltro={handleLimparFiltro}
