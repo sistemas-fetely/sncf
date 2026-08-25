@@ -305,12 +305,20 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
     toast.success(`Pedido ${data.id_externo} vinculado`);
   };
 
-  const invalidate = () => {
-    qc.invalidateQueries({ queryKey: ["credito-clientes-haveres"] });
-    qc.invalidateQueries({ queryKey: ["haver-disponivel"] });
-    qc.invalidateQueries({ queryKey: ["cliente-detalhe"] });
-    qc.invalidateQueries({ queryKey: ["haveres-parceiro", parceiroSel] });
+  const invalidate = async () => {
+    await Promise.all([
+      // Tela "Posição de crédito por cliente" (/credito/clientes): lista + cards de KPI
+      qc.invalidateQueries({ queryKey: ["credito-clientes-resumos"] }),
+      qc.invalidateQueries({ queryKey: ["credito-clientes-haveres-consolidado"] }),
+      qc.invalidateQueries({ queryKey: ["credito-parceiros-all"] }),
+      // Detalhe do cliente (/credito/clientes/:id)
+      qc.invalidateQueries({ queryKey: ["cliente-detalhe"] }),
+      qc.invalidateQueries({ queryKey: ["haver-disponivel"] }),
+      // Lista de haveres dentro do próprio modal
+      qc.invalidateQueries({ queryKey: ["haveres-parceiro", parceiroSel] }),
+    ]);
   };
+
 
   // ===== Mutations =====
   const credMut = useMutation({
