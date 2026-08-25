@@ -232,7 +232,10 @@ function lerCabecalho(wb: XLSX.WorkBook): CabecalhoPlanilha | null {
     const bruto = linha[i];
     let valor: string;
     if (bruto instanceof Date) {
-      valor = bruto.toISOString().slice(0, 10);
+      // Doutrina 128: Date da planilha vem no fuso local — usar componentes locais.
+      valor = new Date(Date.UTC(bruto.getFullYear(), bruto.getMonth(), bruto.getDate()))
+        .toISOString()
+        .slice(0, 10);
     } else {
       valor = String(bruto ?? "").trim();
     }

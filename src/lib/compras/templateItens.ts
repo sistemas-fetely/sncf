@@ -125,7 +125,8 @@ function parseDataCelula(v: unknown): string | null {
   if (v === null || v === undefined || v === "") return null;
   if (v instanceof Date) {
     if (isNaN(v.getTime())) return null;
-    return v.toISOString().slice(0, 10);
+    // Doutrina 128: célula de planilha vira Date no fuso local; lê-se os componentes locais.
+    return new Date(Date.UTC(v.getFullYear(), v.getMonth(), v.getDate())).toISOString().slice(0, 10);
   }
   if (typeof v === "number") {
     // Excel serial date
@@ -152,7 +153,8 @@ function parseDataCelula(v: unknown): string | null {
     const m2 = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (m2) return `${m2[1]}-${m2[2]}-${m2[3]}`;
     const d = new Date(s);
-    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    if (!isNaN(d.getTime()))
+      return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())).toISOString().slice(0, 10);
     return null;
   }
   return null;
