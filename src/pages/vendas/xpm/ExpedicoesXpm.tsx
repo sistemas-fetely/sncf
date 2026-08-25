@@ -1084,9 +1084,14 @@ export default function ExpedicoesXpm() {
                               <TableCell>
                                 <div className="flex flex-col gap-0.5">
                                   <div className="flex items-center gap-2">
-                                    <Semaforo seq={Number(r.estagio_seq)} />
+                                    <Semaforo
+                                      seq={Number(r.fase_seq)}
+                                      emAndamentoSeq={r.fase_seq_em_andamento}
+                                      temCasaEmAndamento={r.tem_casa_em_andamento}
+                                      rotuloEmAndamento={r.fase_rotulo_em_andamento}
+                                    />
                                     <span className="text-xs text-muted-foreground truncate">
-                                      {r.estagio_descricao}
+                                      {r.fase_rotulo}
                                     </span>
                                   </div>
                                   {r.arquivo_fase_rotulo && (
