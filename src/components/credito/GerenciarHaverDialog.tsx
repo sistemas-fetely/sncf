@@ -144,6 +144,33 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
     },
   });
 
+  // ===== Origens de crédito (DIMENSÃO VIA TABELA) =====
+  const origensQ = useQuery({
+    queryKey: ["credito-origem-dim"],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("credito_origem_dim")
+        .select("codigo, rotulo, descricao, pode_expirar, exige_decisao_humana_na_saida")
+        .eq("ativo", true)
+        .order("ordem", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const origemSel = useMemo(
+    () => (origensQ.data ?? []).find((o: any) => o.codigo === origemCodigo) ?? null,
+    [origensQ.data, origemCodigo]
+  );
+  const origemExpira = origemSel ? origemSel.pode_expirar === true : true;
+
+  // A validade só existe quando a origem pode expirar.
+  useEffect(() => {
+    if (!origemSel) return;
+    setValidade(origemSel.pode_expirar ? plusDays(180) : "");
+  }, [origemSel]);
+
   // ===== Haveres do parceiro =====
   const haveresQ = useQuery({
     queryKey: ["haveres-parceiro", parceiroSel],
