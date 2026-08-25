@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Selo } from "@/components/ui/selo";
 import { formatBRL } from "@/lib/format-currency";
 import type { PedidoB2cRow } from "@/hooks/vendas/useB2c";
+import { parseDataPura } from "@/lib/data";
 
 function Kpi({ rotulo, valor, nota }: { rotulo: string; valor: string; nota?: string }) {
   return (
@@ -47,7 +48,7 @@ export function DashB2c({ pedidos, isLoading }: { pedidos: PedidoB2cRow[]; isLoa
     const agora = new Date();
     const doMes = pedidos.filter((p) => {
       if (!p.data_pedido || p.estagio === "cancelado") return false;
-      const d = new Date(p.data_pedido);
+      const d = parseDataPura(p.data_pedido);
       return d.getMonth() === agora.getMonth() && d.getFullYear() === agora.getFullYear();
     });
     const receitaMes = doMes.reduce((s, p) => s + Number(p.total ?? 0), 0);

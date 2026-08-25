@@ -24,6 +24,7 @@ import {
 } from "@/hooks/useFerias";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { fmtData } from "@/lib/data";
 
 const STATUS_PERIODO: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   em_aberto: { label: "Em Aberto", variant: "outline" },
@@ -150,7 +151,7 @@ export default function FeriasColaborador() {
           className="flex-1 mb-0"
           icone={UserCircle}
           titulo={colaborador?.nome_completo ?? "Carregando..."}
-          estado={colaborador && `${colaborador.cargo} — ${colaborador.departamento} · Admissão: ${format(new Date(colaborador.data_admissao), "dd/MM/yyyy")}`}
+          estado={colaborador && `${colaborador.cargo} — ${colaborador.departamento} · Admissão: ${fmtData(colaborador.data_admissao)}`}
           acoes={canManage && (
             <Button size="sm" onClick={() => setShowNovoPeriodo(true)}>
               <Plus className="h-4 w-4 mr-1" /> Novo Período
@@ -250,7 +251,7 @@ export default function FeriasColaborador() {
                           return (
                             <TableRow key={pr.id}>
                               <TableCell className="text-sm">
-                                {format(new Date(pr.data_inicio), "dd/MM/yyyy")} — {format(new Date(pr.data_fim), "dd/MM/yyyy")}
+                                {fmtData(pr.data_inicio)} — {fmtData(pr.data_fim)}
                               </TableCell>
                               <TableCell className="text-center">{pr.dias}</TableCell>
                               <TableCell className="capitalize text-sm">{pr.tipo === "abono_pecuniario" ? "Abono Pecuniário" : "Gozo"}</TableCell>

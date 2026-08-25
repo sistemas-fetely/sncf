@@ -42,7 +42,7 @@ export function ExportarB2cButton({ linhas }: { linhas: PedidoB2cRow[] }) {
       linhas.forEach((p) => {
         ws.addRow({
           order_name: p.order_name ?? "",
-          data_pedido: p.data_pedido ? new Date(p.data_pedido) : null,
+          data_pedido: parseDataPura(p.data_pedido),
           cliente: p.cliente ?? "",
           shipping_city: p.shipping_city ?? "",
           shipping_province: p.shipping_province ?? "",
