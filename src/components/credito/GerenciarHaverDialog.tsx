@@ -102,6 +102,8 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
       setObsC("");
       setPedidoBusca("");
       setOrigemPedidoId(null);
+      setOrigemPedidoRotulo(null);
+      setOrigemCodigo("");
       setValidade(plusDays(180));
       setModoDebito("livre");
       setValorD(0);
