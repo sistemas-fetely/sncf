@@ -31,20 +31,6 @@ interface Props {
   parceiroId: string | null;
 }
 
-const MOTIVOS_CREDITO = [
-  "Ajuste de pedido",
-  "Frete não utilizado",
-  "Cancelamento parcial",
-  "Cortesia",
-  "Outro",
-];
-
-const MOTIVOS_DEBITO = [
-  "Correção de crédito indevido",
-  "Estorno de cortesia",
-  "Ajuste operacional",
-  "Outro",
-];
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", {
   style: "currency",
