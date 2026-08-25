@@ -447,6 +447,10 @@ export function useAdicionarUsuarioAoGrupo() {
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["grupo-usuarios", vars.grupoId] });
       queryClient.invalidateQueries({ queryKey: ["grupos-acesso-v2"] });
+      queryClient.invalidateQueries({ queryKey: ["grupo-acesso-vinculo"] });
+      queryClient.invalidateQueries({ queryKey: ["mesa-grupos-usuarios"] });
+      queryClient.invalidateQueries({ queryKey: ["permissoes-telas"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-profiles"] });
       toast.success("Usuário adicionado ao grupo");
     },
     onError: (e: Error) => toast.error(`Erro: ${e.message}`),
@@ -474,6 +478,10 @@ export function useRemoverUsuarioDoGrupo() {
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["grupo-usuarios", vars.grupoId] });
       queryClient.invalidateQueries({ queryKey: ["grupos-acesso-v2"] });
+      queryClient.invalidateQueries({ queryKey: ["grupo-acesso-vinculo"] });
+      queryClient.invalidateQueries({ queryKey: ["mesa-grupos-usuarios"] });
+      queryClient.invalidateQueries({ queryKey: ["permissoes-telas"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-profiles"] });
       toast.success("Usuário removido do grupo");
     },
     onError: (e: Error) => toast.error(`Erro: ${e.message}`),
