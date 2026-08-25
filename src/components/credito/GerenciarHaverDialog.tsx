@@ -342,21 +342,19 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
 
   const debMut = useMutation({
     mutationFn: async () => {
-      const motivoFinal = motivoD + (obsD ? `: ${obsD}` : "");
+      const rotuloD = motivoDSel?.rotulo ?? motivoD;
+      const motivoFinal = rotuloD + (obsD.trim() ? `: ${obsD.trim()}` : "");
       if (modoDebito === "vinculado" && modoValor === "individual") {
-        for (const id of haveresSelecionados) {
-          const val = Number(valoresIndividuais[id] ?? 0);
-          if (val <= 0) continue;
-          const { error } = await (supabase as any).rpc("ajustar_haver_cliente", {
-            p_parceiro_id: parceiroSel,
-            p_tipo: "debito",
-            p_valor: val,
-            p_motivo: motivoFinal,
-            p_haver_ids_alvo: null,
-            p_haver_id_alvo: id,
-          });
-          if (error) throw error;
-        }
+        const itens = haveresSelecionados
+          .map((id) => ({ haver_id: id, valor: Number(valoresIndividuais[id] ?? 0) }))
+          .filter((i) => i.valor > 0);
+
+        const { error } = await (supabase as any).rpc("debitar_haveres_individual", {
+          p_parceiro_id: parceiroSel,
+          p_motivo: motivoFinal,
+          p_itens: itens,
+        });
+        if (error) throw error;
         return;
       }
       const { error } = await (supabase as any).rpc("ajustar_haver_cliente", {
