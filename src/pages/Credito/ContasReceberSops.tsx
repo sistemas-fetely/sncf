@@ -40,6 +40,7 @@ import { BaixaManualDialog } from "@/components/credito/BaixaManualDialog";
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { parseDataPura } from "@/lib/data";
 type Titulo = {
   id: string;
   numero_titulo: string | null;
@@ -191,7 +192,7 @@ export default function ContasReceberSops() {
     for (const t of titulos) {
       const grupo = STATUS_PARA_GRUPO[t.status];
       const valor = t.valor_atual ?? t.valor_bruto ?? 0;
-      const venc = t.data_vencimento_atual ? new Date(t.data_vencimento_atual) : null;
+      const venc = parseDataPura(t.data_vencimento_atual);
 
       if (grupo === "a_receber" || grupo === "vencido") {
         totalReceber += valor;
@@ -213,7 +214,7 @@ export default function ContasReceberSops() {
       const grupo = STATUS_PARA_GRUPO[t.status];
       if (grupo !== "a_receber" && grupo !== "vencido") continue;
       if (!t.data_vencimento_atual) continue;
-      const venc = new Date(t.data_vencimento_atual);
+      const venc = parseDataPura(t.data_vencimento_atual)!;
       const dias = Math.floor((hoje.getTime() - venc.getTime()) / 86400000);
       const valor = t.valor_atual ?? t.valor_bruto ?? 0;
       if (dias <= 0) faixas.a_vencer += valor;
@@ -228,8 +229,8 @@ export default function ContasReceberSops() {
   const filtrados = useMemo(() => {
     const titulos = data ?? [];
     const buscaLc = busca.trim().toLowerCase();
-    const dDe = dataDe ? new Date(dataDe) : null;
-    const dAte = dataAte ? new Date(dataAte) : null;
+    const dDe = parseDataPura(dataDe);
+    const dAte = parseDataPura(dataAte);
 
     return titulos.filter((t) => {
       const grupo = STATUS_PARA_GRUPO[t.status];
@@ -251,7 +252,7 @@ export default function ContasReceberSops() {
 
       if (dDe || dAte) {
         if (!t.data_vencimento_atual) return false;
-        const venc = new Date(t.data_vencimento_atual);
+        const venc = parseDataPura(t.data_vencimento_atual)!;
         if (dDe && venc < dDe) return false;
         if (dAte && venc > dAte) return false;
       }
@@ -485,9 +486,7 @@ export default function ContasReceberSops() {
                 <TableBody>
                   {paginados.map((t) => {
                     const grupo = STATUS_PARA_GRUPO[t.status];
-                    const venc = t.data_vencimento_atual
-                      ? new Date(t.data_vencimento_atual)
-                      : null;
+                    const venc = parseDataPura(t.data_vencimento_atual);
                     const vencido =
                       venc && venc < hoje && (grupo === "a_receber" || grupo === "vencido");
                     const valor = t.valor_atual ?? t.valor_bruto ?? 0;

@@ -34,6 +34,7 @@ import {
   type BoletoVencimentoConferencia,
 } from "@/hooks/credito/useBoletoVencimentoConferencia";
 import { EnviarPacoteDialog } from "@/components/credito/EnviarPacoteDialog";
+import { estaVencido } from "@/lib/data";
 
 type Vista = "fila" | "pausados";
 
@@ -559,7 +560,7 @@ export default function ReguaTab() {
   const acaoAtrasada = (t: TituloCobranca) => {
     const d = (t as any).data_proxima_acao_regua as string | null | undefined;
     if (!d) return false;
-    return String(d).slice(0, 10) < new Date().toISOString().slice(0, 10);
+    return estaVencido(String(d).slice(0, 10));
   };
 
   const irParaZona = (id: string) => {

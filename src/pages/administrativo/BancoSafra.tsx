@@ -66,6 +66,7 @@ import { useBaixasPendentes } from "@/hooks/credito/useBaixasPendentes";
 import { useRemessasSafra } from "@/hooks/credito/useRemessasSafra";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { RetornoSafraPainel } from "@/components/financeiro/RetornoSafraPainel";
+import { hojeISO } from "@/lib/data";
 
 /** Dias corridos desde uma data ISO (null se inválida). */
 function diasDesde(iso: string | null | undefined): number | null {
@@ -314,7 +315,7 @@ function AcoesGrupoCliente({
   const [confirmarEmails, setConfirmarEmails] = useState(false);
   const [progresso, setProgresso] = useState<{ atual: number; total: number } | null>(null);
 
-  const hojeIso = new Date().toISOString().slice(0, 10);
+  const hojeIso = hojeISO();
   const pendentesEntrada = boletos.filter(
     (b) =>
       b.boleto_status === "pendente" &&
@@ -460,7 +461,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
   // mutation de e-mail: uma única instância para toda a tela
   const enviarEmailBoleto = useEnviarEmailBoleto();
 
-  const hojeIso = new Date().toISOString().slice(0, 10);
+  const hojeIso = hojeISO();
   const pendentesEntrada = useMemo(
     () => boletos.filter((b) => b.boleto_status === "pendente"),
     [boletos],
@@ -825,11 +826,8 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
   };
 
   const boletosKpis = useMemo(() => {
-    const primeiroDia = new Date();
-    primeiroDia.setDate(1);
-    primeiroDia.setHours(0, 0, 0, 0);
-    const iso = primeiroDia.toISOString().slice(0, 10);
-    const hoje = new Date().toISOString().slice(0, 10);
+    const hoje = hojeISO();
+    const iso = `${hoje.slice(0, 8)}01`;
     let pendentes = 0;
     let pendentesValor = 0;
     let pendentesPassado = 0;
@@ -927,10 +925,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
   }, [busca]);
 
   const primeiroDiaMesIso = useMemo(() => {
-    const d = new Date();
-    d.setDate(1);
-    d.setHours(0, 0, 0, 0);
-    return d.toISOString().slice(0, 10);
+    return `${hojeISO().slice(0, 8)}01`;
   }, []);
 
   const boletosFiltrados = useMemo(() => {

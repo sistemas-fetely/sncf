@@ -66,6 +66,7 @@ import {
 } from "@/components/shared/SortableTableHead";
 import { useCategoriasPlano } from "@/hooks/useCategoriasPlano";
 import { CategoriaCombobox } from "@/components/financeiro/CategoriaCombobox";
+import { parseDataPura } from "@/lib/data";
 import {
   useRegrasAtivas,
   sugerirNoClient,
@@ -330,13 +331,13 @@ export default function FaturasCartao() {
 
     const fatMesAtual = filtradas.filter((f) => {
       if (!f.data_vencimento) return false;
-      const venc = new Date(f.data_vencimento);
+      const venc = parseDataPura(f.data_vencimento)!;
       return venc >= inicioMesAtual && venc < inicioMesSeguinte;
     });
 
     const fatMesAnterior = filtradas.filter((f) => {
       if (!f.data_vencimento) return false;
-      const venc = new Date(f.data_vencimento);
+      const venc = parseDataPura(f.data_vencimento)!;
       return venc >= inicioMesAnterior && venc <= fimMesAnterior;
     });
 

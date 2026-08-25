@@ -36,6 +36,7 @@ import {
   Plus, Loader2, Upload, Save,
 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { diasAte, parseDataPura } from "@/lib/data";
 
 // ─── Paleta Fetely Operacional ─────────────────────────────────────
 const VERDE = "#1A4A3A";
@@ -172,7 +173,7 @@ function saudeContrato(
   if ((atrasadasMap.get(c.id) ?? 0) > 0) return "critico";
   const prox = proximaMap.get(c.id);
   if (prox) {
-    const dias = (new Date(prox.data_vencimento).getTime() - Date.now()) / 86_400_000;
+    const dias = diasAte(prox.data_vencimento) ?? Infinity;
     if (dias <= 10) return "alerta";
   }
   if (c.vigencia_fim) {
@@ -297,7 +298,7 @@ export default function Contratos() {
       meses.push({ mes: mesLabel(d), valor: 0, date: d });
     }
     for (const p of parcelasData?.futuras ?? []) {
-      const d = new Date(p.data_vencimento);
+      const d = parseDataPura(p.data_vencimento)!;
       const idx = meses.findIndex(
         (m) => m.date.getFullYear() === d.getFullYear() && m.date.getMonth() === d.getMonth(),
       );

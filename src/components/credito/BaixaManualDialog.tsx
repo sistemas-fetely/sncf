@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { hojeISO } from "@/lib/data";
 
 export interface BaixaManualTitulo {
   id: string;
@@ -34,7 +35,7 @@ export function BaixaManualDialog({
 }) {
   const { toast } = useToast();
   const qc = useQueryClient();
-  const [dataPag, setDataPag] = useState(() => new Date().toISOString().slice(0, 10));
+  const [dataPag, setDataPag] = useState(() => hojeISO());
   const [autorizacao, setAutorizacao] = useState("");
   const [loading, setLoading] = useState(false);
   const ehCartao = (tipoPagamento ?? "").startsWith("cartao");

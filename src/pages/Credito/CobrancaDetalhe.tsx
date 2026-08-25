@@ -50,6 +50,7 @@ import { PortaoLinksPanel } from "@/components/pedidos/PortaoLinksPanel";
 import { useVoltarParaOrigem } from "@/hooks/useVoltarParaOrigem";
 import { useMontarPlanoPagamento } from "@/hooks/credito/useMontarPlanoPagamento";
 import { PageShell } from "@/components/layout/PageShell";
+import { hojeISO } from "@/lib/data";
 
 
 const DIAS_PRIMEIRO_PAGAMENTO_FALLBACK = 9;
@@ -60,7 +61,7 @@ type LinhaPlano = TituloProposto & { eh_portao?: boolean };
 
 
 function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  return hojeISO();
 }
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -73,9 +74,8 @@ function parseDiasCondicao(condicao: string | undefined | null): number {
 
 function addDiasISO(iso: string, dias: number): string {
   if (!iso) return iso;
-  const d = new Date(iso + "T00:00:00");
-  d.setDate(d.getDate() + dias);
-  return d.toISOString().slice(0, 10);
+  const [a, m, d] = iso.slice(0, 10).split("-").map(Number);
+  return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10);
 }
 
 function diffDiasISO(deISO: string, ateISO: string): number {

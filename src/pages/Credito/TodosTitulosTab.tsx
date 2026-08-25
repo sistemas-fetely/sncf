@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { formatCNPJ } from "@/lib/cnpj";
 import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTituloHaverDialog";
+import { hojeISO } from "@/lib/data";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (d: string | null) =>
@@ -51,7 +52,7 @@ export default function TodosTitulosTab() {
   const [busca, setBusca] = useState("");
   const [convertendo, setConvertendo] = useState<{ id: string; numero: string; valor: number } | null>(null);
 
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeISO();
 
   const statusVisual = (t: TituloCompleto): string => {
     if (t.status.startsWith("pago")) return t.status;
