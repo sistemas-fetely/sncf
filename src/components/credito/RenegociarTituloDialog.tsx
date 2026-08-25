@@ -19,6 +19,7 @@ import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import type { TituloCobranca } from "@/hooks/credito/useTitulosCobranca";
 import type { ReguaEtapa } from "@/hooks/credito/useReguaFila";
 import { ProrrogarVencimentoDialog } from "@/components/credito/ProrrogarVencimentoDialog";
+import { hojeISO } from "@/lib/data";
 
 type Modalidade = 1 | 2 | 3 | 4;
 type NovoInstrumento = "pix" | "transferencia";
@@ -58,9 +59,8 @@ interface Props {
 }
 
 function amanhaISO() {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return d.toISOString().slice(0, 10);
+  const [a, m, d] = hojeISO().split("-").map(Number);
+  return new Date(Date.UTC(a, m - 1, d + 1)).toISOString().slice(0, 10);
 }
 
 /**

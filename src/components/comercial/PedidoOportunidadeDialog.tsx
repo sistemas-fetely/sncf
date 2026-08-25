@@ -31,6 +31,7 @@ import { ComprovantePagamentoBloco } from "@/components/comercial/ComprovantePag
 import { useComprovantesPedido } from "@/hooks/comercial/useComprovantePagamento";
 import { useAbrirSolicitacao } from "@/hooks/pedidos/useSolicitacoesComercial";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { hojeISO } from "@/lib/data";
 
 
 /** Texto curto do chip de situação — map, nunca concatenação. */
@@ -99,7 +100,7 @@ export function PedidoOportunidadeDialog({
   const [texto, setTexto] = useState("");
   const [confirmarAberto, setConfirmarAberto] = useState(false);
   const [dataPagamento, setDataPagamento] = useState(() =>
-    new Date().toISOString().slice(0, 10),
+    hojeISO(),
   );
   const [obsPagamento, setObsPagamento] = useState("");
   const itens = useItensPedidoOportunidade(pedidoId, open);

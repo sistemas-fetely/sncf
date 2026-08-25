@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { AlertTriangle } from "lucide-react";
 import { formatBRL } from "@/lib/format-currency";
+import { estaVencido } from "@/lib/data";
 
 type Desfecho = "haver" | "troca" | "reembolso" | "abater_divida";
 
@@ -125,7 +126,7 @@ export function DevolucaoParcialDialog({
     !!parcelaSelecionada && BOLETO_STATUS_REEMISSAO.has(String(parcelaSelecionada.boleto_status ?? ""));
   const vencimentoJaPassou = useMemo(() => {
     if (!parcelaSelecionada?.data_vencimento_atual) return false;
-    return parcelaSelecionada.data_vencimento_atual.slice(0, 10) < new Date().toISOString().slice(0, 10);
+    return estaVencido(parcelaSelecionada.data_vencimento_atual.slice(0, 10));
   }, [parcelaSelecionada]);
   const novaDataObrigatoria = precisaReemissao && vencimentoJaPassou;
   const abaterZera =

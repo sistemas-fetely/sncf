@@ -18,6 +18,7 @@ import { formatBRL } from "@/lib/format-currency";
 import { useConfirmarPagamentoPortao } from "@/hooks/pedidos/useConfirmarPagamentoPortao";
 import { useCartaoAbertoPorPedido } from "@/hooks/credito/useCartaoAbertoPorPedido";
 import { ConfirmarCartaoCapturadoDialog } from "@/components/pedidos/dialogs/ConfirmarCartaoCapturadoDialog";
+import { hojeISO } from "@/lib/data";
 
 const fmtDate = (iso: string) =>
   iso ? new Date(iso + "T00:00:00").toLocaleDateString("pt-BR") : "—";
@@ -28,7 +29,7 @@ export default function PrimeiroPagamentoTab() {
   const total = data?.length ?? 0;
 
   const [confirmando, setConfirmando] = useState<{ pedidoId: string; rotulo: string } | null>(null);
-  const [dataPagamento, setDataPagamento] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [dataPagamento, setDataPagamento] = useState<string>(() => hojeISO());
   const [observacao, setObservacao] = useState<string>("");
 
   const confirmar = useConfirmarPagamentoPortao();
@@ -48,11 +49,11 @@ export default function PrimeiroPagamentoTab() {
     });
     setConfirmando(null);
     setObservacao("");
-    setDataPagamento(new Date().toISOString().slice(0, 10));
+    setDataPagamento(hojeISO());
   }
 
   function abrirDialog(pedidoId: string, rotulo: string) {
-    setDataPagamento(new Date().toISOString().slice(0, 10));
+    setDataPagamento(hojeISO());
     setObservacao("");
     setConfirmando({ pedidoId, rotulo });
   }

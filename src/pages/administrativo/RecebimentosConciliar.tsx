@@ -54,6 +54,7 @@ import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { toast } from "sonner";
 import { ImportarExtratoDialog } from "@/components/financeiro/ImportarExtratoDialog";
 import { RecebimentoPorPedido } from "@/components/financeiro/RecebimentoPorPedido";
+import { hojeISO, paraDataISO } from "@/lib/data";
 
 type Credito = {
   id: string;
@@ -503,10 +504,12 @@ function usePagosManuais(credito: Credito, enabled: boolean) {
     queryKey: ["pagos-manuais-para-credito", credito.id],
     enabled,
     queryFn: async () => {
-      const dRef = new Date(credito.data_transacao + (credito.data_transacao.length === 10 ? "T00:00:00" : ""));
-      const dMin = new Date(dRef); dMin.setDate(dMin.getDate() - 7);
-      const dMax = new Date(dRef); dMax.setDate(dMax.getDate() + 7);
-      const iso = (x: Date) => x.toISOString().slice(0, 10);
+      const refISO = paraDataISO(credito.data_transacao) ?? hojeISO();
+      const [ra, rm, rd] = refISO.split("-").map(Number);
+      const iso = (deslocamento: number) =>
+        new Date(Date.UTC(ra, rm - 1, rd + deslocamento)).toISOString().slice(0, 10);
+      const dMin = -7;
+      const dMax = 7;
       const { data, error } = await supabase
         .from("titulo_a_receber")
         .select(

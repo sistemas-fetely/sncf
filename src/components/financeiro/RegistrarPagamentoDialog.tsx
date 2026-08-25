@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Check, Loader2, Upload } from "lucide-react";
 import { formatBRL } from "@/lib/format-currency";
+import { hojeISO } from "@/lib/data";
 
 type Conta = {
   id: string;
@@ -34,7 +35,7 @@ interface Props {
 
 export default function RegistrarPagamentoDialog({ open, onOpenChange, conta, onPaid }: Props) {
   const qc = useQueryClient();
-  const [dataPagamento, setDataPagamento] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [dataPagamento, setDataPagamento] = useState<string>(() => hojeISO());
   const [formaId, setFormaId] = useState<string | null>(conta.forma_pagamento_id);
   const [valorPago, setValorPago] = useState<string>(() => String(conta.valor ?? ""));
   const [observacao, setObservacao] = useState("");
@@ -42,7 +43,7 @@ export default function RegistrarPagamentoDialog({ open, onOpenChange, conta, on
 
   useEffect(() => {
     if (open) {
-      setDataPagamento(new Date().toISOString().slice(0, 10));
+      setDataPagamento(hojeISO());
       setFormaId(conta.forma_pagamento_id);
       setValorPago(String(conta.valor ?? ""));
       setObservacao("");

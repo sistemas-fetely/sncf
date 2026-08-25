@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatDateBR } from "@/lib/format-currency";
 import type { TituloCobranca } from "@/hooks/credito/useTitulosCobranca";
+import { hojeISO } from "@/lib/data";
 
 interface Props {
   titulo: TituloCobranca;
@@ -18,9 +19,8 @@ interface Props {
 }
 
 function amanhaISO(): string {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return d.toISOString().slice(0, 10);
+  const [a, m, d] = hojeISO().split("-").map(Number);
+  return new Date(Date.UTC(a, m - 1, d + 1)).toISOString().slice(0, 10);
 }
 
 export function ProrrogarVencimentoDialog({ titulo, open, onClose }: Props) {

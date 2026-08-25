@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Receipt, Plus, X, RefreshCw } from "lucide-react";
 import { useRegistrarOperacaoPedido } from "@/hooks/pedidos/useRegistrarOperacaoPedido";
+import { hojeISO } from "@/lib/data";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDateBR = (iso: string) => new Date(iso + "T00:00:00").toLocaleDateString("pt-BR");
@@ -43,9 +44,8 @@ function parseCondicao(cond: string | null | undefined): number[] {
 }
 
 function calcularVencimento(baseISO: string, dias: number): string {
-  const d = new Date(baseISO + "T00:00:00");
-  d.setDate(d.getDate() + dias);
-  return d.toISOString().slice(0, 10);
+  const [a, m, d] = baseISO.slice(0, 10).split("-").map(Number);
+  return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10);
 }
 
 export function OperacaoBoletoDialog({
@@ -65,7 +65,7 @@ export function OperacaoBoletoDialog({
       }));
     }
     const dias = parseCondicao(condicao_solicitada);
-    const baseDate = data_pedido || new Date().toISOString().slice(0, 10);
+    const baseDate = data_pedido || hojeISO();
     const valorPorParcela = valor_padrao ? valor_padrao / dias.length : 0;
     return dias.map((d) => ({
       numero: "",
@@ -97,7 +97,7 @@ export function OperacaoBoletoDialog({
 
   const adicionarParcela = () => {
     const ultima = parcelas[parcelas.length - 1];
-    const baseDate = ultima?.vencimento || data_pedido || new Date().toISOString().slice(0, 10);
+    const baseDate = ultima?.vencimento || data_pedido || hojeISO();
     const novoVencimento = calcularVencimento(baseDate, 30);
     setParcelas((arr) => [
       ...arr,

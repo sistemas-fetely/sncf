@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { hojeISO } from "@/lib/data";
 
 interface Props {
   open: boolean;
@@ -50,9 +51,8 @@ const fmtBRL = new Intl.NumberFormat("pt-BR", {
 });
 
 function plusDays(days: number) {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  const [a, m, d] = hojeISO().split("-").map(Number);
+  return new Date(Date.UTC(a, m - 1, d + days)).toISOString().slice(0, 10);
 }
 
 function daysFromToday(dateStr: string) {
