@@ -34,6 +34,8 @@ interface Props {
   estagio?: string | null;
   freteTipo?: string | null;
   valorFrete?: number | null;
+  descontoAtualValor?: number | null;
+  descontoAtualPct?: number | null;
 }
 
 type Tipo = "pct" | "valor";
@@ -43,7 +45,7 @@ const rotuloEstagio = (e: string) =>
 
 export function AjustarDescontoDialog({
   open, onClose, pedidoId, idExterno, valorBruto, bonusPixValor, condicaoAtual,
-  estagio, freteTipo, valorFrete,
+  estagio, freteTipo, valorFrete, descontoAtualValor, descontoAtualPct,
 }: Props) {
   const qc = useQueryClient();
   const [tipo, setTipo] = useState<Tipo>("pct");
