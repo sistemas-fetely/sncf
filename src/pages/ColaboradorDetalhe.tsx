@@ -53,12 +53,6 @@ import { Shield } from "lucide-react";
 
 import { hojeISO } from "@/lib/data";
 import type {
-
-/** Data pura N dias após uma data pura "YYYY-MM-DD" (aritmética UTC, sem drift de fuso). */
-function isoMaisDias(baseISO: string, dias: number): string {
-  const [a, m, d] = baseISO.split("-").map(Number);
-  return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10);
-}
   DadosPessoaisForm,
   DocumentosForm,
   DadosProfissionaisForm,
@@ -66,6 +60,12 @@ function isoMaisDias(baseISO: string, dias: number): string {
   DadosEmpresaForm,
   DependentesForm,
 } from "@/lib/validations/colaborador-clt";
+
+/** Data pura N dias após uma data pura "YYYY-MM-DD" (aritmética UTC, sem drift de fuso). */
+function isoMaisDias(baseISO: string, dias: number): string {
+  const [a, m, d] = baseISO.split("-").map(Number);
+  return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10);
+}
 
 type AllFormData = DadosPessoaisForm & DocumentosForm & DadosProfissionaisForm & DadosBancariosForm & DadosEmpresaForm & DependentesForm;
 
