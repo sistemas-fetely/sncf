@@ -17,8 +17,8 @@ import { StepDocumentos } from "./StepDocumentos";
 import { StepDadosProfissionais } from "./StepDadosProfissionais";
 import { StepDadosBancarios } from "./StepDadosBancarios";
 import { StepDependentes } from "./StepDependentes";
-import {
 import { hojeISO } from "@/lib/data";
+import {
 
 /** Data pura N dias após uma data pura "YYYY-MM-DD" (aritmética UTC, sem drift de fuso). */
 function isoMaisDias(baseISO: string, dias: number): string {

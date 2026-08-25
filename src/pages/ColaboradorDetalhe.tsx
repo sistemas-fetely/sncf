@@ -51,8 +51,8 @@ import { SalarioMasked } from "@/components/SalarioMasked";
 import { ehCLevel } from "@/lib/clevel-protection";
 import { Shield } from "lucide-react";
 
-import type {
 import { hojeISO } from "@/lib/data";
+import type {
 
 /** Data pura N dias após uma data pura "YYYY-MM-DD" (aritmética UTC, sem drift de fuso). */
 function isoMaisDias(baseISO: string, dias: number): string {
