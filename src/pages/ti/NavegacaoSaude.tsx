@@ -176,7 +176,7 @@ export default function NavegacaoSaude() {
 
   const corrigir = useMutation({
     mutationFn: async ({ row }: { row: NavegacaoSaudeRow }) => {
-      const rpc = supabase.rpc as (
+      const rpc = (supabase.rpc as unknown) as (
         fn: string,
         params: Record<string, unknown>,
       ) => Promise<{ data: unknown; error: { message: string } | null }>;
