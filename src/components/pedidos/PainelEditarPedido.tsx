@@ -456,6 +456,7 @@ function SecaoDesconto({ pedidoId, pedido, guarda }: {
   const bruto = num(pedido?.valor_bruto);
   const bonus = num(pedido?.bonus_pix_valor);
   const frete = num(pedido?.valor_frete);
+  const preenchido = String(valorStr).trim() !== "";
   const valorNum = Number(String(valorStr).replace(",", ".")) || 0;
   const desconto = tipo === "pct" ? (bruto * valorNum) / 100 : valorNum;
   // O frete só entra no líquido quando a dimensão `frete_tipos` manda.
@@ -539,10 +540,18 @@ function SecaoDesconto({ pedidoId, pedido, guarda }: {
 
       {guarda.exigeMotivo && <CampoMotivo value={motivo} onChange={setMotivo} />}
 
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => { setTipo("valor"); setValorStr("0"); }}
+          disabled={salvar.isPending}
+        >
+          Zerar desconto
+        </Button>
         <BotaoSalvar
           onClick={() => salvar.mutate()}
-          disabled={valorNum <= 0 || !motivoOk || !guarda.temPapel}
+          disabled={!preenchido || valorNum < 0 || !motivoOk || !guarda.temPapel}
           pending={salvar.isPending}
           motivoTooltip={tooltipPapel}
         >

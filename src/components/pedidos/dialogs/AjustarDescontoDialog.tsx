@@ -9,13 +9,18 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Loader2, AlertTriangle, Lock } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/format-currency";
 import { ImpactoEdicaoBanner } from "@/components/pedidos/ImpactoEdicaoBanner";
 import { ReabrirAnaliseAction } from "@/components/pedidos/ReabrirAnaliseAction";
+import { usePedidoEdicaoCampo } from "@/hooks/pedidos/usePedidoEdicaoCampo";
+import { useFreteTipos } from "@/hooks/pedidos/useFreteTipos";
+import { useAuth } from "@/contexts/AuthContext";
+import { ESTAGIO_LABELS } from "@/types/pedido";
 
 interface Props {
   open: boolean;
@@ -25,20 +30,47 @@ interface Props {
   valorBruto: number;
   bonusPixValor?: number | null;
   condicaoAtual?: string | null;
+  /** Estágio do pedido — necessário para consultar a dimensão pedido_edicao_campo. */
+  estagio?: string | null;
+  freteTipo?: string | null;
+  valorFrete?: number | null;
 }
 
 type Tipo = "pct" | "valor";
 
+const rotuloEstagio = (e: string) =>
+  (ESTAGIO_LABELS as Record<string, string>)[e] ?? e.replace(/_/g, " ");
+
 export function AjustarDescontoDialog({
   open, onClose, pedidoId, idExterno, valorBruto, bonusPixValor, condicaoAtual,
+  estagio, freteTipo, valorFrete,
 }: Props) {
   const qc = useQueryClient();
   const [tipo, setTipo] = useState<Tipo>("pct");
   const [valorStr, setValorStr] = useState<string>("");
   const [motivo, setMotivo] = useState<string>("");
 
+  // A regra de o-que-pode-ser-editado mora na dimensão, nunca no TSX.
+  const dim = usePedidoEdicaoCampo(estagio ?? null);
+  const regra = dim.regraDe("desconto");
+  const estagiosPermitidos = dim.estagiosPermitidos("desconto");
+  const { roles } = useAuth();
+  const papeis = (roles ?? []) as string[];
+  const exigePapel = regra?.exige_papel ?? null;
+  const temPapel =
+    !exigePapel || exigePapel.length === 0 || exigePapel.some((p) => papeis.includes(p));
+  const exigeMotivo = !!regra?.exige_motivo;
+  const permitido = !!regra?.permitido;
+
+  const { getFreteTipo, freteEntraNoLiquido } = useFreteTipos();
+  const freteDim = getFreteTipo(freteTipo);
+  const freteConta = freteEntraNoLiquido(freteTipo);
+  const frete = Number(valorFrete || 0);
+  const freteEfetivo = freteConta ? frete : 0;
+
   const bonus = Number(bonusPixValor || 0);
   const bruto = Number(valorBruto || 0);
+  const preenchido = String(valorStr).trim() !== "";
   const valorNum = Number(String(valorStr).replace(",", ".")) || 0;
 
   const novoDesconto = useMemo(() => {
@@ -46,7 +78,7 @@ export function AjustarDescontoDialog({
     return valorNum;
   }, [tipo, bruto, valorNum]);
 
-  const novoLiquido = bruto - novoDesconto - bonus;
+  const novoLiquido = bruto - novoDesconto - bonus + freteEfetivo;
   const liquidoNegativo = novoLiquido < 0;
 
   const mutation = useMutation({
@@ -56,7 +88,7 @@ export function AjustarDescontoDialog({
         p_pedido_id: pedidoId,
         p_tipo: tipo,
         p_valor: valorNum,
-        p_motivo: motivo || null,
+        p_motivo: motivo.trim() || null,
       });
       if (error) throw error;
       if (data && typeof data === "object" && data.ok === false) {
@@ -85,7 +117,20 @@ export function AjustarDescontoDialog({
     onClose();
   }
 
-  const podeConfirmar = valorNum > 0 && !liquidoNegativo && !mutation.isPending;
+  const motivoOk = !exigeMotivo || motivo.trim().length >= 3;
+  const bloqueado = !dim.isLoading && !permitido;
+  const podeConfirmar =
+    preenchido && valorNum >= 0 && !liquidoNegativo && motivoOk && temPapel &&
+    permitido && !dim.isLoading && !mutation.isPending;
+
+  const tooltipPapel = !temPapel ? `Requer papel: ${(exigePapel || []).join(", ")}` : null;
+
+  const botaoConfirmar = (
+    <Button onClick={() => mutation.mutate()} disabled={!podeConfirmar}>
+      {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+      Confirmar
+    </Button>
+  );
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
@@ -97,6 +142,19 @@ export function AjustarDescontoDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {bloqueado ? (
+          <Alert>
+            <Lock className="h-4 w-4" />
+            <AlertDescription>
+              {regra?.observacao
+                ? regra.observacao
+                : `Desconto não é editável com o pedido em ${rotuloEstagio(String(estagio ?? ""))}.`}
+              {estagiosPermitidos.length > 0 && (
+                <> Permitido em: {estagiosPermitidos.map(rotuloEstagio).join(", ")}.</>
+              )}
+            </AlertDescription>
+          </Alert>
+        ) : (
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Tipo de desconto</Label>
@@ -147,6 +205,21 @@ export function AjustarDescontoDialog({
                 <span className="font-medium text-destructive">− {formatBRL(bonus)}</span>
               </div>
             )}
+            <div className="flex justify-between gap-2">
+              <span className="text-muted-foreground">
+                Frete
+                {!freteConta && (
+                  <span className="ml-1 text-xs text-muted-foreground/70">
+                    não cobrado do cliente{freteDim?.rotulo ? ` (${freteDim.rotulo})` : ""}
+                  </span>
+                )}
+              </span>
+              {freteConta ? (
+                <span className="font-medium">+ {formatBRL(frete)}</span>
+              ) : (
+                <span className="text-muted-foreground/60 line-through">{formatBRL(frete)}</span>
+              )}
+            </div>
             <div className="flex justify-between border-t pt-1.5 mt-1.5">
               <span className="text-muted-foreground">Novo líquido</span>
               <span className={`font-medium text-base ${liquidoNegativo ? "text-destructive" : ""}`}>
@@ -163,7 +236,13 @@ export function AjustarDescontoDialog({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="motivo">Motivo (opcional)</Label>
+            <Label htmlFor="motivo">
+              {exigeMotivo ? (
+                <>Motivo <span className="text-destructive">*</span></>
+              ) : (
+                "Motivo (opcional)"
+              )}
+            </Label>
             <Textarea
               id="motivo"
               value={motivo}
@@ -171,6 +250,11 @@ export function AjustarDescontoDialog({
               placeholder="Ex.: alinhamento com cliente"
               rows={2}
             />
+            {exigeMotivo && (
+              <p className={`text-xs ${motivoOk ? "text-muted-foreground" : "text-destructive"}`}>
+                {motivo.trim().length}/3 caracteres mínimos
+              </p>
+            )}
           </div>
 
           {condicaoAtual && (
@@ -179,30 +263,45 @@ export function AjustarDescontoDialog({
                 pedidoId={pedidoId}
                 novaCondicao={condicaoAtual}
                 novoValorLiquido={novoLiquido}
-                enabled={valorNum > 0 && !liquidoNegativo}
+                enabled={preenchido && !liquidoNegativo}
               />
               <ReabrirAnaliseAction
                 pedidoId={pedidoId}
                 novaCondicao={condicaoAtual}
                 novoValorLiquido={novoLiquido}
-                enabled={valorNum > 0 && !liquidoNegativo}
+                enabled={preenchido && !liquidoNegativo}
                 onSuccess={handleClose}
               />
             </>
           )}
         </div>
+        )}
 
         <DialogFooter>
           <Button variant="outline" onClick={handleClose} disabled={mutation.isPending}>
             Cancelar
           </Button>
-          <Button
-            onClick={() => mutation.mutate()}
-            disabled={!podeConfirmar}
-          >
-            {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-            Confirmar
-          </Button>
+          {!bloqueado && (
+            <Button
+              variant="outline"
+              onClick={() => { setTipo("valor"); setValorStr("0"); }}
+              disabled={mutation.isPending}
+            >
+              Zerar desconto
+            </Button>
+          )}
+          {tooltipPapel ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">{botaoConfirmar}</span>
+                </TooltipTrigger>
+                <TooltipContent>{tooltipPapel}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            botaoConfirmar
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
