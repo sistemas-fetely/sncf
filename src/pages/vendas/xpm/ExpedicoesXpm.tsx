@@ -68,6 +68,11 @@ type ExpedicaoXpm = {
   arquivo_gerado_em: string | null;
   fase_seq_verdade: number;
   fonte_da_verdade: "api" | "arquivo" | "empate" | "sem_arquivo";
+  fase_seq: number;
+  fase_rotulo: string;
+  fase_seq_em_andamento: number | null;
+  fase_rotulo_em_andamento: string | null;
+  tem_casa_em_andamento: boolean;
   ultimo_evento_em: string | null;
   dias_parado: number | null;
   canal: "B2B" | "B2C" | "SEM NF";
@@ -287,27 +292,41 @@ function desdeQuando(v: string | null) {
   return `sincronizado há ${Math.floor(h / 24)} d`;
 }
 
-function Semaforo({ seq }: { seq: number }) {
+function Semaforo({
+  seq,
+  emAndamentoSeq,
+  temCasaEmAndamento,
+  rotuloEmAndamento,
+}: {
+  seq: number;
+  emAndamentoSeq: number | null;
+  temCasaEmAndamento: boolean;
+  rotuloEmAndamento: string | null;
+}) {
   return (
     <div className="flex items-center gap-0.5">
       {FASES_LABEL.map((label, i) => {
         const n = i + 1;
         const cheio = n <= seq;
-        const ultimoCheio = cheio && n === seq && seq < 6;
+        const cinza = temCasaEmAndamento && n === emAndamentoSeq;
         return (
           <Tooltip key={label}>
             <TooltipTrigger asChild>
               <span
                 className={`h-3 w-3 rounded-sm border ${
-                  ultimoCheio
-                    ? "bg-warning border-warning/40"
+                  cinza
+                    ? "bg-muted border-muted-foreground/40"
                     : cheio
                       ? "bg-success border-success/40"
                       : "border-muted-foreground/40"
                 }`}
               />
             </TooltipTrigger>
-            <TooltipContent>{label}</TooltipContent>
+            <TooltipContent>
+              {cinza && rotuloEmAndamento
+                ? `${rotuloEmAndamento} — em andamento`
+                : label}
+            </TooltipContent>
           </Tooltip>
         );
       })}
@@ -1065,9 +1084,14 @@ export default function ExpedicoesXpm() {
                               <TableCell>
                                 <div className="flex flex-col gap-0.5">
                                   <div className="flex items-center gap-2">
-                                    <Semaforo seq={Number(r.estagio_seq)} />
+                                    <Semaforo
+                                      seq={Number(r.fase_seq)}
+                                      emAndamentoSeq={r.fase_seq_em_andamento}
+                                      temCasaEmAndamento={r.tem_casa_em_andamento}
+                                      rotuloEmAndamento={r.fase_rotulo_em_andamento}
+                                    />
                                     <span className="text-xs text-muted-foreground truncate">
-                                      {r.estagio_descricao}
+                                      {r.fase_rotulo}
                                     </span>
                                   </div>
                                   {r.arquivo_fase_rotulo && (
