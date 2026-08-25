@@ -291,15 +291,19 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
   const credMut = useMutation({
     mutationFn: async () => {
       const motivoFinal = motivoC + (obsC ? `: ${obsC}` : "");
-      const validadeDias = daysFromToday(validade);
-      const { error } = await (supabase as any).rpc("ajustar_haver_cliente", {
+      const payload: Record<string, unknown> = {
         p_parceiro_id: parceiroSel,
         p_tipo: "credito",
         p_valor: valorC,
         p_motivo: motivoFinal,
         p_haver_id_alvo: null,
-        p_validade_dias: validadeDias,
-      });
+        p_origem: origemCodigo,
+        p_origem_pedido_id: origemPedidoId,
+      };
+      if (origemExpira && validade) {
+        payload.p_validade_dias = daysFromToday(validade);
+      }
+      const { error } = await (supabase as any).rpc("ajustar_haver_cliente", payload);
       if (error) throw error;
     },
     onSuccess: () => {
