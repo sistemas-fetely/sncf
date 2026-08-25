@@ -62,7 +62,7 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
 
   // ===== crédito state =====
   const [valorC, setValorC] = useState<number>(0);
-  const [motivoC, setMotivoC] = useState<string>(MOTIVOS_CREDITO[0]);
+  const [motivoC, setMotivoC] = useState<string>("");
   const [obsC, setObsC] = useState("");
   const [pedidoBusca, setPedidoBusca] = useState("");
   const [origemPedidoId, setOrigemPedidoId] = useState<string | null>(null);
