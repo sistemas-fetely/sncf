@@ -79,6 +79,8 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
   const [obsC, setObsC] = useState("");
   const [pedidoBusca, setPedidoBusca] = useState("");
   const [origemPedidoId, setOrigemPedidoId] = useState<string | null>(null);
+  const [origemPedidoRotulo, setOrigemPedidoRotulo] = useState<string | null>(null);
+  const [origemCodigo, setOrigemCodigo] = useState<string>("");
   const [validade, setValidade] = useState<string>(plusDays(180));
 
   // ===== débito state =====
@@ -100,6 +102,8 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
       setObsC("");
       setPedidoBusca("");
       setOrigemPedidoId(null);
+      setOrigemPedidoRotulo(null);
+      setOrigemCodigo("");
       setValidade(plusDays(180));
       setModoDebito("livre");
       setValorD(0);
@@ -139,6 +143,33 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
       return data as any;
     },
   });
+
+  // ===== Origens de crédito (DIMENSÃO VIA TABELA) =====
+  const origensQ = useQuery({
+    queryKey: ["credito-origem-dim"],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("credito_origem_dim")
+        .select("codigo, rotulo, descricao, pode_expirar, exige_decisao_humana_na_saida")
+        .eq("ativo", true)
+        .order("ordem", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const origemSel = useMemo(
+    () => (origensQ.data ?? []).find((o: any) => o.codigo === origemCodigo) ?? null,
+    [origensQ.data, origemCodigo]
+  );
+  const origemExpira = origemSel ? origemSel.pode_expirar === true : true;
+
+  // A validade só existe quando a origem pode expirar.
+  useEffect(() => {
+    if (!origemSel) return;
+    setValidade(origemSel.pode_expirar ? plusDays(180) : "");
+  }, [origemSel]);
 
   // ===== Haveres do parceiro =====
   const haveresQ = useQuery({
@@ -226,6 +257,7 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
   const buscarPedido = async () => {
     if (!pedidoBusca.trim()) {
       setOrigemPedidoId(null);
+      setOrigemPedidoRotulo(null);
       return;
     }
     const { data, error } = await (supabase as any)
@@ -240,9 +272,11 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
     if (!data) {
       toast.error("Pedido não encontrado");
       setOrigemPedidoId(null);
+      setOrigemPedidoRotulo(null);
       return;
     }
     setOrigemPedidoId(data.id);
+    setOrigemPedidoRotulo(data.id_externo ?? null);
     toast.success(`Pedido ${data.id_externo} vinculado`);
   };
 
@@ -257,15 +291,19 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
   const credMut = useMutation({
     mutationFn: async () => {
       const motivoFinal = motivoC + (obsC ? `: ${obsC}` : "");
-      const validadeDias = daysFromToday(validade);
-      const { error } = await (supabase as any).rpc("ajustar_haver_cliente", {
+      const payload: Record<string, unknown> = {
         p_parceiro_id: parceiroSel,
         p_tipo: "credito",
         p_valor: valorC,
         p_motivo: motivoFinal,
         p_haver_id_alvo: null,
-        p_validade_dias: validadeDias,
-      });
+        p_origem: origemCodigo,
+        p_origem_pedido_id: origemPedidoId,
+      };
+      if (origemExpira && validade) {
+        payload.p_validade_dias = daysFromToday(validade);
+      }
+      const { error } = await (supabase as any).rpc("ajustar_haver_cliente", payload);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -322,7 +360,8 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
     modoValor === "total" &&
     valorD > somaSaldosSelecionados;
 
-  const podeCredito = !!parceiroSel && valorC > 0 && !credMut.isPending;
+  const podeCredito =
+    !!parceiroSel && !!origemCodigo && valorC > 0 && !credMut.isPending;
   const podeDebito =
     !!parceiroSel &&
     !debMut.isPending &&
@@ -402,6 +441,25 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
             {parceiroPicker}
 
             <div className="space-y-2">
+              <Label>Origem do crédito</Label>
+              <Select value={origemCodigo} onValueChange={setOrigemCodigo}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a origem" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(origensQ.data ?? []).map((o: any) => (
+                    <SelectItem key={o.codigo} value={o.codigo}>
+                      {o.rotulo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {origemSel?.descricao && (
+                <p className="text-xs text-muted-foreground">{origemSel.descricao}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
               <Label>Valor (R$)</Label>
               <Input
                 type="number"
@@ -451,7 +509,7 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
               </div>
               {origemPedidoId && (
                 <p className="text-xs text-muted-foreground">
-                  Vinculado: {origemPedidoId}
+                  Vinculado ao pedido {origemPedidoRotulo ?? "—"}
                 </p>
               )}
             </div>
@@ -461,8 +519,14 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
               <Input
                 type="date"
                 value={validade}
+                disabled={!origemExpira}
                 onChange={(e) => setValidade(e.target.value)}
               />
+              {!origemExpira && (
+                <p className="text-xs text-muted-foreground">
+                  Esta origem não expira — o dinheiro é do cliente.
+                </p>
+              )}
             </div>
 
             <DialogFooter>
