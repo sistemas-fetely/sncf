@@ -25,7 +25,7 @@ export default function AcervoLayout() {
           <header className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b bg-card/80 px-3 backdrop-blur-sm">
             <SidebarTrigger className="-ml-1" />
           </header>
-          <main className="flex-1 overflow-auto relative min-w-0">
+          <main className="flex-1 relative min-w-0">
             <Suspense
               fallback={
                 <div className="flex items-center justify-center h-full p-12">
