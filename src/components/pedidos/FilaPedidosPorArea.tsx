@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useLayoutEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,12 +61,10 @@ type OrdenacaoFila = "cronologico" | "risco" | "entrada_paga";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
-const PAGE_SIZE_OPTIONS = ["auto", 50, 100, 200, 500] as const;
+const PAGE_SIZE_OPTIONS = [20, 50, 100, 200] as const;
 type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
-const DEFAULT_PAGE_SIZE: PageSizeOption = "auto";
-const ROW_HEIGHT = 64; // px aprox (linha de 2 alturas de texto após a fusão de colunas)
-const HEADER_ROW_HEIGHT = 44; // linha de cabecalho da tabela, sticky
-const FOOTER_RESERVE = 112;
+const DEFAULT_PAGE_SIZE: PageSizeOption = 20;
+const PAGE_SIZE_STORAGE_KEY = "fetely:pedidos:fila:page-size";
 
 
 
@@ -368,41 +366,17 @@ export function FilaPedidosPorArea({
   const [ordenacao, setOrdenacao] = useState<OrdenacaoFila>("risco");
   const [somenteComAlerta, setSomenteComAlerta] = useState(false);
   const [pagina, setPagina] = useState(1);
-  const [pageSizeOpt, setPageSizeOpt] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
-  const [autoPageSize, setAutoPageSize] = useState<number>(20);
-  const tableWrapperRef = useRef<HTMLDivElement | null>(null);
-  const pageSize = pageSizeOpt === "auto" ? autoPageSize : pageSizeOpt;
-  const navigate = useNavigate();
-  
-
-  useLayoutEffect(() => {
-    const el = tableWrapperRef.current;
-    if (!el) return;
-
-    function recompute() {
-      const node = tableWrapperRef.current;
-      if (!node) return;
-      const top = node.getBoundingClientRect().top;
-      const available =
-        window.innerHeight - top - HEADER_ROW_HEIGHT - FOOTER_RESERVE;
-      const rows = Math.min(12, Math.max(3, Math.floor(available / ROW_HEIGHT)));
-      setAutoPageSize((atual) => (atual === rows ? atual : rows));
+  const [pageSize, setPageSize] = useState<PageSizeOption>(() => {
+    try {
+      const salvo = Number(localStorage.getItem(PAGE_SIZE_STORAGE_KEY));
+      return (PAGE_SIZE_OPTIONS as readonly number[]).includes(salvo)
+        ? (salvo as PageSizeOption)
+        : DEFAULT_PAGE_SIZE;
+    } catch {
+      return DEFAULT_PAGE_SIZE;
     }
-
-    recompute();
-
-    // O topo da tabela muda quando os cards do pipeline e os filtros
-    // terminam de carregar. Observar o body pega esse deslocamento.
-    const ro = new ResizeObserver(recompute);
-    ro.observe(document.body);
-    window.addEventListener("resize", recompute);
-
-    return () => {
-      ro.disconnect();
-      window.removeEventListener("resize", recompute);
-    };
-  }, []);
-
+  });
+  const navigate = useNavigate();
 
   useEffect(() => {
     const t = setTimeout(() => setBuscaDebounced(busca), 300);
@@ -861,10 +835,10 @@ export function FilaPedidosPorArea({
         </p>
       )}
 
-      <div ref={tableWrapperRef} className="rounded-md border border-border overflow-hidden">
+      <div className="rounded-md border border-border">
         <Table className="table-fixed">
           <TableHeader>
-            <TableRow className="sticky top-0 z-20 bg-card">
+            <TableRow className="bg-card">
               <TableHead className="w-[56px]">Risco</TableHead>
               <TableHead className="w-[220px]">Pedido</TableHead>
               <TableHead className="w-[150px]">Valor</TableHead>
@@ -915,7 +889,7 @@ export function FilaPedidosPorArea({
               return (
                 <TableRow
                   key={p.id}
-                  className="cursor-pointer h-16 [&>td]:py-2 [&>td]:align-middle [&>td]:overflow-hidden"
+                  className="cursor-pointer h-20 [&>td]:py-2 [&>td]:align-top [&>td]:overflow-hidden"
                   onClick={() => navigate(`/pedidos/${p.id}`)}
                 >
                   <TableCell onClick={(e) => e.stopPropagation()} className="whitespace-nowrap">
@@ -997,7 +971,7 @@ export function FilaPedidosPorArea({
                     <CelulaCobranca cobranca={cobrancaMap?.get(p.id)} />
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                    <div className="flex flex-wrap items-center gap-1.5 min-w-0 max-h-[68px] overflow-hidden">
                       <EstagioBadge estagio={p.estagio} />
                       {/* AREA-DIZ-ONDE-TRATAR (20/08/2026): o estagio diz o que falta, a area diz quem
                           trabalha. aguardando_pagamento e recuperacao_venda moram na Mesa Comercial. */}
@@ -1054,13 +1028,15 @@ export function FilaPedidosPorArea({
                   </TableCell>
 
                   <TableCell>
-                    {entregaErro ? (
-                      <p className="text-[11px] text-destructive leading-tight">
-                        Erro ao carregar entrega/NF: {(entregaErrorObj as Error)?.message || "falha desconhecida"}
-                      </p>
-                    ) : (
-                      <CelulaEntregaFila info={entregaMap?.get(p.id)} />
-                    )}
+                    <div className="max-h-[68px] overflow-hidden">
+                      {entregaErro ? (
+                        <p className="text-[11px] text-destructive leading-tight">
+                          Erro ao carregar entrega/NF: {(entregaErrorObj as Error)?.message || "falha desconhecida"}
+                        </p>
+                      ) : (
+                        <CelulaEntregaFila info={entregaMap?.get(p.id)} />
+                      )}
+                    </div>
                   </TableCell>
 
                   <TableCell
@@ -1114,9 +1090,15 @@ export function FilaPedidosPorArea({
           <div className="hidden sm:flex items-center gap-1.5">
             <span>Por página:</span>
             <Select
-              value={String(pageSizeOpt)}
+              value={String(pageSize)}
               onValueChange={(v) => {
-                setPageSizeOpt(v === "auto" ? "auto" : (Number(v) as PageSizeOption));
+                const n = Number(v) as PageSizeOption;
+                setPageSize(n);
+                try {
+                  localStorage.setItem(PAGE_SIZE_STORAGE_KEY, String(n));
+                } catch {
+                  // modo privativo pode bloquear o storage — a troca vale só nesta sessão
+                }
                 setPagina(1);
               }}
             >
@@ -1126,7 +1108,7 @@ export function FilaPedidosPorArea({
               <SelectContent>
                 {PAGE_SIZE_OPTIONS.map((n) => (
                   <SelectItem key={n} value={String(n)}>
-                    {n === "auto" ? `Auto (${autoPageSize})` : n}
+                    {n}
                   </SelectItem>
                 ))}
               </SelectContent>
