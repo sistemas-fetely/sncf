@@ -92,25 +92,40 @@ export function ImportarExtratoDialog({ open, onOpenChange, contaPreSelecionada 
       const novas = movsComHash.filter((m) => !setExist.has(m.hash_unico));
       const duplicadas = movsComHash.length - novas.length;
 
-      if (novas.length > 0) {
-        const inserts = novas
-          .filter((m) => m.data_transacao)
-          .map((m) => ({
-            conta_bancaria_id: impConta,
-            data_transacao: m.data_transacao!,
-            descricao: m.descricao,
-            valor: m.valor,
-            tipo: m.tipo,
-            id_transacao_banco: m.id_transacao_banco,
-            hash_unico: m.hash_unico,
-            saldo_pos_transacao: m.saldo_pos_transacao ?? null,
-            origem: impFormato,
-          }));
-        for (let i = 0; i < inserts.length; i += 50) {
-          const lote = inserts.slice(i, i + 50);
-          const { error } = await supabase.from("movimentacoes_bancarias").insert(lote);
-          if (error) throw error;
-        }
+      const inserts = movsComHash
+        .filter((m) => m.data_transacao)
+        .map((m) => ({
+          conta_bancaria_id: impConta,
+          data_transacao: m.data_transacao!,
+          descricao: m.descricao,
+          valor: m.valor,
+          tipo: m.tipo,
+          id_transacao_banco: m.id_transacao_banco,
+          hash_unico: m.hash_unico,
+          saldo_pos_transacao: m.saldo_pos_transacao ?? null,
+          origem: impFormato,
+        }));
+
+      // DUPLICATA-BANCÁRIA-NÃO-DEPENDE-DE-DESCRIÇÃO (25/08/2026): hash_unico incluía a descrição, que o banco muda entre exportações — 577 duplicatas entraram em 22/08. A identidade estável é o FITID dentro da conta.
+      // Separação obrigatória: o índice único parcial uq_mov_bancaria_transacao_viva só cobre id_transacao_banco IS NOT NULL. Linhas COM FITID usam a chave estável (conta + data + valor + tipo + fitid); linhas SEM FITID continuam pelo hash_unico.
+      const insertsComFitid = inserts.filter((m) => m.id_transacao_banco);
+      const insertsSemFitid = inserts.filter((m) => !m.id_transacao_banco);
+
+      for (let i = 0; i < insertsComFitid.length; i += 50) {
+        const lote = insertsComFitid.slice(i, i + 50);
+        const { error } = await supabase
+          .from("movimentacoes_bancarias")
+          .upsert(lote, { onConflict: "conta_bancaria_id,data_transacao,valor,tipo,id_transacao_banco", ignoreDuplicates: true });
+        if (error) throw error;
+      }
+
+      for (let i = 0; i < insertsSemFitid.length; i += 50) {
+        const lote = insertsSemFitid.slice(i, i + 50);
+        const { error } = await supabase
+          .from("movimentacoes_bancarias")
+          .upsert(lote, { onConflict: "hash_unico", ignoreDuplicates: true });
+        if (error) throw error;
+      }
 
         const ordenadasPorData = [...novas].sort((a, b) =>
           (a.data_transacao || "").localeCompare(b.data_transacao || "")
