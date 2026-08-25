@@ -659,6 +659,11 @@ const App = () => (
                     <GerenciarVisibilidade />
                   </ProtectedRoute>
                 } />
+                <Route path="declaracoes" element={
+                  <ProtectedRoute>
+                    <MesaDeclaracoes />
+                  </ProtectedRoute>
+                } />
                 <Route path="sla" element={
                   <ProtectedRoute><SlaOperacao /></ProtectedRoute>
                 } />
