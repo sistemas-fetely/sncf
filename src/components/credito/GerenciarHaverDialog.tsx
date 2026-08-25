@@ -509,7 +509,7 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
               </div>
               {origemPedidoId && (
                 <p className="text-xs text-muted-foreground">
-                  Vinculado: {origemPedidoId}
+                  Vinculado ao pedido {origemPedidoRotulo ?? "—"}
                 </p>
               )}
             </div>
@@ -519,8 +519,14 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
               <Input
                 type="date"
                 value={validade}
+                disabled={!origemExpira}
                 onChange={(e) => setValidade(e.target.value)}
               />
+              {!origemExpira && (
+                <p className="text-xs text-muted-foreground">
+                  Esta origem não expira — o dinheiro é do cliente.
+                </p>
+              )}
             </div>
 
             <DialogFooter>
