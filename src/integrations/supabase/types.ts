@@ -16800,6 +16800,36 @@ export type Database = {
           },
         ]
       }
+      haver_motivo_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          exige_obs: boolean
+          ordem: number
+          rotulo: string
+          tipo: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          exige_obs?: boolean
+          ordem?: number
+          rotulo: string
+          tipo: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          exige_obs?: boolean
+          ordem?: number
+          rotulo?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
       hipotese_confianca: {
         Row: {
           codigo: string
@@ -67566,6 +67596,10 @@ export type Database = {
         Returns: string
       }
       criar_tarefas_emissao_nf_pj_mensal: { Args: never; Returns: number }
+      debitar_haveres_individual: {
+        Args: { p_itens: Json; p_motivo: string; p_parceiro_id: string }
+        Returns: Json
+      }
       debug_kalunga: {
         Args: never
         Returns: {
