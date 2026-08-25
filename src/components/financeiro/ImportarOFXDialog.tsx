@@ -208,8 +208,22 @@ export function ImportarOFXDialog({ open, onOpenChange, onSuccess, contaBancaria
         })),
       );
 
-      for (let i = 0; i < linhas.length; i += 50) {
-        const lote = linhas.slice(i, i + 50);
+      // DUPLICATA-BANCÁRIA-NÃO-DEPENDE-DE-DESCRIÇÃO (25/08/2026): hash_unico incluía a descrição, que o banco muda entre exportações — 577 duplicatas entraram em 22/08. A identidade estável é o FITID dentro da conta.
+      // Separação obrigatória: o índice único parcial uq_mov_bancaria_transacao_viva só cobre id_transacao_banco IS NOT NULL. Linhas COM FITID usam a chave estável (conta + data + valor + tipo + fitid); linhas SEM FITID continuam pelo hash_unico.
+      const linhasComFitid = linhas.filter((l) => l.id_transacao_banco);
+      const linhasSemFitid = linhas.filter((l) => !l.id_transacao_banco);
+
+      for (let i = 0; i < linhasComFitid.length; i += 50) {
+        const lote = linhasComFitid.slice(i, i + 50);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error: errLote } = await (supabase as any)
+          .from("ofx_transacoes_stage")
+          .upsert(lote, { onConflict: "conta_bancaria_id,data_transacao,valor,tipo,id_transacao_banco", ignoreDuplicates: true });
+        if (errLote) throw errLote;
+      }
+
+      for (let i = 0; i < linhasSemFitid.length; i += 50) {
+        const lote = linhasSemFitid.slice(i, i + 50);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error: errLote } = await (supabase as any)
           .from("ofx_transacoes_stage")
