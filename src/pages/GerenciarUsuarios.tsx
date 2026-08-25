@@ -489,22 +489,38 @@ export default function GerenciarUsuarios() {
                       setDepartamentoLabel(dep?.label || "");
                     }}
                   />
-                  {departamentoInfo && (
-                    <div className="rounded-md border border-primary/30 bg-primary/5 p-2 text-xs">
-                      <div className="flex items-center gap-1.5">
-                        <Sparkles className="h-3.5 w-3.5 text-primary" />
-                        <span className="text-muted-foreground">Receberá automaticamente:</span>
+                  {previaAcesso && (
+                    <div className="space-y-2">
+                      <div className="rounded-md border border-primary/30 bg-primary/5 p-2 text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <Sparkles className="h-3.5 w-3.5 text-primary" />
+                          <span className="text-muted-foreground">Acesso que será concedido:</span>
+                        </div>
+                        <div className="mt-1 ml-5 space-y-0.5">
+                          <div>
+                            <span className="text-muted-foreground">Papel: </span>
+                            <span className="font-medium text-primary">
+                              {previaAcesso.papel
+                                ? `${ROLE_LABELS[previaAcesso.papel as AppRole] || previaAcesso.papel} (nível ${previaAcesso.nivel ?? "?"})`
+                                : "— (template sem papel definido)"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Grupos: </span>
+                            <span className="font-medium text-primary">
+                              {["Base Fetely", ...previaAcesso.grupos].join(" + ")}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="mt-1 ml-5">
-                        <span className="font-medium text-primary">
-                          {departamentoInfo.perfil_nome || "— (só transversal do template)"}
-                        </span>
-                        {departamentoInfo.area_label && (
-                          <span className="text-muted-foreground"> · Área: {departamentoInfo.area_label}</span>
-                        )}
-                      </div>
+                      {previaAcesso.grupos.length === 0 && (
+                        <div className="rounded-md border border-warning/40 bg-warning/10 p-2 text-xs text-warning-foreground">
+                          Esta área ainda não tem grupo de acesso. A pessoa entrará só com o acesso básico (Base Fetely).
+                        </div>
+                      )}
                     </div>
                   )}
+
                 </div>
                 <div className="space-y-2">
                   <Label>Unidade *</Label>
