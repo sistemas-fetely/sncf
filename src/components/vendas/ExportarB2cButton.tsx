@@ -6,7 +6,7 @@ import { formatError } from "@/lib/format-error";
 import { Button } from "@/components/ui/button";
 import { useNivel } from "@/hooks/useNivel";
 import type { PedidoB2cRow } from "@/hooks/vendas/useB2c";
-import { hojeISO } from "@/lib/data";
+import { hojeISO, parseDataPura } from "@/lib/data";
 
 /**
  * Exporta exatamente as linhas que a Fila está mostrando — nada de segunda query.
