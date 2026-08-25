@@ -5827,7 +5827,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          autor_id: string
+          autor_id?: string
           conteudo: string
           created_at?: string
           editado_em?: string | null
@@ -42887,6 +42887,7 @@ export type Database = {
           ativo: boolean
           codigo: string
           created_at: string
+          fase_api_em_andamento: string | null
           fase_api_equivalente: string | null
           observacao: string | null
           ordem: number
@@ -42896,6 +42897,7 @@ export type Database = {
           ativo?: boolean
           codigo: string
           created_at?: string
+          fase_api_em_andamento?: string | null
           fase_api_equivalente?: string | null
           observacao?: string | null
           ordem: number
@@ -42905,12 +42907,27 @@ export type Database = {
           ativo?: boolean
           codigo?: string
           created_at?: string
+          fase_api_em_andamento?: string | null
           fase_api_equivalente?: string | null
           observacao?: string | null
           ordem?: number
           rotulo?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "xpm_arquivo_fase_dim_em_andamento_fkey"
+            columns: ["fase_api_em_andamento"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_funil_fases"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "xpm_arquivo_fase_dim_em_andamento_fkey"
+            columns: ["fase_api_em_andamento"]
+            isOneToOne: false
+            referencedRelation: "wns_fases_xpm"
+            referencedColumns: ["codigo"]
+          },
           {
             foreignKeyName: "xpm_arquivo_fase_dim_fase_api_equivalente_fkey"
             columns: ["fase_api_equivalente"]
@@ -57180,14 +57197,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -66676,12 +66693,15 @@ export type Database = {
           cliente_sncf: string | null
           expedicao_codigo: string | null
           fase_rotulo: string | null
+          fase_rotulo_em_andamento: string | null
           fase_seq: number | null
+          fase_seq_em_andamento: number | null
           fonte_da_verdade: string | null
           pedido_id: string | null
           pedido_sncf: string | null
           so_na_api: boolean | null
           so_no_arquivo: boolean | null
+          tem_casa_em_andamento: boolean | null
           uf: string | null
         }
         Relationships: [
@@ -68555,6 +68575,10 @@ export type Database = {
           p_transportadora_id: string
         }
         Returns: string
+      }
+      fn_rastreio_conciliar_entregue: {
+        Args: { p_dry_run?: boolean }
+        Returns: Json
       }
       fn_recalc_taxa_adquirente: { Args: { p_nsu: string }; Returns: number }
       fn_recalcular_gestores: { Args: never; Returns: number }
