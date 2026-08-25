@@ -122,6 +122,7 @@ const MinhasNotas = lazy(() => import("@/pages/MinhasNotas"));
 const SistemaReportes = lazy(() => import("@/pages/admin/SistemaReportes"));
 const HistoricoImportacoesPDF = lazy(() => import("@/pages/admin/HistoricoImportacoesPDF"));
 const GerenciarVisibilidade = lazy(() => import("@/pages/admin/GerenciarVisibilidade"));
+const MesaDeclaracoes = lazy(() => import("@/pages/admin/MesaDeclaracoes"));
 const NomesBling = lazy(() => import("@/pages/acervo/NomesBling"));
 const GestaoAVista = lazy(() => import("@/pages/GestaoAVista"));
 const DocumentacaoGeral = lazy(() => import("@/pages/DocumentacaoGeral"));
@@ -656,6 +657,11 @@ const App = () => (
                 <Route path="visibilidade" element={
                   <ProtectedRoute>
                     <GerenciarVisibilidade />
+                  </ProtectedRoute>
+                } />
+                <Route path="declaracoes" element={
+                  <ProtectedRoute>
+                    <MesaDeclaracoes />
                   </ProtectedRoute>
                 } />
                 <Route path="sla" element={
