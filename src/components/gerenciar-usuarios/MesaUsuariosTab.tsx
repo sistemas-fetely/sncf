@@ -664,7 +664,12 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
                       type="button"
                       className="opacity-60 hover:opacity-100"
                       disabled={removerGrupo.isPending}
-                      onClick={() => removerGrupo.mutate(g.id)}
+                      onClick={() =>
+                        removerGrupo.mutate({
+                          grupoId: g.grupo_acesso_id,
+                          userId: g.user_id as string,
+                        })
+                      }
                       aria-label="Remover grupo"
                     >
                       <X className="h-3 w-3" />
@@ -691,7 +696,13 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
             <Button variant="outline" onClick={() => setGruposDialog(null)}>Fechar</Button>
             <Button
               disabled={!grupoParaAdicionar || adicionarGrupo.isPending}
-              onClick={() => adicionarGrupo.mutate()}
+              onClick={() => {
+                if (!gruposDialog || !grupoParaAdicionar) return;
+                adicionarGrupo.mutate(
+                  { grupoId: grupoParaAdicionar, userId: gruposDialog.userId },
+                  { onSuccess: () => setGrupoParaAdicionar("") },
+                );
+              }}
             >
               {adicionarGrupo.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Adicionar
