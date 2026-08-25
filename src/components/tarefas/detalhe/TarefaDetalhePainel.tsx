@@ -18,6 +18,15 @@ import {
   BlocoAnexos, BlocoComentarios, BlocoDependencias, BlocoHistorico, BlocoTempo,
 } from "./BlocosExtras";
 
+/** Fallback genérico para link de origem. Novos módulos entram aqui quando existirem. */
+function resolverLinkOrigem(tarefa: TarefaDetalhe): string | null {
+  if (tarefa.acao_url) return tarefa.acao_url;
+  if (tarefa.modulo_origem === "pedidos" && tarefa.entidade_origem_id) {
+    return `/pedidos/${tarefa.entidade_origem_id}`;
+  }
+  return null;
+}
+
 interface Props {
   tarefaId: string | null;
   aberto: boolean;
