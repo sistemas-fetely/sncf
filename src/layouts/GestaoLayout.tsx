@@ -20,7 +20,7 @@ export default function GestaoLayout() {
   const location = useLocation();
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex min-h-full flex-col">
       <div className="border-b bg-card/60">
         <nav className="flex gap-1 overflow-x-auto whitespace-nowrap px-4">
           {ITENS.map((item) => {
@@ -47,7 +47,7 @@ export default function GestaoLayout() {
           })}
         </nav>
       </div>
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 min-w-0">
         <Outlet />
       </div>
     </div>

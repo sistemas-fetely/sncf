@@ -17,7 +17,7 @@ export default function ProdutoEstoqueLayout() {
   const isSuperAdmin = (roles ?? []).includes("super_admin");
   const tabs = TABS.filter((t) => !t.superAdmin || isSuperAdmin);
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col min-h-full">
       <div className="border-b bg-card">
         <nav className="flex gap-1 px-4 pt-2">
           {tabs.map(({ to, label, icon: Icon }) => (
@@ -40,7 +40,7 @@ export default function ProdutoEstoqueLayout() {
           ))}
         </nav>
       </div>
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 min-w-0">
         <Outlet />
       </div>
     </div>
