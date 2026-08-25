@@ -256,37 +256,9 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const adicionarGrupo = useMutation({
-    mutationFn: async () => {
-      if (!gruposDialog || !grupoParaAdicionar) throw new Error("Selecione um grupo");
-      const { error } = await supabase.from("grupo_acesso_usuarios").insert({
-        grupo_acesso_id: grupoParaAdicionar,
-        user_id: gruposDialog.userId,
-      });
-      if (error) throw new Error(error.message);
-    },
-    onSuccess: () => {
-      invalidarTudo();
-      toast.success("Grupo adicionado");
-      setGrupoParaAdicionar("");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const removerGrupo = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("grupo_acesso_usuarios")
-        .delete()
-        .eq("id", id);
-      if (error) throw new Error(error.message);
-    },
-    onSuccess: () => {
-      invalidarTudo();
-      toast.success("Grupo removido");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  // Caminho único de escrita do vínculo user × grupo: hooks de useGruposAcessoV2.
+  const adicionarGrupo = useAdicionarUsuarioAoGrupo();
+  const removerGrupo = useRemoverUsuarioDoGrupo();
 
   const vincular = useMutation({
     mutationFn: async ({ vinculoId, userId }: { vinculoId: string; userId: string | null }) => {
