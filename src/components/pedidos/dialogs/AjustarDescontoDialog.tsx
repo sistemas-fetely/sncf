@@ -34,6 +34,8 @@ interface Props {
   estagio?: string | null;
   freteTipo?: string | null;
   valorFrete?: number | null;
+  descontoAtualValor?: number | null;
+  descontoAtualPct?: number | null;
 }
 
 type Tipo = "pct" | "valor";
@@ -43,7 +45,7 @@ const rotuloEstagio = (e: string) =>
 
 export function AjustarDescontoDialog({
   open, onClose, pedidoId, idExterno, valorBruto, bonusPixValor, condicaoAtual,
-  estagio, freteTipo, valorFrete,
+  estagio, freteTipo, valorFrete, descontoAtualValor, descontoAtualPct,
 }: Props) {
   const qc = useQueryClient();
   const [tipo, setTipo] = useState<Tipo>("pct");
@@ -190,7 +192,23 @@ export function AjustarDescontoDialog({
             />
           </div>
 
+          <div className="text-sm">
+            {Number(descontoAtualValor || 0) > 0 ? (
+              <>
+                <span className="text-muted-foreground">Desconto atual: </span>
+                <span className="font-medium">
+                  {Number(descontoAtualPct || 0).toFixed(2)}% · {formatBRL(Number(descontoAtualValor || 0))}
+                </span>
+              </>
+            ) : (
+              <span className="text-muted-foreground">Sem desconto aplicado</span>
+            )}
+          </div>
+
           <div className="rounded-md border bg-muted/40 p-3 space-y-1.5 text-sm">
+            <div className="text-xs text-muted-foreground border-b pb-1.5 mb-1.5">
+              Projeção com o valor digitado
+            </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Valor bruto</span>
               <span className="font-medium">{formatBRL(bruto)}</span>

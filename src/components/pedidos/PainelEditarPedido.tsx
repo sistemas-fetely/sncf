@@ -512,7 +512,23 @@ function SecaoDesconto({ pedidoId, pedido, guarda }: {
         />
       </div>
 
+      <div className="text-sm">
+        {num(pedido?.desconto_celebra_valor) > 0 ? (
+          <>
+            <span className="text-muted-foreground">Desconto atual: </span>
+            <span className="font-medium">
+              {num(pedido?.desconto_pct).toFixed(2)}% · {fmtBRL.format(num(pedido?.desconto_celebra_valor))}
+            </span>
+          </>
+        ) : (
+          <span className="text-muted-foreground">Sem desconto aplicado</span>
+        )}
+      </div>
+
       <div className="rounded-md border bg-muted/40 p-3 space-y-1.5 text-sm max-w-sm">
+        <div className="text-xs text-muted-foreground border-b pb-1.5 mb-1.5">
+          Projeção com o valor digitado
+        </div>
         <div className="flex justify-between"><span className="text-muted-foreground">Bruto</span><span>{fmtBRL.format(bruto)}</span></div>
         <div className="flex justify-between"><span className="text-muted-foreground">Desconto</span><span className="text-destructive">− {fmtBRL.format(desconto)}</span></div>
         <div className="flex justify-between"><span className="text-muted-foreground">Bônus PIX</span><span className="text-destructive">− {fmtBRL.format(bonus)}</span></div>

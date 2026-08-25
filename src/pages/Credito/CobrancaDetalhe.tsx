@@ -1533,6 +1533,10 @@ export default function CobrancaDetalhe() {
         freteTipo={(pedidoQ.data as any)?.frete_tipo ?? null}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         valorFrete={Number((pedidoQ.data as any)?.valor_frete ?? 0)}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        descontoAtualValor={Number((pedidoQ.data as any)?.desconto_celebra_valor ?? 0)}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        descontoAtualPct={Number((pedidoQ.data as any)?.desconto_pct ?? 0)}
       />
 
       {pedidoQ.data?.id && (pedidoQ.data as any)?.parceiro_id && (
