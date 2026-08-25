@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useNivel } from "@/hooks/useNivel";
-import { HeartPulse, Route, AlertTriangle, Info, CheckCircle2, Loader2 } from "lucide-react";
+import { HeartPulse, Route, AlertTriangle, Info, CheckCircle2, Loader2, Clipboard } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -34,6 +34,9 @@ interface NavegacaoSaudeRow {
   detalhe: string | null;
   explicacao: string | null;
   severidade: string | null;
+  tem_correcao_automatica: boolean | null;
+  rotulo_correcao: string | null;
+  prompt_correcao: string | null;
 }
 
 interface NavegacaoNaoDeclaradaRow {
@@ -118,7 +121,7 @@ function formatarData(iso: string | null): string {
 export default function NavegacaoSaude() {
   const queryClient = useQueryClient();
   const { temNivel } = useNivel();
-  const podeAceitar = temNivel(4);
+  const podeAgir = temNivel(4);
   const [alvo, setAlvo] = useState<NavegacaoSaudeRow | null>(null);
   const [motivo, setMotivo] = useState("");
 
@@ -171,6 +174,36 @@ export default function NavegacaoSaude() {
     },
   });
 
+  const corrigir = useMutation({
+    mutationFn: async ({ row }: { row: NavegacaoSaudeRow }) => {
+      const rpc = supabase.rpc as (
+        fn: string,
+        params: Record<string, unknown>,
+      ) => Promise<{ data: unknown; error: { message: string } | null }>;
+      const { data, error } = await rpc("fn_nav_saude_corrigir", {
+        p_achado: row.achado ?? "",
+        p_chave: row.chave ?? "",
+      });
+      if (error) throw new Error(error.message);
+      return data as { ok: boolean; tela?: string; mudou?: string; efeito?: string } | null;
+    },
+    onSuccess: (data) => {
+      if (data?.ok) {
+        toast.success(`Corrigido: ${data.tela ?? ""}`, {
+          description: `${data.mudou ?? ""} — ${data.efeito ?? ""}`,
+        });
+      } else {
+        toast.error("Correção não pôde ser aplicada", {
+          description: data?.efeito ?? "Verifique se o achado permite correção automática.",
+        });
+      }
+      void queryClient.invalidateQueries({ queryKey: ["navegacao-saude"] });
+    },
+    onError: (e: unknown) => {
+      toast.error(e instanceof Error ? e.message : "Erro ao aplicar correção.");
+    },
+  });
+
   const linhas = saudeQuery.data ?? [];
   const total = linhas.length;
 
@@ -193,6 +226,7 @@ export default function NavegacaoSaude() {
         <TextoRico texto="Esta tela **acusa, nunca bloqueia**. Nenhum achado aqui é porta aberta — são inconsistências entre o menu, as permissões e as telas." />
         <TextoRico texto="O objetivo é a lista ficar **vazia**. Achado que você já analisou e considera correto, marque como intencional: ele sai da lista e para de te distrair." />
         <TextoRico texto="Se aparecer algo novo aqui depois de a lista estar limpa, é porque uma tela nasceu torta — e vale olhar no mesmo dia." />
+        <TextoRico texto="Achado com **botão de correção** eu resolvo aqui mesmo. Achado que exige decisão ou mexer em código traz um **prompt pronto** — copie e cole numa conversa com o Claude." />
       </div>
 
       <section className="space-y-4">
@@ -263,41 +297,79 @@ export default function NavegacaoSaude() {
                           <TableHead className="text-xs">Tela</TableHead>
                           <TableHead className="text-xs">Rota</TableHead>
                           <TableHead className="text-xs">Observação</TableHead>
-                          {podeAceitar && <TableHead className="text-xs" />}
+                          {podeAgir && <TableHead className="text-xs text-right">Correção</TableHead>}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {grupo.map((linha, idx) => (
-                          <TableRow key={`${achado}-${linha.chave ?? idx}`}>
-                            <TableCell className="text-sm">
-                              {linha.label ?? "—"}
-                              {linha.chave && (
-                                <p className="text-[11px] text-muted-foreground">{linha.chave}</p>
-                              )}
-                            </TableCell>
-                            <TableCell className="font-mono text-sm text-muted-foreground">
-                              {linha.rota ?? "—"}
-                            </TableCell>
-                            <TableCell className="max-w-[240px] text-xs text-muted-foreground">
-                              {linha.explicacao ?? linha.detalhe ?? "—"}
-                            </TableCell>
-                            {podeAceitar && (
-                              <TableCell className="text-right">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-xs text-muted-foreground"
-                                  onClick={() => {
-                                    setAlvo(linha);
-                                    setMotivo("");
-                                  }}
-                                >
-                                  Marcar como intencional
-                                </Button>
+                        {grupo.map((linha, idx) => {
+                          const corrigindo =
+                            corrigir.isPending && corrigir.variables?.row === linha;
+                          return (
+                            <TableRow key={`${achado}-${linha.chave ?? idx}`}>
+                              <TableCell className="text-sm">
+                                {linha.label ?? "—"}
+                                {linha.chave && (
+                                  <p className="text-[11px] text-muted-foreground">{linha.chave}</p>
+                                )}
                               </TableCell>
-                            )}
-                          </TableRow>
-                        ))}
+                              <TableCell className="font-mono text-sm text-muted-foreground">
+                                {linha.rota ?? "—"}
+                              </TableCell>
+                              <TableCell className="max-w-[180px] text-xs text-muted-foreground">
+                                {linha.explicacao ?? linha.detalhe ?? "—"}
+                              </TableCell>
+                              {podeAgir && (
+                                <TableCell className="align-top">
+                                  <div className="flex flex-col gap-1 items-end">
+                                    {linha.tem_correcao_automatica === true ? (
+                                      <Button
+                                        size="sm"
+                                        className="text-xs gap-1"
+                                        disabled={corrigindo}
+                                        onClick={() => corrigir.mutate({ row: linha })}
+                                      >
+                                        {corrigindo && (
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        )}
+                                        {linha.rotulo_correcao ?? "Corrigir"}
+                                      </Button>
+                                    ) : (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-xs gap-1"
+                                        disabled={!linha.prompt_correcao}
+                                        onClick={() => {
+                                          void navigator.clipboard.writeText(
+                                            linha.prompt_correcao ?? "",
+                                          );
+                                          toast.info("Prompt copiado", {
+                                            description:
+                                              "Cole numa conversa com o Claude para resolver este achado.",
+                                          });
+                                        }}
+                                      >
+                                        <Clipboard className="h-3 w-3" />
+                                        Copiar prompt de correção
+                                      </Button>
+                                    )}
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-[11px] text-muted-foreground h-auto py-1 px-2"
+                                      onClick={() => {
+                                        setAlvo(linha);
+                                        setMotivo("");
+                                      }}
+                                    >
+                                      Marcar como intencional
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              )}
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </CardContent>
