@@ -56089,8 +56089,11 @@ export type Database = {
           detalhe: string | null
           explicacao: string | null
           label: string | null
+          prompt_correcao: string | null
           rota: string | null
+          rotulo_correcao: string | null
           severidade: string | null
+          tem_correcao_automatica: boolean | null
         }
         Relationships: []
       }
@@ -68168,6 +68171,14 @@ export type Database = {
       fn_nascer_pedido_b2c: {
         Args: { p_dry_run?: boolean; p_shopify_id: string }
         Returns: Json
+      }
+      fn_nav_saude_corrigir: {
+        Args: { p_achado: string; p_chave: string }
+        Returns: Json
+      }
+      fn_nav_saude_prompt: {
+        Args: { p_achado: string; p_chave: string }
+        Returns: string
       }
       fn_norm_texto: { Args: { p_texto: string }; Returns: string }
       fn_norm_vendedor: { Args: { p_txt: string }; Returns: string }
