@@ -206,6 +206,9 @@ export function AjustarDescontoDialog({
           </div>
 
           <div className="rounded-md border bg-muted/40 p-3 space-y-1.5 text-sm">
+            <div className="text-xs text-muted-foreground border-b pb-1.5 mb-1.5">
+              Projeção com o valor digitado
+            </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Valor bruto</span>
               <span className="font-medium">{formatBRL(bruto)}</span>
