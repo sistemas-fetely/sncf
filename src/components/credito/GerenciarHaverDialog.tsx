@@ -158,6 +158,44 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
     setValidade(origemSel.pode_expirar ? plusDays(180) : "");
   }, [origemSel]);
 
+  // ===== Motivos (DIMENSÃO VIA TABELA) =====
+  const motivosQ = useQuery({
+    queryKey: ["haver-motivo-dim"],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("haver_motivo_dim")
+        .select("codigo, rotulo, tipo, exige_obs")
+        .eq("ativo", true)
+        .order("ordem", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const motivosCredito = useMemo(
+    () => (motivosQ.data ?? []).filter((m: any) => m.tipo === "credito" || m.tipo === "ambos"),
+    [motivosQ.data]
+  );
+  const motivosDebito = useMemo(
+    () => (motivosQ.data ?? []).filter((m: any) => m.tipo === "debito" || m.tipo === "ambos"),
+    [motivosQ.data]
+  );
+  const motivoCSel = useMemo(
+    () => motivosCredito.find((m: any) => m.codigo === motivoC) ?? null,
+    [motivosCredito, motivoC]
+  );
+  const motivoDSel = useMemo(
+    () => motivosDebito.find((m: any) => m.codigo === motivoD) ?? null,
+    [motivosDebito, motivoD]
+  );
+  const exigeObsC = motivoCSel?.exige_obs === true;
+  const exigeObsD = motivoDSel?.exige_obs === true;
+  const obsCOk = !exigeObsC || obsC.trim().length >= 5;
+  const obsDOk = !exigeObsD || obsD.trim().length >= 5;
+
+
+
   // ===== Haveres do parceiro =====
   const haveresQ = useQuery({
     queryKey: ["haveres-parceiro", parceiroSel],
