@@ -238,11 +238,10 @@ export default function Onboarding() {
   // KPIs
   const totalAtivos = checklists.filter((c) => c.status === "em_andamento").length;
   const totalAtrasadas = checklists.reduce((acc, cl) => acc + countOverdue(cl), 0);
-  const inicioMes = new Date();
-  inicioMes.setDate(1);
-  inicioMes.setHours(0, 0, 0, 0);
+  // Doutrina 128 — HORA-É-BRASÍLIA: "mês atual" é o mês em Brasília, não no fuso do navegador.
+  const mesAtual = hojeISO().slice(0, 7);
   const concluidosMes = checklists.filter(
-    (c) => c.status === "concluido" && c.concluido_em && new Date(c.concluido_em) >= inicioMes
+    (c) => c.status === "concluido" && (paraDataISO(c.concluido_em)?.slice(0, 7) ?? "") === mesAtual
   ).length;
   const totalConcluidasGeral = checklists.reduce(
     (acc, cl) => acc + (cl.tarefas || []).filter((t) => t.status === "concluida").length,
