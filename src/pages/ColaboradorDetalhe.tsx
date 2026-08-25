@@ -51,14 +51,8 @@ import { SalarioMasked } from "@/components/SalarioMasked";
 import { ehCLevel } from "@/lib/clevel-protection";
 import { Shield } from "lucide-react";
 
-import type {
 import { hojeISO } from "@/lib/data";
-
-/** Data pura N dias após uma data pura "YYYY-MM-DD" (aritmética UTC, sem drift de fuso). */
-function isoMaisDias(baseISO: string, dias: number): string {
-  const [a, m, d] = baseISO.split("-").map(Number);
-  return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10);
-}
+import type {
   DadosPessoaisForm,
   DocumentosForm,
   DadosProfissionaisForm,
@@ -66,6 +60,12 @@ function isoMaisDias(baseISO: string, dias: number): string {
   DadosEmpresaForm,
   DependentesForm,
 } from "@/lib/validations/colaborador-clt";
+
+/** Data pura N dias após uma data pura "YYYY-MM-DD" (aritmética UTC, sem drift de fuso). */
+function isoMaisDias(baseISO: string, dias: number): string {
+  const [a, m, d] = baseISO.split("-").map(Number);
+  return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10);
+}
 
 type AllFormData = DadosPessoaisForm & DocumentosForm & DadosProfissionaisForm & DadosBancariosForm & DadosEmpresaForm & DependentesForm;
 

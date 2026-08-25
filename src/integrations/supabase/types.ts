@@ -20368,6 +20368,30 @@ export type Database = {
         }
         Relationships: []
       }
+      navegacao_saude_aceite: {
+        Row: {
+          aceito_em: string
+          aceito_por: string
+          achado: string
+          chave: string
+          motivo: string
+        }
+        Insert: {
+          aceito_em?: string
+          aceito_por?: string
+          achado: string
+          chave: string
+          motivo: string
+        }
+        Update: {
+          aceito_em?: string
+          aceito_por?: string
+          achado?: string
+          chave?: string
+          motivo?: string
+        }
+        Relationships: []
+      }
       nf_entrada_finalidade: {
         Row: {
           ativo: boolean

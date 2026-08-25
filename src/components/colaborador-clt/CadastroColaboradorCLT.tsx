@@ -17,14 +17,8 @@ import { StepDocumentos } from "./StepDocumentos";
 import { StepDadosProfissionais } from "./StepDadosProfissionais";
 import { StepDadosBancarios } from "./StepDadosBancarios";
 import { StepDependentes } from "./StepDependentes";
-import {
 import { hojeISO } from "@/lib/data";
-
-/** Data pura N dias após uma data pura "YYYY-MM-DD" (aritmética UTC, sem drift de fuso). */
-function isoMaisDias(baseISO: string, dias: number): string {
-  const [a, m, d] = baseISO.split("-").map(Number);
-  return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10);
-}
+import {
   dadosPessoaisSchema,
   documentosSchema,
   dadosProfissionaisSchema,
@@ -36,6 +30,12 @@ function isoMaisDias(baseISO: string, dias: number): string {
   type DadosBancariosForm,
   type DependentesForm,
 } from "@/lib/validations/colaborador-clt";
+
+/** Data pura N dias após uma data pura "YYYY-MM-DD" (aritmética UTC, sem drift de fuso). */
+function isoMaisDias(baseISO: string, dias: number): string {
+  const [a, m, d] = baseISO.split("-").map(Number);
+  return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10);
+}
 
 const TOTAL_STEPS = 6;
 
