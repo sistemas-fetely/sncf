@@ -42,7 +42,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 
 import { useUnidades } from "@/hooks/useUnidades";
 import { useTemplates } from "@/hooks/useTemplates";
-import { useDepartamentoInfo } from "@/hooks/useEstruturaOrganizacional";
+
 import { SelectDepartamentoHierarquico } from "@/components/shared/SelectDepartamentoHierarquico";
 import { usePermissoesDoUsuario, temPermissaoTela } from "@/hooks/usePermissoesDoUsuario";
 import type { Database } from "@/integrations/supabase/types";
@@ -172,7 +172,6 @@ export default function GerenciarUsuarios() {
   const [departamentoLabel, setDepartamentoLabel] = useState<string>("");
   const [unidadeIdNovo, setUnidadeIdNovo] = useState<string>("");
   const { data: templates } = useTemplates();
-  const { data: departamentoInfo } = useDepartamentoInfo(departamentoId || null);
   const { data: profiles = [], isLoading } = useQuery({
     queryKey: ["admin-profiles"],
     queryFn: async () => {
