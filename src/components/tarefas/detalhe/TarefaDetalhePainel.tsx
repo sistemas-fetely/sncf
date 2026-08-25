@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
 import {
   useDecidirAprovacao, useSalvarCampoTarefa, useTarefaDetalhe,
+  type TarefaDetalhe,
 } from "@/hooks/tarefas/useTarefaDetalhe";
 import {
   BlocoCampos, BlocoCamposPersonalizados, BlocoDescricao, BlocoEtiquetas, BlocoRaci, BlocoSubtarefas,
