@@ -94,7 +94,7 @@ export function GerenciarHaverDialog({ open, onOpenChange, parceiroId }: Props) 
       setValidade(plusDays(180));
       setModoDebito("livre");
       setValorD(0);
-      setMotivoD(MOTIVOS_DEBITO[0]);
+      setMotivoD("");
       setObsD("");
       setHaveresSelecionados([]);
       setModoValor("total");
