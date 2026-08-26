@@ -87,6 +87,11 @@ async function sha256Hex(texto: string): Promise<string> {
 /** Códigos que representam dinheiro entrando. */
 const CODIGOS_LIQUIDACAO = new Set(["06", "07", "08", "15", "16", "17"]);
 
+/** Recusa de baixa porque o banco NÃO TEM MAIS o título — o boleto já morreu antes. */
+const MOTIVOS_BAIXA_JA_EFETIVADA = new Set(["064", "078", "080"]);
+/** Recusa de baixa com o boleto AINDA VIVO no banco. */
+const MOTIVOS_BAIXA_BOLETO_VIVO = new Set(["010", "026", "027", "065", "094", "095", "106"]);
+
 function parseValor13d2(s: string): number | null {
   if (!/^\d{1,13}$/.test(s)) return null;
   const padded = s.padStart(13, "0");
@@ -467,6 +472,89 @@ serve(async (req) => {
             contadores.rejeicoes++;
             continue;
           }
+
+          // Baixa recusada pelo banco: ocorrência 03 sem código próprio no CNAB 400
+          const { data: bolRow } = await sb
+            .from("titulo_boleto")
+            .select("id, remessa_baixa_id, situacao")
+            .eq("nosso_numero", linha.nossoNumero)
+            .maybeSingle();
+          const eraPedidoDeBaixa = !!bolRow?.remessa_baixa_id && bolRow?.situacao !== "baixado";
+
+          if (eraPedidoDeBaixa) {
+            const descMotivo = descricaoRejeicao(linha.motivoRejeicao);
+
+            if (MOTIVOS_BAIXA_JA_EFETIVADA.has(linha.motivoRejeicao)) {
+              const { error: errBaixaEfetivada } = await sb.from("titulo_a_receber")
+                .update({ boleto_status: "baixado_banco" })
+                .eq("id", t.id);
+              if (errBaixaEfetivada) {
+                erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `update baixa_recusada_ja_baixado: ${errBaixaEfetivada.message}` });
+                continue;
+              }
+              await marcarBoleto(linha.nossoNumero, "baixado", "baixado_em");
+              if (t.baixa_remessa_id) remessasInstrucaoTocadas.add(t.baixa_remessa_id);
+              if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
+              await sb.from("titulo_instrumento_log").insert({
+                titulo_id: t.id,
+                evento: "baixa_recusada_ja_baixado",
+                detalhe: `Motivo ${linha.motivoRejeicao}: ${descMotivo}`,
+                origem: "retorno_safra",
+                nosso_numero_anterior: linha.nossoNumero,
+              } as any);
+              contadores.baixas++;
+              alertas.push(
+                `Baixa (03/${linha.motivoRejeicao}) recusada porque o boleto ${linha.nossoNumero} já não existia no banco — ${descMotivo}. Tratado como baixa confirmada.`
+              );
+              continue;
+            }
+
+            if (MOTIVOS_BAIXA_BOLETO_VIVO.has(linha.motivoRejeicao)) {
+              const { error: errBoletoVivo } = await sb.from("titulo_a_receber")
+                .update({ boleto_status: "registrado", boleto_codigo_rejeicao: linha.motivoRejeicao })
+                .eq("id", t.id);
+              if (errBoletoVivo) {
+                erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `update baixa_recusada_boleto_vivo: ${errBoletoVivo.message}` });
+                continue;
+              }
+              await marcarBoleto(linha.nossoNumero, "registrado", null);
+              if (t.baixa_remessa_id) {
+                remessasInstrucaoTocadas.add(t.baixa_remessa_id);
+                remessasComRejeicao.add(t.baixa_remessa_id);
+              }
+              await sb.from("titulo_instrumento_log").insert({
+                titulo_id: t.id,
+                evento: "baixa_recusada_boleto_vivo",
+                detalhe: `Motivo ${linha.motivoRejeicao}: ${descMotivo}`,
+                origem: "retorno_safra",
+                nosso_numero_anterior: linha.nossoNumero,
+              } as any);
+              contadores.rejeicoes++;
+              alertas.push(
+                `⚠ BAIXA RECUSADA — boleto ${linha.nossoNumero} SEGUE VÁLIDO no Safra (motivo ${linha.motivoRejeicao}: ${descMotivo}). O cliente ainda pode pagar este boleto. Reenviar a baixa antes de reemitir.`
+              );
+              continue;
+            }
+
+            // Balde 3 — motivo desconhecido: não toca o título
+            if (t.baixa_remessa_id) {
+              remessasInstrucaoTocadas.add(t.baixa_remessa_id);
+              remessasComRejeicao.add(t.baixa_remessa_id);
+            }
+            await sb.from("titulo_instrumento_log").insert({
+              titulo_id: t.id,
+              evento: "baixa_recusada_motivo_desconhecido",
+              detalhe: `Motivo ${linha.motivoRejeicao}: ${descMotivo}`,
+              origem: "retorno_safra",
+              nosso_numero_anterior: linha.nossoNumero,
+            } as any);
+            contadores.nao_aplicadas++;
+            alertas.push(
+              `⚠ BAIXA RECUSADA com motivo não mapeado (${linha.motivoRejeicao}: ${descMotivo}) — boleto ${linha.nossoNumero}. Estado do título NÃO alterado. Exige decisão humana.`
+            );
+            continue;
+          }
+
           const { error: errRejeicao } = await sb.from("titulo_a_receber")
             .update({ boleto_status: "rejeitado", boleto_codigo_rejeicao: linha.motivoRejeicao })
             .eq("id", t.id);
