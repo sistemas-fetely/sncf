@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -39606,6 +39606,186 @@ export type Database = {
         }
         Relationships: []
       }
+      titulo_boleto: {
+        Row: {
+          baixado_em: string | null
+          codigo_barras: string | null
+          created_at: string
+          data_vencimento: string | null
+          emitido_em: string
+          id: string
+          linha_digitavel: string | null
+          liquidado_em: string | null
+          nosso_numero: string
+          observacao: string | null
+          origem: string
+          registrado_em: string | null
+          remessa_baixa_id: string | null
+          remessa_entrada_id: string | null
+          situacao: string
+          titulo_id: string
+          valor: number | null
+        }
+        Insert: {
+          baixado_em?: string | null
+          codigo_barras?: string | null
+          created_at?: string
+          data_vencimento?: string | null
+          emitido_em?: string
+          id?: string
+          linha_digitavel?: string | null
+          liquidado_em?: string | null
+          nosso_numero: string
+          observacao?: string | null
+          origem?: string
+          registrado_em?: string | null
+          remessa_baixa_id?: string | null
+          remessa_entrada_id?: string | null
+          situacao?: string
+          titulo_id: string
+          valor?: number | null
+        }
+        Update: {
+          baixado_em?: string | null
+          codigo_barras?: string | null
+          created_at?: string
+          data_vencimento?: string | null
+          emitido_em?: string
+          id?: string
+          linha_digitavel?: string | null
+          liquidado_em?: string | null
+          nosso_numero?: string
+          observacao?: string | null
+          origem?: string
+          registrado_em?: string | null
+          remessa_baixa_id?: string | null
+          remessa_entrada_id?: string | null
+          situacao?: string
+          titulo_id?: string
+          valor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "titulo_boleto_remessa_baixa_id_fkey"
+            columns: ["remessa_baixa_id"]
+            isOneToOne: false
+            referencedRelation: "remessas_safra"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_boleto_remessa_baixa_id_fkey"
+            columns: ["remessa_baixa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_baixas_pendentes"
+            referencedColumns: ["remessa_id"]
+          },
+          {
+            foreignKeyName: "titulo_boleto_remessa_baixa_id_fkey"
+            columns: ["remessa_baixa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_remessa_safra_titulos"
+            referencedColumns: ["remessa_id"]
+          },
+          {
+            foreignKeyName: "titulo_boleto_remessa_entrada_id_fkey"
+            columns: ["remessa_entrada_id"]
+            isOneToOne: false
+            referencedRelation: "remessas_safra"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_boleto_remessa_entrada_id_fkey"
+            columns: ["remessa_entrada_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_baixas_pendentes"
+            referencedColumns: ["remessa_id"]
+          },
+          {
+            foreignKeyName: "titulo_boleto_remessa_entrada_id_fkey"
+            columns: ["remessa_entrada_id"]
+            isOneToOne: false
+            referencedRelation: "vw_remessa_safra_titulos"
+            referencedColumns: ["remessa_id"]
+          },
+          {
+            foreignKeyName: "titulo_boleto_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "titulo_a_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_boleto_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_boleto_vencimento_conferencia"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_boleto_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ciclo_titulo"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_boleto_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cobranca_mesa"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_boleto_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_baixas_manuais_sem_batimento"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_boleto_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_baixas_pendentes"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_boleto_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebimento_pedido_nivel"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_boleto_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_b2b"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_boleto_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_remessa_safra_titulos"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_boleto_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_safra_carteira_divergencia"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_boleto_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulos_cobranca"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       titulo_eixo_prova: {
         Row: {
           codigo: string
@@ -68191,6 +68371,14 @@ export type Database = {
           fonte: string
           severidade: string
           total: number
+        }[]
+      }
+      fn_blindar_leitura: {
+        Args: { p_tabelas: string[] }
+        Returns: {
+          policy_criada: string
+          policy_removida: string
+          tabela: string
         }[]
       }
       fn_brl: { Args: { p_valor: number }; Returns: string }
