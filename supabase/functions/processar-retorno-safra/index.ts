@@ -330,6 +330,7 @@ serve(async (req) => {
     const contadores = {
       registros: 0, rejeicoes: 0, liquidacoes: 0, baixas: 0,
       alteracoes: 0, informativos: 0, ignoradas: 0, nao_aplicadas: 0,
+      retroativas: 0,
     };
     const alertas: string[] = [];
     const erros: Array<{ linha: number; nosso_numero: string; erro: string }> = [];
@@ -355,6 +356,41 @@ serve(async (req) => {
       resolucao.set(d.numeroLinha, { titulo_id: r?.titulo_id ?? null, casado_por: r?.casado_por ?? null });
     }
 
+    // Desfecho por linha: separa GRAVADO de APLICADO. Alimentado pelo loop,
+    // consumido pelo rastro. Default = não aplicado, para não mentir por omissão.
+    const desfecho = new Map<number, { aplicado: boolean; motivo: string | null }>();
+    for (const d of detalhes) desfecho.set(d.numeroLinha, { aplicado: false, motivo: "nao processada" });
+
+    function marcarDesfecho(numeroLinha: number, aplicado: boolean, motivo: string | null) {
+      desfecho.set(numeroLinha, { aplicado, motivo });
+    }
+
+    // ── guarda de ORDEM: arquivo antigo não sobrescreve prova mais nova ─────
+    // A idempotência existente é por IDENTIDADE (hash + sequencial). Faltava a
+    // idempotência por ORDEM. Retornos foram importados fora de ordem cronológica
+    // e registros antigos rebobinaram liquidações já aplicadas.
+    const CODIGOS_DEFINEM_ESTADO = new Set(["02","03","06","07","08","09","10","14","15","16","17","40"]);
+    const provaAnterior = new Map<string, { prova_em: string; codigo_ocorrencia: string; nro_sequencial: number }>();
+    {
+      const nns = [...new Set(detalhes.map((d) => d.nossoNumero).filter(Boolean))];
+      for (let i = 0; i < nns.length; i += 200) {
+        const { data: provas, error: errProva } = await sb.rpc("fn_safra_prova_mais_recente", {
+          p_nossos_numeros: nns.slice(i, i + 200),
+        });
+        if (errProva) {
+          erros.push({ linha: 0, nosso_numero: "", erro: `prova mais recente: ${errProva.message}` });
+          continue;
+        }
+        // deno-lint-ignore no-explicit-any
+        for (const p of (provas ?? []) as any[]) {
+          provaAnterior.set(p.nosso_numero, {
+            prova_em: p.prova_em, codigo_ocorrencia: p.codigo_ocorrencia, nro_sequencial: p.nro_sequencial,
+          });
+        }
+      }
+    }
+
+
     for (const linha of detalhes) {
       try {
         const dim = mapaOcorrencias.get(linha.ocorrencia);
@@ -362,6 +398,7 @@ serve(async (req) => {
         // ── ocorrência desconhecida OU inativa ────────────────────────────
         if (!dim || dim.ativo === false) {
           contadores.ignoradas++;
+          marcarDesfecho(linha.numeroLinha, false, "ocorrencia desconhecida ou inativa");
           alertas.push(
             `Ocorrência ${linha.ocorrencia} (${dim?.descricao ?? "desconhecida"}) ignorada — título ${linha.nossoNumero}.`
           );
@@ -374,8 +411,26 @@ serve(async (req) => {
         if (categoria === "informativo") {
           contadores.informativos++;
           infoInformativos[linha.ocorrencia] = (infoInformativos[linha.ocorrencia] ?? 0) + 1;
+          marcarDesfecho(linha.numeroLinha, false, "informativa: nao define estado");
           continue;
         }
+
+        // Guarda de ORDEM. Por LINHA, não por arquivo: um arquivo antigo pode trazer
+        // ocorrência legítima nunca processada, e recusar o arquivo inteiro descartaria
+        // prova. A data confiável é a do ARQUIVO (dataMovimento), nunca data_ocorrencia.
+        if (CODIGOS_DEFINEM_ESTADO.has(linha.ocorrencia) && dataMovimento) {
+          const anterior = provaAnterior.get(linha.nossoNumero);
+          if (anterior?.prova_em && anterior.prova_em > dataMovimento) {
+            contadores.retroativas++;
+            marcarDesfecho(linha.numeroLinha, false,
+              `retroativa: arquivo de ${dataMovimento} contra prova de ${anterior.prova_em} (ocorrencia ${anterior.codigo_ocorrencia}, retorno ${anterior.nro_sequencial})`);
+            alertas.push(
+              `⚠ Linha ${linha.numeroLinha} IGNORADA por ordem — ocorrência ${linha.ocorrencia} de arquivo com movimento ${dataMovimento}, mas o boleto ${linha.nossoNumero} já tem prova de ${anterior.prova_em} (ocorrência ${anterior.codigo_ocorrencia}, retorno ${anterior.nro_sequencial}). Gravada no rastro, efeito NÃO aplicado.`
+            );
+            continue;
+          }
+        }
+
 
         // ── busca do título (necessário para todos os branches restantes) ─
         const resolvido = resolucao.get(linha.numeroLinha);
@@ -403,12 +458,14 @@ serve(async (req) => {
 
         if (tErr) {
           erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: tErr.message });
+          marcarDesfecho(linha.numeroLinha, false, "erro ao buscar titulo");
           continue;
         }
 
         // Título não resolvido: nada é aplicado — conta como não aplicada.
         if (!titulo) {
           contadores.nao_aplicadas++;
+          marcarDesfecho(linha.numeroLinha, false, "titulo nao resolvido");
           if (categoria === "baixa") {
             alertas.push(`⚠ Baixa (${linha.ocorrencia}) NÃO APLICADA — nosso número ${linha.nossoNumero} não resolveu para nenhum título. Exige tratamento manual.`);
           } else {
@@ -431,11 +488,13 @@ serve(async (req) => {
             .eq("id", t.id);
           if (errRegistro) {
             erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `update registro: ${errRegistro.message}` });
+            marcarDesfecho(linha.numeroLinha, false, "erro no update de registro");
             continue;
           }
           await marcarBoleto(linha.nossoNumero, "registrado", "registrado_em");
           if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
           contadores.registros++;
+          marcarDesfecho(linha.numeroLinha, true, null);
           continue;
         }
 
@@ -470,6 +529,7 @@ serve(async (req) => {
               remessasComRejeicao.add(t.remessa_safra_id);
             }
             contadores.rejeicoes++;
+            marcarDesfecho(linha.numeroLinha, true, null);
             continue;
           }
 
@@ -490,6 +550,7 @@ serve(async (req) => {
                 .eq("id", t.id);
               if (errBaixaEfetivada) {
                 erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `update baixa_recusada_ja_baixado: ${errBaixaEfetivada.message}` });
+                marcarDesfecho(linha.numeroLinha, false, "erro no update");
                 continue;
               }
               await marcarBoleto(linha.nossoNumero, "baixado", "baixado_em");
@@ -503,6 +564,7 @@ serve(async (req) => {
                 nosso_numero_anterior: linha.nossoNumero,
               } as any);
               contadores.baixas++;
+              marcarDesfecho(linha.numeroLinha, true, null);
               alertas.push(
                 `Baixa (03/${linha.motivoRejeicao}) recusada porque o boleto ${linha.nossoNumero} já não existia no banco — ${descMotivo}. Tratado como baixa confirmada.`
               );
@@ -515,6 +577,7 @@ serve(async (req) => {
                 .eq("id", t.id);
               if (errBoletoVivo) {
                 erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `update baixa_recusada_boleto_vivo: ${errBoletoVivo.message}` });
+                marcarDesfecho(linha.numeroLinha, false, "erro no update");
                 continue;
               }
               await marcarBoleto(linha.nossoNumero, "registrado", null);
@@ -530,6 +593,7 @@ serve(async (req) => {
                 nosso_numero_anterior: linha.nossoNumero,
               } as any);
               contadores.rejeicoes++;
+              marcarDesfecho(linha.numeroLinha, true, null);
               alertas.push(
                 `⚠ BAIXA RECUSADA — boleto ${linha.nossoNumero} SEGUE VÁLIDO no Safra (motivo ${linha.motivoRejeicao}: ${descMotivo}). O cliente ainda pode pagar este boleto. Reenviar a baixa antes de reemitir.`
               );
@@ -549,6 +613,7 @@ serve(async (req) => {
               nosso_numero_anterior: linha.nossoNumero,
             } as any);
             contadores.nao_aplicadas++;
+            marcarDesfecho(linha.numeroLinha, false, "motivo de recusa nao mapeado: titulo nao alterado");
             alertas.push(
               `⚠ BAIXA RECUSADA com motivo não mapeado (${linha.motivoRejeicao}: ${descMotivo}) — boleto ${linha.nossoNumero}. Estado do título NÃO alterado. Exige decisão humana.`
             );
@@ -566,6 +631,7 @@ serve(async (req) => {
             remessasComRejeicao.add(t.remessa_safra_id);
           }
           contadores.rejeicoes++;
+          marcarDesfecho(linha.numeroLinha, true, null);
           detalhesRejeicao.push({
             numero_titulo:   t.numero_titulo,
             parceiro_nome:   parceiro?.razao_social ?? "—",
@@ -584,6 +650,7 @@ serve(async (req) => {
               `⚠ POSSÍVEL PAGAMENTO EM DOBRO: título ${t.nosso_numero_seq ?? t.numero_titulo} já estava baixado manualmente e o banco reportou liquidação. Confira o extrato e trate reembolso se necessário.`,
             );
             contadores.liquidacoes++;
+            marcarDesfecho(linha.numeroLinha, false, "titulo ja baixado manualmente: exige conferencia");
             continue;
           }
 
@@ -617,6 +684,7 @@ serve(async (req) => {
           });
           if (errMarca) {
             erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `marcar_titulo_pago: ${errMarca.message}` });
+            marcarDesfecho(linha.numeroLinha, false, "erro em marcar_titulo_pago");
             continue;
           }
 
@@ -649,6 +717,7 @@ serve(async (req) => {
                 movimentacaoBaixaId = movExistente?.id ?? null;
               } else {
                 erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `mov bancária: ${errMov.message}` });
+                marcarDesfecho(linha.numeroLinha, false, "erro na movimentacao bancaria");
                 continue;
               }
             } else {
@@ -692,6 +761,7 @@ serve(async (req) => {
 
           if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
           contadores.liquidacoes++;
+          marcarDesfecho(linha.numeroLinha, true, null);
           continue;
         }
 
@@ -704,6 +774,7 @@ serve(async (req) => {
               `⚠ Baixa (${linha.ocorrencia}) recebida para título ${linha.nossoNumero} já ${t.boleto_status} — verificar.`
             );
             contadores.baixas++;
+            marcarDesfecho(linha.numeroLinha, false, "titulo ja pago: baixa nao aplicada");
             continue;
           }
 
@@ -745,6 +816,7 @@ serve(async (req) => {
           if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
           if (t.baixa_remessa_id) remessasInstrucaoTocadas.add(t.baixa_remessa_id);
           contadores.baixas++;
+          marcarDesfecho(linha.numeroLinha, true, null);
           continue;
         }
 
@@ -756,6 +828,7 @@ serve(async (req) => {
             const novaData = parseDDMMAA(linha.dataVencRaw);
             if (!novaData) {
               erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: "Data de vencimento inválida na alteração 14" });
+              marcarDesfecho(linha.numeroLinha, false, "data de vencimento invalida");
               continue;
             }
 
@@ -809,6 +882,7 @@ serve(async (req) => {
               alertas.push(
                 `Retorno retroativo ignorado — título ${linha.nossoNumero}: arquivo de ${dataMovimento} traz vencimento ${novaData}, mas já há prova de ${maxProvaEm}.`
               );
+              marcarDesfecho(linha.numeroLinha, false, "retorno retroativo: prova mais recente existe");
               continue;
             }
 
@@ -852,12 +926,14 @@ serve(async (req) => {
             if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
             if (t.baixa_remessa_id) remessasInstrucaoTocadas.add(t.baixa_remessa_id);
             contadores.alteracoes++;
+            marcarDesfecho(linha.numeroLinha, true, null);
             continue;
           }
           if (linha.ocorrencia === "51") {
             const novoValor = parseValor13d2(linha.valorTituloRaw);
             if (!novoValor) {
               erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: "Valor inválido na alteração 51" });
+              marcarDesfecho(linha.numeroLinha, false, "valor invalido");
               continue;
             }
             // FAIL-LOUD: valor_atual é coluna GERADA (valor_bruto - valor_desconto + juros + multa + correcao).
@@ -873,6 +949,7 @@ serve(async (req) => {
                 nosso_numero: linha.nossoNumero,
                 erro: `Alteração 51: novo valor (R$ ${novoValor.toFixed(2)}) maior que o valor base do título (R$ ${base.toFixed(2)}) — não representável como desconto`,
               });
+              marcarDesfecho(linha.numeroLinha, false, "novo valor maior que a base");
               continue;
             }
             const novoDesconto = Number((base - novoValor).toFixed(2));
@@ -882,20 +959,24 @@ serve(async (req) => {
               .eq("id", t.id);
             if (upErr51) {
               erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `alteração 51 update: ${upErr51.message}` });
+              marcarDesfecho(linha.numeroLinha, false, "erro no update de valor");
               continue;
             }
             alertas.push(`Valor alterado para ${novoValor.toFixed(2)} — título ${linha.nossoNumero}.`);
             if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
             contadores.alteracoes++;
+            marcarDesfecho(linha.numeroLinha, true, null);
             continue;
           }
           // Outras alterações categorizadas: só contar
           contadores.alteracoes++;
+          marcarDesfecho(linha.numeroLinha, false, "alteracao nao tratada");
           continue;
         }
 
         // fallback: categoria não prevista
         contadores.ignoradas++;
+        marcarDesfecho(linha.numeroLinha, false, "categoria nao tratada");
         alertas.push(`Categoria "${categoria}" não tratada (ocorrência ${linha.ocorrencia}) — título ${linha.nossoNumero}.`);
       } catch (e) {
         erros.push({
@@ -903,6 +984,7 @@ serve(async (req) => {
           nosso_numero: linha.nossoNumero,
           erro: e instanceof Error ? e.message : String(e),
         });
+        marcarDesfecho(linha.numeroLinha, false, "excecao no processamento");
       }
     }
 
@@ -928,6 +1010,8 @@ serve(async (req) => {
         valor_pago: parseValor13d2(d.valorPagoRaw),
         valor_juros: parseValor13d2(d.jurosMoraRaw),
         data_credito: parseDDMMAA(d.dataCreditoRaw),
+        efeito_aplicado: desfecho.get(d.numeroLinha)?.aplicado ?? false,
+        motivo_nao_aplicado: desfecho.get(d.numeroLinha)?.motivo ?? null,
       });
     }
     for (let i = 0; i < rowsOc.length; i += 200) {
@@ -964,6 +1048,7 @@ serve(async (req) => {
 
     // ── FAIL-LOUD: relatório persistido, não só devolvido no HTTP ──────────
     const qtdNaoCasadas = rowsOc.filter((r) => r.titulo_id == null).length;
+    const qtdNaoAplicadas = rowsOc.filter((r) => r.efeito_aplicado === false).length;
     const { error: errRel } = await sb
       .from("safra_retorno_arquivo")
       .update({
@@ -973,6 +1058,7 @@ serve(async (req) => {
           erros,
           informativos_por_codigo: infoInformativos,
           remessas_promovidas: remessasPromovidas,
+          qtd_nao_aplicadas: qtdNaoAplicadas,
         },
         qtd_alertas: alertas.length,
         qtd_erros: erros.length,
@@ -1003,6 +1089,7 @@ serve(async (req) => {
         alertas,
         erros,
         qtd_nao_casadas: qtdNaoCasadas,
+        qtd_nao_aplicadas: qtdNaoAplicadas,
         informativos_por_codigo: infoInformativos,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
