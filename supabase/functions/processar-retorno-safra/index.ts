@@ -613,6 +613,7 @@ serve(async (req) => {
               nosso_numero_anterior: linha.nossoNumero,
             } as any);
             contadores.nao_aplicadas++;
+            marcarDesfecho(linha.numeroLinha, false, "motivo de recusa nao mapeado: titulo nao alterado");
             alertas.push(
               `⚠ BAIXA RECUSADA com motivo não mapeado (${linha.motivoRejeicao}: ${descMotivo}) — boleto ${linha.nossoNumero}. Estado do título NÃO alterado. Exige decisão humana.`
             );
