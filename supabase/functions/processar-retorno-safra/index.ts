@@ -801,17 +801,7 @@ serve(async (req) => {
     // ── rastro: uma linha por ocorrência, com o título resolvido ──────────
     const rowsOc: Record<string, unknown>[] = [];
     for (const d of detalhes) {
-      const { data: res, error: errRes } = await sb.rpc("fn_cnab_resolver_titulo", {
-        p_uso_empresa: null, p_nosso_numero: d.nossoNumero, p_seu_numero: d.seuNumero,
-      });
-      if (errRes) {
-        erros.push({
-          linha: d.numeroLinha,
-          nosso_numero: d.nossoNumero,
-          erro: `resolver título: ${errRes.message}`,
-        });
-      }
-      const r = (Array.isArray(res) ? res[0] : res) as { titulo_id: string | null; casado_por: string | null } | null;
+      const r = resolucao.get(d.numeroLinha);
       rowsOc.push({
         arquivo_id: arquivoId,
         nro_sequencial: nroSequencial,
@@ -820,7 +810,7 @@ serve(async (req) => {
         motivo_rejeicao: d.motivoRejeicao || null,
         data_ocorrencia: dataMovimento,
         nosso_numero: d.nossoNumero,
-        uso_empresa: null,
+        uso_empresa: d.usoEmpresa || null,
         seu_numero: d.seuNumero || null,
         titulo_id: r?.titulo_id ?? null,
         casado_por: r?.casado_por ?? null,
