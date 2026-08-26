@@ -392,13 +392,13 @@ serve(async (req) => {
           continue;
         }
 
-        // Título não encontrado: para BAIXA é esperado (reemissão); demais viram alerta.
+        // Título não resolvido: nada é aplicado — conta como não aplicada.
         if (!titulo) {
+          contadores.nao_aplicadas++;
           if (categoria === "baixa") {
-            contadores.baixas++;
-            alertas.push(`Baixa (${linha.ocorrencia}) para nosso número ${linha.nossoNumero} — título não encontrado (provável reemissão anterior).`);
+            alertas.push(`⚠ Baixa (${linha.ocorrencia}) NÃO APLICADA — nosso número ${linha.nossoNumero} não resolveu para nenhum título. Exige tratamento manual.`);
           } else {
-            alertas.push(`Título não encontrado para ocorrência ${linha.ocorrencia} — nosso número ${linha.nossoNumero}.`);
+            alertas.push(`⚠ Ocorrência ${linha.ocorrencia} NÃO APLICADA — nosso número ${linha.nossoNumero} não resolveu para nenhum título.`);
           }
           continue;
         }
