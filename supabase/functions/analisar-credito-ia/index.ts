@@ -431,7 +431,18 @@ const DECISOES_VALIDAS = [
 const RE_MOEDA = /r\$\s*([\d.]*\d(?:,\d{1,2})?)/g;
 
 function parseMoedaBr(bruto: string): number {
-  const limpo = bruto.replace(/\./g, "").replace(",", ".");
+  if (bruto.includes(",")) {
+    const limpo = bruto.replace(/\./g, "").replace(",", ".");
+    const n = Number(limpo);
+    return Number.isFinite(n) ? n : NaN;
+  }
+  const lastDot = bruto.lastIndexOf(".");
+  if (lastDot !== -1 && /^\d{1,2}$/.test(bruto.slice(lastDot + 1))) {
+    const limpo = bruto.slice(0, lastDot).replace(/\./g, "") + "." + bruto.slice(lastDot + 1);
+    const n = Number(limpo);
+    return Number.isFinite(n) ? n : NaN;
+  }
+  const limpo = bruto.replace(/\./g, "");
   const n = Number(limpo);
   return Number.isFinite(n) ? n : NaN;
 }
