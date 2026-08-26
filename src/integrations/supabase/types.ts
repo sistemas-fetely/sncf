@@ -58198,14 +58198,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -65409,6 +65409,7 @@ export type Database = {
       }
       vw_titulos_cobranca: {
         Row: {
+          aguardando_credito: boolean | null
           banco_nome: string | null
           banco_recebimento_id: string | null
           boleto_codigo_rejeicao: string | null
@@ -65421,10 +65422,12 @@ export type Database = {
           data_liquidacao_real: string | null
           data_pagamento: string | null
           data_pagamento_banco: string | null
+          data_pago_efetiva: string | null
           data_proxima_acao_regua: string | null
           data_vencimento_atual: string | null
           data_vencimento_original: string | null
           dias_atraso: number | null
+          dias_pontualidade: number | null
           eh_entrada: boolean | null
           eh_inadimplencia: boolean | null
           eh_inadimplente: boolean | null
@@ -65461,6 +65464,7 @@ export type Database = {
           reemissao_motivo: string | null
           reemissao_nova_data: string | null
           reemissao_novo_valor: number | null
+          relogio_pontualidade: string | null
           remessa_safra_id: string | null
           status_gestao: string | null
           status_real: string | null
