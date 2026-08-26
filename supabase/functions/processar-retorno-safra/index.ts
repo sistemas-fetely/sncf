@@ -87,6 +87,11 @@ async function sha256Hex(texto: string): Promise<string> {
 /** Códigos que representam dinheiro entrando. */
 const CODIGOS_LIQUIDACAO = new Set(["06", "07", "08", "15", "16", "17"]);
 
+/** Recusa de baixa porque o banco NÃO TEM MAIS o título — o boleto já morreu antes. */
+const MOTIVOS_BAIXA_JA_EFETIVADA = new Set(["064", "078", "080"]);
+/** Recusa de baixa com o boleto AINDA VIVO no banco. */
+const MOTIVOS_BAIXA_BOLETO_VIVO = new Set(["010", "026", "027", "065", "094", "095", "106"]);
+
 function parseValor13d2(s: string): number | null {
   if (!/^\d{1,13}$/.test(s)) return null;
   const padded = s.padStart(13, "0");
