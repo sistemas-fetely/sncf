@@ -314,8 +314,8 @@ GRUPO ECONÔMICO:
 ${kpisGrupo ? `
 - Nome: ${kpisGrupo.grupo_nome}
 - Parceiros no grupo: ${kpisGrupo.qtd_parceiros}
-- DÍVIDA VENCIDA HOJE do grupo (em atraso, não pago): R$ ${num(kpisGrupo.vencidos)}
-- Total em aberto do grupo (vencido + a vencer): R$ ${num(kpisGrupo.em_aberto)}
+- DÍVIDA VENCIDA HOJE do grupo (em atraso, não pago): R$ ${fmtBr(num(kpisGrupo.vencidos))}
+- Total em aberto do grupo (vencido + a vencer): R$ ${fmtBr(num(kpisGrupo.em_aberto))}
 - Atraso médio do grupo nos pagamentos já feitos: ${Math.round(num(kpisGrupo.atraso_medio_dias))} dias` : "Sem grupo econômico detectado"}
 
 TÍTULOS DO CLIENTE (lastro dos KPIs acima — NÃO existe nenhum outro título além destes):
