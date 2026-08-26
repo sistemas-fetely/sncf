@@ -70007,6 +70007,10 @@ export type Database = {
         }
         Returns: Json
       }
+      reemitir_sem_prova_baixa: {
+        Args: { p_motivo: string; p_titulo_id: string }
+        Returns: Json
+      }
       reenviar_pedido_bling: {
         Args: { p_ator?: string; p_motivo: string; p_pedido_id: string }
         Returns: Json

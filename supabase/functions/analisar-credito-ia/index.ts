@@ -233,7 +233,7 @@ Deno.serve(async (req) => {
           .map((t: any) => {
             const liq = t.data_pagamento_banco || t.data_pagamento;
             const pago = String(t.status_gestao || "").startsWith("pago");
-            return `- ${t.numero_titulo} · parcela ${t.numero_parcela ?? "?"}/${t.total_parcelas ?? "?"} · pedido ${t.pedido_id_externo ?? "—"} · R$ ${num(t.valor_efetivo)} · vence ${t.data_vencimento_atual} · ${t.status_gestao}${pago && liq ? ` · liquidado em ${liq}` : ""}`;
+            return `- ${t.numero_titulo} · parcela ${t.numero_parcela ?? "?"}/${t.total_parcelas ?? "?"} · pedido ${t.pedido_id_externo ?? "—"} · R$ ${fmtBr(num(t.valor_efetivo))} · vence ${t.data_vencimento_atual} · ${t.status_gestao}${pago && liq ? ` · liquidado em ${liq}` : ""}`;
           })
           .join("\n")
       : "Cliente sem títulos emitidos.";
@@ -272,12 +272,12 @@ Deno.serve(async (req) => {
     const userPrompt = `Analise esta análise de crédito.
 
 PEDIDO:
-- Valor bruto dos itens: R$ ${valorBruto}
-- Frete: R$ ${valorFrete}
-- Desconto: R$ ${descontoValor}
-- Acréscimo (sem inscrição estadual): R$ ${acrescimoIe}
-- Valor líquido (o que o cliente paga): R$ ${valorLiquido}
-- Conferência de valores: bruto + frete - desconto + acréscimo = R$ ${somaConferida.toFixed(2)} ${fecha ? "— FECHA com o líquido" : "— NÃO FECHA com o líquido, sinalize isso"}
+- Valor bruto dos itens: R$ ${fmtBr(valorBruto)}
+- Frete: R$ ${fmtBr(valorFrete)}
+- Desconto: R$ ${fmtBr(descontoValor)}
+- Acréscimo (sem inscrição estadual): R$ ${fmtBr(acrescimoIe)}
+- Valor líquido (o que o cliente paga): R$ ${fmtBr(valorLiquido)}
+- Conferência de valores: bruto + frete - desconto + acréscimo = R$ ${fmtBr(somaConferida)} ${fecha ? "— FECHA com o líquido" : "— NÃO FECHA com o líquido, sinalize isso"}
 - Condição solicitada: ${analise.pedido?.condicao_solicitada}
 - Forma solicitada: ${analise.pedido?.forma_solicitada}
 - Vendedor: ${analise.pedido?.vendedor || "—"}
@@ -301,11 +301,11 @@ ESTADO ATUAL DO CLIENTE:
 
 KPIs FINANCEIROS DO CLIENTE:
 ${kpis ? `
-- DÍVIDA VENCIDA HOJE (em atraso, não pago): R$ ${num(kpis.vencidos)}
-- A vencer (em aberto, ainda dentro do prazo): R$ ${num(kpis.a_vencer)}
-- Total em aberto (vencido + a vencer): R$ ${num(kpis.em_aberto)}
-- JÁ PAGO E QUITADO no histórico (isto NÃO é dívida): R$ ${num(kpis.pago)}
-- Maior compra já feita: R$ ${num(kpis.maior_compra)}
+- DÍVIDA VENCIDA HOJE (em atraso, não pago): R$ ${fmtBr(num(kpis.vencidos))}
+- A vencer (em aberto, ainda dentro do prazo): R$ ${fmtBr(num(kpis.a_vencer))}
+- Total em aberto (vencido + a vencer): R$ ${fmtBr(num(kpis.em_aberto))}
+- JÁ PAGO E QUITADO no histórico (isto NÃO é dívida): R$ ${fmtBr(num(kpis.pago))}
+- Maior compra já feita: R$ ${fmtBr(num(kpis.maior_compra))}
 - Última compra em: ${kpis.ultima_compra_em || "—"}
 - Atraso médio nos pagamentos já feitos: ${Math.round(num(kpis.atraso_medio_dias))} dias
 ATENÇÃO: se DÍVIDA VENCIDA HOJE for R$ 0, o cliente NÃO tem débito vencido. Não descreva valores já pagos como dívida.` : "Sem dados financeiros (cliente novo)"}
@@ -314,8 +314,8 @@ GRUPO ECONÔMICO:
 ${kpisGrupo ? `
 - Nome: ${kpisGrupo.grupo_nome}
 - Parceiros no grupo: ${kpisGrupo.qtd_parceiros}
-- DÍVIDA VENCIDA HOJE do grupo (em atraso, não pago): R$ ${num(kpisGrupo.vencidos)}
-- Total em aberto do grupo (vencido + a vencer): R$ ${num(kpisGrupo.em_aberto)}
+- DÍVIDA VENCIDA HOJE do grupo (em atraso, não pago): R$ ${fmtBr(num(kpisGrupo.vencidos))}
+- Total em aberto do grupo (vencido + a vencer): R$ ${fmtBr(num(kpisGrupo.em_aberto))}
 - Atraso médio do grupo nos pagamentos já feitos: ${Math.round(num(kpisGrupo.atraso_medio_dias))} dias` : "Sem grupo econômico detectado"}
 
 TÍTULOS DO CLIENTE (lastro dos KPIs acima — NÃO existe nenhum outro título além destes):
@@ -330,8 +330,9 @@ ${(anteriores || []).length > 0 ? JSON.stringify(anteriores) : "Cliente novo na 
 
 Gere a análise estruturada em JSON conforme instruído no system prompt.`;
 
-    // Chama Claude Sonnet via Lovable AI Gateway
-    const MODELO_PRIMARIO = "anthropic/claude-sonnet-4-5";
+    // Chama modelo primário via Lovable AI Gateway
+    const MODELO_PRIMARIO = "openai/gpt-5.5";
+    const MODELO_FALLBACK = "google/gemini-2.5-pro";
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -364,7 +365,7 @@ Gere a análise estruturada em JSON conforme instruído no system prompt.`;
           "Authorization": `Bearer ${LOVABLE_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-pro",
+          model: MODELO_FALLBACK,
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
             { role: "user", content: userPrompt },
@@ -378,11 +379,11 @@ Gere a análise estruturada em JSON conforme instruído no system prompt.`;
         );
       }
       const fbData = await fallbackResp.json();
-      return await processarRespostaIA(fbData, analise_id, supabase, corsHeaders, "gemini-pro-fallback", contexto, fallbackInfo);
+      return await processarRespostaIA(fbData, analise_id, supabase, corsHeaders, MODELO_FALLBACK, contexto, fallbackInfo);
     }
 
     const aiData = await aiResp.json();
-    return await processarRespostaIA(aiData, analise_id, supabase, corsHeaders, "claude-sonnet-4-5", contexto, null);
+    return await processarRespostaIA(aiData, analise_id, supabase, corsHeaders, MODELO_PRIMARIO, contexto, null);
   } catch (e) {
     console.error("analisar-credito-ia error:", e);
     return new Response(
@@ -430,7 +431,18 @@ const DECISOES_VALIDAS = [
 const RE_MOEDA = /r\$\s*([\d.]*\d(?:,\d{1,2})?)/g;
 
 function parseMoedaBr(bruto: string): number {
-  const limpo = bruto.replace(/\./g, "").replace(",", ".");
+  if (bruto.includes(",")) {
+    const limpo = bruto.replace(/\./g, "").replace(",", ".");
+    const n = Number(limpo);
+    return Number.isFinite(n) ? n : NaN;
+  }
+  const lastDot = bruto.lastIndexOf(".");
+  if (lastDot !== -1 && /^\d{1,2}$/.test(bruto.slice(lastDot + 1))) {
+    const limpo = bruto.slice(0, lastDot).replace(/\./g, "") + "." + bruto.slice(lastDot + 1);
+    const n = Number(limpo);
+    return Number.isFinite(n) ? n : NaN;
+  }
+  const limpo = bruto.replace(/\./g, "");
   const n = Number(limpo);
   return Number.isFinite(n) ? n : NaN;
 }
