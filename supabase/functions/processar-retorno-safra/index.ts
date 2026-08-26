@@ -315,7 +315,7 @@ serve(async (req) => {
     // ── contadores + relatório ─────────────────────────────────────────────
     const contadores = {
       registros: 0, rejeicoes: 0, liquidacoes: 0, baixas: 0,
-      alteracoes: 0, informativos: 0, ignoradas: 0,
+      alteracoes: 0, informativos: 0, ignoradas: 0, nao_aplicadas: 0,
     };
     const alertas: string[] = [];
     const erros: Array<{ linha: number; nosso_numero: string; erro: string }> = [];
