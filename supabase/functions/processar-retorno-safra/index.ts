@@ -419,6 +419,7 @@ serve(async (req) => {
             erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `update registro: ${errRegistro.message}` });
             continue;
           }
+          await marcarBoleto(linha.nossoNumero, "registrado", "registrado_em");
           if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
           contadores.registros++;
           continue;
