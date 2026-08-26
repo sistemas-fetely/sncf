@@ -5222,6 +5222,7 @@ export type Database = {
           condicao: string | null
           created_at: string
           descricao: string
+          destino_por_parceiro: boolean
           eh_venda: boolean
           exige_destino_proprio: boolean
           motivo_consumo: string | null
@@ -5230,6 +5231,7 @@ export type Database = {
           movimenta_estoque: boolean
           natureza: string | null
           observacao: string | null
+          origem_por_parceiro: boolean
           updated_at: string
         }
         Insert: {
@@ -5243,6 +5245,7 @@ export type Database = {
           condicao?: string | null
           created_at?: string
           descricao: string
+          destino_por_parceiro?: boolean
           eh_venda?: boolean
           exige_destino_proprio?: boolean
           motivo_consumo?: string | null
@@ -5251,6 +5254,7 @@ export type Database = {
           movimenta_estoque?: boolean
           natureza?: string | null
           observacao?: string | null
+          origem_por_parceiro?: boolean
           updated_at?: string
         }
         Update: {
@@ -5264,6 +5268,7 @@ export type Database = {
           condicao?: string | null
           created_at?: string
           descricao?: string
+          destino_por_parceiro?: boolean
           eh_venda?: boolean
           exige_destino_proprio?: boolean
           motivo_consumo?: string | null
@@ -5272,6 +5277,7 @@ export type Database = {
           movimenta_estoque?: boolean
           natureza?: string | null
           observacao?: string | null
+          origem_por_parceiro?: boolean
           updated_at?: string
         }
         Relationships: [
@@ -33786,8 +33792,10 @@ export type Database = {
           data_credito: string | null
           data_ocorrencia: string | null
           data_vencimento: string | null
+          efeito_aplicado: boolean | null
           id: string
           linha: number | null
+          motivo_nao_aplicado: string | null
           motivo_rejeicao: string | null
           nosso_numero: string | null
           nro_sequencial: number | null
@@ -33811,8 +33819,10 @@ export type Database = {
           data_credito?: string | null
           data_ocorrencia?: string | null
           data_vencimento?: string | null
+          efeito_aplicado?: boolean | null
           id?: string
           linha?: number | null
+          motivo_nao_aplicado?: string | null
           motivo_rejeicao?: string | null
           nosso_numero?: string | null
           nro_sequencial?: number | null
@@ -33836,8 +33846,10 @@ export type Database = {
           data_credito?: string | null
           data_ocorrencia?: string | null
           data_vencimento?: string | null
+          efeito_aplicado?: boolean | null
           id?: string
           linha?: number | null
+          motivo_nao_aplicado?: string | null
           motivo_rejeicao?: string | null
           nosso_numero?: string | null
           nro_sequencial?: number | null
@@ -68522,6 +68534,13 @@ export type Database = {
         Args: { p_competencia: string; p_motivo: string }
         Returns: Json
       }
+      fn_converter_initplan: {
+        Args: { p_max?: number }
+        Returns: {
+          convertida: boolean
+          tabela: string
+        }[]
+      }
       fn_convite_cadastro_ativo: { Args: { p_token: string }; Returns: boolean }
       fn_criar_analise_desde_pedido: {
         Args: { p_pedido_id: string }
@@ -69087,6 +69106,15 @@ export type Database = {
           resultado: string
           soma_titulos: number
           valor_credito: number
+        }[]
+      }
+      fn_safra_prova_mais_recente: {
+        Args: { p_nossos_numeros: string[] }
+        Returns: {
+          codigo_ocorrencia: string
+          nosso_numero: string
+          nro_sequencial: number
+          prova_em: string
         }[]
       }
       fn_saldo_diario_registrar: {
