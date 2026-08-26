@@ -1048,6 +1048,7 @@ serve(async (req) => {
 
     // ── FAIL-LOUD: relatório persistido, não só devolvido no HTTP ──────────
     const qtdNaoCasadas = rowsOc.filter((r) => r.titulo_id == null).length;
+    const qtdNaoAplicadas = rowsOc.filter((r) => r.efeito_aplicado === false).length;
     const { error: errRel } = await sb
       .from("safra_retorno_arquivo")
       .update({
@@ -1057,6 +1058,7 @@ serve(async (req) => {
           erros,
           informativos_por_codigo: infoInformativos,
           remessas_promovidas: remessasPromovidas,
+          qtd_nao_aplicadas: qtdNaoAplicadas,
         },
         qtd_alertas: alertas.length,
         qtd_erros: erros.length,
