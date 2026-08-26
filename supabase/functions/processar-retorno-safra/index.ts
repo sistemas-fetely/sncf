@@ -828,6 +828,7 @@ serve(async (req) => {
             const novaData = parseDDMMAA(linha.dataVencRaw);
             if (!novaData) {
               erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: "Data de vencimento inválida na alteração 14" });
+              marcarDesfecho(linha.numeroLinha, false, "data de vencimento invalida");
               continue;
             }
 
