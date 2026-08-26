@@ -356,6 +356,41 @@ serve(async (req) => {
       resolucao.set(d.numeroLinha, { titulo_id: r?.titulo_id ?? null, casado_por: r?.casado_por ?? null });
     }
 
+    // Desfecho por linha: separa GRAVADO de APLICADO. Alimentado pelo loop,
+    // consumido pelo rastro. Default = não aplicado, para não mentir por omissão.
+    const desfecho = new Map<number, { aplicado: boolean; motivo: string | null }>();
+    for (const d of detalhes) desfecho.set(d.numeroLinha, { aplicado: false, motivo: "nao processada" });
+
+    function marcarDesfecho(numeroLinha: number, aplicado: boolean, motivo: string | null) {
+      desfecho.set(numeroLinha, { aplicado, motivo });
+    }
+
+    // ── guarda de ORDEM: arquivo antigo não sobrescreve prova mais nova ─────
+    // A idempotência existente é por IDENTIDADE (hash + sequencial). Faltava a
+    // idempotência por ORDEM. Retornos foram importados fora de ordem cronológica
+    // e registros antigos rebobinaram liquidações já aplicadas.
+    const CODIGOS_DEFINEM_ESTADO = new Set(["02","03","06","07","08","09","10","14","15","16","17","40"]);
+    const provaAnterior = new Map<string, { prova_em: string; codigo_ocorrencia: string; nro_sequencial: number }>();
+    {
+      const nns = [...new Set(detalhes.map((d) => d.nossoNumero).filter(Boolean))];
+      for (let i = 0; i < nns.length; i += 200) {
+        const { data: provas, error: errProva } = await sb.rpc("fn_safra_prova_mais_recente", {
+          p_nossos_numeros: nns.slice(i, i + 200),
+        });
+        if (errProva) {
+          erros.push({ linha: 0, nosso_numero: "", erro: `prova mais recente: ${errProva.message}` });
+          continue;
+        }
+        // deno-lint-ignore no-explicit-any
+        for (const p of (provas ?? []) as any[]) {
+          provaAnterior.set(p.nosso_numero, {
+            prova_em: p.prova_em, codigo_ocorrencia: p.codigo_ocorrencia, nro_sequencial: p.nro_sequencial,
+          });
+        }
+      }
+    }
+
+
     for (const linha of detalhes) {
       try {
         const dim = mapaOcorrencias.get(linha.ocorrencia);
