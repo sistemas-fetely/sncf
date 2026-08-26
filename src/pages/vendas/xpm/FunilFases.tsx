@@ -45,27 +45,15 @@ export default function FunilFases({
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("vw_xpm_risco_atraso")
-        .select("estagio_seq, fase_seq, quantidade_volumes, farol");
+        .select("estagio_seq, fase_seq, quantidade_volumes, farol")
+        .limit(5000);
       if (error) throw error;
       return (data ?? []) as ExpedicaoResumo[];
     },
   });
 
-  if (expedicoesQ.isError) {
-    return (
-      <Card className="border-destructive">
-        <CardContent className="pt-6 text-sm text-destructive">
-          {(expedicoesQ.error as Error)?.message ?? "Erro ao carregar o funil de fases"}
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (expedicoesQ.isLoading) return <Skeleton className="h-28 w-full" />;
-
-  const rows = expedicoesQ.data ?? [];
-
   const fases = useMemo<FunilFase[]>(() => {
+    const rows = expedicoesQ.data ?? [];
     return FASES.map((f) => {
       const parados = rows.filter((r) => Number(r.fase_seq) === f.sequencia);
       return {
@@ -81,7 +69,19 @@ export default function FunilFases({
         ),
       };
     });
-  }, [rows]);
+  }, [expedicoesQ.data]);
+
+  if (expedicoesQ.isError) {
+    return (
+      <Card className="border-destructive">
+        <CardContent className="pt-6 text-sm text-destructive">
+          {(expedicoesQ.error as Error)?.message ?? "Erro ao carregar o funil de fases"}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (expedicoesQ.isLoading) return <Skeleton className="h-28 w-full" />;
 
   return (
     <Card>
