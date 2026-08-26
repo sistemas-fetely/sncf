@@ -220,7 +220,27 @@ function gerarTrailer(nroSeq: number, qtd: number, total: number, nroRegFinal: n
   return t;
 }
 
+// Limite duro do canal de transmissão do Safra: nome base (sem extensão) <= 12 caracteres.
+// Arquivo com nome longo é recusado ANTES de qualquer validação de conteúdo.
+const PREFIXO_REMESSA: Record<string, string> = {
+  entrada:     "SAFRA_",
+  baixa:       "SAFRAB",
+  prorrogacao: "SAFRAP",
+};
+
+function nomeArquivoRemessa(tipo: string, nroSeq: number): string {
+  const prefixo = PREFIXO_REMESSA[tipo];
+  if (!prefixo) throw new Error(`Tipo de remessa sem prefixo definido: ${tipo}`);
+  const base = `${prefixo}${String(nroSeq).padStart(3, "0")}`;
+  // FAIL-LOUD: melhor estourar aqui do que entregar arquivo que o banco recusa.
+  if (base.length > 12) {
+    throw new Error(`Nome de arquivo de remessa com ${base.length} caracteres ("${base}") — limite do Safra é 12. Ajuste PREFIXO_REMESSA.`);
+  }
+  return `${base}.txt`;
+}
+
 // ─── Handler ──────────────────────────────────────────────────────────────────
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -331,8 +351,8 @@ serve(async (req) => {
 
       linhas.push(gerarTrailer(nroSeq, aptos.length, valorTotal, nroReg));
       const arquivoConteudo = linhas.join("\r\n") + "\r\n";
-      const seqFormatado   = String(nroSeq).padStart(3, "0");
-      const arquivoNome    = `SAFRAB${seqFormatado}.txt`;
+      const arquivoNome = nomeArquivoRemessa("baixa", nroSeq);
+
 
       const { data: remessa, error: remessaErr } = await sb
         .from("remessas_safra")
@@ -472,8 +492,8 @@ serve(async (req) => {
 
       linhas.push(gerarTrailer(nroSeq, aptos.length, valorTotal, nroReg));
       const arquivoConteudo = linhas.join("\r\n") + "\r\n";
-      const seqFormatado    = String(nroSeq).padStart(3, "0");
-      const arquivoNome     = `FETELY_PRORROG_SAFRA_${seqFormatado}.txt`;
+      const arquivoNome = nomeArquivoRemessa("prorrogacao", nroSeq);
+
 
       const { data: remessa, error: remessaErr } = await sb
         .from("remessas_safra")
@@ -599,8 +619,8 @@ serve(async (req) => {
 
     linhas.push(gerarTrailer(nroSeq, titulos.length, valorTotal, nroReg));
     const arquivoConteudo = linhas.join("\r\n") + "\r\n";
-    const seqFormatado   = String(nroSeq).padStart(3, "0");
-    const arquivoNome    = `SAFRA_${seqFormatado}.txt`;
+    const arquivoNome = nomeArquivoRemessa("entrada", nroSeq);
+
 
     const { data: remessa, error: remessaErr } = await sb
       .from("remessas_safra")
