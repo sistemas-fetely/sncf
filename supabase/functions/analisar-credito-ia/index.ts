@@ -233,7 +233,7 @@ Deno.serve(async (req) => {
           .map((t: any) => {
             const liq = t.data_pagamento_banco || t.data_pagamento;
             const pago = String(t.status_gestao || "").startsWith("pago");
-            return `- ${t.numero_titulo} · parcela ${t.numero_parcela ?? "?"}/${t.total_parcelas ?? "?"} · pedido ${t.pedido_id_externo ?? "—"} · R$ ${num(t.valor_efetivo)} · vence ${t.data_vencimento_atual} · ${t.status_gestao}${pago && liq ? ` · liquidado em ${liq}` : ""}`;
+            return `- ${t.numero_titulo} · parcela ${t.numero_parcela ?? "?"}/${t.total_parcelas ?? "?"} · pedido ${t.pedido_id_externo ?? "—"} · R$ ${fmtBr(num(t.valor_efetivo))} · vence ${t.data_vencimento_atual} · ${t.status_gestao}${pago && liq ? ` · liquidado em ${liq}` : ""}`;
           })
           .join("\n")
       : "Cliente sem títulos emitidos.";
