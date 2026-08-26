@@ -330,8 +330,9 @@ ${(anteriores || []).length > 0 ? JSON.stringify(anteriores) : "Cliente novo na 
 
 Gere a análise estruturada em JSON conforme instruído no system prompt.`;
 
-    // Chama Claude Sonnet via Lovable AI Gateway
-    const MODELO_PRIMARIO = "anthropic/claude-sonnet-4-5";
+    // Chama modelo primário via Lovable AI Gateway
+    const MODELO_PRIMARIO = "openai/gpt-5.5";
+    const MODELO_FALLBACK = "google/gemini-2.5-pro";
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
