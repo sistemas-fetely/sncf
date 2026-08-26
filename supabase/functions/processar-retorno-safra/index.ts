@@ -457,9 +457,12 @@ serve(async (req) => {
             contadores.rejeicoes++;
             continue;
           }
-          await sb.from("titulo_a_receber")
+          const { error: errRejeicao } = await sb.from("titulo_a_receber")
             .update({ boleto_status: "rejeitado", boleto_codigo_rejeicao: linha.motivoRejeicao })
             .eq("id", t.id);
+          if (!errRejeicao) {
+            await marcarBoleto(linha.nossoNumero, "rejeitado", null);
+          }
           if (t.remessa_safra_id) {
             remessasTocadas.add(t.remessa_safra_id);
             remessasComRejeicao.add(t.remessa_safra_id);
