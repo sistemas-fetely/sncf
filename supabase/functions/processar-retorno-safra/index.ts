@@ -550,6 +550,7 @@ serve(async (req) => {
                 .eq("id", t.id);
               if (errBaixaEfetivada) {
                 erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `update baixa_recusada_ja_baixado: ${errBaixaEfetivada.message}` });
+                marcarDesfecho(linha.numeroLinha, false, "erro no update");
                 continue;
               }
               await marcarBoleto(linha.nossoNumero, "baixado", "baixado_em");
