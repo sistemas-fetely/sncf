@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from "react";
+import React, { Fragment, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -59,6 +59,7 @@ import {
   SeloInadimplente,
   PRAZO_CLASSE_TEXTO,
 } from "@/lib/financeiro/eixos-estado";
+import { SeloPontualidade } from "@/lib/financeiro/pontualidade";
 import { agruparPorPedido, grupoEhUnitario, grupoEstadoDividido, resumoComposicao, type GrupoPedido } from "@/lib/financeiro/agrupar-titulos";
 
 
@@ -239,7 +240,7 @@ function MotivoRejeicaoSafra({ codigo }: { codigo: string }) {
 }
 
 function KpiCard({
-  label, qtd, valor, ativo, onClick, tone, labelTooltip,
+  label, qtd, valor, ativo, onClick, tone, labelTooltip, sublinha,
 }: {
   label: string;
   qtd: number;
@@ -248,6 +249,7 @@ function KpiCard({
   onClick: () => void;
   tone?: "default" | "danger" | "warn";
   labelTooltip?: string;
+  sublinha?: string;
 }) {
   const toneCls =
     tone === "danger"
@@ -279,6 +281,7 @@ function KpiCard({
       )}
       <div className="text-lg font-medium mt-1">{qtd}</div>
       <div className="text-xs text-muted-foreground mt-0.5">{formatBRL(valor)}</div>
+      {sublinha && <div className="text-[10px] text-muted-foreground mt-0.5">{sublinha}</div>}
     </button>
   );
 }
@@ -349,7 +352,7 @@ function matchCards(t: TituloCobranca, cards: Set<string>, mesAtual: string): bo
       (t.status_gestao === "pago" ||
         t.status_gestao === "pago_com_atraso" ||
         t.status_gestao === "pago_judicial") &&
-      (t.data_liquidacao_real ?? "").slice(0, 7) === mesAtual);
+      (t.data_pago_efetiva ?? "").slice(0, 7) === mesAtual);
   if (!passa) return false;
   return tituloEntraNoKpi(t);
 }
@@ -364,11 +367,29 @@ function LinhaTitulo({
   onAbrir: (t: TituloCobranca) => void;
   onPedido: (pedidoId: string) => void;
 }) {
-  const liquid = t.data_liquidacao_real
-    ? formatDateBR(t.data_liquidacao_real)
-    : t.data_liquidacao_prevista
-    ? `prev. ${formatDateBR(t.data_liquidacao_prevista)}`
-    : "—";
+  let liquid: React.ReactNode;
+  if (t.data_liquidacao_real) {
+    liquid = formatDateBR(t.data_liquidacao_real);
+  } else if (t.data_pago_efetiva) {
+    liquid = (
+      <>
+        <div className="text-sm">pago {formatDateBR(t.data_pago_efetiva)}</div>
+        {t.data_liquidacao_prevista && (
+          <div className="text-[10px] text-muted-foreground">
+            prev. {formatDateBR(t.data_liquidacao_prevista)}
+          </div>
+        )}
+      </>
+    );
+  } else if (t.data_liquidacao_prevista) {
+    liquid = (
+      <div className="text-sm text-muted-foreground">
+        prev. {formatDateBR(t.data_liquidacao_prevista)}
+      </div>
+    );
+  } else {
+    liquid = "—";
+  }
   const encerrada = t.eixo_status === "cancelado" || t.eixo_status === "devolvido";
   return (
     <TableRow
@@ -436,6 +457,12 @@ function LinhaTitulo({
         <div className="flex flex-wrap items-center gap-1">
           <BadgeRecebimento eixo={t.eixo_recebimento} compensadoPor={t.compensado_por} />
           {t.eh_inadimplente === true && <SeloInadimplente />}
+          <SeloPontualidade
+            relogio={t.relogio_pontualidade}
+            dias={t.dias_pontualidade}
+            aguardandoCredito={t.aguardando_credito}
+            statusGestao={t.status_gestao}
+          />
         </div>
       </TableCell>
     </TableRow>
@@ -710,6 +737,10 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
           valor={kpis.pagoNoMes.valor}
           ativo={cardsAtivos.has("pago_no_mes")}
           onClick={() => toggleCard("pago_no_mes")}
+          labelTooltip="Mede pagamento, não liquidez. Cartão pago e ainda não creditado pela adquirente conta aqui."
+          sublinha={kpis.pagoNoMesAguardando.qtd > 0
+            ? `dos quais ${formatBRL(kpis.pagoNoMesAguardando.valor)} aguardando crédito`
+            : undefined}
         />
         <KpiCard
           label="Todos"
@@ -918,6 +949,12 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
                 <div className="flex flex-wrap gap-1 pt-1">
                   <BadgeStatusGestao status={detalhe.status_gestao} />
                   <BadgeSubestado sub={detalhe.subestado_atraso} />
+                  <SeloPontualidade
+                    relogio={detalhe.relogio_pontualidade}
+                    dias={detalhe.dias_pontualidade}
+                    aguardandoCredito={detalhe.aguardando_credito}
+                    statusGestao={detalhe.status_gestao}
+                  />
                   {detalhe.titulo_renegociado_origem_id && (
                     <Badge variant="outline" className="text-[10px]">
                       Título renegociado
@@ -1022,6 +1059,12 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
                     <dd>{formatDateBR(detalhe.data_vencimento_original)}</dd>
                     <dt className="text-muted-foreground">Vencimento atual</dt>
                     <dd>{formatDateBR(detalhe.data_vencimento_atual)}</dd>
+                    {detalhe.data_pago_efetiva && (
+                      <>
+                        <dt className="text-muted-foreground">Pago pelo cliente</dt>
+                        <dd>{formatDateBR(detalhe.data_pago_efetiva)}</dd>
+                      </>
+                    )}
                     {(detalhe.data_liquidacao_prevista !== null || detalhe.tipo_pagamento?.startsWith("cartao")) && (
                       <>
                         <dt className="text-muted-foreground">Liquidação prevista</dt>
