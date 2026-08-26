@@ -298,6 +298,15 @@ serve(async (req) => {
     // ── promoção da remessa: vínculo real via título (não via header) ──────
     const remessasTocadas = new Set<string>();
     const remessasComRejeicao = new Set<string>();
+    const remessasInstrucaoTocadas = new Set<string>();  // baixa / prorrogacao
+
+    // ── histórico do boleto (titulo_boleto): situação sempre em dia ─────────
+    async function marcarBoleto(nossoNumero: string, situacao: string, campoData: string | null) {
+      const patch: Record<string, unknown> = { situacao };
+      if (campoData) patch[campoData] = new Date().toISOString();
+      const { error } = await sb.from("titulo_boleto").update(patch).eq("nosso_numero", nossoNumero);
+      if (error) console.error(`[retorno-safra] titulo_boleto ${nossoNumero}:`, error);
+    }
 
 
     // ── conta bancária Safra p/ movimentacoes_bancarias ────────────────────
