@@ -33725,8 +33725,13 @@ export type Database = {
           id: string
           nro_sequencial: number
           processado_em: string | null
+          processado_por: string | null
+          qtd_alertas: number
+          qtd_erros: number
           qtd_liquidacoes: number
+          qtd_nao_casadas: number
           qtd_registros: number
+          relatorio: Json | null
           status: string
           valor_liquidacoes: number
         }
@@ -33740,8 +33745,13 @@ export type Database = {
           id?: string
           nro_sequencial: number
           processado_em?: string | null
+          processado_por?: string | null
+          qtd_alertas?: number
+          qtd_erros?: number
           qtd_liquidacoes?: number
+          qtd_nao_casadas?: number
           qtd_registros?: number
+          relatorio?: Json | null
           status?: string
           valor_liquidacoes?: number
         }
@@ -33755,8 +33765,13 @@ export type Database = {
           id?: string
           nro_sequencial?: number
           processado_em?: string | null
+          processado_por?: string | null
+          qtd_alertas?: number
+          qtd_erros?: number
           qtd_liquidacoes?: number
+          qtd_nao_casadas?: number
           qtd_registros?: number
+          relatorio?: Json | null
           status?: string
           valor_liquidacoes?: number
         }
@@ -58003,14 +58018,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -59312,14 +59327,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -66935,6 +66950,10 @@ export type Database = {
           estouro_so_por_fim_de_semana: boolean | null
           farol: string | null
           farol_sla: string | null
+          fase_rotulo: string | null
+          fase_rotulo_em_andamento: string | null
+          fase_seq: number | null
+          fase_seq_em_andamento: number | null
           fase_seq_verdade: number | null
           fonte_da_verdade: string | null
           horas_ciclo_bruto: number | null
@@ -66969,6 +66988,7 @@ export type Database = {
           t_embarcado: string | null
           t_expedido: string | null
           t_solicitado: string | null
+          tem_casa_em_andamento: boolean | null
           tem_corte: boolean | null
           transportador_cnpj: string | null
           transportadora_nome: string | null
