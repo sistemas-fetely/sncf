@@ -529,6 +529,7 @@ serve(async (req) => {
               remessasComRejeicao.add(t.remessa_safra_id);
             }
             contadores.rejeicoes++;
+            marcarDesfecho(linha.numeroLinha, true, null);
             continue;
           }
 
