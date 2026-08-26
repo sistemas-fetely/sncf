@@ -352,6 +352,15 @@ serve(async (req) => {
 
       // deno-lint-ignore no-explicit-any
       for (const t of aptos as any[]) {
+        // Amarra o boleto à remessa de baixa ANTES do update do título
+        // (o trigger de reemissão zera nosso_numero_seq nesse momento).
+        const { error: bolBaixaErr } = await sb
+          .from("titulo_boleto")
+          // deno-lint-ignore no-explicit-any
+          .update({ remessa_baixa_id: (remessa as any).id })
+          .eq("nosso_numero", String(t.nosso_numero_seq));
+        if (bolBaixaErr) console.error(`[gerar-remessa] vincular baixa ${t.nosso_numero_seq}:`, bolBaixaErr);
+
         const { error: updErr } = await sb
           .from("titulo_a_receber")
           .update({
@@ -621,6 +630,26 @@ serve(async (req) => {
         })
         .eq("id", item.id);
       if (updErr) throw new Error(`Erro ao atualizar título ${item.id}: ${updErr.message}`);
+
+      // Histórico do boleto: FAIL-LOUD — boleto emitido sem registro é buraco.
+      // deno-lint-ignore no-explicit-any
+      const tOrig = (titulos as any[]).find((x: any) => x.id === item.id);
+      const { error: bolErr } = await sb.from("titulo_boleto").insert({
+        titulo_id: item.id,
+        nosso_numero: item.nossoNumero,
+        // deno-lint-ignore no-explicit-any
+        remessa_entrada_id: (remessa as any).id,
+        data_vencimento: tOrig?.data_vencimento_atual ?? null,
+        valor: tOrig?.valor_bruto ?? null,
+        linha_digitavel: item.linhaDigitavel,
+        codigo_barras: item.codigoBarras,
+        situacao: "emitido",
+        origem: "gerar_remessa",
+      });
+      if (bolErr) {
+        console.error(`[gerar-remessa] titulo_boleto ${item.nossoNumero}:`, bolErr);
+        throw new Error(`Falha ao registrar historico do boleto ${item.nossoNumero}: ${bolErr.message}`);
+      }
     }
 
     return new Response(

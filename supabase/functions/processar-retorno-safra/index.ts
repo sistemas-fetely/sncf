@@ -298,6 +298,15 @@ serve(async (req) => {
     // ── promoção da remessa: vínculo real via título (não via header) ──────
     const remessasTocadas = new Set<string>();
     const remessasComRejeicao = new Set<string>();
+    const remessasInstrucaoTocadas = new Set<string>();  // baixa / prorrogacao
+
+    // ── histórico do boleto (titulo_boleto): situação sempre em dia ─────────
+    async function marcarBoleto(nossoNumero: string, situacao: string, campoData: string | null) {
+      const patch: Record<string, unknown> = { situacao };
+      if (campoData) patch[campoData] = new Date().toISOString();
+      const { error } = await sb.from("titulo_boleto").update(patch).eq("nosso_numero", nossoNumero);
+      if (error) console.error(`[retorno-safra] titulo_boleto ${nossoNumero}:`, error);
+    }
 
 
     // ── conta bancária Safra p/ movimentacoes_bancarias ────────────────────
@@ -315,7 +324,7 @@ serve(async (req) => {
     // ── contadores + relatório ─────────────────────────────────────────────
     const contadores = {
       registros: 0, rejeicoes: 0, liquidacoes: 0, baixas: 0,
-      alteracoes: 0, informativos: 0, ignoradas: 0,
+      alteracoes: 0, informativos: 0, ignoradas: 0, nao_aplicadas: 0,
     };
     const alertas: string[] = [];
     const erros: Array<{ linha: number; nosso_numero: string; erro: string }> = [];
@@ -376,7 +385,7 @@ serve(async (req) => {
               data_vencimento_atual, boleto_status, pedido_id,
               nosso_numero_seq, nosso_numero_safra, linha_digitavel, codigo_barras_boleto,
               prorrogacao_nova_data, prorrogacao_solicitada_em,
-              reemissao_nova_data, remessa_safra_id,
+              reemissao_nova_data, remessa_safra_id, baixa_remessa_id,
               conta:contas_pagar_receber(
                 parceiro:parceiros_comerciais(razao_social, email)
               )
@@ -392,13 +401,13 @@ serve(async (req) => {
           continue;
         }
 
-        // Título não encontrado: para BAIXA é esperado (reemissão); demais viram alerta.
+        // Título não resolvido: nada é aplicado — conta como não aplicada.
         if (!titulo) {
+          contadores.nao_aplicadas++;
           if (categoria === "baixa") {
-            contadores.baixas++;
-            alertas.push(`Baixa (${linha.ocorrencia}) para nosso número ${linha.nossoNumero} — título não encontrado (provável reemissão anterior).`);
+            alertas.push(`⚠ Baixa (${linha.ocorrencia}) NÃO APLICADA — nosso número ${linha.nossoNumero} não resolveu para nenhum título. Exige tratamento manual.`);
           } else {
-            alertas.push(`Título não encontrado para ocorrência ${linha.ocorrencia} — nosso número ${linha.nossoNumero}.`);
+            alertas.push(`⚠ Ocorrência ${linha.ocorrencia} NÃO APLICADA — nosso número ${linha.nossoNumero} não resolveu para nenhum título.`);
           }
           continue;
         }
@@ -419,6 +428,7 @@ serve(async (req) => {
             erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `update registro: ${errRegistro.message}` });
             continue;
           }
+          await marcarBoleto(linha.nossoNumero, "registrado", "registrado_em");
           if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
           contadores.registros++;
           continue;
@@ -457,9 +467,12 @@ serve(async (req) => {
             contadores.rejeicoes++;
             continue;
           }
-          await sb.from("titulo_a_receber")
+          const { error: errRejeicao } = await sb.from("titulo_a_receber")
             .update({ boleto_status: "rejeitado", boleto_codigo_rejeicao: linha.motivoRejeicao })
             .eq("id", t.id);
+          if (!errRejeicao) {
+            await marcarBoleto(linha.nossoNumero, "rejeitado", null);
+          }
           if (t.remessa_safra_id) {
             remessasTocadas.add(t.remessa_safra_id);
             remessasComRejeicao.add(t.remessa_safra_id);
@@ -568,6 +581,8 @@ serve(async (req) => {
             .eq("id", t.id);
           if (errBoleto) {
             erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `update boleto: ${errBoleto.message}` });
+          } else {
+            await marcarBoleto(linha.nossoNumero, "liquidado", "liquidado_em");
           }
 
           if (jurosArq > 0) {
@@ -608,9 +623,12 @@ serve(async (req) => {
           const dataAntes = t.data_vencimento_atual;
           const tinhaReemissao = !!t.reemissao_nova_data;
 
-          await sb.from("titulo_a_receber")
+          const { error: errBaixa } = await sb.from("titulo_a_receber")
             .update({ boleto_status: "baixado_banco" })
             .eq("id", t.id);
+          if (!errBaixa) {
+            await marcarBoleto(linha.nossoNumero, "baixado", "baixado_em");
+          }
 
           if (tinhaReemissao) {
             // Após a baixa, o trigger aplica a reemissão. Registra no log.
@@ -637,6 +655,7 @@ serve(async (req) => {
             );
           }
           if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
+          if (t.baixa_remessa_id) remessasInstrucaoTocadas.add(t.baixa_remessa_id);
           contadores.baixas++;
           continue;
         }
@@ -743,6 +762,7 @@ serve(async (req) => {
 
             alertas.push(`Prorrogação confirmada — novo vencimento ${novaData} — título ${linha.nossoNumero}. Código de barras recalculado. PDF do boleto deve ser regenerado antes do reenvio ao cliente.`);
             if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
+            if (t.baixa_remessa_id) remessasInstrucaoTocadas.add(t.baixa_remessa_id);
             contadores.alteracoes++;
             continue;
           }
@@ -831,8 +851,9 @@ serve(async (req) => {
 
     // ── promoção do selo das remessas pelo vínculo real dos títulos ────────
     const remessasPromovidas: string[] = [];
-    if (remessasTocadas.size > 0) {
-      const ids = Array.from(remessasTocadas);
+    const idsRemessas = Array.from(new Set([...remessasTocadas, ...remessasInstrucaoTocadas]));
+    if (idsRemessas.length > 0) {
+      const ids = idsRemessas;
       const { data: atuais } = await sb
         .from("remessas_safra")
         .select("id, status")
