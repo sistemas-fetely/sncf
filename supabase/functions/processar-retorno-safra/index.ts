@@ -458,12 +458,14 @@ serve(async (req) => {
 
         if (tErr) {
           erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: tErr.message });
+          marcarDesfecho(linha.numeroLinha, false, "erro ao buscar titulo");
           continue;
         }
 
         // Título não resolvido: nada é aplicado — conta como não aplicada.
         if (!titulo) {
           contadores.nao_aplicadas++;
+          marcarDesfecho(linha.numeroLinha, false, "titulo nao resolvido");
           if (categoria === "baixa") {
             alertas.push(`⚠ Baixa (${linha.ocorrencia}) NÃO APLICADA — nosso número ${linha.nossoNumero} não resolveu para nenhum título. Exige tratamento manual.`);
           } else {
