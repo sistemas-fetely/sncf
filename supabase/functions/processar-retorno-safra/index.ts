@@ -564,6 +564,7 @@ serve(async (req) => {
                 nosso_numero_anterior: linha.nossoNumero,
               } as any);
               contadores.baixas++;
+              marcarDesfecho(linha.numeroLinha, true, null);
               alertas.push(
                 `Baixa (03/${linha.motivoRejeicao}) recusada porque o boleto ${linha.nossoNumero} já não existia no banco — ${descMotivo}. Tratado como baixa confirmada.`
               );
