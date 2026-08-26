@@ -608,9 +608,12 @@ serve(async (req) => {
           const dataAntes = t.data_vencimento_atual;
           const tinhaReemissao = !!t.reemissao_nova_data;
 
-          await sb.from("titulo_a_receber")
+          const { error: errBaixa } = await sb.from("titulo_a_receber")
             .update({ boleto_status: "baixado_banco" })
             .eq("id", t.id);
+          if (!errBaixa) {
+            await marcarBoleto(linha.nossoNumero, "baixado", "baixado_em");
+          }
 
           if (tinhaReemissao) {
             // Após a baixa, o trigger aplica a reemissão. Registra no log.
