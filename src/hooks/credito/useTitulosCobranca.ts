@@ -97,6 +97,10 @@ export interface TituloCobranca {
   parceiro_email?: string | null;
   parceiro_email_cobranca?: string | null;
   link_pagamento?: string | null;
+  data_pago_efetiva: string | null;
+  aguardando_credito: boolean | null;
+  relogio_pontualidade: "cliente" | "adquirente" | null;
+  dias_pontualidade: number | null;
   /* @deprecated dois eixos antigos — usar eixo_recebimento / eixo_instrumento */
   eixo_prova: EixoProva;
   eixo_status: EixoStatus;
@@ -116,6 +120,7 @@ export interface KpisTitulos {
   venceHoje: { qtd: number; valor: number };
   atrasado: { qtd: number; valor: number };
   pagoNoMes: { qtd: number; valor: number };
+  pagoNoMesAguardando: { qtd: number; valor: number };
   total: { qtd: number; valor: number };
 }
 
@@ -147,7 +152,7 @@ export function calcularKpis(titulos: TituloCobranca[]): KpisTitulos {
   const mes = inicioDoMes();
   const zero = () => ({ qtd: 0, valor: 0 });
   const k: KpisTitulos = {
-    aVencer: zero(), venceHoje: zero(), atrasado: zero(), pagoNoMes: zero(), total: zero(),
+    aVencer: zero(), venceHoje: zero(), atrasado: zero(), pagoNoMes: zero(), pagoNoMesAguardando: zero(), total: zero(),
   };
   for (const t of titulos) {
     if (!tituloEntraNoKpi(t)) continue;
@@ -156,9 +161,11 @@ export function calcularKpis(titulos: TituloCobranca[]): KpisTitulos {
     if (t.status_gestao === "a_vencer")   { k.aVencer.qtd++;   k.aVencer.valor   += v; }
     if (t.status_gestao === "vence_hoje") { k.venceHoje.qtd++; k.venceHoje.valor += v; }
     if (t.status_gestao === "atrasado")   { k.atrasado.qtd++;  k.atrasado.valor  += v; }
-    // Conta as três formas de pago, não só a pontual.
-    if (STATUS_PAGOS.includes(t.status_gestao) && (t.data_liquidacao_real ?? "") >= mes) {
+    // "Pago no mês" mede PAGAMENTO, não liquidez — cartão pago e ainda não creditado
+    // pela adquirente conta aqui e aparece na quebra.
+    if (STATUS_PAGOS.includes(t.status_gestao) && (t.data_pago_efetiva ?? "") >= mes) {
       k.pagoNoMes.qtd++; k.pagoNoMes.valor += v;
+      if (t.aguardando_credito) { k.pagoNoMesAguardando.qtd++; k.pagoNoMesAguardando.valor += v; }
     }
   }
   return k;
