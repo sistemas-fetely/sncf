@@ -1089,6 +1089,7 @@ serve(async (req) => {
         alertas,
         erros,
         qtd_nao_casadas: qtdNaoCasadas,
+        qtd_nao_aplicadas: qtdNaoAplicadas,
         informativos_por_codigo: infoInformativos,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
