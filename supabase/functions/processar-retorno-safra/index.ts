@@ -717,6 +717,7 @@ serve(async (req) => {
                 movimentacaoBaixaId = movExistente?.id ?? null;
               } else {
                 erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `mov bancária: ${errMov.message}` });
+                marcarDesfecho(linha.numeroLinha, false, "erro na movimentacao bancaria");
                 continue;
               }
             } else {
