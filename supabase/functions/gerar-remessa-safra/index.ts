@@ -352,6 +352,15 @@ serve(async (req) => {
 
       // deno-lint-ignore no-explicit-any
       for (const t of aptos as any[]) {
+        // Amarra o boleto à remessa de baixa ANTES do update do título
+        // (o trigger de reemissão zera nosso_numero_seq nesse momento).
+        const { error: bolBaixaErr } = await sb
+          .from("titulo_boleto")
+          // deno-lint-ignore no-explicit-any
+          .update({ remessa_baixa_id: (remessa as any).id })
+          .eq("nosso_numero", String(t.nosso_numero_seq));
+        if (bolBaixaErr) console.error(`[gerar-remessa] vincular baixa ${t.nosso_numero_seq}:`, bolBaixaErr);
+
         const { error: updErr } = await sb
           .from("titulo_a_receber")
           .update({
