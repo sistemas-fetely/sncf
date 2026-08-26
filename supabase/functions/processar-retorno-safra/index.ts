@@ -577,6 +577,7 @@ serve(async (req) => {
                 .eq("id", t.id);
               if (errBoletoVivo) {
                 erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `update baixa_recusada_boleto_vivo: ${errBoletoVivo.message}` });
+                marcarDesfecho(linha.numeroLinha, false, "erro no update");
                 continue;
               }
               await marcarBoleto(linha.nossoNumero, "registrado", null);
