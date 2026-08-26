@@ -398,6 +398,7 @@ serve(async (req) => {
         // ── ocorrência desconhecida OU inativa ────────────────────────────
         if (!dim || dim.ativo === false) {
           contadores.ignoradas++;
+          marcarDesfecho(linha.numeroLinha, false, "ocorrencia desconhecida ou inativa");
           alertas.push(
             `Ocorrência ${linha.ocorrencia} (${dim?.descricao ?? "desconhecida"}) ignorada — título ${linha.nossoNumero}.`
           );
@@ -410,8 +411,26 @@ serve(async (req) => {
         if (categoria === "informativo") {
           contadores.informativos++;
           infoInformativos[linha.ocorrencia] = (infoInformativos[linha.ocorrencia] ?? 0) + 1;
+          marcarDesfecho(linha.numeroLinha, false, "informativa: nao define estado");
           continue;
         }
+
+        // Guarda de ORDEM. Por LINHA, não por arquivo: um arquivo antigo pode trazer
+        // ocorrência legítima nunca processada, e recusar o arquivo inteiro descartaria
+        // prova. A data confiável é a do ARQUIVO (dataMovimento), nunca data_ocorrencia.
+        if (CODIGOS_DEFINEM_ESTADO.has(linha.ocorrencia) && dataMovimento) {
+          const anterior = provaAnterior.get(linha.nossoNumero);
+          if (anterior?.prova_em && anterior.prova_em > dataMovimento) {
+            contadores.retroativas++;
+            marcarDesfecho(linha.numeroLinha, false,
+              `retroativa: arquivo de ${dataMovimento} contra prova de ${anterior.prova_em} (ocorrencia ${anterior.codigo_ocorrencia}, retorno ${anterior.nro_sequencial})`);
+            alertas.push(
+              `⚠ Linha ${linha.numeroLinha} IGNORADA por ordem — ocorrência ${linha.ocorrencia} de arquivo com movimento ${dataMovimento}, mas o boleto ${linha.nossoNumero} já tem prova de ${anterior.prova_em} (ocorrência ${anterior.codigo_ocorrencia}, retorno ${anterior.nro_sequencial}). Gravada no rastro, efeito NÃO aplicado.`
+            );
+            continue;
+          }
+        }
+
 
         // ── busca do título (necessário para todos os branches restantes) ─
         const resolvido = resolucao.get(linha.numeroLinha);
