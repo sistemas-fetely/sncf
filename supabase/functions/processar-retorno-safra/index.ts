@@ -831,8 +831,9 @@ serve(async (req) => {
 
     // ── promoção do selo das remessas pelo vínculo real dos títulos ────────
     const remessasPromovidas: string[] = [];
-    if (remessasTocadas.size > 0) {
-      const ids = Array.from(remessasTocadas);
+    const idsRemessas = Array.from(new Set([...remessasTocadas, ...remessasInstrucaoTocadas]));
+    if (idsRemessas.length > 0) {
+      const ids = idsRemessas;
       const { data: atuais } = await sb
         .from("remessas_safra")
         .select("id, status")
