@@ -650,6 +650,7 @@ serve(async (req) => {
               `⚠ POSSÍVEL PAGAMENTO EM DOBRO: título ${t.nosso_numero_seq ?? t.numero_titulo} já estava baixado manualmente e o banco reportou liquidação. Confira o extrato e trate reembolso se necessário.`,
             );
             contadores.liquidacoes++;
+            marcarDesfecho(linha.numeroLinha, false, "titulo ja baixado manualmente: exige conferencia");
             continue;
           }
 
