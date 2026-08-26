@@ -1,6 +1,6 @@
 // Edge function: analisar-credito-ia
 // Análise consolidada de crédito pra Joseph decidir.
-// Monta contexto rico (pedido + parceiro + KPIs + scores + histórico) e chama Claude Sonnet.
+// Monta contexto rico (pedido + parceiro + KPIs + scores + histórico) e chama o modelo primário via Lovable AI Gateway (com fallback).
 // Grava resultado em analises_credito.analise_ia_json.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
@@ -350,14 +350,14 @@ Gere a análise estruturada em JSON conforme instruído no system prompt.`;
 
     if (!aiResp.ok) {
       const errorText = await aiResp.text().catch(() => "");
-      console.error("Claude error:", aiResp.status, errorText);
+      console.error("Erro no modelo primário", MODELO_PRIMARIO, aiResp.status, errorText);
       const fallbackInfo = {
         primario: MODELO_PRIMARIO,
         status: aiResp.status,
         erro: String(errorText).slice(0, 300),
         em: new Date().toISOString(),
       };
-      // Fallback: tenta Gemini Pro se Claude não tá disponível
+      // Fallback: se o primário falhar, tenta o modelo de segunda linha
       const fallbackResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -374,7 +374,7 @@ Gere a análise estruturada em JSON conforme instruído no system prompt.`;
       });
       if (!fallbackResp.ok) {
         return new Response(
-          JSON.stringify({ error: `IA indisponível (Claude ${aiResp.status}, Gemini fallback ${fallbackResp.status})` }),
+          JSON.stringify({ error: `IA indisponível (${MODELO_PRIMARIO} ${aiResp.status}, fallback ${MODELO_FALLBACK} ${fallbackResp.status})` }),
           { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
