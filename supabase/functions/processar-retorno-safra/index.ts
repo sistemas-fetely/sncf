@@ -15,6 +15,7 @@ interface LinhaRetorno {
   ocorrencia: string;      // pos 109-110
   seuNumero: string;       // pos 117-126
   nossoNumero: string;     // pos 63-71
+  usoEmpresa: string;      // pos 38-62 (25 chars) — prefixo do UUID do título
   motivoRejeicao: string;  // pos 105-107
   dataCreditoRaw: string;  // pos 296-301 (DDMMAA)
   dataVencRaw: string;     // pos 147-152 (DDMMAA)
@@ -31,6 +32,7 @@ function parseLinha(linha: string, numeroLinha: number): LinhaRetorno | null {
   return {
     numeroLinha,
     nossoNumero: nnRaw.replace(/^0+/, "") || nnRaw,
+    usoEmpresa:     linha.substring(37, 62).trim(),
     motivoRejeicao: linha.substring(104, 107).trim(),
     ocorrencia:     linha.substring(108, 110).trim(),
     seuNumero:      linha.substring(116, 126).trim(),
@@ -281,6 +283,7 @@ serve(async (req) => {
         qtd_liquidacoes: qtdLiquidacoes,
         valor_liquidacoes: Math.round(valorLiquidacoes * 100) / 100,
         processado_em: new Date().toISOString(),
+        processado_por: userData.user.id,
         status: "processado",
       })
       .select("id")
@@ -319,6 +322,25 @@ serve(async (req) => {
     const infoInformativos: Record<string, number> = {};
     const detalhesRejeicao: Array<{ numero_titulo: string; parceiro_nome: string; codigo_rejeicao: string; motivo: string }> = [];
 
+    // ── resolução única de título: uma regra só para efeito E rastro ───────
+    // Antes existiam duas: o loop principal casava só por nosso_numero_seq e o
+    // rastro chamava fn_cnab_resolver_titulo com p_uso_empresa hardcoded em null.
+    // O resultado era ocorrência gravada como "casada" sem efeito aplicado.
+    const resolucao = new Map<number, { titulo_id: string | null; casado_por: string | null }>();
+    for (const d of detalhes) {
+      const { data: res, error: errRes } = await sb.rpc("fn_cnab_resolver_titulo", {
+        p_uso_empresa: d.usoEmpresa || null,
+        p_nosso_numero: d.nossoNumero,
+        p_seu_numero: d.seuNumero,
+      });
+      if (errRes) {
+        resolucao.set(d.numeroLinha, { titulo_id: null, casado_por: null });
+        continue;
+      }
+      const r = (Array.isArray(res) ? res[0] : res) as { titulo_id: string | null; casado_por: string | null } | null;
+      resolucao.set(d.numeroLinha, { titulo_id: r?.titulo_id ?? null, casado_por: r?.casado_por ?? null });
+    }
+
     for (const linha of detalhes) {
       try {
         const dim = mapaOcorrencias.get(linha.ocorrencia);
@@ -342,21 +364,28 @@ serve(async (req) => {
         }
 
         // ── busca do título (necessário para todos os branches restantes) ─
-        const { data: titulo, error: tErr } = await sb
-          .from("titulo_a_receber")
-          .select(`
-            id, numero_titulo, numero_parcela, total_parcelas,
-            valor_bruto, valor_desconto, valor_juros, valor_multa, valor_correcao,
-            data_vencimento_atual, boleto_status, pedido_id,
-            nosso_numero_seq, nosso_numero_safra, linha_digitavel, codigo_barras_boleto,
-            prorrogacao_nova_data, prorrogacao_solicitada_em,
-            reemissao_nova_data, remessa_safra_id,
-            conta:contas_pagar_receber(
-              parceiro:parceiros_comerciais(razao_social, email)
-            )
-          `)
-          .eq("nosso_numero_seq", linha.nossoNumero)
-          .maybeSingle();
+        const resolvido = resolucao.get(linha.numeroLinha);
+        let titulo: any = null;
+        let tErr: any = null;
+        if (resolvido?.titulo_id) {
+          const { data: t, error: e } = await sb
+            .from("titulo_a_receber")
+            .select(`
+              id, numero_titulo, numero_parcela, total_parcelas,
+              valor_bruto, valor_desconto, valor_juros, valor_multa, valor_correcao,
+              data_vencimento_atual, boleto_status, pedido_id,
+              nosso_numero_seq, nosso_numero_safra, linha_digitavel, codigo_barras_boleto,
+              prorrogacao_nova_data, prorrogacao_solicitada_em,
+              reemissao_nova_data, remessa_safra_id,
+              conta:contas_pagar_receber(
+                parceiro:parceiros_comerciais(razao_social, email)
+              )
+            `)
+            .eq("id", resolvido.titulo_id)
+            .maybeSingle();
+          titulo = t;
+          tErr = e;
+        }
 
         if (tErr) {
           erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: tErr.message });
@@ -772,17 +801,7 @@ serve(async (req) => {
     // ── rastro: uma linha por ocorrência, com o título resolvido ──────────
     const rowsOc: Record<string, unknown>[] = [];
     for (const d of detalhes) {
-      const { data: res, error: errRes } = await sb.rpc("fn_cnab_resolver_titulo", {
-        p_uso_empresa: null, p_nosso_numero: d.nossoNumero, p_seu_numero: d.seuNumero,
-      });
-      if (errRes) {
-        erros.push({
-          linha: d.numeroLinha,
-          nosso_numero: d.nossoNumero,
-          erro: `resolver título: ${errRes.message}`,
-        });
-      }
-      const r = (Array.isArray(res) ? res[0] : res) as { titulo_id: string | null; casado_por: string | null } | null;
+      const r = resolucao.get(d.numeroLinha);
       rowsOc.push({
         arquivo_id: arquivoId,
         nro_sequencial: nroSequencial,
@@ -791,7 +810,7 @@ serve(async (req) => {
         motivo_rejeicao: d.motivoRejeicao || null,
         data_ocorrencia: dataMovimento,
         nosso_numero: d.nossoNumero,
-        uso_empresa: null,
+        uso_empresa: d.usoEmpresa || null,
         seu_numero: d.seuNumero || null,
         titulo_id: r?.titulo_id ?? null,
         casado_por: r?.casado_por ?? null,
@@ -834,6 +853,28 @@ serve(async (req) => {
       }
     }
 
+    // ── FAIL-LOUD: relatório persistido, não só devolvido no HTTP ──────────
+    const qtdNaoCasadas = rowsOc.filter((r) => r.titulo_id == null).length;
+    const { error: errRel } = await sb
+      .from("safra_retorno_arquivo")
+      .update({
+        relatorio: {
+          contadores,
+          alertas,
+          erros,
+          informativos_por_codigo: infoInformativos,
+          remessas_promovidas: remessasPromovidas,
+        },
+        qtd_alertas: alertas.length,
+        qtd_erros: erros.length,
+        qtd_nao_casadas: qtdNaoCasadas,
+      })
+      .eq("id", arquivoId);
+    if (errRel) {
+      console.error("[retorno-safra] falha ao persistir relatório:", errRel);
+      erros.push({ linha: 0, nosso_numero: "", erro: `persistir relatório: ${errRel.message}` });
+    }
+
     // Compat: campos antigos consumidos pela UI (confirmados/liquidados/rejeitados/detalhes_rejeicao)
     return new Response(
       JSON.stringify({
@@ -852,6 +893,7 @@ serve(async (req) => {
         contadores,
         alertas,
         erros,
+        qtd_nao_casadas: qtdNaoCasadas,
         informativos_por_codigo: infoInformativos,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
