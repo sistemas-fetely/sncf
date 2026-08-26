@@ -882,6 +882,7 @@ serve(async (req) => {
               alertas.push(
                 `Retorno retroativo ignorado — título ${linha.nossoNumero}: arquivo de ${dataMovimento} traz vencimento ${novaData}, mas já há prova de ${maxProvaEm}.`
               );
+              marcarDesfecho(linha.numeroLinha, false, "retorno retroativo: prova mais recente existe");
               continue;
             }
 
