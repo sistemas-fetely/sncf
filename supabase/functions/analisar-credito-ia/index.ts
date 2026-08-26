@@ -301,11 +301,11 @@ ESTADO ATUAL DO CLIENTE:
 
 KPIs FINANCEIROS DO CLIENTE:
 ${kpis ? `
-- DÍVIDA VENCIDA HOJE (em atraso, não pago): R$ ${num(kpis.vencidos)}
-- A vencer (em aberto, ainda dentro do prazo): R$ ${num(kpis.a_vencer)}
-- Total em aberto (vencido + a vencer): R$ ${num(kpis.em_aberto)}
-- JÁ PAGO E QUITADO no histórico (isto NÃO é dívida): R$ ${num(kpis.pago)}
-- Maior compra já feita: R$ ${num(kpis.maior_compra)}
+- DÍVIDA VENCIDA HOJE (em atraso, não pago): R$ ${fmtBr(num(kpis.vencidos))}
+- A vencer (em aberto, ainda dentro do prazo): R$ ${fmtBr(num(kpis.a_vencer))}
+- Total em aberto (vencido + a vencer): R$ ${fmtBr(num(kpis.em_aberto))}
+- JÁ PAGO E QUITADO no histórico (isto NÃO é dívida): R$ ${fmtBr(num(kpis.pago))}
+- Maior compra já feita: R$ ${fmtBr(num(kpis.maior_compra))}
 - Última compra em: ${kpis.ultima_compra_em || "—"}
 - Atraso médio nos pagamentos já feitos: ${Math.round(num(kpis.atraso_medio_dias))} dias
 ATENÇÃO: se DÍVIDA VENCIDA HOJE for R$ 0, o cliente NÃO tem débito vencido. Não descreva valores já pagos como dívida.` : "Sem dados financeiros (cliente novo)"}
