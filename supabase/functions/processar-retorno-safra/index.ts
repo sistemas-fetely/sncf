@@ -488,11 +488,13 @@ serve(async (req) => {
             .eq("id", t.id);
           if (errRegistro) {
             erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `update registro: ${errRegistro.message}` });
+            marcarDesfecho(linha.numeroLinha, false, "erro no update de registro");
             continue;
           }
           await marcarBoleto(linha.nossoNumero, "registrado", "registrado_em");
           if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
           contadores.registros++;
+          marcarDesfecho(linha.numeroLinha, true, null);
           continue;
         }
 
