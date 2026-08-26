@@ -593,6 +593,7 @@ serve(async (req) => {
                 nosso_numero_anterior: linha.nossoNumero,
               } as any);
               contadores.rejeicoes++;
+              marcarDesfecho(linha.numeroLinha, true, null);
               alertas.push(
                 `⚠ BAIXA RECUSADA — boleto ${linha.nossoNumero} SEGUE VÁLIDO no Safra (motivo ${linha.motivoRejeicao}: ${descMotivo}). O cliente ainda pode pagar este boleto. Reenviar a baixa antes de reemitir.`
               );
