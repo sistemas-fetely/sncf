@@ -1010,6 +1010,8 @@ serve(async (req) => {
         valor_pago: parseValor13d2(d.valorPagoRaw),
         valor_juros: parseValor13d2(d.jurosMoraRaw),
         data_credito: parseDDMMAA(d.dataCreditoRaw),
+        efeito_aplicado: desfecho.get(d.numeroLinha)?.aplicado ?? false,
+        motivo_nao_aplicado: desfecho.get(d.numeroLinha)?.motivo ?? null,
       });
     }
     for (let i = 0; i < rowsOc.length; i += 200) {
