@@ -774,6 +774,7 @@ serve(async (req) => {
               `⚠ Baixa (${linha.ocorrencia}) recebida para título ${linha.nossoNumero} já ${t.boleto_status} — verificar.`
             );
             contadores.baixas++;
+            marcarDesfecho(linha.numeroLinha, false, "titulo ja pago: baixa nao aplicada");
             continue;
           }
 
