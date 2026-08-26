@@ -684,6 +684,7 @@ serve(async (req) => {
           });
           if (errMarca) {
             erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `marcar_titulo_pago: ${errMarca.message}` });
+            marcarDesfecho(linha.numeroLinha, false, "erro em marcar_titulo_pago");
             continue;
           }
 
