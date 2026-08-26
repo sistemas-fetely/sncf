@@ -315,7 +315,7 @@ function Semaforo({
               <span
                 className={`h-3 w-3 rounded-sm border ${
                   cinza
-                    ? "bg-muted border-muted-foreground/40"
+                    ? "bg-success/40 border-success/60"
                     : cheio
                       ? "bg-success border-success/40"
                       : "border-muted-foreground/40"
