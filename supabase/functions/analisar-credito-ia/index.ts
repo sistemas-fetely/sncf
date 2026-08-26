@@ -272,12 +272,12 @@ Deno.serve(async (req) => {
     const userPrompt = `Analise esta análise de crédito.
 
 PEDIDO:
-- Valor bruto dos itens: R$ ${valorBruto}
-- Frete: R$ ${valorFrete}
-- Desconto: R$ ${descontoValor}
-- Acréscimo (sem inscrição estadual): R$ ${acrescimoIe}
-- Valor líquido (o que o cliente paga): R$ ${valorLiquido}
-- Conferência de valores: bruto + frete - desconto + acréscimo = R$ ${somaConferida.toFixed(2)} ${fecha ? "— FECHA com o líquido" : "— NÃO FECHA com o líquido, sinalize isso"}
+- Valor bruto dos itens: R$ ${fmtBr(valorBruto)}
+- Frete: R$ ${fmtBr(valorFrete)}
+- Desconto: R$ ${fmtBr(descontoValor)}
+- Acréscimo (sem inscrição estadual): R$ ${fmtBr(acrescimoIe)}
+- Valor líquido (o que o cliente paga): R$ ${fmtBr(valorLiquido)}
+- Conferência de valores: bruto + frete - desconto + acréscimo = R$ ${fmtBr(somaConferida)} ${fecha ? "— FECHA com o líquido" : "— NÃO FECHA com o líquido, sinalize isso"}
 - Condição solicitada: ${analise.pedido?.condicao_solicitada}
 - Forma solicitada: ${analise.pedido?.forma_solicitada}
 - Vendedor: ${analise.pedido?.vendedor || "—"}
