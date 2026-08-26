@@ -926,12 +926,14 @@ serve(async (req) => {
             if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
             if (t.baixa_remessa_id) remessasInstrucaoTocadas.add(t.baixa_remessa_id);
             contadores.alteracoes++;
+            marcarDesfecho(linha.numeroLinha, true, null);
             continue;
           }
           if (linha.ocorrencia === "51") {
             const novoValor = parseValor13d2(linha.valorTituloRaw);
             if (!novoValor) {
               erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: "Valor inválido na alteração 51" });
+              marcarDesfecho(linha.numeroLinha, false, "valor invalido");
               continue;
             }
             // FAIL-LOUD: valor_atual é coluna GERADA (valor_bruto - valor_desconto + juros + multa + correcao).
@@ -947,6 +949,7 @@ serve(async (req) => {
                 nosso_numero: linha.nossoNumero,
                 erro: `Alteração 51: novo valor (R$ ${novoValor.toFixed(2)}) maior que o valor base do título (R$ ${base.toFixed(2)}) — não representável como desconto`,
               });
+              marcarDesfecho(linha.numeroLinha, false, "novo valor maior que a base");
               continue;
             }
             const novoDesconto = Number((base - novoValor).toFixed(2));
@@ -956,20 +959,24 @@ serve(async (req) => {
               .eq("id", t.id);
             if (upErr51) {
               erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `alteração 51 update: ${upErr51.message}` });
+              marcarDesfecho(linha.numeroLinha, false, "erro no update de valor");
               continue;
             }
             alertas.push(`Valor alterado para ${novoValor.toFixed(2)} — título ${linha.nossoNumero}.`);
             if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
             contadores.alteracoes++;
+            marcarDesfecho(linha.numeroLinha, true, null);
             continue;
           }
           // Outras alterações categorizadas: só contar
           contadores.alteracoes++;
+          marcarDesfecho(linha.numeroLinha, false, "alteracao nao tratada");
           continue;
         }
 
         // fallback: categoria não prevista
         contadores.ignoradas++;
+        marcarDesfecho(linha.numeroLinha, false, "categoria nao tratada");
         alertas.push(`Categoria "${categoria}" não tratada (ocorrência ${linha.ocorrencia}) — título ${linha.nossoNumero}.`);
       } catch (e) {
         erros.push({
@@ -977,6 +984,7 @@ serve(async (req) => {
           nosso_numero: linha.nossoNumero,
           erro: e instanceof Error ? e.message : String(e),
         });
+        marcarDesfecho(linha.numeroLinha, false, "excecao no processamento");
       }
     }
 
