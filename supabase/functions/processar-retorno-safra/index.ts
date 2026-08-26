@@ -853,6 +853,28 @@ serve(async (req) => {
       }
     }
 
+    // ── FAIL-LOUD: relatório persistido, não só devolvido no HTTP ──────────
+    const qtdNaoCasadas = rowsOc.filter((r) => r.titulo_id == null).length;
+    const { error: errRel } = await sb
+      .from("safra_retorno_arquivo")
+      .update({
+        relatorio: {
+          contadores,
+          alertas,
+          erros,
+          informativos_por_codigo: infoInformativos,
+          remessas_promovidas: remessasPromovidas,
+        },
+        qtd_alertas: alertas.length,
+        qtd_erros: erros.length,
+        qtd_nao_casadas: qtdNaoCasadas,
+      })
+      .eq("id", arquivoId);
+    if (errRel) {
+      console.error("[retorno-safra] falha ao persistir relatório:", errRel);
+      erros.push({ linha: 0, nosso_numero: "", erro: `persistir relatório: ${errRel.message}` });
+    }
+
     // Compat: campos antigos consumidos pela UI (confirmados/liquidados/rejeitados/detalhes_rejeicao)
     return new Response(
       JSON.stringify({
@@ -871,6 +893,7 @@ serve(async (req) => {
         contadores,
         alertas,
         erros,
+        qtd_nao_casadas: qtdNaoCasadas,
         informativos_por_codigo: infoInformativos,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
