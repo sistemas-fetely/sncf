@@ -743,6 +743,7 @@ serve(async (req) => {
 
             alertas.push(`Prorrogação confirmada — novo vencimento ${novaData} — título ${linha.nossoNumero}. Código de barras recalculado. PDF do boleto deve ser regenerado antes do reenvio ao cliente.`);
             if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
+            if (t.baixa_remessa_id) remessasInstrucaoTocadas.add(t.baixa_remessa_id);
             contadores.alteracoes++;
             continue;
           }
