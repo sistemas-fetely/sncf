@@ -15,6 +15,7 @@ interface LinhaRetorno {
   ocorrencia: string;      // pos 109-110
   seuNumero: string;       // pos 117-126
   nossoNumero: string;     // pos 63-71
+  usoEmpresa: string;      // pos 38-62 (25 chars) — prefixo do UUID do título
   motivoRejeicao: string;  // pos 105-107
   dataCreditoRaw: string;  // pos 296-301 (DDMMAA)
   dataVencRaw: string;     // pos 147-152 (DDMMAA)
@@ -31,6 +32,7 @@ function parseLinha(linha: string, numeroLinha: number): LinhaRetorno | null {
   return {
     numeroLinha,
     nossoNumero: nnRaw.replace(/^0+/, "") || nnRaw,
+    usoEmpresa:     linha.substring(37, 62).trim(),
     motivoRejeicao: linha.substring(104, 107).trim(),
     ocorrencia:     linha.substring(108, 110).trim(),
     seuNumero:      linha.substring(116, 126).trim(),
@@ -281,6 +283,7 @@ serve(async (req) => {
         qtd_liquidacoes: qtdLiquidacoes,
         valor_liquidacoes: Math.round(valorLiquidacoes * 100) / 100,
         processado_em: new Date().toISOString(),
+        processado_por: userData.user.id,
         status: "processado",
       })
       .select("id")
