@@ -631,6 +631,7 @@ serve(async (req) => {
             remessasComRejeicao.add(t.remessa_safra_id);
           }
           contadores.rejeicoes++;
+          marcarDesfecho(linha.numeroLinha, true, null);
           detalhesRejeicao.push({
             numero_titulo:   t.numero_titulo,
             parceiro_nome:   parceiro?.razao_social ?? "—",
