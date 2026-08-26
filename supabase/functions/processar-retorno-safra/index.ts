@@ -364,21 +364,28 @@ serve(async (req) => {
         }
 
         // ── busca do título (necessário para todos os branches restantes) ─
-        const { data: titulo, error: tErr } = await sb
-          .from("titulo_a_receber")
-          .select(`
-            id, numero_titulo, numero_parcela, total_parcelas,
-            valor_bruto, valor_desconto, valor_juros, valor_multa, valor_correcao,
-            data_vencimento_atual, boleto_status, pedido_id,
-            nosso_numero_seq, nosso_numero_safra, linha_digitavel, codigo_barras_boleto,
-            prorrogacao_nova_data, prorrogacao_solicitada_em,
-            reemissao_nova_data, remessa_safra_id,
-            conta:contas_pagar_receber(
-              parceiro:parceiros_comerciais(razao_social, email)
-            )
-          `)
-          .eq("nosso_numero_seq", linha.nossoNumero)
-          .maybeSingle();
+        const resolvido = resolucao.get(linha.numeroLinha);
+        let titulo: any = null;
+        let tErr: any = null;
+        if (resolvido?.titulo_id) {
+          const { data: t, error: e } = await sb
+            .from("titulo_a_receber")
+            .select(`
+              id, numero_titulo, numero_parcela, total_parcelas,
+              valor_bruto, valor_desconto, valor_juros, valor_multa, valor_correcao,
+              data_vencimento_atual, boleto_status, pedido_id,
+              nosso_numero_seq, nosso_numero_safra, linha_digitavel, codigo_barras_boleto,
+              prorrogacao_nova_data, prorrogacao_solicitada_em,
+              reemissao_nova_data, remessa_safra_id,
+              conta:contas_pagar_receber(
+                parceiro:parceiros_comerciais(razao_social, email)
+              )
+            `)
+            .eq("id", resolvido.titulo_id)
+            .maybeSingle();
+          titulo = t;
+          tErr = e;
+        }
 
         if (tErr) {
           erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: tErr.message });
