@@ -59,6 +59,7 @@ import {
   SeloInadimplente,
   PRAZO_CLASSE_TEXTO,
 } from "@/lib/financeiro/eixos-estado";
+import { SeloPontualidade } from "@/lib/financeiro/pontualidade";
 import { agruparPorPedido, grupoEhUnitario, grupoEstadoDividido, resumoComposicao, type GrupoPedido } from "@/lib/financeiro/agrupar-titulos";
 
 
@@ -239,7 +240,7 @@ function MotivoRejeicaoSafra({ codigo }: { codigo: string }) {
 }
 
 function KpiCard({
-  label, qtd, valor, ativo, onClick, tone, labelTooltip,
+  label, qtd, valor, ativo, onClick, tone, labelTooltip, sublinha,
 }: {
   label: string;
   qtd: number;
@@ -248,6 +249,7 @@ function KpiCard({
   onClick: () => void;
   tone?: "default" | "danger" | "warn";
   labelTooltip?: string;
+  sublinha?: string;
 }) {
   const toneCls =
     tone === "danger"
@@ -279,6 +281,7 @@ function KpiCard({
       )}
       <div className="text-lg font-medium mt-1">{qtd}</div>
       <div className="text-xs text-muted-foreground mt-0.5">{formatBRL(valor)}</div>
+      {sublinha && <div className="text-[10px] text-muted-foreground mt-0.5">{sublinha}</div>}
     </button>
   );
 }
@@ -349,7 +352,7 @@ function matchCards(t: TituloCobranca, cards: Set<string>, mesAtual: string): bo
       (t.status_gestao === "pago" ||
         t.status_gestao === "pago_com_atraso" ||
         t.status_gestao === "pago_judicial") &&
-      (t.data_liquidacao_real ?? "").slice(0, 7) === mesAtual);
+      (t.data_pago_efetiva ?? "").slice(0, 7) === mesAtual);
   if (!passa) return false;
   return tituloEntraNoKpi(t);
 }
@@ -364,11 +367,29 @@ function LinhaTitulo({
   onAbrir: (t: TituloCobranca) => void;
   onPedido: (pedidoId: string) => void;
 }) {
-  const liquid = t.data_liquidacao_real
-    ? formatDateBR(t.data_liquidacao_real)
-    : t.data_liquidacao_prevista
-    ? `prev. ${formatDateBR(t.data_liquidacao_prevista)}`
-    : "—";
+  let liquid: React.ReactNode;
+  if (t.data_liquidacao_real) {
+    liquid = formatDateBR(t.data_liquidacao_real);
+  } else if (t.data_pago_efetiva) {
+    liquid = (
+      <>
+        <div className="text-sm">pago {formatDateBR(t.data_pago_efetiva)}</div>
+        {t.data_liquidacao_prevista && (
+          <div className="text-[10px] text-muted-foreground">
+            prev. {formatDateBR(t.data_liquidacao_prevista)}
+          </div>
+        )}
+      </>
+    );
+  } else if (t.data_liquidacao_prevista) {
+    liquid = (
+      <div className="text-sm text-muted-foreground">
+        prev. {formatDateBR(t.data_liquidacao_prevista)}
+      </div>
+    );
+  } else {
+    liquid = "—";
+  }
   const encerrada = t.eixo_status === "cancelado" || t.eixo_status === "devolvido";
   return (
     <TableRow
