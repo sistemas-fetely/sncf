@@ -322,6 +322,25 @@ serve(async (req) => {
     const infoInformativos: Record<string, number> = {};
     const detalhesRejeicao: Array<{ numero_titulo: string; parceiro_nome: string; codigo_rejeicao: string; motivo: string }> = [];
 
+    // ── resolução única de título: uma regra só para efeito E rastro ───────
+    // Antes existiam duas: o loop principal casava só por nosso_numero_seq e o
+    // rastro chamava fn_cnab_resolver_titulo com p_uso_empresa hardcoded em null.
+    // O resultado era ocorrência gravada como "casada" sem efeito aplicado.
+    const resolucao = new Map<number, { titulo_id: string | null; casado_por: string | null }>();
+    for (const d of detalhes) {
+      const { data: res, error: errRes } = await sb.rpc("fn_cnab_resolver_titulo", {
+        p_uso_empresa: d.usoEmpresa || null,
+        p_nosso_numero: d.nossoNumero,
+        p_seu_numero: d.seuNumero,
+      });
+      if (errRes) {
+        resolucao.set(d.numeroLinha, { titulo_id: null, casado_por: null });
+        continue;
+      }
+      const r = (Array.isArray(res) ? res[0] : res) as { titulo_id: string | null; casado_por: string | null } | null;
+      resolucao.set(d.numeroLinha, { titulo_id: r?.titulo_id ?? null, casado_por: r?.casado_por ?? null });
+    }
+
     for (const linha of detalhes) {
       try {
         const dim = mapaOcorrencias.get(linha.ocorrencia);
