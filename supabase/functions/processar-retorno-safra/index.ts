@@ -816,6 +816,7 @@ serve(async (req) => {
           if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
           if (t.baixa_remessa_id) remessasInstrucaoTocadas.add(t.baixa_remessa_id);
           contadores.baixas++;
+          marcarDesfecho(linha.numeroLinha, true, null);
           continue;
         }
 
