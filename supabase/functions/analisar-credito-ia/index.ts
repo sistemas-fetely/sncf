@@ -379,11 +379,11 @@ Gere a análise estruturada em JSON conforme instruído no system prompt.`;
         );
       }
       const fbData = await fallbackResp.json();
-      return await processarRespostaIA(fbData, analise_id, supabase, corsHeaders, "gemini-pro-fallback", contexto, fallbackInfo);
+      return await processarRespostaIA(fbData, analise_id, supabase, corsHeaders, MODELO_FALLBACK, contexto, fallbackInfo);
     }
 
     const aiData = await aiResp.json();
-    return await processarRespostaIA(aiData, analise_id, supabase, corsHeaders, "claude-sonnet-4-5", contexto, null);
+    return await processarRespostaIA(aiData, analise_id, supabase, corsHeaders, MODELO_PRIMARIO, contexto, null);
   } catch (e) {
     console.error("analisar-credito-ia error:", e);
     return new Response(
