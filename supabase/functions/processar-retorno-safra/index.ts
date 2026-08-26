@@ -568,6 +568,8 @@ serve(async (req) => {
             .eq("id", t.id);
           if (errBoleto) {
             erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `update boleto: ${errBoleto.message}` });
+          } else {
+            await marcarBoleto(linha.nossoNumero, "liquidado", "liquidado_em");
           }
 
           if (jurosArq > 0) {
