@@ -238,6 +238,27 @@ function rotuloAtraso(diasAtraso?: number | null) {
   return <Selo estado="warning">{dias} {dias === 1 ? "dia" : "dias"}</Selo>;
 }
 
+const ROTULO_FASE_CALCULADA: Record<string, string> = {
+  sem_nf: "Sem NF",
+  nf_parcial: "NF parcial",
+  fatia_conferida: "Fatia conferida",
+  faturado_nao_conferido: "Faturado, não conferido",
+  conferido_parcial: "Conferido parcial",
+  conferido_total: "Conferido",
+};
+
+function rotuloFaseCalculada(v: string | null | undefined): string {
+  if (!v) return "—";
+  return ROTULO_FASE_CALCULADA[v] ?? v;
+}
+
+/** Saldos de três camadas por pedido (view pronta — nada é calculado aqui). */
+interface TresCamadasPedidoLinha {
+  pedido_id: number;
+  a_faturar: number | null;
+  a_confirmar: number | null;
+}
+
 /** dd/mm/aaaa ou aaaa-mm-dd vindos da planilha viram aaaa-mm-dd para o input date. */
 function normalizarDataPlanilha(v: string): string {
   const t = v.trim();
