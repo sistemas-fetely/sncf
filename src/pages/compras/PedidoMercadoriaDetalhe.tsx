@@ -1056,11 +1056,29 @@ export default function PedidoMercadoriaDetalhe() {
                                   <TableCell className="text-right">
                                     {fmtNum(r.qtd_pedido)}
                                   </TableCell>
-                                  <TableCell className="text-right">{fmtNum(r.furo)}</TableCell>
                                   <TableCell>
-                                    <Badge className={meta.badge} variant="outline">
-                                      {meta.rotulo}
-                                    </Badge>
+                                    {(() => {
+                                      const rat =
+                                        r.nf_linha_id == null
+                                          ? null
+                                          : rateioPorLinhaNf.get(Number(r.nf_linha_id));
+                                      if (!rat) {
+                                        return (
+                                          <Badge className={meta.badge} variant="outline">
+                                            {meta.rotulo}
+                                          </Badge>
+                                        );
+                                      }
+                                      const dif = rat.qtdNf - rat.alocada;
+                                      if (dif === 0) return <Selo estado="success">Rateio ok</Selo>;
+                                      return (
+                                        <Selo estado="danger">
+                                          {dif > 0
+                                            ? `Falta ratear ${fmtNum(dif)}`
+                                            : `Rateio excede em ${fmtNum(Math.abs(dif))}`}
+                                        </Selo>
+                                      );
+                                    })()}
                                   </TableCell>
                                 </TableRow>
                               );
