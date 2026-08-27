@@ -36245,6 +36245,75 @@ export type Database = {
         }
         Relationships: []
       }
+      sncf_relatorios: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          codigo: string
+          criado_em: string
+          descricao: string | null
+          doc_slug: string | null
+          fonte_dados: string | null
+          formato: string[]
+          gatilho: string | null
+          id: string
+          lacunas_declaradas: string | null
+          modulo: string
+          nome: string
+          observacao: string | null
+          ordem: number
+          parametros: Json
+          periodicidade: string | null
+          publico: string
+          rota: string | null
+          status: string
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          codigo: string
+          criado_em?: string
+          descricao?: string | null
+          doc_slug?: string | null
+          fonte_dados?: string | null
+          formato?: string[]
+          gatilho?: string | null
+          id?: string
+          lacunas_declaradas?: string | null
+          modulo: string
+          nome: string
+          observacao?: string | null
+          ordem?: number
+          parametros?: Json
+          periodicidade?: string | null
+          publico?: string
+          rota?: string | null
+          status?: string
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          codigo?: string
+          criado_em?: string
+          descricao?: string | null
+          doc_slug?: string | null
+          fonte_dados?: string | null
+          formato?: string[]
+          gatilho?: string | null
+          id?: string
+          lacunas_declaradas?: string | null
+          modulo?: string
+          nome?: string
+          observacao?: string | null
+          ordem?: number
+          parametros?: Json
+          periodicidade?: string | null
+          publico?: string
+          rota?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       sncf_rotas_config: {
         Row: {
           ordem: number
@@ -49714,6 +49783,196 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_compra_tres_camadas: {
+        Row: {
+          a_confirmar: number | null
+          a_faturar: number | null
+          confirmada_xpm: number | null
+          custo_acordado: number | null
+          custo_incompleto: boolean | null
+          custo_medio_nf: number | null
+          custo_reposicao: number | null
+          custo_vigente: number | null
+          declarada_nf: number | null
+          excesso_xpm: number | null
+          falta_xpm: number | null
+          nao_conforme_xpm: number | null
+          pedida: number | null
+          pedido_id: number | null
+          quem_deve: string | null
+          sku: string | null
+          ultimo_termo: string | null
+          valor_nf: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "importacao_linha_importacao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_pedido"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_linha_importacao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_compras_pendencias"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "importacao_linha_importacao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_invoice_conferencia"
+            referencedColumns: ["importacao_pedido_id"]
+          },
+          {
+            foreignKeyName: "importacao_linha_importacao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_pedido_detalhe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_linha_importacao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_saldo_pedido"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "sncf_produtos"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_rede"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_cockpit"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_crosswalk"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_fiscal"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_sku_embalagem_classe"
+            referencedColumns: ["sku"]
+          },
+        ]
+      }
+      vw_compra_tres_camadas_pedido: {
+        Row: {
+          a_confirmar: number | null
+          a_faturar: number | null
+          confirmada_xpm: number | null
+          data_pedido: string | null
+          declarada_nf: number | null
+          dias_atraso: number | null
+          excesso_xpm: number | null
+          falta_xpm: number | null
+          modalidade: string | null
+          nao_conforme_xpm: number | null
+          numero_pedido: string | null
+          pct_confirmado: number | null
+          pct_faturado: number | null
+          pedida: number | null
+          pedido_id: number | null
+          prazo_entrega_acordado: string | null
+          quem_deve: string | null
+          skus_custo_incompleto: number | null
+          valor_a_faturar_acordado: number | null
+          valor_a_faturar_vigente: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "importacao_linha_importacao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_pedido"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_linha_importacao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_compras_pendencias"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "importacao_linha_importacao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_invoice_conferencia"
+            referencedColumns: ["importacao_pedido_id"]
+          },
+          {
+            foreignKeyName: "importacao_linha_importacao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_pedido_detalhe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_linha_importacao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_saldo_pedido"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "importacao_pedido_modalidade_fkey"
+            columns: ["modalidade"]
+            isOneToOne: false
+            referencedRelation: "compra_modalidade"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
       vw_compras_pendencias: {
         Row: {
           codigos_sem_sku: number | null
@@ -57902,14 +58161,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]

@@ -66,7 +66,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { rotuloFaseCalculada } from "@/components/compras/SaldoPedidoTab";
+
 
 import { Selo } from "@/components/ui/selo";
 import {
@@ -151,7 +151,6 @@ interface PreviaExclusao {
 interface SaldoPedidoLinha {
   pedido_id: number;
   fase_calculada: string | null;
-  saldo_a_receber: number | null;
   divergencia_status: string | null;
   data_prevista: string | null;
   data_realizada: string | null;
@@ -236,6 +235,27 @@ function rotuloAtraso(diasAtraso?: number | null) {
   const dias = Number(diasAtraso);
   if (dias <= 0) return <span className="text-muted-foreground">0</span>;
   return <Selo estado="warning">{dias} {dias === 1 ? "dia" : "dias"}</Selo>;
+}
+
+const ROTULO_FASE_CALCULADA: Record<string, string> = {
+  sem_nf: "Sem NF",
+  nf_parcial: "NF parcial",
+  fatia_conferida: "Fatia conferida",
+  faturado_nao_conferido: "Faturado, não conferido",
+  conferido_parcial: "Conferido parcial",
+  conferido_total: "Conferido",
+};
+
+function rotuloFaseCalculada(v: string | null | undefined): string {
+  if (!v) return "—";
+  return ROTULO_FASE_CALCULADA[v] ?? v;
+}
+
+/** Saldos de três camadas por pedido (view pronta — nada é calculado aqui). */
+interface TresCamadasPedidoLinha {
+  pedido_id: number;
+  a_faturar: number | null;
+  a_confirmar: number | null;
 }
 
 /** dd/mm/aaaa ou aaaa-mm-dd vindos da planilha viram aaaa-mm-dd para o input date. */
@@ -452,7 +472,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
       const { data, error } = await (supabase as any)
         .from("vw_importacao_saldo_pedido")
         .select(
-          "pedido_id, fase_calculada, saldo_a_receber, divergencia_status, data_prevista, data_realizada, dias_atraso",
+          "pedido_id, fase_calculada, divergencia_status, data_prevista, data_realizada, dias_atraso",
         );
       if (error) throw error;
       return (data ?? []) as SaldoPedidoLinha[];
@@ -464,6 +484,24 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
     (saldoQ.data ?? []).forEach((s) => m.set(Number(s.pedido_id), s));
     return m;
   }, [saldoQ.data]);
+
+  // Três camadas por pedido: A faturar (fornecedor deve NF) e A confirmar (XPM deve conferência)
+  const tresCamadasQ = useQuery({
+    queryKey: ["compra-tres-camadas-pedido-lista"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_compra_tres_camadas_pedido")
+        .select("pedido_id, a_faturar, a_confirmar");
+      if (error) throw error;
+      return (data ?? []) as TresCamadasPedidoLinha[];
+    },
+  });
+
+  const tresCamadasPorPedido = useMemo(() => {
+    const m = new Map<number, TresCamadasPedidoLinha>();
+    (tresCamadasQ.data ?? []).forEach((s) => m.set(Number(s.pedido_id), s));
+    return m;
+  }, [tresCamadasQ.data]);
 
   // Pendências por pedido (view pronta — nada e calculado aqui)
   const pendenciasQ = useQuery({
@@ -805,7 +843,8 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                     <TableHead className="text-right">Custo FOB</TableHead>
                     <TableHead>Fase XPM</TableHead>
                     <TableHead>Andamento</TableHead>
-                    <TableHead className="text-right">A receber</TableHead>
+                    <TableHead className="text-right">A faturar</TableHead>
+                    <TableHead className="text-right">A confirmar</TableHead>
                     <TableHead className="text-right">Atraso</TableHead>
                     <TableHead className="text-right">Pendências</TableHead>
 
@@ -854,7 +893,10 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                       </TableCell>
                       {(() => {
                         const s = saldoPorPedido.get(Number(p.id));
-                        const aReceber = Number(s?.saldo_a_receber ?? 0);
+                        const tc = tresCamadasPorPedido.get(Number(p.id));
+                        const aFaturar = Number(tc?.a_faturar ?? 0);
+                        const aConfirmar = Number(tc?.a_confirmar ?? 0);
+                        const NUM_BR = new Intl.NumberFormat("pt-BR");
                         return (
                           <>
                             <TableCell>
@@ -879,12 +921,21 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                             </TableCell>
                             <TableCell
                               className={
-                                aReceber > 0
+                                aFaturar > 0
                                   ? "text-right tabular-nums text-warning"
                                   : "text-right tabular-nums text-muted-foreground"
                               }
                             >
-                              {aReceber > 0 ? new Intl.NumberFormat("pt-BR").format(aReceber) : "0"}
+                              {aFaturar > 0 ? NUM_BR.format(aFaturar) : "0"}
+                            </TableCell>
+                            <TableCell
+                              className={
+                                aConfirmar > 0
+                                  ? "text-right tabular-nums text-warning"
+                                  : "text-right tabular-nums text-muted-foreground"
+                              }
+                            >
+                              {aConfirmar > 0 ? NUM_BR.format(aConfirmar) : "0"}
                             </TableCell>
                           </>
                         );

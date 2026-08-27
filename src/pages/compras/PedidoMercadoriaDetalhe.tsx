@@ -24,6 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CardIndicador } from "@/components/ui/card-indicador";
 
 import { Badge } from "@/components/ui/badge";
+import { Selo } from "@/components/ui/selo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -159,7 +160,6 @@ interface ConfNf {
   sku: string | null;
   qtd_alocada: number | null;
   qtd_pedido: number | null;
-  furo: number | null;
   situacao: string | null;
 }
 
@@ -280,17 +280,18 @@ export default function PedidoMercadoriaDetalhe() {
   const pedido = pedidoQ.data;
   const moeda = pedido?.moeda ?? "BRL";
 
+  // Léxico único: A faturar (fornecedor deve NF) · A confirmar (XPM deve conferência)
   const saldoQ = useQuery({
-    queryKey: ["importacao-saldo-pedido", pedidoId],
+    queryKey: ["compra-tres-camadas-pedido", pedidoId],
     enabled: Number.isFinite(pedidoId),
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("vw_importacao_saldo_pedido")
-        .select("saldo_a_faturar, saldo_a_receber")
+        .from("vw_compra_tres_camadas_pedido")
+        .select("a_faturar, a_confirmar")
         .eq("pedido_id", pedidoId)
         .maybeSingle();
       if (error) throw error;
-      return (data ?? null) as { saldo_a_faturar: number | null; saldo_a_receber: number | null } | null;
+      return (data ?? null) as { a_faturar: number | null; a_confirmar: number | null } | null;
     },
   });
 
@@ -374,7 +375,7 @@ export default function PedidoMercadoriaDetalhe() {
       const { data, error } = await (supabase as any)
         .from("vw_importacao_pedido_conferencia_nf")
         .select(
-          "importacao_pedido_id, numero_pedido, nf_id, nf_numero, nf_linha_id, item_seq, codigo_nf, ncm, qtd_nf, valor_nf, sku, qtd_alocada, qtd_pedido, furo, situacao",
+          "importacao_pedido_id, numero_pedido, nf_id, nf_numero, nf_linha_id, item_seq, codigo_nf, ncm, qtd_nf, valor_nf, sku, qtd_alocada, qtd_pedido, situacao",
         )
         .eq("importacao_pedido_id", pedidoId);
       if (error) throw error;
@@ -414,6 +415,23 @@ export default function PedidoMercadoriaDetalhe() {
     () => (confNfQ.data ?? []).filter((r) => r.situacao === "nao_alocado").length,
     [confNfQ.data],
   );
+
+  /**
+   * Furo de verdade é erro de rateio DENTRO do documento: Qtd NF da linha contra a
+   * soma do que foi alocado nos SKUs daquela mesma linha. Saldo de pedido não entra aqui —
+   * ele vive na aba Saldo, como "A faturar" e "A confirmar".
+   */
+  const rateioPorLinhaNf = useMemo(() => {
+    const m = new Map<number, { qtdNf: number; alocada: number }>();
+    for (const r of confNfQ.data ?? []) {
+      if (r.nf_linha_id == null) continue;
+      const k = Number(r.nf_linha_id);
+      const atual = m.get(k) ?? { qtdNf: Number(r.qtd_nf ?? 0), alocada: 0 };
+      atual.alocada += Number(r.qtd_alocada ?? 0);
+      m.set(k, atual);
+    }
+    return m;
+  }, [confNfQ.data]);
 
   const nfIds = useMemo(
     () => (nfsQ.data?.nfs ?? []).map((n) => Number(n.id)).sort((a, b) => a - b),
@@ -562,18 +580,18 @@ export default function PedidoMercadoriaDetalhe() {
             <Stat rotulo="NFs" valor={fmtNum(pedido.nfs)} />
             <Stat rotulo="Invoices" valor={fmtNum(pedido.invoices)} />
             <Stat
-              rotulo="A entregar"
+              rotulo="A faturar"
               valor={
-                <span className={(saldoQ.data?.saldo_a_faturar ?? 0) > 0 ? "text-warning" : "text-muted-foreground"}>
-                  {fmtNum(saldoQ.data?.saldo_a_faturar ?? 0)}
+                <span className={(saldoQ.data?.a_faturar ?? 0) > 0 ? "text-warning" : "text-muted-foreground"}>
+                  {fmtNum(saldoQ.data?.a_faturar ?? 0)}
                 </span>
               }
             />
             <Stat
-              rotulo="A conferir"
+              rotulo="A confirmar"
               valor={
-                <span className={(saldoQ.data?.saldo_a_receber ?? 0) > 0 ? "text-warning" : "text-muted-foreground"}>
-                  {fmtNum(saldoQ.data?.saldo_a_receber ?? 0)}
+                <span className={(saldoQ.data?.a_confirmar ?? 0) > 0 ? "text-warning" : "text-muted-foreground"}>
+                  {fmtNum(saldoQ.data?.a_confirmar ?? 0)}
                 </span>
               }
             />
@@ -1003,7 +1021,6 @@ export default function PedidoMercadoriaDetalhe() {
                               <TableHead>SKU</TableHead>
                               <TableHead className="text-right">Qtd alocada</TableHead>
                               <TableHead className="text-right">Qtd pedido</TableHead>
-                              <TableHead className="text-right">Furo</TableHead>
                               <TableHead>Situação</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -1040,11 +1057,29 @@ export default function PedidoMercadoriaDetalhe() {
                                   <TableCell className="text-right">
                                     {fmtNum(r.qtd_pedido)}
                                   </TableCell>
-                                  <TableCell className="text-right">{fmtNum(r.furo)}</TableCell>
                                   <TableCell>
-                                    <Badge className={meta.badge} variant="outline">
-                                      {meta.rotulo}
-                                    </Badge>
+                                    {(() => {
+                                      const rat =
+                                        r.nf_linha_id == null
+                                          ? null
+                                          : rateioPorLinhaNf.get(Number(r.nf_linha_id));
+                                      if (!rat) {
+                                        return (
+                                          <Badge className={meta.badge} variant="outline">
+                                            {meta.rotulo}
+                                          </Badge>
+                                        );
+                                      }
+                                      const dif = rat.qtdNf - rat.alocada;
+                                      if (dif === 0) return <Selo estado="success">Rateio ok</Selo>;
+                                      return (
+                                        <Selo estado="destructive">
+                                          {dif > 0
+                                            ? `Falta ratear ${fmtNum(dif)}`
+                                            : `Rateio excede em ${fmtNum(Math.abs(dif))}`}
+                                        </Selo>
+                                      );
+                                    })()}
                                   </TableCell>
                                 </TableRow>
                               );
@@ -1085,7 +1120,7 @@ export default function PedidoMercadoriaDetalhe() {
                             <TableHead>SKU</TableHead>
                             <TableHead className="text-right">Qtd pedido</TableHead>
                             <TableHead className="text-right">Qtd invoice</TableHead>
-                            <TableHead className="text-right">Furo</TableHead>
+                            <TableHead className="text-right">Diferença</TableHead>
                             <TableHead className="text-right">Custo pedido</TableHead>
                             <TableHead className="text-right">Custo invoice</TableHead>
                             <TableHead>Situação</TableHead>
