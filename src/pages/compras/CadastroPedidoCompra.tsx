@@ -894,7 +894,10 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                       </TableCell>
                       {(() => {
                         const s = saldoPorPedido.get(Number(p.id));
-                        const aReceber = Number(s?.saldo_a_receber ?? 0);
+                        const tc = tresCamadasPorPedido.get(Number(p.id));
+                        const aFaturar = Number(tc?.a_faturar ?? 0);
+                        const aConfirmar = Number(tc?.a_confirmar ?? 0);
+                        const NUM_BR = new Intl.NumberFormat("pt-BR");
                         return (
                           <>
                             <TableCell>
@@ -919,12 +922,21 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                             </TableCell>
                             <TableCell
                               className={
-                                aReceber > 0
+                                aFaturar > 0
                                   ? "text-right tabular-nums text-warning"
                                   : "text-right tabular-nums text-muted-foreground"
                               }
                             >
-                              {aReceber > 0 ? new Intl.NumberFormat("pt-BR").format(aReceber) : "0"}
+                              {aFaturar > 0 ? NUM_BR.format(aFaturar) : "0"}
+                            </TableCell>
+                            <TableCell
+                              className={
+                                aConfirmar > 0
+                                  ? "text-right tabular-nums text-warning"
+                                  : "text-right tabular-nums text-muted-foreground"
+                              }
+                            >
+                              {aConfirmar > 0 ? NUM_BR.format(aConfirmar) : "0"}
                             </TableCell>
                           </>
                         );
