@@ -66,7 +66,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { rotuloFaseCalculada } from "@/components/compras/SaldoPedidoTab";
+
 
 import { Selo } from "@/components/ui/selo";
 import {
