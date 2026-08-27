@@ -486,6 +486,24 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
     return m;
   }, [saldoQ.data]);
 
+  // Três camadas por pedido: A faturar (fornecedor deve NF) e A confirmar (XPM deve conferência)
+  const tresCamadasQ = useQuery({
+    queryKey: ["compra-tres-camadas-pedido-lista"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_compra_tres_camadas_pedido")
+        .select("pedido_id, a_faturar, a_confirmar");
+      if (error) throw error;
+      return (data ?? []) as TresCamadasPedidoLinha[];
+    },
+  });
+
+  const tresCamadasPorPedido = useMemo(() => {
+    const m = new Map<number, TresCamadasPedidoLinha>();
+    (tresCamadasQ.data ?? []).forEach((s) => m.set(Number(s.pedido_id), s));
+    return m;
+  }, [tresCamadasQ.data]);
+
   // Pendências por pedido (view pronta — nada e calculado aqui)
   const pendenciasQ = useQuery({
     queryKey: ["compras-pendencias"],
