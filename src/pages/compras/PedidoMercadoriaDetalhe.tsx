@@ -374,7 +374,7 @@ export default function PedidoMercadoriaDetalhe() {
       const { data, error } = await (supabase as any)
         .from("vw_importacao_pedido_conferencia_nf")
         .select(
-          "importacao_pedido_id, numero_pedido, nf_id, nf_numero, nf_linha_id, item_seq, codigo_nf, ncm, qtd_nf, valor_nf, sku, qtd_alocada, qtd_pedido, furo, situacao",
+          "importacao_pedido_id, numero_pedido, nf_id, nf_numero, nf_linha_id, item_seq, codigo_nf, ncm, qtd_nf, valor_nf, sku, qtd_alocada, qtd_pedido, situacao",
         )
         .eq("importacao_pedido_id", pedidoId);
       if (error) throw error;
