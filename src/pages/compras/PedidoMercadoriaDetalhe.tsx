@@ -24,6 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CardIndicador } from "@/components/ui/card-indicador";
 
 import { Badge } from "@/components/ui/badge";
+import { Selo } from "@/components/ui/selo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -1072,7 +1073,7 @@ export default function PedidoMercadoriaDetalhe() {
                                       const dif = rat.qtdNf - rat.alocada;
                                       if (dif === 0) return <Selo estado="success">Rateio ok</Selo>;
                                       return (
-                                        <Selo estado="danger">
+                                        <Selo estado="destructive">
                                           {dif > 0
                                             ? `Falta ratear ${fmtNum(dif)}`
                                             : `Rateio excede em ${fmtNum(Math.abs(dif))}`}
