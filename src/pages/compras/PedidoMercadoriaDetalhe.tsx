@@ -563,18 +563,18 @@ export default function PedidoMercadoriaDetalhe() {
             <Stat rotulo="NFs" valor={fmtNum(pedido.nfs)} />
             <Stat rotulo="Invoices" valor={fmtNum(pedido.invoices)} />
             <Stat
-              rotulo="A entregar"
+              rotulo="A faturar"
               valor={
-                <span className={(saldoQ.data?.saldo_a_faturar ?? 0) > 0 ? "text-warning" : "text-muted-foreground"}>
-                  {fmtNum(saldoQ.data?.saldo_a_faturar ?? 0)}
+                <span className={(saldoQ.data?.a_faturar ?? 0) > 0 ? "text-warning" : "text-muted-foreground"}>
+                  {fmtNum(saldoQ.data?.a_faturar ?? 0)}
                 </span>
               }
             />
             <Stat
-              rotulo="A conferir"
+              rotulo="A confirmar"
               valor={
-                <span className={(saldoQ.data?.saldo_a_receber ?? 0) > 0 ? "text-warning" : "text-muted-foreground"}>
-                  {fmtNum(saldoQ.data?.saldo_a_receber ?? 0)}
+                <span className={(saldoQ.data?.a_confirmar ?? 0) > 0 ? "text-warning" : "text-muted-foreground"}>
+                  {fmtNum(saldoQ.data?.a_confirmar ?? 0)}
                 </span>
               }
             />
