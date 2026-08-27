@@ -282,7 +282,7 @@ export default function PedidoMercadoriaDetalhe() {
 
   // Léxico único: A faturar (fornecedor deve NF) · A confirmar (XPM deve conferência)
   const saldoQ = useQuery({
-    queryKey: ["compra-tres-camadas-pedido", pedidoId],
+    queryKey: ["compra-tres-camadas-pedido-cabecalho", pedidoId],
     enabled: Number.isFinite(pedidoId),
     queryFn: async () => {
       const { data, error } = await (supabase as any)
