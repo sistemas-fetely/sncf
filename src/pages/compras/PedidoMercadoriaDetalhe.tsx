@@ -1020,7 +1020,6 @@ export default function PedidoMercadoriaDetalhe() {
                               <TableHead>SKU</TableHead>
                               <TableHead className="text-right">Qtd alocada</TableHead>
                               <TableHead className="text-right">Qtd pedido</TableHead>
-                              <TableHead className="text-right">Furo</TableHead>
                               <TableHead>Situação</TableHead>
                             </TableRow>
                           </TableHeader>
