@@ -151,7 +151,6 @@ interface PreviaExclusao {
 interface SaldoPedidoLinha {
   pedido_id: number;
   fase_calculada: string | null;
-  saldo_a_receber: number | null;
   divergencia_status: string | null;
   data_prevista: string | null;
   data_realizada: string | null;
@@ -473,7 +472,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
       const { data, error } = await (supabase as any)
         .from("vw_importacao_saldo_pedido")
         .select(
-          "pedido_id, fase_calculada, saldo_a_receber, divergencia_status, data_prevista, data_realizada, dias_atraso",
+          "pedido_id, fase_calculada, divergencia_status, data_prevista, data_realizada, dias_atraso",
         );
       if (error) throw error;
       return (data ?? []) as SaldoPedidoLinha[];

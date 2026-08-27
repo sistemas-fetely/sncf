@@ -1120,7 +1120,7 @@ export default function PedidoMercadoriaDetalhe() {
                             <TableHead>SKU</TableHead>
                             <TableHead className="text-right">Qtd pedido</TableHead>
                             <TableHead className="text-right">Qtd invoice</TableHead>
-                            <TableHead className="text-right">Furo</TableHead>
+                            <TableHead className="text-right">Diferença</TableHead>
                             <TableHead className="text-right">Custo pedido</TableHead>
                             <TableHead className="text-right">Custo invoice</TableHead>
                             <TableHead>Situação</TableHead>
