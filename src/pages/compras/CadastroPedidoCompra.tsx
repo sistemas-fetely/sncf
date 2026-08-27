@@ -844,7 +844,8 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                     <TableHead className="text-right">Custo FOB</TableHead>
                     <TableHead>Fase XPM</TableHead>
                     <TableHead>Andamento</TableHead>
-                    <TableHead className="text-right">A receber</TableHead>
+                    <TableHead className="text-right">A faturar</TableHead>
+                    <TableHead className="text-right">A confirmar</TableHead>
                     <TableHead className="text-right">Atraso</TableHead>
                     <TableHead className="text-right">Pendências</TableHead>
 
