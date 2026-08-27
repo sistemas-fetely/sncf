@@ -415,6 +415,23 @@ export default function PedidoMercadoriaDetalhe() {
     [confNfQ.data],
   );
 
+  /**
+   * Furo de verdade é erro de rateio DENTRO do documento: Qtd NF da linha contra a
+   * soma do que foi alocado nos SKUs daquela mesma linha. Saldo de pedido não entra aqui —
+   * ele vive na aba Saldo, como "A faturar" e "A confirmar".
+   */
+  const rateioPorLinhaNf = useMemo(() => {
+    const m = new Map<number, { qtdNf: number; alocada: number }>();
+    for (const r of confNfQ.data ?? []) {
+      if (r.nf_linha_id == null) continue;
+      const k = Number(r.nf_linha_id);
+      const atual = m.get(k) ?? { qtdNf: Number(r.qtd_nf ?? 0), alocada: 0 };
+      atual.alocada += Number(r.qtd_alocada ?? 0);
+      m.set(k, atual);
+    }
+    return m;
+  }, [confNfQ.data]);
+
   const nfIds = useMemo(
     () => (nfsQ.data?.nfs ?? []).map((n) => Number(n.id)).sort((a, b) => a - b),
     [nfsQ.data],
