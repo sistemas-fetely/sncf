@@ -27,6 +27,8 @@ export const CHAVES_COMPRAS_MERCADORIA = [
   "rateio-nf-lista",
   "rateio-nf-worklist",
   "depara-fornecedor-lista",
+  // cabeçalho do pedido (select enxuto; chave separada da aba Saldo)
+  "compra-tres-camadas-pedido-cabecalho",
 ] as const;
 
 export function invalidarCompras(qc: QueryClient) {
