@@ -159,7 +159,6 @@ interface ConfNf {
   sku: string | null;
   qtd_alocada: number | null;
   qtd_pedido: number | null;
-  furo: number | null;
   situacao: string | null;
 }
 
