@@ -280,17 +280,18 @@ export default function PedidoMercadoriaDetalhe() {
   const pedido = pedidoQ.data;
   const moeda = pedido?.moeda ?? "BRL";
 
+  // Léxico único: A faturar (fornecedor deve NF) · A confirmar (XPM deve conferência)
   const saldoQ = useQuery({
-    queryKey: ["importacao-saldo-pedido", pedidoId],
+    queryKey: ["compra-tres-camadas-pedido", pedidoId],
     enabled: Number.isFinite(pedidoId),
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("vw_importacao_saldo_pedido")
-        .select("saldo_a_faturar, saldo_a_receber")
+        .from("vw_compra_tres_camadas_pedido")
+        .select("a_faturar, a_confirmar")
         .eq("pedido_id", pedidoId)
         .maybeSingle();
       if (error) throw error;
-      return (data ?? null) as { saldo_a_faturar: number | null; saldo_a_receber: number | null } | null;
+      return (data ?? null) as { a_faturar: number | null; a_confirmar: number | null } | null;
     },
   });
 
