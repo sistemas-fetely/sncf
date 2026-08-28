@@ -566,11 +566,14 @@ function NovaDeclaracaoForm({
     return null;
   };
 
+  // A RPC de cancelamento exige motivo com 15+ caracteres; cobramos antes para o
+  // operador não escrever a observação e só descobrir no envio.
+  const minObs = tipo?.codigo === "expedicao_cancelada_xpm" ? 15 : 10;
   const podeConfirmar =
     !!tipo &&
     !!motivo &&
     !!alvo &&
-    observacao.trim().length >= 10 &&
+    observacao.trim().length >= minObs &&
     (!pedeData || !!dataFato) &&
     (!pedeTransportadora || !!transportadoraId) &&
     (!pedeValorGenerico || !!dataFato);
@@ -578,6 +581,27 @@ function NovaDeclaracaoForm({
   const gravar = useMutation({
     mutationFn: async () => {
       if (!tipo || !motivo || !alvo) throw new Error("Formulário incompleto");
+
+      // PORTA-UNICA-DA-DECLARACAO (28/08/2026): cancelamento de expedição tem efeito
+      // colateral obrigatório — grava xpm_expedicao.cancelada_declarada_em, solta o
+      // ponteiro do pedido e devolve o estágio para pré-separação. Inserir direto no
+      // livro faria só metade: a automação cederia, mas o pedido ficaria preso em Em
+      // Separação apontando para expedição morta. A RPC faz o conjunto e grava o livro.
+      if (tipo.codigo === "expedicao_cancelada_xpm") {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data, error } = await (supabase.rpc as any)("fn_xpm_declarar_cancelamento", {
+          p_expedicao_codigo: alvo.entidade_id,
+          p_motivo: observacao.trim(),
+          p_motivo_codigo: motivo.codigo,
+        });
+        if (error) throw new Error(error.message);
+        const resp = (data ?? {}) as { ok?: boolean; erro?: string; aviso?: string | null; estagio_revertido?: boolean };
+        if (resp.ok !== true) throw new Error(resp.erro || "Falha ao declarar cancelamento");
+        if (resp.aviso) toast.warning(resp.aviso);
+        else if (resp.estagio_revertido) toast.info("O pedido voltou para Pré-Separação e já pode ser editado.");
+        return;
+      }
+
       const { error } = await supabase.from("declaracao_realidade").insert({
         entidade: tipo.entidade,
         entidade_id: alvo.entidade_id,
