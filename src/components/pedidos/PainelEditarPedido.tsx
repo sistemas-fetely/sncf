@@ -22,6 +22,7 @@ import { formatError } from "@/lib/format-error";
 import { EditarItensDialog } from "@/components/pedidos/dialogs/EditarItensDialog";
 import { useFreteTipos } from "@/hooks/pedidos/useFreteTipos";
 import { rotuloEstagioHumano } from "@/components/pedidos/BotaoEditarPedido";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 /**
  * Espelho da guarda de banco (fn_exigir_edicao_permitida sobre a dimensão
@@ -236,8 +237,7 @@ function SecaoPagamento({ pedidoId, pedido, guarda }: {
         return;
       }
       toast.success("Pedido devolvido para análise de crédito com a condição pretendida registrada.");
-      await qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedidoId] });
-      qc.invalidateQueries({ queryKey: ["pedidos"] });
+      invalidarPedido(qc, pedidoId);
       qc.invalidateQueries({ queryKey: ["cobranca-proposta", pedidoId] });
       setOpen(false);
       setMotivo("");
@@ -267,8 +267,7 @@ function SecaoPagamento({ pedidoId, pedido, guarda }: {
       const exigePortao =
         data && typeof data === "object" ? (data as Record<string, unknown>).exige_portao === true : false;
       setAvisoPortao(!!exigePortao);
-      await qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedidoId] });
-      qc.invalidateQueries({ queryKey: ["pedidos"] });
+      invalidarPedido(qc, pedidoId);
       qc.invalidateQueries({ queryKey: ["cobranca-proposta", pedidoId] });
       setOpen(false);
       setMotivo("");
@@ -483,8 +482,7 @@ function SecaoDesconto({ pedidoId, pedido, guarda }: {
     },
     onSuccess: async () => {
       toast.success("Desconto alterado.");
-      await qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedidoId] });
-      qc.invalidateQueries({ queryKey: ["pedidos"] });
+      invalidarPedido(qc, pedidoId);
       setValorStr("");
       setMotivo("");
     },

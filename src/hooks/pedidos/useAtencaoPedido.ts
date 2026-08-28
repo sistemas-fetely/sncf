@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 export function useMarcarAtencao() {
   const qc = useQueryClient();
@@ -23,9 +24,7 @@ export function useMarcarAtencao() {
       return data;
     },
     onSuccess: (_data, { pedidoId, nivel }) => {
-      qc.invalidateQueries({ queryKey: ['pedido', pedidoId] });
-      qc.invalidateQueries({ queryKey: ['pedido-detalhe', pedidoId] });
-      qc.invalidateQueries({ queryKey: ['pedidos'] });
+      invalidarPedido(qc, pedidoId);
       toast({
         title: nivel === 'pausa' ? 'Pedido pausado' : 'Aviso registrado',
         description:
@@ -58,9 +57,7 @@ export function useLimparAtencao() {
       return data;
     },
     onSuccess: (_data, { pedidoId }) => {
-      qc.invalidateQueries({ queryKey: ['pedido', pedidoId] });
-      qc.invalidateQueries({ queryKey: ['pedido-detalhe', pedidoId] });
-      qc.invalidateQueries({ queryKey: ['pedidos'] });
+      invalidarPedido(qc, pedidoId);
       toast({ title: 'Atenção removida', description: 'Pedido liberado para avançar.' });
     },
     onError: (err: Error) => {

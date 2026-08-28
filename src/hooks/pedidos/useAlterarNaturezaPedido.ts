@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { rawMessage } from "@/lib/format-error";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 export interface AlterarNaturezaResultado {
   ok: boolean;
@@ -44,17 +45,9 @@ export function useAlterarNaturezaPedido() {
       return data as AlterarNaturezaResultado;
     },
     onSuccess: (data, vars) => {
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedidoId] });
-      qc.invalidateQueries({ queryKey: ["pedido", vars.pedidoId] });
-      qc.invalidateQueries({ queryKey: ["pedido-eventos", vars.pedidoId] });
-      qc.invalidateQueries({ queryKey: ["pedido-titulos", vars.pedidoId] });
-      qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
-      qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
+      invalidarPedido(qc, vars.pedidoId);
       if (vars.pedidoFilhoId && vars.pedidoFilhoId !== vars.pedidoId) {
-        qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedidoFilhoId] });
-        qc.invalidateQueries({ queryKey: ["pedido", vars.pedidoFilhoId] });
-        qc.invalidateQueries({ queryKey: ["pedido-eventos", vars.pedidoFilhoId] });
-        qc.invalidateQueries({ queryKey: ["pedido-titulos", vars.pedidoFilhoId] });
+        invalidarPedido(qc, vars.pedidoFilhoId);
       }
 
       toast.success(

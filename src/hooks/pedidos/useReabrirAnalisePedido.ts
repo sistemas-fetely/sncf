@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 interface Args {
   pedidoId: string;
@@ -30,13 +31,10 @@ export function useReabrirAnalisePedido() {
       return data as { ok: true; analise_id: string };
     },
     onSuccess: (_data, vars) => {
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedidoId] });
-      qc.invalidateQueries({ queryKey: ["pedido-titulos", vars.pedidoId] });
+      invalidarPedido(qc, vars.pedidoId);
       qc.invalidateQueries({ queryKey: ["cobranca-proposta", vars.pedidoId] });
       qc.invalidateQueries({ queryKey: ["cobranca-pedido-minimo", vars.pedidoId] });
       qc.invalidateQueries({ queryKey: ["cobranca-fila"] });
-      qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
-      qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
       qc.invalidateQueries({ queryKey: ["avaliar-impacto-edicao", vars.pedidoId] });
       qc.invalidateQueries({ queryKey: ["avaliar-impacto-plano", vars.pedidoId] });
       toast({

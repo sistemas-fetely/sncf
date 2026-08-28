@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 export interface PedidoTarefa {
   id: string;
@@ -46,7 +47,7 @@ export function useCriarTarefa() {
       if (error) throw error;
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ["pedido-tarefas", vars.pedidoId] });
+      invalidarPedido(qc, vars.pedidoId);
     },
     onError: (e: any) => toast({ title: "Erro ao criar tarefa", description: e.message, variant: "destructive" }),
   });
@@ -68,7 +69,7 @@ export function useToggleTarefa() {
       if (error) throw error;
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ["pedido-tarefas", vars.pedidoId] });
+      invalidarPedido(qc, vars.pedidoId);
     },
     onError: (e: any) => toast({ title: "Erro ao atualizar tarefa", description: e.message, variant: "destructive" }),
   });
@@ -82,7 +83,7 @@ export function useExcluirTarefa() {
       if (error) throw error;
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ["pedido-tarefas", vars.pedidoId] });
+      invalidarPedido(qc, vars.pedidoId);
     },
     onError: (e: any) => toast({ title: "Erro ao excluir tarefa", description: e.message, variant: "destructive" }),
   });

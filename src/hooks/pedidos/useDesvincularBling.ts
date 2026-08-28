@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 interface Vars {
   pedido_id: string;
@@ -49,11 +50,7 @@ export function useDesvincularBling() {
       if (res.aviso) {
         toast({ title: "Atenção", description: res.aviso });
       }
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });
-      qc.invalidateQueries({ queryKey: ["remessas", vars.pedido_id] });
-      qc.invalidateQueries({ queryKey: ["pedido-vinculos"] });
-      qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
-      qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
+      invalidarPedido(qc, vars.pedido_id);
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (e: any) => {

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 export function usePedidoEmailLog(pedido_id: string) {
   return useQuery({
@@ -42,7 +43,7 @@ export function useLogEmailEnvio() {
       if (error) throw error;
     },
     onSuccess: (_, vars) => {
-      qc.invalidateQueries({ queryKey: ["pedido-email-log", vars.pedido_id] });
+      invalidarPedido(qc, vars.pedido_id);
     },
   });
 }

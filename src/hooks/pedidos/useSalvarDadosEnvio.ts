@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 interface DadosEnvio {
   pedidoId: string;
@@ -40,7 +41,7 @@ export function useSalvarDadosEnvio() {
       return data as { ok: boolean; novo_liquido: number; valor_frete: number };
     },
     onSuccess: (data, vars) => {
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedidoId] });
+      invalidarPedido(qc, vars.pedidoId);
       toast.success(`Dados de envio salvos — novo total: R$ ${fmtBRL(data?.novo_liquido ?? 0)}`);
     },
     onError: (err: unknown) => {

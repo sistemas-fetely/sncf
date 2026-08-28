@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 export function useReverterParaCobranca() {
   const qc = useQueryClient();
@@ -19,16 +20,10 @@ export function useReverterParaCobranca() {
       return data as { ok: true; estagio_origem: string };
     },
     onSuccess: (_data, pedidoId) => {
-      qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
-      qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
+      invalidarPedido(qc, pedidoId);
       qc.invalidateQueries({ queryKey: ["cobranca-fila"] });
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedidoId] });
-      qc.invalidateQueries({ queryKey: ["pedido-titulos", pedidoId] });
       qc.invalidateQueries({ queryKey: ["cobranca-plano-existente", pedidoId] });
       qc.invalidateQueries({ queryKey: ["cobranca-proposta", pedidoId] });
-      qc.invalidateQueries({ queryKey: ["provisoes-pedido", pedidoId] });
-      qc.invalidateQueries({ queryKey: ["gerenciar-links", pedidoId] });
-      qc.invalidateQueries({ queryKey: ["pedido-portao-regra", pedidoId] });
       toast({
         title: "Pedido revertido",
         description: "Pedido voltou para cobrança. Títulos cancelados.",

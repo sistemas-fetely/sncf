@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -76,8 +77,7 @@ export function useEnviarEmailNfFaturado() {
         title: "NF enviada por e-mail",
         description: `Enviada para ${data.email} · ${data.id_externo}`,
       });
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });
-      qc.invalidateQueries({ queryKey: ["pedido-titulos", vars.pedido_id] });
+      invalidarPedido(qc, vars.pedido_id);
     },
     onError: (e: Error) => {
       toast({ title: "Erro ao enviar NF", description: e.message, variant: "destructive" });

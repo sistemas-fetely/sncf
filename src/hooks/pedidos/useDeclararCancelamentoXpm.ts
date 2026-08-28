@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 interface DeclararResponse {
   ok: boolean;
@@ -44,10 +45,7 @@ export function useDeclararCancelamentoXpm() {
         title: "Cancelamento declarado",
         description: `Expedição ${data.expedicao_codigo ?? vars.expedicao_codigo} liberada. O pedido pode ser empurrado novamente.`,
       });
-      qc.invalidateQueries({ queryKey: ["pedido-xpm", vars.pedido_id] });
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });
-      qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
-      qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
+      invalidarPedido(qc, vars.pedido_id);
     },
     onError: (e: Error) => {
       toast({ title: "Erro ao declarar cancelamento", description: e.message, variant: "destructive" });

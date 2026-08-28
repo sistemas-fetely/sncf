@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 interface EnviarBlingResponse {
   sucesso: boolean;
@@ -60,17 +61,12 @@ export function useEnviarBling() {
         });
       }
 
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });
-      qc.invalidateQueries({ queryKey: ["pedido-titulos", vars.pedido_id] });
-      qc.invalidateQueries({ queryKey: ["remessas", vars.pedido_id] });
-      qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
-      qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
+      invalidarPedido(qc, vars.pedido_id);
     },
     onError: (e: Error, vars) => {
       toast({ title: "Erro ao enviar pro Bling", description: e.message, variant: "destructive" });
       // A edge cria a remessa antes do POST: mesmo com falha, o estado pode ter mudado.
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });
-      qc.invalidateQueries({ queryKey: ["remessas", vars.pedido_id] });
+      invalidarPedido(qc, vars.pedido_id);
     },
   });
 }

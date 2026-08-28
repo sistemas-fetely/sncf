@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 interface EmpurrarXpmResponse {
   sucesso: boolean;
@@ -75,16 +76,12 @@ export function useEmpurrarXpm() {
           variant: "destructive",
         });
       }
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });
-      qc.invalidateQueries({ queryKey: ["pedido-xpm", vars.pedido_id] });
-      qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
-      qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
+      invalidarPedido(qc, vars.pedido_id);
     },
     onError: (e: Error, vars) => {
       toast({ title: "Erro ao empurrar pra XPM", description: e.message, variant: "destructive" });
       // O erro fica gravado em pedidos.xpm_envio_erro: recarrega pra exibir.
-      qc.invalidateQueries({ queryKey: ["pedido-xpm", vars.pedido_id] });
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });
+      invalidarPedido(qc, vars.pedido_id);
     },
   });
 }

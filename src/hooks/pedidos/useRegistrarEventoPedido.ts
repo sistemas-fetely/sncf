@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 interface Args {
   pedido_id: string;
@@ -26,7 +27,7 @@ export function useRegistrarEventoPedido() {
       return data;
     },
     onSuccess: (_, vars) => {
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });
+      invalidarPedido(qc, vars.pedido_id);
       toast({ title: "Anotação registrada" });
     },
     onError: (e: Error) => {

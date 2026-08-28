@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { UrgenciaDeclarada } from "@/types/pedido";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 interface Args {
   pedidoId: string;
@@ -27,11 +28,7 @@ export function useAtualizarUrgencia() {
     },
     onSuccess: (_d, vars) => {
       toast.success("Urgência atualizada");
-      qc.invalidateQueries({ queryKey: ["fila-pedidos-priorizada"] });
-      qc.invalidateQueries({ queryKey: ["pedido-priorizado", vars.pedidoId] });
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedidoId] });
-      qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
-      qc.invalidateQueries({ queryKey: ["pedido-risco"] });
+      invalidarPedido(qc, vars.pedidoId);
     },
     onError: (err: unknown) => {
       const msg = err instanceof Error ? err.message : "Erro ao salvar urgência";

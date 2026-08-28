@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { montarPacoteCobranca, type TituloPacote } from "@/lib/financeiro/montar-pacote-cobranca";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 export function useEnviarEmailNfBoletos() {
   const qc = useQueryClient();
@@ -116,8 +117,7 @@ export function useEnviarEmailNfBoletos() {
         title: "NF + boletos enviados",
         description: `Enviado para ${data.email} · ${data.id_externo}`,
       });
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });
-      qc.invalidateQueries({ queryKey: ["boletos-do-pedido", vars.pedido_id] });
+      invalidarPedido(qc, vars.pedido_id);
       qc.invalidateQueries({ queryKey: ["boletos-safra"] });
       qc.invalidateQueries({ queryKey: ["cobranca-mesa"] });
     },

@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { EstagioPedido } from "@/types/pedido";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 interface Args {
   pedido_id: string;
@@ -51,9 +52,7 @@ export function useTransicionarPedido() {
     },
     onSuccess: (_, variables) => {
       setFaltaLastro(null);
-      qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
-      qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", variables.pedido_id] });
+      invalidarPedido(qc, variables.pedido_id);
       toast({ title: "Pedido avançado" });
     },
     onError: (e: Error, variables) => {

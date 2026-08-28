@@ -29,6 +29,7 @@ import {
 import { resolverEmailCobranca } from "@/lib/financeiro/email-cobranca-parceiro";
 import { ehBrCodePix } from "@/lib/financeiro/instrumento-pagamento";
 import { hojeISO } from "@/lib/data";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 type TipoEmail = "cobranca" | "portao_boleto" | "boleto" | "nf" | "nf_boletos";
 
@@ -286,8 +287,7 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
         estagio_pedido: estagio,
       });
 
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedido_id] });
-      qc.invalidateQueries({ queryKey: ["pedido-titulos", pedido_id] });
+      invalidarPedido(qc, pedido_id);
       setDialogOpen(false);
       setDialogTipo(null);
     } finally {
