@@ -97,15 +97,19 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
   const mostrarAlerta = precisaSincronizar;
   const mostrarInicial = !precisaSincronizar && semRemessa && podeEnviarInicial;
 
-  // Reenvio: só super_admin, só em_separacao, e só se existe uma tentativa VIVA
+  // Reenvio: só super_admin, só em (pré-)separação, e só se existe uma tentativa VIVA
   // carregando exatamente o id que o pedido aponta hoje (a "vigente").
+  // REENVIO-SEGUE-O-ENVIO (28/08/2026): pre_separacao entrou porque pedido devolvido
+  // para Cobranca e corrigido volta nesse estagio com bling_id_destino preenchido —
+  // sem isso ele nao tem botao nenhum para corrigir o Bling.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const temTentativaVigente = (remessas ?? []).some((r: any) =>
     r.status !== "cancelada" && !!r.bling_pedido_id &&
     String(r.bling_pedido_id) === String(bling_id_destino)
   );
   const podeReenviar =
-    isSuperAdmin && estagio === "em_separacao" && !!bling_id_destino && temTentativaVigente;
+    isSuperAdmin && (estagio === "pre_separacao" || estagio === "em_separacao")
+    && !!bling_id_destino && temTentativaVigente;
 
   if (!mostrarAlerta && !mostrarInicial && elegiveis.length === 0 && !podeReenviar
       && !podeEmpurrarXpm && !jaEmpurrado && !pedidoXpm?.xpm_envio_erro) return null;

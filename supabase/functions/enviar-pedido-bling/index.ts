@@ -215,11 +215,15 @@ serve(async (req) => {
     // ── Branch: reenviar ─────────────────────────────────────────────────
     // Reenvio ao Bling APÓS cancelamento LÁ. Prepara (cancela a tentativa vigente
     // preservando o id morto + cria a tentativa seguinte) e cai no fluxo normal
-    // de envio com a remessa nova. Exclusivo de super_admin, exclusivo de em_separacao.
+    // de envio com a remessa nova. Exclusivo de super_admin.
+    // REENVIO-SEGUE-O-ENVIO (28/08/2026): o reenvio vale nos mesmos estagios do envio
+    // normal. Restrito a em_separacao, pedido devolvido para Cobranca, corrigido e
+    // descido de volta ficava sem saida: "Enviar pro Bling" exige !bling_id_destino e
+    // o reenvio exigia em_separacao. Cobranca segue barrada pelo guard de estagio acima.
     if (body?.acao === "reenviar") {
       if (!ehSuperAdmin) return err("Reenvio ao Bling é exclusivo de super_admin", 403);
-      if (pedido.estagio !== "em_separacao") {
-        return err(`Reenvio só em "Em separação" — pedido está em "${pedido.estagio}"`, 409);
+      if (pedido.estagio !== "em_separacao" && pedido.estagio !== "pre_separacao") {
+        return err(`Reenvio só em "Pré-separação" ou "Em separação" — pedido está em "${pedido.estagio}"`, 409);
       }
       if (!pedido.bling_id_destino) {
         return err("Pedido ainda não tem id do Bling — use o envio normal, não o reenvio", 409);
