@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useCoberturaItens, rotuloCobertura, type CoberturaItem } from "@/lib/pedidoDestaque";
 import { usePedidoEdicaoCampo } from "@/hooks/pedidos/usePedidoEdicaoCampo";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 interface Item {
   sku: string | null;
@@ -86,7 +87,7 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
     },
     onSuccess: (data) => {
       toast.success(`Itens salvos — novo total: ${fmtBRL.format(data.novo_liquido)}`);
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedidoId] });
+      invalidarPedido(qc, pedidoId);
       setOpen(false);
       onSalvo?.();
     },

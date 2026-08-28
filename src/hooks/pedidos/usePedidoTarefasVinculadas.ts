@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 /**
  * Tarefas vinculadas ao pedido (Casa dos Pedidos → aba Tarefas).
@@ -118,7 +119,7 @@ export function useCriarTarefaPedido() {
       if (error) throw error;
     },
     onSuccess: (_d, v) => {
-      qc.invalidateQueries({ queryKey: ["pedido-tarefas-vinculadas", v.pedidoId] });
+      invalidarPedido(qc, v.pedidoId);
       toast.success("Tarefa criada e vinculada ao pedido");
     },
     onError: (e: Error) =>
@@ -137,7 +138,7 @@ export function useConcluirTarefaPedido() {
       if (error) throw error;
     },
     onSuccess: (_d, v) => {
-      qc.invalidateQueries({ queryKey: ["pedido-tarefas-vinculadas", v.pedidoId] });
+      invalidarPedido(qc, v.pedidoId);
       toast.success("Tarefa concluída");
     },
     onError: (e: Error) =>

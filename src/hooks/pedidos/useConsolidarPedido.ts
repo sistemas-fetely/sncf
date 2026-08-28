@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 export interface CandidatoConsolidacao {
   pedido_id: string;
@@ -91,13 +92,8 @@ export function useConsolidarPedido() {
         title: `${res.descartado} consolidado em ${res.mantido}`,
         description: `${res.itens_migrados} item(ns) migrado(s) · novo líquido ${Number(res.liquido).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}${res.recebivel_cancelado ? ` · ${res.titulos_cancelados} título(s) cancelado(s) (${res.titulos_cancelados_no_que_fica} em ${res.mantido}, ${res.titulos_cancelados_no_descartado} em ${res.descartado})` : ""} · ${res.proximo_passo}`,
       });
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.idManter] });
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.idDescartar] });
-      qc.invalidateQueries({ queryKey: ["pedido-origens", vars.idManter] });
-      qc.invalidateQueries({ queryKey: ["candidatos-consolidacao"] });
-      qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
-      qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
-      qc.invalidateQueries({ queryKey: ["remessas", vars.idManter] });
+      invalidarPedido(qc, vars.idManter);
+      invalidarPedido(qc, vars.idDescartar);
     },
     onError: (e: any) => {
       toast({

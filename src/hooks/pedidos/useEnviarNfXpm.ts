@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 /**
  * Envio MANUAL de NF a XPM: chama `empurrar-nf-xpm` com `fila_id`.
@@ -29,14 +30,11 @@ export function useEnviarNfXpm(pedido_id: string) {
           description: `Bloqueados: ${res?.bloqueados ?? 0} · falhas: ${res?.falhas ?? 0}. Veja o erro na trilha de envios.`,
         });
       }
-      qc.invalidateQueries({ queryKey: ["envios-xpm", pedido_id] });
-      qc.invalidateQueries({ queryKey: ["nf-fila-pedido", pedido_id] });
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedido_id] });
+      invalidarPedido(qc, pedido_id);
     },
     onError: (e: Error) => {
       toast({ variant: "destructive", title: "Falha ao enviar NF à XPM", description: e.message });
-      qc.invalidateQueries({ queryKey: ["envios-xpm", pedido_id] });
-      qc.invalidateQueries({ queryKey: ["nf-fila-pedido", pedido_id] });
+      invalidarPedido(qc, pedido_id);
     },
   });
 }

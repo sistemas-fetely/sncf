@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 interface DividirParams {
   remessaOrigemId: string;
@@ -20,8 +21,7 @@ export function useDividirRemessa() {
       return data;
     },
     onSuccess: (data: any, vars) => {
-      qc.invalidateQueries({ queryKey: ["remessas"] });
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedidoId] });
+      invalidarPedido(qc, vars.pedidoId);
       // Vocabulario de UI: `pedido_remessa` e tentativa de envio, nao remessa /NN.
       toast.success("Envio dividido — nova tentativa criada");
     },

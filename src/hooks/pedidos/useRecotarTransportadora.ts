@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import { toast } from "sonner";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 interface RecotarInput {
   pedidoId: string;
@@ -30,7 +31,7 @@ export function useRecotarTransportadora() {
       return (data ?? { ok: false, motivo: "Resposta vazia do servidor" }) as RecotarResult;
     },
     onSuccess: (data, vars) => {
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedidoId] });
+      invalidarPedido(qc, vars.pedidoId);
       if (data.ok) {
         toast.success(
           data.transportadora_nome

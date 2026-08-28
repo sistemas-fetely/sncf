@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 interface Args {
   pedido_id: string;
@@ -28,8 +29,7 @@ export function useClonarPedido() {
       return data as ClonarPedidoResult;
     },
     onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
-      qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
+      invalidarPedido(qc, null);
       toast({ title: `Pedido substituto criado: ${data.clone_id_externo}` });
       navigate(`/pedidos/${data.clone_id}`);
     },

@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 interface Params {
   pedido_id: string;
@@ -22,8 +23,7 @@ export function useVincularComplementar() {
     onSuccess: (_, vars) => {
       const msg = vars.pedido_origem_id ? "Pedido vinculado como complementar" : "Vínculo removido";
       toast({ title: msg });
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });
-      qc.invalidateQueries({ queryKey: ["pedidos-complementares"] });
+      invalidarPedido(qc, vars.pedido_id);
     },
     onError: (e: Error) => {
       toast({ title: "Erro ao vincular", description: e.message, variant: "destructive" });

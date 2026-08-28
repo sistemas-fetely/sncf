@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { rawMessage } from "@/lib/format-error";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 export type ProvaTipo = "pix_txid" | "cartao_nsu" | "haver" | "ofx" | "manual" | "boleto_cnab";
 
@@ -86,14 +87,8 @@ export function useConfirmarPagamentoLinha() {
       });
 
 
+      invalidarPedido(qc, res.pedido_id);
       const keys: (readonly unknown[])[] = [
-        ["pedido-detalhe", res.pedido_id],
-        ["pedido-portao-provisorio", res.pedido_id],
-        ["provisoes-pedido", res.pedido_id],
-        ["plano-aberto-pedido", res.pedido_id],
-        ["provisao-portao-pendente", res.pedido_id],
-        ["pedidos-fila"],
-        ["pedidos-pipeline"],
         ["contas-receber-titulos"],
         ["primeiro-pagamento-fila"],
         ["cobranca-fila"],

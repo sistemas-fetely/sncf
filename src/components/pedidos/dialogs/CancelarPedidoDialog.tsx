@@ -28,6 +28,7 @@ import { useCancelarPedido } from "@/hooks/pedidos/useCancelarPedido";
 import { useClonarPedido } from "@/hooks/pedidos/useClonarPedido";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 interface Props {
   pedido_id: string;
@@ -80,10 +81,9 @@ export function CancelarPedidoDialog({ pedido_id, id_externo, estagio, cliente_n
   const cloneIdExternoPreview = `${rootIdExterno}/C01`;
 
   const invalidarCredito = () => {
+    invalidarPedido(qc, pedido_id);
     qc.invalidateQueries({ queryKey: ["credito-clientes-haveres"] });
     qc.invalidateQueries({ queryKey: ["haver-disponivel"] });
-    qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedido_id] });
-    qc.invalidateQueries({ queryKey: ["pedido-titulos", pedido_id] });
     qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
   };
 
@@ -92,10 +92,7 @@ export function CancelarPedidoDialog({ pedido_id, id_externo, estagio, cliente_n
       // Só invalida ao fechar se o cancelamento foi concluído (passo 2)
       // Isso evita que o re-render do pai desmonte o dialog antes do passo 2 aparecer
       if (step === "result") {
-        qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
-        qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
-        qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedido_id] });
-        qc.invalidateQueries({ queryKey: ["pedido-titulos", pedido_id] });
+        invalidarPedido(qc, pedido_id);
       }
       setMotivo("");
       setStep("confirm");

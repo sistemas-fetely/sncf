@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { gerarPedidoPdf } from "@/lib/pedidoPdf";
 import { fetchPedidoParaExportar } from "@/hooks/pedidos/usePedidoParaExportar";
 import { ehBrCodePix } from "@/lib/financeiro/instrumento-pagamento";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (s?: string | null) =>
@@ -219,8 +220,7 @@ export function useEnviarEmailPedidoCobranca() {
           description: `Enviado para ${data.email} · ${data.id_externo}`,
         });
       }
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });
-      qc.invalidateQueries({ queryKey: ["pedido-titulos", vars.pedido_id] });
+      invalidarPedido(qc, vars.pedido_id);
     },
     onError: (e: Error) => {
       toast({ title: "Erro ao enviar email", description: e.message, variant: "destructive" });

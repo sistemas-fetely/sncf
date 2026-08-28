@@ -5,6 +5,7 @@ import { Loader2, PackageX } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 interface Props {
   open: boolean;
@@ -35,9 +36,7 @@ export function ReterEstoqueDialog({ open, onOpenChange, pedidoId, idExterno }: 
           ? `${faltas.length} SKU(s) sem saldo suficiente. Saída pela Triagem quando o produto chegar.`
           : "Nenhum SKU com saldo insuficiente no momento. Saída pela Triagem quando quiser liberar.",
       });
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedidoId] });
-      qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
-      qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
+      invalidarPedido(qc, pedidoId);
       setMotivo("");
       onOpenChange(false);
     },

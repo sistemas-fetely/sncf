@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 export class ReenvioPrecisaConfirmacao extends Error {
   situacaoAtual: string;
@@ -60,19 +61,14 @@ export function useReenviarBling() {
         title: "Reenviado pro Bling",
         description: `Novo id Bling: ${data.bling_id}${data.duracao_ms ? ` · ${data.duracao_ms}ms` : ""}`,
       });
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });
-      qc.invalidateQueries({ queryKey: ["remessas", vars.pedido_id] });
-      qc.invalidateQueries({ queryKey: ["pedido-titulos", vars.pedido_id] });
-      qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
-      qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
+      invalidarPedido(qc, vars.pedido_id);
     },
     onError: (e: Error, vars) => {
       // Confirmação pendente não é falha: o diálogo trata. Só avisa em erro real.
       if (e instanceof ReenvioPrecisaConfirmacao) return;
       toast({ title: "Erro ao reenviar pro Bling", description: e.message, variant: "destructive" });
       // A preparação pode ter acontecido antes da falha do POST: revalida sempre.
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });
-      qc.invalidateQueries({ queryKey: ["remessas", vars.pedido_id] });
+      invalidarPedido(qc, vars.pedido_id);
     },
   });
 }

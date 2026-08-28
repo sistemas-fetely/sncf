@@ -21,6 +21,7 @@ import { usePedidoEdicaoCampo } from "@/hooks/pedidos/usePedidoEdicaoCampo";
 import { useFreteTipos } from "@/hooks/pedidos/useFreteTipos";
 import { useAuth } from "@/contexts/AuthContext";
 import { ESTAGIO_LABELS } from "@/types/pedido";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 interface Props {
   open: boolean;
@@ -100,10 +101,9 @@ export function AjustarDescontoDialog({
     },
     onSuccess: () => {
       toast.success("Desconto ajustado com sucesso.");
+      invalidarPedido(qc, pedidoId);
       qc.invalidateQueries({ queryKey: ["cobranca-pedido-minimo", pedidoId] });
       qc.invalidateQueries({ queryKey: ["cobranca-proposta", pedidoId] });
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedidoId] });
-      qc.invalidateQueries({ queryKey: ["pedidos"] });
       handleClose();
     },
     onError: (e: Error) => {

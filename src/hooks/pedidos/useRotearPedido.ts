@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 interface Args {
   p_pedido_id: string;
@@ -27,8 +28,7 @@ export function useRotearPedido() {
       return (data ?? { ok: false }) as RotearPedidoResult;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
-      qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
+      invalidarPedido(qc, null);
     },
     onError: (e: Error) => {
       toast({ title: "Erro ao rotear pedido", description: e.message, variant: "destructive" });

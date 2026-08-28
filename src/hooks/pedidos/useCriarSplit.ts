@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 interface SplitParams {
   pedido_id: string;
@@ -45,13 +46,7 @@ export function useCriarSplit() {
         title: "Split criado com sucesso",
         description: `Novo pedido ${data.novo_id_externo} criado`,
       });
-      qc.invalidateQueries({ queryKey: ["splits", vars.pedido_id] });
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedido_id] });
-      qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
-      qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
-      qc.invalidateQueries({ queryKey: ["pedido-itens-split", vars.pedido_id] });
-      qc.invalidateQueries({ queryKey: ["triagem-pedido", vars.pedido_id] });
-      qc.invalidateQueries({ queryKey: ["pedido-destino-estoque", vars.pedido_id] });
+      invalidarPedido(qc, vars.pedido_id);
     },
     onError: (err: unknown) => {
       const msg = err instanceof Error

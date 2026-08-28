@@ -16,6 +16,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { useNivel } from "@/hooks/useNivel";
 import { Tag, Loader2 } from "lucide-react";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 const SUGESTOES_PADRAO = [
   "Comercial - Reng. Credito",
@@ -114,8 +115,7 @@ export function MarcacaoPedido({
       return;
     }
     toast({ title: novo ? "Marcação salva" : "Marcação removida" });
-    qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
-    qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedidoId] });
+    invalidarPedido(qc, pedidoId);
     qc.invalidateQueries({ queryKey: ["marcacoes-sugestoes"] });
     setOpen(false);
   };

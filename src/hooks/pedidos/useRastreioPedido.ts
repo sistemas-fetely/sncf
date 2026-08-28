@@ -5,6 +5,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 export interface RastreioPedido {
   id: string;
@@ -47,8 +48,7 @@ export function useVincularRastreioPedido() {
       return data as string;
     },
     onSuccess: (_data, vars) => {
-      qc.invalidateQueries({ queryKey: ["pedido-rastreamento", vars.pedidoId] });
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", vars.pedidoId] });
+      invalidarPedido(qc, vars.pedidoId);
       toast.success("Código de rastreio vinculado ao pedido.");
     },
     onError: (err: unknown) => {
