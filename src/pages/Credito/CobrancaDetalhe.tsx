@@ -1052,9 +1052,10 @@ export default function CobrancaDetalhe() {
         </span>
       </div>
 
+      {/* No modo proposta o passo 3 é sempre falso: envio só existe depois do plano materializado. */}
       <StepperHonesto
         passos={[
-          { label: "Plano montado", feito: false },
+          { label: "Plano montado", feito: (planoExistenteQ.data ?? 0) > 0 },
           { label: "Instrumento pronto", feito: titulos.some((t) => t.link_pagamento) },
           { label: "Enviado ao cliente", feito: false },
         ]}
