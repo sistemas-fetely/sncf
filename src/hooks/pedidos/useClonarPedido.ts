@@ -28,8 +28,8 @@ export function useClonarPedido() {
       if (error) throw error;
       return data as ClonarPedidoResult;
     },
-    onSuccess: (data) => {
-      invalidarPedido(qc, null);
+    onSuccess: (data, vars) => {
+      invalidarPedido(qc, vars.pedido_id);
       toast({ title: `Pedido substituto criado: ${data.clone_id_externo}` });
       navigate(`/pedidos/${data.clone_id}`);
     },

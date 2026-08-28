@@ -27,8 +27,8 @@ export function useRotearPedido() {
       if (error) throw error;
       return (data ?? { ok: false }) as RotearPedidoResult;
     },
-    onSuccess: () => {
-      invalidarPedido(qc, null);
+    onSuccess: (_res, vars) => {
+      invalidarPedido(qc, vars.p_pedido_id);
     },
     onError: (e: Error) => {
       toast({ title: "Erro ao rotear pedido", description: e.message, variant: "destructive" });
