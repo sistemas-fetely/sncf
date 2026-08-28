@@ -1,5 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -428,7 +428,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
 
   const emCobranca = pedido.estagio === "cobranca";
 
-  function scrollPara(ref: React.RefObject<HTMLDivElement>) {
+  function scrollPara(ref: RefObject<HTMLDivElement>) {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
@@ -488,7 +488,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
           <CelulaDinheiro rotulo="Em aberto" valor={somaAberto} dominante />
         </div>
 
-        {linhasQ.isSuccess && Math.abs(delta) > 0.01 && (
+        {linhasQ.isSuccess && linhas.length > 0 && Math.abs(delta) > 0.01 && (
           <div className="mt-2 flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
             <span>
@@ -1052,9 +1052,10 @@ export default function CobrancaDetalhe() {
         </span>
       </div>
 
+      {/* No modo proposta o passo 3 é sempre falso: envio só existe depois do plano materializado. */}
       <StepperHonesto
         passos={[
-          { label: "Plano montado", feito: false },
+          { label: "Plano montado", feito: (planoExistenteQ.data ?? 0) > 0 },
           { label: "Instrumento pronto", feito: titulos.some((t) => t.link_pagamento) },
           { label: "Enviado ao cliente", feito: false },
         ]}
