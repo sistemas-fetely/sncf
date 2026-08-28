@@ -280,3 +280,33 @@ export function useAtenderSolicitacao() {
     },
   });
 }
+
+/**
+ * Descarta a solicitação (status='cancelada'). Motivo é OBRIGATÓRIO — a função
+ * do banco levanta exceção se vier vazio; não duplicamos a validação como
+ * regra, apenas desabilitamos o botão na UI.
+ * FAIL-LOUD: a mensagem do Postgres (ex.: 22023 "Solicitacao ja esta como ...")
+ * vai crua para o toast.
+ */
+export function useDescartarSolicitacao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { solicitacaoId: string; motivo: string }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc("descartar_solicitacao_comercial", {
+        p_solicitacao_id: input.solicitacaoId,
+        p_motivo: input.motivo,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Solicitação descartada.");
+      invalidar(qc);
+    },
+    onError: (e: unknown) => {
+      toast.error(formatError(e));
+    },
+  });
+}
+
