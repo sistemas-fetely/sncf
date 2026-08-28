@@ -7,6 +7,7 @@ import { AplicarHaverPedidoDialog } from "@/components/credito/AplicarHaverPedid
 import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTituloHaverDialog";
 
 import { usePedidoDetalhe } from "@/hooks/pedidos/usePedidoDetalhe";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 import { usePedidoEmbalagem } from "@/hooks/pedidos/usePedidoEmbalagem";
 
 /** Formatação pt-BR com número fixo de casas. */
@@ -980,12 +981,7 @@ function EnviarParaSeparacaoAcao({ pedidoId }: { pedidoId: string }) {
         description = "Próximo passo: gerar o portão de entrada na aba Primeiro Pagamento";
       }
       toast({ title: `Enviado para ${destLabel}`, description });
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedidoId] });
-      qc.invalidateQueries({ queryKey: ["pedido-destino-estoque", pedidoId] });
-      
-      qc.invalidateQueries({ queryKey: ["triagem-pedido", pedidoId] });
-      qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
-      qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
+      invalidarPedido(qc, pedidoId);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: "Erro ao liberar remessa", description: msg, variant: "destructive" });
@@ -1285,7 +1281,7 @@ export default function PedidoDetalhe() {
       if (!error && data != null) {
         setPesoBruto(String(data.peso ?? data));
         // Invalida a query do pedido para que cubagem_total seja atualizado na tela
-        queryClient.invalidateQueries({ queryKey: ["pedido-detalhe", id] });
+        invalidarPedido(queryClient, id);
       }
     } finally {
       setRecalculandoPeso(false);
@@ -1447,11 +1443,7 @@ export default function PedidoDetalhe() {
         description: `${resultado?.itens_restaurados ?? 0} itens restaurados.${splitsMsg}${reativadoMsg}${valoresMsg}${paiMsg}`,
       });
 
-      queryClient.invalidateQueries({ queryKey: ["pedido", pedido.id] });
-      queryClient.invalidateQueries({ queryKey: ["pedido-detalhe", pedido.id] });
-      queryClient.invalidateQueries({ queryKey: ["splits", pedido.id] });
-      queryClient.invalidateQueries({ queryKey: ["pedidos-fila"] });
-      queryClient.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
+      invalidarPedido(queryClient, pedido.id);
     } catch (err: any) {
       toast({
         title: "Erro ao restaurar",
@@ -1492,8 +1484,7 @@ export default function PedidoDetalhe() {
         title: "Snapshot corrigido",
         description: "Dados originais do FOP carregados com sucesso.",
       });
-      queryClient.invalidateQueries({ queryKey: ["pedido", pedido.id] });
-      queryClient.invalidateQueries({ queryKey: ["pedido-detalhe", pedido.id] });
+      invalidarPedido(queryClient, pedido.id);
     } catch (err: any) {
       toast({
         title: "Erro ao corrigir snapshot",
