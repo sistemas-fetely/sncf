@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 interface Args {
   pedido_id: string;
@@ -50,11 +51,8 @@ export function useConfirmarPagamentoPortao() {
             : "Pedido avançou pra pré-separação.",
       });
 
+      invalidarPedido(qc, vars.pedido_id);
       const keys: (readonly unknown[])[] = [
-        ["pedido-detalhe", vars.pedido_id],
-        ["pedido-portao-provisorio", vars.pedido_id],
-        ["pedidos-fila"],
-        ["pedidos-pipeline"],
         ["contas-receber-titulos"],
         ["primeiro-pagamento-fila"],
         ["cobranca-fila"],

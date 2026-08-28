@@ -93,6 +93,7 @@ export function useConsolidarPedido() {
         description: `${res.itens_migrados} item(ns) migrado(s) · novo líquido ${Number(res.liquido).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}${res.recebivel_cancelado ? ` · ${res.titulos_cancelados} título(s) cancelado(s) (${res.titulos_cancelados_no_que_fica} em ${res.mantido}, ${res.titulos_cancelados_no_descartado} em ${res.descartado})` : ""} · ${res.proximo_passo}`,
       });
       invalidarPedido(qc, vars.idManter);
+      invalidarPedido(qc, vars.idDescartar);
     },
     onError: (e: any) => {
       toast({

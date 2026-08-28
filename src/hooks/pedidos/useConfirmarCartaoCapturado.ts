@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { rawMessage } from "@/lib/format-error";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 interface Args {
   pedido_id: string;
@@ -70,12 +71,8 @@ export function useConfirmarCartaoCapturado() {
       }
 
       const pedidoId = res.pedido_id ?? args.pedido_id;
+      invalidarPedido(qc, pedidoId);
       const keys: (readonly unknown[])[] = [
-        ["pedido-detalhe", pedidoId],
-        ["pedido-portao-provisorio", pedidoId],
-        ["provisoes-pedido", pedidoId],
-        ["pedidos-fila"],
-        ["pedidos-pipeline"],
         ["contas-receber-titulos"],
         ["primeiro-pagamento-fila"],
         ["cobranca-fila"],
