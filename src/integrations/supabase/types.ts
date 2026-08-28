@@ -71233,6 +71233,10 @@ export type Database = {
         Args: { p_importacao_stage_id: string }
         Returns: Json
       }
+      descartar_solicitacao_comercial: {
+        Args: { p_motivo: string; p_solicitacao_id: string }
+        Returns: Json
+      }
       desconciliar_movimentacao: { Args: { p_mov_id: string }; Returns: Json }
       desfazer_alocacao: {
         Args: { p_alocacao_id: string; p_motivo?: string; p_user_id?: string }
