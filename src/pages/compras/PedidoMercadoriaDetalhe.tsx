@@ -165,14 +165,19 @@ interface ConfNf {
 
 interface ConfInv {
   importacao_pedido_id: number;
+  numero_pedido: string | null;
   invoice_id: number | null;
   invoice_numero: string | null;
+  data_emissao: string | null;
   sku: string | null;
+  codigo_fornecedor: string | null;
   qtd_pedido: number | null;
   qtd_invoice: number | null;
-  furo: number | null;
+  declarado_invoice: number | null;
+  a_embarcar: number | null;
   custo_pedido: number | null;
   custo_invoice: number | null;
+  delta_preco: number | null;
   situacao: string | null;
 }
 
@@ -206,6 +211,26 @@ const SITUACAO_NF: Record<
   divergente: {
     rotulo: "Divergente",
     badge: "border-destructive/40 bg-destructive/10 text-destructive",
+    linha: "bg-destructive/10",
+  },
+};
+
+// Conferência Pedido × Invoice: embarque parcial NÃO é problema. Realce de
+// linha só para erro de fato (excesso de embarque ou SKU fora do pedido).
+const SITUACAO_INV: Record<
+  string,
+  { rotulo: string; estado: EstadoSelo; linha?: string }
+> = {
+  ok: { rotulo: "OK", estado: "success" },
+  preco_divergente: { rotulo: "Preço divergente", estado: "warning" },
+  embarque_excede_pedido: {
+    rotulo: "Embarque acima do pedido",
+    estado: "destructive",
+    linha: "bg-destructive/10",
+  },
+  sku_fora_do_pedido: {
+    rotulo: "SKU fora do pedido",
+    estado: "destructive",
     linha: "bg-destructive/10",
   },
 };
