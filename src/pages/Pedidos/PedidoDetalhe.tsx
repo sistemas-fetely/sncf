@@ -187,15 +187,17 @@ function RastreioLeitura({ pedidoId }: { pedidoId: string }) {
 }
 
 /**
- * RESERVA-NASCE-DA-PRE-SEPARACAO: a partir da pré-separação a peça já está
- * reservada para o pedido, então tag de lastro vira ruído — nesses estágios
- * não mostramos faixa, badge nem fundo de linha.
+ * COBERTURA-SO-SOME-DEPOIS-DA-NF (28/08/2026): a tag de lastro nos itens só vira
+ * ruído DEPOIS da emissão da NF, quando a baixa de estoque já aconteceu. Antes
+ * disso ela é o aviso mais importante da tela.
+ *
+ * Corrige a premissa anterior (RESERVA-NASCE-DA-PRE-SEPARACAO aplicada à UI):
+ * `reserva_ativa = true` significa apenas que o item entra na fila FIFO, não que
+ * existe peça. Item em pré-separação pode estar reservado E descoberto ao mesmo
+ * tempo — era exatamente o que a ficha escondia enquanto a Fila mostrava.
+ * Mesma fonte da coluna Estoque da Fila: vw_pedido_item_cobertura.
  */
 const ESTAGIOS_JA_RESERVADO = [
-  "pre_separacao",
-  "em_separacao",
-  "pre_faturamento",
-  "pre_faturado",
   "faturado",
   "em_transporte",
   "entregue",
