@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -30877,90 +30877,123 @@ export type Database = {
           bairro: string | null
           cep: string | null
           cidade: string | null
+          cnh: string | null
           complemento: string | null
           contato_emergencia_nome: string | null
+          contato_emergencia_parentesco: string | null
           contato_emergencia_telefone: string | null
           cpf: string | null
           created_at: string
           created_by: string | null
           data_nascimento: string | null
           email_pessoal: string | null
+          escolaridade: string | null
           estado_civil: string | null
           etnia: string | null
+          formacao: string | null
           foto_url: string | null
           genero: string | null
           id: string
+          info_saude: string | null
           logradouro: string | null
           nacionalidade: string | null
+          naturalidade: string | null
           nome_completo: string
           nome_mae: string | null
           nome_pai: string | null
+          nome_social: string | null
           numero: string | null
           orgao_emissor: string | null
           origem_contrato_pj_id: string | null
+          pcd_tipo: string | null
           rg: string | null
+          tamanho_camiseta: string | null
           telefone: string | null
           uf: string | null
+          uf_nascimento: string | null
+          uf_rg: string | null
           updated_at: string
         }
         Insert: {
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
+          cnh?: string | null
           complemento?: string | null
           contato_emergencia_nome?: string | null
+          contato_emergencia_parentesco?: string | null
           contato_emergencia_telefone?: string | null
           cpf?: string | null
           created_at?: string
           created_by?: string | null
           data_nascimento?: string | null
           email_pessoal?: string | null
+          escolaridade?: string | null
           estado_civil?: string | null
           etnia?: string | null
+          formacao?: string | null
           foto_url?: string | null
           genero?: string | null
           id?: string
+          info_saude?: string | null
           logradouro?: string | null
           nacionalidade?: string | null
+          naturalidade?: string | null
           nome_completo: string
           nome_mae?: string | null
           nome_pai?: string | null
+          nome_social?: string | null
           numero?: string | null
           orgao_emissor?: string | null
           origem_contrato_pj_id?: string | null
+          pcd_tipo?: string | null
           rg?: string | null
+          tamanho_camiseta?: string | null
           telefone?: string | null
           uf?: string | null
+          uf_nascimento?: string | null
+          uf_rg?: string | null
           updated_at?: string
         }
         Update: {
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
+          cnh?: string | null
           complemento?: string | null
           contato_emergencia_nome?: string | null
+          contato_emergencia_parentesco?: string | null
           contato_emergencia_telefone?: string | null
           cpf?: string | null
           created_at?: string
           created_by?: string | null
           data_nascimento?: string | null
           email_pessoal?: string | null
+          escolaridade?: string | null
           estado_civil?: string | null
           etnia?: string | null
+          formacao?: string | null
           foto_url?: string | null
           genero?: string | null
           id?: string
+          info_saude?: string | null
           logradouro?: string | null
           nacionalidade?: string | null
+          naturalidade?: string | null
           nome_completo?: string
           nome_mae?: string | null
           nome_pai?: string | null
+          nome_social?: string | null
           numero?: string | null
           orgao_emissor?: string | null
           origem_contrato_pj_id?: string | null
+          pcd_tipo?: string | null
           rg?: string | null
+          tamanho_camiseta?: string | null
           telefone?: string | null
           uf?: string | null
+          uf_nascimento?: string | null
+          uf_rg?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -37377,6 +37410,7 @@ export type Database = {
           link_acao: string | null
           motivo_bloqueio: string | null
           origem_extensao_id: string | null
+          pessoa_id: string | null
           prazo_data: string | null
           prazo_dias: number | null
           prioridade: string
@@ -37389,6 +37423,7 @@ export type Database = {
           tipo_processo: string
           titulo: string
           updated_at: string
+          vinculo_id: string | null
         }
         Insert: {
           accountable_role?: string | null
@@ -37415,6 +37450,7 @@ export type Database = {
           link_acao?: string | null
           motivo_bloqueio?: string | null
           origem_extensao_id?: string | null
+          pessoa_id?: string | null
           prazo_data?: string | null
           prazo_dias?: number | null
           prioridade?: string
@@ -37427,6 +37463,7 @@ export type Database = {
           tipo_processo?: string
           titulo: string
           updated_at?: string
+          vinculo_id?: string | null
         }
         Update: {
           accountable_role?: string | null
@@ -37453,6 +37490,7 @@ export type Database = {
           link_acao?: string | null
           motivo_bloqueio?: string | null
           origem_extensao_id?: string | null
+          pessoa_id?: string | null
           prazo_data?: string | null
           prazo_dias?: number | null
           prioridade?: string
@@ -37465,6 +37503,7 @@ export type Database = {
           tipo_processo?: string
           titulo?: string
           updated_at?: string
+          vinculo_id?: string | null
         }
         Relationships: [
           {
@@ -37482,6 +37521,62 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "sncf_tarefas_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sncf_tarefas_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "sncf_tarefas_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_pessoa"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "sncf_tarefas_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_vinculo_pessoa"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "sncf_tarefas_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organograma"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "sncf_tarefas_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "sncf_tarefas_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "sncf_tarefas_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_reembolso_saneamento"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
             foreignKeyName: "sncf_tarefas_sistema_origem_fkey"
             columns: ["sistema_origem"]
             isOneToOne: false
@@ -37494,6 +37589,69 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tarefas_tipos_processo"
             referencedColumns: ["chave"]
+          },
+          {
+            foreignKeyName: "sncf_tarefas_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "v_organograma_ocupantes"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "sncf_tarefas_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vinculos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sncf_tarefas_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "sncf_tarefas_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_vinculo_pessoa"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "sncf_tarefas_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organograma"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "sncf_tarefas_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "sncf_tarefas_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "sncf_tarefas_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_reembolso_saneamento"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "sncf_tarefas_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_vinculo_custo_total"
+            referencedColumns: ["vinculo_id"]
           },
         ]
       }
@@ -43955,6 +44113,7 @@ export type Database = {
           chave_pix: string | null
           cnpj: string | null
           conta: string | null
+          conta_titular: string | null
           contrato_preve_reembolso: boolean
           created_at: string
           created_by: string | null
@@ -43967,6 +44126,7 @@ export type Database = {
           departamento_id: string | null
           dia_vencimento: number | null
           email_corporativo: string | null
+          fgts_anterior: boolean | null
           fim_periodo_experiencia_1: string | null
           fim_periodo_experiencia_2: string | null
           forma_pagamento_id: string | null
@@ -43976,23 +44136,35 @@ export type Database = {
           inscricao_municipal: string | null
           jornada_semanal: number | null
           matricula: string | null
+          modalidade: string | null
           nome_fantasia: string | null
           objeto: string | null
           observacoes: string | null
+          opta_vt: boolean | null
           origem_contrato_pj_id: string | null
           parceiro_comercial_id: string | null
           pessoa_id: string
           pis_pasep: string | null
+          pj_cnae: string | null
+          pj_data_abertura: string | null
+          pj_emite_nfse: boolean | null
+          pj_municipio_nfse: string | null
+          pj_regime_tributario: string | null
+          pj_representante_cpf: string | null
+          pj_representante_nome: string | null
           razao_social: string | null
+          reservista: string | null
           status: string
           telefone_corporativo: string | null
           tipo_conta: string | null
           tipo_vinculo: string
+          titulo_eleitor: string | null
           unidade_id: string | null
           updated_at: string
           usuario_id: string | null
           valor_base: number | null
           valor_transporte: number | null
+          vigencia_inicio: string | null
         }
         Insert: {
           agencia?: string | null
@@ -44004,6 +44176,7 @@ export type Database = {
           chave_pix?: string | null
           cnpj?: string | null
           conta?: string | null
+          conta_titular?: string | null
           contrato_preve_reembolso?: boolean
           created_at?: string
           created_by?: string | null
@@ -44016,6 +44189,7 @@ export type Database = {
           departamento_id?: string | null
           dia_vencimento?: number | null
           email_corporativo?: string | null
+          fgts_anterior?: boolean | null
           fim_periodo_experiencia_1?: string | null
           fim_periodo_experiencia_2?: string | null
           forma_pagamento_id?: string | null
@@ -44025,23 +44199,35 @@ export type Database = {
           inscricao_municipal?: string | null
           jornada_semanal?: number | null
           matricula?: string | null
+          modalidade?: string | null
           nome_fantasia?: string | null
           objeto?: string | null
           observacoes?: string | null
+          opta_vt?: boolean | null
           origem_contrato_pj_id?: string | null
           parceiro_comercial_id?: string | null
           pessoa_id: string
           pis_pasep?: string | null
+          pj_cnae?: string | null
+          pj_data_abertura?: string | null
+          pj_emite_nfse?: boolean | null
+          pj_municipio_nfse?: string | null
+          pj_regime_tributario?: string | null
+          pj_representante_cpf?: string | null
+          pj_representante_nome?: string | null
           razao_social?: string | null
+          reservista?: string | null
           status?: string
           telefone_corporativo?: string | null
           tipo_conta?: string | null
           tipo_vinculo: string
+          titulo_eleitor?: string | null
           unidade_id?: string | null
           updated_at?: string
           usuario_id?: string | null
           valor_base?: number | null
           valor_transporte?: number | null
+          vigencia_inicio?: string | null
         }
         Update: {
           agencia?: string | null
@@ -44053,6 +44239,7 @@ export type Database = {
           chave_pix?: string | null
           cnpj?: string | null
           conta?: string | null
+          conta_titular?: string | null
           contrato_preve_reembolso?: boolean
           created_at?: string
           created_by?: string | null
@@ -44065,6 +44252,7 @@ export type Database = {
           departamento_id?: string | null
           dia_vencimento?: number | null
           email_corporativo?: string | null
+          fgts_anterior?: boolean | null
           fim_periodo_experiencia_1?: string | null
           fim_periodo_experiencia_2?: string | null
           forma_pagamento_id?: string | null
@@ -44074,23 +44262,35 @@ export type Database = {
           inscricao_municipal?: string | null
           jornada_semanal?: number | null
           matricula?: string | null
+          modalidade?: string | null
           nome_fantasia?: string | null
           objeto?: string | null
           observacoes?: string | null
+          opta_vt?: boolean | null
           origem_contrato_pj_id?: string | null
           parceiro_comercial_id?: string | null
           pessoa_id?: string
           pis_pasep?: string | null
+          pj_cnae?: string | null
+          pj_data_abertura?: string | null
+          pj_emite_nfse?: boolean | null
+          pj_municipio_nfse?: string | null
+          pj_regime_tributario?: string | null
+          pj_representante_cpf?: string | null
+          pj_representante_nome?: string | null
           razao_social?: string | null
+          reservista?: string | null
           status?: string
           telefone_corporativo?: string | null
           tipo_conta?: string | null
           tipo_vinculo?: string
+          titulo_eleitor?: string | null
           unidade_id?: string | null
           updated_at?: string
           usuario_id?: string | null
           valor_base?: number | null
           valor_transporte?: number | null
+          vigencia_inicio?: string | null
         }
         Relationships: [
           {
@@ -72504,6 +72704,10 @@ export type Database = {
       fn_xpm_payload_expedicao: {
         Args: { p_forcar?: boolean; p_pedido_id: string }
         Returns: Json
+      }
+      fn_xpm_proximo_codigo_expedicao: {
+        Args: { p_pedido_id: string }
+        Returns: string
       }
       fn_xpm_reprocessar_expedicao: {
         Args: { p_expedicao_codigo: string }
