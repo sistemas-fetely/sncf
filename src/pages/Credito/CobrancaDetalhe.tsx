@@ -1,6 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,12 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ArrowLeft, Loader2, RefreshCcw, AlertTriangle, Copy, Check, Mail, Plus, Trash2, Lock, Info, ChevronDown, FileText } from "lucide-react";
+import { ArrowLeft, Loader2, RefreshCcw, AlertTriangle, Copy, Check, Mail, Plus, Trash2, Lock, Info, ChevronDown, FileText, QrCode, CreditCard, Landmark, MoreHorizontal } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useLinhasCobrancaPedido, type LinhaCobrancaPedido } from "@/hooks/pedidos/useLinhasCobrancaPedido";
 
 import { usePropostaCobranca } from "@/hooks/credito/usePropostaCobranca";
 import { useMaterializarCobranca } from "@/hooks/credito/useMaterializarCobranca";
@@ -112,7 +117,7 @@ function usePedidoMinimo(pedidoId: string | undefined) {
       const { data, error } = await (supabase as any)
         .from("pedidos")
         .select(`
-          id, id_externo, estagio, data_pedido, valor_bruto, valor_liquido, bonus_pix_valor, condicao_solicitada, parceiro_id,
+          id, id_externo, estagio, data_pedido, nf_numero, valor_bruto, valor_liquido, bonus_pix_valor, condicao_solicitada, parceiro_id,
           itens_json, frete_tipo, valor_frete,
           parceiro:parceiros_comerciais!parceiro_id(razao_social, nome_fantasia, cnpj, cpf, email, telefone, cep, logradouro, numero, endereco_complemento, bairro, cidade, uf),
           analises_credito!analises_credito_pedido_id_fkey(parecer_final, status_final, decidido_em, exige_portao)
@@ -584,6 +589,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
 export default function CobrancaDetalhe() {
 
   const { pedidoId } = useParams<{ pedidoId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const voltarPara = useVoltarParaOrigem("/recebimento/cobranca");
   const { toast } = useToast();
@@ -962,9 +968,13 @@ export default function CobrancaDetalhe() {
     );
   }
 
-  // TRAVA: estágio fora de 'cobranca' OU plano já materializado → modo links.
-  // Nunca mostrar proposta editável para pedido que já tem plano (evita plano duplicado).
-  if (pedidoQ.data.estagio !== "cobranca" || (planoExistenteQ.data ?? 0) > 0) {
+  // PLANO-EM-COBRANCA-E-EDITAVEL (28/08/2026): pedido em cobrança não tem título nem
+  // boleto — só provisão prevista. montar_plano_pagamento é porta única e já apaga a
+  // provisão antes de remontar, então refazer o plano aqui não cancela nada e não
+  // precisa de reversão. ?refazer=1 devolve o operador à proposta editável.
+  const refazer = searchParams.get("refazer") === "1";
+  const emCobranca = pedidoQ.data.estagio === "cobranca";
+  if (!emCobranca || ((planoExistenteQ.data ?? 0) > 0 && !refazer)) {
     return <GerenciarLinksPagamento pedido={pedidoQ.data} />;
   }
 
@@ -1043,7 +1053,13 @@ export default function CobrancaDetalhe() {
         </span>
       </div>
 
-      <CobrancaStepper fase={titulos.some((t) => t.link_pagamento) ? 2 : 1} />
+      <StepperHonesto
+        passos={[
+          { label: "Plano montado", feito: false },
+          { label: "Instrumento pronto", feito: titulos.some((t) => t.link_pagamento) },
+          { label: "Enviado ao cliente", feito: false },
+        ]}
+      />
 
       {/* Resumo */}
       <Card>
