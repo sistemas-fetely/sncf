@@ -9,6 +9,10 @@ interface DeclararResponse {
   expedicao_codigo?: string;
   pedido?: string;
   ponteiro_liberado?: boolean;
+  estagio_de?: string | null;
+  estagio_para?: string | null;
+  estagio_revertido?: boolean;
+  aviso?: string | null;
 }
 
 interface DeclararParams {
@@ -23,6 +27,11 @@ interface DeclararParams {
  * A RPC valida tudo (motivo >= 15, expedicao inexistente/ja declarada, volumes
  * contados) e devolve { ok, erro }. A UI so exibe o erro — nao replica regra.
  * `p_declarado_por` fica de fora: a RPC resolve por auth.uid().
+ *
+ * CANCELAMENTO-DESFAZ-O-EMPURRAO (28/08/2026): a RPC tambem regride o estagio
+ * para pre_separacao (onde o pedido pode ser editado e reenviado). Quando nao
+ * consegue — pedido com NF, pedido pausado — ela devolve `aviso` em vez de
+ * falhar, e a tela grita o aviso num toast separado.
  */
 export function useDeclararCancelamentoXpm() {
   const qc = useQueryClient();
@@ -41,10 +50,20 @@ export function useDeclararCancelamentoXpm() {
       return resp;
     },
     onSuccess: (data, vars) => {
+      const codigo = data.expedicao_codigo ?? vars.expedicao_codigo;
       toast({
         title: "Cancelamento declarado",
-        description: `Expedição ${data.expedicao_codigo ?? vars.expedicao_codigo} liberada. O pedido pode ser empurrado novamente.`,
+        description: data.estagio_revertido
+          ? `Expedição ${codigo} liberada. O pedido voltou para Pré-Separação — edite os itens e empurre de novo.`
+          : `Expedição ${codigo} liberada. O pedido pode ser empurrado novamente.`,
       });
+      if (data.aviso) {
+        toast({
+          title: "Estágio não voltou para Pré-Separação",
+          description: data.aviso,
+          variant: "destructive",
+        });
+      }
       invalidarPedido(qc, vars.pedido_id);
     },
     onError: (e: Error) => {
