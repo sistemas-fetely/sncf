@@ -71303,6 +71303,10 @@ export type Database = {
         }[]
       }
       detectar_tipo_pagamento: { Args: { descricao: string }; Returns: string }
+      devolver_pedido_para_cobranca: {
+        Args: { p_motivo: string; p_pedido_id: string }
+        Returns: Json
+      }
       diagnostico_match_mov_sem_cnpj: {
         Args: never
         Returns: {
