@@ -24,7 +24,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CardIndicador } from "@/components/ui/card-indicador";
 
 import { Badge } from "@/components/ui/badge";
-import { Selo } from "@/components/ui/selo";
+import { Selo, type EstadoSelo } from "@/components/ui/selo";
+import { CelulaDinheiro } from "@/components/ui/celula-dinheiro";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -312,11 +313,21 @@ export default function PedidoMercadoriaDetalhe() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("vw_compra_tres_camadas_pedido")
-        .select("a_faturar, a_confirmar")
+        .select(
+          "a_faturar, a_confirmar, custo_projetado, delta_custo, delta_custo_pct, custo_comparavel, custo_incomparavel_motivo",
+        )
         .eq("pedido_id", pedidoId)
         .maybeSingle();
       if (error) throw error;
-      return (data ?? null) as { a_faturar: number | null; a_confirmar: number | null } | null;
+      return (data ?? null) as {
+        a_faturar: number | null;
+        a_confirmar: number | null;
+        custo_projetado: number | null;
+        delta_custo: number | null;
+        delta_custo_pct: number | null;
+        custo_comparavel: boolean | null;
+        custo_incomparavel_motivo: string | null;
+      } | null;
     },
   });
 
