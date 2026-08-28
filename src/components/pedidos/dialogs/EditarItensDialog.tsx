@@ -42,11 +42,14 @@ function useProdutos(busca: string) {
   return useQuery({
     queryKey: ["sncf_produtos", busca],
     queryFn: async () => {
+      const termo = busca.trim().replace(/[,()"]/g, "");
       let q = (supabase as any)
         .from("sncf_produtos")
         .select("sku,nome_comercial,preco_atacado,multiplos")
         .eq("ativo", true);
-      if (busca.trim()) q = q.ilike("nome_comercial", `%${busca}%`);
+      if (termo) {
+        q = q.or(`nome_comercial.ilike."%${termo}%",sku.ilike."%${termo}%"`);
+      }
       const { data, error } = await q.order("nome_comercial").limit(30);
       if (error) throw error;
       return (data ?? []) as Produto[];
