@@ -483,8 +483,26 @@ serve(async (req) => {
         409,
       );
     }
+
+    // 4a-bis. PLANO-COBRE-O-PEDIDO (28/08/2026): ter lastro é ter vínculo, não ter
+    // valor suficiente. `fn_pedido_tem_lastro` diz que existe plano; `falta` diz se
+    // ele cobre. Sem esta trava, editar itens e esquecer de remontar o plano fazia a
+    // NF sair pelo valor novo e o título nascer pelo valor velho — furo silencioso,
+    // porque o título nasce da provisão (fn_faturar_pedido), nunca do valor do pedido.
+    const faltaCobranca = Number(lastro.falta ?? 0);
+    if (faltaCobranca > 0.05) {
+      return await falhaLimpando(
+        `Plano de cobrança não cobre o pedido: faltam R$ ${faltaCobranca.toFixed(2)} ` +
+        `de R$ ${Number(lastro.valor_devido ?? 0).toFixed(2)} (coberto R$ ${Number(lastro.valor_coberto ?? 0).toFixed(2)}, ` +
+        `fonte: ${lastro.fonte ?? "desconhecida"}). ` +
+        `Remonte o plano de pagamento em Cobrança antes de enviar ao Bling.`,
+        409,
+      );
+    }
+
     console.log("[enviar-pedido-bling] lastro OK", {
       pedido_id, fonte: lastro.fonte, porque: lastro.porque,
+      valor_devido: lastro.valor_devido, valor_coberto: lastro.valor_coberto,
     });
 
     // Nao existe trava de "dinheiro antes da NF". A condicao pix_faturamento e credito
