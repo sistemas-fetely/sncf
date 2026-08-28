@@ -1,15 +1,47 @@
-import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { MessageCircle, ArrowRight, Check, X } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MessageCircle, ArrowRight } from "lucide-react";
-import type { EstagioPedido } from "@/types/pedido";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ESTAGIO_SELO } from "@/components/pedidos/BadgesPedido";
+import KpiPill from "@/pages/administrativo/CaixaBanco/KpiPill";
+import type { EstagioPedido } from "@/types/pedido";
+import {
+  SOLICITACAO_TIPO_ROTULO,
+  useAtenderSolicitacao,
+  useContagemSolicitacoesPorStatus,
+  useDescartarSolicitacao,
+  useSolicitacoesPorStatus,
+  type SolicitacaoComercial,
+  type SolicitacaoStatus,
+} from "@/hooks/pedidos/useSolicitacoesComercial";
+
+/**
+ * Central de Mensagens — fila de trabalho do SOPS.
+ *
+ * A AÇÃO MORA ONDE O OBJETO MORA: a fila lê `solicitacao_comercial`, que tem
+ * ciclo de vida (`aberta`/`atendida`/`cancelada`), e nunca `pedido_eventos`,
+ * que é log imutável de timeline. Consequência desejada: eventos informativos
+ * automáticos (comprovante de pagamento) não aparecem mais aqui.
+ *
+ * RESPONDER NÃO CONCLUI: responder registra `msg_sops` no pedido; concluir é
+ * `atender_solicitacao_comercial`. Dá para responder "estou vendo" sem resolver.
+ */
 
 const DATA_FMT = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
@@ -19,168 +51,235 @@ function fmtData(d: string) {
 }
 
 const ESTAGIO_LABELS: Record<string, string> = {
-
-  recebido:           "Recebido",
-  em_analise_credito: "Em análise",
-  cobranca:           "Cobrança",
+  recebido:             "Recebido",
+  em_analise_credito:   "Em análise",
+  cobranca:             "Cobrança",
   aguardando_pagamento: "Aguardando PG",
-  aguardando_estoque: "Ag. estoque",
-  pre_separacao:      "Pré-Separação",
-  pre_faturamento:    "Pré-Faturamento",
-  em_separacao:       "Em separação",
-  faturado:           "Faturado",
-  em_transporte:      "Em transporte",
-  entregue:           "Entregue",
+  aguardando_estoque:   "Ag. estoque",
+  pre_separacao:        "Pré-Separação",
+  pre_faturamento:      "Pré-Faturamento",
+  em_separacao:         "Em separação",
+  faturado:             "Faturado",
+  em_transporte:        "Em transporte",
+  entregue:             "Entregue",
+};
+
+const VAZIO: Record<SolicitacaoStatus, string> = {
+  aberta: "Nenhuma solicitação aberta.",
+  atendida: "Nenhuma solicitação concluída.",
+  cancelada: "Nenhuma solicitação descartada.",
 };
 
 export default function CanalCPO() {
   const navigate = useNavigate();
-  const [filtro, setFiltro] = useState<"pendentes" | "todas">("pendentes");
+  const [status, setStatus] = useState<SolicitacaoStatus>("aberta");
+  const [concluir, setConcluir] = useState<SolicitacaoComercial | null>(null);
+  const [descartar, setDescartar] = useState<SolicitacaoComercial | null>(null);
+  const [nota, setNota] = useState("");
+  const [motivo, setMotivo] = useState("");
 
-  const { data: eventos = [], isLoading } = useQuery({
-    queryKey: ["canal-cpo-page"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("pedido_eventos")
-        .select(
-          "id, pedido_id, tipo_evento, descricao, metadata, criado_em, pedidos(id_externo, estagio, cliente_nome_snapshot)"
-        )
-        .in("tipo_evento", ["msg_comercial", "msg_sops"])
-        .order("criado_em", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as any[];
-    },
-    refetchInterval: 60_000,
-  });
-
-  const conversas = useMemo(() => {
-    const byPedido = new Map<
-      string,
-      {
-        pedidoId: string; idExterno: string; estagio: string;
-        cliente: string; lastTipo: string; lastMsg: string;
-        lastAutor: string; lastTime: string;
-      }
-    >();
-    for (const ev of eventos) {
-      const pid = ev.pedido_id as string;
-      if (!byPedido.has(pid)) {
-        byPedido.set(pid, {
-          pedidoId:   pid,
-          idExterno:  ev.pedidos?.id_externo ?? pid.slice(0, 8).toUpperCase(),
-          estagio:    ev.pedidos?.estagio ?? "",
-          cliente:    ev.pedidos?.cliente_nome_snapshot ?? "—",
-          lastTipo:   ev.tipo_evento as string,
-          lastMsg:    (ev.descricao ?? "") as string,
-          lastAutor:  (ev.metadata?.autor_nome ?? (ev.tipo_evento === "msg_comercial" ? "Comercial" : "SOPS")) as string,
-          lastTime:   ev.criado_em as string,
-        });
-      }
-    }
-    return Array.from(byPedido.values());
-  }, [eventos]);
-
-  const pendentes = conversas.filter((c) => c.lastTipo === "msg_comercial");
-  const lista = filtro === "pendentes" ? pendentes : conversas;
+  const { data: lista = [], isLoading } = useSolicitacoesPorStatus(status);
+  const { data: contagens } = useContagemSolicitacoesPorStatus();
+  const atender = useAtenderSolicitacao();
+  const descartarMut = useDescartarSolicitacao();
 
   return (
     <PageShell>
       <PageHeader
         titulo="Central de Mensagens"
         icone={MessageCircle}
-        estado="Mensagens do comercial aguardando resposta do SOPS · atualiza a cada 60s"
-        acoes={
-          pendentes.length > 0 && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-info text-white">
-              {pendentes.length}
-            </span>
-          )
-        }
+        estado="Solicitações do comercial ao SOPS · concluir e descartar registram na timeline do pedido"
       />
 
-      <div className="flex gap-2">
-        <button
-          onClick={() => setFiltro("pendentes")}
-          className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
-            filtro === "pendentes"
-              ? "bg-info/10 text-info border-info/40"
-              : "border-border text-muted-foreground hover:bg-muted"
-          }`}
-        >
-          Não respondidas ({pendentes.length})
-        </button>
-        <button
-          onClick={() => setFiltro("todas")}
-          className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
-            filtro === "todas"
-              ? "bg-info/10 text-info border-info/40"
-              : "border-border text-muted-foreground hover:bg-muted"
-          }`}
-        >
-          Todas as conversas ({conversas.length})
-        </button>
+      <div className="flex flex-wrap gap-2">
+        <KpiPill
+          label="Abertas"
+          count={contagens?.aberta ?? 0}
+          color="blue"
+          active={status === "aberta"}
+          onClick={() => setStatus("aberta")}
+        />
+        <KpiPill
+          label="Concluídas"
+          count={contagens?.atendida ?? 0}
+          color="emerald"
+          active={status === "atendida"}
+          onClick={() => setStatus("atendida")}
+        />
+        <KpiPill
+          label="Descartadas"
+          count={contagens?.cancelada ?? 0}
+          color="gray"
+          active={status === "cancelada"}
+          onClick={() => setStatus("cancelada")}
+        />
       </div>
 
       {isLoading ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-20 w-full" />
+            <Skeleton key={i} className="h-24 w-full" />
           ))}
         </div>
       ) : lista.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <MessageCircle className="h-10 w-10 mx-auto mb-3 opacity-40" />
-          <p>
-            {filtro === "pendentes"
-              ? "Nenhuma mensagem aguardando resposta."
-              : "Nenhuma conversa registrada."}
-          </p>
+          <p>{VAZIO[status]}</p>
         </div>
       ) : (
         <div className="space-y-2">
-          {lista.map((c) => (
+          {lista.map((s) => (
             <div
-              key={c.pedidoId}
-              onClick={() => navigate(`/pedidos/${c.pedidoId}`)}
-              className="flex items-start justify-between gap-4 p-4 rounded-lg border border-border bg-card hover:bg-muted/50 cursor-pointer transition-colors"
+              key={s.id}
+              className="flex items-start justify-between gap-4 p-4 rounded-lg border border-border bg-card transition-colors"
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-mono text-sm font-medium">{c.idExterno}</span>
-                  {c.estagio && (
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${ESTAGIO_SELO[c.estagio as EstagioPedido] ?? "bg-muted text-muted-foreground"}`}>
-                      {ESTAGIO_LABELS[c.estagio] ?? c.estagio}
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/pedidos/${s.pedido_id}`)}
+                    className="font-mono text-sm font-medium text-primary underline underline-offset-2 hover:no-underline"
+                  >
+                    {s.pedido_id_externo || s.pedido_id.slice(0, 8).toUpperCase()}
+                  </button>
+                  {s.pedido_estagio && (
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full ${
+                        ESTAGIO_SELO[s.pedido_estagio as EstagioPedido] ??
+                        "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {ESTAGIO_LABELS[s.pedido_estagio] ?? s.pedido_estagio}
                     </span>
                   )}
-
-                  {c.lastTipo === "msg_comercial" && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-info text-white">
-                      aguardando resposta
-                    </span>
-                  )}
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-info/10 text-info">
+                    {SOLICITACAO_TIPO_ROTULO[s.tipo] ?? s.tipo}
+                  </span>
                 </div>
-                <div className="text-xs text-muted-foreground mt-0.5">{c.cliente}</div>
-                <div className="text-sm mt-2 line-clamp-2">
-                  <span className="font-medium">{c.lastAutor}:</span>{" "}
-                  {c.lastMsg}
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  {s.cliente_razao || "—"}
+                </div>
+                <div className="text-sm mt-2 whitespace-pre-wrap break-words">
+                  {s.detalhe || "—"}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Aberta por {s.criado_por_nome || "—"} · {fmtData(s.criado_em)}
                 </div>
               </div>
+
               <div className="flex flex-col items-end gap-2 shrink-0">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">
-                  {fmtData(c.lastTime)}
-                </span>
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={(e) => { e.stopPropagation(); navigate(`/pedidos/${c.pedidoId}`); }}
+                  onClick={() => navigate(`/pedidos/${s.pedido_id}`)}
                 >
                   Responder <ArrowRight className="h-3 w-3 ml-1" />
                 </Button>
+                {s.status === "aberta" && (
+                  <>
+                    <Button
+                      size="sm"
+                      onClick={() => { setConcluir(s); setNota(""); }}
+                    >
+                      <Check className="h-3 w-3 mr-1" /> Concluir
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-muted-foreground hover:text-destructive"
+                      onClick={() => { setDescartar(s); setMotivo(""); }}
+                    >
+                      <X className="h-3 w-3 mr-1" /> Descartar
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           ))}
         </div>
       )}
+
+      {/* Concluir — observação OPCIONAL */}
+      <AlertDialog open={!!concluir} onOpenChange={(o) => !o && setConcluir(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Concluir solicitação</AlertDialogTitle>
+            <AlertDialogDescription>
+              {concluir
+                ? `${SOLICITACAO_TIPO_ROTULO[concluir.tipo] ?? concluir.tipo} · pedido ${
+                    concluir.pedido_id_externo ?? ""
+                  }`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-1.5">
+            <label className="text-sm text-muted-foreground">Observação (opcional)</label>
+            <Textarea value={nota} onChange={(e) => setNota(e.target.value)} rows={3} />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={atender.isPending}
+              onClick={async (e) => {
+                e.preventDefault();
+                if (!concluir) return;
+                try {
+                  await atender.mutateAsync({
+                    solicitacaoId: concluir.id,
+                    nota: nota.trim() || null,
+                  });
+                  setConcluir(null);
+                } catch {
+                  /* toast já exibido pelo hook */
+                }
+              }}
+            >
+              {atender.isPending ? "Salvando..." : "Concluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Descartar — motivo OBRIGATÓRIO */}
+      <AlertDialog open={!!descartar} onOpenChange={(o) => !o && setDescartar(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Descartar solicitação</AlertDialogTitle>
+            <AlertDialogDescription>
+              {descartar
+                ? `${SOLICITACAO_TIPO_ROTULO[descartar.tipo] ?? descartar.tipo} · pedido ${
+                    descartar.pedido_id_externo ?? ""
+                  }`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-1.5">
+            <label className="text-sm text-muted-foreground">Motivo (obrigatório)</label>
+            <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={3} />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={descartarMut.isPending || !motivo.trim()}
+              onClick={async (e) => {
+                e.preventDefault();
+                if (!descartar || !motivo.trim()) return;
+                try {
+                  await descartarMut.mutateAsync({
+                    solicitacaoId: descartar.id,
+                    motivo: motivo.trim(),
+                  });
+                  setDescartar(null);
+                } catch {
+                  /* toast já exibido pelo hook */
+                }
+              }}
+            >
+              {descartarMut.isPending ? "Salvando..." : "Descartar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageShell>
   );
 }
