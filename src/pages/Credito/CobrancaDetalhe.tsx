@@ -428,7 +428,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
 
   const emCobranca = pedido.estagio === "cobranca";
 
-  function scrollPara(ref: React.RefObject<HTMLDivElement>) {
+  function scrollPara(ref: RefObject<HTMLDivElement>) {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
