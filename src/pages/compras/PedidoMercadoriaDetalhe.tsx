@@ -24,7 +24,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CardIndicador } from "@/components/ui/card-indicador";
 
 import { Badge } from "@/components/ui/badge";
-import { Selo } from "@/components/ui/selo";
+import { Selo, type EstadoSelo } from "@/components/ui/selo";
+import { CelulaDinheiro } from "@/components/ui/celula-dinheiro";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -165,14 +166,19 @@ interface ConfNf {
 
 interface ConfInv {
   importacao_pedido_id: number;
+  numero_pedido: string | null;
   invoice_id: number | null;
   invoice_numero: string | null;
+  data_emissao: string | null;
   sku: string | null;
+  codigo_fornecedor: string | null;
   qtd_pedido: number | null;
   qtd_invoice: number | null;
-  furo: number | null;
+  declarado_invoice: number | null;
+  a_embarcar: number | null;
   custo_pedido: number | null;
   custo_invoice: number | null;
+  delta_preco: number | null;
   situacao: string | null;
 }
 
@@ -206,6 +212,26 @@ const SITUACAO_NF: Record<
   divergente: {
     rotulo: "Divergente",
     badge: "border-destructive/40 bg-destructive/10 text-destructive",
+    linha: "bg-destructive/10",
+  },
+};
+
+// Conferência Pedido × Invoice: embarque parcial NÃO é problema. Realce de
+// linha só para erro de fato (excesso de embarque ou SKU fora do pedido).
+const SITUACAO_INV: Record<
+  string,
+  { rotulo: string; estado: EstadoSelo; linha?: string }
+> = {
+  ok: { rotulo: "OK", estado: "success" },
+  preco_divergente: { rotulo: "Preço divergente", estado: "warning" },
+  embarque_excede_pedido: {
+    rotulo: "Embarque acima do pedido",
+    estado: "destructive",
+    linha: "bg-destructive/10",
+  },
+  sku_fora_do_pedido: {
+    rotulo: "SKU fora do pedido",
+    estado: "destructive",
     linha: "bg-destructive/10",
   },
 };
@@ -287,11 +313,21 @@ export default function PedidoMercadoriaDetalhe() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("vw_compra_tres_camadas_pedido")
-        .select("a_faturar, a_confirmar")
+        .select(
+          "a_faturar, a_confirmar, custo_projetado, delta_custo, delta_custo_pct, custo_comparavel, custo_incomparavel_motivo",
+        )
         .eq("pedido_id", pedidoId)
         .maybeSingle();
       if (error) throw error;
-      return (data ?? null) as { a_faturar: number | null; a_confirmar: number | null } | null;
+      return (data ?? null) as {
+        a_faturar: number | null;
+        a_confirmar: number | null;
+        custo_projetado: number | null;
+        delta_custo: number | null;
+        delta_custo_pct: number | null;
+        custo_comparavel: boolean | null;
+        custo_incomparavel_motivo: string | null;
+      } | null;
     },
   });
 
@@ -390,7 +426,7 @@ export default function PedidoMercadoriaDetalhe() {
       const { data, error } = await (supabase as any)
         .from("vw_importacao_invoice_conferencia")
         .select(
-          "importacao_pedido_id, invoice_id, invoice_numero, sku, qtd_pedido, qtd_invoice, furo, custo_pedido, custo_invoice, situacao",
+          "importacao_pedido_id, numero_pedido, invoice_id, invoice_numero, data_emissao, sku, codigo_fornecedor, qtd_pedido, qtd_invoice, declarado_invoice, a_embarcar, custo_pedido, custo_invoice, delta_preco, situacao",
         )
         .eq("importacao_pedido_id", pedidoId);
       if (error) throw error;
@@ -575,6 +611,42 @@ export default function PedidoMercadoriaDetalhe() {
             <Stat rotulo="Linhas" valor={fmtNum(pedido.linhas)} />
             <Stat rotulo="Kits" valor={fmtNum(pedido.kits)} />
             <Stat rotulo="Custo FOB" valor={fmtMoeda(pedido.custo_total, moeda)} />
+            {/* CUSTO-PROJETADO-RESPETA-COMPARABILIDADE: importação tem FOB em USD e
+                NF nacionalizada em BRL — quando a view diz que não dá pra comparar,
+                a tela NUNCA mostra número, só o motivo. */}
+            {(() => {
+              const s = saldoQ.data;
+              const comparavel = s?.custo_comparavel !== false;
+              const delta = Number(s?.delta_custo ?? 0);
+              const pct = s?.delta_custo_pct;
+              const nota = !comparavel
+                ? (s?.custo_incomparavel_motivo ?? "Custo não comparável")
+                : delta !== 0
+                  ? `${delta > 0 ? "+" : "−"}${fmtMoeda(Math.abs(delta), "BRL")} · ${pct != null ? fmtNum(Math.abs(pct), 1) : "—"}% vs acordado`
+                  : "igual ao acordado";
+              const tom = !comparavel
+                ? "neutro"
+                : delta > 0
+                  ? "atencao"
+                  : delta < 0
+                    ? "positivo"
+                    : "neutro";
+              return (
+                <CardIndicador
+                  compacto
+                  rotulo="Custo projetado"
+                  valor={
+                    comparavel
+                      ? s?.custo_projetado != null
+                        ? fmtMoeda(s.custo_projetado, "BRL")
+                        : "—"
+                      : "—"
+                  }
+                  nota={nota}
+                  tom={tom}
+                />
+              );
+            })()}
             <Stat rotulo="ETD" valor={fmtDate(pedido.etd)} />
             <Stat rotulo="ETA" valor={fmtDate(pedido.eta)} />
             <Stat rotulo="NFs" valor={fmtNum(pedido.nfs)} />
@@ -1119,34 +1191,41 @@ export default function PedidoMercadoriaDetalhe() {
                             <TableHead>Invoice</TableHead>
                             <TableHead>SKU</TableHead>
                             <TableHead className="text-right">Qtd pedido</TableHead>
-                            <TableHead className="text-right">Qtd invoice</TableHead>
-                            <TableHead className="text-right">Diferença</TableHead>
+                            <TableHead className="text-right">Qtd nesta invoice</TableHead>
+                            <TableHead className="text-right">Declarado (invoice)</TableHead>
+                            <TableHead className="text-right">A embarcar</TableHead>
                             <TableHead className="text-right">Custo pedido</TableHead>
                             <TableHead className="text-right">Custo invoice</TableHead>
+                            <TableHead className="text-right">Δ preço</TableHead>
                             <TableHead>Situação</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {confInvQ.data!.map((r, i) => {
-                            const problema =
-                              r.situacao === "divergente" ||
-                              r.situacao === "so_pedido" ||
-                              r.situacao === "so_invoice";
+                            const sit = SITUACAO_INV[r.situacao ?? ""] ?? {
+                              rotulo: r.situacao ?? "—",
+                              estado: "muted" as EstadoSelo,
+                            };
+                            const deltaPreco =
+                              r.delta_preco != null && Number(r.delta_preco) !== 0;
                             return (
                               <TableRow
                                 key={`${r.invoice_id}-${r.sku}-${i}`}
-                                className={problema ? "bg-destructive/10" : undefined}
+                                className={sit.linha}
                               >
                                 <TableCell>{r.invoice_numero ?? "—"}</TableCell>
                                 <TableCell className="font-mono text-xs">{r.sku ?? "—"}</TableCell>
                                 <TableCell className="text-right">{fmtNum(r.qtd_pedido)}</TableCell>
                                 <TableCell className="text-right">{fmtNum(r.qtd_invoice)}</TableCell>
+                                <TableCell className="text-right">{fmtNum(r.declarado_invoice)}</TableCell>
                                 <TableCell
                                   className={
-                                    problema ? "text-right font-medium text-destructive" : "text-right"
+                                    (r.a_embarcar ?? 0) > 0
+                                      ? "text-right font-medium text-warning"
+                                      : "text-right"
                                   }
                                 >
-                                  {fmtNum(r.furo)}
+                                  {fmtNum(r.a_embarcar)}
                                 </TableCell>
                                 <TableCell className="text-right">
                                   {fmtMoeda(r.custo_pedido, moeda)}
@@ -1154,10 +1233,12 @@ export default function PedidoMercadoriaDetalhe() {
                                 <TableCell className="text-right">
                                   {fmtMoeda(r.custo_invoice, moeda)}
                                 </TableCell>
+                                <CelulaDinheiro
+                                  valor={r.delta_preco}
+                                  className={deltaPreco ? "font-medium text-warning" : undefined}
+                                />
                                 <TableCell>
-                                  <Badge variant={problema ? "destructive" : "secondary"}>
-                                    {r.situacao ?? "—"}
-                                  </Badge>
+                                  <Selo estado={sit.estado}>{sit.rotulo}</Selo>
                                 </TableCell>
                               </TableRow>
                             );

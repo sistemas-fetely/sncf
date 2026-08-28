@@ -18017,13 +18017,6 @@ export type Database = {
             foreignKeyName: "importacao_divergencia_preco_importacao_pedido_id_fkey"
             columns: ["importacao_pedido_id"]
             isOneToOne: false
-            referencedRelation: "vw_importacao_invoice_conferencia"
-            referencedColumns: ["importacao_pedido_id"]
-          },
-          {
-            foreignKeyName: "importacao_divergencia_preco_importacao_pedido_id_fkey"
-            columns: ["importacao_pedido_id"]
-            isOneToOne: false
             referencedRelation: "vw_importacao_pedido_detalhe"
             referencedColumns: ["id"]
           },
@@ -18236,13 +18229,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "importacao_invoice_linha_invoice_id_fkey"
-            columns: ["invoice_id"]
-            isOneToOne: false
-            referencedRelation: "vw_importacao_invoice_conferencia"
-            referencedColumns: ["invoice_id"]
-          },
-          {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
@@ -18345,13 +18331,6 @@ export type Database = {
             foreignKeyName: "importacao_invoice_pedido_importacao_pedido_id_fkey"
             columns: ["importacao_pedido_id"]
             isOneToOne: false
-            referencedRelation: "vw_importacao_invoice_conferencia"
-            referencedColumns: ["importacao_pedido_id"]
-          },
-          {
-            foreignKeyName: "importacao_invoice_pedido_importacao_pedido_id_fkey"
-            columns: ["importacao_pedido_id"]
-            isOneToOne: false
             referencedRelation: "vw_importacao_pedido_detalhe"
             referencedColumns: ["id"]
           },
@@ -18368,13 +18347,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "importacao_invoice"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "importacao_invoice_pedido_invoice_id_fkey"
-            columns: ["invoice_id"]
-            isOneToOne: false
-            referencedRelation: "vw_importacao_invoice_conferencia"
-            referencedColumns: ["invoice_id"]
           },
         ]
       }
@@ -18480,13 +18452,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_compras_pendencias"
             referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "importacao_linha_importacao_pedido_id_fkey"
-            columns: ["importacao_pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_importacao_invoice_conferencia"
-            referencedColumns: ["importacao_pedido_id"]
           },
           {
             foreignKeyName: "importacao_linha_importacao_pedido_id_fkey"
@@ -19119,13 +19084,6 @@ export type Database = {
             foreignKeyName: "importacao_nf_linha_sku_importacao_pedido_id_fkey"
             columns: ["importacao_pedido_id"]
             isOneToOne: false
-            referencedRelation: "vw_importacao_invoice_conferencia"
-            referencedColumns: ["importacao_pedido_id"]
-          },
-          {
-            foreignKeyName: "importacao_nf_linha_sku_importacao_pedido_id_fkey"
-            columns: ["importacao_pedido_id"]
-            isOneToOne: false
             referencedRelation: "vw_importacao_pedido_detalhe"
             referencedColumns: ["id"]
           },
@@ -19248,13 +19206,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_compras_pendencias"
             referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "importacao_nf_pedido_importacao_pedido_id_fkey"
-            columns: ["importacao_pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_importacao_invoice_conferencia"
-            referencedColumns: ["importacao_pedido_id"]
           },
           {
             foreignKeyName: "importacao_nf_pedido_importacao_pedido_id_fkey"
@@ -19527,13 +19478,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_compras_pendencias"
             referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "importacao_pedido_evento_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_importacao_invoice_conferencia"
-            referencedColumns: ["importacao_pedido_id"]
           },
           {
             foreignKeyName: "importacao_pedido_evento_pedido_id_fkey"
@@ -20660,13 +20604,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_compras_pendencias"
             referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "movimentacao_estoque_importacao_pedido_id_fkey"
-            columns: ["importacao_pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_importacao_invoice_conferencia"
-            referencedColumns: ["importacao_pedido_id"]
           },
           {
             foreignKeyName: "movimentacao_estoque_importacao_pedido_id_fkey"
@@ -47186,13 +47123,6 @@ export type Database = {
             foreignKeyName: "xpm_termo_linha_importacao_pedido_id_fkey"
             columns: ["importacao_pedido_id"]
             isOneToOne: false
-            referencedRelation: "vw_importacao_invoice_conferencia"
-            referencedColumns: ["importacao_pedido_id"]
-          },
-          {
-            foreignKeyName: "xpm_termo_linha_importacao_pedido_id_fkey"
-            columns: ["importacao_pedido_id"]
-            isOneToOne: false
             referencedRelation: "vw_importacao_pedido_detalhe"
             referencedColumns: ["id"]
           },
@@ -51110,20 +51040,30 @@ export type Database = {
           a_faturar: number | null
           confirmada_xpm: number | null
           custo_acordado: number | null
+          custo_acordado_total: number | null
+          custo_comparavel: boolean | null
+          custo_incomparavel_motivo: string | null
           custo_incompleto: boolean | null
           custo_medio_nf: number | null
+          custo_projetado: number | null
           custo_reposicao: number | null
+          custo_ultima_nf: number | null
           custo_vigente: number | null
+          data_ultima_nf: string | null
           declarada_nf: number | null
           excesso_xpm: number | null
           falta_xpm: number | null
+          moeda: string | null
           nao_conforme_xpm: number | null
+          nf_ultima: string | null
           pedida: number | null
           pedido_id: number | null
           quem_deve: string | null
           sku: string | null
           ultimo_termo: string | null
+          valor_faturado: number | null
           valor_nf: number | null
+          valor_saldo_projetado: number | null
         }
         Relationships: [
           {
@@ -51139,13 +51079,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_compras_pendencias"
             referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "importacao_linha_importacao_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_importacao_invoice_conferencia"
-            referencedColumns: ["importacao_pedido_id"]
           },
           {
             foreignKeyName: "importacao_linha_importacao_pedido_id_fkey"
@@ -51231,12 +51164,19 @@ export type Database = {
           a_confirmar: number | null
           a_faturar: number | null
           confirmada_xpm: number | null
+          custo_acordado_total: number | null
+          custo_comparavel: boolean | null
+          custo_incomparavel_motivo: string | null
+          custo_projetado: number | null
           data_pedido: string | null
           declarada_nf: number | null
+          delta_custo: number | null
+          delta_custo_pct: number | null
           dias_atraso: number | null
           excesso_xpm: number | null
           falta_xpm: number | null
           modalidade: string | null
+          moeda: string | null
           nao_conforme_xpm: number | null
           numero_pedido: string | null
           pct_confirmado: number | null
@@ -51248,6 +51188,8 @@ export type Database = {
           skus_custo_incompleto: number | null
           valor_a_faturar_acordado: number | null
           valor_a_faturar_vigente: number | null
+          valor_faturado: number | null
+          valor_saldo_projetado: number | null
         }
         Relationships: [
           {
@@ -51263,13 +51205,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_compras_pendencias"
             referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "importacao_linha_importacao_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_importacao_invoice_conferencia"
-            referencedColumns: ["importacao_pedido_id"]
           },
           {
             foreignKeyName: "importacao_linha_importacao_pedido_id_fkey"
@@ -54228,13 +54163,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_compras_pendencias"
             referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "movimentacao_estoque_importacao_pedido_id_fkey"
-            columns: ["importacao_pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_importacao_invoice_conferencia"
-            referencedColumns: ["importacao_pedido_id"]
           },
           {
             foreignKeyName: "movimentacao_estoque_importacao_pedido_id_fkey"
@@ -57802,9 +57730,13 @@ export type Database = {
       }
       vw_importacao_invoice_conferencia: {
         Row: {
+          a_embarcar: number | null
+          codigo_fornecedor: string | null
           custo_invoice: number | null
           custo_pedido: number | null
-          furo: number | null
+          data_emissao: string | null
+          declarado_invoice: number | null
+          delta_preco: number | null
           importacao_pedido_id: number | null
           invoice_id: number | null
           invoice_numero: string | null
@@ -57814,7 +57746,106 @@ export type Database = {
           situacao: string | null
           sku: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "sncf_produtos"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_rede"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_cockpit"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_crosswalk"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_fiscal"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_sku_embalagem_classe"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_pedido_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_pedido"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_pedido_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_compras_pendencias"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_pedido_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_pedido_detalhe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_pedido_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_saldo_pedido"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_pedido_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_invoice"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vw_importacao_pedido_conferencia_nf: {
         Row: {
@@ -57917,13 +57948,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_compras_pendencias"
             referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "importacao_nf_pedido_importacao_pedido_id_fkey"
-            columns: ["importacao_pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_importacao_invoice_conferencia"
-            referencedColumns: ["importacao_pedido_id"]
           },
           {
             foreignKeyName: "importacao_nf_pedido_importacao_pedido_id_fkey"
@@ -60432,14 +60456,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -62731,6 +62755,34 @@ export type Database = {
           prova_tom: string | null
           rotulo: string | null
           tom: string | null
+        }
+        Relationships: []
+      }
+      vw_pedido_linhas_cobranca: {
+        Row: {
+          boleto_status: string | null
+          condicao_pagamento: string | null
+          data_vencimento: string | null
+          dias_atraso: number | null
+          dias_para_vencer: number | null
+          eh_entrada: boolean | null
+          eh_portao: boolean | null
+          estado: string | null
+          instrumento_pronto: boolean | null
+          linha_digitavel: string | null
+          linha_id: string | null
+          link_pagamento: string | null
+          nosso_numero: string | null
+          numero_parcela: number | null
+          origem: string | null
+          pago: boolean | null
+          pago_em: string | null
+          pedido_id: string | null
+          pix_qr_url: string | null
+          pix_txid: string | null
+          tipo_pagamento: string | null
+          total_parcelas: number | null
+          valor: number | null
         }
         Relationships: []
       }
