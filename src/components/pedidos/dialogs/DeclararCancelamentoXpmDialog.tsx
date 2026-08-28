@@ -52,7 +52,9 @@ export function DeclararCancelamentoXpmDialog({ pedidoId, expedicaoCodigo }: Pro
             <span className="block">
               Ao confirmar, a expedição{" "}
               <span className="tabular-nums">{expedicaoCodigo}</span> deixa de
-              apontar para este pedido e ele volta a poder ser empurrado.
+              apontar para este pedido e ele volta para{" "}
+              <strong>Pré-Separação</strong>, onde pode ser editado e empurrado
+              de novo.
             </span>
           </DialogDescription>
         </DialogHeader>
