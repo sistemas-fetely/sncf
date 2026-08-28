@@ -16,7 +16,7 @@ interface Props {
 }
 
 /**
- * Reenvio ao Bling — só super_admin, só em_separacao (a gate fica em AcoesRemessa).
+ * Reenvio ao Bling — só super_admin, só em pre_separacao/em_separacao (a gate fica em AcoesRemessa).
  * Pressupõe que o pedido JÁ foi cancelado no Bling. A edge verifica a situação lá
  * e, se não estiver cancelado (ou se não conseguir verificar), exige confirmação
  * explícita antes de prosseguir. SISTEMA SUGERE / HUMANO DECIDE.
