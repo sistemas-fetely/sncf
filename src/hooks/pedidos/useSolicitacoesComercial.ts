@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { formatError } from "@/lib/format-error";
+
 
 export interface SolicitacaoComercial {
   id: string;
