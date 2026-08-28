@@ -73171,6 +73171,7 @@ export type Database = {
           p_declarado_por?: string
           p_expedicao_codigo: string
           p_motivo: string
+          p_motivo_codigo?: string
         }
         Returns: Json
       }
