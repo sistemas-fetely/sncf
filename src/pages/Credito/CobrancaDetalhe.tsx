@@ -1,6 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,12 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ArrowLeft, Loader2, RefreshCcw, AlertTriangle, Copy, Check, Mail, Plus, Trash2, Lock, Info, ChevronDown, FileText } from "lucide-react";
+import { ArrowLeft, Loader2, RefreshCcw, AlertTriangle, Copy, Check, Mail, Plus, Trash2, Lock, Info, ChevronDown, FileText, QrCode, CreditCard, Landmark, MoreHorizontal } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useLinhasCobrancaPedido, type LinhaCobrancaPedido } from "@/hooks/pedidos/useLinhasCobrancaPedido";
 
 import { usePropostaCobranca } from "@/hooks/credito/usePropostaCobranca";
 import { useMaterializarCobranca } from "@/hooks/credito/useMaterializarCobranca";
@@ -46,7 +51,6 @@ import { AjustarDescontoDialog } from "@/components/pedidos/dialogs/AjustarDesco
 import { ImpactoEdicaoBanner } from "@/components/pedidos/ImpactoEdicaoBanner";
 import { ReabrirAnaliseAction } from "@/components/pedidos/ReabrirAnaliseAction";
 import { LinkPagamentoCard } from "@/components/pedidos/LinkPagamentoCard";
-import { PortaoLinksPanel } from "@/components/pedidos/PortaoLinksPanel";
 import { useVoltarParaOrigem } from "@/hooks/useVoltarParaOrigem";
 import { useMontarPlanoPagamento } from "@/hooks/credito/useMontarPlanoPagamento";
 import { PageShell } from "@/components/layout/PageShell";
@@ -112,7 +116,7 @@ function usePedidoMinimo(pedidoId: string | undefined) {
       const { data, error } = await (supabase as any)
         .from("pedidos")
         .select(`
-          id, id_externo, estagio, data_pedido, valor_bruto, valor_liquido, bonus_pix_valor, condicao_solicitada, parceiro_id,
+          id, id_externo, estagio, data_pedido, nf_numero, valor_bruto, valor_liquido, bonus_pix_valor, condicao_solicitada, parceiro_id,
           itens_json, frete_tipo, valor_frete,
           parceiro:parceiros_comerciais!parceiro_id(razao_social, nome_fantasia, cnpj, cpf, email, telefone, cep, logradouro, numero, endereco_complemento, bairro, cidade, uf),
           analises_credito!analises_credito_pedido_id_fkey(parecer_final, status_final, decidido_em, exige_portao)
@@ -193,149 +197,256 @@ function LinhaInfo({ label, value, copiavel }: { label: string; value: string; c
   );
 }
 
-function CobrancaStepper({ fase }: { fase: 1 | 2 | 3 }) {
-  const ativo  = "h-7 w-7 rounded-full flex items-center justify-center text-xs font-medium border-2 bg-primary border-primary text-primary-foreground";
-  const feito  = "h-7 w-7 rounded-full flex items-center justify-center text-xs font-medium border-2 bg-success border-success/40 text-white";
-  const futuro = "h-7 w-7 rounded-full flex items-center justify-center text-xs font-medium border-2 bg-background border-border text-muted-foreground";
-  const linhaVerde = "flex-1 h-0.5 mx-3 bg-success";
-  const linhaCinza = "flex-1 h-0.5 mx-3 bg-border";
+const ESTAGIO_LABEL: Record<string, string> = {
+  cobranca: "Em cobrança",
+  em_separacao: "Em separação",
+  pre_separacao: "Pré-separação",
+  faturado: "Faturado",
+  aguardando_pagamento: "Aguardando pagamento",
+};
+
+const ICONE_TIPO: Record<string, LucideIcon> = {
+  boleto: FileText,
+  pix: QrCode,
+  cartao: CreditCard,
+  conta_corrente: Landmark,
+};
+
+function fmtDataBR(v?: string | null): string {
+  if (!v) return "—";
+  const d = new Date(v.length <= 10 ? `${v}T12:00:00` : v);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("pt-BR");
+}
+
+function CopiavelInline({ label, valor }: { label: string; valor: string }) {
+  const [copiado, setCopiado] = useState(false);
+  return (
+    <div className="flex items-start gap-2 min-w-0">
+      <span className="text-xs text-muted-foreground shrink-0 w-32">{label}</span>
+      <span className="text-xs break-all min-w-0">{valor}</span>
+      <button
+        type="button"
+        title="Copiar"
+        className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+        onClick={() => {
+          navigator.clipboard.writeText(valor).then(() => {
+            setCopiado(true);
+            setTimeout(() => setCopiado(false), 1400);
+          });
+        }}
+      >
+        {copiado ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
+      </button>
+    </div>
+  );
+}
+
+/**
+ * STEPPER-HONESTO (28/08/2026): cada nó acende pelo seu próprio fato. Passo
+ * posterior cumprido NÃO acende os anteriores — herança esconde furo.
+ */
+function StepperHonesto({ passos }: { passos: { label: string; feito: boolean }[] }) {
+  const idxAtual = passos.findIndex((p) => !p.feito);
+  return (
+    <div className="flex items-center py-3 px-4 rounded-lg border border-border/60">
+      {passos.map((p, i) => (
+        <div key={p.label} className="flex items-center flex-1 last:flex-none min-w-0">
+          <div className="flex items-center gap-2 shrink-0">
+            {p.feito ? (
+              <span className="h-6 w-6 rounded-full bg-success/15 text-success flex items-center justify-center">
+                <Check className="h-3.5 w-3.5" />
+              </span>
+            ) : (
+              <span className="h-6 w-6 rounded-full border-2 border-border" />
+            )}
+            <span
+              className={
+                "text-sm " +
+                (p.feito
+                  ? "text-success"
+                  : i === idxAtual
+                    ? "text-foreground font-medium"
+                    : "text-muted-foreground")
+              }
+            >
+              {p.label}
+            </span>
+          </div>
+          {i < passos.length - 1 && <div className="flex-1 h-px mx-3 bg-border" />}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CelulaDinheiro({
+  rotulo,
+  valor,
+  dominante,
+}: {
+  rotulo: string;
+  valor: number;
+  dominante?: boolean;
+}) {
+  return (
+    <div className="px-4 py-3">
+      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{rotulo}</p>
+      <p className={dominante ? "text-[22px] font-medium mt-0.5" : "text-[17px] font-medium mt-0.5"}>
+        {fmtBRL.format(valor)}
+      </p>
+    </div>
+  );
+}
+
+function LinhaParcela({ l }: { l: LinhaCobrancaPedido }) {
+  const [aberto, setAberto] = useState(false);
+  const Icone = ICONE_TIPO[l.tipo_pagamento ?? ""] ?? FileText;
+  const valor = Number(l.valor ?? 0);
+  const pago = !!l.pago;
+
+  const verbo = pago ? "pago em " : l.estado === "vencido" ? "venceu " : "vence ";
+  const dataTexto = pago ? fmtDataBR(l.pago_em ?? l.data_vencimento) : fmtDataBR(l.data_vencimento);
+
+  let badge: { cls: string; texto: string };
+  if (l.estado === "pago") {
+    badge = { cls: "bg-success/10 text-success", texto: `Pago${l.pago_em ? ` em ${fmtDataBR(l.pago_em)}` : ""}` };
+  } else if (l.estado === "vencido") {
+    badge = {
+      cls: "bg-destructive/10 text-destructive",
+      texto: `Vencido há ${l.dias_atraso ?? 0} ${(l.dias_atraso ?? 0) === 1 ? "dia" : "dias"}`,
+    };
+  } else if (l.estado === "vence_hoje") {
+    badge = { cls: "bg-warning/10 text-warning", texto: "Vence hoje" };
+  } else if (l.estado === "sem_data") {
+    badge = { cls: "bg-warning/10 text-warning", texto: "Sem vencimento" };
+  } else {
+    badge = {
+      cls: "bg-muted text-muted-foreground",
+      texto: `Vence em ${l.dias_para_vencer ?? 0} ${(l.dias_para_vencer ?? 0) === 1 ? "dia" : "dias"}`,
+    };
+  }
+
+  const temInstrumento =
+    !!l.link_pagamento || !!l.linha_digitavel || !!l.nosso_numero || !!l.boleto_status || !!l.pix_txid;
 
   return (
-    <div className="flex items-center py-3 px-4 bg-muted/30 rounded-lg border border-border/50">
-      {/* Step 1 */}
-      <div className="flex items-center gap-2 shrink-0">
-        <div className={fase > 1 ? feito : fase === 1 ? ativo : futuro}>
-          {fase > 1 ? <Check className="h-3.5 w-3.5" /> : "1"}
+    <div className="border-b border-border/60 last:border-0">
+      <button
+        type="button"
+        onClick={() => setAberto((v) => !v)}
+        className="w-full flex items-center gap-3 px-4 py-3 min-h-[56px] text-left hover:bg-muted/40 transition-colors"
+      >
+        <Icone className="h-4 w-4 text-muted-foreground shrink-0" />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <span className="truncate">
+              Parcela {l.numero_parcela ?? "—"} de {l.total_parcelas ?? "—"} · {fmtBRL.format(valor)}
+            </span>
+            {l.eh_portao && (
+              <Badge variant="secondary" className="text-[10px]">Portão</Badge>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground capitalize">
+            {(l.tipo_pagamento ?? "—").replace(/_/g, " ")} · <span className="normal-case">{verbo}{dataTexto}</span>
+          </p>
         </div>
-        <span className={"text-sm " + (fase === 1 ? "font-medium" : fase > 1 ? "text-success" : "text-muted-foreground")}>
-          Criar link / boleto
-        </span>
-      </div>
-      <div className={fase > 1 ? linhaVerde : linhaCinza} />
-      {/* Step 2 */}
-      <div className="flex items-center gap-2 shrink-0">
-        <div className={fase > 2 ? feito : fase === 2 ? ativo : futuro}>
-          {fase > 2 ? <Check className="h-3.5 w-3.5" /> : "2"}
+        <Badge variant="outline" className={"border-0 text-[11px] whitespace-nowrap " + badge.cls}>
+          {badge.texto}
+        </Badge>
+        <ChevronDown
+          className={"h-4 w-4 text-muted-foreground shrink-0 transition-transform " + (aberto ? "rotate-180" : "")}
+        />
+      </button>
+
+      {aberto && (
+        <div className="pl-11 pr-4 pb-3 space-y-1.5">
+          {l.link_pagamento && <CopiavelInline label="Link" valor={l.link_pagamento} />}
+          {l.linha_digitavel && <CopiavelInline label="Linha digitável" valor={l.linha_digitavel} />}
+          {l.nosso_numero && (
+            <p className="text-xs text-muted-foreground">Nosso número: {l.nosso_numero}</p>
+          )}
+          {l.boleto_status && (
+            <p className="text-xs text-muted-foreground">Boleto: {l.boleto_status}</p>
+          )}
+          {l.pix_txid && <p className="text-xs text-muted-foreground">PIX txid: {l.pix_txid}</p>}
+          {!temInstrumento && (
+            <p className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Info className="h-3.5 w-3.5" />
+              Nenhum link ou boleto emitido para esta parcela
+            </p>
+          )}
         </div>
-        <span className={"text-sm " + (fase === 2 ? "font-medium" : fase > 2 ? "text-success" : "text-muted-foreground")}>
-          Link / boleto criado
-        </span>
-      </div>
-      <div className={fase > 2 ? linhaVerde : linhaCinza} />
-      {/* Step 3 */}
-      <div className="flex items-center gap-2 shrink-0">
-        <div className={fase === 3 ? feito : futuro}>
-          {fase === 3 ? <Check className="h-3.5 w-3.5" /> : "3"}
-        </div>
-        <span className={"text-sm " + (fase === 3 ? "text-success font-medium" : "text-muted-foreground")}>
-          Link / boleto enviado
-        </span>
-      </div>
+      )}
     </div>
   );
 }
 
 function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
   const navigate = useNavigate();
-  const voltarPara = useVoltarParaOrigem("/recebimento/cobranca");
-  const { toast } = useToast();
-  const [datas, setDatas] = useState<Record<string, string>>({});
-  const [salvando, setSalvando] = useState(false);
   const [alterarPagtoOpen, setAlterarPagtoOpen] = useState(false);
   const portaoRegraQ = usePedidoPortaoRegra(pedido.id);
-
-  const titulosQ = useQuery({
-    queryKey: ["gerenciar-links", pedido.id],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("titulo_a_receber")
-        .select("id, numero_parcela, total_parcelas, valor_bruto, data_vencimento_atual, tipo_pagamento, status, link_pagamento, boleto_status, email_cobranca_enviado_em, boleto_enviado_em")
-        .eq("pedido_id", pedido.id)
-        .not("status", "in", "(cancelado,cancelado_recuperacao,renegociado,pago,pago_com_atraso,pago_judicial,baixado_por_perda)")
-        .order("numero_parcela");
-      if (error) throw error;
-      return (data ?? []) as any[];
-    },
-  });
-
-  const provisoesQ = useQuery({
-    queryKey: ["provisoes-pedido", pedido.id],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("provisao_recebimento")
-        .select("id, numero_parcela, valor, data_prevista, tipo_pagamento, eh_portao, status, pago_em, link_pagamento, pix_txid")
-        .eq("pedido_id", pedido.id)
-        .neq("status", "cancelada")
-        .order("numero_parcela", { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as any[];
-    },
-    enabled: !!pedido.id,
-  });
+  const linhasQ = useLinhasCobrancaPedido(pedido.id);
+  const linkCardRef = useRef<HTMLDivElement>(null);
+  const comunicacaoRef = useRef<HTMLDivElement>(null);
 
   const emailLogQ = useQuery({
     queryKey: ["cobranca-email-log", pedido.id],
     queryFn: async () => {
-      const { data } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("pedido_email_log")
-        .select("id")
-        .eq("pedido_id", pedido.id)
-        .limit(1)
-        .maybeSingle();
-      return data;
+        .select("id, tipo_email, destinatario")
+        .eq("pedido_id", pedido.id);
+      if (error) throw error;
+      return (data ?? []) as { id: string; tipo_email: string | null; destinatario: string | null }[];
     },
     enabled: !!pedido.id,
   });
 
-  useEffect(() => {
-    if (titulosQ.data) {
-      const initDatas: Record<string, string> = {};
-      titulosQ.data.forEach((t: any) => {
-        initDatas[t.id] = t.data_vencimento_atual ?? "";
-      });
-      setDatas(initDatas);
-    }
-  }, [titulosQ.data]);
+  const linhas = linhasQ.data ?? [];
+  const somaLinhas = linhas.reduce((a, l) => a + Number(l.valor ?? 0), 0);
+  const somaPago = linhas.filter((l) => l.pago).reduce((a, l) => a + Number(l.valor ?? 0), 0);
+  const somaAberto = linhas.filter((l) => !l.pago).reduce((a, l) => a + Number(l.valor ?? 0), 0);
+  const valorPedido = Number(pedido.valor_liquido ?? 0);
+  const delta = somaLinhas - valorPedido;
 
-  const fasePagamento: 1 | 2 | 3 = useMemo(() => {
-    const ts = titulosQ.data ?? [];
-    const provisoes = provisoesQ.data ?? [];
-    const jaEnviado = ts.some((t: any) => t.email_cobranca_enviado_em || t.boleto_enviado_em) || !!emailLogQ.data;
-    if (jaEnviado) return 3;
-    if (ts.some((t: any) => t.link_pagamento || t.boleto_status === "registrado")) return 2;
-    if (provisoes.some((p: any) => p.link_pagamento || p.pix_txid)) return 2;
-    return 1;
-  }, [titulosQ.data, provisoesQ.data, emailLogQ.data]);
+  const temInstrumento = linhas.some((l) => l.instrumento_pronto);
+  // Passo 3: e-mail interno é teste, não é envio ao cliente.
+  const enviadoAoCliente = (emailLogQ.data ?? []).some(
+    (e) => e.tipo_email === "cobranca" && !!e.destinatario && !e.destinatario.trim().toLowerCase().endsWith("@fetely.com.br"),
+  );
 
-  const handleSalvar = async () => {
-    setSalvando(true);
-    try {
-      let atualizados = 0;
-      for (const t of titulosQ.data ?? []) {
-        const novaData = datas[t.id] ?? "";
-        const atualData = t.data_vencimento_atual ?? "";
-        const changed: Record<string, any> = {};
-        if (novaData && novaData !== atualData) changed.data_vencimento_atual = novaData;
-        if (Object.keys(changed).length > 0) {
-          const { error } = await (supabase as any)
-            .from("titulo_a_receber")
-            .update(changed)
-            .eq("id", t.id);
-          if (error) throw error;
-          atualizados++;
-        }
-      }
-      if (atualizados > 0) {
-        toast({ title: "Salvo!", description: "Vencimentos atualizados com sucesso." });
-      } else {
-        toast({ title: "Nenhuma alteração", description: "Não havia vencimento alterado para salvar." });
-      }
-    } catch (err) {
-      toast({ title: "Erro ao salvar", description: (err as Error).message, variant: "destructive" });
-    } finally {
-      setSalvando(false);
+  const passos = [
+    { label: "Plano montado", feito: linhas.length > 0 },
+    { label: "Instrumento pronto", feito: temInstrumento },
+    { label: "Enviado ao cliente", feito: enviadoAoCliente },
+  ];
+  const incoerente = enviadoAoCliente && !temInstrumento;
+
+  const cartaoAbertas = linhas.filter((l) => l.tipo_pagamento === "cartao" && !l.pago);
+  const cartaoAbertoValor = cartaoAbertas.reduce((a, l) => a + Number(l.valor ?? 0), 0);
+
+  const emCobranca = pedido.estagio === "cobranca";
+
+  function scrollPara(ref: React.RefObject<HTMLDivElement>) {
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  const acaoPrimaria: { label: string; onClick: () => void } = linhas.length === 0
+    ? { label: "Montar plano", onClick: () => navigate(`/recebimento/cobranca/${pedido.id}?refazer=1`) }
+    : !temInstrumento
+      ? { label: "Cadastrar link de pagamento", onClick: () => scrollPara(linkCardRef) }
+      : !enviadoAoCliente
+        ? { label: "Enviar cobrança", onClick: () => scrollPara(comunicacaoRef) }
+        : { label: "Reenviar cobrança", onClick: () => scrollPara(comunicacaoRef) };
+
+  function refazerPlano() {
+    if (emCobranca) {
+      navigate(`/recebimento/cobranca/${pedido.id}?refazer=1`);
+    } else {
+      setAlterarPagtoOpen(true);
     }
-  };
+  }
 
   return (
     <PageShell className="animate-casa-fade-in">
@@ -346,113 +457,128 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
           { label: "Cobrança", to: "/recebimento/cobranca" },
           { label: pedido.id_externo ?? "—" },
         ]}
-        title={`Links de Pagamento — ${pedido.id_externo ?? ""}`}
-        subtitle="Link de pagamento único do pedido e vencimentos dos títulos em aberto."
+        title={`Cobrança — ${pedido.id_externo ?? ""}`}
+        subtitle="Plano de pagamento e instrumentos de cobrança do pedido."
       />
 
-      {/* Faixa de estado: já materializei ou não? */}
-      <div className="flex items-center gap-2 rounded-lg border border-info/40 bg-info/10 px-4 py-3 text-sm text-info">
-        <FileText className="h-4 w-4 shrink-0" />
-        <span className="font-medium">
-          Plano materializado · {provisoesQ.data?.length ?? 0} parcela
-          {(provisoesQ.data?.length ?? 0) === 1 ? "" : "s"} · aguardando pagamento
-        </span>
+      {/* (a) IDENTIFICAÇÃO */}
+      <div className="space-y-1">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[18px] font-medium">
+            {pedido.id_externo ?? "—"} · {pedido.parceiro?.razao_social ?? "—"}
+          </p>
+          <Badge variant="outline">
+            {ESTAGIO_LABEL[pedido.estagio] ?? pedido.estagio ?? "—"}
+          </Badge>
+        </div>
+        <p className="text-[13px] text-muted-foreground">
+          {pedido.condicao_solicitada ?? "—"} · pedido de {fmtDataBR(pedido.data_pedido)}
+        </p>
       </div>
 
-      <CobrancaStepper fase={fasePagamento} />
+      {/* (b) FAIXA DE DINHEIRO */}
+      <div>
+        <div className="grid grid-cols-2 md:grid-cols-4 rounded-lg border border-border/60 divide-x divide-border/60">
+          <CelulaDinheiro rotulo="Pedido" valor={valorPedido} />
+          <CelulaDinheiro
+            rotulo={pedido.nf_numero ? `Faturado (NF ${pedido.nf_numero})` : "No plano"}
+            valor={somaLinhas}
+          />
+          <CelulaDinheiro rotulo="Pago" valor={somaPago} />
+          <CelulaDinheiro rotulo="Em aberto" valor={somaAberto} dominante />
+        </div>
 
+        {linhasQ.isSuccess && Math.abs(delta) > 0.01 && (
+          <div className="mt-2 flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <span>
+              {delta < 0
+                ? `${fmtBRL.format(Math.abs(delta))} do pedido não estão em nenhuma parcela — plano não cobre o total.`
+                : `As parcelas somam ${fmtBRL.format(delta)} a mais que o pedido.`}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* (c) STEPPER HONESTO */}
+      <div className="space-y-2">
+        <StepperHonesto passos={passos} />
+        {incoerente && (
+          <p className="flex items-center gap-2 text-sm text-warning">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            Cobrança enviada sem instrumento emitido — verifique o que o cliente recebeu.
+          </p>
+        )}
+      </div>
+
+      {/* (5) AVISO DE CARTÃO */}
+      {cartaoAbertas.length > 0 && (
+        <div className="rounded-lg border border-border/60 px-3 py-2 text-xs text-muted-foreground">
+          {cartaoAbertas.length} parcela(s) de cartão em aberto · {fmtBRL.format(cartaoAbertoValor)} —
+          uma captura fecha todas de uma vez.
+        </div>
+      )}
+
+      {/* (d) LISTA ÚNICA DE PARCELAS */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between gap-3">
-            <CardTitle className="text-base">Títulos em aberto</CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setAlterarPagtoOpen(true)}
-            >
-              Alterar pagamento
-            </Button>
-          </div>
+          <CardTitle className="text-base">Plano de pagamento</CardTitle>
         </CardHeader>
-        <CardContent>
-          <LinkPagamentoCard pedidoId={pedido.id} className="mb-4" />
-
-          {titulosQ.isLoading && <Skeleton className="h-40 w-full" />}
-
-          {!titulosQ.isLoading && <PortaoLinksPanel pedidoId={pedido.id} />}
-
-          {titulosQ.data && titulosQ.data.length > 0 && (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-20">Parcela</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead>Vencimento</TableHead>
-                    <TableHead>Tipo</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {titulosQ.data.map((t: any) => (
-                    <TableRow key={t.id}>
-                      <TableCell className="text-sm font-medium">
-                        {t.numero_parcela}/{t.total_parcelas}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {fmtBRL.format(Number(t.valor_bruto))}
-                      </TableCell>
-                  <TableCell>
-                    <Input
-                      type="date"
-                      value={datas[t.id] ?? ""}
-                      onChange={(e) =>
-                        setDatas((prev) => ({ ...prev, [t.id]: e.target.value }))
-                      }
-                      className="h-8 w-36 text-xs"
-                    />
-                  </TableCell>
-                      <TableCell className="text-sm capitalize">
-                        {t.tipo_pagamento ?? "—"}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+        <CardContent className="p-0">
+          {linhasQ.isLoading && <Skeleton className="h-40 w-full" />}
+          {!linhasQ.isLoading && linhas.length === 0 && (
+            <p className="px-4 py-6 text-sm text-muted-foreground">
+              Nenhum plano de pagamento montado para este pedido.
+            </p>
           )}
-
-
-          <div className="mt-6">
-            <ComunicacaoPedidoPanel
-              pedido_id={pedido.id}
-              parceiro_id={pedido.parceiro_id}
-              estagio={pedido.estagio}
-              exige_portao={!!portaoRegraQ.data?.exige_portao_regra}
-            />
-          </div>
-
-          <div className="flex justify-between mt-6">
-            <SmartBackButton fallback="/recebimento/cobranca" fallbackLabel="Voltar" />
-            {titulosQ.data && titulosQ.data.length > 0 && (
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleSalvar}
-                  disabled={salvando || titulosQ.isLoading}
-                >
-                  {salvando && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-                  Salvar vencimentos
-                </Button>
-              </div>
-            )}
-          </div>
+          {linhas.map((l) => (
+            <LinhaParcela key={`${l.origem}-${l.linha_id}`} l={l} />
+          ))}
         </CardContent>
       </Card>
+
+      {/* (e) LINK DE PAGAMENTO DO PEDIDO */}
+      <div ref={linkCardRef}>
+        <LinkPagamentoCard pedidoId={pedido.id} />
+      </div>
+
+      {/* (f) COMUNICAÇÃO */}
+      <div ref={comunicacaoRef}>
+        <ComunicacaoPedidoPanel
+          pedido_id={pedido.id}
+          parceiro_id={pedido.parceiro_id}
+          estagio={pedido.estagio}
+          exige_portao={!!portaoRegraQ.data?.exige_portao_regra}
+        />
+      </div>
+
+      {/* (g) RODAPÉ DE AÇÕES */}
+      <div className="flex items-center justify-between gap-3">
+        <SmartBackButton fallback="/recebimento/cobranca" fallbackLabel="Voltar ao pedido" />
+        <div className="flex items-center gap-2">
+          <Button onClick={acaoPrimaria.onClick}>{acaoPrimaria.label}</Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" aria-label="Mais ações">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={refazerPlano}>Refazer plano</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate(`/pedidos/${pedido.id}`)}>
+                Ver pedido
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
       <ReverterParaCobrancaDialog
         open={alterarPagtoOpen}
         onClose={() => setAlterarPagtoOpen(false)}
         pedidoId={pedido.id}
         idExterno={pedido.id_externo}
-        estagio="cobranca"
+        estagio={pedido.estagio}
         motivoAlterarPagamento
       />
     </PageShell>
@@ -462,6 +588,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
 export default function CobrancaDetalhe() {
 
   const { pedidoId } = useParams<{ pedidoId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const voltarPara = useVoltarParaOrigem("/recebimento/cobranca");
   const { toast } = useToast();
@@ -840,9 +967,13 @@ export default function CobrancaDetalhe() {
     );
   }
 
-  // TRAVA: estágio fora de 'cobranca' OU plano já materializado → modo links.
-  // Nunca mostrar proposta editável para pedido que já tem plano (evita plano duplicado).
-  if (pedidoQ.data.estagio !== "cobranca" || (planoExistenteQ.data ?? 0) > 0) {
+  // PLANO-EM-COBRANCA-E-EDITAVEL (28/08/2026): pedido em cobrança não tem título nem
+  // boleto — só provisão prevista. montar_plano_pagamento é porta única e já apaga a
+  // provisão antes de remontar, então refazer o plano aqui não cancela nada e não
+  // precisa de reversão. ?refazer=1 devolve o operador à proposta editável.
+  const refazer = searchParams.get("refazer") === "1";
+  const emCobranca = pedidoQ.data.estagio === "cobranca";
+  if (!emCobranca || ((planoExistenteQ.data ?? 0) > 0 && !refazer)) {
     return <GerenciarLinksPagamento pedido={pedidoQ.data} />;
   }
 
@@ -921,7 +1052,13 @@ export default function CobrancaDetalhe() {
         </span>
       </div>
 
-      <CobrancaStepper fase={titulos.some((t) => t.link_pagamento) ? 2 : 1} />
+      <StepperHonesto
+        passos={[
+          { label: "Plano montado", feito: false },
+          { label: "Instrumento pronto", feito: titulos.some((t) => t.link_pagamento) },
+          { label: "Enviado ao cliente", feito: false },
+        ]}
+      />
 
       {/* Resumo */}
       <Card>
