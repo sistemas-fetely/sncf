@@ -156,6 +156,63 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 min-h-0">
+        {/* Adicionar produto */}
+        <div className="space-y-2">
+          {!mostrarCatalogo ? (
+            <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={() => setMostrarCatalogo(true)}>
+              <Plus className="h-3.5 w-3.5" />
+              Adicionar produto
+            </Button>
+          ) : (
+            <div className="space-y-2 border border-border/60 rounded-md p-2">
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar produto..."
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  className="pl-8 h-8 text-sm"
+                  autoFocus
+                />
+              </div>
+
+              <div className="max-h-60 overflow-y-auto space-y-0.5">
+                {produtosQ.isLoading && (
+                  <p className="text-xs text-muted-foreground text-center py-3">Carregando...</p>
+                )}
+                {!produtosQ.isLoading && produtosQ.data?.length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center py-3">
+                    {busca ? "Nenhum produto encontrado" : "Catálogo vazio — sincronize em Parâmetros"}
+                  </p>
+                )}
+                {produtosQ.data?.map((p) => (
+                  <button
+                    key={p.sku}
+                    type="button"
+                    onClick={() => adicionarProduto(p)}
+                    className="w-full text-left flex justify-between items-center px-2 py-1.5 rounded hover:bg-muted transition-colors"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm truncate">{p.nome_comercial}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {p.sku} · mín {p.multiplos} un
+                      </p>
+                    </div>
+                    <span className="text-sm font-medium shrink-0 ml-2 flex items-center">
+                      {fmtBRL.format(p.preco_atacado)}
+                      <Plus className="h-3.5 w-3.5 shrink-0 ml-2 text-muted-foreground" />
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <Button variant="ghost" size="sm" className="w-full" onClick={() => setMostrarCatalogo(false)}>
+                Cancelar
+              </Button>
+            </div>
+          )}
+        </div>
+
         {/* Lista de itens */}
         <div className="space-y-1">
           {(() => {
