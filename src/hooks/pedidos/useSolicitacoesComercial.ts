@@ -229,7 +229,11 @@ export function useContagemSolicitacoes() {
 function invalidar(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ["solicitacoes-abertas"] });
   qc.invalidateQueries({ queryKey: ["solicitacoes-abertas-contagem"] });
+  qc.invalidateQueries({ queryKey: ["solicitacoes-por-status"] });
+  qc.invalidateQueries({ queryKey: ["solicitacoes-contagem-status"] });
+  qc.invalidateQueries({ queryKey: ["canal-cpo-page"] });
 }
+
 
 /** FAIL-LOUD: a mensagem do banco é a explicação; não a substituímos. */
 export function useAbrirSolicitacao(pedidoId: string) {
