@@ -20,11 +20,21 @@ import type { QueryClient } from "@tanstack/react-query";
  * continuam sendo invalidadas no próprio hook, junto com a chamada a este
  * helper.
  *
+ * A invalidação da família por pedido é feita por prefixo, não depende de
+ * receber o id. Esquecer de passar o id (ou passar `null`) não pode deixar
+ * a tela de detalhe do pedido com dados velhos. O custo é baixo porque só
+ * existe uma tela de detalhe de pedido montada por vez: apenas ela rebusca
+ * imediatamente. As entradas de outros pedidos no cache apenas ficam
+ * marcadas como sujas e rebuscam quando forem montadas.
+ *
+ * O parâmetro `_pedidoId` é mantido só por compatibilidade e legibilidade
+ * das chamadas existentes. Ele não influencia a invalidação por prefixo.
+ *
  * A invalidação é por prefixo (comportamento padrão do TanStack) e usa o
  * `refetchType` padrão: só o que está montado rebusca na hora.
  */
 
-/** Chaves globais / de lista — sempre invalidadas, mesmo sem `pedidoId`. */
+/** Chaves globais / de lista — sempre invalidadas. */
 const CHAVES_GLOBAIS: readonly (readonly unknown[])[] = [
   ["pedidos-fila"], // cobre "entrega-lote" e "aguardando-estoque" (mesmo prefixo)
   ["pedidos-pipeline"],
@@ -49,7 +59,7 @@ const CHAVES_GLOBAIS: readonly (readonly unknown[])[] = [
   ["pedidos-complementares"],
 ];
 
-/** Chaves por pedido — só quando `pedidoId` vier preenchido. */
+/** Chaves por pedido — invalidadas por prefixo, independentemente do id. */
 const CHAVES_POR_PEDIDO: readonly string[] = [
   "pedido-detalhe",
   "pedido",
@@ -87,10 +97,7 @@ const CHAVES_POR_PEDIDO: readonly string[] = [
   "pedido-email-log",
 ];
 
-export function invalidarPedido(qc: QueryClient, pedidoId?: string | null): void {
+export function invalidarPedido(qc: QueryClient, _pedidoId?: string | null): void {
   CHAVES_GLOBAIS.forEach((queryKey) => qc.invalidateQueries({ queryKey }));
-  if (!pedidoId) return;
-  CHAVES_POR_PEDIDO.forEach((prefixo) =>
-    qc.invalidateQueries({ queryKey: [prefixo, pedidoId] }),
-  );
+  CHAVES_POR_PEDIDO.forEach((prefixo) => qc.invalidateQueries({ queryKey: [prefixo] }));
 }
