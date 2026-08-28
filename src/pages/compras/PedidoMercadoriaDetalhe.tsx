@@ -611,6 +611,42 @@ export default function PedidoMercadoriaDetalhe() {
             <Stat rotulo="Linhas" valor={fmtNum(pedido.linhas)} />
             <Stat rotulo="Kits" valor={fmtNum(pedido.kits)} />
             <Stat rotulo="Custo FOB" valor={fmtMoeda(pedido.custo_total, moeda)} />
+            {/* CUSTO-PROJETADO-RESPETA-COMPARABILIDADE: importação tem FOB em USD e
+                NF nacionalizada em BRL — quando a view diz que não dá pra comparar,
+                a tela NUNCA mostra número, só o motivo. */}
+            {(() => {
+              const s = saldoQ.data;
+              const comparavel = s?.custo_comparavel !== false;
+              const delta = Number(s?.delta_custo ?? 0);
+              const pct = s?.delta_custo_pct;
+              const nota = !comparavel
+                ? (s?.custo_incomparavel_motivo ?? "Custo não comparável")
+                : delta !== 0
+                  ? `${delta > 0 ? "+" : "−"}${fmtMoeda(Math.abs(delta), "BRL")} · ${pct != null ? fmtNum(Math.abs(pct), 1) : "—"}% vs acordado`
+                  : "igual ao acordado";
+              const tom = !comparavel
+                ? "neutro"
+                : delta > 0
+                  ? "atencao"
+                  : delta < 0
+                    ? "positivo"
+                    : "neutro";
+              return (
+                <CardIndicador
+                  compacto
+                  rotulo="Custo projetado"
+                  valor={
+                    comparavel
+                      ? s?.custo_projetado != null
+                        ? fmtMoeda(s.custo_projetado, "BRL")
+                        : "—"
+                      : "—"
+                  }
+                  nota={nota}
+                  tom={tom}
+                />
+              );
+            })()}
             <Stat rotulo="ETD" valor={fmtDate(pedido.etd)} />
             <Stat rotulo="ETA" valor={fmtDate(pedido.eta)} />
             <Stat rotulo="NFs" valor={fmtNum(pedido.nfs)} />
@@ -1155,34 +1191,41 @@ export default function PedidoMercadoriaDetalhe() {
                             <TableHead>Invoice</TableHead>
                             <TableHead>SKU</TableHead>
                             <TableHead className="text-right">Qtd pedido</TableHead>
-                            <TableHead className="text-right">Qtd invoice</TableHead>
-                            <TableHead className="text-right">Diferença</TableHead>
+                            <TableHead className="text-right">Qtd nesta invoice</TableHead>
+                            <TableHead className="text-right">Declarado (invoice)</TableHead>
+                            <TableHead className="text-right">A embarcar</TableHead>
                             <TableHead className="text-right">Custo pedido</TableHead>
                             <TableHead className="text-right">Custo invoice</TableHead>
+                            <TableHead className="text-right">Δ preço</TableHead>
                             <TableHead>Situação</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {confInvQ.data!.map((r, i) => {
-                            const problema =
-                              r.situacao === "divergente" ||
-                              r.situacao === "so_pedido" ||
-                              r.situacao === "so_invoice";
+                            const sit = SITUACAO_INV[r.situacao ?? ""] ?? {
+                              rotulo: r.situacao ?? "—",
+                              estado: "muted" as EstadoSelo,
+                            };
+                            const deltaPreco =
+                              r.delta_preco != null && Number(r.delta_preco) !== 0;
                             return (
                               <TableRow
                                 key={`${r.invoice_id}-${r.sku}-${i}`}
-                                className={problema ? "bg-destructive/10" : undefined}
+                                className={sit.linha}
                               >
                                 <TableCell>{r.invoice_numero ?? "—"}</TableCell>
                                 <TableCell className="font-mono text-xs">{r.sku ?? "—"}</TableCell>
                                 <TableCell className="text-right">{fmtNum(r.qtd_pedido)}</TableCell>
                                 <TableCell className="text-right">{fmtNum(r.qtd_invoice)}</TableCell>
+                                <TableCell className="text-right">{fmtNum(r.declarado_invoice)}</TableCell>
                                 <TableCell
                                   className={
-                                    problema ? "text-right font-medium text-destructive" : "text-right"
+                                    (r.a_embarcar ?? 0) > 0
+                                      ? "text-right font-medium text-warning"
+                                      : "text-right"
                                   }
                                 >
-                                  {fmtNum(r.furo)}
+                                  {fmtNum(r.a_embarcar)}
                                 </TableCell>
                                 <TableCell className="text-right">
                                   {fmtMoeda(r.custo_pedido, moeda)}
@@ -1190,10 +1233,12 @@ export default function PedidoMercadoriaDetalhe() {
                                 <TableCell className="text-right">
                                   {fmtMoeda(r.custo_invoice, moeda)}
                                 </TableCell>
+                                <CelulaDinheiro
+                                  valor={r.delta_preco}
+                                  className={deltaPreco ? "font-medium text-warning" : undefined}
+                                />
                                 <TableCell>
-                                  <Badge variant={problema ? "destructive" : "secondary"}>
-                                    {r.situacao ?? "—"}
-                                  </Badge>
+                                  <Selo estado={sit.estado}>{sit.rotulo}</Selo>
                                 </TableCell>
                               </TableRow>
                             );
