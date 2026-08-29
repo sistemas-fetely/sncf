@@ -40,7 +40,7 @@ const PlaceholderPage = lazy(() => import("@/pages/PlaceholderPage"));
 
 const Organograma = lazy(() => import("@/pages/Organograma"));
 const Reembolsos = lazy(() => import("@/pages/pessoas/Reembolsos"));
-const Socios = lazy(() => import("@/pages/pessoas/Socios"));
+const Diretoria = lazy(() => import("@/pages/pessoas/Diretoria"));
 const ReembolsoSaneamento = lazy(() => import("@/pages/pessoas/ReembolsoSaneamento"));
 const ReembolsoCiclos = lazy(() => import("@/pages/pessoas/ReembolsoCiclos"));
 const Login = lazy(() => import("@/pages/Login"));
@@ -495,7 +495,7 @@ const App = () => (
                 <Route path="/pessoas/cargos/:id" element={
                   <ProtectedRoute><CargoForm /></ProtectedRoute>
                 } />
-                <Route path="/pessoas/socios" element={<Socios />} />
+                <Route path="/pessoas/diretoria" element={<Diretoria />} />
                 <Route path="/pessoas/reembolsos" element={<Reembolsos />} />
                 <Route
                   path="/pessoas/reembolsos/saneamento"

@@ -7,10 +7,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
-import { useIsSocio } from "@/hooks/useIsSocio";
+import { useIsDiretoria } from "@/hooks/useIsDiretoria";
 import SemPermissao from "@/pages/SemPermissao";
 
-interface LinhaSocio {
+interface LinhaDiretoria {
   pessoa_id: string;
   nome: string;
   cargo: string | null;
@@ -18,14 +18,14 @@ interface LinhaSocio {
   email: string | null;
 }
 
-export default function Socios() {
+export default function Diretoria() {
   const navigate = useNavigate();
-  const { data: isSocio, isLoading: carregandoPermissao } = useIsSocio();
+  const { data: isDiretoria, isLoading: carregandoPermissao } = useIsDiretoria();
 
   const listaQ = useQuery({
-    queryKey: ["pessoas-socios"],
-    enabled: isSocio === true,
-    queryFn: async (): Promise<LinhaSocio[]> => {
+    queryKey: ["pessoas-diretoria"],
+    enabled: isDiretoria === true,
+    queryFn: async (): Promise<LinhaDiretoria[]> => {
       const { data: tipos, error: eTipos } = await supabase
         .from("tipos_vinculo")
         .select("codigo, aparece_em_pessoas")
@@ -64,7 +64,7 @@ export default function Socios() {
     );
   }
 
-  if (isSocio !== true) return <SemPermissao />;
+  if (isDiretoria !== true) return <SemPermissao />;
 
   const linhas = listaQ.data ?? [];
 

@@ -21,7 +21,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { humanizeError } from "@/lib/errorMessages";
-import { useIsSocio } from "@/hooks/useIsSocio";
+import { useIsDiretoria } from "@/hooks/useIsDiretoria";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { hojeISO } from "@/lib/data";
@@ -51,7 +51,7 @@ const statusStyles: Record<string, string> = {
 export default function Pessoas() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { data: isSocio } = useIsSocio();
+  const { data: isSocio } = useIsDiretoria();
   const tipoFromQuery = searchParams.get("tipo");
 
   const [linhas, setLinhas] = useState<PessoaLinha[]>([]);

@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { humanizeError } from "@/lib/errorMessages";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { useIsSocio } from "@/hooks/useIsSocio";
+import { useIsDiretoria } from "@/hooks/useIsDiretoria";
 
 
 interface LinhaFolha {
@@ -45,7 +45,7 @@ const fmtOuTraco = (v: number | null | undefined) =>
 
 export default function FolhaMensal() {
   const navigate = useNavigate();
-  const { data: isSocio } = useIsSocio();
+  const { data: isSocio } = useIsDiretoria();
   const ehDiretoria = isSocio === true;
   const rotuloTotal = ehDiretoria ? "Custo total (empresa)" : "Custo do meu time";
   const hoje = new Date();

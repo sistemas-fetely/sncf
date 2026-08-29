@@ -20,7 +20,7 @@ import VinculoExtrasSection from "@/components/pessoas/VinculoExtrasSection";
 import VinculoFinanceiroPJSection from "@/components/pessoas/VinculoFinanceiroPJSection";
 import VinculoPagamentosPJSection from "@/components/pessoas/VinculoPagamentosPJSection";
 import CriarAcessoCard from "@/components/pessoas/CriarAcessoCard";
-import { useIsSocio } from "@/hooks/useIsSocio";
+import { useIsDiretoria } from "@/hooks/useIsDiretoria";
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -125,8 +125,8 @@ export default function PessoaForm() {
   const [pessoaExistente, setPessoaExistente] = useState<{ id: string; nome_completo: string } | null>(null);
 
   // Sigilo salarial — fail-closed: só libera quando o banco confirma.
-  // Edição: RPC pode_ver_salario(pessoa). Criação: só diretoria (is_socio).
-  const { data: isSocio } = useIsSocio();
+  // Edição: RPC pode_ver_salario(pessoa). Criação: só diretoria (is_diretoria).
+  const { data: isSocio } = useIsDiretoria();
   const [podeVerSalarioPessoa, setPodeVerSalarioPessoa] = useState(false);
   const podeVerSalario = isEdit ? podeVerSalarioPessoa : isSocio === true;
 

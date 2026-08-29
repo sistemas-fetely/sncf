@@ -17,7 +17,7 @@ import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { humanizeError } from "@/lib/errorMessages";
 import { SmartBackButton } from "@/components/SmartBackButton";
-import { useIsSocio } from "@/hooks/useIsSocio";
+import { useIsDiretoria } from "@/hooks/useIsDiretoria";
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -56,7 +56,7 @@ const COMPOSICAO_COLORS = ["hsl(var(--primary))", "hsl(var(--chart-2, 142 71% 45
 
 export default function CustoPessoas() {
   const navigate = useNavigate();
-  const { data: isSocio } = useIsSocio();
+  const { data: isSocio } = useIsDiretoria();
   const ehDiretoria = isSocio === true;
   const rotuloTotal = ehDiretoria ? "Custo total (empresa)" : "Custo do meu time";
 
