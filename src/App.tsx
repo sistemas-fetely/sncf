@@ -721,6 +721,7 @@ const App = () => (
                 <Route path="contratos" element={<AdminContratos />} />
                 <Route path="importar" element={<ImportarDados />} />
                 <Route path="nfs-stage" element={<NFsStage />} />
+                <Route path="devolucoes-fiscais" element={<DevolucoesFiscais />} />
                 <Route path="motor-classificacao" element={<MotorClassificacao />} />
                 <Route path="documentos-pendentes" element={<DocumentosPendentes />} />
               </Route>
