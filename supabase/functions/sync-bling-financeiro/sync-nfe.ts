@@ -331,22 +331,6 @@ await sleep(300);
 
 console.log(`sync nfe: revalidacoes de cancelamento=${revalidados}, canceladas detectadas=${canceladasDetectadas}, erros de detalhe=${errosDetalhe}`);
 
-// ENTRADA-VIVE-NO-STAGE (29/08/2026): nfs_emitidas eh livro de SAIDA e continua assim.
-// NFs de entrada emitidas pela propria Fetely (tipo=0) nao entravam em lugar nenhum —
-// devolucao de venda ficava sem combustivel. Varredura isolada, depois das saidas,
-// em try/catch proprio: nada aqui pode derrubar o sync de saida que ja funciona.
-let entradasEncontradas = 0, entradasGravadas = 0, entradasComReferencia = 0, entradasComErro = 0;
-try {
-  const r = await syncNfeEntradas(supabase, client, timeUp, limite90d);
-  entradasEncontradas = r.encontradas;
-  entradasGravadas = r.gravadas;
-  entradasComReferencia = r.comReferencia;
-  entradasComErro = r.comErro;
-} catch (e) {
-  entradasComErro++;
-  console.error(`varredura de NFs de entrada falhou por completo: ${(e as Error).message}`);
-}
-
 return { criados, atualizados, erros, ultimoErro, proximaPagina: pagina, revalidados, canceladasDetectadas, errosDetalhe,
   entradasEncontradas, entradasGravadas, entradasComReferencia, entradasComErro }; }
 
