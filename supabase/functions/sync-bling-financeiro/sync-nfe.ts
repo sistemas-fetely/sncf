@@ -311,4 +311,127 @@ await sleep(300);
 }
 
 console.log(`sync nfe: revalidacoes de cancelamento=${revalidados}, canceladas detectadas=${canceladasDetectadas}, erros de detalhe=${errosDetalhe}`);
-return { criados, atualizados, erros, ultimoErro, proximaPagina: pagina, revalidados, canceladasDetectadas, errosDetalhe }; }
+
+// ENTRADA-VIVE-NO-STAGE (29/08/2026): nfs_emitidas eh livro de SAIDA e continua assim.
+// NFs de entrada emitidas pela propria Fetely (tipo=0) nao entravam em lugar nenhum —
+// devolucao de venda ficava sem combustivel. Varredura isolada, depois das saidas,
+// em try/catch proprio: nada aqui pode derrubar o sync de saida que ja funciona.
+let entradasEncontradas = 0, entradasGravadas = 0, entradasComReferencia = 0, entradasComErro = 0;
+try {
+  const r = await syncNfeEntradas(supabase, client, timeUp, limite90d);
+  entradasEncontradas = r.encontradas;
+  entradasGravadas = r.gravadas;
+  entradasComReferencia = r.comReferencia;
+  entradasComErro = r.comErro;
+} catch (e) {
+  entradasComErro++;
+  console.error(`varredura de NFs de entrada falhou por completo: ${(e as Error).message}`);
+}
+
+return { criados, atualizados, erros, ultimoErro, proximaPagina: pagina, revalidados, canceladasDetectadas, errosDetalhe,
+  entradasEncontradas, entradasGravadas, entradasComReferencia, entradasComErro }; }
+
+// O endpoint /nfe/{id} NAO expoe nota referenciada no JSON: refNFe existe somente no XML.
+// A URL do campo `xml` ja vem assinada — GET puro, sem Authorization. Regex simples evita
+// dependencia nova de parser.
+async function extrairRefNFe(xmlUrl: string): Promise<string | null> {
+  const res = await fetch(xmlUrl);
+  if (!res.ok) throw new Error(`XML ${res.status}`);
+  const txt = await res.text();
+  const m = txt.match(/<refNFe>(\d{44})<\/refNFe>/);
+  return m ? m[1] : null;
+}
+
+const RE_DEVOLUCAO = /devolu|retorno de mercadoria/i;
+
+async function syncNfeEntradas(
+  supabase: any,
+  client: BlingClient,
+  timeUp: () => boolean,
+  dataInicial: string,
+): Promise<{ encontradas: number; gravadas: number; comReferencia: number; comErro: number }> {
+  let encontradas = 0, gravadas = 0, comReferencia = 0, comErro = 0;
+  const dataFinal = new Date().toISOString().slice(0, 10);
+  let pagina = 1;
+
+  while (!timeUp()) {
+    let lista: any;
+    try {
+      lista = await client.get(
+        `/nfe?tipo=0&limite=100&pagina=${pagina}&dataEmissaoInicial=${dataInicial}&dataEmissaoFinal=${dataFinal}`,
+      );
+    } catch (e) {
+      comErro++;
+      console.error(`entradas pagina ${pagina}: ${(e as Error).message}`);
+      break;
+    }
+    const items = lista?.data || [];
+    if (items.length === 0) break;
+
+    for (const nf of items) {
+      encontradas++;
+      // FAIL-LOUD por nota: loga, conta e segue. Nunca aborta o lote.
+      try {
+        await sleep(120); // mesmo respiro de rate limit da varredura de saida
+        const det = await client.get(`/nfe/${nf.id}`);
+        const d = det?.data ?? {};
+
+        const chave = d.chaveAcesso || nf.chaveAcesso || null;
+        if (!chave) throw new Error("sem chaveAcesso");
+
+        let refChave: string | null = null;
+        if (d.xml) {
+          await sleep(120);
+          refChave = await extrairRefNFe(String(d.xml));
+        }
+        if (refChave) comReferencia++;
+
+        const natRaw = d.naturezaOperacao;
+        const natureza = typeof natRaw === "string"
+          ? natRaw
+          : (natRaw?.nome ?? natRaw?.descricao ?? null);
+
+        const obs = String(d.observacoes ?? "");
+        // fin_nfe=4 (devolucao) somente com refNFe E indicio textual. Sem chute.
+        const finNfe = refChave && (RE_DEVOLUCAO.test(natureza ?? "") || RE_DEVOLUCAO.test(obs)) ? 4 : null;
+
+        const doc = String(d.contato?.numeroDocumento ?? nf.contato?.numeroDocumento ?? "").replace(/\D/g, "");
+        const numero = d.numero != null ? String(d.numero) : (nf.numero != null ? String(nf.numero) : null);
+
+        const linha: any = {
+          fonte: "bling_entrada",
+          nf_numero: numero,
+          nf_serie: d.serie != null ? String(d.serie) : null,
+          nf_chave_acesso: chave,
+          nf_data_emissao: parseBlingDate(d.dataEmissao ?? nf.dataEmissao),
+          fornecedor_cnpj: doc || null,
+          fornecedor_razao_social: d.contato?.nome ?? nf.contato?.nome ?? null,
+          valor: d.valorNota != null ? Number(d.valorNota) : null,
+          natureza_operacao: natureza,
+          nf_referenciada_chave: refChave,
+          fin_nfe: finNfe,
+          itens: Array.isArray(d.itens) ? d.itens : null,
+          descricao: `NF entrada ${numero ?? nf.id} · Bling`,
+          tem_xml_obrigatorio: true,
+        };
+
+        // Reprocessar nao pode duplicar nem sobrescrever trabalho humano na linha.
+        const { error: upErr } = await supabase
+          .from("nfs_stage")
+          .upsert(linha, { onConflict: "nf_chave_acesso", ignoreDuplicates: true });
+        if (upErr) throw new Error("UPSERT nfs_stage: " + upErr.message);
+        gravadas++;
+        // trg_stage_sugere_devolucao dispara sozinho para linhas com nf_referenciada_chave.
+      } catch (e) {
+        comErro++;
+        console.error(`entrada ${nf?.id}: ${(e as Error).message}`);
+      }
+    }
+
+    pagina++;
+    await sleep(300);
+  }
+
+  console.log(`sync nfe entradas: encontradas=${encontradas}, gravadas=${gravadas}, com refNFe=${comReferencia}, erros=${comErro}`);
+  return { encontradas, gravadas, comReferencia, comErro };
+}
