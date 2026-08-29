@@ -36,6 +36,11 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
   const { roles } = useAuth();
   const isSuperAdmin = (roles ?? []).includes("super_admin");
   const { temNivel } = useNivel();
+  // Permissão nominal de AÇÃO (DIMENSAO-VIA-TABELA). Quem não tem vê o botão
+  // DESABILITADO com o motivo — nunca escondido.
+  const { permitido: podeEnviarBling } = usePermissaoAcaoOuSuperAdmin("acao.enviar_bling");
+  const { permitido: podeEmpurrarXpmAcao } = usePermissaoAcaoOuSuperAdmin("acao.empurrar_xpm");
+  const MOTIVO_SEM_ACAO = "Ação do time de Operações";
 
   const { data: parceiroBling, refetch: recheckBling } = useQuery({
     queryKey: ["parceiro-bling-check", parceiro_id],
