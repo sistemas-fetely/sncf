@@ -29,6 +29,7 @@ import {
 import {
   useReportesInbox,
   useAtualizarReporte,
+  useResponsaveisReporte,
   type Reporte,
 } from "@/hooks/useReportes";
 import { useQuery } from "@tanstack/react-query";

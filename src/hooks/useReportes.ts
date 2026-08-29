@@ -66,6 +66,18 @@ export function useCriarReporte() {
   });
 }
 
+export function useResponsaveisReporte() {
+  return useQuery({
+    queryKey: ["reporte-responsaveis"],
+    queryFn: async (): Promise<{ user_id: string; nome: string }[]> => {
+      const { data, error } = await (supabase as any).rpc("fn_reporte_responsaveis");
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 /**
  * Leitura da imagem de um report (bucket privado, tela autenticada).
  */
