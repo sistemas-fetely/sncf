@@ -22,3 +22,16 @@ export function usePermissaoAcao(slug: string) {
   });
   return { permitido: data === true, carregando: isLoading };
 }
+
+/**
+ * Mesma leitura da RPC `usuario_tem_acao`, com o bypass de super_admin que o
+ * resto do projeto usa. Convenção: `pode_ver = true` na permissão de ação
+ * significa "pode EXECUTAR" — não existe flag separado.
+ */
+export function usePermissaoAcaoOuSuperAdmin(slug: string) {
+  const { roles } = useAuth();
+  const isSuperAdmin = (roles ?? []).includes("super_admin");
+  const { permitido, carregando } = usePermissaoAcao(isSuperAdmin ? "" : slug);
+  if (isSuperAdmin) return { permitido: true, carregando: false };
+  return { permitido, carregando };
+}
