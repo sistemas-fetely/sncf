@@ -84,8 +84,9 @@ export function ImpactoEdicaoBanner({
   const prazoMax = d.prazo_max_dias ?? null;
   const vencMaisLongo = usarPlano ? qPlano.data?.venc_mais_longo ?? null : null;
 
+  // Com trava dura o delta de exposição/prazo é irrelevante — o que importa é a trava.
   const numeros =
-    limite > 0 || expo > 0 ? (
+    !trava && (limite > 0 || expo > 0) ? (
       <div className="mt-1 text-xs text-muted-foreground">
         Exposição nova: <span className="font-medium">{formatBRL(expo)}</span>
         {limite > 0 && <> · Limite concedido: <span className="font-medium">{formatBRL(limite)}</span></>}
