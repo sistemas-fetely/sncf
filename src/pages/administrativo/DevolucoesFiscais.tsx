@@ -461,8 +461,8 @@ function CardVinculo({
 
         {/* Linha 2 — os números */}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-          <span>{formatBRL(v.valor_devolvido)}</span>
-          <span className="text-muted-foreground">de {formatBRL(v.valor_nota_saida)}</span>
+          <span>{formatBRL(Number(v.valor_devolvido))}</span>
+          <span className="text-muted-foreground">de {formatBRL(Number(v.valor_nota_saida))}</span>
           <span className="font-medium text-foreground">·</span>
           <span className="text-base font-medium">{pct.toFixed(1)}%</span>
           {(aba === "sugerido" ? v.grau_sugerido : (v.grau ?? v.grau_sugerido)) && (
