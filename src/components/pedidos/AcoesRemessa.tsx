@@ -285,19 +285,29 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
         return (
           <div key={rem.id} className="space-y-2">
             {podeEnviar && (
-              <Button
-                size="sm"
-                className="w-full gap-1.5"
-                title={`Enviar ${codigo} pro Bling`}
-                disabled={enviar.isPending}
-                onClick={() => enviar.mutate({ pedido_id, remessa_id: rem.id })}
-              >
-                {enviar.isPending ? (
-                  <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</>
-                ) : (
-                  <><Send className="h-4 w-4 shrink-0" />Enviar pro Bling ({tentativa})</>
+              <>
+                {!podeEnviarBling && (
+                  <Alert variant="default" className="bg-muted/60 border-border">
+                    <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                    <AlertDescription className="text-muted-foreground text-xs">
+                      {MOTIVO_SEM_ACAO}
+                    </AlertDescription>
+                  </Alert>
                 )}
-              </Button>
+                <Button
+                  size="sm"
+                  className="w-full gap-1.5"
+                  title={podeEnviarBling ? `Enviar ${codigo} pro Bling` : MOTIVO_SEM_ACAO}
+                  disabled={enviar.isPending || !podeEnviarBling}
+                  onClick={() => enviar.mutate({ pedido_id, remessa_id: rem.id })}
+                >
+                  {enviar.isPending ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</>
+                  ) : (
+                    <><Send className="h-4 w-4 shrink-0" />Enviar pro Bling ({tentativa})</>
+                  )}
+                </Button>
+              </>
             )}
 
 
