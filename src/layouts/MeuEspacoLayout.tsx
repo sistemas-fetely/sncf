@@ -7,7 +7,8 @@
  * Vista assumiu Dashboard/Relatórios em 29/04/2026).
  *
  * Mantém a manutenção silenciosa de tarefas (recorrentes + avisos de prazo,
- * uma vez por sessão) e o sino de notificações que viviam no TarefasLayout.
+ * uma vez por sessão). O sino de notificações subiu para o header global da
+ * Casa (CasaHeader) e não é mais renderizado aqui.
  */
 
 import { Suspense, useEffect, useRef } from "react";
@@ -15,7 +16,6 @@ import { Outlet } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { MeuEspacoSidebar } from "@/components/MeuEspacoSidebar";
 import { CommandPaletteProvider } from "@/components/navegacao/CommandPaletteProvider";
-import { SinoNotificacoes } from "@/components/shared/SinoNotificacoes";
 import { rodarManutencaoTarefas } from "@/hooks/tarefas/useNotificacoesTarefas";
 
 export default function MeuEspacoLayout() {
@@ -35,9 +35,6 @@ export default function MeuEspacoLayout() {
         <div className="flex-1 flex flex-col min-w-0">
           <header className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b bg-card/80 px-3 backdrop-blur-sm">
             <SidebarTrigger className="-ml-1" />
-            <div className="ml-auto">
-              <SinoNotificacoes />
-            </div>
           </header>
           <main className="flex-1 relative min-w-0">
             <Suspense

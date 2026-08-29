@@ -11,6 +11,7 @@ import { CasaFalaFetelyButton } from "./CasaFalaFetelyButton";
 import { CasaConfigButton } from "./CasaConfigButton";
 import { RecentesEFavoritos } from "@/components/navegacao/RecentesEFavoritos";
 import { ReportarErroBotao } from "@/components/shared/ReportarErroBotao";
+import { SinoNotificacoes } from "@/components/shared/SinoNotificacoes";
 import { useCasaApp } from "@/hooks/useCasaApp";
 
 
@@ -71,6 +72,9 @@ export function CasaHeader() {
               é a mesma natureza: ação do usuário sobre o sistema, não sobre o
               dado da tela. */}
           <ReportarErroBotao />
+          {/* Eixo de comunicação: Reportar (usuário → sistema), Sino
+              (sistema → usuário) e Fala Fetély (diálogo) ficam juntos. */}
+          <SinoNotificacoes />
           <CasaFalaFetelyButton />
           <CasaConfigButton />
           <CasaThemeToggle />
