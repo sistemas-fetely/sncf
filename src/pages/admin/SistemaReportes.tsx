@@ -106,7 +106,12 @@ export default function SistemaReportes() {
   const contadores = {
     total: reportes?.length || 0,
     recebido: reportes?.filter((r) => r.status_valor === "recebido").length || 0,
-    em_analise: reportes?.filter((r) => r.status_valor === "em_analise").length || 0,
+    sem_responsavel:
+      reportes?.filter(
+        (r) =>
+          !r.atribuido_a &&
+          !["resolvido", "duplicado", "nao_procede"].includes(r.status_valor)
+      ).length || 0,
     resolvido: reportes?.filter((r) => r.status_valor === "resolvido").length || 0,
   };
 
@@ -114,15 +119,22 @@ export default function SistemaReportes() {
     status_valor?: string;
     prioridade?: string;
     resposta_admin?: string;
+    atribuido_a?: string | null;
   }) {
     if (!selecionado) return;
-    await atualizar.mutateAsync({ id: selecionado.id, ...updates });
+    try {
+      await atualizar.mutateAsync({ id: selecionado.id, ...updates });
+    } catch {
+      return;
+    }
     if (updates.status_valor)
       setSelecionado({ ...selecionado, status_valor: updates.status_valor });
     if (updates.prioridade)
       setSelecionado({ ...selecionado, prioridade: updates.prioridade });
     if (updates.resposta_admin !== undefined)
       setSelecionado({ ...selecionado, resposta_admin: updates.resposta_admin });
+    if (updates.atribuido_a !== undefined)
+      setSelecionado({ ...selecionado, atribuido_a: updates.atribuido_a });
   }
 
   return (
