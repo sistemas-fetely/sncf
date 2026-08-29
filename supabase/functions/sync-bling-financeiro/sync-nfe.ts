@@ -52,6 +52,25 @@ export async function syncNfe( supabase: any, client: BlingClient, timeUp: () =>
 let revalidados = 0, errosDetalhe = 0, canceladasDetectadas = 0;
 const limite90d = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
+// ENTRADA-VIVE-NO-STAGE (29/08/2026): nfs_emitidas eh livro de SAIDA e continua assim.
+// NFs de entrada emitidas pela propria Fetely (tipo=0) nao entravam em lugar nenhum —
+// devolucao de venda ficava sem combustivel. Varredura isolada, ANTES do laco de saidas:
+// entradas sao raras (2 em 90 dias) e baratas, entao pegam o orcamento primeiro. Se
+// rodassem depois, morreriam de inanicao — o laco de saidas sai justamente quando o
+// tempo acaba e timeUp() ja estaria true. Try/catch proprio: nada aqui pode derrubar
+// o sync de saida que ja funciona. Teto de 3 paginas dentro de syncNfeEntradas.
+let entradasEncontradas = 0, entradasGravadas = 0, entradasComReferencia = 0, entradasComErro = 0;
+try {
+  const r = await syncNfeEntradas(supabase, client, timeUp, limite90d);
+  entradasEncontradas = r.encontradas;
+  entradasGravadas = r.gravadas;
+  entradasComReferencia = r.comReferencia;
+  entradasComErro = r.comErro;
+} catch (e) {
+  entradasComErro++;
+  console.error(`varredura de NFs de entrada falhou por completo: ${(e as Error).message}`);
+}
+
 while (!timeUp()) { let data: any; try { data = await client.get(`/nfe?limite=100&pagina=${pagina}`); } catch (e) { ultimoErro = `pagina ${pagina}: ${(e as Error).message}`; break; } const itemsRaw = data?.data || []; if (itemsRaw.length === 0) { pagina = 0; break; }
 // Prioriza data_emissao mais recente para gastar o orcamento de revalidacao no que importa
 const items = [...itemsRaw].sort((a: any, b: any) => String(b?.dataEmissao ?? "").localeCompare(String(a?.dataEmissao ?? "")));
