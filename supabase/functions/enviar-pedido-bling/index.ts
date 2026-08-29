@@ -12,6 +12,7 @@ import {
   validarXmlNf,
   NfAnexoError,
 } from "../_shared/bling/nf-anexo.ts";
+import { exigirAcao } from "../_shared/permissao-acao.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
