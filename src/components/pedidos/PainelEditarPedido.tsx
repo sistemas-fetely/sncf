@@ -214,7 +214,6 @@ function SecaoPagamento({ pedidoId, pedido, guarda }: {
   const impacto = impactoQ.data ?? null;
   const caminho = impacto?.caminho ?? null;
   const bloqueadoPeloImpacto = caminho === "financeiro" || caminho === "bloqueado";
-  const direcao = impacto?.direcao ?? null;
   const podeAplicar = impacto?.pode_aplicar !== false;
   const papeisAlcada = impacto?.papeis_com_alcada || [];
   const mostrarReanalise = !!impacto && impacto.pode_aplicar === false && !bloqueadoPeloImpacto;
