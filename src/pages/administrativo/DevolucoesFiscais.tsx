@@ -461,8 +461,8 @@ function CardVinculo({
 
         {/* Linha 2 — os números */}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-          <span>{formatBRL(v.valor_devolvido)}</span>
-          <span className="text-muted-foreground">de {formatBRL(v.valor_nota_saida)}</span>
+          <span>{formatBRL(Number(v.valor_devolvido))}</span>
+          <span className="text-muted-foreground">de {formatBRL(Number(v.valor_nota_saida))}</span>
           <span className="font-medium text-foreground">·</span>
           <span className="text-base font-medium">{pct.toFixed(1)}%</span>
           {(aba === "sugerido" ? v.grau_sugerido : (v.grau ?? v.grau_sugerido)) && (
@@ -531,12 +531,18 @@ function CardVinculo({
 
         {/* ALERTA DE DINHEIRO DENTRO — informação, não trava */}
         {aba === "sugerido" && dinheiroDentro && (
-          <div className="flex gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-xs text-warning-foreground">
+          <div className="flex gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-xs font-medium text-warning-strong">
             <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
             <p>
-              Dinheiro dentro: {num(v.titulos_pagos)} título(s) pago(s),{" "}
-              {formatBRL(v.adiantamento_vivo)} de adiantamento. Se confirmar como TOTAL, a anulação
-              será BLOQUEADA e cairá para tratamento manual.
+              {(() => {
+                const partes: string[] = [];
+                const titulosPagos = num(v.titulos_pagos);
+                const adiantamento = num(v.adiantamento_vivo);
+                if (titulosPagos > 0) partes.push(`${titulosPagos} título(s) pago(s)`);
+                if (adiantamento > 0) partes.push(`${formatBRL(adiantamento)} de adiantamento`);
+                const corpo = partes.join(" e ");
+                return `Dinheiro dentro: ${corpo}. Se confirmar como TOTAL, a anulação será BLOQUEADA e cairá para tratamento manual.`;
+              })()}
             </p>
           </div>
         )}
