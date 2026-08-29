@@ -145,12 +145,24 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
         </Alert>
       )}
 
+      {/* Motivo visível do bloqueio por permissão — mesmo padrão de card do
+          "XPM recusou: …". O botão fica DESABILITADO, nunca escondido. */}
+      {((mostrarInicial && !podeEnviarBling) ||
+        (!precisaSincronizar && podeEmpurrarXpm && !podeEmpurrarXpmAcao)) && (
+        <Alert variant="default" className="bg-muted/60 border-border">
+          <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+          <AlertDescription className="text-muted-foreground text-xs">
+            {MOTIVO_SEM_ACAO}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {mostrarInicial && (
         <Button
           size="sm"
           className="w-full gap-1.5 whitespace-normal h-auto text-xs leading-tight py-2"
-          title={`Enviar ${id_externo} pro Bling`}
-          disabled={ocupado}
+          title={podeEnviarBling ? `Enviar ${id_externo} pro Bling` : MOTIVO_SEM_ACAO}
+          disabled={ocupado || !podeEnviarBling}
           onClick={() => enviar.mutate({ pedido_id })}
         >
           {enviar.isPending ? (
@@ -184,8 +196,8 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
           size="sm"
           variant="outline"
           className="w-full gap-1.5 whitespace-normal h-auto text-xs leading-tight py-2"
-          title={`Empurrar ${id_externo} pra XPM`}
-          disabled={ocupado}
+          title={podeEmpurrarXpmAcao ? `Empurrar ${id_externo} pra XPM` : MOTIVO_SEM_ACAO}
+          disabled={ocupado || !podeEmpurrarXpmAcao}
           onClick={() => empurrarXpm.mutate({ pedido_id })}
         >
           {empurrarXpm.isPending ? (
@@ -201,8 +213,12 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
           size="sm"
           variant="secondary"
           className="w-full gap-1.5 whitespace-normal h-auto text-xs leading-tight py-2"
-          title={`Empurrar ${id_externo} pra XPM e enviar pro Bling`}
-          disabled={ocupado}
+          title={
+            podeEnviarBling && podeEmpurrarXpmAcao
+              ? `Empurrar ${id_externo} pra XPM e enviar pro Bling`
+              : MOTIVO_SEM_ACAO
+          }
+          disabled={ocupado || !podeEnviarBling || !podeEmpurrarXpmAcao}
           onClick={async () => {
             // XPM-PRIMEIRO (21/08/2026): a XPM é quem decide se o pedido avança de
             // fase. Sequencial e com await: se a XPM falhar, o Bling nem roda — evita
