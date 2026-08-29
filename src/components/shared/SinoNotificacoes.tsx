@@ -1,6 +1,6 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell } from "lucide-react";
+import { Bell, X } from "lucide-react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -21,8 +21,12 @@ import { cn } from "@/lib/utils";
  *   `notificacoes`     — tabela do módulo Tarefas (e futuros), sempre com dono
  *
  * Aviso que só aparece dentro do módulo que o gerou não é aviso: é decoração.
- * Por isso este componente é montado no AppHeader (todo o SNCF) e no
- * TarefasLayout, com a MESMA implementação.
+ * Por isso este componente é montado no header global da Casa (todo o SNCF).
+ *
+ * LER-É-DISPENSAR (29/08/2026): o sino mostra SOMENTE não-lidas. Marcar como lida
+ * é a forma de dispensar — a linha sai do sino e passa a viver no histórico, em
+ * `/minhas-notificacoes`. Notificação lida é apagada depois de 60 dias pelo cron
+ * `notificacoes-retencao-diaria`; não-lida nunca é apagada.
  */
 
 type Fonte = "rh" | "geral";
@@ -44,23 +48,38 @@ function useItensSino(userId: string | undefined) {
     queryKey: [...CHAVE, userId ?? "anon"],
     enabled: !!userId,
     refetchInterval: 300_000,
-    queryFn: async (): Promise<ItemSino[]> => {
-      const [rh, geral] = await Promise.all([
+    queryFn: async (): Promise<{ itens: ItemSino[]; total: number }> => {
+      // A contagem NÃO pode sair da lista cortada — vem de count exact no banco.
+      const [rh, geral, countRh, countGeral] = await Promise.all([
         supabase
           .from("notificacoes_rh")
           .select("id,titulo,mensagem,link,lida,created_at")
           .or(`user_id.eq.${userId},user_id.is.null`)
+          .eq("lida", false)
           .order("created_at", { ascending: false })
-          .limit(30),
+          .limit(50),
         supabase
           .from("notificacoes")
           .select("id,titulo,corpo,url,lida,criado_por,criado_em")
           .eq("user_id", userId!)
+          .eq("lida", false)
           .order("criado_em", { ascending: false })
-          .limit(30),
+          .limit(50),
+        supabase
+          .from("notificacoes_rh")
+          .select("id", { count: "exact", head: true })
+          .or(`user_id.eq.${userId},user_id.is.null`)
+          .eq("lida", false),
+        supabase
+          .from("notificacoes")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", userId!)
+          .eq("lida", false),
       ]);
       if (rh.error) throw rh.error;
       if (geral.error) throw geral.error;
+      if (countRh.error) throw countRh.error;
+      if (countGeral.error) throw countGeral.error;
 
       const itens: ItemSino[] = [
         ...(rh.data ?? []).map((n) => ({
@@ -86,7 +105,10 @@ function useItensSino(userId: string | undefined) {
           })),
       ];
 
-      return itens.sort((a, b) => (a.data < b.data ? 1 : -1)).slice(0, 40);
+      return {
+        itens: itens.sort((a, b) => (a.data < b.data ? 1 : -1)),
+        total: (countRh.count ?? 0) + (countGeral.count ?? 0),
+      };
     },
   });
 }
@@ -112,12 +134,34 @@ function useMarcarLidas(userId: string | undefined) {
   });
 }
 
+// "Todas" é todas mesmo: a RPC com _ids null esvazia as não-lidas do usuário na
+// tabela `notificacoes`, não só as 50 carregadas. Em `notificacoes_rh` (legado,
+// sem RPC) o alcance segue por ids das linhas carregadas.
+function useMarcarTodasLidas(userId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (itensRh: ItemSino[]) => {
+      const { error } = await supabase.rpc("notificacoes_marcar_lidas", { _ids: null });
+      if (error) throw error;
+      const idsRh = itensRh.filter((i) => i.fonte === "rh" && !i.lida).map((i) => i.id);
+      if (idsRh.length) {
+        const { error: errRh } = await supabase.from("notificacoes_rh").update({ lida: true }).in("id", idsRh);
+        if (errRh) throw errRh;
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: [...CHAVE, userId ?? "anon"] }),
+    onError: (e: Error) => toast.error(`Não foi possível marcar todas como lidas: ${e.message}`),
+  });
+}
+
 export function SinoNotificacoes() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { data: itens } = useItensSino(user?.id);
+  const [open, setOpen] = useState(false);
+  const { data } = useItensSino(user?.id);
   const marcar = useMarcarLidas(user?.id);
+  const marcarTodas = useMarcarTodasLidas(user?.id);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -154,8 +198,13 @@ export function SinoNotificacoes() {
     };
   }, [user?.id]);
 
-  const lista = useMemo(() => itens ?? [], [itens]);
-  const naoLidas = lista.filter((i) => !i.lida);
+  const lista = useMemo(() => data?.itens ?? [], [data]);
+  const total = data?.total ?? 0;
+
+  const irParaHistorico = () => {
+    setOpen(false);
+    navigate("/minhas-notificacoes");
+  };
 
   const abrir = (item: ItemSino) => {
     if (!item.lida) marcar.mutate([item]);
@@ -164,13 +213,13 @@ export function SinoNotificacoes() {
   };
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-xl hover:bg-accent">
           <Bell className="h-4 w-4" />
-          {naoLidas.length > 0 && (
+          {total > 0 && (
             <Badge className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full border-0 bg-primary p-0 text-[10px] text-primary-foreground">
-              {naoLidas.length > 9 ? "9+" : naoLidas.length}
+              {total > 9 ? "9+" : total}
             </Badge>
           )}
         </Button>
@@ -178,13 +227,13 @@ export function SinoNotificacoes() {
       <PopoverContent className="w-80 p-0" align="end">
         <div className="flex items-center justify-between border-b px-4 py-3">
           <h4 className="text-sm font-medium">Notificações</h4>
-          {naoLidas.length > 0 && (
+          {lista.length > 0 && (
             <Button
               variant="ghost"
               size="sm"
               className="h-7 text-xs"
-              disabled={marcar.isPending}
-              onClick={() => marcar.mutate(naoLidas)}
+              disabled={marcarTodas.isPending}
+              onClick={() => marcarTodas.mutate(lista)}
             >
               Marcar todas como lidas
             </Button>
@@ -192,17 +241,41 @@ export function SinoNotificacoes() {
         </div>
         <ScrollArea className="max-h-[360px]">
           {lista.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">Nenhuma notificação</p>
+            <div className="py-8 text-center">
+              <p className="text-sm text-muted-foreground">Tudo em dia</p>
+              <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={irParaHistorico}>
+                Ver todas as notificações
+              </Button>
+            </div>
           ) : (
             lista.map((n) => (
-              <button
+              <div
                 key={`${n.fonte}:${n.id}`}
+                role="button"
+                tabIndex={0}
                 onClick={() => abrir(n)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    abrir(n);
+                  }
+                }}
                 className={cn(
-                  "w-full border-b px-4 py-3 text-left transition-colors last:border-0 hover:bg-muted/50",
+                  "group relative w-full cursor-pointer border-b px-4 py-3 pr-9 text-left transition-colors last:border-0 hover:bg-muted/50",
                   !n.lida && "bg-primary/5"
                 )}
               >
+                <button
+                  type="button"
+                  aria-label="Dispensar notificação"
+                  className="absolute right-2 top-2 rounded p-1 opacity-100 transition-opacity hover:bg-muted sm:opacity-0 sm:group-hover:opacity-100"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    marcar.mutate([n]);
+                  }}
+                >
+                  <X className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
                 <p className={cn("text-sm", !n.lida && "font-medium")}>{n.titulo}</p>
                 {n.texto && (
                   <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{n.texto}</p>
@@ -210,10 +283,15 @@ export function SinoNotificacoes() {
                 <p className="mt-1 text-xs text-muted-foreground">
                   {formatDistanceToNow(new Date(n.data), { locale: ptBR, addSuffix: true })}
                 </p>
-              </button>
+              </div>
             ))
           )}
         </ScrollArea>
+        <div className="border-t px-4 py-2">
+          <Button variant="ghost" size="sm" className="h-7 w-full text-xs" onClick={irParaHistorico}>
+            Ver todas as notificações
+          </Button>
+        </div>
       </PopoverContent>
     </Popover>
   );
