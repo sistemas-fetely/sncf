@@ -397,10 +397,17 @@ async function syncNfeEntradas(
         let natOpXml: string | null = null;
         if (d.xml) {
           await sleep(120);
-          const x = await lerXmlNfe(String(d.xml));
-          refChave = x.refNFe;
-          finNfe = x.finNFe;
-          natOpXml = x.natOp;
+          try {
+            const x = await lerXmlNfe(String(d.xml));
+            refChave = x.refNFe;
+            finNfe = x.finNFe;
+            natOpXml = x.natOp;
+          } catch (e) {
+            // XML fora do ar / 404: conta erro, loga e grava a linha com os tres
+            // campos nulos — nota sem XML ainda entra em nfs_stage.
+            comErro++;
+            console.error(`entrada ${nf?.id} XML: ${(e as Error).message}`);
+          }
         }
         if (refChave) comReferencia++;
 
