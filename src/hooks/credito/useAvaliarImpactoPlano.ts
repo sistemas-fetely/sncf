@@ -35,6 +35,10 @@ export interface ImpactoPlano {
   venc_mais_longo?: string | null;
   linhas_que_expoem?: number | null;
   prazo_referencia?: number | null;
+  /** Trava dura vinda da RPC: 'titulo_pago' | 'boleto_banco' | 'nf_fiscal' | 'remessa_bling' | null */
+  trava?: string | null;
+  /** Veredito do envelope de crédito — usar como título do painel de impacto. */
+  envelope_rotulo?: string | null;
 }
 
 interface Args {

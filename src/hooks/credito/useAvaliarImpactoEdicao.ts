@@ -20,6 +20,10 @@ export interface ImpactoEdicao {
   prazo_max_dias?: number | null;
   tem_analise_aprovada?: boolean | null;
   estagio?: string | null;
+  /** Trava dura vinda da RPC: 'titulo_pago' | 'boleto_banco' | 'nf_fiscal' | 'remessa_bling' | null */
+  trava?: string | null;
+  /** Veredito do envelope de crédito — usar como título do painel de impacto. */
+  envelope_rotulo?: string | null;
 }
 
 interface Args {

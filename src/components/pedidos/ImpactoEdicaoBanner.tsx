@@ -4,6 +4,24 @@ import { formatBRL } from "@/lib/format-currency";
 import { useAvaliarImpactoEdicao } from "@/hooks/credito/useAvaliarImpactoEdicao";
 import { useAvaliarImpactoPlano, type LinhaImpacto } from "@/hooks/credito/useAvaliarImpactoPlano";
 
+/** Rótulos curtos das travas duras devolvidas pela RPC (a regra fica no banco). */
+export const TRAVA_ROTULO: Record<string, string> = {
+  titulo_pago: "Título já pago",
+  boleto_banco: "Boleto no banco",
+  nf_fiscal: "NF autorizada",
+  remessa_bling: "Espelhado no Bling",
+};
+
+/** Selo curto que identifica o tipo de bloqueio, ao lado do motivo da RPC. */
+export function SeloTrava({ trava }: { trava?: string | null }) {
+  if (!trava) return null;
+  return (
+    <span className="inline-flex items-center rounded-full border border-current/40 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide">
+      {TRAVA_ROTULO[trava] ?? trava}
+    </span>
+  );
+}
+
 interface Props {
   pedidoId: string | null | undefined;
   /** Plano em tela. Quando informado, a avaliação é feita por linhas. */
@@ -57,6 +75,8 @@ export function ImpactoEdicaoBanner({
 
   const d = q.data;
   const caminho = d.caminho;
+  const trava = d.trava ?? null;
+
 
   const expo = Number(d.exposicao_nova ?? 0);
   const limite = Number(d.limite_concedido ?? 0);
@@ -64,8 +84,9 @@ export function ImpactoEdicaoBanner({
   const prazoMax = d.prazo_max_dias ?? null;
   const vencMaisLongo = usarPlano ? qPlano.data?.venc_mais_longo ?? null : null;
 
+  // Com trava dura o delta de exposição/prazo é irrelevante — o que importa é a trava.
   const numeros =
-    limite > 0 || expo > 0 ? (
+    !trava && (limite > 0 || expo > 0) ? (
       <div className="mt-1 text-xs text-muted-foreground">
         Exposição nova: <span className="font-medium">{formatBRL(expo)}</span>
         {limite > 0 && <> · Limite concedido: <span className="font-medium">{formatBRL(limite)}</span></>}
@@ -108,7 +129,10 @@ export function ImpactoEdicaoBanner({
     return (
       <Alert variant="destructive" className={className}>
         <XCircle className="h-4 w-4" />
-        <AlertTitle>Acione o financeiro</AlertTitle>
+        <AlertTitle className="flex flex-wrap items-center gap-2">
+          Acione o financeiro
+          <SeloTrava trava={trava} />
+        </AlertTitle>
         <AlertDescription>
           {d.motivo || "Edição requer intervenção do financeiro."}
           {numeros}
@@ -121,7 +145,10 @@ export function ImpactoEdicaoBanner({
     return (
       <Alert variant="destructive" className={className}>
         <XCircle className="h-4 w-4" />
-        <AlertTitle>Bloqueado</AlertTitle>
+        <AlertTitle className="flex flex-wrap items-center gap-2">
+          Bloqueado
+          <SeloTrava trava={trava} />
+        </AlertTitle>
         <AlertDescription>
           {d.motivo || "Edição bloqueada pelas regras atuais do pedido."}
           {numeros}
