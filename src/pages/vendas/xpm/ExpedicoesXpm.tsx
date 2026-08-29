@@ -785,6 +785,30 @@ export default function ExpedicoesXpm() {
     });
   }, [rows, canal, estagio, situacao, busca, farolFiltro, slaFiltro]);
 
+  // ORDEM-DA-MESA: abertas primeiro (estagio_seq < 6), expedidas depois.
+  // Dentro de cada grupo, do mais antigo para o mais novo pela entrada no
+  // armazem (t_solicitado). Pausada continua aberta: so esta parada.
+  // Nulos vao para o fim do proprio grupo, desempate estavel pelo codigo.
+  const ordenadas = useMemo(() => {
+    const instante = (r: ExpedicaoXpm) => {
+      const v = r.t_solicitado ?? r.data_expedicao ?? r.ultimo_evento_em;
+      if (!v) return null;
+      const t = new Date(v).getTime();
+      return Number.isNaN(t) ? null : t;
+    };
+    return [...filtradas].sort((a, b) => {
+      const grupoA = Number(a.estagio_seq) < 6 ? 0 : 1;
+      const grupoB = Number(b.estagio_seq) < 6 ? 0 : 1;
+      if (grupoA !== grupoB) return grupoA - grupoB;
+      const ta = instante(a);
+      const tb = instante(b);
+      if (ta == null && tb == null) return a.codigo.localeCompare(b.codigo);
+      if (ta == null) return 1;
+      if (tb == null) return -1;
+      return ta - tb;
+    });
+  }, [filtradas]);
+
   const ultimoSync = useMemo(() => {
     let melhor: string | null = null;
     for (const r of rows) {
@@ -1010,14 +1034,14 @@ export default function ExpedicoesXpm() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filtradas.length === 0 ? (
+                    {ordenadas.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
                           Nenhuma expedição neste recorte.
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filtradas.map((r) => {
+                      ordenadas.map((r) => {
                         const dias = r.dias_parado == null ? null : Number(r.dias_parado);
                         const pausada = r.pausada_agora === true;
                         const atrasado = !pausada && dias != null && dias > 5;
