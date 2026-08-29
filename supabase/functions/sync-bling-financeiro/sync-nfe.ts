@@ -52,6 +52,25 @@ export async function syncNfe( supabase: any, client: BlingClient, timeUp: () =>
 let revalidados = 0, errosDetalhe = 0, canceladasDetectadas = 0;
 const limite90d = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
+// ENTRADA-VIVE-NO-STAGE (29/08/2026): nfs_emitidas eh livro de SAIDA e continua assim.
+// NFs de entrada emitidas pela propria Fetely (tipo=0) nao entravam em lugar nenhum —
+// devolucao de venda ficava sem combustivel. Varredura isolada, ANTES do laco de saidas:
+// entradas sao raras (2 em 90 dias) e baratas, entao pegam o orcamento primeiro. Se
+// rodassem depois, morreriam de inanicao — o laco de saidas sai justamente quando o
+// tempo acaba e timeUp() ja estaria true. Try/catch proprio: nada aqui pode derrubar
+// o sync de saida que ja funciona. Teto de 3 paginas dentro de syncNfeEntradas.
+let entradasEncontradas = 0, entradasGravadas = 0, entradasComReferencia = 0, entradasComErro = 0;
+try {
+  const r = await syncNfeEntradas(supabase, client, timeUp, limite90d);
+  entradasEncontradas = r.encontradas;
+  entradasGravadas = r.gravadas;
+  entradasComReferencia = r.comReferencia;
+  entradasComErro = r.comErro;
+} catch (e) {
+  entradasComErro++;
+  console.error(`varredura de NFs de entrada falhou por completo: ${(e as Error).message}`);
+}
+
 while (!timeUp()) { let data: any; try { data = await client.get(`/nfe?limite=100&pagina=${pagina}`); } catch (e) { ultimoErro = `pagina ${pagina}: ${(e as Error).message}`; break; } const itemsRaw = data?.data || []; if (itemsRaw.length === 0) { pagina = 0; break; }
 // Prioriza data_emissao mais recente para gastar o orcamento de revalidacao no que importa
 const items = [...itemsRaw].sort((a: any, b: any) => String(b?.dataEmissao ?? "").localeCompare(String(a?.dataEmissao ?? "")));
@@ -312,37 +331,26 @@ await sleep(300);
 
 console.log(`sync nfe: revalidacoes de cancelamento=${revalidados}, canceladas detectadas=${canceladasDetectadas}, erros de detalhe=${errosDetalhe}`);
 
-// ENTRADA-VIVE-NO-STAGE (29/08/2026): nfs_emitidas eh livro de SAIDA e continua assim.
-// NFs de entrada emitidas pela propria Fetely (tipo=0) nao entravam em lugar nenhum —
-// devolucao de venda ficava sem combustivel. Varredura isolada, depois das saidas,
-// em try/catch proprio: nada aqui pode derrubar o sync de saida que ja funciona.
-let entradasEncontradas = 0, entradasGravadas = 0, entradasComReferencia = 0, entradasComErro = 0;
-try {
-  const r = await syncNfeEntradas(supabase, client, timeUp, limite90d);
-  entradasEncontradas = r.encontradas;
-  entradasGravadas = r.gravadas;
-  entradasComReferencia = r.comReferencia;
-  entradasComErro = r.comErro;
-} catch (e) {
-  entradasComErro++;
-  console.error(`varredura de NFs de entrada falhou por completo: ${(e as Error).message}`);
-}
-
 return { criados, atualizados, erros, ultimoErro, proximaPagina: pagina, revalidados, canceladasDetectadas, errosDetalhe,
   entradasEncontradas, entradasGravadas, entradasComReferencia, entradasComErro }; }
 
-// O endpoint /nfe/{id} NAO expoe nota referenciada no JSON: refNFe existe somente no XML.
-// A URL do campo `xml` ja vem assinada — GET puro, sem Authorization. Regex simples evita
-// dependencia nova de parser.
-async function extrairRefNFe(xmlUrl: string): Promise<string | null> {
+// O endpoint /nfe/{id} NAO expoe nota referenciada nem a finalidade no JSON: refNFe,
+// finNFe e natOp existem somente no XML (verificado na NF real 000402: finNFe=4,
+// natOp="Devolucao de Venda de Mercadoria"). A URL do campo `xml` ja vem assinada —
+// GET puro, sem Authorization. Um GET so, regex simples, sem parser novo.
+async function lerXmlNfe(xmlUrl: string): Promise<{ refNFe: string | null; finNFe: number | null; natOp: string | null }> {
   const res = await fetch(xmlUrl);
   if (!res.ok) throw new Error(`XML ${res.status}`);
   const txt = await res.text();
-  const m = txt.match(/<refNFe>(\d{44})<\/refNFe>/);
-  return m ? m[1] : null;
+  const mRef = txt.match(/<refNFe>(\d{44})<\/refNFe>/);
+  const mFin = txt.match(/<finNFe>(\d)<\/finNFe>/);
+  const mNat = txt.match(/<natOp>([^<]*)<\/natOp>/);
+  return {
+    refNFe: mRef ? mRef[1] : null,
+    finNFe: mFin ? Number(mFin[1]) : null,
+    natOp: mNat ? mNat[1].trim() : null,
+  };
 }
-
-const RE_DEVOLUCAO = /devolu|retorno de mercadoria/i;
 
 async function syncNfeEntradas(
   supabase: any,
@@ -353,8 +361,9 @@ async function syncNfeEntradas(
   let encontradas = 0, gravadas = 0, comReferencia = 0, comErro = 0;
   const dataFinal = new Date().toISOString().slice(0, 10);
   let pagina = 1;
+  const PAGINAS_MAX = 3; // teto de seguranca: entradas nunca consomem o orcamento das saidas
 
-  while (!timeUp()) {
+  while (!timeUp() && pagina <= PAGINAS_MAX) {
     let lista: any;
     try {
       lista = await client.get(
@@ -379,21 +388,34 @@ async function syncNfeEntradas(
         const chave = d.chaveAcesso || nf.chaveAcesso || null;
         if (!chave) throw new Error("sem chaveAcesso");
 
+        // FINALIDADE-VEM-DO-XML: o JSON do Bling traz naturezaOperacao como {id} sem
+        // nome e a observacao nao contem "devolucao" — inferir por texto deixava
+        // fin_nfe nulo justamente na nota de devolucao. O dado estruturado esta no
+        // XML (finNFe / natOp / refNFe). Sem XML, a linha entra com os tres nulos.
         let refChave: string | null = null;
+        let finNfe: number | null = null;
+        let natOpXml: string | null = null;
         if (d.xml) {
           await sleep(120);
-          refChave = await extrairRefNFe(String(d.xml));
+          try {
+            const x = await lerXmlNfe(String(d.xml));
+            refChave = x.refNFe;
+            finNfe = x.finNFe;
+            natOpXml = x.natOp;
+          } catch (e) {
+            // XML fora do ar / 404: conta erro, loga e grava a linha com os tres
+            // campos nulos — nota sem XML ainda entra em nfs_stage.
+            comErro++;
+            console.error(`entrada ${nf?.id} XML: ${(e as Error).message}`);
+          }
         }
         if (refChave) comReferencia++;
 
         const natRaw = d.naturezaOperacao;
-        const natureza = typeof natRaw === "string"
+        const natJson = typeof natRaw === "string"
           ? natRaw
           : (natRaw?.nome ?? natRaw?.descricao ?? null);
-
-        const obs = String(d.observacoes ?? "");
-        // fin_nfe=4 (devolucao) somente com refNFe E indicio textual. Sem chute.
-        const finNfe = refChave && (RE_DEVOLUCAO.test(natureza ?? "") || RE_DEVOLUCAO.test(obs)) ? 4 : null;
+        const natureza = natOpXml ?? natJson;
 
         const doc = String(d.contato?.numeroDocumento ?? nf.contato?.numeroDocumento ?? "").replace(/\D/g, "");
         const numero = d.numero != null ? String(d.numero) : (nf.numero != null ? String(nf.numero) : null);
