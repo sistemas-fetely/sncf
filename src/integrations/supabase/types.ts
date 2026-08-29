@@ -74570,6 +74570,7 @@ export type Database = {
       }
       iniciar_compra_pedido: { Args: { p_pedido_id: string }; Returns: Json }
       is_controladoria: { Args: { _user_id: string }; Returns: boolean }
+      is_diretoria: { Args: { _user_id: string }; Returns: boolean }
       is_rh: { Args: { _user_id: string }; Returns: boolean }
       is_socio: { Args: { _user_id: string }; Returns: boolean }
       lancar_invoice_importacao: {
