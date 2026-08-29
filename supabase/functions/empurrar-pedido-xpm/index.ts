@@ -40,12 +40,15 @@ Deno.serve(async (req) => {
     }
 
 
-    // quem clicou (para trilha de autoria; a edge roda com service role)
-    const authHeader = req.headers.get("Authorization") ?? "";
-    if (authHeader.startsWith("Bearer ")) {
-      const { data: u } = await sb.auth.getUser(authHeader.replace("Bearer ", ""));
-      userId = u?.user?.id ?? null;
-    }
+    // Permissão nominal de ação (server-side) + autoria da trilha.
+    const guarda = await exigirAcao(
+      sb,
+      req.headers.get("Authorization"),
+      "acao.empurrar_xpm",
+      "empurrar pedido pra XPM",
+    );
+    if (!guarda.ok) return json({ sucesso: false, erro: guarda.erro }, guarda.status);
+    userId = guarda.userId;
 
     // 1. Montador de payload mora no banco (FONTE-ÚNICA). A edge só transporta.
     const { data: montado, error: eMontar } = await sb.rpc("fn_xpm_payload_expedicao", {
