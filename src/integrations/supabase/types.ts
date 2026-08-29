@@ -73914,6 +73914,7 @@ export type Database = {
       fn_normalizar_ncm: { Args: { p_ncm: string }; Returns: string }
       fn_normalizar_nsu: { Args: { p_nsu: string }; Returns: string }
       fn_normalizar_uf: { Args: { p_uf: string }; Returns: string }
+      fn_notificacoes_retencao: { Args: { _dias?: number }; Returns: number }
       fn_num_safe: { Args: { p_txt: string }; Returns: number }
       fn_obter_ou_criar_pasta_parceiro: {
         Args: { p_parceiro_id: string }
@@ -74845,6 +74846,10 @@ export type Database = {
       notif_suprimido: { Args: never; Returns: boolean }
       notif_url_tarefa: { Args: { _tarefa_id: string }; Returns: string }
       notificacoes_marcar_lidas: { Args: { _ids?: string[] }; Returns: number }
+      notificacoes_marcar_nao_lidas: {
+        Args: { _ids: string[] }
+        Returns: number
+      }
       notificar: {
         Args: {
           _corpo?: string
