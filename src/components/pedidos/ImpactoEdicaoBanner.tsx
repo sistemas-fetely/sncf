@@ -129,7 +129,10 @@ export function ImpactoEdicaoBanner({
     return (
       <Alert variant="destructive" className={className}>
         <XCircle className="h-4 w-4" />
-        <AlertTitle>Acione o financeiro</AlertTitle>
+        <AlertTitle className="flex flex-wrap items-center gap-2">
+          Acione o financeiro
+          <SeloTrava trava={trava} />
+        </AlertTitle>
         <AlertDescription>
           {d.motivo || "Edição requer intervenção do financeiro."}
           {numeros}
@@ -142,7 +145,10 @@ export function ImpactoEdicaoBanner({
     return (
       <Alert variant="destructive" className={className}>
         <XCircle className="h-4 w-4" />
-        <AlertTitle>Bloqueado</AlertTitle>
+        <AlertTitle className="flex flex-wrap items-center gap-2">
+          Bloqueado
+          <SeloTrava trava={trava} />
+        </AlertTitle>
         <AlertDescription>
           {d.motivo || "Edição bloqueada pelas regras atuais do pedido."}
           {numeros}
