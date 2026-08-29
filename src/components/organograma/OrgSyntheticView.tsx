@@ -32,7 +32,7 @@ const ICONES_VINCULO: Record<string, string> = {
   CLT: "💼",
   PJ: "🔷",
   PRESTADOR: "🔧",
-  SOCIO: "⭐",
+  DIRETORIA: "⭐",
 };
 
 function iconeVinculo(codigo: string | null | undefined): string {

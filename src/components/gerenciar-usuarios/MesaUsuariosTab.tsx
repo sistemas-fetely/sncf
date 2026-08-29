@@ -32,7 +32,7 @@ type AppRole = Database["public"]["Enums"]["app_role"];
 type Escopo = Database["public"]["Enums"]["escopo_acesso"];
 
 
-const ROLE_LABEL: Partial<Record<AppRole, string>> = {
+const ROLE_LABEL: Record<string, string> = {
   super_admin: "Super Admin",
   diretoria_executiva: "Diretoria Executiva",
   rh: "RH",
@@ -49,7 +49,7 @@ const ROLE_LABEL: Partial<Record<AppRole, string>> = {
   triagem: "Triagem",
   coordenacao_op_fin: "Coordenação Op/Fin",
   auditor: "Auditor",
-  socio: "Sócio",
+  diretoria: "Diretor",
   folha: "Folha",
   gerente: "Gerente",
 };
