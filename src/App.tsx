@@ -119,6 +119,7 @@ const MinhasMemorias = lazy(() => import("@/pages/fala-fetely/MinhasMemorias"));
 const MeusDados = lazy(() => import("@/pages/MeusDados"));
 const MeusAcessos = lazy(() => import("@/pages/MeusAcessos"));
 const MinhasNotas = lazy(() => import("@/pages/MinhasNotas"));
+const MinhasNotificacoes = lazy(() => import("@/pages/MinhasNotificacoes"));
 const SistemaReportes = lazy(() => import("@/pages/admin/SistemaReportes"));
 const HistoricoImportacoesPDF = lazy(() => import("@/pages/admin/HistoricoImportacoesPDF"));
 const GerenciarVisibilidade = lazy(() => import("@/pages/admin/GerenciarVisibilidade"));
