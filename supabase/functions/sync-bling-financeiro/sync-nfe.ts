@@ -388,21 +388,27 @@ async function syncNfeEntradas(
         const chave = d.chaveAcesso || nf.chaveAcesso || null;
         if (!chave) throw new Error("sem chaveAcesso");
 
+        // FINALIDADE-VEM-DO-XML: o JSON do Bling traz naturezaOperacao como {id} sem
+        // nome e a observacao nao contem "devolucao" — inferir por texto deixava
+        // fin_nfe nulo justamente na nota de devolucao. O dado estruturado esta no
+        // XML (finNFe / natOp / refNFe). Sem XML, a linha entra com os tres nulos.
         let refChave: string | null = null;
+        let finNfe: number | null = null;
+        let natOpXml: string | null = null;
         if (d.xml) {
           await sleep(120);
-          refChave = await extrairRefNFe(String(d.xml));
+          const x = await lerXmlNfe(String(d.xml));
+          refChave = x.refNFe;
+          finNfe = x.finNFe;
+          natOpXml = x.natOp;
         }
         if (refChave) comReferencia++;
 
         const natRaw = d.naturezaOperacao;
-        const natureza = typeof natRaw === "string"
+        const natJson = typeof natRaw === "string"
           ? natRaw
           : (natRaw?.nome ?? natRaw?.descricao ?? null);
-
-        const obs = String(d.observacoes ?? "");
-        // fin_nfe=4 (devolucao) somente com refNFe E indicio textual. Sem chute.
-        const finNfe = refChave && (RE_DEVOLUCAO.test(natureza ?? "") || RE_DEVOLUCAO.test(obs)) ? 4 : null;
+        const natureza = natOpXml ?? natJson;
 
         const doc = String(d.contato?.numeroDocumento ?? nf.contato?.numeroDocumento ?? "").replace(/\D/g, "");
         const numero = d.numero != null ? String(d.numero) : (nf.numero != null ? String(nf.numero) : null);
