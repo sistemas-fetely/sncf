@@ -61181,14 +61181,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -68367,6 +68367,7 @@ export type Database = {
           data_credito: string | null
           data_ocorrencia: string | null
           data_vencimento: string | null
+          eh_orfa: boolean | null
           exige_humano: boolean | null
           id: string | null
           motivo_rejeicao: string | null

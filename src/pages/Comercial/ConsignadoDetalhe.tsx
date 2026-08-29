@@ -133,8 +133,8 @@ export default function ConsignadoDetalhe() {
   const { parceiroId } = useParams<{ parceiroId: string }>();
   const qc = useQueryClient();
 
-  const invalidarTudo = () => {
-    for (const k of [
+  const invalidarTudo = async () => {
+    await Promise.all([
       "consignados-conta-corrente",
       "consignado-limite",
       "consignado-extrato",
@@ -143,9 +143,7 @@ export default function ConsignadoDetalhe() {
       "consignado-estoque-estimado",
       "consignado-acertos",
       "consignado-acerto-itens",
-    ]) {
-      qc.invalidateQueries({ queryKey: [k] });
-    }
+    ].map((k) => qc.invalidateQueries({ queryKey: [k] })));
   };
 
   const parceiroQ = useQuery({
@@ -268,10 +266,11 @@ export default function ConsignadoDetalhe() {
     queryKey: ["consignado-acerto-itens", rascunho?.id],
     enabled: !!rascunho?.id,
     queryFn: async (): Promise<AcertoItemRow[]> => {
+      if (!rascunho?.id) return [];
       const { data, error } = await (supabase as any)
         .from("consignado_acerto_item")
         .select("id, sku, descricao, quantidade, valor_unitario, valor_total")
-        .eq("acerto_id", rascunho!.id)
+        .eq("acerto_id", rascunho.id)
         .order("sku");
       if (error) throw error;
       return (data ?? []) as AcertoItemRow[];
@@ -294,11 +293,11 @@ export default function ConsignadoDetalhe() {
       if (error) throw error;
       return data as string;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Acerto do mês aberto", {
         description: "Idempotente: se já existia acerto nesta competência, é o mesmo.",
       });
-      qc.invalidateQueries({ queryKey: ["consignado-acertos"] });
+      await invalidarTudo();
     },
     onError: (e: Error) => toast.error("Falha ao abrir acerto", { description: e.message }),
   });
@@ -324,12 +323,12 @@ export default function ConsignadoDetalhe() {
       if (error) throw new Error(error.message);
       return data as Record<string, unknown>;
     },
-    onSuccess: (d) => {
+    onSuccess: async (d) => {
       toast.success(`Reporte salvo — ${num(d?.itens)} item(ns)`, {
         description: `Valor do acerto: ${formatBRL(Number(d?.valor_total ?? 0))}`,
       });
       setItens([{ sku: "", quantidade: "", valor_unitario: "" }]);
-      invalidarTudo();
+      await invalidarTudo();
     },
     onError: (e: Error) => toast.error("Reporte recusado pelo banco", { description: e.message }),
   });
@@ -343,10 +342,10 @@ export default function ConsignadoDetalhe() {
       if (error) throw new Error(error.message);
       return data as Record<string, unknown>;
     },
-    onSuccess: (d) => {
+    onSuccess: async (d) => {
       setConfirmacao(d);
       toast.success("Acerto confirmado");
-      invalidarTudo();
+      await invalidarTudo();
     },
     onError: (e: Error) => toast.error("Falha ao confirmar acerto", { description: e.message }),
   });
@@ -374,7 +373,7 @@ export default function ConsignadoDetalhe() {
       if (error) throw new Error(error.message);
       return data as Record<string, unknown>;
     },
-    onSuccess: (d) => {
+    onSuccess: async (d) => {
       toast.success(`Retorno registrado — ${num(d?.unidades)} unidade(s)`, {
         description: String(d?.nota ?? ""),
       });
@@ -382,7 +381,7 @@ export default function ConsignadoDetalhe() {
       setRetornoItens([{ sku: "", quantidade: "" }]);
       setRetornoDoc("");
       setRetornoObs("");
-      invalidarTudo();
+      await invalidarTudo();
     },
     onError: (e: Error) => toast.error("Falha ao registrar retorno", { description: e.message }),
   });
@@ -397,6 +396,7 @@ export default function ConsignadoDetalhe() {
   const situacao = limite?.situacao_credito ?? null;
   const situacaoRuim = !!situacao && situacao !== "ok";
   const formaNaoAprovada = limite?.forma_conta_corrente_aprovada === false;
+  const operacaoBloqueada = situacaoRuim || formaNaoAprovada;
 
   return (
     <PageShell>
@@ -429,7 +429,7 @@ export default function ConsignadoDetalhe() {
             <AlertDescription className="space-y-1 text-sm">
               {situacaoRuim && (
                 <p className="font-medium">
-                  {MSG_SITUACAO[situacao!] ?? `Situação de crédito: ${situacao}`}
+                  {situacao ? MSG_SITUACAO[situacao] ?? `Situação de crédito: ${situacao}` : ""}
                 </p>
               )}
               {formaNaoAprovada && (
@@ -706,7 +706,10 @@ export default function ConsignadoDetalhe() {
                     className="w-44"
                   />
                 </div>
-                <Button disabled={abrirAcerto.isPending || !competencia} onClick={() => abrirAcerto.mutate()}>
+                <Button
+                  disabled={abrirAcerto.isPending || !competencia || operacaoBloqueada}
+                  onClick={() => abrirAcerto.mutate()}
+                >
                   {abrirAcerto.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                   Abrir acerto do mês
                 </Button>
@@ -784,7 +787,11 @@ export default function ConsignadoDetalhe() {
                     >
                       <Plus className="h-4 w-4" /> Linha
                     </Button>
-                    <Button size="sm" disabled={salvarItens.isPending} onClick={() => salvarItens.mutate()}>
+                    <Button
+                      size="sm"
+                      disabled={salvarItens.isPending || operacaoBloqueada}
+                      onClick={() => salvarItens.mutate()}
+                    >
                       {salvarItens.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                       Salvar reporte
                     </Button>
@@ -826,7 +833,11 @@ export default function ConsignadoDetalhe() {
 
                 <div className="flex flex-wrap items-center gap-3">
                   <Button
-                    disabled={confirmarAcerto.isPending || (itensRascunhoQ.data ?? []).length === 0}
+                    disabled={
+                      confirmarAcerto.isPending
+                      || operacaoBloqueada
+                      || (itensRascunhoQ.data ?? []).length === 0
+                    }
                     onClick={() => confirmarAcerto.mutate()}
                   >
                     {confirmarAcerto.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
