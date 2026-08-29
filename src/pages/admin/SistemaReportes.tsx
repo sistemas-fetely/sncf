@@ -29,6 +29,7 @@ import {
 import {
   useReportesInbox,
   useAtualizarReporte,
+  useResponsaveisReporte,
   type Reporte,
 } from "@/hooks/useReportes";
 import { useQuery } from "@tanstack/react-query";
@@ -64,6 +65,7 @@ export default function SistemaReportes() {
   const [respostaAdmin, setRespostaAdmin] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Reporte | null>(null);
   const atualizar = useAtualizarReporte();
+  const { data: responsaveis } = useResponsaveisReporte();
 
   const handleDeleteReport = async () => {
     if (!deleteTarget) return;
@@ -105,7 +107,12 @@ export default function SistemaReportes() {
   const contadores = {
     total: reportes?.length || 0,
     recebido: reportes?.filter((r) => r.status_valor === "recebido").length || 0,
-    em_analise: reportes?.filter((r) => r.status_valor === "em_analise").length || 0,
+    sem_responsavel:
+      reportes?.filter(
+        (r) =>
+          !r.atribuido_a &&
+          !["resolvido", "duplicado", "nao_procede"].includes(r.status_valor)
+      ).length || 0,
     resolvido: reportes?.filter((r) => r.status_valor === "resolvido").length || 0,
   };
 
@@ -113,15 +120,22 @@ export default function SistemaReportes() {
     status_valor?: string;
     prioridade?: string;
     resposta_admin?: string;
+    atribuido_a?: string | null;
   }) {
     if (!selecionado) return;
-    await atualizar.mutateAsync({ id: selecionado.id, ...updates });
+    try {
+      await atualizar.mutateAsync({ id: selecionado.id, ...updates });
+    } catch {
+      return;
+    }
     if (updates.status_valor)
       setSelecionado({ ...selecionado, status_valor: updates.status_valor });
     if (updates.prioridade)
       setSelecionado({ ...selecionado, prioridade: updates.prioridade });
     if (updates.resposta_admin !== undefined)
       setSelecionado({ ...selecionado, resposta_admin: updates.resposta_admin });
+    if (updates.atribuido_a !== undefined)
+      setSelecionado({ ...selecionado, atribuido_a: updates.atribuido_a });
   }
 
   return (
@@ -147,8 +161,8 @@ export default function SistemaReportes() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Em análise</p>
-            <p className="text-2xl font-medium text-warning">{contadores.em_analise}</p>
+            <p className="text-xs text-muted-foreground">Sem responsável</p>
+            <p className="text-2xl font-medium text-warning">{contadores.sem_responsavel}</p>
           </CardContent>
         </Card>
         <Card>
@@ -212,6 +226,15 @@ export default function SistemaReportes() {
                       })}
                       <span>·</span>
                       <code className="text-foreground/70">{r.rota}</code>
+                      <span>·</span>
+                      {r.atribuido_a ? (
+                        <span>
+                          {(responsaveis || []).find((u) => u.user_id === r.atribuido_a)?.nome ||
+                            "responsável"}
+                        </span>
+                      ) : r.status_valor === "recebido" ? (
+                        <span className="text-muted-foreground/70">sem responsável</span>
+                      ) : null}
                     </div>
                   </div>
                   <div className="flex items-start gap-2 shrink-0">
@@ -270,7 +293,28 @@ export default function SistemaReportes() {
               </DialogHeader>
 
               <div className="space-y-4 py-2">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <Label className="text-xs">Responsável</Label>
+                    <Select
+                      value={selecionado.atribuido_a || "__none__"}
+                      onValueChange={(v) =>
+                        handleAtualizar({ atribuido_a: v === "__none__" ? null : v })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Sem responsável</SelectItem>
+                        {(responsaveis || []).map((u: any) => (
+                          <SelectItem key={u.user_id} value={u.user_id}>
+                            {u.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div>
                     <Label className="text-xs">Status</Label>
                     <Select
