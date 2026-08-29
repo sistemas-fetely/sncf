@@ -49,7 +49,7 @@ import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 
-const ROLE_LABELS: Record<AppRole, string> = {
+const ROLE_LABELS: Record<string, string> = {
   super_admin: "Super Admin",
   diretoria_executiva: "Diretoria Executiva",
   rh: "RH",
@@ -75,12 +75,12 @@ const ROLE_LABELS: Record<AppRole, string> = {
   triagem: "Triagem",
   coordenacao_op_fin: "Coordenação Op/Fin",
   auditor: "Auditor",
-  socio: "Sócio",
+  diretoria: "Diretor",
   folha: "Folha",
   gerente: "Gerente",
 };
 
-const ROLE_DESCRIPTIONS: Record<AppRole, string> = {
+const ROLE_DESCRIPTIONS: Record<string, string> = {
   super_admin: "Acesso total ao sistema. Único que vê salário C-Level e configura perfis.",
   diretoria_executiva: "Visibilidade executiva total — vê tudo, inclusive todas as remunerações, mas não configura nem edita nada. Para sócios e board.",
   rh: "Recursos Humanos. Acesso conforme nível: do Estágio ao Diretor.",
@@ -106,7 +106,7 @@ const ROLE_DESCRIPTIONS: Record<AppRole, string> = {
   triagem: "Triagem operacional de pedidos.",
   coordenacao_op_fin: "Coordenação entre operação e financeiro.",
   auditor: "Auditoria — leitura ampla para conferência.",
-  socio: "Sócio — visibilidade societária.",
+  diretoria: "Diretor — visibilidade da diretoria.",
   folha: "Folha de pagamento — acesso conforme nível.",
   gerente: "Gerente de área ou operação. Acesso conforme nível.",
 };

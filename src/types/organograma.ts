@@ -1,4 +1,4 @@
-export type TipoVinculoCodigo = "CLT" | "PJ" | "PRESTADOR" | "SOCIO";
+export type TipoVinculoCodigo = "CLT" | "PJ" | "PRESTADOR" | "DIRETORIA";
 
 export interface PosicaoRaw {
   id: string;

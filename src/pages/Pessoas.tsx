@@ -199,7 +199,7 @@ export default function Pessoas() {
             <BarChart3 className="h-4 w-4" /> Panorama de Áreas
           </Button>
           {isSocio && (
-            <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas/socios")}>
+            <Button variant="outline" className="gap-2" onClick={() => navigate("/pessoas/diretoria")}>
               <Handshake className="h-4 w-4" /> Diretoria
             </Button>
           )}
