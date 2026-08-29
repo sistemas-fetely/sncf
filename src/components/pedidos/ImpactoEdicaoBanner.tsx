@@ -75,6 +75,8 @@ export function ImpactoEdicaoBanner({
 
   const d = q.data;
   const caminho = d.caminho;
+  const trava = d.trava ?? null;
+
 
   const expo = Number(d.exposicao_nova ?? 0);
   const limite = Number(d.limite_concedido ?? 0);
