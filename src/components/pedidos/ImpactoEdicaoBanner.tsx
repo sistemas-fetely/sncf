@@ -4,6 +4,24 @@ import { formatBRL } from "@/lib/format-currency";
 import { useAvaliarImpactoEdicao } from "@/hooks/credito/useAvaliarImpactoEdicao";
 import { useAvaliarImpactoPlano, type LinhaImpacto } from "@/hooks/credito/useAvaliarImpactoPlano";
 
+/** Rótulos curtos das travas duras devolvidas pela RPC (a regra fica no banco). */
+export const TRAVA_ROTULO: Record<string, string> = {
+  titulo_pago: "Título já pago",
+  boleto_banco: "Boleto no banco",
+  nf_fiscal: "NF autorizada",
+  remessa_bling: "Espelhado no Bling",
+};
+
+/** Selo curto que identifica o tipo de bloqueio, ao lado do motivo da RPC. */
+export function SeloTrava({ trava }: { trava?: string | null }) {
+  if (!trava) return null;
+  return (
+    <span className="inline-flex items-center rounded-full border border-current/40 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide">
+      {TRAVA_ROTULO[trava] ?? trava}
+    </span>
+  );
+}
+
 interface Props {
   pedidoId: string | null | undefined;
   /** Plano em tela. Quando informado, a avaliação é feita por linhas. */
