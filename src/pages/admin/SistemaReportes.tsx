@@ -160,8 +160,8 @@ export default function SistemaReportes() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Em análise</p>
-            <p className="text-2xl font-medium text-warning">{contadores.em_analise}</p>
+            <p className="text-xs text-muted-foreground">Sem responsável</p>
+            <p className="text-2xl font-medium text-warning">{contadores.sem_responsavel}</p>
           </CardContent>
         </Card>
         <Card>
