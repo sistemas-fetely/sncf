@@ -226,6 +226,15 @@ export default function SistemaReportes() {
                       })}
                       <span>·</span>
                       <code className="text-foreground/70">{r.rota}</code>
+                      <span>·</span>
+                      {r.atribuido_a ? (
+                        <span>
+                          {(responsaveis || []).find((u) => u.user_id === r.atribuido_a)?.nome ||
+                            "responsável"}
+                        </span>
+                      ) : r.status_valor === "recebido" ? (
+                        <span className="text-muted-foreground/70">sem responsável</span>
+                      ) : null}
                     </div>
                   </div>
                   <div className="flex items-start gap-2 shrink-0">
