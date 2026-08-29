@@ -12,6 +12,7 @@ import {
   validarXmlNf,
   NfAnexoError,
 } from "../_shared/bling/nf-anexo.ts";
+import { exigirAcao } from "../_shared/permissao-acao.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -67,6 +68,19 @@ serve(async (req) => {
     const pedido_id = body?.pedido_id;
     let remessa_id_input: string | null = body?.remessa_id ?? null;
     if (!pedido_id) return err("pedido_id obrigatório");
+
+    // Permissão nominal de AÇÃO (DIMENSAO-VIA-TABELA), por cima do papel.
+    // Vale para os caminhos que EMPURRAM pedido pro Bling (envio e reenvio);
+    // a coleta de anexos de NF (`anexos_nf`) é leitura e segue liberada.
+    if (body?.acao !== "anexos_nf") {
+      const guardaAcao = await exigirAcao(
+        supabase,
+        auth,
+        "acao.enviar_bling",
+        "enviar pedido pro Bling",
+      );
+      if (!guardaAcao.ok) return err(guardaAcao.erro ?? "Sem permissão", guardaAcao.status);
+    }
 
     // ── Branch: anexos_nf ────────────────────────────────────────────────
     // Coleta PDF + XML das NFs de saída autorizadas do pedido e retorna

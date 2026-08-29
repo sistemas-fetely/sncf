@@ -8,6 +8,8 @@ import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTitulo
 
 import { usePedidoDetalhe } from "@/hooks/pedidos/usePedidoDetalhe";
 import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
+import { prefixarProximaAcao } from "@/lib/pedidos/donoProximaAcao";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { usePedidoEmbalagem } from "@/hooks/pedidos/usePedidoEmbalagem";
 
 /** Formatação pt-BR com número fixo de casas. */
@@ -1120,6 +1122,8 @@ function BotaoReterEstoque({ pedido }: { pedido: any }) {
 
 
 export default function PedidoDetalhe() {
+  const { permitido: permEnviarBling } = usePermissaoAcaoOuSuperAdmin("acao.enviar_bling");
+  const { permitido: permEmpurrarXpm } = usePermissaoAcaoOuSuperAdmin("acao.empurrar_xpm");
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -1583,7 +1587,10 @@ export default function PedidoDetalhe() {
           {!estagioFinal && pedido.proxima_acao && (
             <p className="text-sm text-muted-foreground italic pt-1.5">
               <span className="text-[10px] uppercase tracking-widest not-italic mr-1.5">Próxima ação:</span>
-              {pedido.proxima_acao}
+              {prefixarProximaAcao(pedido.proxima_acao, {
+                podeEnviarBling: permEnviarBling,
+                podeEmpurrarXpm: permEmpurrarXpm,
+              })}
             </p>
           )}
         </div>
