@@ -62,6 +62,15 @@ serve(async (req) => {
     const allowed = rolesArr.some((r) => ["super_admin", "admin_rh", "sops"].includes(r));
     if (!allowed) return err("Sem permissão (sops, admin_rh ou super_admin)", 403);
 
+    // Permissão nominal de AÇÃO (DIMENSAO-VIA-TABELA), por cima do papel.
+    const guardaAcao = await exigirAcao(
+      supabase,
+      auth,
+      "acao.enviar_bling",
+      "enviar pedido pro Bling",
+    );
+    if (!guardaAcao.ok) return err(guardaAcao.erro ?? "Sem permissão", guardaAcao.status);
+
     // Input
     const body = await req.json().catch(() => ({}));
     const pedido_id = body?.pedido_id;
