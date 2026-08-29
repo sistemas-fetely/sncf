@@ -1120,6 +1120,8 @@ function BotaoReterEstoque({ pedido }: { pedido: any }) {
 
 
 export default function PedidoDetalhe() {
+  const { permitido: permEnviarBling } = usePermissaoAcaoOuSuperAdmin("acao.enviar_bling");
+  const { permitido: permEmpurrarXpm } = usePermissaoAcaoOuSuperAdmin("acao.empurrar_xpm");
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
