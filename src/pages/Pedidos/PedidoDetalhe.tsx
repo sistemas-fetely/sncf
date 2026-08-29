@@ -1583,7 +1583,10 @@ export default function PedidoDetalhe() {
           {!estagioFinal && pedido.proxima_acao && (
             <p className="text-sm text-muted-foreground italic pt-1.5">
               <span className="text-[10px] uppercase tracking-widest not-italic mr-1.5">Próxima ação:</span>
-              {pedido.proxima_acao}
+              {prefixarProximaAcao(pedido.proxima_acao, {
+                podeEnviarBling: permEnviarBling,
+                podeEmpurrarXpm: permEmpurrarXpm,
+              })}
             </p>
           )}
         </div>
