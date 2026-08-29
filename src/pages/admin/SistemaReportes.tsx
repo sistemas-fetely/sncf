@@ -293,7 +293,28 @@ export default function SistemaReportes() {
               </DialogHeader>
 
               <div className="space-y-4 py-2">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <Label className="text-xs">Responsável</Label>
+                    <Select
+                      value={selecionado.atribuido_a || "__none__"}
+                      onValueChange={(v) =>
+                        handleAtualizar({ atribuido_a: v === "__none__" ? null : v })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Sem responsável</SelectItem>
+                        {(responsaveis || []).map((u: any) => (
+                          <SelectItem key={u.user_id} value={u.user_id}>
+                            {u.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div>
                     <Label className="text-xs">Status</Label>
                     <Select
