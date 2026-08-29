@@ -159,6 +159,8 @@ interface ImpactoEdicao {
   prazo_atual_dias?: number | null;
   prazo_novo_dias?: number | null;
   condicao_atual?: string | null;
+  trava?: string | null;
+  envelope_rotulo?: string | null;
 }
 
 
