@@ -8,6 +8,8 @@ import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTitulo
 
 import { usePedidoDetalhe } from "@/hooks/pedidos/usePedidoDetalhe";
 import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
+import { prefixarProximaAcao } from "@/lib/pedidos/donoProximaAcao";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { usePedidoEmbalagem } from "@/hooks/pedidos/usePedidoEmbalagem";
 
 /** Formatação pt-BR com número fixo de casas. */
