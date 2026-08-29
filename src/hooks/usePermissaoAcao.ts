@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
+
 /**
  * Permissão nominal de AÇÃO (não de tela) via RPC `usuario_tem_acao`.
  * Sem bypass de super_admin — a RPC decide, de propósito.
