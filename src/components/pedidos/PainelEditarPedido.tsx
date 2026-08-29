@@ -23,6 +23,7 @@ import { EditarItensDialog } from "@/components/pedidos/dialogs/EditarItensDialo
 import { useFreteTipos } from "@/hooks/pedidos/useFreteTipos";
 import { rotuloEstagioHumano } from "@/components/pedidos/BotaoEditarPedido";
 import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
+import { SeloTrava } from "@/components/pedidos/ImpactoEdicaoBanner";
 
 /**
  * Espelho da guarda de banco (fn_exigir_edicao_permitida sobre a dimensão
@@ -364,35 +365,50 @@ function SecaoPagamento({ pedidoId, pedido, guarda }: {
             {bloqueadoPeloImpacto && (
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  {impactoQ.data?.motivo || "Alteração bloqueada para esta condição."}
+                <AlertDescription className="space-y-1.5">
+                  <SeloTrava trava={impacto?.trava} />
+                  <p>{impactoQ.data?.motivo || "Alteração bloqueada para esta condição."}</p>
                 </AlertDescription>
               </Alert>
             )}
 
-            {impacto && !impactoQ.isFetching && (direcao || impacto.direcao_rotulo) && (
+            {impacto && !impactoQ.isFetching && impacto.envelope_rotulo && (
               <div
                 className={`rounded-md border p-3 space-y-1.5 text-sm ${
-                  direcao === "desce"
+                  impacto.envelope_rotulo === "Dentro do envelope aprovado"
                     ? "border-success/40 bg-success/10"
-                    : "border-warning/40 bg-warning/10"
+                    : impacto.envelope_rotulo === "Fura o envelope aprovado"
+                      ? "border-warning/40 bg-warning/10"
+                      : "border-border bg-muted/30"
                 }`}
               >
-                <div className={`font-medium ${direcao === "desce" ? "text-success" : "text-warning"}`}>
-                  {impacto.direcao_rotulo || direcao}
+                <div
+                  className={`font-medium ${
+                    impacto.envelope_rotulo === "Dentro do envelope aprovado"
+                      ? "text-success"
+                      : impacto.envelope_rotulo === "Fura o envelope aprovado"
+                        ? "text-warning"
+                        : "text-foreground"
+                  }`}
+                >
+                  {impacto.envelope_rotulo}
                 </div>
-                <div className="flex justify-between gap-2">
-                  <span className="text-muted-foreground">Exposição</span>
-                  <span>
-                    {fmtBRL.format(num(impacto.exposicao_atual))} → {fmtBRL.format(num(impacto.exposicao_nova))}
-                  </span>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <span className="text-muted-foreground">Prazo</span>
-                  <span>
-                    {num(impacto.prazo_atual_dias)} dias → {num(impacto.prazo_novo_dias)} dias
-                  </span>
-                </div>
+                {!impacto.trava && (
+                  <>
+                    <div className="flex justify-between gap-2">
+                      <span className="text-muted-foreground">Exposição</span>
+                      <span>
+                        {fmtBRL.format(num(impacto.exposicao_atual))} → {fmtBRL.format(num(impacto.exposicao_nova))}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-2">
+                      <span className="text-muted-foreground">Prazo</span>
+                      <span>
+                        {num(impacto.prazo_atual_dias)} dias → {num(impacto.prazo_novo_dias)} dias
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
