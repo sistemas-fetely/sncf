@@ -436,6 +436,7 @@ const App = () => (
                 <Route path="/meus-dados" element={<MeusDados />} />
                 <Route path="/meus-acessos" element={<MeusAcessos />} />
                 <Route path="/minhas-notas" element={<MinhasNotas />} />
+                <Route path="/minhas-notificacoes" element={<MinhasNotificacoes />} />
               </Route>
 
               <Route element={<FinancasLayout />}>
