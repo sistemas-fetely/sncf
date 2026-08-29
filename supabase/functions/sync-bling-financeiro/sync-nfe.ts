@@ -244,27 +244,39 @@ for (const nf of items) {
       if (updErr) throw new Error("UPDATE nfs_emitidas: " + updErr.message);
       atualizados++;
 
-      // NF virou cancelada e a baixa de estoque continua ativa: NAO estorna automatico,
-      // abre achado bloqueante para tratamento humano. Usa nf_saida_id (FK) em vez de
-      // doc_numero para evitar falso positivo entre NFs com numero duplicado (rascunho vs real).
+      // NF virou cancelada. O estorno automatico do estoque, titulos e estagio do pedido
+      // agora eh feito pelo trigger trg_nf_cancelada_propaga (via fn_nf_cancelada_propagar).
+      // Esse trigger tem uma guarda: se houver titulo PAGO ou adiantamento com saldo, ele NAO
+      // propaga — grava evento e devolve bloqueado. Portanto o achado aqui soh nasce quando
+      // existem movimentos originais de baixa E nao existe a contrapartida de estorno.
       if (existing.situacao === "autorizada" && registro.situacao === "cancelada") {
         canceladasDetectadas++;
         const numeroNf = registro.numero ?? existing.numero ?? null;
         try {
-          const { data: movs } = await supabase
+          const { data: movsOriginais } = await supabase
             .from("movimentacao_estoque")
             .select("id, quantidade")
             .eq("nf_saida_id", existing.id)
-            .eq("doc_tipo", "nf_venda");
-          if (movs && movs.length > 0) {
+            .in("origem", ["nf_emissao", "transferencia_cd"]);
+
+          const { data: estornoExistente } = await supabase
+            .from("movimentacao_estoque")
+            .select("id")
+            .eq("nf_saida_id", existing.id)
+            .eq("origem", "estorno_nf_cancelada")
+            .limit(1);
+
+          if (estornoExistente && estornoExistente.length > 0) {
+            console.log(`cancelamento NF ${numeroNf ?? existing.id}: propagacao automatica ja estornou o estoque.`);
+          } else if (movsOriginais && movsOriginais.length > 0) {
             const agora = new Date().toISOString();
-            const soma = movs.reduce((acc: number, m: any) => acc + Number(m.quantidade || 0), 0);
+            const soma = movsOriginais.reduce((acc: number, m: any) => acc + Number(m.quantidade || 0), 0);
             const { error: achErr } = await supabase.from("auditoria_achado").insert({
               regra_slug: "nf-cancelada-com-baixa-de-estoque",
               chave: String(numeroNf ?? existing.id),
               entidade: "nf",
               valor: -soma,
-              detalhe: `NF ${numeroNf ?? existing.id} cancelada em ${registro.data_emissao ?? existing.data_emissao} mas com ${movs.length} movimentos de baixa de estoque ainda ativos`,
+              detalhe: `NF ${numeroNf ?? existing.id} cancelada mas a propagacao automatica NAO estornou o estoque (${movsOriginais.length} movimentos originais, nenhum estorno). Provavel bloqueio por dinheiro dentro — ver pedido_eventos.`,
               primeira_vez_em: agora,
               ultima_vez_em: agora,
               vezes_visto: 1,
