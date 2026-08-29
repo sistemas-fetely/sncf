@@ -54,7 +54,9 @@ type Pendente = {
   tratado: boolean | null;
   tratado_em: string | null;
   situacao: string;
+  eh_orfa: boolean | null;
 };
+
 
 type Arquivo = {
   id: string;
@@ -241,6 +243,10 @@ export function RetornoSafraPainel() {
                   <div key={o.id} className="rounded-md border p-3 space-y-2">
                     <div className="flex flex-wrap items-center gap-2 text-sm">
                       <Badge className={cfg.cls}>{cfg.label}</Badge>
+                      {o.eh_orfa && o.situacao !== "sem_titulo" && (
+                        <Badge className="bg-warning/10 text-warning">órfã</Badge>
+                      )}
+
                       <span className="font-medium">
                         {o.codigo_ocorrencia} — {o.ocorrencia_descricao || "ocorrência desconhecida"}
                       </span>
@@ -360,8 +366,14 @@ export function RetornoSafraPainel() {
                           {o.valor_pago ? formatBRL(o.valor_pago) : "—"}
                         </TableCell>
                         <TableCell>
-                          <Badge className={cfg.cls}>{cfg.label}</Badge>
+                          <div className="flex flex-wrap gap-2">
+                            <Badge className={cfg.cls}>{cfg.label}</Badge>
+                            {o.eh_orfa && (
+                              <Badge className="bg-warning/10 text-warning">órfã</Badge>
+                            )}
+                          </div>
                         </TableCell>
+
                       </TableRow>
                     );
                   })}
