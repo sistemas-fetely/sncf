@@ -76,6 +76,7 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
   const { data: vendedorAtual, isLoading: carregandoVendedor } = useVendedorAtual();
   const { data: statusOpcoes = [] } = useStatusComercialOpcoes();
   const { data: pagamentoOpcoes = [] } = usePagamentoEstadoOpcoes();
+  const { data: formasOpcoes = [] } = useFormasPagamento(true);
   const { podeVerTodos, carregando: carregandoPerms } = usePermissoesMesa();
 
   /**
