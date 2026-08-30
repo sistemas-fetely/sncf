@@ -51252,7 +51252,6 @@ export type Database = {
           acao_sugerida: string | null
           apelido: string | null
           boleto_status: string | null
-          cartao_prova_classe: string | null
           cobra_pela_regua: boolean | null
           data_proxima_acao_regua: string | null
           dias_atraso: number | null
@@ -51288,6 +51287,7 @@ export type Database = {
           link_pagamento: string | null
           mesa_exige_acao: boolean | null
           nf_numero: string | null
+          nivel_prova: string | null
           nome_canonico: string | null
           nome_exibicao: string | null
           numero_parcela: number | null
@@ -51298,6 +51298,7 @@ export type Database = {
           pausa_regua_automatica: boolean | null
           pedido: string | null
           pedido_id: string | null
+          prova_classe: string | null
           regua_cobrar_sem_boleto: boolean | null
           regua_elegivel: boolean | null
           regua_motivo_inelegivel: string | null
@@ -61890,14 +61891,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
