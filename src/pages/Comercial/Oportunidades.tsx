@@ -28,6 +28,7 @@ import {
   type GrupoMesa,
   type MesaComercialRow,
 } from "@/hooks/comercial/useMesaComercial";
+import { usePermissoesMesa } from "@/hooks/comercial/usePermissoesMesa";
 
 /**
  * MESA-UNICA-DO-COMERCIAL: uma tela, uma fonte (`vw_mesa_comercial`), a
@@ -59,7 +60,8 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
   const [busca, setBusca] = useState("");
   const [statusFiltro, setStatusFiltro] = useState<string>("todos");
   const [pagamentoFiltro, setPagamentoFiltro] = useState<string>("todos");
-  const [grupo, setGrupo] = useState<FiltroGrupo>("oportunidade");
+  // O valor da mesa está em "Em andamento" (NF, boleto, prazo de entrega).
+  const [grupo, setGrupo] = useState<FiltroGrupo>("em_andamento");
   const [meus, setMeus] = useState(true);
 
   const [detalhe, setDetalhe] = useState<MesaComercialRow | null>(null);
@@ -68,19 +70,37 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
   const navigate = useNavigate();
 
   const { data = [], isLoading, isFetching } = useMesaComercial();
-  const { data: vendedorAtual } = useVendedorAtual();
+  const { data: vendedorAtual, isLoading: carregandoVendedor } = useVendedorAtual();
   const { data: statusOpcoes = [] } = useStatusComercialOpcoes();
   const { data: pagamentoOpcoes = [] } = usePagamentoEstadoOpcoes();
+  const { podeVerTodos, carregando: carregandoPerms } = usePermissoesMesa();
 
-  // "Meus" só faz sentido com vendedor vinculado; sem vínculo, mostra tudo.
-  const filtrarMeus = meus && !!vendedorAtual;
+  /**
+   * CARTEIRA-SEGUE-A-PERMISSAO: com `acao.mesa_ver_todos` a pessoa escolhe entre
+   * a própria carteira e a de todos. Sem a permissão, vê SOMENTE a própria —
+   * o toggle nem existe. Sem vendedor vinculado, a lista fica vazia e explica;
+   * nunca cai em "vê tudo" por fallback, que seria vazamento de dado.
+   */
+  const filtrarMeus = podeVerTodos ? meus && !!vendedorAtual : true;
+  const semVendedorVinculado =
+    !podeVerTodos && !carregandoPerms && !carregandoVendedor && !vendedorAtual;
+
+  /** Escopo do vendedor aplicado antes de tudo — KPIs e contadores herdam dele. */
+  const escopoCarteira = useMemo(() => {
+    if (semVendedorVinculado) return [];
+    if (!filtrarMeus) return data;
+    if (!vendedorAtual) return [];
+    return data.filter((r) => r.vendedor_id === vendedorAtual.id);
+  }, [data, filtrarMeus, vendedorAtual, semVendedorVinculado]);
 
   /** Base do grupo + escopo do vendedor: os contadores dos filtros nascem daqui. */
-  const baseFase = useMemo(() => {
-    let base = grupo === "todas" ? data : data.filter((r) => r.grupo_mesa === grupo);
-    if (filtrarMeus) base = base.filter((r) => r.vendedor_id === vendedorAtual?.id);
-    return base;
-  }, [data, grupo, filtrarMeus, vendedorAtual?.id]);
+  const baseFase = useMemo(
+    () =>
+      grupo === "todas"
+        ? escopoCarteira
+        : escopoCarteira.filter((r) => r.grupo_mesa === grupo),
+    [escopoCarteira, grupo],
+  );
 
   const contagensGrupo = useMemo(() => {
     const c: Record<FiltroGrupo, number> = {
@@ -88,15 +108,12 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
       em_andamento: 0,
       todas: 0,
     };
-    const escopo = filtrarMeus
-      ? data.filter((r) => r.vendedor_id === vendedorAtual?.id)
-      : data;
-    for (const r of escopo) {
+    for (const r of escopoCarteira) {
       c.todas++;
       if (r.grupo_mesa && r.grupo_mesa in c) c[r.grupo_mesa]++;
     }
     return c;
-  }, [data, filtrarMeus, vendedorAtual?.id]);
+  }, [escopoCarteira]);
 
   /** DIMENSAO-VIA-TABELA: rótulo/cor do eixo 2 sempre de pagamento_estado_dim. */
   const pagamentoDim = useMemo(
@@ -203,22 +220,25 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
             ))}
           </div>
 
-          <div className="inline-flex rounded-md border overflow-hidden">
-            <FiltroBtn
-              ativo={filtrarMeus}
-              onClick={() => setMeus(true)}
-              title={
-                vendedorAtual
-                  ? `Só os pedidos de ${vendedorAtual.nome}`
-                  : "Seu usuário não está vinculado a um vendedor — a mesa mostra a carteira inteira."
-              }
-            >
-              Meus pedidos
-            </FiltroBtn>
-            <FiltroBtn ativo={!filtrarMeus} onClick={() => setMeus(false)}>
-              Todos
-            </FiltroBtn>
-          </div>
+          {/* O toggle só existe para quem tem `acao.mesa_ver_todos`. */}
+          {podeVerTodos && (
+            <div className="inline-flex rounded-md border overflow-hidden">
+              <FiltroBtn
+                ativo={filtrarMeus}
+                onClick={() => setMeus(true)}
+                title={
+                  vendedorAtual
+                    ? `Só os pedidos de ${vendedorAtual.nome}`
+                    : "Seu usuário não está vinculado a um vendedor — ative 'Todos' para ver a carteira."
+                }
+              >
+                Meus pedidos
+              </FiltroBtn>
+              <FiltroBtn ativo={!filtrarMeus} onClick={() => setMeus(false)}>
+                Todos
+              </FiltroBtn>
+            </div>
+          )}
 
           {isFetching && !isLoading && (
             <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
@@ -286,6 +306,17 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 <p className="text-xs text-muted-foreground">
                   Montando a carteira completa — leva alguns segundos.
+                </p>
+              </div>
+            ) : semVendedorVinculado ? (
+              <div className="text-center py-16 px-6">
+                <Sparkles className="h-8 w-8 text-muted-foreground/60 mx-auto mb-3" />
+                <p className="text-sm font-medium">
+                  Seu usuário não está vinculado a um vendedor.
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  A mesa mostra apenas a sua carteira. Peça a Operações para vincular seu
+                  usuário ao cadastro de vendedor — ou a permissão de ver todos.
                 </p>
               </div>
             ) : filtradas.length === 0 ? (

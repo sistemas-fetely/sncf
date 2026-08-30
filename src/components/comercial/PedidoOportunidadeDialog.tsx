@@ -30,6 +30,7 @@ import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { ComprovantePagamentoBloco } from "@/components/comercial/ComprovantePagamentoBloco";
 import { useComprovantesPedido } from "@/hooks/comercial/useComprovantePagamento";
 import { SolicitarSopsAcao } from "@/components/comercial/SolicitarSopsAcao";
+import { usePermissoesMesa } from "@/hooks/comercial/usePermissoesMesa";
 import { useStatusComercialLog } from "@/hooks/comercial/useMesaComercial";
 import { useBoletosDoPedido } from "@/hooks/pedidos/useBoletosDoPedido";
 import { hojeISO } from "@/lib/data";
@@ -156,6 +157,8 @@ export function PedidoOportunidadeDialog({
   // de montagem (linha da mesa e este dialog).
   const boletos = useBoletosDoPedido(open ? pedidoId : undefined);
   const statusLog = useStatusComercialLog(pedidoId, open);
+  // PERMISSAO-NOMINAL-POR-ACAO: mesmos gates da linha da mesa, mesma fonte.
+  const { podeCopiarLink, podeBaixarNf, podeVerBoletos } = usePermissoesMesa();
 
 
   const comprovantes = useComprovantesPedido(pedidoId, open);
@@ -360,22 +363,20 @@ export function PedidoOportunidadeDialog({
 
                 <div className="flex flex-wrap items-center gap-2">
 
-                  <Button
-                    variant="outline"
-                    className="gap-1.5"
-                    disabled={!linkPagamento || carregandoEnviarLink || !podeEnviarLink}
-                    title={
-                      !linkPagamento
-                        ? "Sem link de pagamento"
-                        : !carregandoEnviarLink && !podeEnviarLink
-                          ? "Você não tem permissão para enviar link de pagamento."
-                          : undefined
-                    }
-                    onClick={copiarLink}
-                  >
-                    <Copy className="h-4 w-4" />
-                    Copiar link de pagamento
-                  </Button>
+                  {/* Sem `acao.mesa_copiar_link` a ação não existe na tela.
+                      Falta de DADO (sem link) continua explicando no tooltip. */}
+                  {podeCopiarLink && (
+                    <Button
+                      variant="outline"
+                      className="gap-1.5"
+                      disabled={!linkPagamento}
+                      title={!linkPagamento ? "Sem link de pagamento" : undefined}
+                      onClick={copiarLink}
+                    >
+                      <Copy className="h-4 w-4" />
+                      Copiar link de pagamento
+                    </Button>
+                  )}
                   {!temComprovanteConfirmado && (
                     <Button
                       disabled={
@@ -450,26 +451,29 @@ export function PedidoOportunidadeDialog({
                       {nfChave}
                     </p>
                   )}
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {temPdf && nfPdfUrl && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => window.open(nfPdfUrl, "_blank", "noopener,noreferrer")}
-                      >
-                        Baixar PDF
-                      </Button>
-                    )}
-                    {temXml && nfXmlUrl && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => window.open(nfXmlUrl, "_blank", "noopener,noreferrer")}
-                      >
-                        Baixar XML
-                      </Button>
-                    )}
-                  </div>
+                  {/* `acao.mesa_baixar_nf` cobre PDF e XML: é a mesma nota. */}
+                  {podeBaixarNf && (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {temPdf && nfPdfUrl && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => window.open(nfPdfUrl, "_blank", "noopener,noreferrer")}
+                        >
+                          Baixar PDF
+                        </Button>
+                      )}
+                      {temXml && nfXmlUrl && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => window.open(nfXmlUrl, "_blank", "noopener,noreferrer")}
+                        >
+                          Baixar XML
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </>
               ) : (
                 <p className="text-sm text-muted-foreground">
@@ -478,6 +482,8 @@ export function PedidoOportunidadeDialog({
               )}
             </div>
 
+            {/* Consultar boletos é ação gateada por `acao.mesa_ver_boletos`. */}
+            {podeVerBoletos && (
             <div className="rounded-md border px-3 py-2 space-y-1">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Boletos</p>
               {boletos.isLoading ? (
@@ -520,6 +526,7 @@ export function PedidoOportunidadeDialog({
                 </p>
               )}
             </div>
+            )}
 
             <div className="rounded-md border px-3 py-2 space-y-1">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">

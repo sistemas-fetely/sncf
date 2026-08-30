@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Headset } from "lucide-react";
 import { useAbrirSolicitacao } from "@/hooks/pedidos/useSolicitacoesComercial";
+import { usePermissoesMesa } from "@/hooks/comercial/usePermissoesMesa";
 
 /**
  * UM COMPONENTE, DOIS PONTOS DE MONTAGEM: a mesma ação é usada no ícone da
@@ -56,6 +57,9 @@ export function SolicitarSopsAcao({
   const [detalhe, setDetalhe] = useState("");
   const abrir = useAbrirSolicitacao(pedidoId);
   const valido = detalhe.trim().length >= 5;
+  // Gate nominal no COMPONENTE da ação: vale para a linha e para o dialog.
+  const { podeSolicitarSops } = usePermissoesMesa();
+  if (!podeSolicitarSops) return null;
 
   const enviar = async () => {
     const escolhida = INTENCOES.find((i) => i.valor === intencao) ?? INTENCOES[INTENCOES.length - 1];
