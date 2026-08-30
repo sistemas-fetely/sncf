@@ -347,7 +347,11 @@ export function PedidoOportunidadeDialog({
           </TabsContent>
 
           <TabsContent value="pagamento" className="mt-4 space-y-4 flex-1 min-h-0 overflow-y-auto">
-            {!temPortao ? (
+            {portaoQ.isLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : !temPortao ? (
               <p className="text-sm text-muted-foreground py-6 text-center">
                 Este pedido não tem portão de pagamento pendente.
               </p>
@@ -355,26 +359,28 @@ export function PedidoOportunidadeDialog({
               <>
                 <div className="rounded-md border px-3 py-2 space-y-1">
                   <p className="text-sm">
-                    Tipo: <span className="font-medium">{tipoPortao || "—"}</span>
+                    Tipo: <span className="font-medium">{portaoTipo || "—"}</span>
                   </p>
                   <p className="text-sm">
-                    Valor: <span className="font-medium">{formatBRL(valorPortao ?? 0)}</span>
+                    Valor: <span className="font-medium">{formatBRL(portaoValor ?? 0)}</span>
                   </p>
                   <p className="text-sm">
                     Vencimento:{" "}
-                    <span className="font-medium">{formatDateBR(vencimentoPortao)}</span>
+                    <span className="font-medium">
+                      {portaoVencimento ? formatDateBR(portaoVencimento) : "à vista (antecipado)"}
+                    </span>
                   </p>
-                  {(portaoLinhas ?? 0) > 1 && (
+                  {(portaoQtdLinhas ?? 0) > 1 && (
                     <p className="text-xs text-muted-foreground">
-                      Pagamento em {portaoLinhas} linhas
+                      Pagamento em {portaoQtdLinhas} linhas
                     </p>
                   )}
                 </div>
 
                 <ComprovantePagamentoBloco
                   pedidoId={pedidoId}
-                  valorPortao={valorPortao}
-                  tipoPortao={tipoPortao}
+                  valorPortao={portaoValor}
+                  tipoPortao={portaoTipo}
                   podeConfirmar={podeConfirmarPagamento && !carregandoConfirmarPagamento}
                 />
 
@@ -386,8 +392,8 @@ export function PedidoOportunidadeDialog({
                     <Button
                       variant="outline"
                       className="gap-1.5"
-                      disabled={!linkPagamento}
-                      title={!linkPagamento ? "Sem link de pagamento" : undefined}
+                      disabled={!linkPortao}
+                      title={!linkPortao ? "Sem link de pagamento" : undefined}
                       onClick={copiarLink}
                     >
                       <Copy className="h-4 w-4" />
