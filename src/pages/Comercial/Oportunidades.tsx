@@ -220,22 +220,25 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
             ))}
           </div>
 
-          <div className="inline-flex rounded-md border overflow-hidden">
-            <FiltroBtn
-              ativo={filtrarMeus}
-              onClick={() => setMeus(true)}
-              title={
-                vendedorAtual
-                  ? `Só os pedidos de ${vendedorAtual.nome}`
-                  : "Seu usuário não está vinculado a um vendedor — a mesa mostra a carteira inteira."
-              }
-            >
-              Meus pedidos
-            </FiltroBtn>
-            <FiltroBtn ativo={!filtrarMeus} onClick={() => setMeus(false)}>
-              Todos
-            </FiltroBtn>
-          </div>
+          {/* O toggle só existe para quem tem `acao.mesa_ver_todos`. */}
+          {podeVerTodos && (
+            <div className="inline-flex rounded-md border overflow-hidden">
+              <FiltroBtn
+                ativo={filtrarMeus}
+                onClick={() => setMeus(true)}
+                title={
+                  vendedorAtual
+                    ? `Só os pedidos de ${vendedorAtual.nome}`
+                    : "Seu usuário não está vinculado a um vendedor — ative 'Todos' para ver a carteira."
+                }
+              >
+                Meus pedidos
+              </FiltroBtn>
+              <FiltroBtn ativo={!filtrarMeus} onClick={() => setMeus(false)}>
+                Todos
+              </FiltroBtn>
+            </div>
+          )}
 
           {isFetching && !isLoading && (
             <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
