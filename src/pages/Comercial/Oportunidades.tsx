@@ -18,13 +18,14 @@ import { useLinksPagamentoFila } from "@/hooks/pedidos/useLinkPagamentoPedido";
 import { PedidoOportunidadeDialog } from "@/components/comercial/PedidoOportunidadeDialog";
 import { AcoesMesaLinha } from "@/components/comercial/AcoesMesaLinha";
 import {
-  StatusComercialChip, TemperaturaChip,
+  StatusComercialChip, PagamentoEstadoChip,
 } from "@/components/comercial/StatusComercialChip";
 import {
   useMesaComercial,
+  usePagamentoEstadoOpcoes,
   useStatusComercialOpcoes,
   useVendedorAtual,
-  type FaseMesa,
+  type GrupoMesa,
   type MesaComercialRow,
 } from "@/hooks/comercial/useMesaComercial";
 
