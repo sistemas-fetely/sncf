@@ -266,6 +266,36 @@ export default function ConsoleAcessoTab() {
     liberarParaGrupo.mutate({ grupoId, permissaoIds: [...new Set(ids)] });
   }
 
+  /** Libera todas as linhas declaradas de um conjunto (tela ou módulo). */
+  function liberarLinhas(grupoId: string, alvo: ConsoleAcessoRow[], rotulo: string) {
+    const ids = alvo
+      .filter((l) => l.permissao_id && !portaoPorFlag(l) && l.declarada === true)
+      .map((l) => l.permissao_id as string)
+      .filter((id) => !concedido.has(`${grupoId}|${id}`));
+    if (!ids.length) {
+      toast.info(`Este grupo já tem tudo ${rotulo}.`);
+      return;
+    }
+    liberarParaGrupo.mutate({ grupoId, permissaoIds: [...new Set(ids)] });
+  }
+
+  /** Concedidas por tela para o grupo da lente — alimenta o contador "3/14". */
+  const concedidasPorTela = useMemo(() => {
+    const mapa = new Map<string, number>();
+    if (!grupoLenteId) return mapa;
+    modulos.forEach((m) =>
+      m.telas.forEach((t) => {
+        const n = t.linhas.filter(
+          (l) => l.permissao_id && concedido.has(`${grupoLenteId}|${l.permissao_id}`),
+        ).length;
+        mapa.set(t.chave, n);
+      }),
+    );
+    return mapa;
+  }, [modulos, concedido, grupoLenteId]);
+
+
+
   function alternarModulo(appChave: string) {
     setModulosFechados((prev) => {
       const prox = new Set(prev);
