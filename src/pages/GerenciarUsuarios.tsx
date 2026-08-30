@@ -37,6 +37,7 @@ import MesaUsuariosTab from "@/components/gerenciar-usuarios/MesaUsuariosTab";
 import DiagnosticoAcessoTab from "@/components/gerenciar-usuarios/DiagnosticoAcessoTab";
 import RastroAcessoTab from "@/components/gerenciar-usuarios/RastroAcessoTab";
 import PapeisTab from "@/components/gerenciar-usuarios/PapeisTab";
+import ConsoleAcoesTab from "@/components/gerenciar-usuarios/ConsoleAcoesTab";
 import { PageHeader } from "@/components/layout/PageHeader";
 
 
@@ -599,6 +600,7 @@ export default function GerenciarUsuarios() {
           <TabsTrigger value="usuarios" className="gap-2"><Users className="h-4 w-4" /> Usuários</TabsTrigger>
           <TabsTrigger value="grupos" className="gap-2"><ShieldCheck className="h-4 w-4" /> Grupos de Acesso</TabsTrigger>
           <TabsTrigger value="papeis" className="gap-2"><Shield className="h-4 w-4" /> Papéis</TabsTrigger>
+          <TabsTrigger value="acoes" className="gap-2"><ShieldAlert className="h-4 w-4" /> Ações</TabsTrigger>
           {podeAuditarAcesso && (
             <TabsTrigger value="fantasmas" className="gap-2">
               <Ghost className="h-4 w-4" /> Contas sem perfil
@@ -633,6 +635,10 @@ export default function GerenciarUsuarios() {
 
         <TabsContent value="papeis" className="mt-4">
           <PapeisTab />
+        </TabsContent>
+
+        <TabsContent value="acoes" className="mt-4">
+          <ConsoleAcoesTab />
         </TabsContent>
 
         {podeAuditarAcesso && (
