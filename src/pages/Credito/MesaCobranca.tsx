@@ -420,10 +420,11 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                     <span className="text-xs text-muted-foreground">títulos</span>
                   </div>
                   <div className="text-sm tabular-nums">{formatBRL(r.soma)}</div>
-              </CardContent>
-            </Card>
-          );
-        })}
+                </CardContent>
+              </Card>
+            );
+          })}
+
 
         {/* CARTÃO SEM PROVA — conciliação, não inadimplência. */}
         <Card
