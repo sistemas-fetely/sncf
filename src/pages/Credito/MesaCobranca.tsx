@@ -274,7 +274,13 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
     return { qtd: alvo.length, soma: alvo.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0) };
   }, [linhas]);
 
+  const resumoCartaoSemProva = useMemo(() => {
+    const alvo = linhas.filter((l) => l.fila === "CARTAO_SEM_PROVA");
+    return { qtd: alvo.length, soma: alvo.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0) };
+  }, [linhas]);
+
   const porFila = useMemo(() => {
+
     const map: Record<string, LinhaMesa[]> = Object.fromEntries(FILAS.map((f) => [f.chave, []]));
     for (const l of filtradas) {
       const k = l.fila ?? "";
