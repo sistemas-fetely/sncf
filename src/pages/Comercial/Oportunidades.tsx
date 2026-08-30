@@ -227,11 +227,15 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
         )}
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <KpiCard label="Pedidos na mesa" value={String(kpis.qtd)} />
-          <KpiCard label="Valor" value={formatBRL(kpis.valor)} />
-          <KpiCard label="Boletos em aberto" value={formatBRL(kpis.aberto)} />
+          <KpiCard label="Oportunidades" value={String(kpis.qtd)} />
+          <KpiCard label="Valor em oportunidades" value={formatBRL(kpis.valor)} />
           <KpiCard
-            label="Média de dias"
+            label="Precisam de ação"
+            value={String(kpis.precisamAcaoQtd)}
+            subtitle={kpis.precisamAcaoQtd > 0 ? formatBRL(kpis.precisamAcaoValor) : undefined}
+          />
+          <KpiCard
+            label="Média de dias parados"
             value={kpis.qtd > 0 ? `${kpis.media.toFixed(0)} dias` : "—"}
           />
         </div>
