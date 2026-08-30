@@ -5,6 +5,7 @@ import type {
   AnaliseListItem,
   AnaliseScore,
   AnaliseTransicao,
+  BureauReaproveitavel,
   KpiFinanceiro,
   KpiFinanceiroGrupo,
   ParceiroMarco,
@@ -17,7 +18,9 @@ export function useAnaliseDetalhe(analiseId: string | undefined) {
     queryKey: ["analise-detalhe", analiseId],
     enabled: !!analiseId,
     staleTime: 10 * 1000,
-    queryFn: async (): Promise<AnaliseDetalheCompleto & { scoresHistoricoCount: number }> => {
+    queryFn: async (): Promise<
+      AnaliseDetalheCompleto & { bureausReaproveitaveis: BureauReaproveitavel[] }
+    > => {
       if (!analiseId) throw new Error("analiseId obrigatório");
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
