@@ -620,11 +620,13 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                       {seloEntrega(g.urgente)}
                                       {seloInstrumento(g.urgente)}
                                       {seloEnvio(g.urgente)}
+                                      <BadgeCartaoProva classe={g.urgente.cartao_prova_classe} />
                                     </span>
                                     {g.ressalvas && (
                                       <span className="min-w-0 text-[10px] text-warning">{g.ressalvas}</span>
                                     )}
                                     <EntregaResumoInline l={g.urgente} className="min-w-0" />
+
                                   </button>
                                 </CollapsibleTrigger>
                                 {f.chave === "A_ENVIAR" && (
