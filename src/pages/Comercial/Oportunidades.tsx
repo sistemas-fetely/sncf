@@ -143,11 +143,29 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
     return c;
   }, [baseFase]);
 
+  /** Só formas presentes na base viram botão — filtro vazio é ruído. */
+  const contagensForma = useMemo(() => {
+    const c = new Map<string, number>();
+    for (const r of baseFase) {
+      const f = r.forma_pagamento_id;
+      if (f) c.set(f, (c.get(f) ?? 0) + 1);
+    }
+    return c;
+  }, [baseFase]);
+
+  const formasNaMesa = useMemo(
+    () => formasOpcoes.filter((f) => (contagensForma.get(f.id) ?? 0) > 0),
+    [formasOpcoes, contagensForma],
+  );
+
   const filtradas = useMemo(() => {
     const q = busca.trim().toLowerCase();
     let base = baseFase;
     if (pagamentoFiltro !== "todos") {
       base = base.filter((r) => r.pagamento_estado_slug === pagamentoFiltro);
+    }
+    if (formaFiltro !== "todas") {
+      base = base.filter((r) => r.forma_pagamento_id === formaFiltro);
     }
     if (statusFiltro !== "todos") {
       base = base.filter((r) =>
