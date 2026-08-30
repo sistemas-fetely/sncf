@@ -30,6 +30,7 @@ import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { ComprovantePagamentoBloco } from "@/components/comercial/ComprovantePagamentoBloco";
 import { useComprovantesPedido } from "@/hooks/comercial/useComprovantePagamento";
 import { SolicitarSopsAcao } from "@/components/comercial/SolicitarSopsAcao";
+import { usePermissoesMesa } from "@/hooks/comercial/usePermissoesMesa";
 import { useStatusComercialLog } from "@/hooks/comercial/useMesaComercial";
 import { useBoletosDoPedido } from "@/hooks/pedidos/useBoletosDoPedido";
 import { hojeISO } from "@/lib/data";
