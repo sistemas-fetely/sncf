@@ -9,6 +9,8 @@ import { toast } from "sonner";
  */
 
 export type FaseMesa = "oportunidade" | "pos_faturamento" | "em_andamento";
+/** Filtro de topo: 2 grupos só. `fase_mesa` continua existindo para as ações. */
+export type GrupoMesa = "oportunidade" | "em_andamento";
 
 export interface MesaComercialRow {
   pedido_id: string;
@@ -27,6 +29,9 @@ export interface MesaComercialRow {
   vendedor_nome: string | null;
   estagio: string | null;
   fase_mesa: FaseMesa | null;
+  grupo_mesa: GrupoMesa | null;
+  /** EIXO-2 READ-ONLY: derivado na view, nunca editado pela tela. */
+  pagamento_estado_slug: string | null;
   status_comercial_slug: string | null;
   status_comercial_rotulo: string | null;
   status_comercial_cor: string | null;
@@ -99,6 +104,30 @@ export function useStatusComercialOpcoes() {
     },
   });
 }
+
+/**
+ * EIXO-2 (estado do pagamento): DIMENSAO-VIA-TABELA, somente leitura.
+ * Rótulos e cores vêm de `pagamento_estado_dim`, nunca de constante no código.
+ */
+export function usePagamentoEstadoOpcoes() {
+  return useQuery({
+    queryKey: ["pagamento-estado-opcoes"],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async (): Promise<StatusComercialOpcao[]> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("pagamento_estado_dim")
+        .select("slug, rotulo, cor, ordem")
+        .eq("ativo", true)
+        .order("ordem", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as StatusComercialOpcao[];
+    },
+  });
+}
+
+/** Estados do eixo 2 que são TAREFA do comercial, não etiqueta. */
+export const PAGAMENTO_ESTADO_TAREFA = new Set(["gerar_link", "link_vencido"]);
 
 export interface StatusLogRow {
   id: string;

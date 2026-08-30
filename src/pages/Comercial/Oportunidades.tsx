@@ -18,13 +18,14 @@ import { useLinksPagamentoFila } from "@/hooks/pedidos/useLinkPagamentoPedido";
 import { PedidoOportunidadeDialog } from "@/components/comercial/PedidoOportunidadeDialog";
 import { AcoesMesaLinha } from "@/components/comercial/AcoesMesaLinha";
 import {
-  StatusComercialChip, TemperaturaChip,
+  StatusComercialChip, PagamentoEstadoChip,
 } from "@/components/comercial/StatusComercialChip";
 import {
   useMesaComercial,
+  usePagamentoEstadoOpcoes,
   useStatusComercialOpcoes,
   useVendedorAtual,
-  type FaseMesa,
+  type GrupoMesa,
   type MesaComercialRow,
 } from "@/hooks/comercial/useMesaComercial";
 
@@ -46,21 +47,19 @@ const TEMPERATURA_PESO: Record<string, number> = {
   nao_cobrar: 3,
 };
 
-type FiltroTemperatura = "todas" | "quente" | "morno" | "frio" | "nao_cobrar";
-type FiltroFase = FaseMesa | "todas";
+type FiltroGrupo = GrupoMesa | "todas";
 
-const FASES: { valor: FiltroFase; rotulo: string }[] = [
+const GRUPOS: { valor: FiltroGrupo; rotulo: string }[] = [
   { valor: "oportunidade", rotulo: "Oportunidades" },
-  { valor: "pos_faturamento", rotulo: "Pós-faturamento" },
   { valor: "em_andamento", rotulo: "Em andamento" },
   { valor: "todas", rotulo: "Todas" },
 ];
 
 export default function Oportunidades({ embutido = false }: { embutido?: boolean } = {}) {
   const [busca, setBusca] = useState("");
-  const [temperatura, setTemperatura] = useState<FiltroTemperatura>("todas");
   const [statusFiltro, setStatusFiltro] = useState<string>("todos");
-  const [fase, setFase] = useState<FiltroFase>("oportunidade");
+  const [pagamentoFiltro, setPagamentoFiltro] = useState<string>("todos");
+  const [grupo, setGrupo] = useState<FiltroGrupo>("oportunidade");
   const [meus, setMeus] = useState(true);
 
   const [detalhe, setDetalhe] = useState<MesaComercialRow | null>(null);
@@ -71,21 +70,21 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
   const { data = [], isLoading, isFetching } = useMesaComercial();
   const { data: vendedorAtual } = useVendedorAtual();
   const { data: statusOpcoes = [] } = useStatusComercialOpcoes();
+  const { data: pagamentoOpcoes = [] } = usePagamentoEstadoOpcoes();
 
   // "Meus" só faz sentido com vendedor vinculado; sem vínculo, mostra tudo.
   const filtrarMeus = meus && !!vendedorAtual;
 
-  /** Base da fase + escopo do vendedor: os contadores dos filtros nascem daqui. */
+  /** Base do grupo + escopo do vendedor: os contadores dos filtros nascem daqui. */
   const baseFase = useMemo(() => {
-    let base = fase === "todas" ? data : data.filter((r) => r.fase_mesa === fase);
+    let base = grupo === "todas" ? data : data.filter((r) => r.grupo_mesa === grupo);
     if (filtrarMeus) base = base.filter((r) => r.vendedor_id === vendedorAtual?.id);
     return base;
-  }, [data, fase, filtrarMeus, vendedorAtual?.id]);
+  }, [data, grupo, filtrarMeus, vendedorAtual?.id]);
 
-  const contagensFase = useMemo(() => {
-    const c: Record<FiltroFase, number> = {
+  const contagensGrupo = useMemo(() => {
+    const c: Record<FiltroGrupo, number> = {
       oportunidade: 0,
-      pos_faturamento: 0,
       em_andamento: 0,
       todas: 0,
     };
@@ -94,16 +93,22 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
       : data;
     for (const r of escopo) {
       c.todas++;
-      if (r.fase_mesa && r.fase_mesa in c) c[r.fase_mesa]++;
+      if (r.grupo_mesa && r.grupo_mesa in c) c[r.grupo_mesa]++;
     }
     return c;
   }, [data, filtrarMeus, vendedorAtual?.id]);
 
-  const contagens = useMemo(() => {
-    const c = { todas: baseFase.length, quente: 0, morno: 0, frio: 0, nao_cobrar: 0 };
+  /** DIMENSAO-VIA-TABELA: rótulo/cor do eixo 2 sempre de pagamento_estado_dim. */
+  const pagamentoDim = useMemo(
+    () => new Map(pagamentoOpcoes.map((o) => [o.slug, o])),
+    [pagamentoOpcoes],
+  );
+
+  const contagensPagamento = useMemo(() => {
+    const c = new Map<string, number>();
     for (const r of baseFase) {
-      const t = r.temperatura_sistema ?? "";
-      if (t === "quente" || t === "morno" || t === "frio" || t === "nao_cobrar") c[t]++;
+      const s = r.pagamento_estado_slug;
+      if (s) c.set(s, (c.get(s) ?? 0) + 1);
     }
     return c;
   }, [baseFase]);
@@ -119,10 +124,10 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
 
   const filtradas = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    let base =
-      temperatura === "todas"
-        ? baseFase
-        : baseFase.filter((r) => r.temperatura_sistema === temperatura);
+    let base = baseFase;
+    if (pagamentoFiltro !== "todos") {
+      base = base.filter((r) => r.pagamento_estado_slug === pagamentoFiltro);
+    }
     if (statusFiltro !== "todos") {
       base = base.filter((r) =>
         statusFiltro === "__sem__"
@@ -144,7 +149,7 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
       if (pa !== pb) return pa - pb;
       return Number(b.valor || 0) - Number(a.valor || 0);
     });
-  }, [baseFase, busca, temperatura, statusFiltro]);
+  }, [baseFase, busca, pagamentoFiltro, statusFiltro]);
 
   const { data: linksFila } = useLinksPagamentoFila(filtradas.map((r) => r.pedido_id));
 
@@ -187,9 +192,13 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex rounded-md border overflow-hidden">
-            {FASES.map((f) => (
-              <FiltroBtn key={f.valor} ativo={fase === f.valor} onClick={() => setFase(f.valor)}>
-                {f.rotulo} ({contagensFase[f.valor]})
+            {GRUPOS.map((g) => (
+              <FiltroBtn
+                key={g.valor}
+                ativo={grupo === g.valor}
+                onClick={() => setGrupo(g.valor)}
+              >
+                {g.rotulo} ({contagensGrupo[g.valor]})
               </FiltroBtn>
             ))}
           </div>
@@ -227,31 +236,10 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-md border overflow-hidden">
-            <FiltroBtn ativo={temperatura === "todas"} onClick={() => setTemperatura("todas")}>
-              Todas ({contagens.todas})
-            </FiltroBtn>
-            <FiltroBtn ativo={temperatura === "quente"} onClick={() => setTemperatura("quente")}>
-              Quente ({contagens.quente})
-            </FiltroBtn>
-            <FiltroBtn ativo={temperatura === "morno"} onClick={() => setTemperatura("morno")}>
-              Morno ({contagens.morno})
-            </FiltroBtn>
-            <FiltroBtn ativo={temperatura === "frio"} onClick={() => setTemperatura("frio")}>
-              Frio ({contagens.frio})
-            </FiltroBtn>
-            <FiltroBtn
-              ativo={temperatura === "nao_cobrar"}
-              onClick={() => setTemperatura("nao_cobrar")}
-            >
-              Não cobrar ({contagens.nao_cobrar})
-            </FiltroBtn>
-          </div>
-
-          {/* DIMENSAO-VIA-TABELA: os status vêm de oportunidade_status_comercial. */}
+          {/* EIXO 1 — julgamento comercial. DIMENSAO-VIA-TABELA. */}
           <div className="inline-flex rounded-md border overflow-hidden">
             <FiltroBtn ativo={statusFiltro === "todos"} onClick={() => setStatusFiltro("todos")}>
-              Status: todos
+              Todas ({baseFase.length})
             </FiltroBtn>
             {statusOpcoes.map((o) => (
               <FiltroBtn
@@ -268,6 +256,26 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
             >
               Sem status ({contagensStatus.get("__sem__") ?? 0})
             </FiltroBtn>
+          </div>
+
+          {/* EIXO 2 — estado do pagamento, derivado. Rótulos de pagamento_estado_dim. */}
+          <div className="inline-flex rounded-md border overflow-hidden">
+            <FiltroBtn
+              ativo={pagamentoFiltro === "todos"}
+              onClick={() => setPagamentoFiltro("todos")}
+              title="Estado do pagamento — calculado pelo sistema"
+            >
+              Todos ({baseFase.length})
+            </FiltroBtn>
+            {pagamentoOpcoes.map((o) => (
+              <FiltroBtn
+                key={o.slug}
+                ativo={pagamentoFiltro === o.slug}
+                onClick={() => setPagamentoFiltro(o.slug)}
+              >
+                {o.rotulo} ({contagensPagamento.get(o.slug) ?? 0})
+              </FiltroBtn>
+            ))}
           </div>
         </div>
 
@@ -308,17 +316,20 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                     {filtradas.map((r) => (
                       <TableRow key={r.pedido_id}>
                         <TableCell className="align-top">
-                          {/* Dois chips distintos: o do sistema e o da mão do Comercial. */}
+                          {/* EIXO 1 (manual) + EIXO 2 (derivado). Vocabulários distintos. */}
                           <div className="flex flex-col items-start gap-1">
-                            <TemperaturaChip
-                              temperatura={r.temperatura_sistema}
-                              score={r.temperatura_score}
-                            />
                             <StatusComercialChip
                               pedidoId={r.pedido_id}
                               slug={r.status_comercial_slug}
                               rotulo={r.status_comercial_rotulo}
                               cor={r.status_comercial_cor}
+                              temperaturaSistema={r.temperatura_sistema}
+                              temperaturaScore={r.temperatura_score}
+                            />
+                            <PagamentoEstadoChip
+                              slug={r.pagamento_estado_slug}
+                              rotulo={pagamentoDim.get(r.pagamento_estado_slug ?? "")?.rotulo ?? null}
+                              cor={pagamentoDim.get(r.pagamento_estado_slug ?? "")?.cor ?? null}
                             />
                           </div>
                         </TableCell>

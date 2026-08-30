@@ -10,6 +10,7 @@ import {
   COR_STATUS_CLASSE,
   useDefinirStatusComercial,
   useStatusComercialOpcoes,
+  PAGAMENTO_ESTADO_TAREFA,
 } from "@/hooks/comercial/useMesaComercial";
 
 /**
@@ -23,12 +24,16 @@ export function StatusComercialChip({
   rotulo,
   cor,
   className,
+  temperaturaSistema,
+  temperaturaScore,
 }: {
   pedidoId: string;
   slug: string | null;
   rotulo: string | null;
   cor: string | null;
   className?: string;
+  temperaturaSistema?: string | null;
+  temperaturaScore?: number | null;
 }) {
   const [aberto, setAberto] = useState(false);
   const [motivo, setMotivo] = useState("");
@@ -49,10 +54,24 @@ export function StatusComercialChip({
     }
   };
 
+  // A temperatura do sistema virou SUGESTÃO no tooltip — nunca mais um chip
+  // brigando com este pelo mesmo vocabulário.
+  const sugestao = TEMPERATURA_LABEL[temperaturaSistema ?? ""]
+    ? `Sistema calcula: ${TEMPERATURA_LABEL[temperaturaSistema ?? ""]} (score ${temperaturaScore ?? 0})`
+    : null;
+
   return (
     <Popover open={aberto} onOpenChange={setAberto}>
       <PopoverTrigger asChild>
-        <button type="button" title="Status comercial (manual) — clique para mudar">
+        <button
+          type="button"
+          title={[
+            "Status comercial (manual) — clique para mudar",
+            sugestao,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        >
           <Badge
             variant="outline"
             className={cn(
@@ -142,6 +161,43 @@ export function TemperaturaChip({
       title={`Temperatura do sistema (calculada) · score ${score ?? 0}`}
     >
       {TEMPERATURA_LABEL[temperatura ?? ""]}
+    </Badge>
+  );
+}
+
+/**
+ * EIXO-2: estado do pagamento. SOMENTE LEITURA — derivado na view.
+ * "Gerar link" e "Link vencido" são TAREFA do comercial: ganham destaque.
+ */
+export function PagamentoEstadoChip({
+  slug,
+  rotulo,
+  cor,
+  className,
+}: {
+  slug: string | null;
+  rotulo: string | null;
+  cor: string | null;
+  className?: string;
+}) {
+  if (!slug || !rotulo) return null;
+  const tarefa = PAGAMENTO_ESTADO_TAREFA.has(slug);
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        "rounded px-1.5 py-0 text-[10px]",
+        COR_STATUS_CLASSE[cor ?? ""] ?? "border-muted-foreground/40 text-muted-foreground",
+        tarefa && "bg-destructive/10 font-medium",
+        className,
+      )}
+      title={
+        tarefa
+          ? "Ação do Comercial — estado calculado pelo sistema"
+          : "Estado do pagamento calculado pelo sistema (somente leitura)"
+      }
+    >
+      {rotulo}
     </Badge>
   );
 }
