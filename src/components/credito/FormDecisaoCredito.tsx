@@ -48,9 +48,19 @@ function MarcadorDelta({ alterado }: { alterado: boolean }) {
 }
 
 export function FormDecisaoCredito({ valores, sugestaoIA, onChange, disabled }: Props) {
+  const formasQ = useFormasPagamento(true);
+
   const set = <K extends keyof CamposDecisao>(k: K, v: CamposDecisao[K]) => {
     onChange({ ...valores, [k]: v });
   };
+
+  // Dimensão via tabela: todas as ativas + códigos legados salvos que não existem mais
+  const codigosAtivos = new Set((formasQ.data ?? []).map((f) => f.codigo));
+  const legados = valores.formas_aceitas.filter((c) => !codigosAtivos.has(c));
+  const opcoes = [
+    ...(formasQ.data ?? []).map((f) => ({ codigo: f.codigo, nome: f.nome })),
+    ...legados.map((c) => ({ codigo: c, nome: `${c} (legado)` })),
+  ];
 
   const toggleForma = (f: FormaPagamento) => {
     const has = valores.formas_aceitas.includes(f);
