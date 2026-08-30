@@ -380,6 +380,9 @@ export default function SistemaReportes() {
                   <Label className="text-xs">Contexto técnico</Label>
                   <div className="rounded-md border bg-muted/30 p-3 mt-1 space-y-1 text-[11px]">
                     <p>
+                      <strong>Autor:</strong> {nomeDe(selecionado.reportado_por) || "—"}
+                    </p>
+                    <p>
                       <strong>Rota:</strong>{" "}
                       <code className="text-foreground/80">{selecionado.rota}</code>
                     </p>
