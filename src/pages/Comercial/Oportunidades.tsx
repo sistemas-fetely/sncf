@@ -28,6 +28,7 @@ import {
   type GrupoMesa,
   type MesaComercialRow,
 } from "@/hooks/comercial/useMesaComercial";
+import { usePermissoesMesa } from "@/hooks/comercial/usePermissoesMesa";
 
 /**
  * MESA-UNICA-DO-COMERCIAL: uma tela, uma fonte (`vw_mesa_comercial`), a
