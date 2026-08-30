@@ -321,6 +321,10 @@ export interface PropostaCobranca {
   tem_entrada: boolean;
   condicao_original: string;
   titulos_propostos: TituloProposto[];
+  /** Dias de prorrogação já decididos pela RPC (0 quando a condição aprovada traz prazo próprio). */
+  prorrogacao_dias?: number;
+  /** Indica se a condição aprovada já possui prazo próprio (true) ou se a prorrogação foi aplicada (false). */
+  condicao_tem_prazo?: boolean;
 }
 
 export interface CobrancaFilaItem {
