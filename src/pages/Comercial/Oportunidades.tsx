@@ -565,6 +565,15 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
             comprovantesQtd={detalhe.comprovantes_qtd}
             comprovanteStatus={detalhe.comprovante_status}
             abaInicial={abaDetalhe}
+            historicoCliente={{
+              eh_primeira_compra: detalhe.eh_primeira_compra,
+              cliente_pedidos_faturados: detalhe.cliente_pedidos_faturados,
+              cliente_valor_faturado: detalhe.cliente_valor_faturado,
+              cliente_primeira_compra: detalhe.cliente_primeira_compra,
+              cliente_ultima_compra: detalhe.cliente_ultima_compra,
+              cliente_dias_sem_comprar: detalhe.cliente_dias_sem_comprar,
+              cliente_ticket_medio: detalhe.cliente_ticket_medio,
+            }}
           />
         )}
       </div>
