@@ -30,6 +30,7 @@ import {
   useReportesInbox,
   useAtualizarReporte,
   useResponsaveisReporte,
+  useNomesUsuarios,
   type Reporte,
 } from "@/hooks/useReportes";
 import { useQuery } from "@tanstack/react-query";
