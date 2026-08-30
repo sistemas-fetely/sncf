@@ -415,27 +415,52 @@ export default function ConsoleAcessoTab() {
           <CardContent className="max-h-[70vh] space-y-1 overflow-auto p-2">
             {modulos.map((m) => {
               const fechado = modulosFechados.has(m.appChave);
+              const concedidasModulo = m.telas.reduce(
+                (s, t) => s + (concedidasPorTela.get(t.chave) ?? 0),
+                0,
+              );
               return (
                 <div key={m.appChave} className={cn(m.semModulo && "opacity-70")}>
-                  <button
-                    type="button"
-                    onClick={() => alternarModulo(m.appChave)}
-                    className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs font-medium uppercase tracking-wide transition-colors hover:bg-accent"
-                  >
-                    {fechado ? (
-                      <ChevronRight className="h-3.5 w-3.5 shrink-0" />
-                    ) : (
-                      <ChevronDown className="h-3.5 w-3.5 shrink-0" />
-                    )}
-                    <span className="truncate">{m.appLabel}</span>
-                    <span className="ml-auto flex shrink-0 items-center gap-1.5 text-[10px] font-normal normal-case tracking-normal text-muted-foreground">
-                      <span>
-                        {m.telas.length} {m.telas.length === 1 ? "tela" : "telas"} ·{" "}
-                        {m.totalLinhas} {m.totalLinhas === 1 ? "linha" : "linhas"}
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => alternarModulo(m.appChave)}
+                      className="flex flex-1 items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs font-medium uppercase tracking-wide transition-colors hover:bg-accent"
+                    >
+                      {fechado ? (
+                        <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+                      ) : (
+                        <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+                      )}
+                      <span className="truncate">{m.appLabel}</span>
+                      <span className="ml-auto flex shrink-0 items-center gap-1.5 text-[10px] font-normal normal-case tracking-normal text-muted-foreground">
+                        <span>
+                          {porGrupo && grupoLenteId
+                            ? `${concedidasModulo}/${m.totalLinhas}`
+                            : `${m.telas.length} ${m.telas.length === 1 ? "tela" : "telas"} · ${m.totalLinhas} ${m.totalLinhas === 1 ? "linha" : "linhas"}`}
+                        </span>
+                        <BadgeAltoSemGuarda n={m.altoSemGuarda} />
                       </span>
-                      <BadgeAltoSemGuarda n={m.altoSemGuarda} />
-                    </span>
-                  </button>
+                    </button>
+                    {porGrupo && grupoLenteId && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 shrink-0 px-1.5 text-[10px]"
+                        disabled={liberarParaGrupo.isPending}
+                        title="Liberar todas as linhas declaradas deste módulo para o grupo escolhido"
+                        onClick={() =>
+                          liberarLinhas(
+                            grupoLenteId,
+                            m.telas.flatMap((t) => t.linhas),
+                            "deste módulo",
+                          )
+                        }
+                      >
+                        <Sparkles className="mr-1 h-3 w-3" /> Módulo
+                      </Button>
+                    )}
+                  </div>
                   {m.semModulo && !fechado && (
                     <p className="px-2 pb-1 pt-0.5 text-[10px] leading-snug text-muted-foreground">
                       Rotas fora da navegação — não aparecem em nenhum menu e ficam
@@ -456,12 +481,17 @@ export default function ConsoleAcessoTab() {
                         <span className="block truncate">{t.telaLabel}</span>
                         <span className="flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
                           <span>
-                            {t.total} {t.total === 1 ? "linha" : "linhas"}
+                            {porGrupo && grupoLenteId
+                              ? `${concedidasPorTela.get(t.chave) ?? 0}/${t.total}`
+                              : `${t.total} ${t.total === 1 ? "linha" : "linhas"}`}
                           </span>
                           <BadgeAltoSemGuarda n={t.altoSemGuarda} />
                         </span>
                       </button>
                     ))}
+                </div>
+              );
+            })}
                 </div>
               );
             })}
