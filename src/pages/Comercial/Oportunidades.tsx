@@ -33,7 +33,7 @@ import {
   type MesaComercialRow,
 } from "@/hooks/comercial/useMesaComercial";
 import { usePermissoesMesa } from "@/hooks/comercial/usePermissoesMesa";
-import { useFormasPagamento } from "@/hooks/financeiro/useFormasPagamento";
+
 
 /**
  * MESA-UNICA-DO-COMERCIAL: uma tela, uma fonte (`vw_mesa_comercial`), a
@@ -65,9 +65,8 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
   const [busca, setBusca] = useState("");
   const [statusFiltro, setStatusFiltro] = useState<string>("todos");
   const [pagamentoFiltro, setPagamentoFiltro] = useState<string>("todos");
-  /** Filtro por FORMA (dimensão `formas_pagamento`), não por condição em texto. */
-  const [formaFiltro, setFormaFiltro] = useState<string>("todas");
   // O valor da mesa está em "Em andamento" (NF, boleto, prazo de entrega).
+
   const [grupo, setGrupo] = useState<FiltroGrupo>("em_andamento");
   const [meus, setMeus] = useState(true);
 
@@ -80,8 +79,8 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
   const { data: vendedorAtual, isLoading: carregandoVendedor } = useVendedorAtual();
   const { data: statusOpcoes = [] } = useStatusComercialOpcoes();
   const { data: pagamentoOpcoes = [] } = usePagamentoEstadoOpcoes();
-  const { data: formasOpcoes = [] } = useFormasPagamento(true);
   const { podeVerTodos, carregando: carregandoPerms } = usePermissoesMesa();
+
 
   /**
    * CARTEIRA-SEGUE-A-PERMISSAO: com `acao.mesa_ver_todos` a pessoa escolhe entre
