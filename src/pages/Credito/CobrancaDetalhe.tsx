@@ -730,7 +730,6 @@ export default function CobrancaDetalhe() {
   // A proposta nasce pelo que FALTA cobrar, não pelo valor da nota. `montar_plano_pagamento`
   // reconcilia com `novas + pagas + haver = líquido`, então o plano cheio seria recusado.
   const valorPedido = Number(pedidoQ.data?.valor_liquido ?? propostaQ.data?.valor_total ?? 0);
-  const dataPedidoStr: string | undefined = pedidoQ.data?.data_pedido;
 
   const totalEditado = useMemo(
     () => titulos.reduce((acc, t) => acc + Number(t.valor_bruto || 0), 0),
