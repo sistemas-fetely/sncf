@@ -9,6 +9,8 @@ import { toast } from "sonner";
  */
 
 export type FaseMesa = "oportunidade" | "pos_faturamento" | "em_andamento";
+/** Filtro de topo: 2 grupos só. `fase_mesa` continua existindo para as ações. */
+export type GrupoMesa = "oportunidade" | "em_andamento";
 
 export interface MesaComercialRow {
   pedido_id: string;
