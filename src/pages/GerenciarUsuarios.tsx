@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import GruposAcessoTabV2 from "@/components/grupos-acesso/GruposAcessoTabV2";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,7 +36,7 @@ import MesaUsuariosTab from "@/components/gerenciar-usuarios/MesaUsuariosTab";
 import DiagnosticoAcessoTab from "@/components/gerenciar-usuarios/DiagnosticoAcessoTab";
 import RastroAcessoTab from "@/components/gerenciar-usuarios/RastroAcessoTab";
 import PapeisTab from "@/components/gerenciar-usuarios/PapeisTab";
-import ConsoleAcoesTab from "@/components/gerenciar-usuarios/ConsoleAcoesTab";
+import ConsoleAcessoTab from "@/components/gerenciar-usuarios/ConsoleAcessoTab";
 import { PageHeader } from "@/components/layout/PageHeader";
 
 
@@ -144,7 +143,9 @@ async function callManageUser(action: string, payload: Record<string, unknown>) 
 export default function GerenciarUsuarios() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get("aba") || searchParams.get("tab") || "usuarios";
+  const abaBruta = searchParams.get("aba") || searchParams.get("tab") || "usuarios";
+  // CONSOLE DE ACESSO ÚNICO: as antigas abas "grupos" e "acoes" viraram uma só.
+  const activeTab = abaBruta === "grupos" || abaBruta === "acoes" ? "acesso" : abaBruta;
   const handleTabChange = (value: string) => {
     setSearchParams(value === "usuarios" ? {} : { aba: value }, { replace: true });
   };
@@ -598,9 +599,8 @@ export default function GerenciarUsuarios() {
       <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList>
           <TabsTrigger value="usuarios" className="gap-2"><Users className="h-4 w-4" /> Usuários</TabsTrigger>
-          <TabsTrigger value="grupos" className="gap-2"><ShieldCheck className="h-4 w-4" /> Grupos de Acesso</TabsTrigger>
+          <TabsTrigger value="acesso" className="gap-2"><ShieldCheck className="h-4 w-4" /> Console de Acesso</TabsTrigger>
           <TabsTrigger value="papeis" className="gap-2"><Shield className="h-4 w-4" /> Papéis</TabsTrigger>
-          <TabsTrigger value="acoes" className="gap-2"><ShieldAlert className="h-4 w-4" /> Ações</TabsTrigger>
           {podeAuditarAcesso && (
             <TabsTrigger value="fantasmas" className="gap-2">
               <Ghost className="h-4 w-4" /> Contas sem perfil
@@ -629,16 +629,12 @@ export default function GerenciarUsuarios() {
         </TabsContent>
 
 
-        <TabsContent value="grupos" className="mt-4">
-          <GruposAcessoTabV2 />
-        </TabsContent>
-
         <TabsContent value="papeis" className="mt-4">
           <PapeisTab />
         </TabsContent>
 
-        <TabsContent value="acoes" className="mt-4">
-          <ConsoleAcoesTab />
+        <TabsContent value="acesso" className="mt-4">
+          <ConsoleAcessoTab />
         </TabsContent>
 
         {podeAuditarAcesso && (
