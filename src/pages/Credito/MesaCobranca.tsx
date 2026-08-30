@@ -78,7 +78,7 @@ function BadgeCartaoProva({ classe }: { classe: string | null | undefined }) {
 const GRUPOS: Record<"agir" | "vigiar" | "nao", string[]> = {
   agir: ["A_ENVIAR", "A_EMITIR_BOLETO", "A_REEMITIR_BOLETO", "A_COBRAR", "EMAIL_BLOQUEADO"],
   vigiar: ["A_VENCER", "BOLETO_EM_CURSO_BANCO", "EM_CURSO"],
-  nao: ["CONCILIAR", "ENTREGA_ATRASADA", "NAO_COBRAVEL"],
+  nao: ["CONCILIAR", "ENTREGA_ATRASADA", "NAO_COBRAVEL", "CARTAO_SEM_PROVA"],
 };
 
 
@@ -824,6 +824,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                     ["Envio falhou em", fmtData(detalhe.envio_falhou_em)],
                     ["Motivo da falha de envio", detalhe.envio_falha_motivo ?? "—"],
                     ["Fila", detalhe.fila ?? "—"],
+                    ["Classe do cartão sem prova", detalhe.cartao_prova_classe ?? "—"],
                     ["Ação sugerida", detalhe.acao_sugerida ?? "—"],
                     ["Ressalvas", detalhe.ressalvas ?? "—"],
                   ].map(([k, v]) => (
