@@ -489,6 +489,19 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                         </TableCell>
                         <TableCell className="text-right align-top">
                           {formatBRL(r.valor ?? 0)}
+                          {/* CONDICAO-NA-LINHA: o comercial decide olhando a condição. */}
+                          {(r.condicao_solicitada || r.forma_pagamento_nome) && (
+                            <div
+                              className="text-xs text-muted-foreground truncate"
+                              title={
+                                [r.forma_pagamento_nome, r.condicao_solicitada]
+                                  .filter(Boolean)
+                                  .join(" · ") || undefined
+                              }
+                            >
+                              {r.condicao_solicitada || r.forma_pagamento_nome}
+                            </div>
+                          )}
                           {(r.boletos_qtd ?? 0) > 0 && (
                             <div className="text-xs text-muted-foreground">
                               {r.boletos_qtd} boleto(s) ·{" "}
