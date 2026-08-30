@@ -61,6 +61,8 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
   const [busca, setBusca] = useState("");
   const [statusFiltro, setStatusFiltro] = useState<string>("todos");
   const [pagamentoFiltro, setPagamentoFiltro] = useState<string>("todos");
+  /** Filtro por FORMA (dimensão `formas_pagamento`), não por condição em texto. */
+  const [formaFiltro, setFormaFiltro] = useState<string>("todas");
   // O valor da mesa está em "Em andamento" (NF, boleto, prazo de entrega).
   const [grupo, setGrupo] = useState<FiltroGrupo>("em_andamento");
   const [meus, setMeus] = useState(true);
