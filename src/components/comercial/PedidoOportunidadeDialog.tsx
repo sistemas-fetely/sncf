@@ -78,6 +78,20 @@ interface Props {
   vencimentoPortao?: string | null;
   portaoLinhas?: number | null;
   linkPagamento?: string | null;
+  /** Dados da mesa comercial (view `vw_mesa_comercial`). */
+  dataEntregaPrevista?: string | null;
+  metaOriginal?: string | null;
+  metaProvisoria?: boolean | null;
+  nfNumero?: string | null;
+  nfChave?: string | null;
+  nfPdfUrl?: string | null;
+  nfXmlUrl?: string | null;
+  temPdf?: boolean | null;
+  temXml?: boolean | null;
+  boletosValorAberto?: number | null;
+  comprovantesQtd?: number | null;
+  comprovanteStatus?: string | null;
+  abaInicial?: "itens" | "obs" | "pagamento" | "entrega";
 }
 
 /** CARTAO-NAO-FECHA-NA-MAO: a prova do cartão é o NSU da captura, não confirmação manual. */
