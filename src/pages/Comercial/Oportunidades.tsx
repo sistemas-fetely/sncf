@@ -47,21 +47,19 @@ const TEMPERATURA_PESO: Record<string, number> = {
   nao_cobrar: 3,
 };
 
-type FiltroTemperatura = "todas" | "quente" | "morno" | "frio" | "nao_cobrar";
-type FiltroFase = FaseMesa | "todas";
+type FiltroGrupo = GrupoMesa | "todas";
 
-const FASES: { valor: FiltroFase; rotulo: string }[] = [
+const GRUPOS: { valor: FiltroGrupo; rotulo: string }[] = [
   { valor: "oportunidade", rotulo: "Oportunidades" },
-  { valor: "pos_faturamento", rotulo: "Pós-faturamento" },
   { valor: "em_andamento", rotulo: "Em andamento" },
   { valor: "todas", rotulo: "Todas" },
 ];
 
 export default function Oportunidades({ embutido = false }: { embutido?: boolean } = {}) {
   const [busca, setBusca] = useState("");
-  const [temperatura, setTemperatura] = useState<FiltroTemperatura>("todas");
   const [statusFiltro, setStatusFiltro] = useState<string>("todos");
-  const [fase, setFase] = useState<FiltroFase>("oportunidade");
+  const [pagamentoFiltro, setPagamentoFiltro] = useState<string>("todos");
+  const [grupo, setGrupo] = useState<FiltroGrupo>("oportunidade");
   const [meus, setMeus] = useState(true);
 
   const [detalhe, setDetalhe] = useState<MesaComercialRow | null>(null);
@@ -72,21 +70,21 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
   const { data = [], isLoading, isFetching } = useMesaComercial();
   const { data: vendedorAtual } = useVendedorAtual();
   const { data: statusOpcoes = [] } = useStatusComercialOpcoes();
+  const { data: pagamentoOpcoes = [] } = usePagamentoEstadoOpcoes();
 
   // "Meus" só faz sentido com vendedor vinculado; sem vínculo, mostra tudo.
   const filtrarMeus = meus && !!vendedorAtual;
 
-  /** Base da fase + escopo do vendedor: os contadores dos filtros nascem daqui. */
+  /** Base do grupo + escopo do vendedor: os contadores dos filtros nascem daqui. */
   const baseFase = useMemo(() => {
-    let base = fase === "todas" ? data : data.filter((r) => r.fase_mesa === fase);
+    let base = grupo === "todas" ? data : data.filter((r) => r.grupo_mesa === grupo);
     if (filtrarMeus) base = base.filter((r) => r.vendedor_id === vendedorAtual?.id);
     return base;
-  }, [data, fase, filtrarMeus, vendedorAtual?.id]);
+  }, [data, grupo, filtrarMeus, vendedorAtual?.id]);
 
-  const contagensFase = useMemo(() => {
-    const c: Record<FiltroFase, number> = {
+  const contagensGrupo = useMemo(() => {
+    const c: Record<FiltroGrupo, number> = {
       oportunidade: 0,
-      pos_faturamento: 0,
       em_andamento: 0,
       todas: 0,
     };
@@ -95,16 +93,16 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
       : data;
     for (const r of escopo) {
       c.todas++;
-      if (r.fase_mesa && r.fase_mesa in c) c[r.fase_mesa]++;
+      if (r.grupo_mesa && r.grupo_mesa in c) c[r.grupo_mesa]++;
     }
     return c;
   }, [data, filtrarMeus, vendedorAtual?.id]);
 
-  const contagens = useMemo(() => {
-    const c = { todas: baseFase.length, quente: 0, morno: 0, frio: 0, nao_cobrar: 0 };
+  const contagensPagamento = useMemo(() => {
+    const c = new Map<string, number>();
     for (const r of baseFase) {
-      const t = r.temperatura_sistema ?? "";
-      if (t === "quente" || t === "morno" || t === "frio" || t === "nao_cobrar") c[t]++;
+      const s = r.pagamento_estado_slug;
+      if (s) c.set(s, (c.get(s) ?? 0) + 1);
     }
     return c;
   }, [baseFase]);
