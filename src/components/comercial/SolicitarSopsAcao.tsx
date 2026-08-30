@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Headset } from "lucide-react";
 import { useAbrirSolicitacao } from "@/hooks/pedidos/useSolicitacoesComercial";
+import { usePermissoesMesa } from "@/hooks/comercial/usePermissoesMesa";
 
 /**
  * UM COMPONENTE, DOIS PONTOS DE MONTAGEM: a mesma ação é usada no ícone da
