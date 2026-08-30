@@ -180,16 +180,27 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
 
   const { data: linksFila } = useLinksPagamentoFila(filtradas.map((r) => r.pedido_id));
 
+  /** KPIs fixos em Oportunidades: os cards são o painel de estado da mesa,
+   *  não um resumo do filtro atual. Continuam respeitando o escopo do vendedor. */
+  const baseKpis = useMemo(
+    () => escopoCarteira.filter((r) => r.grupo_mesa === "oportunidade"),
+    [escopoCarteira],
+  );
+
   const kpis = useMemo(() => {
-    const qtd = filtradas.length;
-    const valor = filtradas.reduce((s, r) => s + Number(r.valor || 0), 0);
-    const aberto = filtradas.reduce((s, r) => s + Number(r.boletos_valor_aberto || 0), 0);
+    const qtd = baseKpis.length;
+    const valor = baseKpis.reduce((s, r) => s + Number(r.valor || 0), 0);
     const media =
       qtd > 0
-        ? filtradas.reduce((s, r) => s + Number(r.dias_desde_pedido || 0), 0) / qtd
+        ? baseKpis.reduce((s, r) => s + Number(r.dias_desde_pedido || 0), 0) / qtd
         : 0;
-    return { qtd, valor, aberto, media };
-  }, [filtradas]);
+    const precisamAcao = baseKpis.filter((r) =>
+      PAGAMENTO_ESTADO_TAREFA.has(r.pagamento_estado_slug ?? ""),
+    );
+    const precisamAcaoQtd = precisamAcao.length;
+    const precisamAcaoValor = precisamAcao.reduce((s, r) => s + Number(r.valor || 0), 0);
+    return { qtd, valor, media, precisamAcaoQtd, precisamAcaoValor };
+  }, [baseKpis]);
 
   const abrirDetalhe = (r: MesaComercialRow, aba: typeof abaDetalhe = "itens") => {
     setAbaDetalhe(aba);
