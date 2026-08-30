@@ -671,11 +671,15 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                           onClick={() => setDetalhe(l)}
                                         >
                                           <TableCell className="py-1.5">
-                                            {l.numero_titulo ?? "—"}
-                                            {l.numero_parcela && l.total_parcelas ? (
-                                              <span className="text-muted-foreground"> {l.numero_parcela}/{l.total_parcelas}</span>
-                                            ) : null}
+                                            <div className="flex flex-wrap items-center gap-1">
+                                              <span>{l.numero_titulo ?? "—"}</span>
+                                              {l.numero_parcela && l.total_parcelas ? (
+                                                <span className="text-muted-foreground"> {l.numero_parcela}/{l.total_parcelas}</span>
+                                              ) : null}
+                                              <BadgeCartaoProva classe={l.cartao_prova_classe} />
+                                            </div>
                                           </TableCell>
+
                                           <TableCell className="py-1.5">{l.instrumento ?? "—"}</TableCell>
                                           <TableCell className="py-1.5">{l.nf_numero ?? "—"}</TableCell>
                                           <TableCell className="py-1.5 text-right tabular-nums">{formatBRL(Number(l.valor_atual ?? 0))}</TableCell>
