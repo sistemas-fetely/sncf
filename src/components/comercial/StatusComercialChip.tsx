@@ -10,6 +10,7 @@ import {
   COR_STATUS_CLASSE,
   useDefinirStatusComercial,
   useStatusComercialOpcoes,
+  PAGAMENTO_ESTADO_TAREFA,
 } from "@/hooks/comercial/useMesaComercial";
 
 /**
