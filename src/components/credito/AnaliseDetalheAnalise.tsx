@@ -224,6 +224,14 @@ export function AnaliseDetalheAnalise({ analiseId }: Props) {
         {/* Centro + direita — operação */}
         <div className="lg:col-span-2 space-y-6">
           <UploadBureauZone analise_id={analise.id} parceiro_id={parceiro?.id} />
+          {parceiro?.id && (
+            <BureausReaproveitaveisCard
+              bureaus={bureausReaproveitaveis ?? []}
+              analiseId={analise.id}
+              parceiroId={parceiro.id}
+            />
+          )}
+
           <ScoresAnexados scores={scores} analiseId={analiseId} />
           <div className="rounded-lg bg-gold-soft gold-border p-1">
             <AnaliseIaCard
