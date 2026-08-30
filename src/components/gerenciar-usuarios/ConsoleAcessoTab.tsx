@@ -563,7 +563,7 @@ export default function ConsoleAcessoTab() {
                     {rotasDaTela.length > 1 && (
                       <TableRow className="bg-muted/40 hover:bg-muted/40">
                         <TableCell
-                          colSpan={colunasFixas + grupos.length}
+                          colSpan={nColunas}
                           className="py-1.5"
                         >
                           <span className="font-mono text-[11px] text-muted-foreground">
