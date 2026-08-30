@@ -27,6 +27,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTogglePermissao } from "@/hooks/useGruposAcessoV2";
 import GruposAcessoTabV2 from "@/components/grupos-acesso/GruposAcessoTabV2";
 import DeclararAcaoDialog from "./DeclararAcaoDialog";
+import CelulaConcessao from "./CelulaConcessao";
 import {
   CHAVE_MATRIZ_GRUPO_PERMISSOES,
   useConsoleAcesso,
@@ -34,6 +35,8 @@ import {
   useLiberarParaGrupo,
   useMarcarConferido,
   useMatrizGrupoPermissoes,
+  usePapeisNivel,
+  useDefinirNivelMinimo,
   type ConsoleAcessoRow,
 } from "@/hooks/useConsoleAcesso";
 import { useQueryClient } from "@tanstack/react-query";
@@ -118,6 +121,8 @@ export default function ConsoleAcessoTab() {
   const togglePermissao = useTogglePermissao();
   const marcarConferido = useMarcarConferido();
   const liberarParaGrupo = useLiberarParaGrupo();
+  const { data: niveis = [] } = usePapeisNivel();
+  const definirNivel = useDefinirNivelMinimo();
   const [telaSel, setTelaSel] = useState<string | null>(null);
   const [modulosFechados, setModulosFechados] = useState<Set<string>>(new Set());
   const [declarando, setDeclarando] = useState<ConsoleAcessoRow | null>(null);
@@ -221,10 +226,27 @@ export default function ConsoleAcessoTab() {
     return set;
   }, [matriz]);
 
+  /** Alçada gravada por célula. Ausente/nulo = a concessão do grupo basta. */
+  const nivelPorCelula = useMemo(() => {
+    const mapa = new Map<string, number | null>();
+    matriz.forEach((c) =>
+      mapa.set(`${c.grupo_acesso_id}|${c.permissao_id}`, c.nivel_minimo ?? null),
+    );
+    return mapa;
+  }, [matriz]);
+
   function alternar(grupoId: string, permissaoId: string, valor: boolean) {
     togglePermissao.mutate(
       { grupoId, permissaoId, campo: "pode_ver", valor },
-      { onSettled: () => qc.invalidateQueries({ queryKey: CHAVE_MATRIZ_GRUPO_PERMISSOES }) },
+      {
+        onSuccess: () => {
+          // Desmarcar limpa a alçada: sem concessão não existe alçada.
+          if (!valor && nivelPorCelula.get(`${grupoId}|${permissaoId}`) != null) {
+            definirNivel.mutate({ grupoId, permissaoId, nivelMinimo: null });
+          }
+        },
+        onSettled: () => qc.invalidateQueries({ queryKey: CHAVE_MATRIZ_GRUPO_PERMISSOES }),
+      },
     );
   }
 
@@ -415,6 +437,10 @@ export default function ConsoleAcessoTab() {
             <CardTitle className="text-sm">
               {telaAtiva ? telaAtiva.telaLabel : "Nenhuma tela"}
             </CardTitle>
+            <p className="text-[11px] text-muted-foreground">
+              O chip abaixo do check é a alçada mínima dentro da concessão do grupo —
+              &ldquo;Todos&rdquo; significa que qualquer pessoa do grupo executa.
+            </p>
           </CardHeader>
           <CardContent className="overflow-auto p-0">
             <Table>
@@ -563,13 +589,26 @@ export default function ConsoleAcessoTab() {
                           ) : (
                             grupos.map((g) => (
                               <TableCell key={g.id} className="text-center align-top">
-                                <Checkbox
-                                  checked={concedido.has(`${g.id}|${l.permissao_id}`)}
-                                  disabled={togglePermissao.isPending}
-                                  onCheckedChange={(v) =>
-                                    alternar(g.id, l.permissao_id as string, v === true)
+                                <CelulaConcessao
+                                  concedido={concedido.has(`${g.id}|${l.permissao_id}`)}
+                                  nivelMinimo={
+                                    nivelPorCelula.get(`${g.id}|${l.permissao_id}`) ?? null
                                   }
-                                  aria-label={`${g.nome} — ${l.rotulo}`}
+                                  niveis={niveis}
+                                  desabilitado={
+                                    togglePermissao.isPending || definirNivel.isPending
+                                  }
+                                  rotuloAria={`${g.nome} — ${l.rotulo}`}
+                                  onToggle={(v) =>
+                                    alternar(g.id, l.permissao_id as string, v)
+                                  }
+                                  onNivel={(nivel) =>
+                                    definirNivel.mutate({
+                                      grupoId: g.id,
+                                      permissaoId: l.permissao_id as string,
+                                      nivelMinimo: nivel,
+                                    })
+                                  }
                                 />
                               </TableCell>
                             ))
