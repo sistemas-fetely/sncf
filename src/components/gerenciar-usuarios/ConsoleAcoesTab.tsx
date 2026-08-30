@@ -460,7 +460,7 @@ export default function ConsoleAcoesTab() {
                         </TableRow>
                       );
                     })}
-                  </>
+                  </Fragment>
                 ))}
               </TableBody>
             </Table>
