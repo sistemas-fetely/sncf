@@ -156,6 +156,8 @@ export function PedidoOportunidadeDialog({
   // de montagem (linha da mesa e este dialog).
   const boletos = useBoletosDoPedido(open ? pedidoId : undefined);
   const statusLog = useStatusComercialLog(pedidoId, open);
+  // PERMISSAO-NOMINAL-POR-ACAO: mesmos gates da linha da mesa, mesma fonte.
+  const { podeCopiarLink, podeBaixarNf, podeVerBoletos } = usePermissoesMesa();
 
 
   const comprovantes = useComprovantesPedido(pedidoId, open);
