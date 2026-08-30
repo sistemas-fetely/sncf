@@ -25,7 +25,7 @@ import { toast } from "sonner";
 import { formatError } from "@/lib/format-error";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTogglePermissao } from "@/hooks/useGruposAcessoV2";
-import GruposAcessoTabV2 from "@/components/grupos-acesso/GruposAcessoTabV2";
+import PainelGrupo from "./PainelGrupo";
 import DeclararAcaoDialog from "./DeclararAcaoDialog";
 import CelulaConcessao from "./CelulaConcessao";
 import {
@@ -126,7 +126,10 @@ export default function ConsoleAcessoTab() {
   const [telaSel, setTelaSel] = useState<string | null>(null);
   const [modulosFechados, setModulosFechados] = useState<Set<string>>(new Set());
   const [declarando, setDeclarando] = useState<ConsoleAcessoRow | null>(null);
-  const [gerenciarGrupos, setGerenciarGrupos] = useState(false);
+  /** LENTE: mesmo editor, dois eixos. "tela" = escolho a tela e marco grupos;
+   *  "grupo" = escolho o grupo e marco as telas. Sem duplicação de editor. */
+  const [lente, setLente] = useState<"tela" | "grupo">("tela");
+  const [grupoLenteId, setGrupoLenteId] = useState<string | null>(null);
 
   // FAIL-LOUD: erro de query sobe como toast com a mensagem real.
   useEffect(() => {
@@ -252,16 +255,38 @@ export default function ConsoleAcessoTab() {
 
   function liberarTelaInteira(grupoId: string) {
     if (!telaAtiva) return;
-    const ids = telaAtiva.linhas
+    liberarLinhas(grupoId, telaAtiva.linhas, "desta tela");
+  }
+
+  /** Libera todas as linhas declaradas de um conjunto (tela ou módulo). */
+  function liberarLinhas(grupoId: string, alvo: ConsoleAcessoRow[], rotulo: string) {
+    const ids = alvo
       .filter((l) => l.permissao_id && !portaoPorFlag(l) && l.declarada === true)
       .map((l) => l.permissao_id as string)
       .filter((id) => !concedido.has(`${grupoId}|${id}`));
     if (!ids.length) {
-      toast.info("Este grupo já tem tudo desta tela.");
+      toast.info(`Este grupo já tem tudo ${rotulo}.`);
       return;
     }
     liberarParaGrupo.mutate({ grupoId, permissaoIds: [...new Set(ids)] });
   }
+
+  /** Concedidas por tela para o grupo da lente — alimenta o contador "3/14". */
+  const concedidasPorTela = useMemo(() => {
+    const mapa = new Map<string, number>();
+    if (!grupoLenteId) return mapa;
+    modulos.forEach((m) =>
+      m.telas.forEach((t) => {
+        const n = t.linhas.filter(
+          (l) => l.permissao_id && concedido.has(`${grupoLenteId}|${l.permissao_id}`),
+        ).length;
+        mapa.set(t.chave, n);
+      }),
+    );
+    return mapa;
+  }, [modulos, concedido, grupoLenteId]);
+
+
 
   function alternarModulo(appChave: string) {
     setModulosFechados((prev) => {
@@ -288,26 +313,10 @@ export default function ConsoleAcessoTab() {
     );
   }
 
-  if (gerenciarGrupos) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-medium">Gestão de grupos de acesso</h3>
-            <p className="text-xs text-muted-foreground">
-              Criar grupos, editar, adicionar e remover usuários.
-            </p>
-          </div>
-          <Button variant="outline" size="sm" onClick={() => setGerenciarGrupos(false)}>
-            Voltar ao console
-          </Button>
-        </div>
-        <GruposAcessoTabV2 />
-      </div>
-    );
-  }
-
+  const porGrupo = lente === "grupo";
+  /** Colunas fixas da grade (fora as colunas de grupo da lente "Por tela"). */
   const colunasFixas = 5;
+  const nColunas = porGrupo ? 6 : colunasFixas + grupos.length;
 
   return (
     <div className="space-y-4">
@@ -315,10 +324,30 @@ export default function ConsoleAcessoTab() {
         <p className="text-xs text-muted-foreground">
           Uma decisão só: quem entra na tela e quem executa cada ação dela.
         </p>
-        <Button variant="outline" size="sm" onClick={() => setGerenciarGrupos(true)}>
-          <Users className="mr-2 h-3.5 w-3.5" /> Gerenciar grupos e usuários
-        </Button>
+        <div className="inline-flex rounded-md border p-0.5">
+          <Button
+            variant={porGrupo ? "ghost" : "secondary"}
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => setLente("tela")}
+          >
+            Por tela
+          </Button>
+          <Button
+            variant={porGrupo ? "secondary" : "ghost"}
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => setLente("grupo")}
+          >
+            <Users className="mr-1.5 h-3.5 w-3.5" /> Por grupo
+          </Button>
+        </div>
       </div>
+
+      {porGrupo && (
+        <PainelGrupo grupoId={grupoLenteId} onGrupoChange={setGrupoLenteId} />
+      )}
+
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -378,27 +407,52 @@ export default function ConsoleAcessoTab() {
           <CardContent className="max-h-[70vh] space-y-1 overflow-auto p-2">
             {modulos.map((m) => {
               const fechado = modulosFechados.has(m.appChave);
+              const concedidasModulo = m.telas.reduce(
+                (s, t) => s + (concedidasPorTela.get(t.chave) ?? 0),
+                0,
+              );
               return (
                 <div key={m.appChave} className={cn(m.semModulo && "opacity-70")}>
-                  <button
-                    type="button"
-                    onClick={() => alternarModulo(m.appChave)}
-                    className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs font-medium uppercase tracking-wide transition-colors hover:bg-accent"
-                  >
-                    {fechado ? (
-                      <ChevronRight className="h-3.5 w-3.5 shrink-0" />
-                    ) : (
-                      <ChevronDown className="h-3.5 w-3.5 shrink-0" />
-                    )}
-                    <span className="truncate">{m.appLabel}</span>
-                    <span className="ml-auto flex shrink-0 items-center gap-1.5 text-[10px] font-normal normal-case tracking-normal text-muted-foreground">
-                      <span>
-                        {m.telas.length} {m.telas.length === 1 ? "tela" : "telas"} ·{" "}
-                        {m.totalLinhas} {m.totalLinhas === 1 ? "linha" : "linhas"}
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => alternarModulo(m.appChave)}
+                      className="flex flex-1 items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs font-medium uppercase tracking-wide transition-colors hover:bg-accent"
+                    >
+                      {fechado ? (
+                        <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+                      ) : (
+                        <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+                      )}
+                      <span className="truncate">{m.appLabel}</span>
+                      <span className="ml-auto flex shrink-0 items-center gap-1.5 text-[10px] font-normal normal-case tracking-normal text-muted-foreground">
+                        <span>
+                          {porGrupo && grupoLenteId
+                            ? `${concedidasModulo}/${m.totalLinhas}`
+                            : `${m.telas.length} ${m.telas.length === 1 ? "tela" : "telas"} · ${m.totalLinhas} ${m.totalLinhas === 1 ? "linha" : "linhas"}`}
+                        </span>
+                        <BadgeAltoSemGuarda n={m.altoSemGuarda} />
                       </span>
-                      <BadgeAltoSemGuarda n={m.altoSemGuarda} />
-                    </span>
-                  </button>
+                    </button>
+                    {porGrupo && grupoLenteId && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 shrink-0 px-1.5 text-[10px]"
+                        disabled={liberarParaGrupo.isPending}
+                        title="Liberar todas as linhas declaradas deste módulo para o grupo escolhido"
+                        onClick={() =>
+                          liberarLinhas(
+                            grupoLenteId,
+                            m.telas.flatMap((t) => t.linhas),
+                            "deste módulo",
+                          )
+                        }
+                      >
+                        <Sparkles className="mr-1 h-3 w-3" /> Módulo
+                      </Button>
+                    )}
+                  </div>
                   {m.semModulo && !fechado && (
                     <p className="px-2 pb-1 pt-0.5 text-[10px] leading-snug text-muted-foreground">
                       Rotas fora da navegação — não aparecem em nenhum menu e ficam
@@ -419,7 +473,9 @@ export default function ConsoleAcessoTab() {
                         <span className="block truncate">{t.telaLabel}</span>
                         <span className="flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
                           <span>
-                            {t.total} {t.total === 1 ? "linha" : "linhas"}
+                            {porGrupo && grupoLenteId
+                              ? `${concedidasPorTela.get(t.chave) ?? 0}/${t.total}`
+                              : `${t.total} ${t.total === 1 ? "linha" : "linhas"}`}
                           </span>
                           <BadgeAltoSemGuarda n={t.altoSemGuarda} />
                         </span>
@@ -450,26 +506,46 @@ export default function ConsoleAcessoTab() {
                   <TableHead className="min-w-[160px]">Dispara</TableHead>
                   <TableHead>Risco</TableHead>
                   <TableHead className="min-w-[130px]">Guarda atual</TableHead>
-                  {grupos.map((g) => (
-                    <TableHead key={g.id} className="text-center">
-                      <span className="block text-xs">{g.nome}</span>
-                      {g.role_automatico && (
-                        <span className="block text-[10px] text-muted-foreground">
-                          {g.role_automatico}
-                        </span>
+                  {porGrupo ? (
+                    /* Lente por grupo: uma coluna só — "Acessa" com o chip de
+                       alçada logo abaixo (mesmo componente CelulaConcessao). */
+                    <TableHead className="min-w-[130px] text-center">
+                      <span className="block text-xs">Acessa · Alçada</span>
+                      {grupoLenteId && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-1.5 text-[10px]"
+                          disabled={liberarParaGrupo.isPending}
+                          onClick={() => liberarTelaInteira(grupoLenteId)}
+                          title="Liberar todas as linhas declaradas desta tela para o grupo escolhido"
+                        >
+                          <Sparkles className="mr-1 h-3 w-3" /> Liberar tela
+                        </Button>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-1.5 text-[10px]"
-                        disabled={liberarParaGrupo.isPending}
-                        onClick={() => liberarTelaInteira(g.id)}
-                        title="Liberar todas as linhas declaradas desta tela para este grupo"
-                      >
-                        <Sparkles className="mr-1 h-3 w-3" /> Liberar tela
-                      </Button>
                     </TableHead>
-                  ))}
+                  ) : (
+                    grupos.map((g) => (
+                      <TableHead key={g.id} className="text-center">
+                        <span className="block text-xs">{g.nome}</span>
+                        {g.role_automatico && (
+                          <span className="block text-[10px] text-muted-foreground">
+                            {g.role_automatico}
+                          </span>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-1.5 text-[10px]"
+                          disabled={liberarParaGrupo.isPending}
+                          onClick={() => liberarTelaInteira(g.id)}
+                          title="Liberar todas as linhas declaradas desta tela para este grupo"
+                        >
+                          <Sparkles className="mr-1 h-3 w-3" /> Liberar tela
+                        </Button>
+                      </TableHead>
+                    ))
+                  )}
                   <TableHead className="text-center">Conferido</TableHead>
                 </TableRow>
               </TableHeader>
@@ -479,7 +555,7 @@ export default function ConsoleAcessoTab() {
                     {rotasDaTela.length > 1 && (
                       <TableRow className="bg-muted/40 hover:bg-muted/40">
                         <TableCell
-                          colSpan={colunasFixas + grupos.length}
+                          colSpan={nColunas}
                           className="py-1.5"
                         >
                           <span className="font-mono text-[11px] text-muted-foreground">
@@ -558,7 +634,7 @@ export default function ConsoleAcessoTab() {
 
                           {bloqueado ? (
                             <TableCell
-                              colSpan={grupos.length}
+                              colSpan={porGrupo ? 1 : grupos.length}
                               className="align-top text-center"
                             >
                               {porFlag ? (
@@ -583,6 +659,40 @@ export default function ConsoleAcessoTab() {
                                       Declarar
                                     </Button>
                                   )}
+                                </span>
+                              )}
+                            </TableCell>
+                          ) : porGrupo ? (
+                            <TableCell className="text-center align-top">
+                              {grupoLenteId ? (
+                                <CelulaConcessao
+                                  concedido={concedido.has(
+                                    `${grupoLenteId}|${l.permissao_id}`,
+                                  )}
+                                  nivelMinimo={
+                                    nivelPorCelula.get(
+                                      `${grupoLenteId}|${l.permissao_id}`,
+                                    ) ?? null
+                                  }
+                                  niveis={niveis}
+                                  desabilitado={
+                                    togglePermissao.isPending || definirNivel.isPending
+                                  }
+                                  rotuloAria={l.rotulo}
+                                  onToggle={(v) =>
+                                    alternar(grupoLenteId, l.permissao_id as string, v)
+                                  }
+                                  onNivel={(nivel) =>
+                                    definirNivel.mutate({
+                                      grupoId: grupoLenteId,
+                                      permissaoId: l.permissao_id as string,
+                                      nivelMinimo: nivel,
+                                    })
+                                  }
+                                />
+                              ) : (
+                                <span className="text-[11px] text-muted-foreground">
+                                  escolha o grupo
                                 </span>
                               )}
                             </TableCell>
@@ -643,7 +753,7 @@ export default function ConsoleAcessoTab() {
                           className="bg-muted/30 hover:bg-muted/30"
                         >
                           <TableCell
-                            colSpan={colunasFixas + grupos.length}
+                            colSpan={nColunas}
                             className="py-1.5 text-[11px] text-muted-foreground"
                           >
                             Marcar o acesso desta tela muda as {l.telas_cobertas} telas do
@@ -656,7 +766,7 @@ export default function ConsoleAcessoTab() {
                 {rotasDaTela.length === 0 && (
                   <TableRow>
                     <TableCell
-                      colSpan={colunasFixas + grupos.length}
+                      colSpan={nColunas}
                       className="py-6 text-center text-sm text-muted-foreground"
                     >
                       Selecione uma tela na árvore.
