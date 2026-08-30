@@ -16616,6 +16616,7 @@ export type Database = {
           criado_por: string | null
           grupo_acesso_id: string
           id: string
+          nivel_minimo: number | null
           permissao_id: string
           pode_apagar: boolean | null
           pode_criar: boolean | null
@@ -16629,6 +16630,7 @@ export type Database = {
           criado_por?: string | null
           grupo_acesso_id: string
           id?: string
+          nivel_minimo?: number | null
           permissao_id: string
           pode_apagar?: boolean | null
           pode_criar?: boolean | null
@@ -16642,6 +16644,7 @@ export type Database = {
           criado_por?: string | null
           grupo_acesso_id?: string
           id?: string
+          nivel_minimo?: number | null
           permissao_id?: string
           pode_apagar?: boolean | null
           pode_criar?: boolean | null
@@ -52474,6 +52477,7 @@ export type Database = {
         Row: {
           grupo_acesso_id: string | null
           grupo_nome: string | null
+          nivel_minimo: number | null
           permissao_id: string | null
           pode_apagar: boolean | null
           pode_criar: boolean | null
@@ -62736,14 +62740,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
