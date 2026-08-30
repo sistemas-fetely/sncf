@@ -420,14 +420,55 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                     <span className="text-xs text-muted-foreground">títulos</span>
                   </div>
                   <div className="text-sm tabular-nums">{formatBRL(r.soma)}</div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+
+        {/* CARTÃO SEM PROVA — conciliação, não inadimplência. */}
+        <Card
+          onClick={() => { setSoVencido(false); setGrupoAtivo(null); setFilaF((f) => (f === "CARTAO_SEM_PROVA" ? "todas" : "CARTAO_SEM_PROVA")); }}
+          className={`cursor-pointer transition ${
+            filaF === "CARTAO_SEM_PROVA" ? "ring-2 ring-warning" : "hover:bg-muted/50"
+          } ${
+            resumoCartaoSemProva.qtd > 0
+              ? "border-warning bg-warning/10"
+              : "border-muted bg-muted/30 opacity-70"
+          }`}
+        >
+          <CardContent className="p-3">
+            <div
+              className={`text-[11px] font-medium tracking-wide ${
+                resumoCartaoSemProva.qtd > 0 ? "text-warning" : "text-muted-foreground"
+              }`}
+            >
+              CARTÃO SEM PROVA
+            </div>
+            {resumoCartaoSemProva.qtd > 0 ? (
+              <>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="text-2xl font-medium tabular-nums text-warning">
+                    {resumoCartaoSemProva.qtd}
+                  </span>
+                  <span className="text-xs text-muted-foreground">títulos</span>
+                </div>
+                <div className="text-sm font-medium tabular-nums text-warning">
+                  {formatBRL(resumoCartaoSemProva.soma)}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="mt-1 text-sm text-muted-foreground">nenhum</div>
+                <div className="text-sm tabular-nums text-muted-foreground">{formatBRL(0)}</div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
 
-        {/* Filtros */}
+      {/* Filtros */}
+
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative min-w-[220px] flex-1">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
