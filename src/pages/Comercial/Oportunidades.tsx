@@ -319,6 +319,28 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
               </FiltroBtn>
             ))}
           </div>
+
+          {/* FORMA — DIMENSAO-VIA-TABELA (`formas_pagamento`), com "Todas". */}
+          {formasNaMesa.length > 0 && (
+            <div className="inline-flex rounded-md border overflow-hidden">
+              <FiltroBtn
+                ativo={formaFiltro === "todas"}
+                onClick={() => setFormaFiltro("todas")}
+                title="Forma de pagamento pedida pelo cliente"
+              >
+                Todas as formas ({baseFase.length})
+              </FiltroBtn>
+              {formasNaMesa.map((f) => (
+                <FiltroBtn
+                  key={f.id}
+                  ativo={formaFiltro === f.id}
+                  onClick={() => setFormaFiltro(f.id)}
+                >
+                  {f.nome} ({contagensForma.get(f.id) ?? 0})
+                </FiltroBtn>
+              ))}
+            </div>
+          )}
         </div>
 
         <Card>
