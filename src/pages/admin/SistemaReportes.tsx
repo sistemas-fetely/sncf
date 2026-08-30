@@ -30,6 +30,7 @@ import {
   useReportesInbox,
   useAtualizarReporte,
   useResponsaveisReporte,
+  useNomesUsuarios,
   type Reporte,
 } from "@/hooks/useReportes";
 import { useQuery } from "@tanstack/react-query";
@@ -66,6 +67,9 @@ export default function SistemaReportes() {
   const [deleteTarget, setDeleteTarget] = useState<Reporte | null>(null);
   const atualizar = useAtualizarReporte();
   const { data: responsaveis } = useResponsaveisReporte();
+  const { data: nomes } = useNomesUsuarios();
+
+  const nomeDe = (id?: string | null) => (id ? nomes?.[id] : undefined);
 
   const handleDeleteReport = async () => {
     if (!deleteTarget) return;
@@ -225,11 +229,14 @@ export default function SistemaReportes() {
                         addSuffix: true,
                       })}
                       <span>·</span>
+                      <span>por {nomeDe(r.reportado_por) || "autor desconhecido"}</span>
+                      <span>·</span>
                       <code className="text-foreground/70">{r.rota}</code>
                       <span>·</span>
                       {r.atribuido_a ? (
                         <span>
-                          {(responsaveis || []).find((u) => u.user_id === r.atribuido_a)?.nome ||
+                          resp.: {nomeDe(r.atribuido_a) ||
+                            (responsaveis || []).find((u) => u.user_id === r.atribuido_a)?.nome ||
                             "responsável"}
                         </span>
                       ) : r.status_valor === "recebido" ? (
@@ -288,7 +295,8 @@ export default function SistemaReportes() {
                   {formatDistanceToNow(new Date(selecionado.reportado_em), {
                     locale: ptBR,
                     addSuffix: true,
-                  })}
+                  })}{" "}
+                  por {nomeDe(selecionado.reportado_por) || "autor desconhecido"}
                 </DialogDescription>
               </DialogHeader>
 
@@ -371,6 +379,9 @@ export default function SistemaReportes() {
                 <div>
                   <Label className="text-xs">Contexto técnico</Label>
                   <div className="rounded-md border bg-muted/30 p-3 mt-1 space-y-1 text-[11px]">
+                    <p>
+                      <strong>Autor:</strong> {nomeDe(selecionado.reportado_por) || "—"}
+                    </p>
                     <p>
                       <strong>Rota:</strong>{" "}
                       <code className="text-foreground/80">{selecionado.rota}</code>
