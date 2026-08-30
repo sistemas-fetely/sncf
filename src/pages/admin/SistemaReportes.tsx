@@ -295,7 +295,8 @@ export default function SistemaReportes() {
                   {formatDistanceToNow(new Date(selecionado.reportado_em), {
                     locale: ptBR,
                     addSuffix: true,
-                  })}
+                  })}{" "}
+                  por {nomeDe(selecionado.reportado_por) || "autor desconhecido"}
                 </DialogDescription>
               </DialogHeader>
 
