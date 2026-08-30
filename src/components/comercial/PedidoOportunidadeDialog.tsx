@@ -451,26 +451,29 @@ export function PedidoOportunidadeDialog({
                       {nfChave}
                     </p>
                   )}
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {temPdf && nfPdfUrl && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => window.open(nfPdfUrl, "_blank", "noopener,noreferrer")}
-                      >
-                        Baixar PDF
-                      </Button>
-                    )}
-                    {temXml && nfXmlUrl && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => window.open(nfXmlUrl, "_blank", "noopener,noreferrer")}
-                      >
-                        Baixar XML
-                      </Button>
-                    )}
-                  </div>
+                  {/* `acao.mesa_baixar_nf` cobre PDF e XML: é a mesma nota. */}
+                  {podeBaixarNf && (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {temPdf && nfPdfUrl && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => window.open(nfPdfUrl, "_blank", "noopener,noreferrer")}
+                        >
+                          Baixar PDF
+                        </Button>
+                      )}
+                      {temXml && nfXmlUrl && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => window.open(nfXmlUrl, "_blank", "noopener,noreferrer")}
+                        >
+                          Baixar XML
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </>
               ) : (
                 <p className="text-sm text-muted-foreground">
