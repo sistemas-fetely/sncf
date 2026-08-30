@@ -363,22 +363,20 @@ export function PedidoOportunidadeDialog({
 
                 <div className="flex flex-wrap items-center gap-2">
 
-                  <Button
-                    variant="outline"
-                    className="gap-1.5"
-                    disabled={!linkPagamento || carregandoEnviarLink || !podeEnviarLink}
-                    title={
-                      !linkPagamento
-                        ? "Sem link de pagamento"
-                        : !carregandoEnviarLink && !podeEnviarLink
-                          ? "Você não tem permissão para enviar link de pagamento."
-                          : undefined
-                    }
-                    onClick={copiarLink}
-                  >
-                    <Copy className="h-4 w-4" />
-                    Copiar link de pagamento
-                  </Button>
+                  {/* Sem `acao.mesa_copiar_link` a ação não existe na tela.
+                      Falta de DADO (sem link) continua explicando no tooltip. */}
+                  {podeCopiarLink && (
+                    <Button
+                      variant="outline"
+                      className="gap-1.5"
+                      disabled={!linkPagamento}
+                      title={!linkPagamento ? "Sem link de pagamento" : undefined}
+                      onClick={copiarLink}
+                    >
+                      <Copy className="h-4 w-4" />
+                      Copiar link de pagamento
+                    </Button>
+                  )}
                   {!temComprovanteConfirmado && (
                     <Button
                       disabled={
