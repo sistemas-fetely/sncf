@@ -255,9 +255,10 @@ export function useDefinirStatusComercial() {
 }
 
 /**
- * Vendedor vinculado ao usuario logado. Sem tabela de vinculo direto: casamos
- * pelo nome do perfil e, na falta dele, pelo e-mail de contato do vendedor.
- * Sem vendedor, o toggle "Meus pedidos" nasce desligado (e explica o motivo).
+ * Vendedor do usuário logado. CADEIA-CANONICA: `vendedores` não tem
+ * `usuario_id` — o caminho é usuario → vinculos.usuario_id → vinculos.pessoa_id
+ * → vendedores.pessoa_id. Fonte única: quem precisar do vendedor do usuário usa
+ * este hook. Sem vendedor vinculado, devolve null — NUNCA um fallback silencioso.
  */
 export function useVendedorAtual() {
   return useQuery({
@@ -272,37 +273,27 @@ export function useVendedorAtual() {
       if (!user) return null;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: perfil, error: pErr } = await (supabase as any)
-        .from("profiles")
-        .select("full_name")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (pErr) throw pErr;
+      const { data: vinculos, error: vErr } = await (supabase as any)
+        .from("vinculos")
+        .select("pessoa_id")
+        .eq("usuario_id", user.id);
+      if (vErr) throw vErr;
 
-      const nome = (perfil?.full_name ?? "").trim();
-      if (nome) {
+      const pessoaIds = [
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data, error } = await (supabase as any)
-          .from("vendedores")
-          .select("id, nome_exibicao")
-          .eq("ativo", true)
-          .ilike("nome_exibicao", nome)
-          .limit(1);
-        if (error) throw error;
-        if (data?.[0]) return { id: data[0].id, nome: data[0].nome_exibicao };
-      }
+        ...new Set((vinculos ?? []).map((v: any) => v.pessoa_id).filter(Boolean)),
+      ];
+      if (pessoaIds.length === 0) return null;
 
-      if (user.email) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data, error } = await (supabase as any)
-          .from("vendedores")
-          .select("id, nome_exibicao")
-          .eq("ativo", true)
-          .ilike("email_contato", user.email)
-          .limit(1);
-        if (error) throw error;
-        if (data?.[0]) return { id: data[0].id, nome: data[0].nome_exibicao };
-      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("vendedores")
+        .select("id, nome_exibicao")
+        .eq("ativo", true)
+        .in("pessoa_id", pessoaIds)
+        .limit(1);
+      if (error) throw error;
+      if (data?.[0]) return { id: data[0].id, nome: data[0].nome_exibicao };
 
       return null;
     },
