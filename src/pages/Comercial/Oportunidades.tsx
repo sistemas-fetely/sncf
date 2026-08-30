@@ -195,6 +195,14 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
     setDetalhe(r);
   };
 
+  /** FILTRO-QUE-NAO-SE-APLICA-NAO-RENDERIZA: esconder uma faixa sem resetar
+   *  o estado deixaria o filtro ativo invisível — armadilha de UX. */
+  const mudarGrupo = (novo: FiltroGrupo) => {
+    setGrupo(novo);
+    if (novo !== "oportunidade") setPagamentoFiltro("todos");
+  };
+
+
   return (
     <TooltipProvider>
       <div className={embutido ? "space-y-6" : "space-y-6 p-4 md:p-6"}>
@@ -222,11 +230,12 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
               <FiltroBtn
                 key={g.valor}
                 ativo={grupo === g.valor}
-                onClick={() => setGrupo(g.valor)}
+                onClick={() => mudarGrupo(g.valor)}
               >
                 {g.rotulo} ({contagensGrupo[g.valor]})
               </FiltroBtn>
             ))}
+
           </div>
 
           {/* O toggle só existe para quem tem `acao.mesa_ver_todos`. */}
@@ -287,47 +296,29 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
             </FiltroBtn>
           </div>
 
-          {/* EIXO 2 — estado do pagamento, derivado. Rótulos de pagamento_estado_dim. */}
-          <div className="inline-flex rounded-md border overflow-hidden">
-            <FiltroBtn
-              ativo={pagamentoFiltro === "todos"}
-              onClick={() => setPagamentoFiltro("todos")}
-              title="Estado do pagamento — calculado pelo sistema"
-            >
-              Todos ({baseFase.length})
-            </FiltroBtn>
-            {pagamentoOpcoes.map((o) => (
-              <FiltroBtn
-                key={o.slug}
-                ativo={pagamentoFiltro === o.slug}
-                onClick={() => setPagamentoFiltro(o.slug)}
-              >
-                {o.rotulo} ({contagensPagamento.get(o.slug) ?? 0})
-              </FiltroBtn>
-            ))}
-          </div>
-
-          {/* FORMA — DIMENSAO-VIA-TABELA (`formas_pagamento`), com "Todas". */}
-          {formasNaMesa.length > 0 && (
+          {/* EIXO 2 — estado do pagamento, derivado. Só faz sentido no grupo
+              Oportunidades, onde `pagamento_estado_slug` é calculado. */}
+          {grupo === "oportunidade" && (
             <div className="inline-flex rounded-md border overflow-hidden">
               <FiltroBtn
-                ativo={formaFiltro === "todas"}
-                onClick={() => setFormaFiltro("todas")}
-                title="Forma de pagamento pedida pelo cliente"
+                ativo={pagamentoFiltro === "todos"}
+                onClick={() => setPagamentoFiltro("todos")}
+                title="Estado do pagamento — calculado pelo sistema"
               >
-                Todas as formas ({baseFase.length})
+                Todos ({baseFase.length})
               </FiltroBtn>
-              {formasNaMesa.map((f) => (
+              {pagamentoOpcoes.map((o) => (
                 <FiltroBtn
-                  key={f.id}
-                  ativo={formaFiltro === f.id}
-                  onClick={() => setFormaFiltro(f.id)}
+                  key={o.slug}
+                  ativo={pagamentoFiltro === o.slug}
+                  onClick={() => setPagamentoFiltro(o.slug)}
                 >
-                  {f.nome} ({contagensForma.get(f.id) ?? 0})
+                  {o.rotulo} ({contagensPagamento.get(o.slug) ?? 0})
                 </FiltroBtn>
               ))}
             </div>
           )}
+
         </div>
 
         <Card>
