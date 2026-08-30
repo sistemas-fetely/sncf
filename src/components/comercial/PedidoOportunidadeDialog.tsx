@@ -381,68 +381,162 @@ export function PedidoOportunidadeDialog({
             )}
 
             <div className="flex flex-wrap items-center gap-2 border-t pt-3">
-              <Button variant="outline" onClick={() => setSolicitarAberto(true)}>
-                Solicitar ao SOPS
-              </Button>
+              <SolicitarSopsAcao pedidoId={pedidoId} modo="botao" />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="entrega" className="mt-4 space-y-4 flex-1 min-h-0 overflow-y-auto">
+            {/* PREVISAO-VEM-DO-BANCO: a data é a do pedido, e quando é meta
+                provisória a tela diz isso em voz alta. */}
+            <div className="rounded-md border px-3 py-2 space-y-1">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Entrega</p>
+              <p className="text-sm">
+                Previsão:{" "}
+                <span className="font-medium">{formatDateBR(dataEntregaPrevista ?? null)}</span>
+                {metaProvisoria && (
+                  <Badge
+                    variant="outline"
+                    className="ml-2 rounded px-1.5 py-0 text-[10px] border-warning/50 text-warning"
+                    title="Data provisória: a meta ainda não foi confirmada pela Logística."
+                  >
+                    provisória
+                  </Badge>
+                )}
+              </p>
+              {metaOriginal && metaOriginal !== dataEntregaPrevista && (
+                <p className="text-xs text-muted-foreground">
+                  Meta original: {formatDateBR(metaOriginal)}
+                </p>
+              )}
+            </div>
+
+            <div className="rounded-md border px-3 py-2 space-y-1">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Nota fiscal</p>
+              {nfNumero || temPdf || temXml ? (
+                <>
+                  <p className="text-sm">
+                    NF <span className="font-medium">{nfNumero || "—"}</span>
+                  </p>
+                  {nfChave && (
+                    <p className="font-mono text-[10px] text-muted-foreground break-all">
+                      {nfChave}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {temPdf && nfPdfUrl && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => window.open(nfPdfUrl, "_blank", "noopener,noreferrer")}
+                      >
+                        Baixar PDF
+                      </Button>
+                    )}
+                    {temXml && nfXmlUrl && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => window.open(nfXmlUrl, "_blank", "noopener,noreferrer")}
+                      >
+                        Baixar XML
+                      </Button>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Pedido ainda não faturado — não existe NF para baixar.
+                </p>
+              )}
+            </div>
+
+            <div className="rounded-md border px-3 py-2 space-y-1">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Boletos</p>
+              {boletos.isLoading ? (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              ) : (boletos.data?.boletoTitulos ?? []).length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum boleto neste pedido.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Parcela</TableHead>
+                      <TableHead>Vencimento</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                      <TableHead>Situação</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(boletos.data?.boletoTitulos ?? []).map((b) => (
+                      <TableRow key={b.id}>
+                        <TableCell className="text-xs">
+                          {b.numero_parcela}/{b.total_parcelas}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {formatDateBR(b.data_vencimento_atual)}
+                        </TableCell>
+                        <TableCell className="text-right text-xs">
+                          {formatBRL(b.valor_bruto ?? 0)}
+                        </TableCell>
+                        <TableCell className="text-xs">{b.boleto_status || "—"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+              {(boletosValorAberto ?? 0) > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Em aberto: {formatBRL(boletosValorAberto ?? 0)}
+                </p>
+              )}
+            </div>
+
+            <div className="rounded-md border px-3 py-2 space-y-1">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                Comprovantes
+              </p>
+              <p className="text-sm">
+                {(comprovantesQtd ?? 0) > 0
+                  ? `${comprovantesQtd} comprovante(s) · ${comprovanteStatus || "sem status"}`
+                  : "Nenhum comprovante anexado."}
+              </p>
+            </div>
+
+            <div className="rounded-md border px-3 py-2 space-y-1">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                Histórico do status comercial
+              </p>
+              {statusLog.isLoading ? (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              ) : (statusLog.data ?? []).length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma mudança manual de status registrada.
+                </p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {(statusLog.data ?? []).map((l) => (
+                    <li key={l.id} className="text-xs">
+                      <span className="text-muted-foreground">
+                        {formatDataHora(l.definido_em)} ·{" "}
+                      </span>
+                      {l.de_slug ? `${l.de_slug} → ` : ""}
+                      <span className="font-medium">{l.para_slug}</span>
+                      {l.definido_por_nome ? ` · ${l.definido_por_nome}` : ""}
+                      {l.motivo ? (
+                        <span className="text-muted-foreground"> — {l.motivo}</span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </TabsContent>
         </Tabs>
 
-        <AlertDialog open={solicitarAberto} onOpenChange={setSolicitarAberto}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Solicitar ao SOPS</AlertDialogTitle>
-              <AlertDialogDescription>
-                A solicitação entra na fila do SOPS e fica registrada na timeline do pedido.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <Label>Tipo</Label>
-                <Select value={tipoSolicitacao} onValueChange={setTipoSolicitacao}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="trocar_forma_pagamento">Trocar forma de pagamento</SelectItem>
-                    <SelectItem value="novo_link">Gerar novo link de pagamento</SelectItem>
-                    <SelectItem value="outro">Outro</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Detalhe (obrigatório)</Label>
-                <Textarea
-                  rows={3}
-                  value={detalheSolicitacao}
-                  onChange={(e) => setDetalheSolicitacao(e.target.value)}
-                  placeholder="Explique o que o SOPS precisa fazer (mínimo 5 caracteres)."
-                />
-              </div>
-            </div>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={abrirSolicitacao.isPending}>Cancelar</AlertDialogCancel>
-              <AlertDialogAction
-                disabled={!detalheValido || abrirSolicitacao.isPending}
-                onClick={async (e) => {
-                  e.preventDefault();
-                  try {
-                    await abrirSolicitacao.mutateAsync({
-                      tipo: tipoSolicitacao,
-                      detalhe: detalheSolicitacao.trim(),
-                    });
-                    setDetalheSolicitacao("");
-                    setSolicitarAberto(false);
-                  } catch {
-                    /* toast do banco já exibido pelo hook */
-                  }
-                }}
-              >
-                {abrirSolicitacao.isPending ? "Enviando..." : "Enviar solicitação"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
 
         {!temComprovanteConfirmado && (
         <AlertDialog open={confirmarAberto} onOpenChange={setConfirmarAberto}>
