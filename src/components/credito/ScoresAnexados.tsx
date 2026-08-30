@@ -102,7 +102,17 @@ export function ScoresAnexados({ scores, analiseId }: Props) {
                         {s.score_numerico == null && s.score_categorico && (
                           <span className="text-sm font-medium">{s.score_categorico}</span>
                         )}
+                        {s.reaproveitado_de_id && (
+                          <Badge
+                            variant="outline"
+                            className="gap-1 text-xs border-info/40 text-info"
+                          >
+                            <History className="h-3 w-3" />
+                            Reaproveitado · consulta {fmtDate(s.data_consulta)}
+                          </Badge>
+                        )}
                       </div>
+
                     </div>
                   </div>
                   <div className="flex gap-1 shrink-0">
