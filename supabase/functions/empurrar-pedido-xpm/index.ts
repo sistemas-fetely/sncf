@@ -209,7 +209,7 @@ Deno.serve(async (req) => {
       let avisoTransicao: string | undefined;
       const estagioAtual = montado?.estagio as string | undefined;
       if (estagioAtual && ["pre_faturado", "pre_separacao"].includes(estagioAtual)) {
-        const { error: errTransicao } = await sb.rpc("transicionar_pedido", {
+        const { error: errTransicao } = await sbUser.rpc("transicionar_pedido", {
           p_pedido_id: pedido_id,
           p_para_estagio: "em_separacao",
           p_proxima_acao: "Pedido no armazém — aguardar NF",
