@@ -229,11 +229,14 @@ export default function SistemaReportes() {
                         addSuffix: true,
                       })}
                       <span>·</span>
+                      <span>por {nomeDe(r.reportado_por) || "autor desconhecido"}</span>
+                      <span>·</span>
                       <code className="text-foreground/70">{r.rota}</code>
                       <span>·</span>
                       {r.atribuido_a ? (
                         <span>
-                          {(responsaveis || []).find((u) => u.user_id === r.atribuido_a)?.nome ||
+                          resp.: {nomeDe(r.atribuido_a) ||
+                            (responsaveis || []).find((u) => u.user_id === r.atribuido_a)?.nome ||
                             "responsável"}
                         </span>
                       ) : r.status_valor === "recebido" ? (
