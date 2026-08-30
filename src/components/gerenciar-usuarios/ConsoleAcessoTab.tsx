@@ -126,7 +126,10 @@ export default function ConsoleAcessoTab() {
   const [telaSel, setTelaSel] = useState<string | null>(null);
   const [modulosFechados, setModulosFechados] = useState<Set<string>>(new Set());
   const [declarando, setDeclarando] = useState<ConsoleAcessoRow | null>(null);
-  const [gerenciarGrupos, setGerenciarGrupos] = useState(false);
+  /** LENTE: mesmo editor, dois eixos. "tela" = escolho a tela e marco grupos;
+   *  "grupo" = escolho o grupo e marco as telas. Sem duplicação de editor. */
+  const [lente, setLente] = useState<"tela" | "grupo">("tela");
+  const [grupoLenteId, setGrupoLenteId] = useState<string | null>(null);
 
   // FAIL-LOUD: erro de query sobe como toast com a mensagem real.
   useEffect(() => {
