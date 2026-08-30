@@ -655,9 +655,10 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                         <TableHead className="h-8">Atraso</TableHead>
                                         <TableHead className="h-8">Lastros</TableHead>
                                         <TableHead className="h-8">Ressalvas</TableHead>
-                                        {FILAS_REGUA.has(f.chave) && (
+                                        {FILAS_REGUA.has(f.chave) && f.chave !== "CARTAO_SEM_PROVA" && (
                                           <TableHead className="h-8">Régua</TableHead>
                                         )}
+
                                       </TableRow>
                                     </TableHeader>
                                     <TableBody>
