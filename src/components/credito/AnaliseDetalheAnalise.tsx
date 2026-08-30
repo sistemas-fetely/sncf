@@ -64,7 +64,7 @@ export function AnaliseDetalheAnalise({ analiseId }: Props) {
     kpisFinanceiros,
     kpisGrupo,
     analisesAnteriores,
-    scoresHistoricoCount,
+    bureausReaproveitaveis,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } = data as any;
 
