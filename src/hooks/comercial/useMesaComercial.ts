@@ -105,6 +105,30 @@ export function useStatusComercialOpcoes() {
   });
 }
 
+/**
+ * EIXO-2 (estado do pagamento): DIMENSAO-VIA-TABELA, somente leitura.
+ * Rótulos e cores vêm de `pagamento_estado_dim`, nunca de constante no código.
+ */
+export function usePagamentoEstadoOpcoes() {
+  return useQuery({
+    queryKey: ["pagamento-estado-opcoes"],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async (): Promise<StatusComercialOpcao[]> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("pagamento_estado_dim")
+        .select("slug, rotulo, cor, ordem")
+        .eq("ativo", true)
+        .order("ordem", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as StatusComercialOpcao[];
+    },
+  });
+}
+
+/** Estados do eixo 2 que são TAREFA do comercial, não etiqueta. */
+export const PAGAMENTO_ESTADO_TAREFA = new Set(["gerar_link", "link_vencido"]);
+
 export interface StatusLogRow {
   id: string;
   de_slug: string | null;
