@@ -12,6 +12,11 @@ import { formatError } from "@/lib/format-error";
  * significa "pode EXECUTAR".
  */
 
+/**
+ * Linha da `vw_acao_por_modulo` — censo de ações enriquecido com módulo/tela
+ * da navegação. Rótulos de módulo e tela vêm sempre da view
+ * (DIMENSÃO-VIA-TABELA); o front não tem mapa de labels.
+ */
 export interface AcaoSuperficie {
   id: string;
   rota: string;
@@ -22,11 +27,22 @@ export interface AcaoSuperficie {
   risco: string | null;
   permissao_id: string | null;
   conferido: boolean | null;
-  conferido_por: string | null;
   conferido_em: string | null;
   origem: string | null;
   observacao: string | null;
-  permissoes_catalogo?: { slug: string; nome_exibicao: string | null } | null;
+  permissao_slug: string | null;
+  permissao_nome: string | null;
+  app_chave: string | null;
+  app_label: string | null;
+  app_ordem: number | null;
+  tela_label: string | null;
+  tela_slug: string | null;
+  /** Rota de detalhe (ex: `/pedidos/:id`) que herdou o módulo da rota-mãe. */
+  rota_e_detalhe: boolean | null;
+  /** Rota inexistente na sncf_navegacao. */
+  rota_nao_declarada: boolean | null;
+  sem_guarda: boolean | null;
+  declarada: boolean | null;
 }
 
 export const CHAVE_ACOES_SUPERFICIE = ["acao-superficie"];
@@ -36,15 +52,18 @@ export function useAcoesSuperficie() {
   return useQuery({
     queryKey: CHAVE_ACOES_SUPERFICIE,
     queryFn: async (): Promise<AcaoSuperficie[]> => {
-      const { data, error } = await supabase
-        .from("acao_superficie")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("vw_acao_por_modulo")
         .select(
-          "id, rota, arquivo, rotulo, dispara, guarda_atual, risco, permissao_id, conferido, conferido_por, conferido_em, origem, observacao, permissoes_catalogo(slug, nome_exibicao)",
+          "id, rota, arquivo, rotulo, dispara, guarda_atual, risco, permissao_id, conferido, conferido_em, origem, observacao, permissao_slug, permissao_nome, app_chave, app_label, app_ordem, tela_label, tela_slug, rota_e_detalhe, rota_nao_declarada, sem_guarda, declarada",
         )
+        .order("app_ordem")
+        .order("tela_label")
         .order("rota")
         .order("rotulo");
       if (error) throw error;
-      return (data ?? []) as unknown as AcaoSuperficie[];
+      return (data ?? []) as AcaoSuperficie[];
     },
   });
 }
