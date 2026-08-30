@@ -70,12 +70,6 @@ function todayISO(): string {
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
-function parseDiasCondicao(condicao: string | undefined | null): number {
-  if (!condicao) return 0;
-  const m = String(condicao).match(/(\d+)\s*dia/i);
-  return m ? parseInt(m[1], 10) : 0;
-}
-
 function addDiasISO(iso: string, dias: number): string {
   if (!iso) return iso;
   const [a, m, d] = iso.slice(0, 10).split("-").map(Number);
@@ -736,7 +730,6 @@ export default function CobrancaDetalhe() {
   // A proposta nasce pelo que FALTA cobrar, não pelo valor da nota. `montar_plano_pagamento`
   // reconcilia com `novas + pagas + haver = líquido`, então o plano cheio seria recusado.
   const valorPedido = Number(pedidoQ.data?.valor_liquido ?? propostaQ.data?.valor_total ?? 0);
-  const dataPedidoStr: string | undefined = pedidoQ.data?.data_pedido;
 
   const totalEditado = useMemo(
     () => titulos.reduce((acc, t) => acc + Number(t.valor_bruto || 0), 0),
