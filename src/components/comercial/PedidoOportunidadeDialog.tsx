@@ -147,8 +147,20 @@ export function PedidoOportunidadeDialog({
   const total = (itens.data ?? []).reduce((s, i) => s + Number(i.subtotal || 0), 0);
   const podeEnviar = texto.trim().length > 0 && !adicionar.isPending;
 
-  const temPortao = !!vencimentoPortao;
-  const cartaoBloqueia = PORTAO_SEM_CONFIRMACAO_MANUAL.has((tipoPortao ?? "").toLowerCase());
+  /**
+   * PORTAO-EXISTE-SE-TEM-LINHA: o portão vem do banco (`pedido_portao` com
+   * status provisorio), nunca de "tem vencimento" — PIX antecipado não tem
+   * vencimento e antes sumia da aba. As props seguem como fallback de exibição.
+   */
+  const portaoQ = usePedidoPortaoAtual(pedidoId, open);
+  const portao = portaoQ.data ?? null;
+  const temPortao = !!portao;
+  const portaoTipo = portao?.tipo ?? tipoPortao ?? null;
+  const portaoValor = portao?.valor ?? valorPortao ?? null;
+  const portaoVencimento = portao?.vencimento ?? vencimentoPortao ?? null;
+  const portaoQtdLinhas = portao?.linhas ?? portaoLinhas ?? null;
+  const linkPortao = linkPagamento ?? portao?.linkPagamento ?? null;
+  const cartaoBloqueia = PORTAO_SEM_CONFIRMACAO_MANUAL.has((portaoTipo ?? "").toLowerCase());
 
   // COMPROVANTE-FECHA-O-PORTAO (20/08/2026): confirmado por comprovante, a
   // confirmação manual não existe mais — o banco recusaria e o erro é feio.
