@@ -526,6 +526,7 @@ export function PedidoOportunidadeDialog({
                 </p>
               )}
             </div>
+            )}
 
             <div className="rounded-md border px-3 py-2 space-y-1">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">
