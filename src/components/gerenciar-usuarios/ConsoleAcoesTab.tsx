@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -101,11 +101,13 @@ export default function ConsoleAcoesTab() {
 
   // FAIL-LOUD: erro da consulta sobe como toast visível — nunca estado vazio
   // disfarçado de "sem ações".
-  if (isError) {
-    toast.error("Não consegui carregar o censo de ações.", {
-      description: error instanceof Error ? error.message : String(error),
-    });
-  }
+  useEffect(() => {
+    if (isError) {
+      toast.error("Não consegui carregar o censo de ações.", {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }, [isError, error]);
 
   const modulos = useMemo<ModuloNodo[]>(() => {
     const porModulo = new Map<string, ModuloNodo>();
@@ -378,9 +380,9 @@ export default function ConsoleAcoesTab() {
               </TableHeader>
               <TableBody>
                 {rotasDaTela.map(({ rota, linhas, eDetalhe }) => (
-                  <>
+                  <Fragment key={rota}>
                     {rotasDaTela.length > 1 && (
-                      <TableRow key={`rota-${rota}`} className="bg-muted/40 hover:bg-muted/40">
+                      <TableRow className="bg-muted/40 hover:bg-muted/40">
                         <TableCell colSpan={5 + grupos.length} className="py-1.5">
                           <span className="font-mono text-[11px] text-muted-foreground">
                             {rota}
