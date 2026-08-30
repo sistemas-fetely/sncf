@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Wand2 } from "lucide-react";
 import { CurrencyInput } from "./CurrencyInput";
+import { useFormasPagamento } from "@/hooks/financeiro/useFormasPagamento";
 import type { PerfilCredito, FormaPagamento, SugestaoIA } from "@/types/credito";
 
 export interface CamposDecisao {
@@ -27,7 +28,7 @@ interface Props {
   disabled?: boolean;
 }
 
-const FORMAS: FormaPagamento[] = ["boleto", "pix", "cartao"];
+
 
 function diferente(a: unknown, b: unknown): boolean {
   if (Array.isArray(a) && Array.isArray(b)) {
