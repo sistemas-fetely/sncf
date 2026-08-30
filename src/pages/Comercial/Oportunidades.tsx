@@ -230,31 +230,10 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-md border overflow-hidden">
-            <FiltroBtn ativo={temperatura === "todas"} onClick={() => setTemperatura("todas")}>
-              Todas ({contagens.todas})
-            </FiltroBtn>
-            <FiltroBtn ativo={temperatura === "quente"} onClick={() => setTemperatura("quente")}>
-              Quente ({contagens.quente})
-            </FiltroBtn>
-            <FiltroBtn ativo={temperatura === "morno"} onClick={() => setTemperatura("morno")}>
-              Morno ({contagens.morno})
-            </FiltroBtn>
-            <FiltroBtn ativo={temperatura === "frio"} onClick={() => setTemperatura("frio")}>
-              Frio ({contagens.frio})
-            </FiltroBtn>
-            <FiltroBtn
-              ativo={temperatura === "nao_cobrar"}
-              onClick={() => setTemperatura("nao_cobrar")}
-            >
-              Não cobrar ({contagens.nao_cobrar})
-            </FiltroBtn>
-          </div>
-
-          {/* DIMENSAO-VIA-TABELA: os status vêm de oportunidade_status_comercial. */}
+          {/* EIXO 1 — julgamento comercial. DIMENSAO-VIA-TABELA. */}
           <div className="inline-flex rounded-md border overflow-hidden">
             <FiltroBtn ativo={statusFiltro === "todos"} onClick={() => setStatusFiltro("todos")}>
-              Status: todos
+              Todas ({baseFase.length})
             </FiltroBtn>
             {statusOpcoes.map((o) => (
               <FiltroBtn
@@ -271,6 +250,26 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
             >
               Sem status ({contagensStatus.get("__sem__") ?? 0})
             </FiltroBtn>
+          </div>
+
+          {/* EIXO 2 — estado do pagamento, derivado. Rótulos de pagamento_estado_dim. */}
+          <div className="inline-flex rounded-md border overflow-hidden">
+            <FiltroBtn
+              ativo={pagamentoFiltro === "todos"}
+              onClick={() => setPagamentoFiltro("todos")}
+              title="Estado do pagamento — calculado pelo sistema"
+            >
+              Todos ({baseFase.length})
+            </FiltroBtn>
+            {pagamentoOpcoes.map((o) => (
+              <FiltroBtn
+                key={o.slug}
+                ativo={pagamentoFiltro === o.slug}
+                onClick={() => setPagamentoFiltro(o.slug)}
+              >
+                {o.rotulo} ({contagensPagamento.get(o.slug) ?? 0})
+              </FiltroBtn>
+            ))}
           </div>
         </div>
 
