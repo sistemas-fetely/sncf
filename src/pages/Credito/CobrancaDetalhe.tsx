@@ -1272,6 +1272,9 @@ export default function CobrancaDetalhe() {
                 }}
                 className="h-9 w-40"
               />
+              <p className="text-[11px] text-muted-foreground max-w-[16rem]">
+                Padrão vem da condição aprovada pelo crédito. Aumentar o prazo pode exigir nova análise.
+              </p>
             </div>
             <div className="space-y-1">
               <Label htmlFor="intervalo-parcelas" className="text-xs text-muted-foreground">
