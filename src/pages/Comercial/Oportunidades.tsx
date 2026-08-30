@@ -81,8 +81,8 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
   const { data: pagamentoOpcoes = [] } = usePagamentoEstadoOpcoes();
   const { podeVerTodos, carregando: carregandoPerms } = usePermissoesMesa();
 
-
   /**
+
    * CARTEIRA-SEGUE-A-PERMISSAO: com `acao.mesa_ver_todos` a pessoa escolhe entre
    * a própria carteira e a de todos. Sem a permissão, vê SOMENTE a própria —
    * o toggle nem existe. Sem vendedor vinculado, a lista fica vazia e explica;
