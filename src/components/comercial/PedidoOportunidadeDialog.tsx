@@ -94,6 +94,15 @@ interface Props {
   comprovantesQtd?: number | null;
   comprovanteStatus?: string | null;
   abaInicial?: "itens" | "obs" | "pagamento" | "entrega";
+  historicoCliente?: {
+    eh_primeira_compra: boolean | null;
+    cliente_pedidos_faturados: number | null;
+    cliente_valor_faturado: number | null;
+    cliente_primeira_compra: string | null;
+    cliente_ultima_compra: string | null;
+    cliente_dias_sem_comprar: number | null;
+    cliente_ticket_medio: number | null;
+  } | null;
 }
 
 /** CARTAO-NAO-FECHA-NA-MAO: a prova do cartão é o NSU da captura, não confirmação manual. */
