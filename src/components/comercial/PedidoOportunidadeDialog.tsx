@@ -322,6 +322,9 @@ export function PedidoOportunidadeDialog({
           </TabsContent>
 
           <TabsContent value="obs" className="mt-4 space-y-4 flex-1 min-h-0 overflow-y-auto">
+            {historicoCliente && (
+              <ClienteHistoricoBloco historico={historicoCliente} />
+            )}
             <div className="space-y-2">
               <Textarea
                 value={texto}
