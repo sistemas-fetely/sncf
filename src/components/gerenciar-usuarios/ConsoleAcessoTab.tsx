@@ -761,7 +761,7 @@ export default function ConsoleAcessoTab() {
                           className="bg-muted/30 hover:bg-muted/30"
                         >
                           <TableCell
-                            colSpan={colunasFixas + grupos.length}
+                            colSpan={nColunas}
                             className="py-1.5 text-[11px] text-muted-foreground"
                           >
                             Marcar o acesso desta tela muda as {l.telas_cobertas} telas do
@@ -774,7 +774,7 @@ export default function ConsoleAcessoTab() {
                 {rotasDaTela.length === 0 && (
                   <TableRow>
                     <TableCell
-                      colSpan={colunasFixas + grupos.length}
+                      colSpan={nColunas}
                       className="py-6 text-center text-sm text-muted-foreground"
                     >
                       Selecione uma tela na árvore.
