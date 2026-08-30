@@ -139,14 +139,14 @@ export function FormDecisaoCredito({ valores, sugestaoIA, onChange, disabled }: 
             />
           </div>
           <div className="flex flex-wrap gap-4">
-            {FORMAS.map((f) => (
-              <label key={f} className="flex items-center gap-2 text-sm capitalize cursor-pointer">
+            {opcoes.map((f) => (
+              <label key={f.codigo} className="flex items-center gap-2 text-sm cursor-pointer">
                 <Checkbox
-                  checked={valores.formas_aceitas.includes(f)}
-                  onCheckedChange={() => toggleForma(f)}
+                  checked={valores.formas_aceitas.includes(f.codigo)}
+                  onCheckedChange={() => toggleForma(f.codigo)}
                   disabled={disabled}
                 />
-                {f}
+                {f.nome}
               </label>
             ))}
           </div>
