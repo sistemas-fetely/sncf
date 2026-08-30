@@ -225,10 +225,14 @@ export function PedidoOportunidadeDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col overflow-hidden">
-        <DialogHeader>
-          <DialogTitle className="flex flex-wrap items-center gap-2">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      {/* DRAWER-NAO-PULA: largura fixa, altura total, rolo interno por aba. */}
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-[640px] flex flex-col overflow-hidden p-6"
+      >
+        <SheetHeader>
+          <SheetTitle className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-sm">{idExterno || "Pedido"}</span>
             <span className="text-sm">{cliente || "—"}</span>
             {apelidoParceiro(cliente, apelido) && (
