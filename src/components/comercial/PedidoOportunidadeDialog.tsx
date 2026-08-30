@@ -248,8 +248,8 @@ export function PedidoOportunidadeDialog({
             >
               {chipSituacao(situacaoFinanceira)}
             </Badge>
-          </DialogTitle>
-        </DialogHeader>
+          </SheetTitle>
+        </SheetHeader>
 
         <Tabs defaultValue={abaInicial} className="flex flex-1 flex-col min-h-0">
           <TabsList>
