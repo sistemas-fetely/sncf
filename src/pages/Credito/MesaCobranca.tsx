@@ -53,23 +53,27 @@ const FILAS: { chave: string; label: string }[] = [
   { chave: "A_VENCER", label: "A vencer (D-3)" },
   { chave: "ENTREGA_ATRASADA", label: "Entrega atrasada" },
   { chave: "CONCILIAR", label: "Conciliar — não cobrar" },
-  { chave: "CARTAO_SEM_PROVA", label: "Cartão sem prova de crédito" },
+  { chave: "PAGO_SEM_PROVA", label: "Pago sem prova" },
   { chave: "BOLETO_EM_CURSO_BANCO", label: "Boleto em curso no banco" },
   { chave: "EM_CURSO", label: "Em curso" },
   { chave: "NAO_COBRAVEL", label: "Não cobrável" },
 ];
 
-const ROTULO_CARTAO_PROVA_CLASSE: Record<string, string> = {
-  sem_nsu: "sem NSU",
-  sem_previsao: "sem previsão de crédito",
-  adquirente_atrasada: "adquirente atrasada",
+const ROTULO_PROVA_CLASSE: Record<string, string> = {
+  divergente: "movimentação não bate",
+  declarado_humano: "sem lastro",
+  sem_prova: "sem prova",
+  credito_atrasado: "crédito atrasado",
 };
 
-function BadgeCartaoProva({ classe }: { classe: string | null | undefined }) {
+function BadgeProva({ classe }: { classe: string | null | undefined }) {
   if (!classe) return null;
+  const cls = classe === "divergente"
+    ? "bg-destructive/10 text-destructive hover:bg-destructive/10"
+    : "bg-warning/10 text-warning hover:bg-warning/10";
   return (
-    <Badge className="shrink-0 bg-warning/10 text-warning hover:bg-warning/10 text-[10px]">
-      {ROTULO_CARTAO_PROVA_CLASSE[classe] ?? classe}
+    <Badge className={`shrink-0 text-[10px] ${cls}`}>
+      {ROTULO_PROVA_CLASSE[classe] ?? classe}
     </Badge>
   );
 }
@@ -78,7 +82,7 @@ function BadgeCartaoProva({ classe }: { classe: string | null | undefined }) {
 const GRUPOS: Record<"agir" | "vigiar" | "nao", string[]> = {
   agir: ["A_ENVIAR", "A_EMITIR_BOLETO", "A_REEMITIR_BOLETO", "A_COBRAR", "EMAIL_BLOQUEADO"],
   vigiar: ["A_VENCER", "BOLETO_EM_CURSO_BANCO", "EM_CURSO"],
-  nao: ["CONCILIAR", "ENTREGA_ATRASADA", "NAO_COBRAVEL", "CARTAO_SEM_PROVA"],
+  nao: ["CONCILIAR", "ENTREGA_ATRASADA", "NAO_COBRAVEL", "PAGO_SEM_PROVA"],
 };
 
 
@@ -274,9 +278,13 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
     return { qtd: alvo.length, soma: alvo.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0) };
   }, [linhas]);
 
-  const resumoCartaoSemProva = useMemo(() => {
-    const alvo = linhas.filter((l) => l.fila === "CARTAO_SEM_PROVA");
-    return { qtd: alvo.length, soma: alvo.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0) };
+  const resumoPagoSemProva = useMemo(() => {
+    const alvo = linhas.filter((l) => l.fila === "PAGO_SEM_PROVA");
+    return {
+      qtd: alvo.length,
+      soma: alvo.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0),
+      qtdDivergente: alvo.filter((l) => l.prova_classe === "divergente").length,
+    };
   }, [linhas]);
 
   const porFila = useMemo(() => {
@@ -426,35 +434,41 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
           })}
 
 
-        {/* CARTÃO SEM PROVA — conciliação, não inadimplência. */}
+        {/* PAGO SEM PROVA — conciliação, não inadimplência. */}
         <Card
-          onClick={() => { setSoVencido(false); setGrupoAtivo(null); setFilaF((f) => (f === "CARTAO_SEM_PROVA" ? "todas" : "CARTAO_SEM_PROVA")); }}
+          onClick={() => { setSoVencido(false); setGrupoAtivo(null); setFilaF((f) => (f === "PAGO_SEM_PROVA" ? "todas" : "PAGO_SEM_PROVA")); }}
           className={`cursor-pointer transition ${
-            filaF === "CARTAO_SEM_PROVA" ? "ring-2 ring-warning" : "hover:bg-muted/50"
+            filaF === "PAGO_SEM_PROVA"
+              ? resumoPagoSemProva.qtdDivergente > 0 ? "ring-2 ring-destructive" : "ring-2 ring-warning"
+              : "hover:bg-muted/50"
           } ${
-            resumoCartaoSemProva.qtd > 0
-              ? "border-warning bg-warning/10"
+            resumoPagoSemProva.qtd > 0
+              ? resumoPagoSemProva.qtdDivergente > 0
+                ? "border-destructive bg-destructive/10"
+                : "border-warning bg-warning/10"
               : "border-muted bg-muted/30 opacity-70"
           }`}
         >
           <CardContent className="p-3">
             <div
               className={`text-[11px] font-medium tracking-wide ${
-                resumoCartaoSemProva.qtd > 0 ? "text-warning" : "text-muted-foreground"
+                resumoPagoSemProva.qtd > 0
+                  ? resumoPagoSemProva.qtdDivergente > 0 ? "text-destructive" : "text-warning"
+                  : "text-muted-foreground"
               }`}
             >
-              CARTÃO SEM PROVA
+              PAGO SEM PROVA
             </div>
-            {resumoCartaoSemProva.qtd > 0 ? (
+            {resumoPagoSemProva.qtd > 0 ? (
               <>
                 <div className="mt-1 flex items-baseline gap-2">
-                  <span className="text-2xl font-medium tabular-nums text-warning">
-                    {resumoCartaoSemProva.qtd}
+                  <span className={`text-2xl font-medium tabular-nums ${resumoPagoSemProva.qtdDivergente > 0 ? "text-destructive" : "text-warning"}`}>
+                    {resumoPagoSemProva.qtd}
                   </span>
                   <span className="text-xs text-muted-foreground">títulos</span>
                 </div>
-                <div className="text-sm font-medium tabular-nums text-warning">
-                  {formatBRL(resumoCartaoSemProva.soma)}
+                <div className={`text-sm font-medium tabular-nums ${resumoPagoSemProva.qtdDivergente > 0 ? "text-destructive" : "text-warning"}`}>
+                  {formatBRL(resumoPagoSemProva.soma)}
                 </div>
               </>
             ) : (
@@ -554,7 +568,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                             {f.qtdVencido} vencido{f.qtdVencido > 1 ? "s" : ""} · {formatBRL(f.totalVencido)}
                           </Badge>
                         )}
-                        {f.chave === "CARTAO_SEM_PROVA" && (
+                        {f.chave === "PAGO_SEM_PROVA" && (
                           <Badge className="shrink-0 bg-warning/10 text-warning hover:bg-warning/10 text-[10px]">
                             conciliação
                           </Badge>
@@ -621,7 +635,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                       {seloEntrega(g.urgente)}
                                       {seloInstrumento(g.urgente)}
                                       {seloEnvio(g.urgente)}
-                                      <BadgeCartaoProva classe={g.urgente.cartao_prova_classe} />
+                                      <BadgeProva classe={g.urgente.prova_classe} />
                                     </span>
                                     {g.ressalvas && (
                                       <span className="min-w-0 text-[10px] text-warning">{g.ressalvas}</span>
@@ -656,7 +670,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                         <TableHead className="h-8">Atraso</TableHead>
                                         <TableHead className="h-8">Lastros</TableHead>
                                         <TableHead className="h-8">Ressalvas</TableHead>
-                                        {FILAS_REGUA.has(f.chave) && f.chave !== "CARTAO_SEM_PROVA" && (
+                                        {FILAS_REGUA.has(f.chave) && f.chave !== "PAGO_SEM_PROVA" && (
                                           <TableHead className="h-8">Régua</TableHead>
                                         )}
 
@@ -678,7 +692,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                               {l.numero_parcela && l.total_parcelas ? (
                                                 <span className="text-muted-foreground"> {l.numero_parcela}/{l.total_parcelas}</span>
                                               ) : null}
-                                              <BadgeCartaoProva classe={l.cartao_prova_classe} />
+                                              <BadgeProva classe={l.prova_classe} />
                                             </div>
                                           </TableCell>
 
@@ -702,7 +716,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                             )}
                                             <EntregaResumoInline l={l} />
                                           </TableCell>
-                                          {FILAS_REGUA.has(f.chave) && f.chave !== "CARTAO_SEM_PROVA" && (
+                                          {FILAS_REGUA.has(f.chave) && f.chave !== "PAGO_SEM_PROVA" && (
                                             <TableCell className="py-1.5" onClick={(e) => e.stopPropagation()}>
 
                                               {!tituloAdapt || !etapa ? (
@@ -824,7 +838,8 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                     ["Envio falhou em", fmtData(detalhe.envio_falhou_em)],
                     ["Motivo da falha de envio", detalhe.envio_falha_motivo ?? "—"],
                     ["Fila", detalhe.fila ?? "—"],
-                    ["Classe do cartão sem prova", detalhe.cartao_prova_classe ?? "—"],
+                    ["Classe de prova", detalhe.prova_classe ?? "—"],
+                    ["Nível de prova", detalhe.nivel_prova ?? "—"],
                     ["Ação sugerida", detalhe.acao_sugerida ?? "—"],
                     ["Ressalvas", detalhe.ressalvas ?? "—"],
                   ].map(([k, v]) => (
