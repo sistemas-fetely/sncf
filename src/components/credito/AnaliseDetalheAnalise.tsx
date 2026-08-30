@@ -10,9 +10,11 @@ import { AnaliseIaCard } from "./AnaliseIaCard";
 import { EncaminharParaDecisaoDialog } from "./dialogs/EncaminharParaDecisaoDialog";
 import { DevolverParaEntradaDialog } from "./dialogs/DevolverParaEntradaDialog";
 import { BoxDevolucaoRecente } from "./BoxDevolucaoRecente";
+import { BoxReaberturaPedido } from "./BoxReaberturaPedido";
+import { BureausReaproveitaveisCard } from "./BureausReaproveitaveisCard";
 import { AvisoNaoFaturado } from "./AvisoNaoFaturado";
-import { Sparkles, Loader2, FileSearch } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Sparkles, Loader2 } from "lucide-react";
+
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
