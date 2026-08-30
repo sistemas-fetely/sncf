@@ -471,6 +471,9 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                               {apelidoParceiro(r.cliente, r.apelido)}
                             </div>
                           )}
+                          <div className="mt-0.5">
+                            <PrimeiraCompraBadge eh_primeira_compra={r.eh_primeira_compra} />
+                          </div>
                           {AVISO_EXCECAO_SITUACAO[r.situacao_financeira ?? ""] && (
                             <div className="mt-0.5">
                               <Badge
