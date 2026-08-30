@@ -6,12 +6,16 @@ import {
 import { Copy, FileText, FileCode2, Receipt, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { SolicitarSopsAcao } from "@/components/comercial/SolicitarSopsAcao";
+import { usePermissoesMesa } from "@/hooks/comercial/usePermissoesMesa";
 import type { MesaComercialRow } from "@/hooks/comercial/useMesaComercial";
 
 /**
  * ACAO-QUE-NAO-SE-APLICA-NAO-RENDERIZA: sem link, sem PDF, sem XML ou sem
  * boleto, o ícone simplesmente não existe na linha. Nada de botão cinza.
  * No máximo 4 ícones visíveis; o excedente cai no menu "…".
+ *
+ * PERMISSAO-NAO-EXISTE-NA-TELA: sem a permissão nominal da ação, o ícone
+ * também não renderiza — e é diferente de falta de DADO, que explica no tooltip.
  */
 async function copiarLink(link: string) {
   try {
@@ -39,10 +43,11 @@ export function AcoesMesaLinha({
   onVerBoletos: () => void;
 }) {
   const [sopsAberto, setSopsAberto] = useState(false);
+  const { podeCopiarLink, podeBaixarNf, podeVerBoletos } = usePermissoesMesa();
 
   const acoes: AcaoItem[] = [];
 
-  if (linha.link_pagamento) {
+  if (podeCopiarLink && linha.link_pagamento) {
     acoes.push({
       chave: "link",
       rotulo: "Copiar link de pagamento",
@@ -50,7 +55,7 @@ export function AcoesMesaLinha({
       executar: () => void copiarLink(linha.link_pagamento!),
     });
   }
-  if (linha.tem_pdf && linha.nf_pdf_url) {
+  if (podeBaixarNf && linha.tem_pdf && linha.nf_pdf_url) {
     acoes.push({
       chave: "pdf",
       rotulo: `Baixar NF PDF${linha.nf_numero ? ` (${linha.nf_numero})` : ""}`,
@@ -58,7 +63,7 @@ export function AcoesMesaLinha({
       executar: () => window.open(linha.nf_pdf_url!, "_blank", "noopener,noreferrer"),
     });
   }
-  if (linha.tem_xml && linha.nf_xml_url) {
+  if (podeBaixarNf && linha.tem_xml && linha.nf_xml_url) {
     acoes.push({
       chave: "xml",
       rotulo: "Baixar NF XML",
@@ -66,7 +71,7 @@ export function AcoesMesaLinha({
       executar: () => window.open(linha.nf_xml_url!, "_blank", "noopener,noreferrer"),
     });
   }
-  if ((linha.boletos_qtd ?? 0) > 0) {
+  if (podeVerBoletos && (linha.boletos_qtd ?? 0) > 0) {
     acoes.push({
       chave: "boletos",
       rotulo: `Ver boletos (${linha.boletos_qtd})`,
@@ -75,7 +80,7 @@ export function AcoesMesaLinha({
     });
   }
 
-  // "Solicitar ao SOPS" está sempre disponível e é a última posição visível.
+  // "Solicitar ao SOPS" tem gate próprio dentro do componente da ação.
   const visiveis = acoes.slice(0, 3);
   const excedente = acoes.slice(3);
 
