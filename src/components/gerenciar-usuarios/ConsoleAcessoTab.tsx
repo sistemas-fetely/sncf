@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { formatError } from "@/lib/format-error";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTogglePermissao } from "@/hooks/useGruposAcessoV2";
 import GruposAcessoTabV2 from "@/components/grupos-acesso/GruposAcessoTabV2";
@@ -126,7 +127,7 @@ export default function ConsoleAcessoTab() {
   useEffect(() => {
     if (isError) {
       toast.error("Não consegui carregar o console de acesso.", {
-        description: error instanceof Error ? error.message : String(error),
+        description: formatError(error),
       });
     }
   }, [isError, error]);
@@ -260,8 +261,7 @@ export default function ConsoleAcessoTab() {
   if (isError) {
     return (
       <div className="flex items-center gap-2 p-6 text-destructive">
-        <ShieldAlert className="h-4 w-4" /> Falha ao carregar o console de acesso:{" "}
-        {error instanceof Error ? error.message : String(error)}
+        <ShieldAlert className="h-4 w-4" /> Falha ao carregar o console de acesso: {formatError(error)}
       </div>
     );
   }
@@ -361,7 +361,7 @@ export default function ConsoleAcessoTab() {
                   <button
                     type="button"
                     onClick={() => alternarModulo(m.appChave)}
-                    className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs font-semibold uppercase tracking-wide transition-colors hover:bg-accent"
+                    className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs font-medium uppercase tracking-wide transition-colors hover:bg-accent"
                   >
                     {fechado ? (
                       <ChevronRight className="h-3.5 w-3.5 shrink-0" />
@@ -479,7 +479,7 @@ export default function ConsoleAcessoTab() {
                         >
                           <TableCell className="align-top">
                             {ehTela && (
-                              <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                              <span className="mb-0.5 block text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                                 Acesso à tela
                               </span>
                             )}
