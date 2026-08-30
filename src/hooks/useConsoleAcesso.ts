@@ -243,7 +243,9 @@ export function useLiberarParaGrupo() {
         permissao_id,
         pode_ver: true,
       }));
-      const { error } = await supabase.from("grupo_acesso_permissoes").insert(rows);
+      const { error } = await supabase
+        .from("grupo_acesso_permissoes")
+        .upsert(rows, { onConflict: "grupo_acesso_id,permissao_id" });
       if (error) throw error;
     },
     onSuccess: () => toast.success("Liberado."),
