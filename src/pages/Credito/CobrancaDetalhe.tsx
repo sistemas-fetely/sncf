@@ -70,12 +70,6 @@ function todayISO(): string {
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
-function parseDiasCondicao(condicao: string | undefined | null): number {
-  if (!condicao) return 0;
-  const m = String(condicao).match(/(\d+)\s*dia/i);
-  return m ? parseInt(m[1], 10) : 0;
-}
-
 function addDiasISO(iso: string, dias: number): string {
   if (!iso) return iso;
   const [a, m, d] = iso.slice(0, 10).split("-").map(Number);
