@@ -60,9 +60,10 @@ export interface MesaComercialRow {
   comprovante_status: string | null;
   solicitacoes_abertas: number | null;
   /**
-   * CONDICAO-VEM-DO-PEDIDO: `condicao_solicitada` e a forma vêm de `pedidos`
-   * (a view ainda não expõe). A condição é o texto informativo; a forma é o que
-   * agrupa e serve de filtro. `pedidos.tipo_pagamento` é coluna morta — não usar.
+   * CONDICAO-FORMA-VEM-DA-VIEW: `condicao_solicitada`, `forma_pagamento_id` e
+   * `forma_pagamento_nome` já vêm de `vw_mesa_comercial` (join com `formas_pagamento`).
+   * A condição é o texto informativo; a forma é a dimensão que agrupa e filtra.
+   * `pedidos.tipo_pagamento` é coluna morta — não usar.
    */
   condicao_solicitada: string | null;
   forma_pagamento_id: string | null;
