@@ -12,6 +12,7 @@ import {
   useStatusComercialOpcoes,
   PAGAMENTO_ESTADO_TAREFA,
 } from "@/hooks/comercial/useMesaComercial";
+import { usePermissoesMesa } from "@/hooks/comercial/usePermissoesMesa";
 
 /**
  * Status comercial MANUAL. Vive ao lado do chip de temperatura do sistema —
