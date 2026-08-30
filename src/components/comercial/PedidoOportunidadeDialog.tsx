@@ -215,9 +215,9 @@ export function PedidoOportunidadeDialog({
   };
 
   const copiarLink = async () => {
-    if (!linkPagamento) return;
+    if (!linkPortao) return;
     try {
-      await navigator.clipboard.writeText(linkPagamento);
+      await navigator.clipboard.writeText(linkPortao);
       toast.success("Link de pagamento copiado");
     } catch {
       toast.error("Não foi possível copiar o link");
