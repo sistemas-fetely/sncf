@@ -29,6 +29,9 @@ export interface MesaComercialRow {
   vendedor_nome: string | null;
   estagio: string | null;
   fase_mesa: FaseMesa | null;
+  grupo_mesa: GrupoMesa | null;
+  /** EIXO-2 READ-ONLY: derivado na view, nunca editado pela tela. */
+  pagamento_estado_slug: string | null;
   status_comercial_slug: string | null;
   status_comercial_rotulo: string | null;
   status_comercial_cor: string | null;
