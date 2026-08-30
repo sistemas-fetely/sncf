@@ -231,11 +231,12 @@ export function PedidoOportunidadeDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="itens" className="flex flex-1 flex-col min-h-0">
+        <Tabs defaultValue={abaInicial} className="flex flex-1 flex-col min-h-0">
           <TabsList>
             <TabsTrigger value="itens">Itens</TabsTrigger>
             <TabsTrigger value="obs">Obs. Comerciais</TabsTrigger>
             <TabsTrigger value="pagamento">Pagamento</TabsTrigger>
+            <TabsTrigger value="entrega">Entrega, NF e boletos</TabsTrigger>
           </TabsList>
 
           <TabsContent value="itens" className="mt-4 flex-1 min-h-0 overflow-y-auto">
