@@ -10,9 +10,11 @@ import { AnaliseIaCard } from "./AnaliseIaCard";
 import { EncaminharParaDecisaoDialog } from "./dialogs/EncaminharParaDecisaoDialog";
 import { DevolverParaEntradaDialog } from "./dialogs/DevolverParaEntradaDialog";
 import { BoxDevolucaoRecente } from "./BoxDevolucaoRecente";
+import { BoxReaberturaPedido } from "./BoxReaberturaPedido";
+import { BureausReaproveitaveisCard } from "./BureausReaproveitaveisCard";
 import { AvisoNaoFaturado } from "./AvisoNaoFaturado";
-import { Sparkles, Loader2, FileSearch } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Sparkles, Loader2 } from "lucide-react";
+
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
@@ -62,7 +64,7 @@ export function AnaliseDetalheAnalise({ analiseId }: Props) {
     kpisFinanceiros,
     kpisGrupo,
     analisesAnteriores,
-    scoresHistoricoCount,
+    bureausReaproveitaveis,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } = data as any;
 
@@ -117,16 +119,17 @@ export function AnaliseDetalheAnalise({ analiseId }: Props) {
         />
       </div>
 
-      {/* B-82: Banner bureaus históricos */}
-      {scoresHistoricoCount > 0 && (
-        <Alert>
-          <FileSearch className="h-4 w-4" />
-          <AlertDescription>
-            Este cliente tem <strong>{scoresHistoricoCount}</strong> bureau{scoresHistoricoCount > 1 ? "s" : ""}{" "}
-            em análises anteriores. Consulte o histórico de análises abaixo para acessá-los.
-          </AlertDescription>
-        </Alert>
+      {/* Reabertura — escopo da reanálise */}
+      {analise.analise_anterior_id && (
+        <BoxReaberturaPedido
+          analiseAnteriorId={analise.analise_anterior_id}
+          transicoes={transicoes}
+          analisesAnteriores={analisesAnteriores}
+          condicaoAtual={pedido?.condicao_solicitada}
+          valorAtual={pedido?.valor_liquido}
+        />
       )}
+
 
       {/* Pré-aprovação (Joseph confirma 1-clique) */}
       {analise.pre_aprovado_regra_id && !analise.status_final && (
@@ -221,6 +224,14 @@ export function AnaliseDetalheAnalise({ analiseId }: Props) {
         {/* Centro + direita — operação */}
         <div className="lg:col-span-2 space-y-6">
           <UploadBureauZone analise_id={analise.id} parceiro_id={parceiro?.id} />
+          {parceiro?.id && (
+            <BureausReaproveitaveisCard
+              bureaus={bureausReaproveitaveis ?? []}
+              analiseId={analise.id}
+              parceiroId={parceiro.id}
+            />
+          )}
+
           <ScoresAnexados scores={scores} analiseId={analiseId} />
           <div className="rounded-lg bg-gold-soft gold-border p-1">
             <AnaliseIaCard

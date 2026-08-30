@@ -104,7 +104,13 @@ export interface AnaliseListItem {
   pre_aprovado_regra_id?: string | null;
   pre_aprovacao_em?: string | null;
   pre_aprovacao_regra_nome?: string | null;
+  /** Decisão anterior — usado no de-para de reabertura. */
+  limite_concedido?: number | null;
+  prazo_max_dias?: number | null;
+  validade_ate?: string | null;
+  perfil_aplicado?: string | null;
 }
+
 
 export interface PreAprovacaoPayload {
   regra_id: string;
@@ -135,7 +141,15 @@ export interface AnaliseScore {
   dados_extraidos_json: any;
   anexado_em: string;
   extraido_em: string | null;
+  /** Quando preenchido, o bureau foi copiado de outra análise do mesmo cliente. */
+  reaproveitado_de_id?: string | null;
 }
+
+/** Bureau de outra análise do mesmo cliente, ainda dentro da janela de validade. */
+export interface BureauReaproveitavel extends AnaliseScore {
+  idade_dias: number;
+}
+
 
 export interface AnaliseTransicao {
   id: string;
