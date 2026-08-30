@@ -59,7 +59,8 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
   const [busca, setBusca] = useState("");
   const [statusFiltro, setStatusFiltro] = useState<string>("todos");
   const [pagamentoFiltro, setPagamentoFiltro] = useState<string>("todos");
-  const [grupo, setGrupo] = useState<FiltroGrupo>("oportunidade");
+  // O valor da mesa está em "Em andamento" (NF, boleto, prazo de entrega).
+  const [grupo, setGrupo] = useState<FiltroGrupo>("em_andamento");
   const [meus, setMeus] = useState(true);
 
   const [detalhe, setDetalhe] = useState<MesaComercialRow | null>(null);
@@ -68,19 +69,37 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
   const navigate = useNavigate();
 
   const { data = [], isLoading, isFetching } = useMesaComercial();
-  const { data: vendedorAtual } = useVendedorAtual();
+  const { data: vendedorAtual, isLoading: carregandoVendedor } = useVendedorAtual();
   const { data: statusOpcoes = [] } = useStatusComercialOpcoes();
   const { data: pagamentoOpcoes = [] } = usePagamentoEstadoOpcoes();
+  const { podeVerTodos, carregando: carregandoPerms } = usePermissoesMesa();
 
-  // "Meus" só faz sentido com vendedor vinculado; sem vínculo, mostra tudo.
-  const filtrarMeus = meus && !!vendedorAtual;
+  /**
+   * CARTEIRA-SEGUE-A-PERMISSAO: com `acao.mesa_ver_todos` a pessoa escolhe entre
+   * a própria carteira e a de todos. Sem a permissão, vê SOMENTE a própria —
+   * o toggle nem existe. Sem vendedor vinculado, a lista fica vazia e explica;
+   * nunca cai em "vê tudo" por fallback, que seria vazamento de dado.
+   */
+  const filtrarMeus = podeVerTodos ? meus && !!vendedorAtual : true;
+  const semVendedorVinculado =
+    !podeVerTodos && !carregandoPerms && !carregandoVendedor && !vendedorAtual;
+
+  /** Escopo do vendedor aplicado antes de tudo — KPIs e contadores herdam dele. */
+  const escopoCarteira = useMemo(() => {
+    if (semVendedorVinculado) return [];
+    if (!filtrarMeus) return data;
+    if (!vendedorAtual) return [];
+    return data.filter((r) => r.vendedor_id === vendedorAtual.id);
+  }, [data, filtrarMeus, vendedorAtual, semVendedorVinculado]);
 
   /** Base do grupo + escopo do vendedor: os contadores dos filtros nascem daqui. */
-  const baseFase = useMemo(() => {
-    let base = grupo === "todas" ? data : data.filter((r) => r.grupo_mesa === grupo);
-    if (filtrarMeus) base = base.filter((r) => r.vendedor_id === vendedorAtual?.id);
-    return base;
-  }, [data, grupo, filtrarMeus, vendedorAtual?.id]);
+  const baseFase = useMemo(
+    () =>
+      grupo === "todas"
+        ? escopoCarteira
+        : escopoCarteira.filter((r) => r.grupo_mesa === grupo),
+    [escopoCarteira, grupo],
+  );
 
   const contagensGrupo = useMemo(() => {
     const c: Record<FiltroGrupo, number> = {
@@ -88,15 +107,12 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
       em_andamento: 0,
       todas: 0,
     };
-    const escopo = filtrarMeus
-      ? data.filter((r) => r.vendedor_id === vendedorAtual?.id)
-      : data;
-    for (const r of escopo) {
+    for (const r of escopoCarteira) {
       c.todas++;
       if (r.grupo_mesa && r.grupo_mesa in c) c[r.grupo_mesa]++;
     }
     return c;
-  }, [data, filtrarMeus, vendedorAtual?.id]);
+  }, [escopoCarteira]);
 
   /** DIMENSAO-VIA-TABELA: rótulo/cor do eixo 2 sempre de pagamento_estado_dim. */
   const pagamentoDim = useMemo(
