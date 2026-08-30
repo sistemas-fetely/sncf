@@ -77,6 +77,9 @@ export function AprovarDialog({ analise_id, pedido_id, campos, sugestaoIA, comRe
   const transicionar = useTransicionarAnalise();
   const definirPortao = useDefinirPortaoAnalise();
   const { toast } = useToast();
+  const formasQ = useFormasPagamento(true);
+  const rotuloForma = (codigo: string) =>
+    formasQ.data?.find((f) => f.codigo === codigo)?.nome ?? codigo;
 
   const ressalvaValida = !comRessalva || motivo.trim().length >= 10;
   const portaoValor = PORTAO_VALOR[portao];
