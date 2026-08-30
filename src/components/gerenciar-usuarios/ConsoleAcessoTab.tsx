@@ -514,26 +514,46 @@ export default function ConsoleAcessoTab() {
                   <TableHead className="min-w-[160px]">Dispara</TableHead>
                   <TableHead>Risco</TableHead>
                   <TableHead className="min-w-[130px]">Guarda atual</TableHead>
-                  {grupos.map((g) => (
-                    <TableHead key={g.id} className="text-center">
-                      <span className="block text-xs">{g.nome}</span>
-                      {g.role_automatico && (
-                        <span className="block text-[10px] text-muted-foreground">
-                          {g.role_automatico}
-                        </span>
+                  {porGrupo ? (
+                    /* Lente por grupo: uma coluna só — "Acessa" com o chip de
+                       alçada logo abaixo (mesmo componente CelulaConcessao). */
+                    <TableHead className="min-w-[130px] text-center">
+                      <span className="block text-xs">Acessa · Alçada</span>
+                      {grupoLenteId && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-1.5 text-[10px]"
+                          disabled={liberarParaGrupo.isPending}
+                          onClick={() => liberarTelaInteira(grupoLenteId)}
+                          title="Liberar todas as linhas declaradas desta tela para o grupo escolhido"
+                        >
+                          <Sparkles className="mr-1 h-3 w-3" /> Liberar tela
+                        </Button>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-1.5 text-[10px]"
-                        disabled={liberarParaGrupo.isPending}
-                        onClick={() => liberarTelaInteira(g.id)}
-                        title="Liberar todas as linhas declaradas desta tela para este grupo"
-                      >
-                        <Sparkles className="mr-1 h-3 w-3" /> Liberar tela
-                      </Button>
                     </TableHead>
-                  ))}
+                  ) : (
+                    grupos.map((g) => (
+                      <TableHead key={g.id} className="text-center">
+                        <span className="block text-xs">{g.nome}</span>
+                        {g.role_automatico && (
+                          <span className="block text-[10px] text-muted-foreground">
+                            {g.role_automatico}
+                          </span>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-1.5 text-[10px]"
+                          disabled={liberarParaGrupo.isPending}
+                          onClick={() => liberarTelaInteira(g.id)}
+                          title="Liberar todas as linhas declaradas desta tela para este grupo"
+                        >
+                          <Sparkles className="mr-1 h-3 w-3" /> Liberar tela
+                        </Button>
+                      </TableHead>
+                    ))
+                  )}
                   <TableHead className="text-center">Conferido</TableHead>
                 </TableRow>
               </TableHeader>
