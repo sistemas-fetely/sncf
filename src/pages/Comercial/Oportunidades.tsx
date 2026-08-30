@@ -186,9 +186,13 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex rounded-md border overflow-hidden">
-            {FASES.map((f) => (
-              <FiltroBtn key={f.valor} ativo={fase === f.valor} onClick={() => setFase(f.valor)}>
-                {f.rotulo} ({contagensFase[f.valor]})
+            {GRUPOS.map((g) => (
+              <FiltroBtn
+                key={g.valor}
+                ativo={grupo === g.valor}
+                onClick={() => setGrupo(g.valor)}
+              >
+                {g.rotulo} ({contagensGrupo[g.valor]})
               </FiltroBtn>
             ))}
           </div>
