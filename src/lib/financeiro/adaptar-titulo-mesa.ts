@@ -35,8 +35,11 @@ export interface LinhaMesa {
   lastro_instrumento: string | null;
   lastro_envio: string | null;
   fila: string | null;
+  /** Classe da falta de prova de crédito para cartões pagos sem conciliação (CARTAO_SEM_PROVA). */
+  cartao_prova_classe?: string | null;
   acao_sugerida: string | null;
   ressalvas: string | null;
+
   parceiro_cnpj: string | null;
   subestado_atraso: string | null;
   vip_relacionamento: boolean | null;
