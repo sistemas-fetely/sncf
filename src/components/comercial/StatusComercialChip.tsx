@@ -53,10 +53,24 @@ export function StatusComercialChip({
     }
   };
 
+  // A temperatura do sistema virou SUGESTÃO no tooltip — nunca mais um chip
+  // brigando com este pelo mesmo vocabulário.
+  const sugestao = TEMPERATURA_LABEL[temperaturaSistema ?? ""]
+    ? `Sistema calcula: ${TEMPERATURA_LABEL[temperaturaSistema ?? ""]} (score ${temperaturaScore ?? 0})`
+    : null;
+
   return (
     <Popover open={aberto} onOpenChange={setAberto}>
       <PopoverTrigger asChild>
-        <button type="button" title="Status comercial (manual) — clique para mudar">
+        <button
+          type="button"
+          title={[
+            "Status comercial (manual) — clique para mudar",
+            sugestao,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        >
           <Badge
             variant="outline"
             className={cn(
