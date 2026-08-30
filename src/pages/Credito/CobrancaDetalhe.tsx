@@ -639,16 +639,21 @@ export default function CobrancaDetalhe() {
   const paramDiasQ = useParametros("dias_primeiro_pagamento");
   const paramIntervaloQ = useParametros("intervalo_entre_parcelas");
 
-  // Aplica 1ª data = hoje + dias e cascateia as demais por offset cumulativo (i * intervalo)
+  // Âncora em hoje: cada linha vence em hoje + dias + prazo_dias próprio da
+  // condição aprovada. Só quando a linha não traz prazo_dias é que cai no
+  // espaçamento uniforme antigo (i * intervalo).
   const aplicarPrimeiraDataECascata = (
     lista: TituloProposto[],
     dias: number,
     intervalo: number,
   ): TituloProposto[] => {
     if (lista.length === 0) return lista;
-    const primeiraData = addDiasISO(todayISO(), dias);
+    const base = addDiasISO(todayISO(), dias);
     return lista.map((t, i) => {
-      const dataVenc = i === 0 ? primeiraData : addDiasISO(primeiraData, i * intervalo);
+      const prazo = Number(t.prazo_dias);
+      const dataVenc = Number.isFinite(prazo)
+        ? addDiasISO(base, prazo)
+        : addDiasISO(base, i * intervalo);
       return {
         ...t,
         data_vencimento: dataVenc,
@@ -668,17 +673,10 @@ export default function CobrancaDetalhe() {
     if (exigePortao && novos.length === 1) {
       novos[0].eh_portao = true;
     }
-    // APROVADO-MANDA-NO-VENCIMENTO (18/08/2026): propor_cobranca ja devolve os
-    // vencimentos derivados da condicao aprovada pelo credito. O parametro global
-    // (dias_primeiro_pagamento / intervalo_entre_parcelas) e SEMENTE para quando a
-    // proposta nao traz data — nunca sobreposicao do que o credito aprovou.
-    const todasTemData = novos.every((t) => t.data_vencimento);
-    if (todasTemData) {
-      return novos.map((t) => ({
-        ...t,
-        condicao_pagamento: calcularCondicaoLabel(t.data_vencimento, t.eh_entrada),
-      }));
-    }
+    // A doutrina APROVADO-MANDA-NO-VENCIMENTO foi substituída pela ÂNCORA EM HOJE:
+    // propor_cobranca devolve `prazo_dias` por linha e a data gravada na análise de
+    // crédito não é mais lida. A cascata é aplicada SEMPRE, para que os campos
+    // "dias do primeiro pagamento" e "intervalo" editados pelo operador tenham efeito.
     return aplicarPrimeiraDataECascata(novos, dias, intervalo);
   }
 

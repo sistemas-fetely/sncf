@@ -293,6 +293,8 @@ export interface TituloProposto {
   valor_bruto: number;
   data_vencimento: string; // YYYY-MM-DD
   condicao_pagamento: string;
+  /** Prazo em dias da condição aprovada para esta parcela (âncora: hoje + prorrogação + prazo). */
+  prazo_dias?: number;
   link_pagamento?: string;
 }
 
