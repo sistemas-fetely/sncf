@@ -202,8 +202,8 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
     if (novo !== "oportunidade") setPagamentoFiltro("todos");
   };
 
-
   return (
+
     <TooltipProvider>
       <div className={embutido ? "space-y-6" : "space-y-6 p-4 md:p-6"}>
         {!embutido && (
@@ -235,10 +235,10 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                 {g.rotulo} ({contagensGrupo[g.valor]})
               </FiltroBtn>
             ))}
-
           </div>
 
           {/* O toggle só existe para quem tem `acao.mesa_ver_todos`. */}
+
           {podeVerTodos && (
             <div className="inline-flex rounded-md border overflow-hidden">
               <FiltroBtn
@@ -318,8 +318,8 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
               ))}
             </div>
           )}
-
         </div>
+
 
         <Card>
           <CardContent className="p-0">
