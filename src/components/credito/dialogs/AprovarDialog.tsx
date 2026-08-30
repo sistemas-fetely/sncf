@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import { useTransicionarAnalise } from "@/hooks/credito/useTransicionarAnalise";
+import { useFormasPagamento } from "@/hooks/financeiro/useFormasPagamento";
 import { useDefinirPortaoAnalise } from "@/hooks/credito/useDefinirPortaoAnalise";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -76,6 +77,9 @@ export function AprovarDialog({ analise_id, pedido_id, campos, sugestaoIA, comRe
   const transicionar = useTransicionarAnalise();
   const definirPortao = useDefinirPortaoAnalise();
   const { toast } = useToast();
+  const formasQ = useFormasPagamento(true);
+  const rotuloForma = (codigo: string) =>
+    formasQ.data?.find((f) => f.codigo === codigo)?.nome ?? codigo;
 
   const ressalvaValida = !comRessalva || motivo.trim().length >= 10;
   const portaoValor = PORTAO_VALOR[portao];
@@ -161,8 +165,8 @@ export function AprovarDialog({ analise_id, pedido_id, campos, sugestaoIA, comRe
             </div>
             <div>
               <p className="text-muted-foreground text-xs">Formas</p>
-              <p className="font-medium capitalize">
-                {campos.formas_aceitas.join(", ") || "—"}
+              <p className="font-medium">
+                {campos.formas_aceitas.map(rotuloForma).join(", ") || "—"}
               </p>
             </div>
           </div>
