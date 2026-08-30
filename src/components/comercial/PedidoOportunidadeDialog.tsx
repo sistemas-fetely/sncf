@@ -136,6 +136,7 @@ export function PedidoOportunidadeDialog({
   comprovantesQtd,
   comprovanteStatus,
   abaInicial = "itens",
+  historicoCliente,
 }: Props) {
   const [texto, setTexto] = useState("");
   const [confirmarAberto, setConfirmarAberto] = useState(false);
