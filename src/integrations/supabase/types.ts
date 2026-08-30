@@ -1262,6 +1262,7 @@ export type Database = {
           fonte: string
           id: string
           parceiro_id: string
+          reaproveitado_de_id: string | null
           score_categorico: string | null
           score_numerico: number | null
           total_dividas: number | null
@@ -1284,6 +1285,7 @@ export type Database = {
           fonte: string
           id?: string
           parceiro_id: string
+          reaproveitado_de_id?: string | null
           score_categorico?: string | null
           score_numerico?: number | null
           total_dividas?: number | null
@@ -1306,6 +1308,7 @@ export type Database = {
           fonte?: string
           id?: string
           parceiro_id?: string
+          reaproveitado_de_id?: string | null
           score_categorico?: string | null
           score_numerico?: number | null
           total_dividas?: number | null
@@ -1401,6 +1404,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_recebivel_por_conta"
             referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "analise_credito_scores_reaproveitado_de_id_fkey"
+            columns: ["reaproveitado_de_id"]
+            isOneToOne: false
+            referencedRelation: "analise_credito_scores"
+            referencedColumns: ["id"]
           },
         ]
       }
