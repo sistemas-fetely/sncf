@@ -29,6 +29,7 @@ import {
   usePagamentoEstadoOpcoes,
   useStatusComercialOpcoes,
   useVendedorAtual,
+  PAGAMENTO_ESTADO_TAREFA,
   type GrupoMesa,
   type MesaComercialRow,
 } from "@/hooks/comercial/useMesaComercial";
