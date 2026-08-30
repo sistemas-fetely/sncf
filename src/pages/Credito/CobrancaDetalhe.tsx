@@ -686,9 +686,16 @@ export default function CobrancaDetalhe() {
     if (pedidoHidratadoRef.current === pedidoId) return;
     if (paramDiasQ.isLoading || paramIntervaloQ.isLoading) return;
 
-    const vDias = Number(paramDiasQ.data?.[0]?.valor);
+    const vDiasParam = Number(paramDiasQ.data?.[0]?.valor);
     const vIntervalo = Number(paramIntervaloQ.data?.[0]?.valor);
-    const diasUsar = Number.isFinite(vDias) && vDias >= 0 ? vDias : DIAS_PRIMEIRO_PAGAMENTO_FALLBACK;
+    // PREVISAO-VEM-DO-BANCO: a RPC já decidiu se aplica a prorrogação.
+    // Só usamos o parâmetro global como fallback quando a proposta não trouxe o campo.
+    const prorrogacaoDaProposta = Number(propostaQ.data.prorrogacao_dias);
+    const diasUsar = Number.isFinite(prorrogacaoDaProposta) && prorrogacaoDaProposta >= 0
+      ? prorrogacaoDaProposta
+      : Number.isFinite(vDiasParam) && vDiasParam >= 0
+        ? vDiasParam
+        : DIAS_PRIMEIRO_PAGAMENTO_FALLBACK;
     const intervaloUsar = Number.isFinite(vIntervalo) && vIntervalo >= 0 ? vIntervalo : INTERVALO_PARCELAS_FALLBACK;
 
     setDiasPrimeiroPagamento(diasUsar);
