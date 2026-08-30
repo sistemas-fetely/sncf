@@ -21,6 +21,16 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
+  // AUTORIA-NAO-SE-PERDE: service role não tem auth.uid(), então o evento de
+  // estágio nasceria sem autor. Este client carrega o JWT do usuário e é usado
+  // SÓ na chamada de transicionar_pedido (bloco 8b).
+  const sbUser = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
+  );
+
+
   let pedido_id: string | null = null;
   let payload: Record<string, unknown> | null = null;
   let userId: string | null = null;
@@ -199,7 +209,7 @@ Deno.serve(async (req) => {
       let avisoTransicao: string | undefined;
       const estagioAtual = montado?.estagio as string | undefined;
       if (estagioAtual && ["pre_faturado", "pre_separacao"].includes(estagioAtual)) {
-        const { error: errTransicao } = await sb.rpc("transicionar_pedido", {
+        const { error: errTransicao } = await sbUser.rpc("transicionar_pedido", {
           p_pedido_id: pedido_id,
           p_para_estagio: "em_separacao",
           p_proxima_acao: "Pedido no armazém — aguardar NF",

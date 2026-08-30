@@ -748,7 +748,7 @@ serve(async (req) => {
 
 
           if (t.pedido_id) {
-            const { error: errTransicao } = await sb.rpc("transicionar_pedido" as string, {
+            const { error: errTransicao } = await sbUser.rpc("transicionar_pedido" as string, {
               p_pedido_id: t.pedido_id,
               p_para_estagio: "pre_separacao",
               p_proxima_acao: "Pronto pra enviar pro Bling",

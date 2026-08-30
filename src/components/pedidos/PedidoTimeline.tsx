@@ -21,6 +21,26 @@ const EVENTO_LABELS: Record<string, string> = {
   outro: "•",
 };
 
+/**
+ * Autoria do evento (view `vw_pedido_evento`). FAIL-LOUD: eventos sem autor
+ * registrado aparecem em cor de alerta — marcam caminhos que perdem autoria.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function Autoria({ ev }: { ev: any }) {
+  if (ev.ator_tipo === "humano") {
+    return <span>👤 {ev.ator_nome || "usuário removido"}</span>;
+  }
+  if (ev.ator_tipo === "sistema") {
+    return (
+      <span>
+        ⚙️ Sistema
+        {ev.ator_origem ? ` · ${ev.ator_origem}` : ""}
+      </span>
+    );
+  }
+  return <span className="text-warning">⚠️ autor não registrado</span>;
+}
+
 interface Props {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   eventos: any[];
@@ -68,7 +88,7 @@ export function PedidoTimeline({ eventos }: Props) {
                     {isCom ? "📩 do Comercial" : "💬 do SOPS"} · {autorNome}
                   </div>
                   <div className="text-sm text-muted-foreground mt-1">
-                    {ev.descricao}
+                    {ev.descricao_efetiva ?? ev.descricao}
                   </div>
                 </li>
               );
@@ -77,27 +97,41 @@ export function PedidoTimeline({ eventos }: Props) {
             return (
               <li key={ev.id} className="ml-4">
                 <div className="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full bg-primary" />
-                <div className="text-xs text-muted-foreground">
-                  {new Date(ev.criado_em).toLocaleString("pt-BR")}
-                  {ev.automatico && " · automático"}
+                <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-1">
+                  <span>{new Date(ev.criado_em).toLocaleString("pt-BR")}</span>
+                  <span>·</span>
+                  <Autoria ev={ev} />
+                  {ev.automatico && <span>· automático</span>}
                 </div>
                 <div className="text-sm font-medium">
                   {EVENTO_LABELS[ev.tipo_evento] || ev.tipo_evento}
                 </div>
-                {ev.estagio_anterior && ev.estagio_novo && (
+                {ev.estagio_de && ev.estagio_para && (
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    {ESTAGIO_LABELS[ev.estagio_anterior as EstagioPedido] ||
-                      ev.estagio_anterior}
+                    {ESTAGIO_LABELS[ev.estagio_de as EstagioPedido] ||
+                      ev.estagio_de}
                     {" → "}
                     <span className="font-medium text-foreground">
-                      {ESTAGIO_LABELS[ev.estagio_novo as EstagioPedido] ||
-                        ev.estagio_novo}
+                      {ESTAGIO_LABELS[ev.estagio_para as EstagioPedido] ||
+                        ev.estagio_para}
                     </span>
                   </div>
                 )}
-                {ev.descricao && (
+                {ev.forcado_sem_lastro && (
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <Badge variant="destructive" className="text-[10px]">
+                      forçado sem lastro
+                    </Badge>
+                    {ev.lastro_faltante && (
+                      <span className="text-[11px] text-muted-foreground">
+                        {String(ev.lastro_faltante)}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {ev.descricao_efetiva && (
                   <div className="text-sm text-muted-foreground mt-1 italic">
-                    “{ev.descricao}”
+                    “{ev.descricao_efetiva}”
                   </div>
                 )}
               </li>
