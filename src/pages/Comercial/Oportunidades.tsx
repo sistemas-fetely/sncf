@@ -308,6 +308,17 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                   Montando a carteira completa — leva alguns segundos.
                 </p>
               </div>
+            ) : semVendedorVinculado ? (
+              <div className="text-center py-16 px-6">
+                <Sparkles className="h-8 w-8 text-muted-foreground/60 mx-auto mb-3" />
+                <p className="text-sm font-medium">
+                  Seu usuário não está vinculado a um vendedor.
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  A mesa mostra apenas a sua carteira. Peça a Operações para vincular seu
+                  usuário ao cadastro de vendedor — ou a permissão de ver todos.
+                </p>
+              </div>
             ) : filtradas.length === 0 ? (
               <div className="text-center py-16 px-6">
                 <Sparkles className="h-8 w-8 text-muted-foreground/60 mx-auto mb-3" />
