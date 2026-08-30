@@ -98,6 +98,12 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
     return c;
   }, [data, filtrarMeus, vendedorAtual?.id]);
 
+  /** DIMENSAO-VIA-TABELA: rótulo/cor do eixo 2 sempre de pagamento_estado_dim. */
+  const pagamentoDim = useMemo(
+    () => new Map(pagamentoOpcoes.map((o) => [o.slug, o])),
+    [pagamentoOpcoes],
+  );
+
   const contagensPagamento = useMemo(() => {
     const c = new Map<string, number>();
     for (const r of baseFase) {
