@@ -255,15 +255,7 @@ export default function ConsoleAcessoTab() {
 
   function liberarTelaInteira(grupoId: string) {
     if (!telaAtiva) return;
-    const ids = telaAtiva.linhas
-      .filter((l) => l.permissao_id && !portaoPorFlag(l) && l.declarada === true)
-      .map((l) => l.permissao_id as string)
-      .filter((id) => !concedido.has(`${grupoId}|${id}`));
-    if (!ids.length) {
-      toast.info("Este grupo já tem tudo desta tela.");
-      return;
-    }
-    liberarParaGrupo.mutate({ grupoId, permissaoIds: [...new Set(ids)] });
+    liberarLinhas(grupoId, telaAtiva.linhas, "desta tela");
   }
 
   /** Libera todas as linhas declaradas de um conjunto (tela ou módulo). */
