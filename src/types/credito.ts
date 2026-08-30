@@ -30,7 +30,8 @@ export type AcaoTransicao =
 
 export type FonteBureau = "serasa" | "bvg" | "manual";
 
-export type FormaPagamento = "boleto" | "pix" | "cartao";
+// DIMENSÃO-VIA-TABELA: códigos vêm de formas_pagamento.codigo (não hardcoded)
+export type FormaPagamento = string;
 
 export type DecisaoSugeridaIA =
   | "aprovar"
