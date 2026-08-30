@@ -88,6 +88,8 @@ export interface CelulaPermissao {
   grupo_acesso_id: string;
   permissao_id: string;
   pode_ver: boolean | null;
+  /** Alçada mínima DENTRO da concessão. Nulo = a concessão do grupo basta. */
+  nivel_minimo: number | null;
 }
 
 /** Matriz completa (grupo × permissão) — uma leitura só para a grade inteira. */
@@ -95,14 +97,69 @@ export function useMatrizGrupoPermissoes() {
   return useQuery({
     queryKey: CHAVE_MATRIZ_GRUPO_PERMISSOES,
     queryFn: async (): Promise<CelulaPermissao[]> => {
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from("grupo_acesso_permissoes")
-        .select("grupo_acesso_id, permissao_id, pode_ver");
+        .select("grupo_acesso_id, permissao_id, pode_ver, nivel_minimo");
       if (error) throw error;
       return (data ?? []) as CelulaPermissao[];
     },
   });
 }
+
+export interface PapelNivel {
+  papel: string;
+  nivel: number;
+  rotulo: string;
+}
+
+/** DIMENSÃO-VIA-TABELA: os níveis e seus rótulos vêm sempre de `papel_nivel`. */
+export function usePapeisNivel() {
+  return useQuery({
+    queryKey: ["papel-nivel"],
+    queryFn: async (): Promise<PapelNivel[]> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("papel_nivel")
+        .select("papel, nivel, rotulo")
+        .eq("legado", false)
+        .order("nivel");
+      if (error) throw error;
+      return (data ?? []) as PapelNivel[];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
+ * Grava a alçada mínima da célula (grupo × permissão). FAIL-LOUD: erro sobe
+ * com a mensagem real do banco e a matriz é reinvalidada no settled.
+ */
+export function useDefinirNivelMinimo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      grupoId,
+      permissaoId,
+      nivelMinimo,
+    }: {
+      grupoId: string;
+      permissaoId: string;
+      nivelMinimo: number | null;
+    }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from("grupo_acesso_permissoes")
+        .update({ nivel_minimo: nivelMinimo })
+        .eq("grupo_acesso_id", grupoId)
+        .eq("permissao_id", permissaoId);
+      if (error) throw error;
+    },
+    onError: (e: unknown) => toast.error(formatError(e)),
+    onSettled: () => qc.invalidateQueries({ queryKey: CHAVE_MATRIZ_GRUPO_PERMISSOES }),
+  });
+}
+
 
 /**
  * FAIL-LOUD: grava `conferido` + autor + timestamp. Erro sobe como toast e o
