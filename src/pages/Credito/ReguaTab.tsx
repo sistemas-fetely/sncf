@@ -28,7 +28,7 @@ import { PausarReguaDialog } from "@/components/credito/PausarReguaDialog";
 import { RenegociarTituloDialog } from "@/components/credito/RenegociarTituloDialog";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { LinhaMesa } from "@/lib/financeiro/adaptar-titulo-mesa";
-import { seloEntrega, seloEnvio, EntregaResumoInline, Selo, fmtDataMesa } from "@/lib/financeiro/mesa-lastros";
+import { seloInstrumento, seloEntrega, seloEnvio, EntregaResumoInline, Selo, fmtDataMesa } from "@/lib/financeiro/mesa-lastros";
 import {
   useBoletoVencimentoConferencia,
   type BoletoVencimentoConferencia,
@@ -309,6 +309,7 @@ function CardTitulo({
         return (
           <TooltipProvider>
             <div className="flex flex-wrap items-center gap-1">
+              {seloInstrumento(l)}
               {seloEntrega(l)}
               {seloEnvio(l)}
             </div>
@@ -415,6 +416,17 @@ function CardForaDaRegua({
       )}
       {mesa?.regua_motivo_inelegivel && (
         <p className="text-[11px] text-muted-foreground">{mesa.regua_motivo_inelegivel}</p>
+      )}
+
+      {mesa && (
+        <TooltipProvider>
+          <div className="flex flex-wrap items-center gap-1">
+            {seloInstrumento(mesa)}
+            {seloEntrega(mesa)}
+            {seloEnvio(mesa)}
+          </div>
+          <EntregaResumoInline l={mesa} />
+        </TooltipProvider>
       )}
 
       <div className="flex flex-wrap gap-1.5 pt-1">
