@@ -644,8 +644,8 @@ export function PedidoOportunidadeDialog({
           </AlertDialogContent>
         </AlertDialog>
         )}
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
 
