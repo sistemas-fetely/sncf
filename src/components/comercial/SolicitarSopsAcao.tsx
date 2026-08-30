@@ -56,6 +56,9 @@ export function SolicitarSopsAcao({
   const [detalhe, setDetalhe] = useState("");
   const abrir = useAbrirSolicitacao(pedidoId);
   const valido = detalhe.trim().length >= 5;
+  // Gate nominal no COMPONENTE da ação: vale para a linha e para o dialog.
+  const { podeSolicitarSops } = usePermissoesMesa();
+  if (!podeSolicitarSops) return null;
 
   const enviar = async () => {
     const escolhida = INTENCOES.find((i) => i.valor === intencao) ?? INTENCOES[INTENCOES.length - 1];
