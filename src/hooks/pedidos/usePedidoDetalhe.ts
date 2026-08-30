@@ -59,8 +59,10 @@ export function usePedidoDetalhe(pedidoId: string | undefined) {
         .eq("pedido_id", pedidoId)
         .order("ordem", { ascending: true });
 
+      // AUTORIA-NAO-SE-PERDE: leitura única da view, que já resolve ator_nome,
+      // estagio_de/para e descricao_efetiva. Sem segunda consulta a profiles.
       const { data: eventos } = await sb
-        .from("pedido_eventos")
+        .from("vw_pedido_evento")
         .select("*")
         .eq("pedido_id", pedidoId)
         .order("criado_em", { ascending: false })
