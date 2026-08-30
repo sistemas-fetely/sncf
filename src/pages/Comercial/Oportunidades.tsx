@@ -29,6 +29,7 @@ import {
   usePagamentoEstadoOpcoes,
   useStatusComercialOpcoes,
   useVendedorAtual,
+  PAGAMENTO_ESTADO_TAREFA,
   type GrupoMesa,
   type MesaComercialRow,
 } from "@/hooks/comercial/useMesaComercial";
@@ -179,16 +180,27 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
 
   const { data: linksFila } = useLinksPagamentoFila(filtradas.map((r) => r.pedido_id));
 
+  /** KPIs fixos em Oportunidades: os cards são o painel de estado da mesa,
+   *  não um resumo do filtro atual. Continuam respeitando o escopo do vendedor. */
+  const baseKpis = useMemo(
+    () => escopoCarteira.filter((r) => r.grupo_mesa === "oportunidade"),
+    [escopoCarteira],
+  );
+
   const kpis = useMemo(() => {
-    const qtd = filtradas.length;
-    const valor = filtradas.reduce((s, r) => s + Number(r.valor || 0), 0);
-    const aberto = filtradas.reduce((s, r) => s + Number(r.boletos_valor_aberto || 0), 0);
+    const qtd = baseKpis.length;
+    const valor = baseKpis.reduce((s, r) => s + Number(r.valor || 0), 0);
     const media =
       qtd > 0
-        ? filtradas.reduce((s, r) => s + Number(r.dias_desde_pedido || 0), 0) / qtd
+        ? baseKpis.reduce((s, r) => s + Number(r.dias_desde_pedido || 0), 0) / qtd
         : 0;
-    return { qtd, valor, aberto, media };
-  }, [filtradas]);
+    const precisamAcao = baseKpis.filter((r) =>
+      PAGAMENTO_ESTADO_TAREFA.has(r.pagamento_estado_slug ?? ""),
+    );
+    const precisamAcaoQtd = precisamAcao.length;
+    const precisamAcaoValor = precisamAcao.reduce((s, r) => s + Number(r.valor || 0), 0);
+    return { qtd, valor, media, precisamAcaoQtd, precisamAcaoValor };
+  }, [baseKpis]);
 
   const abrirDetalhe = (r: MesaComercialRow, aba: typeof abaDetalhe = "itens") => {
     setAbaDetalhe(aba);
@@ -215,11 +227,15 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
         )}
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <KpiCard label="Pedidos na mesa" value={String(kpis.qtd)} />
-          <KpiCard label="Valor" value={formatBRL(kpis.valor)} />
-          <KpiCard label="Boletos em aberto" value={formatBRL(kpis.aberto)} />
+          <KpiCard label="Oportunidades" value={String(kpis.qtd)} />
+          <KpiCard label="Valor em oportunidades" value={formatBRL(kpis.valor)} />
           <KpiCard
-            label="Média de dias"
+            label="Precisam de ação"
+            value={String(kpis.precisamAcaoQtd)}
+            subtitle={kpis.precisamAcaoQtd > 0 ? formatBRL(kpis.precisamAcaoValor) : undefined}
+          />
+          <KpiCard
+            label="Média de dias parados"
             value={kpis.qtd > 0 ? `${kpis.media.toFixed(0)} dias` : "—"}
           />
         </div>
@@ -555,12 +571,23 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
   );
 }
 
-function KpiCard({ label, value }: { label: string; value: string }) {
+function KpiCard({
+  label,
+  value,
+  subtitle,
+}: {
+  label: string;
+  value: string;
+  subtitle?: string;
+}) {
   return (
     <Card>
       <CardContent className="p-4">
         <p className="text-xs text-muted-foreground uppercase tracking-wide">{label}</p>
         <p className="text-2xl font-medium mt-1">{value}</p>
+        {subtitle && (
+          <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
+        )}
       </CardContent>
     </Card>
   );
