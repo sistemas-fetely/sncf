@@ -112,6 +112,19 @@ export function PedidoOportunidadeDialog({
   vencimentoPortao,
   portaoLinhas,
   linkPagamento,
+  dataEntregaPrevista,
+  metaOriginal,
+  metaProvisoria,
+  nfNumero,
+  nfChave,
+  nfPdfUrl,
+  nfXmlUrl,
+  temPdf,
+  temXml,
+  boletosValorAberto,
+  comprovantesQtd,
+  comprovanteStatus,
+  abaInicial = "itens",
 }: Props) {
   const [texto, setTexto] = useState("");
   const [confirmarAberto, setConfirmarAberto] = useState(false);
