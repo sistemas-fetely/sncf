@@ -29,9 +29,11 @@ import {
 import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { ComprovantePagamentoBloco } from "@/components/comercial/ComprovantePagamentoBloco";
 import { useComprovantesPedido } from "@/hooks/comercial/useComprovantePagamento";
-import { useAbrirSolicitacao } from "@/hooks/pedidos/useSolicitacoesComercial";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SolicitarSopsAcao } from "@/components/comercial/SolicitarSopsAcao";
+import { useStatusComercialLog } from "@/hooks/comercial/useMesaComercial";
+import { useBoletosDoPedido } from "@/hooks/pedidos/useBoletosDoPedido";
 import { hojeISO } from "@/lib/data";
+
 
 
 /** Texto curto do chip de situação — map, nunca concatenação. */
