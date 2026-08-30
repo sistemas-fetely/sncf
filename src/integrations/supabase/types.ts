@@ -25068,6 +25068,36 @@ export type Database = {
           },
         ]
       }
+      pagamento_estado_dim: {
+        Row: {
+          ativo: boolean
+          cor: string
+          observacao: string | null
+          ordem: number
+          rotulo: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cor?: string
+          observacao?: string | null
+          ordem?: number
+          rotulo: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cor?: string
+          observacao?: string | null
+          ordem?: number
+          rotulo?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pagamentos_pj: {
         Row: {
           competencia: string
@@ -60371,6 +60401,7 @@ export type Database = {
           email: string | null
           estagio: string | null
           fase_mesa: string | null
+          grupo_mesa: string | null
           id_externo: string | null
           link_pagamento: string | null
           meta_original: string | null
@@ -60379,6 +60410,7 @@ export type Database = {
           nf_numero: string | null
           nf_pdf_url: string | null
           nf_xml_url: string | null
+          pagamento_estado_slug: string | null
           parceiro_id: string | null
           pedido_id: string | null
           situacao_financeira: string | null
