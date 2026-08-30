@@ -95,6 +95,11 @@ const CHAVES_POR_PEDIDO: readonly string[] = [
   "boletos-do-pedido",
   "gerenciar-links",
   "pedido-email-log",
+  // Cobrança: chaves ["cobranca-*", pedidoId] não são alcançadas pelo prefixo
+  // ["pedido"] (o TanStack casa prefixo elemento a elemento) e usam staleTime alto.
+  "cobranca-pedido-minimo",
+  "cobranca-plano-existente",
+  "cobranca-proposta",
 ];
 
 export function invalidarPedido(qc: QueryClient, _pedidoId?: string | null): void {

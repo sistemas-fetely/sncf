@@ -24517,6 +24517,39 @@ export type Database = {
           },
         ]
       }
+      oportunidade_status_comercial: {
+        Row: {
+          ativo: boolean
+          cor: string
+          created_at: string
+          observacao: string | null
+          ordem: number
+          rotulo: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cor?: string
+          created_at?: string
+          observacao?: string | null
+          ordem?: number
+          rotulo: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cor?: string
+          created_at?: string
+          observacao?: string | null
+          ordem?: number
+          rotulo?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       oportunidade_temperatura_peso: {
         Row: {
           ativo: boolean
@@ -25265,6 +25298,7 @@ export type Database = {
           created_at: string | null
           dados_bancarios: Json | null
           data_nascimento: string | null
+          eh_entidade_propria: boolean
           email: string | null
           email_cobranca: string | null
           endereco_complemento: string | null
@@ -25329,6 +25363,7 @@ export type Database = {
           created_at?: string | null
           dados_bancarios?: Json | null
           data_nascimento?: string | null
+          eh_entidade_propria?: boolean
           email?: string | null
           email_cobranca?: string | null
           endereco_complemento?: string | null
@@ -25393,6 +25428,7 @@ export type Database = {
           created_at?: string | null
           dados_bancarios?: Json | null
           data_nascimento?: string | null
+          eh_entidade_propria?: boolean
           email?: string | null
           email_cobranca?: string | null
           endereco_complemento?: string | null
@@ -75765,6 +75801,10 @@ export type Database = {
       }
       tem_nivel: {
         Args: { _nivel: number; _user_id?: string }
+        Returns: boolean
+      }
+      tem_permissao: {
+        Args: { p_slug: string; p_user?: string }
         Returns: boolean
       }
       template_sugerido_para_cargo: {

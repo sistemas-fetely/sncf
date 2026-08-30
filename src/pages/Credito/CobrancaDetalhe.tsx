@@ -639,16 +639,21 @@ export default function CobrancaDetalhe() {
   const paramDiasQ = useParametros("dias_primeiro_pagamento");
   const paramIntervaloQ = useParametros("intervalo_entre_parcelas");
 
-  // Aplica 1ª data = hoje + dias e cascateia as demais por offset cumulativo (i * intervalo)
+  // Âncora em hoje: cada linha vence em hoje + dias + prazo_dias próprio da
+  // condição aprovada. Só quando a linha não traz prazo_dias é que cai no
+  // espaçamento uniforme antigo (i * intervalo).
   const aplicarPrimeiraDataECascata = (
     lista: TituloProposto[],
     dias: number,
     intervalo: number,
   ): TituloProposto[] => {
     if (lista.length === 0) return lista;
-    const primeiraData = addDiasISO(todayISO(), dias);
+    const base = addDiasISO(todayISO(), dias);
     return lista.map((t, i) => {
-      const dataVenc = i === 0 ? primeiraData : addDiasISO(primeiraData, i * intervalo);
+      const prazo = Number(t.prazo_dias);
+      const dataVenc = Number.isFinite(prazo)
+        ? addDiasISO(base, prazo)
+        : addDiasISO(base, i * intervalo);
       return {
         ...t,
         data_vencimento: dataVenc,
@@ -668,17 +673,10 @@ export default function CobrancaDetalhe() {
     if (exigePortao && novos.length === 1) {
       novos[0].eh_portao = true;
     }
-    // APROVADO-MANDA-NO-VENCIMENTO (18/08/2026): propor_cobranca ja devolve os
-    // vencimentos derivados da condicao aprovada pelo credito. O parametro global
-    // (dias_primeiro_pagamento / intervalo_entre_parcelas) e SEMENTE para quando a
-    // proposta nao traz data — nunca sobreposicao do que o credito aprovou.
-    const todasTemData = novos.every((t) => t.data_vencimento);
-    if (todasTemData) {
-      return novos.map((t) => ({
-        ...t,
-        condicao_pagamento: calcularCondicaoLabel(t.data_vencimento, t.eh_entrada),
-      }));
-    }
+    // A doutrina APROVADO-MANDA-NO-VENCIMENTO foi substituída pela ÂNCORA EM HOJE:
+    // propor_cobranca devolve `prazo_dias` por linha e a data gravada na análise de
+    // crédito não é mais lida. A cascata é aplicada SEMPRE, para que os campos
+    // "dias do primeiro pagamento" e "intervalo" editados pelo operador tenham efeito.
     return aplicarPrimeiraDataECascata(novos, dias, intervalo);
   }
 
@@ -784,9 +782,8 @@ export default function CobrancaDetalhe() {
 
 
   const temValorInvalido = titulos.some((t) => Number(t.valor_bruto) <= 0);
-  const temDataPassada = !!dataPedidoStr && titulos.some(
-    (t) => t.data_vencimento < dataPedidoStr,
-  );
+  // Boleto não pode nascer vencido: a régua é HOJE, não a data do pedido.
+  const temDataPassada = titulos.some((t) => t.data_vencimento < todayISO());
 
   const atualizarTitulo = (idx: number, patch: Partial<LinhaPlano>) => {
     setPlanoEditado(true);
@@ -833,6 +830,7 @@ export default function CobrancaDetalhe() {
       const novaData = ultima
         ? addDiasISO(ultima.data_vencimento, intervaloDias)
         : addDiasISO(todayISO(), diasPrimeiroPagamento);
+      const prazoUltima = Number(ultima?.prazo_dias);
       const novo: LinhaPlano = {
         ordem: prev.length,
         numero_parcela: prev.length + 1,
@@ -842,6 +840,7 @@ export default function CobrancaDetalhe() {
         tipo_pagamento: ultima?.tipo_pagamento ?? "boleto",
         valor_bruto: 0,
         data_vencimento: novaData,
+        prazo_dias: Number.isFinite(prazoUltima) ? prazoUltima + intervaloDias : undefined,
         condicao_pagamento: calcularCondicaoLabel(novaData, false),
       };
       const nova = renumerar([...prev, novo]);
@@ -874,7 +873,7 @@ export default function CobrancaDetalhe() {
     if (temDataPassada) {
       toast({
         title: "Data de vencimento inválida",
-        description: "Vencimentos não podem ser anteriores à data do pedido.",
+        description: "Vencimentos não podem ser anteriores a hoje.",
         variant: "destructive",
       });
       return;
@@ -1290,6 +1289,10 @@ export default function CobrancaDetalhe() {
                 }}
                 className="h-9 w-40"
               />
+              <p className="text-[11px] text-muted-foreground">
+                Vale só para parcelas adicionadas manualmente — o espaçamento das
+                parcelas da proposta vem da condição aprovada.
+              </p>
             </div>
             <div className="flex items-center gap-2 pb-2">
               <Checkbox
@@ -1407,7 +1410,7 @@ export default function CobrancaDetalhe() {
               </TableHeader>
               <TableBody>
                 {titulos.map((t, idx) => {
-                  const dataInvalida = !!dataPedidoStr && t.data_vencimento < dataPedidoStr;
+                  const dataInvalida = t.data_vencimento < todayISO();
                   const valorInvalido = Number(t.valor_bruto) <= 0;
                   const tipoDesabilitado = pedidoQ.data?.estagio !== "cobranca";
 
@@ -1564,7 +1567,7 @@ export default function CobrancaDetalhe() {
               <AlertDescription>
                 {temValorInvalido && <div>Há títulos com valor zero ou negativo.</div>}
                 {temDataPassada && (
-                  <div>Há vencimentos anteriores à data do pedido.</div>
+                  <div>Há vencimentos anteriores a hoje.</div>
                 )}
                 {temDivergenciaGrave && (
                   <div>
