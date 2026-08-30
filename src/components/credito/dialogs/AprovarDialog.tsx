@@ -165,8 +165,8 @@ export function AprovarDialog({ analise_id, pedido_id, campos, sugestaoIA, comRe
             </div>
             <div>
               <p className="text-muted-foreground text-xs">Formas</p>
-              <p className="font-medium capitalize">
-                {campos.formas_aceitas.join(", ") || "—"}
+              <p className="font-medium">
+                {campos.formas_aceitas.map(rotuloForma).join(", ") || "—"}
               </p>
             </div>
           </div>
