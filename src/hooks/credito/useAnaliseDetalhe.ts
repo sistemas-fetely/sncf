@@ -76,6 +76,7 @@ export function useAnaliseDetalhe(analiseId: string | undefined) {
         .select(`
           id, pedido_id, parceiro_id, estagio_atual, status_final,
           criado_em, decidido_em, analise_ia_confianca, analise_ia_processada_em,
+          limite_concedido, prazo_max_dias, validade_ate, perfil_aplicado,
           parceiro:parceiros_comerciais(cnpj, razao_social),
           pedido:pedidos(id_externo, valor_liquido, condicao_solicitada)
         `)
@@ -100,7 +101,11 @@ export function useAnaliseDetalhe(analiseId: string | undefined) {
         pedido_id_externo: r.pedido?.id_externo ?? "",
         analise_ia_confianca: r.analise_ia_confianca,
         analise_ia_processada_em: r.analise_ia_processada_em,
-      }));
+        limite_concedido: r.limite_concedido == null ? null : Number(r.limite_concedido),
+        prazo_max_dias: r.prazo_max_dias ?? null,
+        validade_ate: r.validade_ate ?? null,
+        perfil_aplicado: r.perfil_aplicado ?? null,
+      })) as AnaliseListItem[];
 
       const { data: marcosData } = await sb
         .from("v_parceiro_timeline")
@@ -118,13 +123,44 @@ export function useAnaliseDetalhe(analiseId: string | undefined) {
         .eq("parceiro_id", parceiroId)
         .order("data_vencimento_atual", { ascending: true });
 
-      // B-82: bureaus históricos
-      const { count: scoresHistoricoCount } = await sb
+      // Bureaus reaproveitáveis: outras análises do mesmo cliente, dentro da janela
+      // de validade (parâmetro bureau_validade_dias), deduplicados por fonte.
+      const { data: paramValidade } = await sb
+        .from("parametros")
+        .select("valor")
+        .eq("categoria", "bureau_validade_dias")
+        .eq("ativo", true)
+        .order("ordem")
+        .limit(1)
+        .maybeSingle();
+
+      const validadeDias = Number(paramValidade?.valor) > 0 ? Number(paramValidade.valor) : 90;
+      const limiteData = new Date();
+      limiteData.setDate(limiteData.getDate() - validadeDias);
+      const limiteDataStr = limiteData.toISOString().slice(0, 10);
+
+      const { data: bureausData } = await sb
         .from("analise_credito_scores")
-        .select("id", { count: "exact", head: true })
+        .select("*")
         .eq("parceiro_id", parceiroId)
         .neq("analise_id", analiseId)
-        .not("documento_storage_path", "is", null);
+        .not("documento_storage_path", "is", null)
+        .gte("data_consulta", limiteDataStr)
+        .order("data_consulta", { ascending: false });
+
+      const hoje = Date.now();
+      const porFonte = new Map<string, BureauReaproveitavel>();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const b of (bureausData || []) as any[]) {
+        if (porFonte.has(b.fonte)) continue; // já ordenado por data_consulta desc
+        const consulta = new Date(
+          String(b.data_consulta).length === 10 ? `${b.data_consulta}T00:00:00` : b.data_consulta,
+        ).getTime();
+        porFonte.set(b.fonte, {
+          ...b,
+          idade_dias: Math.max(0, Math.floor((hoje - consulta) / 86_400_000)),
+        });
+      }
 
       return {
         analise: analiseData,
@@ -138,8 +174,9 @@ export function useAnaliseDetalhe(analiseId: string | undefined) {
         analisesAnteriores: anteriores,
         marcos: (marcosData || []) as ParceiroMarco[],
         titulos: (titulosData || []) as TituloCredito[],
-        scoresHistoricoCount: scoresHistoricoCount ?? 0,
+        bureausReaproveitaveis: [...porFonte.values()],
       };
     },
   });
 }
+
