@@ -492,9 +492,6 @@ export default function ConsoleAcessoTab() {
                 </div>
               );
             })}
-                </div>
-              );
-            })}
           </CardContent>
         </Card>
 
