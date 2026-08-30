@@ -25,7 +25,7 @@ import { toast } from "sonner";
 import { formatError } from "@/lib/format-error";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTogglePermissao } from "@/hooks/useGruposAcessoV2";
-import GruposAcessoTabV2 from "@/components/grupos-acesso/GruposAcessoTabV2";
+import PainelGrupo from "./PainelGrupo";
 import DeclararAcaoDialog from "./DeclararAcaoDialog";
 import CelulaConcessao from "./CelulaConcessao";
 import {
