@@ -163,3 +163,40 @@ export function TemperaturaChip({
     </Badge>
   );
 }
+
+/**
+ * EIXO-2: estado do pagamento. SOMENTE LEITURA — derivado na view.
+ * "Gerar link" e "Link vencido" são TAREFA do comercial: ganham destaque.
+ */
+export function PagamentoEstadoChip({
+  slug,
+  rotulo,
+  cor,
+  className,
+}: {
+  slug: string | null;
+  rotulo: string | null;
+  cor: string | null;
+  className?: string;
+}) {
+  if (!slug || !rotulo) return null;
+  const tarefa = PAGAMENTO_ESTADO_TAREFA.has(slug);
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        "rounded px-1.5 py-0 text-[10px]",
+        COR_STATUS_CLASSE[cor ?? ""] ?? "border-muted-foreground/40 text-muted-foreground",
+        tarefa && "bg-destructive/10 font-medium",
+        className,
+      )}
+      title={
+        tarefa
+          ? "Ação do Comercial — estado calculado pelo sistema"
+          : "Estado do pagamento calculado pelo sistema (somente leitura)"
+      }
+    >
+      {rotulo}
+    </Badge>
+  );
+}
