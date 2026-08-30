@@ -60473,12 +60473,15 @@ export type Database = {
           cnpj: string | null
           comprovante_status: string | null
           comprovantes_qtd: number | null
+          condicao_solicitada: string | null
           data_entrega_prevista: string | null
           data_pedido: string | null
           dias_desde_pedido: number | null
           email: string | null
           estagio: string | null
           fase_mesa: string | null
+          forma_pagamento_id: string | null
+          forma_pagamento_nome: string | null
           grupo_mesa: string | null
           id_externo: string | null
           link_pagamento: string | null
@@ -60516,6 +60519,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "pedidos_forma_pagamento_id_fkey"
+            columns: ["forma_pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "formas_pagamento"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pedidos_parceiro_id_fkey"
