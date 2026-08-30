@@ -53,10 +53,27 @@ const FILAS: { chave: string; label: string }[] = [
   { chave: "A_VENCER", label: "A vencer (D-3)" },
   { chave: "ENTREGA_ATRASADA", label: "Entrega atrasada" },
   { chave: "CONCILIAR", label: "Conciliar — não cobrar" },
+  { chave: "CARTAO_SEM_PROVA", label: "Cartão sem prova de crédito" },
   { chave: "BOLETO_EM_CURSO_BANCO", label: "Boleto em curso no banco" },
   { chave: "EM_CURSO", label: "Em curso" },
   { chave: "NAO_COBRAVEL", label: "Não cobrável" },
 ];
+
+const ROTULO_CARTAO_PROVA_CLASSE: Record<string, string> = {
+  sem_nsu: "sem NSU",
+  sem_previsao: "sem previsão de crédito",
+  adquirente_atrasada: "adquirente atrasada",
+};
+
+function BadgeCartaoProva({ classe }: { classe: string | null | undefined }) {
+  if (!classe) return null;
+  return (
+    <Badge className="shrink-0 bg-warning/10 text-warning hover:bg-warning/10 text-[10px]">
+      {ROTULO_CARTAO_PROVA_CLASSE[classe] ?? classe}
+    </Badge>
+  );
+}
+
 
 const GRUPOS: Record<"agir" | "vigiar" | "nao", string[]> = {
   agir: ["A_ENVIAR", "A_EMITIR_BOLETO", "A_REEMITIR_BOLETO", "A_COBRAR", "EMAIL_BLOQUEADO"],
@@ -257,7 +274,13 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
     return { qtd: alvo.length, soma: alvo.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0) };
   }, [linhas]);
 
+  const resumoCartaoSemProva = useMemo(() => {
+    const alvo = linhas.filter((l) => l.fila === "CARTAO_SEM_PROVA");
+    return { qtd: alvo.length, soma: alvo.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0) };
+  }, [linhas]);
+
   const porFila = useMemo(() => {
+
     const map: Record<string, LinhaMesa[]> = Object.fromEntries(FILAS.map((f) => [f.chave, []]));
     for (const l of filtradas) {
       const k = l.fila ?? "";
@@ -337,7 +360,8 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
         </div>
 
         {/* Cartões-resumo */}
-        <div className="grid gap-3 sm:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-5">
+
           {/* VENCIDO — transversal a todas as filas, primeiro da fila visual. */}
           <Card
             onClick={() => { setSoVencido((v) => !v); setGrupoAtivo(null); }}
@@ -400,10 +424,52 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
               </Card>
             );
           })}
-        </div>
 
 
-        {/* Filtros */}
+        {/* CARTÃO SEM PROVA — conciliação, não inadimplência. */}
+        <Card
+          onClick={() => { setSoVencido(false); setGrupoAtivo(null); setFilaF((f) => (f === "CARTAO_SEM_PROVA" ? "todas" : "CARTAO_SEM_PROVA")); }}
+          className={`cursor-pointer transition ${
+            filaF === "CARTAO_SEM_PROVA" ? "ring-2 ring-warning" : "hover:bg-muted/50"
+          } ${
+            resumoCartaoSemProva.qtd > 0
+              ? "border-warning bg-warning/10"
+              : "border-muted bg-muted/30 opacity-70"
+          }`}
+        >
+          <CardContent className="p-3">
+            <div
+              className={`text-[11px] font-medium tracking-wide ${
+                resumoCartaoSemProva.qtd > 0 ? "text-warning" : "text-muted-foreground"
+              }`}
+            >
+              CARTÃO SEM PROVA
+            </div>
+            {resumoCartaoSemProva.qtd > 0 ? (
+              <>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="text-2xl font-medium tabular-nums text-warning">
+                    {resumoCartaoSemProva.qtd}
+                  </span>
+                  <span className="text-xs text-muted-foreground">títulos</span>
+                </div>
+                <div className="text-sm font-medium tabular-nums text-warning">
+                  {formatBRL(resumoCartaoSemProva.soma)}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="mt-1 text-sm text-muted-foreground">nenhum</div>
+                <div className="text-sm tabular-nums text-muted-foreground">{formatBRL(0)}</div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+
+      {/* Filtros */}
+
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative min-w-[220px] flex-1">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -488,7 +554,13 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                             {f.qtdVencido} vencido{f.qtdVencido > 1 ? "s" : ""} · {formatBRL(f.totalVencido)}
                           </Badge>
                         )}
+                        {f.chave === "CARTAO_SEM_PROVA" && (
+                          <Badge className="shrink-0 bg-warning/10 text-warning hover:bg-warning/10 text-[10px]">
+                            conciliação
+                          </Badge>
+                        )}
                       </div>
+
 
                       {acao && <div className="truncate text-xs text-muted-foreground">{acao}</div>}
                       {naoCobrar && (
@@ -549,11 +621,13 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                       {seloEntrega(g.urgente)}
                                       {seloInstrumento(g.urgente)}
                                       {seloEnvio(g.urgente)}
+                                      <BadgeCartaoProva classe={g.urgente.cartao_prova_classe} />
                                     </span>
                                     {g.ressalvas && (
                                       <span className="min-w-0 text-[10px] text-warning">{g.ressalvas}</span>
                                     )}
                                     <EntregaResumoInline l={g.urgente} className="min-w-0" />
+
                                   </button>
                                 </CollapsibleTrigger>
                                 {f.chave === "A_ENVIAR" && (
@@ -582,9 +656,10 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                         <TableHead className="h-8">Atraso</TableHead>
                                         <TableHead className="h-8">Lastros</TableHead>
                                         <TableHead className="h-8">Ressalvas</TableHead>
-                                        {FILAS_REGUA.has(f.chave) && (
+                                        {FILAS_REGUA.has(f.chave) && f.chave !== "CARTAO_SEM_PROVA" && (
                                           <TableHead className="h-8">Régua</TableHead>
                                         )}
+
                                       </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -598,11 +673,15 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                           onClick={() => setDetalhe(l)}
                                         >
                                           <TableCell className="py-1.5">
-                                            {l.numero_titulo ?? "—"}
-                                            {l.numero_parcela && l.total_parcelas ? (
-                                              <span className="text-muted-foreground"> {l.numero_parcela}/{l.total_parcelas}</span>
-                                            ) : null}
+                                            <div className="flex flex-wrap items-center gap-1">
+                                              <span>{l.numero_titulo ?? "—"}</span>
+                                              {l.numero_parcela && l.total_parcelas ? (
+                                                <span className="text-muted-foreground"> {l.numero_parcela}/{l.total_parcelas}</span>
+                                              ) : null}
+                                              <BadgeCartaoProva classe={l.cartao_prova_classe} />
+                                            </div>
                                           </TableCell>
+
                                           <TableCell className="py-1.5">{l.instrumento ?? "—"}</TableCell>
                                           <TableCell className="py-1.5">{l.nf_numero ?? "—"}</TableCell>
                                           <TableCell className="py-1.5 text-right tabular-nums">{formatBRL(Number(l.valor_atual ?? 0))}</TableCell>
@@ -623,8 +702,9 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                             )}
                                             <EntregaResumoInline l={l} />
                                           </TableCell>
-                                          {FILAS_REGUA.has(f.chave) && (
+                                          {FILAS_REGUA.has(f.chave) && f.chave !== "CARTAO_SEM_PROVA" && (
                                             <TableCell className="py-1.5" onClick={(e) => e.stopPropagation()}>
+
                                               {!tituloAdapt || !etapa ? (
                                                 <span className="text-[10px] text-muted-foreground">
                                                   sem ação de régua hoje
