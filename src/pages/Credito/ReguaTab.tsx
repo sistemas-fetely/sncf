@@ -28,7 +28,7 @@ import { PausarReguaDialog } from "@/components/credito/PausarReguaDialog";
 import { RenegociarTituloDialog } from "@/components/credito/RenegociarTituloDialog";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { LinhaMesa } from "@/lib/financeiro/adaptar-titulo-mesa";
-import { seloEntrega, seloEnvio, EntregaResumoInline, Selo, fmtDataMesa } from "@/lib/financeiro/mesa-lastros";
+import { seloInstrumento, seloEntrega, seloEnvio, EntregaResumoInline, Selo, fmtDataMesa } from "@/lib/financeiro/mesa-lastros";
 import {
   useBoletoVencimentoConferencia,
   type BoletoVencimentoConferencia,
