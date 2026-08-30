@@ -87,7 +87,7 @@ export function useReguaFilaHoje() {
  * VENCIDO-NAO-DESAPARECE: títulos vencidos que a régua não pode escalar por
  * falta de lastro. O banco decide (regua_elegivel=false); a tela só mostra.
  *
- * CARTAO_SEM_PROVA fica na aba Mesa (conciliação, não cobrança) e por isso
+ * PAGO_SEM_PROVA fica na aba Mesa (conciliação, não cobrança) e por isso
  * é excluído daqui junto com NAO_COBRAVEL.
  */
 export function useReguaVencidoForaDaFila() {
@@ -99,7 +99,7 @@ export function useReguaVencidoForaDaFila() {
         .select("*")
         .gt("dias_atraso", 0)
         .eq("regua_elegivel", false)
-        .not("fila", "in", "(NAO_COBRAVEL,CARTAO_SEM_PROVA)")
+        .not("fila", "in", "(NAO_COBRAVEL,PAGO_SEM_PROVA)")
         .order("dias_atraso", { ascending: false })
         .limit(500);
       if (error) throw error;
