@@ -53,10 +53,27 @@ const FILAS: { chave: string; label: string }[] = [
   { chave: "A_VENCER", label: "A vencer (D-3)" },
   { chave: "ENTREGA_ATRASADA", label: "Entrega atrasada" },
   { chave: "CONCILIAR", label: "Conciliar — não cobrar" },
+  { chave: "CARTAO_SEM_PROVA", label: "Cartão sem prova de crédito" },
   { chave: "BOLETO_EM_CURSO_BANCO", label: "Boleto em curso no banco" },
   { chave: "EM_CURSO", label: "Em curso" },
   { chave: "NAO_COBRAVEL", label: "Não cobrável" },
 ];
+
+const ROTULO_CARTAO_PROVA_CLASSE: Record<string, string> = {
+  sem_nsu: "sem NSU",
+  sem_previsao: "sem previsão de crédito",
+  adquirente_atrasada: "adquirente atrasada",
+};
+
+function BadgeCartaoProva({ classe }: { classe: string | null | undefined }) {
+  if (!classe) return null;
+  return (
+    <Badge className="shrink-0 bg-warning/10 text-warning hover:bg-warning/10 text-[10px]">
+      {ROTULO_CARTAO_PROVA_CLASSE[classe] ?? classe}
+    </Badge>
+  );
+}
+
 
 const GRUPOS: Record<"agir" | "vigiar" | "nao", string[]> = {
   agir: ["A_ENVIAR", "A_EMITIR_BOLETO", "A_REEMITIR_BOLETO", "A_COBRAR", "EMAIL_BLOQUEADO"],
