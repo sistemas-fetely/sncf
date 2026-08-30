@@ -3,6 +3,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -15,10 +36,13 @@ import {
   ChevronDown,
   ChevronRight,
   Loader2,
+  MoreHorizontal,
+  Search,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
   Users,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -38,6 +62,7 @@ import {
   usePapeisNivel,
   useDefinirNivelMinimo,
   type ConsoleAcessoRow,
+  type GrupoConsole,
 } from "@/hooks/useConsoleAcesso";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -49,6 +74,14 @@ import { useQueryClient } from "@tanstack/react-query";
  * Esquerda: árvore Módulo → Tela. Direita: grade linhas × grupos de acesso.
  * A linha `tipo = 'tela'` é o acesso de entrar na tela; as linhas
  * `tipo = 'acao'` são os botões daquela tela.
+ *
+ * APRESENTAÇÃO: a grade só carrega o que é decisão (Linha · Risco · concessão ·
+ * Conferido). Contexto de leitura (o que dispara, guarda atual, arquivo, slug)
+ * vive no painel lateral de detalhe, aberto ao clicar na linha.
+ *
+ * PREPARADO PARA DEPOIS: `gruposVisiveis` é o único ponto que decide quais
+ * colunas de grupo aparecem — basta filtrá-lo para ganhar um seletor de
+ * colunas sem tocar no resto da grade.
  */
 
 function badgeRisco(risco: string | null) {
@@ -65,6 +98,22 @@ const naoDeclarada = (l: ConsoleAcessoRow) => l.declarada !== true;
 const portaoPorFlag = (l: ConsoleAcessoRow) => l.apenas_super_admin === true;
 const ehAltoSemGuarda = (l: ConsoleAcessoRow) =>
   semGuarda(l) && (l.risco ?? "").toUpperCase() === "ALTO";
+
+/** Sigla curta derivada do nome do grupo (nada hardcoded). */
+function sigla(nome: string): string {
+  const palavras = (nome ?? "")
+    .trim()
+    .split(/\s+/)
+    .filter((p) => p.length > 2);
+  if (palavras.length >= 2) {
+    return palavras
+      .slice(0, 3)
+      .map((p) => p[0])
+      .join("")
+      .toUpperCase();
+  }
+  return (nome ?? "").slice(0, 3).toUpperCase();
+}
 
 function renderGuarda(guarda: string | null) {
   const g = (guarda ?? "").trim();
@@ -89,6 +138,48 @@ function BadgeAltoSemGuarda({ n }: { n: number }) {
     <Badge variant="destructive" className="px-1.5 py-0 text-[10px]">
       {n} ALTO sem guarda
     </Badge>
+  );
+}
+
+/** Número clicável da faixa fina de contadores. Ativo fica destacado. */
+function NumeroFaixa({
+  valor,
+  rotulo,
+  ativo,
+  tom,
+  onClick,
+}: {
+  valor: number;
+  rotulo: string;
+  ativo?: boolean;
+  tom?: "warning" | "destructive" | "muted";
+  onClick?: () => void;
+}) {
+  const cor =
+    tom === "warning"
+      ? "text-warning"
+      : tom === "destructive"
+        ? "text-destructive"
+        : "text-muted-foreground";
+  const Conteudo = (
+    <>
+      <span className={cn("font-medium tabular-nums", cor)}>{valor}</span>{" "}
+      <span className="text-muted-foreground">{rotulo}</span>
+    </>
+  );
+  if (!onClick) return <span className="text-xs">{Conteudo}</span>;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={ativo}
+      className={cn(
+        "rounded-md px-1.5 py-0.5 text-xs transition-colors hover:bg-accent",
+        ativo && "bg-accent ring-1 ring-border",
+      )}
+    >
+      {Conteudo}
+    </button>
   );
 }
 
@@ -126,10 +217,18 @@ export default function ConsoleAcessoTab() {
   const [telaSel, setTelaSel] = useState<string | null>(null);
   const [modulosFechados, setModulosFechados] = useState<Set<string>>(new Set());
   const [declarando, setDeclarando] = useState<ConsoleAcessoRow | null>(null);
+  const [detalhe, setDetalhe] = useState<ConsoleAcessoRow | null>(null);
   /** LENTE: mesmo editor, dois eixos. "tela" = escolho a tela e marco grupos;
    *  "grupo" = escolho o grupo e marco as telas. Sem duplicação de editor. */
   const [lente, setLente] = useState<"tela" | "grupo">("tela");
   const [grupoLenteId, setGrupoLenteId] = useState<string | null>(null);
+
+  // ── Filtros (apresentação pura: nunca alteram o que é gravado) ──
+  const [busca, setBusca] = useState("");
+  const [soSemGuarda, setSoSemGuarda] = useState(false);
+  const [soAltoSemGuarda, setSoAltoSemGuarda] = useState(false);
+  const [soNaoDeclaradas, setSoNaoDeclaradas] = useState(false);
+  const [concedidasGrupoId, setConcedidasGrupoId] = useState<string | null>(null);
 
   // FAIL-LOUD: erro de query sobe como toast com a mensagem real.
   useEffect(() => {
@@ -140,9 +239,65 @@ export default function ConsoleAcessoTab() {
     }
   }, [isError, error]);
 
+  const concedido = useMemo(() => {
+    const set = new Set<string>();
+    matriz.forEach((c) => {
+      if (c.pode_ver) set.add(`${c.grupo_acesso_id}|${c.permissao_id}`);
+    });
+    return set;
+  }, [matriz]);
+
+  /** Alçada gravada por célula. Ausente/nulo = a concessão do grupo basta. */
+  const nivelPorCelula = useMemo(() => {
+    const mapa = new Map<string, number | null>();
+    matriz.forEach((c) =>
+      mapa.set(`${c.grupo_acesso_id}|${c.permissao_id}`, c.nivel_minimo ?? null),
+    );
+    return mapa;
+  }, [matriz]);
+
+  const porGrupo = lente === "grupo";
+  const filtroConcedidas = porGrupo ? null : concedidasGrupoId;
+  const temFiltro =
+    busca.trim().length > 0 ||
+    soSemGuarda ||
+    soAltoSemGuarda ||
+    soNaoDeclaradas ||
+    !!filtroConcedidas;
+
+  function limparFiltros() {
+    setBusca("");
+    setSoSemGuarda(false);
+    setSoAltoSemGuarda(false);
+    setSoNaoDeclaradas(false);
+    setConcedidasGrupoId(null);
+  }
+
+  /** Filtros combináveis. Valem para a grade E para os contadores da árvore. */
+  const linhasFiltradas = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    return linhas.filter((l) => {
+      if (soSemGuarda && !semGuarda(l)) return false;
+      if (soAltoSemGuarda && !ehAltoSemGuarda(l)) return false;
+      if (soNaoDeclaradas && !(l.tipo === "acao" && naoDeclarada(l))) return false;
+      if (filtroConcedidas) {
+        if (!l.permissao_id) return false;
+        if (!concedido.has(`${filtroConcedidas}|${l.permissao_id}`)) return false;
+      }
+      if (termo) {
+        const alvo = [l.rotulo, l.permissao_slug, l.dispara]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!alvo.includes(termo)) return false;
+      }
+      return true;
+    });
+  }, [linhas, busca, soSemGuarda, soAltoSemGuarda, soNaoDeclaradas, filtroConcedidas, concedido]);
+
   const modulos = useMemo<ModuloNodo[]>(() => {
     const porModulo = new Map<string, ModuloNodo>();
-    for (const l of linhas) {
+    for (const l of linhasFiltradas) {
       const appChave = l.app_chave ?? "__sem_modulo__";
       let mod = porModulo.get(appChave);
       if (!mod) {
@@ -185,7 +340,7 @@ export default function ConsoleAcessoTab() {
       );
     });
     return lista.sort((a, b) => a.appOrdem - b.appOrdem);
-  }, [linhas]);
+  }, [linhasFiltradas]);
 
   const telaAtiva = useMemo<TelaNodo | null>(() => {
     for (const m of modulos) {
@@ -213,30 +368,12 @@ export default function ConsoleAcessoTab() {
     const semGuardaList = linhas.filter(semGuarda);
     return {
       total: linhas.length,
-      telas: linhas.filter((l) => l.tipo === "tela").length,
       semGuarda: semGuardaList.length,
       altoSemGuarda: semGuardaList.filter((l) => (l.risco ?? "").toUpperCase() === "ALTO")
         .length,
       naoDeclaradas: linhas.filter((l) => l.tipo === "acao" && naoDeclarada(l)).length,
     };
   }, [linhas]);
-
-  const concedido = useMemo(() => {
-    const set = new Set<string>();
-    matriz.forEach((c) => {
-      if (c.pode_ver) set.add(`${c.grupo_acesso_id}|${c.permissao_id}`);
-    });
-    return set;
-  }, [matriz]);
-
-  /** Alçada gravada por célula. Ausente/nulo = a concessão do grupo basta. */
-  const nivelPorCelula = useMemo(() => {
-    const mapa = new Map<string, number | null>();
-    matriz.forEach((c) =>
-      mapa.set(`${c.grupo_acesso_id}|${c.permissao_id}`, c.nivel_minimo ?? null),
-    );
-    return mapa;
-  }, [matriz]);
 
   function alternar(grupoId: string, permissaoId: string, valor: boolean) {
     togglePermissao.mutate(
@@ -253,11 +390,6 @@ export default function ConsoleAcessoTab() {
     );
   }
 
-  function liberarTelaInteira(grupoId: string) {
-    if (!telaAtiva) return;
-    liberarLinhas(grupoId, telaAtiva.linhas, "desta tela");
-  }
-
   /** Libera todas as linhas declaradas de um conjunto (tela ou módulo). */
   function liberarLinhas(grupoId: string, alvo: ConsoleAcessoRow[], rotulo: string) {
     const ids = alvo
@@ -269,6 +401,22 @@ export default function ConsoleAcessoTab() {
       return;
     }
     liberarParaGrupo.mutate({ grupoId, permissaoIds: [...new Set(ids)] });
+  }
+
+  function liberarTelaInteira(grupoId: string) {
+    if (!telaAtiva) return;
+    liberarLinhas(grupoId, telaAtiva.linhas, "desta tela");
+  }
+
+  /** Módulo dono da tela ativa — alimenta "Liberar módulo" no cabeçalho. */
+  const moduloAtivo = useMemo(
+    () => modulos.find((m) => m.telas.some((t) => t.chave === telaAtiva?.chave)) ?? null,
+    [modulos, telaAtiva],
+  );
+
+  function liberarModuloInteiro(grupoId: string) {
+    if (!moduloAtivo) return;
+    liberarLinhas(grupoId, moduloAtivo.telas.flatMap((t) => t.linhas), "deste módulo");
   }
 
   /** Concedidas por tela para o grupo da lente — alimenta o contador "3/14". */
@@ -285,8 +433,6 @@ export default function ConsoleAcessoTab() {
     );
     return mapa;
   }, [modulos, concedido, grupoLenteId]);
-
-
 
   function alternarModulo(appChave: string) {
     setModulosFechados((prev) => {
@@ -313,10 +459,41 @@ export default function ConsoleAcessoTab() {
     );
   }
 
-  const porGrupo = lente === "grupo";
-  /** Colunas fixas da grade (fora as colunas de grupo da lente "Por tela"). */
-  const colunasFixas = 5;
-  const nColunas = porGrupo ? 6 : colunasFixas + grupos.length;
+  /** PONTO ÚNICO de decisão de colunas de grupo (ver comentário do topo). */
+  const gruposVisiveis: GrupoConsole[] = grupos;
+  /** Colunas fixas: Linha · Risco · Conferido. */
+  const nColunas = porGrupo ? 4 : 3 + gruposVisiveis.length;
+  const grupoConcedidas = grupos.find((g) => g.id === filtroConcedidas) ?? null;
+
+  /** Menu do cabeçalho da coluna: tira o botão gordo de dentro do <th>. */
+  const MenuColuna = ({ grupoId, nome }: { grupoId: string; nome: string }) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-5 w-5"
+          aria-label={`Ações em massa para ${nome}`}
+        >
+          <MoreHorizontal className="h-3.5 w-3.5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="z-50">
+        <DropdownMenuItem
+          disabled={liberarParaGrupo.isPending}
+          onClick={() => liberarTelaInteira(grupoId)}
+        >
+          <Sparkles className="mr-2 h-3.5 w-3.5" /> Liberar tela
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          disabled={liberarParaGrupo.isPending || !moduloAtivo}
+          onClick={() => liberarModuloInteiro(grupoId)}
+        >
+          <Sparkles className="mr-2 h-3.5 w-3.5" /> Liberar módulo
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
   return (
     <div className="space-y-4">
@@ -344,57 +521,36 @@ export default function ConsoleAcessoTab() {
         </div>
       </div>
 
-      {porGrupo && (
-        <PainelGrupo grupoId={grupoLenteId} onGrupoChange={setGrupoLenteId} />
-      )}
-
-
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-muted-foreground">Linhas no console</CardTitle>
-          </CardHeader>
-          <CardContent className="text-2xl">{totais.total}</CardContent>
-          <CardContent className="pt-0 text-[11px] text-muted-foreground">
-            {totais.telas} de tela · {totais.total - totais.telas} de ação
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-warning">Sem guarda alguma</CardTitle>
-          </CardHeader>
-          <CardContent className="flex items-center gap-2 text-2xl text-warning">
-            <ShieldAlert className="h-5 w-5" /> {totais.semGuarda}
-          </CardContent>
-          <CardContent className="pt-0 text-[11px] text-muted-foreground">
-            Nenhuma checagem no código.
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-destructive">Risco ALTO sem guarda</CardTitle>
-          </CardHeader>
-          <CardContent className="flex items-center gap-2 text-2xl text-destructive">
-            <ShieldAlert className="h-5 w-5" /> {totais.altoSemGuarda}
-          </CardContent>
-          <CardContent className="pt-0 text-[11px] text-muted-foreground">
-            Ações críticas desprotegidas.
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-muted-foreground">
-              Não declaradas no catálogo
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-2xl text-muted-foreground">
-            {totais.naoDeclaradas}
-          </CardContent>
-          <CardContent className="pt-0 text-[11px] text-muted-foreground">
-            Sem slug <code>acao.*</code> — não há onde gravar a concessão.
-          </CardContent>
-        </Card>
+      {/* ── Faixa fina de contadores: cada número liga/desliga seu filtro ── */}
+      <div className="flex flex-wrap items-center gap-x-1 gap-y-1 rounded-md border px-2 py-1.5">
+        <NumeroFaixa valor={totais.total} rotulo="linhas" />
+        <span className="text-muted-foreground">·</span>
+        <NumeroFaixa
+          valor={totais.semGuarda}
+          rotulo="sem guarda"
+          tom="warning"
+          ativo={soSemGuarda}
+          onClick={() => setSoSemGuarda((v) => !v)}
+        />
+        <span className="text-muted-foreground">·</span>
+        <NumeroFaixa
+          valor={totais.altoSemGuarda}
+          rotulo="ALTO sem guarda"
+          tom="destructive"
+          ativo={soAltoSemGuarda}
+          onClick={() => setSoAltoSemGuarda((v) => !v)}
+        />
+        <span className="text-muted-foreground">·</span>
+        <NumeroFaixa
+          valor={totais.naoDeclaradas}
+          rotulo="não declaradas"
+          tom="muted"
+          ativo={soNaoDeclaradas}
+          onClick={() => setSoNaoDeclaradas((v) => !v)}
+        />
       </div>
+
+      {porGrupo && <PainelGrupo grupoId={grupoLenteId} onGrupoChange={setGrupoLenteId} />}
 
       <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
         {/* ── Árvore Módulo → Tela ── */}
@@ -484,69 +640,129 @@ export default function ConsoleAcessoTab() {
                 </div>
               );
             })}
+            {modulos.length === 0 && (
+              <p className="p-3 text-xs text-muted-foreground">
+                Nenhuma linha bate com os filtros ativos.
+              </p>
+            )}
           </CardContent>
         </Card>
 
         {/* ── Grade linhas × grupos ── */}
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="gap-2 pb-2">
             <CardTitle className="text-sm">
               {telaAtiva ? telaAtiva.telaLabel : "Nenhuma tela"}
             </CardTitle>
             <p className="text-[11px] text-muted-foreground">
-              O chip abaixo do check é a alçada mínima dentro da concessão do grupo —
-              &ldquo;Todos&rdquo; significa que qualquer pessoa do grupo executa.
+              Clique na linha para ver o detalhe. O chip na célula aparece só quando há
+              alçada mínima definida — sem chip, qualquer pessoa do grupo executa.
             </p>
+
+            {/* ── Barra de filtro ── */}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <div className="relative w-56">
+                <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  placeholder="Buscar rótulo, slug ou o que dispara"
+                  className="h-8 pl-7 text-xs"
+                  aria-label="Buscar linhas"
+                />
+              </div>
+              <Button
+                variant={soAltoSemGuarda ? "secondary" : "outline"}
+                size="sm"
+                className="h-8 text-xs"
+                aria-pressed={soAltoSemGuarda}
+                onClick={() => setSoAltoSemGuarda((v) => !v)}
+              >
+                ALTO sem guarda
+              </Button>
+              <Button
+                variant={soNaoDeclaradas ? "secondary" : "outline"}
+                size="sm"
+                className="h-8 text-xs"
+                aria-pressed={soNaoDeclaradas}
+                onClick={() => setSoNaoDeclaradas((v) => !v)}
+              >
+                Não declaradas
+              </Button>
+              {!porGrupo && (
+                <Select
+                  value={concedidasGrupoId ?? "__todos__"}
+                  onValueChange={(v) =>
+                    setConcedidasGrupoId(v === "__todos__" ? null : v)
+                  }
+                >
+                  <SelectTrigger className="h-8 w-52 text-xs">
+                    <SelectValue placeholder="Concedidas a:" />
+                  </SelectTrigger>
+                  <SelectContent className="z-50">
+                    <SelectItem value="__todos__">Concedidas a: qualquer</SelectItem>
+                    {grupos.map((g) => (
+                      <SelectItem key={g.id} value={g.id}>
+                        Concedidas a: {g.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {temFiltro && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={limparFiltros}
+                >
+                  <X className="mr-1 h-3.5 w-3.5" /> Limpar filtros
+                </Button>
+              )}
+              {grupoConcedidas && (
+                <Badge variant="outline" className="text-[10px]">
+                  só o que {grupoConcedidas.nome} já acessa
+                </Badge>
+              )}
+            </div>
           </CardHeader>
-          <CardContent className="overflow-auto p-0">
+          <CardContent className="max-h-[70vh] overflow-auto p-0">
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 z-30 bg-card">
                 <TableRow>
-                  <TableHead className="min-w-[200px]">Linha</TableHead>
-                  <TableHead className="min-w-[160px]">Dispara</TableHead>
-                  <TableHead>Risco</TableHead>
-                  <TableHead className="min-w-[130px]">Guarda atual</TableHead>
+                  <TableHead className="sticky left-0 z-40 min-w-[220px] bg-card">
+                    Linha
+                  </TableHead>
+                  <TableHead className="w-[90px]">Risco</TableHead>
                   {porGrupo ? (
-                    /* Lente por grupo: uma coluna só — "Acessa" com o chip de
-                       alçada logo abaixo (mesmo componente CelulaConcessao). */
-                    <TableHead className="min-w-[130px] text-center">
-                      <span className="block text-xs">Acessa · Alçada</span>
-                      {grupoLenteId && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 px-1.5 text-[10px]"
-                          disabled={liberarParaGrupo.isPending}
-                          onClick={() => liberarTelaInteira(grupoLenteId)}
-                          title="Liberar todas as linhas declaradas desta tela para o grupo escolhido"
-                        >
-                          <Sparkles className="mr-1 h-3 w-3" /> Liberar tela
-                        </Button>
-                      )}
+                    <TableHead className="min-w-[120px] text-center">
+                      <span className="inline-flex items-center gap-1">
+                        Acessa
+                        {grupoLenteId && (
+                          <MenuColuna grupoId={grupoLenteId} nome="grupo escolhido" />
+                        )}
+                      </span>
                     </TableHead>
                   ) : (
-                    grupos.map((g) => (
-                      <TableHead key={g.id} className="text-center">
-                        <span className="block text-xs">{g.nome}</span>
-                        {g.role_automatico && (
-                          <span className="block text-[10px] text-muted-foreground">
-                            {g.role_automatico}
+                    gruposVisiveis.map((g) => (
+                      <TableHead key={g.id} className="w-[56px] px-1 text-center">
+                        <span className="inline-flex items-center gap-0.5">
+                          <span
+                            className="text-[11px] font-medium"
+                            title={
+                              g.role_automatico
+                                ? `${g.nome} (${g.role_automatico})`
+                                : g.nome
+                            }
+                          >
+                            {sigla(g.nome)}
                           </span>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 px-1.5 text-[10px]"
-                          disabled={liberarParaGrupo.isPending}
-                          onClick={() => liberarTelaInteira(g.id)}
-                          title="Liberar todas as linhas declaradas desta tela para este grupo"
-                        >
-                          <Sparkles className="mr-1 h-3 w-3" /> Liberar tela
-                        </Button>
+                          <MenuColuna grupoId={g.id} nome={g.nome} />
+                        </span>
                       </TableHead>
                     ))
                   )}
-                  <TableHead className="text-center">Conferido</TableHead>
+                  <TableHead className="w-[90px] text-center">Conferido</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -554,10 +770,7 @@ export default function ConsoleAcessoTab() {
                   <Fragment key={rota}>
                     {rotasDaTela.length > 1 && (
                       <TableRow className="bg-muted/40 hover:bg-muted/40">
-                        <TableCell
-                          colSpan={nColunas}
-                          className="py-1.5"
-                        >
+                        <TableCell colSpan={nColunas} className="py-1.5">
                           <span className="font-mono text-[11px] text-muted-foreground">
                             {rota}
                           </span>
@@ -566,20 +779,26 @@ export default function ConsoleAcessoTab() {
                     )}
                     {itens.map((l) => {
                       const ehTela = l.tipo === "tela";
-                      const pacote = (l.telas_cobertas ?? 0) > 1;
                       const semDeclaracao = naoDeclarada(l);
                       const porFlag = portaoPorFlag(l);
                       const bloqueado = semDeclaracao || porFlag || !l.permissao_id;
                       return (
                         <TableRow
                           key={l.linha_id}
+                          onClick={() => setDetalhe(l)}
                           className={cn(
+                            "cursor-pointer",
                             ehTela && "bg-muted/60 hover:bg-muted/60",
                             !ehTela && semGuarda(l) && "bg-warning/5",
                             !ehTela && l.conferido && "bg-success/5",
                           )}
                         >
-                          <TableCell className="align-top">
+                          <TableCell
+                            className={cn(
+                              "sticky left-0 z-10 align-top",
+                              ehTela ? "bg-muted" : "bg-card",
+                            )}
+                          >
                             {ehTela && (
                               <span className="mb-0.5 block text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                                 Acesso à tela
@@ -590,26 +809,9 @@ export default function ConsoleAcessoTab() {
                                 <ShieldCheck className="h-3.5 w-3.5 text-success" />
                               )}
                               <span className={cn(ehTela && "font-medium")}>{l.rotulo}</span>
-                              {l.contem_dado_sensivel && (
-                                <Badge variant="outline" className="px-1 py-0 text-[9px]">
-                                  LGPD
-                                </Badge>
-                              )}
-                              {l.feature_em_teste && (
-                                <Badge
-                                  variant="outline"
-                                  className="bg-warning/10 px-1 py-0 text-[9px]"
-                                >
-                                  BETA
-                                </Badge>
-                              )}
-                              {pacote && (
-                                <Badge
-                                  variant="outline"
-                                  className="px-1 py-0 text-[9px]"
-                                  title={l.telas_lista ?? undefined}
-                                >
-                                  vale para {l.telas_cobertas} telas
+                              {semDeclaracao && l.tipo === "acao" && (
+                                <Badge className="bg-warning/10 px-1 py-0 text-[9px] text-warning hover:bg-warning/10">
+                                  ação não declarada
                                 </Badge>
                               )}
                               {porFlag && (
@@ -618,34 +820,21 @@ export default function ConsoleAcessoTab() {
                                 </Badge>
                               )}
                             </span>
-                            {l.permissao_slug && (
-                              <span className="block font-mono text-[11px] text-muted-foreground">
-                                {l.permissao_slug}
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell className="align-top text-xs text-muted-foreground">
-                            {l.dispara ?? "—"}
                           </TableCell>
                           <TableCell className="align-top">{badgeRisco(l.risco)}</TableCell>
-                          <TableCell className="align-top text-xs">
-                            {renderGuarda(l.guarda_atual)}
-                          </TableCell>
 
                           {bloqueado ? (
                             <TableCell
-                              colSpan={porGrupo ? 1 : grupos.length}
+                              colSpan={porGrupo ? 1 : gruposVisiveis.length}
                               className="align-top text-center"
+                              onClick={(e) => e.stopPropagation()}
                             >
                               {porFlag ? (
                                 <span className="text-[11px] text-muted-foreground">
-                                  Governada por papel (super_admin), não por grupo.
+                                  Governada por papel
                                 </span>
                               ) : (
                                 <span className="inline-flex flex-wrap items-center justify-center gap-2">
-                                  <Badge className="bg-warning/10 text-warning hover:bg-warning/10">
-                                    ação não declarada
-                                  </Badge>
                                   <span className="inline-flex opacity-40">
                                     <Checkbox disabled />
                                   </span>
@@ -663,7 +852,10 @@ export default function ConsoleAcessoTab() {
                               )}
                             </TableCell>
                           ) : porGrupo ? (
-                            <TableCell className="text-center align-top">
+                            <TableCell
+                              className="text-center align-top"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               {grupoLenteId ? (
                                 <CelulaConcessao
                                   concedido={concedido.has(
@@ -697,8 +889,12 @@ export default function ConsoleAcessoTab() {
                               )}
                             </TableCell>
                           ) : (
-                            grupos.map((g) => (
-                              <TableCell key={g.id} className="text-center align-top">
+                            gruposVisiveis.map((g) => (
+                              <TableCell
+                                key={g.id}
+                                className="px-1 text-center align-top"
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 <CelulaConcessao
                                   concedido={concedido.has(`${g.id}|${l.permissao_id}`)}
                                   nivelMinimo={
@@ -724,7 +920,10 @@ export default function ConsoleAcessoTab() {
                             ))
                           )}
 
-                          <TableCell className="text-center align-top">
+                          <TableCell
+                            className="text-center align-top"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             {!ehTela && l.acao_superficie_id ? (
                               <Checkbox
                                 checked={l.conferido === true}
@@ -744,23 +943,6 @@ export default function ConsoleAcessoTab() {
                         </TableRow>
                       );
                     })}
-                    {/* AVISO DE PACOTE: a permissão é mais larga do que a tela olhada. */}
-                    {itens
-                      .filter((l) => l.tipo === "tela" && (l.telas_cobertas ?? 0) > 1)
-                      .map((l) => (
-                        <TableRow
-                          key={`${l.linha_id}-pacote`}
-                          className="bg-muted/30 hover:bg-muted/30"
-                        >
-                          <TableCell
-                            colSpan={nColunas}
-                            className="py-1.5 text-[11px] text-muted-foreground"
-                          >
-                            Marcar o acesso desta tela muda as {l.telas_cobertas} telas do
-                            pacote: {l.telas_lista ?? "—"}
-                          </TableCell>
-                        </TableRow>
-                      ))}
                   </Fragment>
                 ))}
                 {rotasDaTela.length === 0 && (
@@ -769,7 +951,9 @@ export default function ConsoleAcessoTab() {
                       colSpan={nColunas}
                       className="py-6 text-center text-sm text-muted-foreground"
                     >
-                      Selecione uma tela na árvore.
+                      {temFiltro
+                        ? "Nenhuma linha bate com os filtros ativos."
+                        : "Selecione uma tela na árvore."}
                     </TableCell>
                   </TableRow>
                 )}
@@ -778,6 +962,97 @@ export default function ConsoleAcessoTab() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ── Painel de detalhe da linha (contexto de leitura, fora da grade) ── */}
+      <Sheet open={!!detalhe} onOpenChange={(aberto) => !aberto && setDetalhe(null)}>
+        <SheetContent className="w-full overflow-y-auto sm:max-w-md">
+          {detalhe && (
+            <>
+              <SheetHeader>
+                <SheetTitle className="text-base">{detalhe.rotulo}</SheetTitle>
+                <SheetDescription className="font-mono text-xs">
+                  {detalhe.rota}
+                </SheetDescription>
+              </SheetHeader>
+              <div className="mt-4 space-y-4 text-sm">
+                <div className="flex flex-wrap gap-1.5">
+                  {badgeRisco(detalhe.risco)}
+                  {detalhe.contem_dado_sensivel && (
+                    <Badge variant="outline" className="text-[10px]">
+                      LGPD
+                    </Badge>
+                  )}
+                  {detalhe.feature_em_teste && (
+                    <Badge variant="outline" className="bg-warning/10 text-[10px]">
+                      BETA
+                    </Badge>
+                  )}
+                  {portaoPorFlag(detalhe) && (
+                    <Badge variant="outline" className="text-[10px]">
+                      portão por flag
+                    </Badge>
+                  )}
+                  {naoDeclarada(detalhe) && detalhe.tipo === "acao" && (
+                    <Badge className="bg-warning/10 text-[10px] text-warning hover:bg-warning/10">
+                      ação não declarada
+                    </Badge>
+                  )}
+                </div>
+
+                <div>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    O que dispara
+                  </p>
+                  <p className="text-xs">{detalhe.dispara ?? "—"}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Guarda atual
+                  </p>
+                  <p className="text-xs">{renderGuarda(detalhe.guarda_atual)}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Arquivo
+                  </p>
+                  <p className="break-all font-mono text-xs text-muted-foreground">
+                    {detalhe.arquivo ?? "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Slug da permissão
+                  </p>
+                  <p className="break-all font-mono text-xs text-muted-foreground">
+                    {detalhe.permissao_slug ?? "—"}
+                  </p>
+                </div>
+
+                {(detalhe.telas_cobertas ?? 0) > 1 && (
+                  <div className="rounded-md border bg-muted/30 p-2 text-[11px] leading-snug text-muted-foreground">
+                    Esta permissão é um pacote: vale para {detalhe.telas_cobertas} telas.
+                    Marcar aqui muda todas —{" "}
+                    <span className="font-medium">{detalhe.telas_lista ?? "—"}</span>
+                  </div>
+                )}
+
+                {naoDeclarada(detalhe) && isSuperAdmin && detalhe.acao_superficie_id && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setDeclarando(detalhe);
+                      setDetalhe(null);
+                    }}
+                  >
+                    Declarar no catálogo
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
 
       <DeclararAcaoDialog
         linha={declarando}
