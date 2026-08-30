@@ -782,9 +782,8 @@ export default function CobrancaDetalhe() {
 
 
   const temValorInvalido = titulos.some((t) => Number(t.valor_bruto) <= 0);
-  const temDataPassada = !!dataPedidoStr && titulos.some(
-    (t) => t.data_vencimento < dataPedidoStr,
-  );
+  // Boleto não pode nascer vencido: a régua é HOJE, não a data do pedido.
+  const temDataPassada = titulos.some((t) => t.data_vencimento < todayISO());
 
   const atualizarTitulo = (idx: number, patch: Partial<LinhaPlano>) => {
     setPlanoEditado(true);
@@ -831,6 +830,7 @@ export default function CobrancaDetalhe() {
       const novaData = ultima
         ? addDiasISO(ultima.data_vencimento, intervaloDias)
         : addDiasISO(todayISO(), diasPrimeiroPagamento);
+      const prazoUltima = Number(ultima?.prazo_dias);
       const novo: LinhaPlano = {
         ordem: prev.length,
         numero_parcela: prev.length + 1,
@@ -840,6 +840,7 @@ export default function CobrancaDetalhe() {
         tipo_pagamento: ultima?.tipo_pagamento ?? "boleto",
         valor_bruto: 0,
         data_vencimento: novaData,
+        prazo_dias: Number.isFinite(prazoUltima) ? prazoUltima + intervaloDias : undefined,
         condicao_pagamento: calcularCondicaoLabel(novaData, false),
       };
       const nova = renumerar([...prev, novo]);
@@ -872,7 +873,7 @@ export default function CobrancaDetalhe() {
     if (temDataPassada) {
       toast({
         title: "Data de vencimento inválida",
-        description: "Vencimentos não podem ser anteriores à data do pedido.",
+        description: "Vencimentos não podem ser anteriores a hoje.",
         variant: "destructive",
       });
       return;
@@ -1288,6 +1289,10 @@ export default function CobrancaDetalhe() {
                 }}
                 className="h-9 w-40"
               />
+              <p className="text-[11px] text-muted-foreground">
+                Vale só para parcelas adicionadas manualmente — o espaçamento das
+                parcelas da proposta vem da condição aprovada.
+              </p>
             </div>
             <div className="flex items-center gap-2 pb-2">
               <Checkbox
@@ -1405,7 +1410,7 @@ export default function CobrancaDetalhe() {
               </TableHeader>
               <TableBody>
                 {titulos.map((t, idx) => {
-                  const dataInvalida = !!dataPedidoStr && t.data_vencimento < dataPedidoStr;
+                  const dataInvalida = t.data_vencimento < todayISO();
                   const valorInvalido = Number(t.valor_bruto) <= 0;
                   const tipoDesabilitado = pedidoQ.data?.estagio !== "cobranca";
 
@@ -1562,7 +1567,7 @@ export default function CobrancaDetalhe() {
               <AlertDescription>
                 {temValorInvalido && <div>Há títulos com valor zero ou negativo.</div>}
                 {temDataPassada && (
-                  <div>Há vencimentos anteriores à data do pedido.</div>
+                  <div>Há vencimentos anteriores a hoje.</div>
                 )}
                 {temDivergenciaGrave && (
                   <div>
