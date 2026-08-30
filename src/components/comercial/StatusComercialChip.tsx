@@ -39,6 +39,7 @@ export function StatusComercialChip({
   const [motivo, setMotivo] = useState("");
   const opcoes = useStatusComercialOpcoes();
   const definir = useDefinirStatusComercial();
+  const { podeDefinirStatus } = usePermissoesMesa();
 
   const escolher = async (paraSlug: string) => {
     if (paraSlug === slug) {
@@ -59,6 +60,25 @@ export function StatusComercialChip({
   const sugestao = TEMPERATURA_LABEL[temperaturaSistema ?? ""]
     ? `Sistema calcula: ${TEMPERATURA_LABEL[temperaturaSistema ?? ""]} (score ${temperaturaScore ?? 0})`
     : null;
+
+  // Sem `acao.mesa_definir_status` a leitura continua; a AÇÃO não existe.
+  if (!podeDefinirStatus) {
+    if (!rotulo) return null;
+    return (
+      <Badge
+        variant="outline"
+        className={cn(
+          "rounded px-1.5 py-0 text-[10px]",
+          COR_STATUS_CLASSE[cor ?? ""] ?? "border-muted-foreground/40 text-muted-foreground",
+          className,
+        )}
+        title={["Status comercial (manual)", sugestao].filter(Boolean).join(" · ")}
+      >
+        {rotulo}
+      </Badge>
+    );
+  }
+
 
   return (
     <Popover open={aberto} onOpenChange={setAberto}>
