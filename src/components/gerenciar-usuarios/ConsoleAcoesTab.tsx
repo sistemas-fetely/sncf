@@ -18,8 +18,13 @@ import {
 
 /**
  * CONSOLE DE AÇÕES — lente por tela, autorização por ação.
- * Linha sem `permissao_id` é ação NÃO DECLARADA no catálogo: fica em destaque
- * de alerta, na posição natural, para expor o buraco em vez de esconder.
+ *
+ * Distinção obrigatória:
+ * - semSlug(a) = !a.permissao_id → ação sem slug `acao.*` no catálogo.
+ *   Pode estar protegida por `nivel` ou `super_admin`. Desabilita os checkboxes
+ *   de grupo e exibe o badge "ação não declarada".
+ * - semGuarda(a) = guarda_atual começa com 'NENHUMA' → nenhuma checagem no código.
+ *   Usado nos contadores e no destaque de alerta.
  */
 
 function badgeRisco(risco: string | null) {
@@ -30,7 +35,22 @@ function badgeRisco(risco: string | null) {
   return <Badge variant="outline">{r || "—"}</Badge>;
 }
 
-const semGuarda = (a: AcaoSuperficie) => !a.permissao_id;
+const semSlug = (a: AcaoSuperficie) => !a.permissao_id;
+const semGuarda = (a: AcaoSuperficie) =>
+  (a.guarda_atual ?? "").toUpperCase().startsWith("NENHUMA");
+
+function renderGuarda(guarda: string | null) {
+  const g = (guarda ?? "").trim();
+  const gUpper = g.toUpperCase();
+  if (!g) return "—";
+  if (gUpper.startsWith("NENHUMA")) {
+    return <span className="font-medium text-destructive">{g}</span>;
+  }
+  if (gUpper.startsWith("NIVEL") || gUpper.startsWith("SUPER_ADMIN")) {
+    return <Badge variant="outline" className="font-normal">{g}</Badge>;
+  }
+  return <span className="text-muted-foreground">{g}</span>;
+}
 
 export default function ConsoleAcoesTab() {
   const qc = useQueryClient();
@@ -42,11 +62,12 @@ export default function ConsoleAcoesTab() {
   const [rotaSel, setRotaSel] = useState<string | null>(null);
 
   const rotas = useMemo(() => {
-    const mapa = new Map<string, { total: number; sem: number }>();
+    const mapa = new Map<string, { total: number; semGuarda: number; semSlug: number }>();
     acoes.forEach((a) => {
-      const atual = mapa.get(a.rota) ?? { total: 0, sem: 0 };
+      const atual = mapa.get(a.rota) ?? { total: 0, semGuarda: 0, semSlug: 0 };
       atual.total += 1;
-      if (semGuarda(a)) atual.sem += 1;
+      if (semGuarda(a)) atual.semGuarda += 1;
+      if (semSlug(a)) atual.semSlug += 1;
       mapa.set(a.rota, atual);
     });
     return [...mapa.entries()]
@@ -61,11 +82,13 @@ export default function ConsoleAcoesTab() {
   );
 
   const totais = useMemo(() => {
-    const sem = acoes.filter(semGuarda);
+    const semGuardaList = acoes.filter(semGuarda);
+    const semSlugList = acoes.filter(semSlug);
     return {
       total: acoes.length,
-      sem: sem.length,
-      altoSem: sem.filter((a) => (a.risco ?? "").toUpperCase() === "ALTO").length,
+      semGuarda: semGuardaList.length,
+      altoSemGuarda: semGuardaList.filter((a) => (a.risco ?? "").toUpperCase() === "ALTO").length,
+      semSlug: semSlugList.length,
     };
   }, [acoes]);
 
@@ -94,7 +117,7 @@ export default function ConsoleAcoesTab() {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-xs text-muted-foreground">Ações no censo</CardTitle>
@@ -103,18 +126,34 @@ export default function ConsoleAcoesTab() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-muted-foreground">Sem guarda nominal</CardTitle>
+            <CardTitle className="text-xs text-warning">Sem guarda alguma</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center gap-2 text-2xl text-warning">
-            <ShieldAlert className="h-5 w-5" /> {totais.sem}
+            <ShieldAlert className="h-5 w-5" /> {totais.semGuarda}
+          </CardContent>
+          <CardContent className="pt-0 text-[11px] text-muted-foreground">
+            Nenhuma checagem no código.
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-muted-foreground">Risco ALTO sem guarda</CardTitle>
+            <CardTitle className="text-xs text-destructive">Risco ALTO sem guarda</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center gap-2 text-2xl text-destructive">
-            <ShieldAlert className="h-5 w-5" /> {totais.altoSem}
+            <ShieldAlert className="h-5 w-5" /> {totais.altoSemGuarda}
+          </CardContent>
+          <CardContent className="pt-0 text-[11px] text-muted-foreground">
+            Ações críticas desprotegidas.
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs text-muted-foreground">Não declaradas no catálogo</CardTitle>
+          </CardHeader>
+          <CardContent className="text-2xl text-muted-foreground">{totais.semSlug}</CardContent>
+          <CardContent className="pt-0 text-[11px] text-muted-foreground">
+            Sem slug <code>acao.*</code>; podem estar protegidas por <code>nivel</code> ou{" "}
+            <code>super_admin</code>.
           </CardContent>
         </Card>
       </div>
@@ -136,9 +175,10 @@ export default function ConsoleAcoesTab() {
                 )}
               >
                 <span className="block truncate">{r.rota}</span>
-                <span className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                  {r.total} {r.total === 1 ? "ação" : "ações"}
-                  {r.sem > 0 && <span className="text-warning">{r.sem} sem guarda</span>}
+                <span className="flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
+                  <span>{r.total} {r.total === 1 ? "ação" : "ações"}</span>
+                  {r.semGuarda > 0 && <span className="text-warning">{r.semGuarda} sem guarda</span>}
+                  {r.semSlug > 0 && <span className="text-muted-foreground">{r.semSlug} sem slug</span>}
                 </span>
               </button>
             ))}
@@ -172,12 +212,13 @@ export default function ConsoleAcoesTab() {
               </TableHeader>
               <TableBody>
                 {linhas.map((a) => {
-                  const naoDeclarada = semGuarda(a);
+                  const naoDeclarada = semSlug(a);
+                  const semProtecao = semGuarda(a);
                   return (
                     <TableRow
                       key={a.id}
                       className={cn(
-                        naoDeclarada && "bg-warning/5",
+                        semProtecao && "bg-warning/5",
                         a.conferido && "bg-success/5",
                       )}
                     >
@@ -196,8 +237,8 @@ export default function ConsoleAcoesTab() {
                         {a.dispara ?? "—"}
                       </TableCell>
                       <TableCell className="align-top">{badgeRisco(a.risco)}</TableCell>
-                      <TableCell className="align-top text-xs text-muted-foreground">
-                        {a.guarda_atual ?? "—"}
+                      <TableCell className="align-top text-xs">
+                        {renderGuarda(a.guarda_atual)}
                       </TableCell>
                       {naoDeclarada ? (
                         <TableCell colSpan={grupos.length} className="align-top text-center">
