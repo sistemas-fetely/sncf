@@ -16,6 +16,10 @@ import { apelidoParceiro } from "@/lib/parceiros/nome";
 import { BadgeLinkFila } from "@/components/pedidos/LinkPagamentoCard";
 import { useLinksPagamentoFila } from "@/hooks/pedidos/useLinkPagamentoPedido";
 import { PedidoOportunidadeDialog } from "@/components/comercial/PedidoOportunidadeDialog";
+import {
+  ClienteHistoricoBloco,
+  PrimeiraCompraBadge,
+} from "@/components/comercial/ClienteHistorico";
 import { AcoesMesaLinha } from "@/components/comercial/AcoesMesaLinha";
 import {
   StatusComercialChip, PagamentoEstadoChip,
