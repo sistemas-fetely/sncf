@@ -1,11 +1,12 @@
-import { useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, ShieldAlert, ShieldCheck } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, ShieldAlert, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { useTogglePermissao } from "@/hooks/useGruposAcessoV2";
 import {
   CHAVE_MATRIZ_GRUPO_PERMISSOES,
@@ -17,13 +18,18 @@ import {
 } from "@/hooks/useAcaoSuperficie";
 
 /**
- * CONSOLE DE AÇÕES — lente por tela, autorização por ação.
+ * CONSOLE DE AÇÕES — árvore Módulo → Tela na esquerda, grade ações × grupos
+ * na direita. Fonte única: `vw_acao_por_modulo` (DIMENSÃO-VIA-TABELA — nenhum
+ * rótulo, ordem ou nome de tela é hardcoded no front).
+ *
+ * Mudança de apresentação apenas: nenhuma permissão muda de estado aqui além
+ * dos checkboxes que já existiam (matriz de grupos + conferido).
  *
  * Distinção obrigatória:
- * - semSlug(a) = !a.permissao_id → ação sem slug `acao.*` no catálogo.
- *   Pode estar protegida por `nivel` ou `super_admin`. Desabilita os checkboxes
- *   de grupo e exibe o badge "ação não declarada".
- * - semGuarda(a) = guarda_atual começa com 'NENHUMA' → nenhuma checagem no código.
+ * - semSlug(a): ação sem slug `acao.*` no catálogo (view `declarada = false`).
+ *   Pode estar protegida por `nivel` ou `super_admin`. Desabilita os
+ *   checkboxes de grupo e exibe o badge "ação não declarada".
+ * - semGuarda(a): view `sem_guarda = true` → nenhuma checagem no código.
  *   Usado nos contadores e no destaque de alerta.
  */
 
@@ -36,8 +42,7 @@ function badgeRisco(risco: string | null) {
 }
 
 const semSlug = (a: AcaoSuperficie) => !a.permissao_id;
-const semGuarda = (a: AcaoSuperficie) =>
-  (a.guarda_atual ?? "").toUpperCase().startsWith("NENHUMA");
+const semGuarda = (a: AcaoSuperficie) => a.sem_guarda === true;
 
 function renderGuarda(guarda: string | null) {
   const g = (guarda ?? "").trim();
@@ -52,34 +57,127 @@ function renderGuarda(guarda: string | null) {
   return <span className="text-muted-foreground">{g}</span>;
 }
 
+/** Badge de alerta: ações de risco ALTO sem guarda. */
+function BadgeAltoSemGuarda({ n }: { n: number }) {
+  if (n === 0) return null;
+  return (
+    <Badge variant="destructive" className="px-1.5 py-0 text-[10px]">
+      {n} ALTO sem guarda
+    </Badge>
+  );
+}
+
+interface TelaNodo {
+  /** chave de seleção: app_chave|tela_label */
+  chave: string;
+  telaLabel: string;
+  acoes: AcaoSuperficie[];
+  total: number;
+  altoSemGuarda: number;
+  temNaoDeclarada: boolean;
+}
+
+interface ModuloNodo {
+  appChave: string;
+  appLabel: string;
+  appOrdem: number;
+  telas: TelaNodo[];
+  totalTelas: number;
+  totalAcoes: number;
+  altoSemGuarda: number;
+  /** módulo "Sem módulo" — rotas fora da navegação (app_ordem 9999) */
+  semModulo: boolean;
+}
+
 export default function ConsoleAcoesTab() {
   const qc = useQueryClient();
-  const { data: acoes = [], isLoading } = useAcoesSuperficie();
+  const { data: acoes = [], isLoading, isError, error } = useAcoesSuperficie();
   const { data: grupos = [] } = useGruposConsole();
   const { data: matriz = [] } = useMatrizGrupoPermissoes();
   const togglePermissao = useTogglePermissao();
   const marcarConferido = useMarcarConferido();
-  const [rotaSel, setRotaSel] = useState<string | null>(null);
+  const [telaSel, setTelaSel] = useState<string | null>(null);
+  const [modulosFechados, setModulosFechados] = useState<Set<string>>(new Set());
 
-  const rotas = useMemo(() => {
-    const mapa = new Map<string, { total: number; semGuarda: number; semSlug: number }>();
-    acoes.forEach((a) => {
-      const atual = mapa.get(a.rota) ?? { total: 0, semGuarda: 0, semSlug: 0 };
-      atual.total += 1;
-      if (semGuarda(a)) atual.semGuarda += 1;
-      if (semSlug(a)) atual.semSlug += 1;
-      mapa.set(a.rota, atual);
+  // FAIL-LOUD: erro da consulta sobe como toast visível — nunca estado vazio
+  // disfarçado de "sem ações".
+  useEffect(() => {
+    if (isError) {
+      toast.error("Não consegui carregar o censo de ações.", {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }, [isError, error]);
+
+  const modulos = useMemo<ModuloNodo[]>(() => {
+    const porModulo = new Map<string, ModuloNodo>();
+    for (const a of acoes) {
+      const appChave = a.app_chave ?? "__sem_modulo__";
+      let mod = porModulo.get(appChave);
+      if (!mod) {
+        mod = {
+          appChave,
+          appLabel: a.app_label ?? "Sem módulo",
+          appOrdem: a.app_ordem ?? 9999,
+          telas: [],
+          totalTelas: 0,
+          totalAcoes: 0,
+          altoSemGuarda: 0,
+          semModulo: (a.app_ordem ?? 9999) === 9999,
+        };
+        porModulo.set(appChave, mod);
+      }
+      const telaLabel = a.tela_label ?? a.rota;
+      let tela = mod.telas.find((t) => t.telaLabel === telaLabel);
+      if (!tela) {
+        tela = {
+          chave: `${appChave}|${telaLabel}`,
+          telaLabel,
+          acoes: [],
+          total: 0,
+          altoSemGuarda: 0,
+          temNaoDeclarada: false,
+        };
+        mod.telas.push(tela);
+      }
+      tela.acoes.push(a);
+      tela.total += 1;
+      if (semGuarda(a) && (a.risco ?? "").toUpperCase() === "ALTO") {
+        tela.altoSemGuarda += 1;
+        mod.altoSemGuarda += 1;
+      }
+      if (a.rota_nao_declarada) tela.temNaoDeclarada = true;
+      mod.totalAcoes += 1;
+    }
+    const lista = [...porModulo.values()];
+    lista.forEach((m) => {
+      m.totalTelas = m.telas.length;
+      m.telas.sort((a, b) => a.telaLabel.localeCompare(b.telaLabel, "pt-BR"));
     });
-    return [...mapa.entries()]
-      .map(([rota, c]) => ({ rota, ...c }))
-      .sort((a, b) => a.rota.localeCompare(b.rota, "pt-BR"));
+    return lista.sort((a, b) => a.appOrdem - b.appOrdem);
   }, [acoes]);
 
-  const rotaAtiva = rotaSel ?? rotas[0]?.rota ?? null;
-  const linhas = useMemo(
-    () => acoes.filter((a) => a.rota === rotaAtiva),
-    [acoes, rotaAtiva],
-  );
+  const telaAtiva = useMemo<TelaNodo | null>(() => {
+    for (const m of modulos) {
+      const t = m.telas.find((x) => x.chave === telaSel);
+      if (t) return t;
+    }
+    return modulos[0]?.telas[0] ?? null;
+  }, [modulos, telaSel]);
+
+  /** Linhas da tela selecionada, agrupadas por rota (sub-cabeçalho quando > 1). */
+  const rotasDaTela = useMemo(() => {
+    if (!telaAtiva) return [];
+    const porRota = new Map<string, AcaoSuperficie[]>();
+    telaAtiva.acoes.forEach((a) => {
+      const arr = porRota.get(a.rota) ?? [];
+      arr.push(a);
+      porRota.set(a.rota, arr);
+    });
+    return [...porRota.entries()]
+      .map(([rota, linhas]) => ({ rota, linhas, eDetalhe: linhas.some((l) => l.rota_e_detalhe) }))
+      .sort((a, b) => a.rota.localeCompare(b.rota, "pt-BR"));
+  }, [telaAtiva]);
 
   const totais = useMemo(() => {
     const semGuardaList = acoes.filter(semGuarda);
@@ -107,10 +205,28 @@ export default function ConsoleAcoesTab() {
     );
   }
 
+  function alternarModulo(appChave: string) {
+    setModulosFechados((prev) => {
+      const prox = new Set(prev);
+      if (prox.has(appChave)) prox.delete(appChave);
+      else prox.add(appChave);
+      return prox;
+    });
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 p-6 text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" /> Carregando censo de ações...
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex items-center gap-2 p-6 text-destructive">
+        <ShieldAlert className="h-4 w-4" /> Falha ao carregar o censo de ações. Tente recarregar a
+        página.
       </div>
     );
   }
@@ -158,36 +274,88 @@ export default function ConsoleAcoesTab() {
         </Card>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
+      <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
+        {/* ── Árvore Módulo → Tela ── */}
         <Card className="h-fit">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Telas ({rotas.length})</CardTitle>
+            <CardTitle className="text-sm">
+              Telas ({modulos.reduce((s, m) => s + m.totalTelas, 0)})
+            </CardTitle>
           </CardHeader>
           <CardContent className="max-h-[70vh] space-y-1 overflow-auto p-2">
-            {rotas.map((r) => (
-              <button
-                key={r.rota}
-                type="button"
-                onClick={() => setRotaSel(r.rota)}
-                className={cn(
-                  "w-full rounded-md px-2 py-1.5 text-left text-xs transition-colors hover:bg-accent",
-                  r.rota === rotaAtiva && "bg-accent",
-                )}
-              >
-                <span className="block truncate">{r.rota}</span>
-                <span className="flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
-                  <span>{r.total} {r.total === 1 ? "ação" : "ações"}</span>
-                  {r.semGuarda > 0 && <span className="text-warning">{r.semGuarda} sem guarda</span>}
-                  {r.semSlug > 0 && <span className="text-muted-foreground">{r.semSlug} sem slug</span>}
-                </span>
-              </button>
-            ))}
+            {modulos.map((m) => {
+              const fechado = modulosFechados.has(m.appChave);
+              return (
+                <div key={m.appChave} className={cn(m.semModulo && "opacity-70")}>
+                  {/* Nível 1 — Módulo */}
+                  <button
+                    type="button"
+                    onClick={() => alternarModulo(m.appChave)}
+                    className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs font-semibold uppercase tracking-wide transition-colors hover:bg-accent"
+                  >
+                    {fechado ? (
+                      <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+                    )}
+                    <span className="truncate">{m.appLabel}</span>
+                    <span className="ml-auto flex shrink-0 items-center gap-1.5 text-[10px] font-normal normal-case tracking-normal text-muted-foreground">
+                      <span>
+                        {m.totalTelas} {m.totalTelas === 1 ? "tela" : "telas"} · {m.totalAcoes}{" "}
+                        {m.totalAcoes === 1 ? "ação" : "ações"}
+                      </span>
+                      <BadgeAltoSemGuarda n={m.altoSemGuarda} />
+                    </span>
+                  </button>
+                  {m.semModulo && !fechado && (
+                    <p className="px-2 pb-1 pt-0.5 text-[10px] leading-snug text-muted-foreground">
+                      Rotas não declaradas na navegação — não aparecem em nenhum menu e ficam
+                      invisíveis para quem não é super_admin.
+                    </p>
+                  )}
+                  {/* Nível 2 — Tela */}
+                  {!fechado &&
+                    m.telas.map((t) => (
+                      <button
+                        key={t.chave}
+                        type="button"
+                        onClick={() => setTelaSel(t.chave)}
+                        className={cn(
+                          "ml-4 w-[calc(100%-1rem)] rounded-md px-2 py-1.5 text-left text-xs transition-colors hover:bg-accent",
+                          t.chave === telaAtiva?.chave && "bg-accent",
+                        )}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <span className="truncate">{t.telaLabel}</span>
+                          {t.temNaoDeclarada && (
+                            <span
+                              className="shrink-0 text-[10px] text-muted-foreground"
+                              title="Contém rota não declarada na navegação"
+                            >
+                              ⚠
+                            </span>
+                          )}
+                        </span>
+                        <span className="flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
+                          <span>
+                            {t.total} {t.total === 1 ? "ação" : "ações"}
+                          </span>
+                          <BadgeAltoSemGuarda n={t.altoSemGuarda} />
+                        </span>
+                      </button>
+                    ))}
+                </div>
+              );
+            })}
           </CardContent>
         </Card>
 
+        {/* ── Grade ações × grupos ── */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">{rotaAtiva ?? "Nenhuma rota"}</CardTitle>
+            <CardTitle className="text-sm">
+              {telaAtiva ? telaAtiva.telaLabel : "Nenhuma tela"}
+            </CardTitle>
           </CardHeader>
           <CardContent className="overflow-auto p-0">
             <Table>
@@ -211,71 +379,89 @@ export default function ConsoleAcoesTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {linhas.map((a) => {
-                  const naoDeclarada = semSlug(a);
-                  const semProtecao = semGuarda(a);
-                  return (
-                    <TableRow
-                      key={a.id}
-                      className={cn(
-                        semProtecao && "bg-warning/5",
-                        a.conferido && "bg-success/5",
-                      )}
-                    >
-                      <TableCell className="align-top">
-                        <span className="flex items-center gap-1.5">
-                          {a.conferido && <ShieldCheck className="h-3.5 w-3.5 text-success" />}
-                          {a.rotulo}
-                        </span>
-                        {a.permissoes_catalogo?.slug && (
-                          <span className="block text-[11px] text-muted-foreground">
-                            {a.permissoes_catalogo.slug}
+                {rotasDaTela.map(({ rota, linhas, eDetalhe }) => (
+                  <Fragment key={rota}>
+                    {rotasDaTela.length > 1 && (
+                      <TableRow className="bg-muted/40 hover:bg-muted/40">
+                        <TableCell colSpan={5 + grupos.length} className="py-1.5">
+                          <span className="font-mono text-[11px] text-muted-foreground">
+                            {rota}
                           </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="align-top text-xs text-muted-foreground">
-                        {a.dispara ?? "—"}
-                      </TableCell>
-                      <TableCell className="align-top">{badgeRisco(a.risco)}</TableCell>
-                      <TableCell className="align-top text-xs">
-                        {renderGuarda(a.guarda_atual)}
-                      </TableCell>
-                      {naoDeclarada ? (
-                        <TableCell colSpan={grupos.length} className="align-top text-center">
-                          <Badge className="bg-warning/10 text-warning hover:bg-warning/10">
-                            ação não declarada
-                          </Badge>
-                          <span className="ml-2 inline-flex opacity-40">
-                            <Checkbox disabled />
-                          </span>
+                          {eDetalhe && (
+                            <Badge variant="outline" className="ml-2 px-1.5 py-0 text-[10px]">
+                              detalhe
+                            </Badge>
+                          )}
                         </TableCell>
-                      ) : (
-                        grupos.map((g) => (
-                          <TableCell key={g.id} className="text-center align-top">
+                      </TableRow>
+                    )}
+                    {linhas.map((a) => {
+                      const naoDeclarada = semSlug(a);
+                      const semProtecao = semGuarda(a);
+                      return (
+                        <TableRow
+                          key={a.id}
+                          className={cn(
+                            semProtecao && "bg-warning/5",
+                            a.conferido && "bg-success/5",
+                          )}
+                        >
+                          <TableCell className="align-top">
+                            <span className="flex items-center gap-1.5">
+                              {a.conferido && <ShieldCheck className="h-3.5 w-3.5 text-success" />}
+                              {a.rotulo}
+                            </span>
+                            {a.permissao_slug && (
+                              <span className="block text-[11px] text-muted-foreground">
+                                {a.permissao_slug}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="align-top text-xs text-muted-foreground">
+                            {a.dispara ?? "—"}
+                          </TableCell>
+                          <TableCell className="align-top">{badgeRisco(a.risco)}</TableCell>
+                          <TableCell className="align-top text-xs">
+                            {renderGuarda(a.guarda_atual)}
+                          </TableCell>
+                          {naoDeclarada ? (
+                            <TableCell colSpan={grupos.length} className="align-top text-center">
+                              <Badge className="bg-warning/10 text-warning hover:bg-warning/10">
+                                ação não declarada
+                              </Badge>
+                              <span className="ml-2 inline-flex opacity-40">
+                                <Checkbox disabled />
+                              </span>
+                            </TableCell>
+                          ) : (
+                            grupos.map((g) => (
+                              <TableCell key={g.id} className="text-center align-top">
+                                <Checkbox
+                                  checked={concedido.has(`${g.id}|${a.permissao_id}`)}
+                                  disabled={togglePermissao.isPending}
+                                  onCheckedChange={(v) =>
+                                    alternar(g.id, a.permissao_id as string, v === true)
+                                  }
+                                  aria-label={`${g.nome} pode executar ${a.rotulo}`}
+                                />
+                              </TableCell>
+                            ))
+                          )}
+                          <TableCell className="text-center align-top">
                             <Checkbox
-                              checked={concedido.has(`${g.id}|${a.permissao_id}`)}
-                              disabled={togglePermissao.isPending}
+                              checked={a.conferido === true}
+                              disabled={marcarConferido.isPending}
                               onCheckedChange={(v) =>
-                                alternar(g.id, a.permissao_id as string, v === true)
+                                marcarConferido.mutate({ acaoId: a.id, valor: v === true })
                               }
-                              aria-label={`${g.nome} pode executar ${a.rotulo}`}
+                              aria-label={`Marcar ${a.rotulo} como conferido`}
                             />
                           </TableCell>
-                        ))
-                      )}
-                      <TableCell className="text-center align-top">
-                        <Checkbox
-                          checked={a.conferido === true}
-                          disabled={marcarConferido.isPending}
-                          onCheckedChange={(v) =>
-                            marcarConferido.mutate({ acaoId: a.id, valor: v === true })
-                          }
-                          aria-label={`Marcar ${a.rotulo} como conferido`}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                        </TableRow>
+                      );
+                    })}
+                  </Fragment>
+                ))}
               </TableBody>
             </Table>
           </CardContent>

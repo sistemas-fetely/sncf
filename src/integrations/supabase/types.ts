@@ -20527,6 +20527,13 @@ export type Database = {
             foreignKeyName: "leitura_tabela_tela_tela_slug_fkey"
             columns: ["tela_slug"]
             isOneToOne: false
+            referencedRelation: "vw_acao_por_modulo"
+            referencedColumns: ["permissao_slug"]
+          },
+          {
+            foreignKeyName: "leitura_tabela_tela_tela_slug_fkey"
+            columns: ["tela_slug"]
+            isOneToOne: false
             referencedRelation: "vw_catalogo_por_app"
             referencedColumns: ["slug"]
           },
@@ -37709,6 +37716,13 @@ export type Database = {
             foreignKeyName: "sncf_dominio_tela_slug_default_fkey"
             columns: ["tela_slug_default"]
             isOneToOne: false
+            referencedRelation: "vw_acao_por_modulo"
+            referencedColumns: ["permissao_slug"]
+          },
+          {
+            foreignKeyName: "sncf_dominio_tela_slug_default_fkey"
+            columns: ["tela_slug_default"]
+            isOneToOne: false
             referencedRelation: "vw_catalogo_por_app"
             referencedColumns: ["slug"]
           },
@@ -37918,6 +37932,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "permissoes_catalogo"
             referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "sncf_navegacao_tela_slug_fkey"
+            columns: ["tela_slug"]
+            isOneToOne: false
+            referencedRelation: "vw_acao_por_modulo"
+            referencedColumns: ["permissao_slug"]
           },
           {
             foreignKeyName: "sncf_navegacao_tela_slug_fkey"
@@ -49725,6 +49746,63 @@ export type Database = {
           visto: boolean | null
         }
         Relationships: []
+      }
+      vw_acao_por_modulo: {
+        Row: {
+          app_chave: string | null
+          app_label: string | null
+          app_ordem: number | null
+          arquivo: string | null
+          conferido: boolean | null
+          conferido_em: string | null
+          declarada: boolean | null
+          dispara: string | null
+          guarda_atual: string | null
+          id: string | null
+          observacao: string | null
+          origem: string | null
+          permissao_id: string | null
+          permissao_nome: string | null
+          permissao_slug: string | null
+          risco: string | null
+          rota: string | null
+          rota_e_detalhe: boolean | null
+          rota_nao_declarada: boolean | null
+          rotulo: string | null
+          sem_guarda: boolean | null
+          tela_label: string | null
+          tela_slug: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acao_superficie_permissao_id_fkey"
+            columns: ["permissao_id"]
+            isOneToOne: false
+            referencedRelation: "permissoes_catalogo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acao_superficie_permissao_id_fkey"
+            columns: ["permissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_catalogo_por_app"
+            referencedColumns: ["permissao_id"]
+          },
+          {
+            foreignKeyName: "acao_superficie_permissao_id_fkey"
+            columns: ["permissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_concessao_viva"
+            referencedColumns: ["permissao_id"]
+          },
+          {
+            foreignKeyName: "acao_superficie_permissao_id_fkey"
+            columns: ["permissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_permissao_diagnostico"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vw_adiantamento_sem_nf: {
         Row: {
@@ -61890,14 +61968,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -62605,14 +62683,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -63984,14 +64062,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
