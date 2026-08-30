@@ -310,17 +310,20 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                     {filtradas.map((r) => (
                       <TableRow key={r.pedido_id}>
                         <TableCell className="align-top">
-                          {/* Dois chips distintos: o do sistema e o da mão do Comercial. */}
+                          {/* EIXO 1 (manual) + EIXO 2 (derivado). Vocabulários distintos. */}
                           <div className="flex flex-col items-start gap-1">
-                            <TemperaturaChip
-                              temperatura={r.temperatura_sistema}
-                              score={r.temperatura_score}
-                            />
                             <StatusComercialChip
                               pedidoId={r.pedido_id}
                               slug={r.status_comercial_slug}
                               rotulo={r.status_comercial_rotulo}
                               cor={r.status_comercial_cor}
+                              temperaturaSistema={r.temperatura_sistema}
+                              temperaturaScore={r.temperatura_score}
+                            />
+                            <PagamentoEstadoChip
+                              slug={r.pagamento_estado_slug}
+                              rotulo={pagamentoDim.get(r.pagamento_estado_slug ?? "")?.rotulo ?? null}
+                              cor={pagamentoDim.get(r.pagamento_estado_slug ?? "")?.cor ?? null}
                             />
                           </div>
                         </TableCell>
