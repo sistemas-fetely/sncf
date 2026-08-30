@@ -321,26 +321,10 @@ export default function ConsoleAcessoTab() {
     );
   }
 
-  if (gerenciarGrupos) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-medium">Gestão de grupos de acesso</h3>
-            <p className="text-xs text-muted-foreground">
-              Criar grupos, editar, adicionar e remover usuários.
-            </p>
-          </div>
-          <Button variant="outline" size="sm" onClick={() => setGerenciarGrupos(false)}>
-            Voltar ao console
-          </Button>
-        </div>
-        <GruposAcessoTabV2 />
-      </div>
-    );
-  }
-
+  const porGrupo = lente === "grupo";
+  /** Colunas fixas da grade (fora as colunas de grupo da lente "Por tela"). */
   const colunasFixas = 5;
+  const nColunas = porGrupo ? 6 : colunasFixas + grupos.length;
 
   return (
     <div className="space-y-4">
@@ -348,10 +332,30 @@ export default function ConsoleAcessoTab() {
         <p className="text-xs text-muted-foreground">
           Uma decisão só: quem entra na tela e quem executa cada ação dela.
         </p>
-        <Button variant="outline" size="sm" onClick={() => setGerenciarGrupos(true)}>
-          <Users className="mr-2 h-3.5 w-3.5" /> Gerenciar grupos e usuários
-        </Button>
+        <div className="inline-flex rounded-md border p-0.5">
+          <Button
+            variant={porGrupo ? "ghost" : "secondary"}
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => setLente("tela")}
+          >
+            Por tela
+          </Button>
+          <Button
+            variant={porGrupo ? "secondary" : "ghost"}
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => setLente("grupo")}
+          >
+            <Users className="mr-1.5 h-3.5 w-3.5" /> Por grupo
+          </Button>
+        </div>
       </div>
+
+      {porGrupo && (
+        <PainelGrupo grupoId={grupoLenteId} onGrupoChange={setGrupoLenteId} />
+      )}
+
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
