@@ -118,10 +118,10 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
 
   const filtradas = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    let base =
-      temperatura === "todas"
-        ? baseFase
-        : baseFase.filter((r) => r.temperatura_sistema === temperatura);
+    let base = baseFase;
+    if (pagamentoFiltro !== "todos") {
+      base = base.filter((r) => r.pagamento_estado_slug === pagamentoFiltro);
+    }
     if (statusFiltro !== "todos") {
       base = base.filter((r) =>
         statusFiltro === "__sem__"
