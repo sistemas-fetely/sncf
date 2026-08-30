@@ -1,108 +1,37 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import {
-  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { toast } from "sonner";
-import { Copy, Search, Sparkles, Loader2, Undo2 } from "lucide-react";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Search, Sparkles, Loader2 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import { apelidoParceiro } from "@/lib/parceiros/nome";
-import { RetomarOportunidadeDialog } from "@/components/comercial/RetomarOportunidadeDialog";
 import { BadgeLinkFila } from "@/components/pedidos/LinkPagamentoCard";
 import { useLinksPagamentoFila } from "@/hooks/pedidos/useLinkPagamentoPedido";
 import { PedidoOportunidadeDialog } from "@/components/comercial/PedidoOportunidadeDialog";
+import { AcoesMesaLinha } from "@/components/comercial/AcoesMesaLinha";
+import {
+  StatusComercialChip, TemperaturaChip,
+} from "@/components/comercial/StatusComercialChip";
+import {
+  useMesaComercial,
+  useStatusComercialOpcoes,
+  useVendedorAtual,
+  type FaseMesa,
+  type MesaComercialRow,
+} from "@/hooks/comercial/useMesaComercial";
 
-
-type OrigemOportunidade = "portao_vencido" | "estoque_inadimplente" | "manual";
-
-interface OportunidadeRow {
-  pedido_id: string;
-  id_externo: string | null;
-  origem: OrigemOportunidade;
-  motivo: string | null;
-  justificativa: string | null;
-  retomavel_para: string | null;
-  migrado_em: string | null;
-  dias_na_fila: number | null;
-  data_pedido: string | null;
-  dias_desde_pedido: number | null;
-  valor_em_jogo: number | null;
-  vendedor: string | null;
-  condicao_solicitada: string | null;
-  forma_solicitada: string | null;
-  observacao_cliente: string | null;
-  pai_id: string | null;
-  pai_id_externo: string | null;
-  parceiro_id: string | null;
-  cliente: string | null;
-  apelido: string | null;
-
-  cnpj: string | null;
-  telefone: string | null;
-  email: string | null;
-  portao_id: string | null;
-  valor_portao: number | null;
-  tipo_portao: string | null;
-  vencimento_portao: string | null;
-  dias_portao_vencido: number | null;
-  link_pagamento: string | null;
-  valor_pago: number | null;
-  valor_vencido: number | null;
-  dias_atraso_max: number | null;
-  dias_referencia: number | null;
-  situacao_financeira: string | null;
-  situacao_rotulo: string | null;
-  alerta_operacional: string | null;
-  pai_valor_pago: number | null;
-  pai_valor_aberto: number | null;
-  vendedor_id: string | null;
-  vendedor_nome: string | null;
-  eh_primeira_compra: boolean | null;
-  cliente_pedidos_faturados: number | null;
-  cliente_valor_faturado: number | null;
-  cliente_primeira_compra: string | null;
-  cliente_ultima_compra: string | null;
-  cliente_dias_sem_comprar: number | null;
-  cliente_ticket_medio: number | null;
-  temperatura: string | null;
-  temperatura_score: number | null;
-  fase: string | null;
-  estagio: string | null;
-  portao_linhas: number | null;
-  bloqueio: string | null;
-  bloqueio_rotulo: string | null;
-  rotulo_pagamento: string | null;
-}
-
-
-const BLOQUEIO_COR: Record<string, string> = {
-  falta_pagar: "border-warning/50 text-warning",
-  falta_estoque: "border-muted-foreground/40 text-muted-foreground",
-};
-
-
-/** "DD/MM" curto para a linha de histórico do cliente. */
-function formatDataCurta(valor: string | null): string {
-  if (!valor) return "—";
-  const d = new Date(valor + (valor.length === 10 ? "T00:00:00" : ""));
-  if (isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-}
-
-
-
+/**
+ * MESA-UNICA-DO-COMERCIAL: uma tela, uma fonte (`vw_mesa_comercial`), a
+ * carteira B2B ativa inteira. As fases são filtro, não telas diferentes.
+ */
 const AVISO_EXCECAO_SITUACAO: Record<string, string> = {
   coberto_haver: "NÃO COBRAR · pré-pago por crédito",
   sem_cobranca: "NÃO É VENDA · não gera título",
@@ -117,95 +46,123 @@ const TEMPERATURA_PESO: Record<string, number> = {
   nao_cobrar: 3,
 };
 
-const TEMPERATURA_LABEL: Record<string, string> = {
-  quente: "QUENTE",
-  morno: "Morno",
-  frio: "Frio",
-  nao_cobrar: "Não cobrar",
-};
-
-const TEMPERATURA_CLASSES: Record<string, string> = {
-  quente: "border-destructive/50 text-destructive",
-  morno: "border-warning/50 text-warning",
-  frio: "border-muted-foreground/40 text-muted-foreground",
-  nao_cobrar: "border-muted-foreground/40 text-muted-foreground",
-};
-
 type FiltroTemperatura = "todas" | "quente" | "morno" | "frio" | "nao_cobrar";
+type FiltroFase = FaseMesa | "todas";
 
-async function copiar(link: string) {
-  try {
-    await navigator.clipboard.writeText(link);
-    toast.success("Link de pagamento copiado");
-  } catch {
-    toast.error("Não foi possível copiar o link");
-  }
-}
+const FASES: { valor: FiltroFase; rotulo: string }[] = [
+  { valor: "oportunidade", rotulo: "Oportunidades" },
+  { valor: "pos_faturamento", rotulo: "Pós-faturamento" },
+  { valor: "em_andamento", rotulo: "Em andamento" },
+  { valor: "todas", rotulo: "Todas" },
+];
 
 export default function Oportunidades({ embutido = false }: { embutido?: boolean } = {}) {
   const [busca, setBusca] = useState("");
   const [temperatura, setTemperatura] = useState<FiltroTemperatura>("todas");
+  const [statusFiltro, setStatusFiltro] = useState<string>("todos");
+  const [fase, setFase] = useState<FiltroFase>("oportunidade");
+  const [meus, setMeus] = useState(true);
 
-  const [retomando, setRetomando] = useState<OportunidadeRow | null>(null);
-  const [detalhe, setDetalhe] = useState<OportunidadeRow | null>(null);
+  const [detalhe, setDetalhe] = useState<MesaComercialRow | null>(null);
+  const [abaDetalhe, setAbaDetalhe] =
+    useState<"itens" | "obs" | "pagamento" | "entrega">("itens");
   const navigate = useNavigate();
 
+  const { data = [], isLoading, isFetching } = useMesaComercial();
+  const { data: vendedorAtual } = useVendedorAtual();
+  const { data: statusOpcoes = [] } = useStatusComercialOpcoes();
 
-  const { data = [], isLoading } = useQuery({
-    queryKey: ["oportunidades-comercial"],
-    queryFn: async (): Promise<OportunidadeRow[]> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("vw_oportunidades_comercial")
-        .select("*")
-        .order("dias_referencia", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as OportunidadeRow[];
-    },
-  });
+  // "Meus" só faz sentido com vendedor vinculado; sem vínculo, mostra tudo.
+  const filtrarMeus = meus && !!vendedorAtual;
+
+  /** Base da fase + escopo do vendedor: os contadores dos filtros nascem daqui. */
+  const baseFase = useMemo(() => {
+    let base = fase === "todas" ? data : data.filter((r) => r.fase_mesa === fase);
+    if (filtrarMeus) base = base.filter((r) => r.vendedor_id === vendedorAtual?.id);
+    return base;
+  }, [data, fase, filtrarMeus, vendedorAtual?.id]);
+
+  const contagensFase = useMemo(() => {
+    const c: Record<FiltroFase, number> = {
+      oportunidade: 0,
+      pos_faturamento: 0,
+      em_andamento: 0,
+      todas: 0,
+    };
+    const escopo = filtrarMeus
+      ? data.filter((r) => r.vendedor_id === vendedorAtual?.id)
+      : data;
+    for (const r of escopo) {
+      c.todas++;
+      if (r.fase_mesa && r.fase_mesa in c) c[r.fase_mesa]++;
+    }
+    return c;
+  }, [data, filtrarMeus, vendedorAtual?.id]);
 
   const contagens = useMemo(() => {
-    const c = { todas: data.length, quente: 0, morno: 0, frio: 0, nao_cobrar: 0 };
-    for (const r of data) {
-      const t = r.temperatura ?? "";
+    const c = { todas: baseFase.length, quente: 0, morno: 0, frio: 0, nao_cobrar: 0 };
+    for (const r of baseFase) {
+      const t = r.temperatura_sistema ?? "";
       if (t === "quente" || t === "morno" || t === "frio" || t === "nao_cobrar") c[t]++;
     }
     return c;
-  }, [data]);
+  }, [baseFase]);
+
+  const contagensStatus = useMemo(() => {
+    const c = new Map<string, number>();
+    for (const r of baseFase) {
+      const s = r.status_comercial_slug ?? "__sem__";
+      c.set(s, (c.get(s) ?? 0) + 1);
+    }
+    return c;
+  }, [baseFase]);
 
   const filtradas = useMemo(() => {
     const q = busca.trim().toLowerCase();
     let base =
-      temperatura === "todas" ? data : data.filter((r) => r.temperatura === temperatura);
+      temperatura === "todas"
+        ? baseFase
+        : baseFase.filter((r) => r.temperatura_sistema === temperatura);
+    if (statusFiltro !== "todos") {
+      base = base.filter((r) =>
+        statusFiltro === "__sem__"
+          ? !r.status_comercial_slug
+          : r.status_comercial_slug === statusFiltro,
+      );
+    }
     if (q) {
       base = base.filter((r) =>
-        [r.id_externo, r.cliente, r.apelido, r.cnpj, r.vendedor]
+        [r.id_externo, r.cliente, r.apelido, r.cnpj, r.vendedor_nome]
           .filter(Boolean)
           .some((v) => String(v).toLowerCase().includes(q)),
       );
     }
-    // TEMPERATURA-MANDA-NA-ORDEM: faixa primeiro, valor em jogo decrescente dentro dela.
+    // TEMPERATURA-MANDA-NA-ORDEM: faixa primeiro, valor decrescente dentro dela.
     return [...base].sort((a, b) => {
-      const pa = TEMPERATURA_PESO[a.temperatura ?? ""] ?? 99;
-      const pb = TEMPERATURA_PESO[b.temperatura ?? ""] ?? 99;
+      const pa = TEMPERATURA_PESO[a.temperatura_sistema ?? ""] ?? 99;
+      const pb = TEMPERATURA_PESO[b.temperatura_sistema ?? ""] ?? 99;
       if (pa !== pb) return pa - pb;
-      return Number(b.valor_em_jogo || 0) - Number(a.valor_em_jogo || 0);
+      return Number(b.valor || 0) - Number(a.valor || 0);
     });
-  }, [data, busca, temperatura]);
+  }, [baseFase, busca, temperatura, statusFiltro]);
 
-
-  const { data: linksFila } = useLinksPagamentoFila(data.map((r) => r.pedido_id));
+  const { data: linksFila } = useLinksPagamentoFila(filtradas.map((r) => r.pedido_id));
 
   const kpis = useMemo(() => {
     const qtd = filtradas.length;
-    const valor = filtradas.reduce((s, r) => s + Number(r.valor_em_jogo || 0), 0);
-    const vencido = filtradas.reduce((s, r) => s + Number(r.valor_vencido || 0), 0);
+    const valor = filtradas.reduce((s, r) => s + Number(r.valor || 0), 0);
+    const aberto = filtradas.reduce((s, r) => s + Number(r.boletos_valor_aberto || 0), 0);
     const media =
       qtd > 0
-        ? filtradas.reduce((s, r) => s + Number(r.dias_referencia || 0), 0) / qtd
+        ? filtradas.reduce((s, r) => s + Number(r.dias_desde_pedido || 0), 0) / qtd
         : 0;
-    return { qtd, valor, vencido, media };
+    return { qtd, valor, aberto, media };
   }, [filtradas]);
+
+  const abrirDetalhe = (r: MesaComercialRow, aba: typeof abaDetalhe = "itens") => {
+    setAbaDetalhe(aba);
+    setDetalhe(r);
+  };
 
   return (
     <TooltipProvider>
@@ -214,15 +171,14 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
           <CasaPageHeader
             breadcrumb={[{ label: "Comercial" }, { label: "Mesa Comercial" }]}
             title="Mesa Comercial"
-            subtitle="Fila única do Comercial: pedidos migrados manualmente, portão vencido ou remessas cujo pai tem parcela vencida. Retome quando o cliente estiver pronto."
+            subtitle="Carteira B2B ativa do Comercial: oportunidades, pós-faturamento e pedidos em andamento na mesma mesa. O status comercial é seu; a temperatura é do sistema."
           />
         )}
 
-
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <KpiCard label="Oportunidades" value={String(kpis.qtd)} />
-          <KpiCard label="Valor em jogo" value={formatBRL(kpis.valor)} />
-          <KpiCard label="Valor vencido" value={formatBRL(kpis.vencido)} />
+          <KpiCard label="Pedidos na mesa" value={String(kpis.qtd)} />
+          <KpiCard label="Valor" value={formatBRL(kpis.valor)} />
+          <KpiCard label="Boletos em aberto" value={formatBRL(kpis.aberto)} />
           <KpiCard
             label="Média de dias"
             value={kpis.qtd > 0 ? `${kpis.media.toFixed(0)} dias` : "—"}
@@ -231,13 +187,51 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex rounded-md border overflow-hidden">
+            {FASES.map((f) => (
+              <FiltroBtn key={f.valor} ativo={fase === f.valor} onClick={() => setFase(f.valor)}>
+                {f.rotulo} ({contagensFase[f.valor]})
+              </FiltroBtn>
+            ))}
+          </div>
+
+          <div className="inline-flex rounded-md border overflow-hidden">
+            <FiltroBtn
+              ativo={filtrarMeus}
+              onClick={() => setMeus(true)}
+              title={
+                vendedorAtual
+                  ? `Só os pedidos de ${vendedorAtual.nome}`
+                  : "Seu usuário não está vinculado a um vendedor — a mesa mostra a carteira inteira."
+              }
+            >
+              Meus pedidos
+            </FiltroBtn>
+            <FiltroBtn ativo={!filtrarMeus} onClick={() => setMeus(false)}>
+              Todos
+            </FiltroBtn>
+          </div>
+
+          {isFetching && !isLoading && (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+          )}
+
+          <div className="relative w-full md:w-80 md:ml-auto">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por pedido, cliente, nome fantasia, CNPJ, vendedor…"
+              className="pl-8 h-9"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex rounded-md border overflow-hidden">
             <FiltroBtn ativo={temperatura === "todas"} onClick={() => setTemperatura("todas")}>
               Todas ({contagens.todas})
             </FiltroBtn>
-            <FiltroBtn
-              ativo={temperatura === "quente"}
-              onClick={() => setTemperatura("quente")}
-            >
+            <FiltroBtn ativo={temperatura === "quente"} onClick={() => setTemperatura("quente")}>
               Quente ({contagens.quente})
             </FiltroBtn>
             <FiltroBtn ativo={temperatura === "morno"} onClick={() => setTemperatura("morno")}>
@@ -252,33 +246,48 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
             >
               Não cobrar ({contagens.nao_cobrar})
             </FiltroBtn>
-
           </div>
-          <div className="relative w-full md:w-96 md:ml-auto">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por pedido, cliente, nome fantasia, CNPJ, vendedor…"
-              className="pl-8 h-9"
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-            />
+
+          {/* DIMENSAO-VIA-TABELA: os status vêm de oportunidade_status_comercial. */}
+          <div className="inline-flex rounded-md border overflow-hidden">
+            <FiltroBtn ativo={statusFiltro === "todos"} onClick={() => setStatusFiltro("todos")}>
+              Status: todos
+            </FiltroBtn>
+            {statusOpcoes.map((o) => (
+              <FiltroBtn
+                key={o.slug}
+                ativo={statusFiltro === o.slug}
+                onClick={() => setStatusFiltro(o.slug)}
+              >
+                {o.rotulo} ({contagensStatus.get(o.slug) ?? 0})
+              </FiltroBtn>
+            ))}
+            <FiltroBtn
+              ativo={statusFiltro === "__sem__"}
+              onClick={() => setStatusFiltro("__sem__")}
+            >
+              Sem status ({contagensStatus.get("__sem__") ?? 0})
+            </FiltroBtn>
           </div>
         </div>
 
         <Card>
           <CardContent className="p-0">
             {isLoading ? (
-              <div className="flex items-center justify-center py-16">
+              <div className="flex flex-col items-center justify-center py-16 gap-2">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                <p className="text-xs text-muted-foreground">
+                  Montando a carteira completa — leva alguns segundos.
+                </p>
               </div>
             ) : filtradas.length === 0 ? (
               <div className="text-center py-16 px-6">
                 <Sparkles className="h-8 w-8 text-muted-foreground/60 mx-auto mb-3" />
                 <p className="text-sm font-medium">
-                  Nenhuma oportunidade encontrada com os filtros atuais.
+                  Nenhum pedido encontrado com os filtros atuais.
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Ajuste a busca ou o filtro de temperatura para ver a fila completa.
+                  Ajuste a fase, o escopo, o status ou a busca.
                 </p>
               </div>
             ) : (
@@ -286,10 +295,10 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Temp.</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead>Pedido</TableHead>
                       <TableHead>Cliente</TableHead>
-                      <TableHead className="text-right">Valor em jogo</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
                       <TableHead className="text-right">Tempo</TableHead>
                       <TableHead>Vendedor</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
@@ -297,26 +306,27 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                   </TableHeader>
                   <TableBody>
                     {filtradas.map((r) => (
-                      <TableRow key={`${r.origem}-${r.pedido_id}`}>
+                      <TableRow key={r.pedido_id}>
                         <TableCell className="align-top">
-                          {TEMPERATURA_LABEL[r.temperatura ?? ""] && (
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                "rounded px-1.5 py-0 text-[10px]",
-                                TEMPERATURA_CLASSES[r.temperatura ?? ""],
-                              )}
-                              title={`Score ${r.temperatura_score ?? 0}`}
-                            >
-                              {TEMPERATURA_LABEL[r.temperatura ?? ""]}
-                            </Badge>
-                          )}
+                          {/* Dois chips distintos: o do sistema e o da mão do Comercial. */}
+                          <div className="flex flex-col items-start gap-1">
+                            <TemperaturaChip
+                              temperatura={r.temperatura_sistema}
+                              score={r.temperatura_score}
+                            />
+                            <StatusComercialChip
+                              pedidoId={r.pedido_id}
+                              slug={r.status_comercial_slug}
+                              rotulo={r.status_comercial_rotulo}
+                              cor={r.status_comercial_cor}
+                            />
+                          </div>
                         </TableCell>
                         <TableCell className="font-mono text-xs align-top">
                           <button
                             type="button"
                             className="font-mono text-primary underline-offset-2 hover:underline cursor-pointer"
-                            onClick={() => setDetalhe(r)}
+                            onClick={() => abrirDetalhe(r)}
                           >
                             {r.id_externo || "—"}
                           </button>
@@ -324,27 +334,34 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                             {r.bloqueio_rotulo && (
                               <Badge
                                 variant="outline"
-                                className={cn(
-                                  "rounded px-1.5 py-0 text-[10px]",
-                                  BLOQUEIO_COR[r.bloqueio ?? ""],
-                                )}
+                                className="rounded px-1.5 py-0 text-[10px] border-warning/50 text-warning"
                               >
                                 {r.bloqueio_rotulo}
                               </Badge>
                             )}
-                            {r.pai_id_externo && (
+                            {(r.solicitacoes_abertas ?? 0) > 0 && (
+                              <Badge
+                                variant="outline"
+                                className="rounded px-1.5 py-0 text-[10px] border-primary/50 text-primary"
+                                title="Solicitações abertas no SOPS"
+                              >
+                                SOPS {r.solicitacoes_abertas}
+                              </Badge>
+                            )}
+                            {r.nf_numero && (
                               <Badge
                                 variant="outline"
                                 className="rounded px-1.5 py-0 text-[10px]"
-                                title={`Pago no pai: ${formatBRL(r.pai_valor_pago ?? 0)} · Em aberto no pai: ${formatBRL(r.pai_valor_aberto ?? 0)}`}
+                                title={r.nf_chave ?? undefined}
                               >
-                                split de {r.pai_id_externo}
+                                NF {r.nf_numero}
                               </Badge>
                             )}
                           </div>
-                          {r.origem === "portao_vencido" && r.vencimento_portao && (
+                          {r.data_entrega_prevista && (
                             <div className="text-[10px] text-muted-foreground mt-0.5">
-                              venc. {formatDateBR(r.vencimento_portao)}
+                              entrega {formatDateBR(r.data_entrega_prevista)}
+                              {r.meta_provisoria ? " (provisória)" : ""}
                             </div>
                           )}
                           <div className="mt-1">
@@ -375,73 +392,38 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                               </Badge>
                             </div>
                           )}
-                          <div className="text-xs text-muted-foreground truncate">
-                            {r.eh_primeira_compra ? (
-                              <Badge variant="outline" className="rounded px-1.5 py-0 text-[10px]">
-                                1ª COMPRA
-                              </Badge>
-                            ) : (
-                              <>
-                                {`${r.cliente_pedidos_faturados ?? 0} pedidos · ${formatBRL(r.cliente_valor_faturado ?? 0)}`}
-                                {r.cliente_ultima_compra
-                                  ? ` · última em ${formatDataCurta(r.cliente_ultima_compra)} (${r.cliente_dias_sem_comprar ?? 0}d)`
-                                  : ""}
-                              </>
-                            )}
-                          </div>
-                          {r.justificativa?.trim() && (
+                          {r.status_comercial_motivo && (
                             <div
-                              title={r.justificativa}
                               className="text-xs text-muted-foreground truncate mt-0.5"
+                              title={r.status_comercial_motivo}
                             >
-                              {r.justificativa}
+                              {r.status_comercial_motivo}
                             </div>
                           )}
                         </TableCell>
                         <TableCell className="text-right align-top">
-                          {formatBRL(r.valor_em_jogo ?? 0)}
-                          {r.rotulo_pagamento && (
-                            <div
-                              className={cn(
-                                "text-xs leading-tight",
-                                r.rotulo_pagamento === "⚠ a revisar"
-                                  ? "text-warning"
-                                  : "text-muted-foreground",
-                              )}
-                            >
-                              {r.rotulo_pagamento}
+                          {formatBRL(r.valor ?? 0)}
+                          {(r.boletos_qtd ?? 0) > 0 && (
+                            <div className="text-xs text-muted-foreground">
+                              {r.boletos_qtd} boleto(s) ·{" "}
+                              {formatBRL(r.boletos_valor_aberto ?? 0)} em aberto
                             </div>
                           )}
                         </TableCell>
                         <TableCell className="text-right align-top">
                           <div className="text-sm">{r.dias_desde_pedido ?? 0}d do pedido</div>
                           <div className="text-xs text-muted-foreground">
-                            {r.dias_na_fila ?? 0}d na fila
+                            {formatDateBR(r.data_pedido)}
                           </div>
                         </TableCell>
-                        <TableCell className="text-xs align-top">{r.vendedor_nome || "—"}</TableCell>
-
+                        <TableCell className="text-xs align-top">
+                          {r.vendedor_nome || "—"}
+                        </TableCell>
                         <TableCell className="align-middle">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              size="sm"
-                              variant="default"
-                              className="h-7 gap-1.5 w-[110px] justify-center"
-                              onClick={() => setRetomando(r)}
-                            >
-                              <Undo2 className="h-3.5 w-3.5" />
-                              Retomar
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              title={r.link_pagamento ? "Copiar link de pagamento" : "Sem link de pagamento"}
-                              disabled={!r.link_pagamento}
-                              onClick={() => r.link_pagamento && copiar(r.link_pagamento)}
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                          </div>
+                          <AcoesMesaLinha
+                            linha={r}
+                            onVerBoletos={() => abrirDetalhe(r, "entrega")}
+                          />
                         </TableCell>
                       </TableRow>
                     ))}
@@ -452,18 +434,6 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
           </CardContent>
         </Card>
 
-        {retomando && (
-          <RetomarOportunidadeDialog
-            open={!!retomando}
-            onOpenChange={(v) => !v && setRetomando(null)}
-            pedidoId={retomando.pedido_id}
-            idExterno={retomando.id_externo}
-            cliente={retomando.cliente}
-            retomavelPara={retomando.retomavel_para}
-            invalidateKeys={[["oportunidades-comercial"]]}
-          />
-        )}
-
         {detalhe && (
           <PedidoOportunidadeDialog
             open={!!detalhe}
@@ -472,18 +442,25 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
             idExterno={detalhe.id_externo}
             cliente={detalhe.cliente}
             apelido={detalhe.apelido}
-            valorEmJogo={detalhe.valor_em_jogo}
+            valorEmJogo={detalhe.valor}
             situacaoFinanceira={detalhe.situacao_financeira}
             alertaOperacional={detalhe.alerta_operacional}
-            tipoPortao={detalhe.tipo_portao}
-            valorPortao={detalhe.valor_portao}
-            vencimentoPortao={detalhe.vencimento_portao}
-            portaoLinhas={detalhe.portao_linhas}
             linkPagamento={detalhe.link_pagamento}
-
+            dataEntregaPrevista={detalhe.data_entrega_prevista}
+            metaOriginal={detalhe.meta_original}
+            metaProvisoria={detalhe.meta_provisoria}
+            nfNumero={detalhe.nf_numero}
+            nfChave={detalhe.nf_chave}
+            nfPdfUrl={detalhe.nf_pdf_url}
+            nfXmlUrl={detalhe.nf_xml_url}
+            temPdf={detalhe.tem_pdf}
+            temXml={detalhe.tem_xml}
+            boletosValorAberto={detalhe.boletos_valor_aberto}
+            comprovantesQtd={detalhe.comprovantes_qtd}
+            comprovanteStatus={detalhe.comprovante_status}
+            abaInicial={abaDetalhe}
           />
         )}
-
       </div>
     </TooltipProvider>
   );
@@ -504,15 +481,18 @@ function FiltroBtn({
   ativo,
   onClick,
   children,
+  title,
 }: {
   ativo: boolean;
   onClick: () => void;
   children: React.ReactNode;
+  title?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      title={title}
       className={cn(
         "px-3 py-1.5 text-xs font-medium border-r last:border-r-0 transition-colors",
         ativo
