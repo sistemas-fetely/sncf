@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet, SheetContent, SheetHeader, SheetTitle,
+} from "@/components/ui/sheet";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -33,6 +33,7 @@ import { SolicitarSopsAcao } from "@/components/comercial/SolicitarSopsAcao";
 import { usePermissoesMesa } from "@/hooks/comercial/usePermissoesMesa";
 import { useStatusComercialLog } from "@/hooks/comercial/useMesaComercial";
 import { useBoletosDoPedido } from "@/hooks/pedidos/useBoletosDoPedido";
+import { usePedidoPortaoAtual } from "@/hooks/pedidos/usePedidoPortaoAtual";
 import { hojeISO } from "@/lib/data";
 
 
@@ -146,8 +147,20 @@ export function PedidoOportunidadeDialog({
   const total = (itens.data ?? []).reduce((s, i) => s + Number(i.subtotal || 0), 0);
   const podeEnviar = texto.trim().length > 0 && !adicionar.isPending;
 
-  const temPortao = !!vencimentoPortao;
-  const cartaoBloqueia = PORTAO_SEM_CONFIRMACAO_MANUAL.has((tipoPortao ?? "").toLowerCase());
+  /**
+   * PORTAO-EXISTE-SE-TEM-LINHA: o portão vem do banco (`pedido_portao` com
+   * status provisorio), nunca de "tem vencimento" — PIX antecipado não tem
+   * vencimento e antes sumia da aba. As props seguem como fallback de exibição.
+   */
+  const portaoQ = usePedidoPortaoAtual(pedidoId, open);
+  const portao = portaoQ.data ?? null;
+  const temPortao = !!portao;
+  const portaoTipo = portao?.tipo ?? tipoPortao ?? null;
+  const portaoValor = portao?.valor ?? valorPortao ?? null;
+  const portaoVencimento = portao?.vencimento ?? vencimentoPortao ?? null;
+  const portaoQtdLinhas = portao?.linhas ?? portaoLinhas ?? null;
+  const linkPortao = linkPagamento ?? portao?.linkPagamento ?? null;
+  const cartaoBloqueia = PORTAO_SEM_CONFIRMACAO_MANUAL.has((portaoTipo ?? "").toLowerCase());
 
   // COMPROVANTE-FECHA-O-PORTAO (20/08/2026): confirmado por comprovante, a
   // confirmação manual não existe mais — o banco recusaria e o erro é feio.
@@ -202,9 +215,9 @@ export function PedidoOportunidadeDialog({
   };
 
   const copiarLink = async () => {
-    if (!linkPagamento) return;
+    if (!linkPortao) return;
     try {
-      await navigator.clipboard.writeText(linkPagamento);
+      await navigator.clipboard.writeText(linkPortao);
       toast.success("Link de pagamento copiado");
     } catch {
       toast.error("Não foi possível copiar o link");
@@ -212,10 +225,14 @@ export function PedidoOportunidadeDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col overflow-hidden">
-        <DialogHeader>
-          <DialogTitle className="flex flex-wrap items-center gap-2">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      {/* DRAWER-NAO-PULA: largura fixa, altura total, rolo interno por aba. */}
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-[640px] flex flex-col overflow-hidden p-6"
+      >
+        <SheetHeader>
+          <SheetTitle className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-sm">{idExterno || "Pedido"}</span>
             <span className="text-sm">{cliente || "—"}</span>
             {apelidoParceiro(cliente, apelido) && (
@@ -231,8 +248,8 @@ export function PedidoOportunidadeDialog({
             >
               {chipSituacao(situacaoFinanceira)}
             </Badge>
-          </DialogTitle>
-        </DialogHeader>
+          </SheetTitle>
+        </SheetHeader>
 
         <Tabs defaultValue={abaInicial} className="flex flex-1 flex-col min-h-0">
           <TabsList>
@@ -330,7 +347,11 @@ export function PedidoOportunidadeDialog({
           </TabsContent>
 
           <TabsContent value="pagamento" className="mt-4 space-y-4 flex-1 min-h-0 overflow-y-auto">
-            {!temPortao ? (
+            {portaoQ.isLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : !temPortao ? (
               <p className="text-sm text-muted-foreground py-6 text-center">
                 Este pedido não tem portão de pagamento pendente.
               </p>
@@ -338,26 +359,28 @@ export function PedidoOportunidadeDialog({
               <>
                 <div className="rounded-md border px-3 py-2 space-y-1">
                   <p className="text-sm">
-                    Tipo: <span className="font-medium">{tipoPortao || "—"}</span>
+                    Tipo: <span className="font-medium">{portaoTipo || "—"}</span>
                   </p>
                   <p className="text-sm">
-                    Valor: <span className="font-medium">{formatBRL(valorPortao ?? 0)}</span>
+                    Valor: <span className="font-medium">{formatBRL(portaoValor ?? 0)}</span>
                   </p>
                   <p className="text-sm">
                     Vencimento:{" "}
-                    <span className="font-medium">{formatDateBR(vencimentoPortao)}</span>
+                    <span className="font-medium">
+                      {portaoVencimento ? formatDateBR(portaoVencimento) : "à vista (antecipado)"}
+                    </span>
                   </p>
-                  {(portaoLinhas ?? 0) > 1 && (
+                  {(portaoQtdLinhas ?? 0) > 1 && (
                     <p className="text-xs text-muted-foreground">
-                      Pagamento em {portaoLinhas} linhas
+                      Pagamento em {portaoQtdLinhas} linhas
                     </p>
                   )}
                 </div>
 
                 <ComprovantePagamentoBloco
                   pedidoId={pedidoId}
-                  valorPortao={valorPortao}
-                  tipoPortao={tipoPortao}
+                  valorPortao={portaoValor}
+                  tipoPortao={portaoTipo}
                   podeConfirmar={podeConfirmarPagamento && !carregandoConfirmarPagamento}
                 />
 
@@ -369,8 +392,8 @@ export function PedidoOportunidadeDialog({
                     <Button
                       variant="outline"
                       className="gap-1.5"
-                      disabled={!linkPagamento}
-                      title={!linkPagamento ? "Sem link de pagamento" : undefined}
+                      disabled={!linkPortao}
+                      title={!linkPortao ? "Sem link de pagamento" : undefined}
                       onClick={copiarLink}
                     >
                       <Copy className="h-4 w-4" />
@@ -627,8 +650,8 @@ export function PedidoOportunidadeDialog({
           </AlertDialogContent>
         </AlertDialog>
         )}
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
 

@@ -59,6 +59,14 @@ export interface MesaComercialRow {
   comprovantes_qtd: number | null;
   comprovante_status: string | null;
   solicitacoes_abertas: number | null;
+  /**
+   * CONDICAO-VEM-DO-PEDIDO: `condicao_solicitada` e a forma vêm de `pedidos`
+   * (a view ainda não expõe). A condição é o texto informativo; a forma é o que
+   * agrupa e serve de filtro. `pedidos.tipo_pagamento` é coluna morta — não usar.
+   */
+  condicao_solicitada: string | null;
+  forma_pagamento_id: string | null;
+  forma_pagamento_nome: string | null;
 }
 
 export const MESA_QUERY_KEY = ["mesa-comercial"] as const;
@@ -75,7 +83,30 @@ export function useMesaComercial() {
         .select("*")
         .order("dias_desde_pedido", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as MesaComercialRow[];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const linhas = (data ?? []) as any[];
+      const ids = linhas.map((r) => r.pedido_id).filter(Boolean);
+      if (ids.length === 0) return [] as MesaComercialRow[];
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: peds, error: pErr } = await (supabase as any)
+        .from("pedidos")
+        .select("id, condicao_solicitada, forma_pagamento_id, formas_pagamento(nome)")
+        .in("id", ids);
+      // FAIL-LOUD: sem a condição a mesa perde a informação mais pedida — erro sobe.
+      if (pErr) throw pErr;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const porId = new Map<string, any>((peds ?? []).map((p: any) => [p.id, p]));
+      return linhas.map((r) => {
+        const p = porId.get(r.pedido_id);
+        return {
+          ...r,
+          condicao_solicitada: p?.condicao_solicitada ?? null,
+          forma_pagamento_id: p?.forma_pagamento_id ?? null,
+          forma_pagamento_nome: p?.formas_pagamento?.nome ?? null,
+        };
+      }) as MesaComercialRow[];
     },
   });
 }

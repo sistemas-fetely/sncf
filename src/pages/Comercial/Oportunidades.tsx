@@ -29,6 +29,7 @@ import {
   type MesaComercialRow,
 } from "@/hooks/comercial/useMesaComercial";
 import { usePermissoesMesa } from "@/hooks/comercial/usePermissoesMesa";
+import { useFormasPagamento } from "@/hooks/financeiro/useFormasPagamento";
 
 /**
  * MESA-UNICA-DO-COMERCIAL: uma tela, uma fonte (`vw_mesa_comercial`), a
@@ -60,6 +61,8 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
   const [busca, setBusca] = useState("");
   const [statusFiltro, setStatusFiltro] = useState<string>("todos");
   const [pagamentoFiltro, setPagamentoFiltro] = useState<string>("todos");
+  /** Filtro por FORMA (dimensão `formas_pagamento`), não por condição em texto. */
+  const [formaFiltro, setFormaFiltro] = useState<string>("todas");
   // O valor da mesa está em "Em andamento" (NF, boleto, prazo de entrega).
   const [grupo, setGrupo] = useState<FiltroGrupo>("em_andamento");
   const [meus, setMeus] = useState(true);
@@ -73,6 +76,7 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
   const { data: vendedorAtual, isLoading: carregandoVendedor } = useVendedorAtual();
   const { data: statusOpcoes = [] } = useStatusComercialOpcoes();
   const { data: pagamentoOpcoes = [] } = usePagamentoEstadoOpcoes();
+  const { data: formasOpcoes = [] } = useFormasPagamento(true);
   const { podeVerTodos, carregando: carregandoPerms } = usePermissoesMesa();
 
   /**
@@ -139,11 +143,29 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
     return c;
   }, [baseFase]);
 
+  /** Só formas presentes na base viram botão — filtro vazio é ruído. */
+  const contagensForma = useMemo(() => {
+    const c = new Map<string, number>();
+    for (const r of baseFase) {
+      const f = r.forma_pagamento_id;
+      if (f) c.set(f, (c.get(f) ?? 0) + 1);
+    }
+    return c;
+  }, [baseFase]);
+
+  const formasNaMesa = useMemo(
+    () => formasOpcoes.filter((f) => (contagensForma.get(f.id) ?? 0) > 0),
+    [formasOpcoes, contagensForma],
+  );
+
   const filtradas = useMemo(() => {
     const q = busca.trim().toLowerCase();
     let base = baseFase;
     if (pagamentoFiltro !== "todos") {
       base = base.filter((r) => r.pagamento_estado_slug === pagamentoFiltro);
+    }
+    if (formaFiltro !== "todas") {
+      base = base.filter((r) => r.forma_pagamento_id === formaFiltro);
     }
     if (statusFiltro !== "todos") {
       base = base.filter((r) =>
@@ -166,7 +188,7 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
       if (pa !== pb) return pa - pb;
       return Number(b.valor || 0) - Number(a.valor || 0);
     });
-  }, [baseFase, busca, pagamentoFiltro, statusFiltro]);
+  }, [baseFase, busca, pagamentoFiltro, statusFiltro, formaFiltro]);
 
   const { data: linksFila } = useLinksPagamentoFila(filtradas.map((r) => r.pedido_id));
 
@@ -297,6 +319,28 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
               </FiltroBtn>
             ))}
           </div>
+
+          {/* FORMA — DIMENSAO-VIA-TABELA (`formas_pagamento`), com "Todas". */}
+          {formasNaMesa.length > 0 && (
+            <div className="inline-flex rounded-md border overflow-hidden">
+              <FiltroBtn
+                ativo={formaFiltro === "todas"}
+                onClick={() => setFormaFiltro("todas")}
+                title="Forma de pagamento pedida pelo cliente"
+              >
+                Todas as formas ({baseFase.length})
+              </FiltroBtn>
+              {formasNaMesa.map((f) => (
+                <FiltroBtn
+                  key={f.id}
+                  ativo={formaFiltro === f.id}
+                  onClick={() => setFormaFiltro(f.id)}
+                >
+                  {f.nome} ({contagensForma.get(f.id) ?? 0})
+                </FiltroBtn>
+              ))}
+            </div>
+          )}
         </div>
 
         <Card>
@@ -445,6 +489,19 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                         </TableCell>
                         <TableCell className="text-right align-top">
                           {formatBRL(r.valor ?? 0)}
+                          {/* CONDICAO-NA-LINHA: o comercial decide olhando a condição. */}
+                          {(r.condicao_solicitada || r.forma_pagamento_nome) && (
+                            <div
+                              className="text-xs text-muted-foreground truncate"
+                              title={
+                                [r.forma_pagamento_nome, r.condicao_solicitada]
+                                  .filter(Boolean)
+                                  .join(" · ") || undefined
+                              }
+                            >
+                              {r.condicao_solicitada || r.forma_pagamento_nome}
+                            </div>
+                          )}
                           {(r.boletos_qtd ?? 0) > 0 && (
                             <div className="text-xs text-muted-foreground">
                               {r.boletos_qtd} boleto(s) ·{" "}
