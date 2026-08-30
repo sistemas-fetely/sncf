@@ -12,7 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { FileText, AlertTriangle, ExternalLink, Trash2 } from "lucide-react";
+import { FileText, AlertTriangle, ExternalLink, Trash2, History } from "lucide-react";
 import { useExcluirScore } from "@/hooks/credito/useExcluirScore";
 import { getBureauPDFUrl } from "@/lib/credito/bureauUrl";
 import type { AnaliseScore } from "@/types/credito";
