@@ -68,6 +68,14 @@ export interface MesaComercialRow {
   condicao_solicitada: string | null;
   forma_pagamento_id: string | null;
   forma_pagamento_nome: string | null;
+  /** HISTORICO-DO-CLIENTE-VEM-DA-VIEW: recriado em `vw_mesa_comercial`, sem segundo fetch. */
+  eh_primeira_compra: boolean | null;
+  cliente_pedidos_faturados: number | null;
+  cliente_valor_faturado: number | null;
+  cliente_primeira_compra: string | null;
+  cliente_ultima_compra: string | null;
+  cliente_dias_sem_comprar: number | null;
+  cliente_ticket_medio: number | null;
 }
 
 export const MESA_QUERY_KEY = ["mesa-comercial"] as const;

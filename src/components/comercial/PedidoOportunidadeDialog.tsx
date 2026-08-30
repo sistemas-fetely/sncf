@@ -30,6 +30,7 @@ import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { ComprovantePagamentoBloco } from "@/components/comercial/ComprovantePagamentoBloco";
 import { useComprovantesPedido } from "@/hooks/comercial/useComprovantePagamento";
 import { SolicitarSopsAcao } from "@/components/comercial/SolicitarSopsAcao";
+import { ClienteHistoricoBloco } from "@/components/comercial/ClienteHistorico";
 import { usePermissoesMesa } from "@/hooks/comercial/usePermissoesMesa";
 import { useStatusComercialLog } from "@/hooks/comercial/useMesaComercial";
 import { useBoletosDoPedido } from "@/hooks/pedidos/useBoletosDoPedido";
@@ -94,6 +95,15 @@ interface Props {
   comprovantesQtd?: number | null;
   comprovanteStatus?: string | null;
   abaInicial?: "itens" | "obs" | "pagamento" | "entrega";
+  historicoCliente?: {
+    eh_primeira_compra: boolean | null;
+    cliente_pedidos_faturados: number | null;
+    cliente_valor_faturado: number | null;
+    cliente_primeira_compra: string | null;
+    cliente_ultima_compra: string | null;
+    cliente_dias_sem_comprar: number | null;
+    cliente_ticket_medio: number | null;
+  } | null;
 }
 
 /** CARTAO-NAO-FECHA-NA-MAO: a prova do cartão é o NSU da captura, não confirmação manual. */
@@ -127,6 +137,7 @@ export function PedidoOportunidadeDialog({
   comprovantesQtd,
   comprovanteStatus,
   abaInicial = "itens",
+  historicoCliente,
 }: Props) {
   const [texto, setTexto] = useState("");
   const [confirmarAberto, setConfirmarAberto] = useState(false);
@@ -311,6 +322,9 @@ export function PedidoOportunidadeDialog({
           </TabsContent>
 
           <TabsContent value="obs" className="mt-4 space-y-4 flex-1 min-h-0 overflow-y-auto">
+            {historicoCliente && (
+              <ClienteHistoricoBloco historico={historicoCliente} />
+            )}
             <div className="space-y-2">
               <Textarea
                 value={texto}

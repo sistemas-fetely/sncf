@@ -16,6 +16,10 @@ import { apelidoParceiro } from "@/lib/parceiros/nome";
 import { BadgeLinkFila } from "@/components/pedidos/LinkPagamentoCard";
 import { useLinksPagamentoFila } from "@/hooks/pedidos/useLinkPagamentoPedido";
 import { PedidoOportunidadeDialog } from "@/components/comercial/PedidoOportunidadeDialog";
+import {
+  ClienteHistoricoBloco,
+  PrimeiraCompraBadge,
+} from "@/components/comercial/ClienteHistorico";
 import { AcoesMesaLinha } from "@/components/comercial/AcoesMesaLinha";
 import {
   StatusComercialChip, PagamentoEstadoChip,
@@ -467,6 +471,9 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                               {apelidoParceiro(r.cliente, r.apelido)}
                             </div>
                           )}
+                          <div className="mt-0.5">
+                            <PrimeiraCompraBadge eh_primeira_compra={r.eh_primeira_compra} />
+                          </div>
                           {AVISO_EXCECAO_SITUACAO[r.situacao_financeira ?? ""] && (
                             <div className="mt-0.5">
                               <Badge
@@ -558,6 +565,15 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
             comprovantesQtd={detalhe.comprovantes_qtd}
             comprovanteStatus={detalhe.comprovante_status}
             abaInicial={abaDetalhe}
+            historicoCliente={{
+              eh_primeira_compra: detalhe.eh_primeira_compra,
+              cliente_pedidos_faturados: detalhe.cliente_pedidos_faturados,
+              cliente_valor_faturado: detalhe.cliente_valor_faturado,
+              cliente_primeira_compra: detalhe.cliente_primeira_compra,
+              cliente_ultima_compra: detalhe.cliente_ultima_compra,
+              cliente_dias_sem_comprar: detalhe.cliente_dias_sem_comprar,
+              cliente_ticket_medio: detalhe.cliente_ticket_medio,
+            }}
           />
         )}
       </div>
