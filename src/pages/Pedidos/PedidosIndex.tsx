@@ -32,19 +32,21 @@ export default function PedidosIndex() {
   const [riscoAltoAtivo, setRiscoAltoAtivo] = useState(false);
 
 
-  // FONTE-UNICA: o contador da aba le a MESMA view que a tabela da Mesa Comercial.
+  // FONTE-UNICA: o contador da aba le a MESMA view/fase default da Mesa Comercial.
   const { data: qtdMesaComercial = 0 } = useQuery({
     queryKey: ["mesa-comercial-contagem"],
     staleTime: 30 * 1000,
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { count, error } = await (supabase as any)
-        .from("vw_oportunidades_comercial")
-        .select("pedido_id", { count: "exact", head: true });
+        .from("vw_mesa_comercial")
+        .select("pedido_id", { count: "exact", head: true })
+        .eq("fase_mesa", "oportunidade");
       if (error) throw error;
       return count ?? 0;
     },
   });
+
 
   const { data: qtdSolicitacoes = 0 } = useContagemSolicitacoes();
 
