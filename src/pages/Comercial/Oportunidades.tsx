@@ -571,12 +571,23 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
   );
 }
 
-function KpiCard({ label, value }: { label: string; value: string }) {
+function KpiCard({
+  label,
+  value,
+  subtitle,
+}: {
+  label: string;
+  value: string;
+  subtitle?: string;
+}) {
   return (
     <Card>
       <CardContent className="p-4">
         <p className="text-xs text-muted-foreground uppercase tracking-wide">{label}</p>
         <p className="text-2xl font-medium mt-1">{value}</p>
+        {subtitle && (
+          <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
+        )}
       </CardContent>
     </Card>
   );
