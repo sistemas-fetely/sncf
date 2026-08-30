@@ -83,31 +83,9 @@ export function useMesaComercial() {
         .from("vw_mesa_comercial")
         .select("*")
         .order("dias_desde_pedido", { ascending: false });
+      // FAIL-LOUD: a view e a fonte unica da mesa — qualquer erro sobe.
       if (error) throw error;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const linhas = (data ?? []) as any[];
-      const ids = linhas.map((r) => r.pedido_id).filter(Boolean);
-      if (ids.length === 0) return [] as MesaComercialRow[];
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: peds, error: pErr } = await (supabase as any)
-        .from("pedidos")
-        .select("id, condicao_solicitada, forma_pagamento_id, formas_pagamento(nome)")
-        .in("id", ids);
-      // FAIL-LOUD: sem a condição a mesa perde a informação mais pedida — erro sobe.
-      if (pErr) throw pErr;
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const porId = new Map<string, any>((peds ?? []).map((p: any) => [p.id, p]));
-      return linhas.map((r) => {
-        const p = porId.get(r.pedido_id);
-        return {
-          ...r,
-          condicao_solicitada: p?.condicao_solicitada ?? null,
-          forma_pagamento_id: p?.forma_pagamento_id ?? null,
-          forma_pagamento_nome: p?.formas_pagamento?.nome ?? null,
-        };
-      }) as MesaComercialRow[];
+      return (data ?? []) as MesaComercialRow[];
     },
   });
 }
