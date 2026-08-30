@@ -125,11 +125,11 @@ export function PedidoOportunidadeDialog({
   // confirmação manual não existe mais — o banco recusaria e o erro é feio.
   // SOPS-ATENDE-O-COMERCIAL (20/08/2026): a tela nao replica regra de estagio;
   // o banco recusa e explica, e a mensagem dele aparece no toast.
-  const [solicitarAberto, setSolicitarAberto] = useState(false);
-  const [tipoSolicitacao, setTipoSolicitacao] = useState("trocar_forma_pagamento");
-  const [detalheSolicitacao, setDetalheSolicitacao] = useState("");
-  const abrirSolicitacao = useAbrirSolicitacao(pedidoId);
-  const detalheValido = detalheSolicitacao.trim().length >= 5;
+  // A ação de solicitar vive em SolicitarSopsAcao — um componente, dois pontos
+  // de montagem (linha da mesa e este dialog).
+  const boletos = useBoletosDoPedido(open ? pedidoId : undefined);
+  const statusLog = useStatusComercialLog(pedidoId, open);
+
 
   const comprovantes = useComprovantesPedido(pedidoId, open);
   const temComprovanteConfirmado = (comprovantes.data ?? []).some(
