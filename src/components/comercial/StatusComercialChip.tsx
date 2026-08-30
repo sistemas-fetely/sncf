@@ -23,12 +23,16 @@ export function StatusComercialChip({
   rotulo,
   cor,
   className,
+  temperaturaSistema,
+  temperaturaScore,
 }: {
   pedidoId: string;
   slug: string | null;
   rotulo: string | null;
   cor: string | null;
   className?: string;
+  temperaturaSistema?: string | null;
+  temperaturaScore?: number | null;
 }) {
   const [aberto, setAberto] = useState(false);
   const [motivo, setMotivo] = useState("");
