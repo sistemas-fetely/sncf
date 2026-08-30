@@ -104,7 +104,13 @@ export interface AnaliseListItem {
   pre_aprovado_regra_id?: string | null;
   pre_aprovacao_em?: string | null;
   pre_aprovacao_regra_nome?: string | null;
+  /** Decisão anterior — usado no de-para de reabertura. */
+  limite_concedido?: number | null;
+  prazo_max_dias?: number | null;
+  validade_ate?: string | null;
+  perfil_aplicado?: string | null;
 }
+
 
 export interface PreAprovacaoPayload {
   regra_id: string;
