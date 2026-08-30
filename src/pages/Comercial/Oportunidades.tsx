@@ -188,7 +188,7 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
       if (pa !== pb) return pa - pb;
       return Number(b.valor || 0) - Number(a.valor || 0);
     });
-  }, [baseFase, busca, pagamentoFiltro, statusFiltro]);
+  }, [baseFase, busca, pagamentoFiltro, statusFiltro, formaFiltro]);
 
   const { data: linksFila } = useLinksPagamentoFila(filtradas.map((r) => r.pedido_id));
 
