@@ -141,7 +141,15 @@ export interface AnaliseScore {
   dados_extraidos_json: any;
   anexado_em: string;
   extraido_em: string | null;
+  /** Quando preenchido, o bureau foi copiado de outra análise do mesmo cliente. */
+  reaproveitado_de_id?: string | null;
 }
+
+/** Bureau de outra análise do mesmo cliente, ainda dentro da janela de validade. */
+export interface BureauReaproveitavel extends AnaliseScore {
+  idade_dias: number;
+}
+
 
 export interface AnaliseTransicao {
   id: string;
