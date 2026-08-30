@@ -79,6 +79,26 @@ export function useResponsaveisReporte() {
 }
 
 /**
+ * Mapa user_id → nome, de todos os profiles. Usado pra resolver autor do report
+ * (que pode ser qualquer usuário, não só quem tem acesso a TI).
+ */
+export function useNomesUsuarios() {
+  return useQuery({
+    queryKey: ["usuarios-nomes"],
+    queryFn: async (): Promise<Record<string, string>> => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, full_name");
+      if (error) throw error;
+      return Object.fromEntries(
+        (data || []).map((p: any) => [p.user_id, p.full_name || "Sem nome"])
+      );
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
  * Leitura da imagem de um report (bucket privado, tela autenticada).
  */
 export function useImagemReporte(imagemUrl: string | null | undefined) {
