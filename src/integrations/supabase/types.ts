@@ -83,6 +83,89 @@ export type Database = {
         }
         Relationships: []
       }
+      acao_superficie: {
+        Row: {
+          arquivo: string
+          conferido: boolean
+          conferido_em: string | null
+          conferido_por: string | null
+          created_at: string
+          dispara: string | null
+          guarda_atual: string
+          id: string
+          observacao: string | null
+          origem: string
+          permissao_id: string | null
+          risco: string
+          rota: string
+          rotulo: string
+          updated_at: string
+        }
+        Insert: {
+          arquivo: string
+          conferido?: boolean
+          conferido_em?: string | null
+          conferido_por?: string | null
+          created_at?: string
+          dispara?: string | null
+          guarda_atual?: string
+          id?: string
+          observacao?: string | null
+          origem?: string
+          permissao_id?: string | null
+          risco: string
+          rota: string
+          rotulo: string
+          updated_at?: string
+        }
+        Update: {
+          arquivo?: string
+          conferido?: boolean
+          conferido_em?: string | null
+          conferido_por?: string | null
+          created_at?: string
+          dispara?: string | null
+          guarda_atual?: string
+          id?: string
+          observacao?: string | null
+          origem?: string
+          permissao_id?: string | null
+          risco?: string
+          rota?: string
+          rotulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acao_superficie_permissao_id_fkey"
+            columns: ["permissao_id"]
+            isOneToOne: false
+            referencedRelation: "permissoes_catalogo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acao_superficie_permissao_id_fkey"
+            columns: ["permissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_catalogo_por_app"
+            referencedColumns: ["permissao_id"]
+          },
+          {
+            foreignKeyName: "acao_superficie_permissao_id_fkey"
+            columns: ["permissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_concessao_viva"
+            referencedColumns: ["permissao_id"]
+          },
+          {
+            foreignKeyName: "acao_superficie_permissao_id_fkey"
+            columns: ["permissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_permissao_diagnostico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       acesso_dados_log: {
         Row: {
           alvo_nome: string | null
@@ -24550,6 +24633,36 @@ export type Database = {
         }
         Relationships: []
       }
+      oportunidade_status_log: {
+        Row: {
+          de_slug: string | null
+          definido_em: string
+          definido_por: string | null
+          id: string
+          motivo: string | null
+          para_slug: string
+          pedido_id: string
+        }
+        Insert: {
+          de_slug?: string | null
+          definido_em?: string
+          definido_por?: string | null
+          id?: string
+          motivo?: string | null
+          para_slug: string
+          pedido_id: string
+        }
+        Update: {
+          de_slug?: string | null
+          definido_em?: string
+          definido_por?: string | null
+          id?: string
+          motivo?: string | null
+          para_slug?: string
+          pedido_id?: string
+        }
+        Relationships: []
+      }
       oportunidade_temperatura_peso: {
         Row: {
           ativo: boolean
@@ -29326,6 +29439,10 @@ export type Database = {
           regra_pagamento_id: string | null
           snapshot_original: Json | null
           split_de_pedido_id: string | null
+          status_comercial_em: string | null
+          status_comercial_motivo: string | null
+          status_comercial_por: string | null
+          status_comercial_slug: string | null
           tipo_pagamento: string | null
           transportadora_id: string | null
           transportadora_origem: string | null
@@ -29432,6 +29549,10 @@ export type Database = {
           regra_pagamento_id?: string | null
           snapshot_original?: Json | null
           split_de_pedido_id?: string | null
+          status_comercial_em?: string | null
+          status_comercial_motivo?: string | null
+          status_comercial_por?: string | null
+          status_comercial_slug?: string | null
           tipo_pagamento?: string | null
           transportadora_id?: string | null
           transportadora_origem?: string | null
@@ -29538,6 +29659,10 @@ export type Database = {
           regra_pagamento_id?: string | null
           snapshot_original?: Json | null
           split_de_pedido_id?: string | null
+          status_comercial_em?: string | null
+          status_comercial_motivo?: string | null
+          status_comercial_por?: string | null
+          status_comercial_slug?: string | null
           tipo_pagamento?: string | null
           transportadora_id?: string | null
           transportadora_origem?: string | null
