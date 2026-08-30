@@ -642,7 +642,7 @@ export default function ConsoleAcessoTab() {
 
                           {bloqueado ? (
                             <TableCell
-                              colSpan={grupos.length}
+                              colSpan={porGrupo ? 1 : grupos.length}
                               className="align-top text-center"
                             >
                               {porFlag ? (
@@ -667,6 +667,40 @@ export default function ConsoleAcessoTab() {
                                       Declarar
                                     </Button>
                                   )}
+                                </span>
+                              )}
+                            </TableCell>
+                          ) : porGrupo ? (
+                            <TableCell className="text-center align-top">
+                              {grupoLenteId ? (
+                                <CelulaConcessao
+                                  concedido={concedido.has(
+                                    `${grupoLenteId}|${l.permissao_id}`,
+                                  )}
+                                  nivelMinimo={
+                                    nivelPorCelula.get(
+                                      `${grupoLenteId}|${l.permissao_id}`,
+                                    ) ?? null
+                                  }
+                                  niveis={niveis}
+                                  desabilitado={
+                                    togglePermissao.isPending || definirNivel.isPending
+                                  }
+                                  rotuloAria={l.rotulo}
+                                  onToggle={(v) =>
+                                    alternar(grupoLenteId, l.permissao_id as string, v)
+                                  }
+                                  onNivel={(nivel) =>
+                                    definirNivel.mutate({
+                                      grupoId: grupoLenteId,
+                                      permissaoId: l.permissao_id as string,
+                                      nivelMinimo: nivel,
+                                    })
+                                  }
+                                />
+                              ) : (
+                                <span className="text-[11px] text-muted-foreground">
+                                  escolha o grupo
                                 </span>
                               )}
                             </TableCell>
