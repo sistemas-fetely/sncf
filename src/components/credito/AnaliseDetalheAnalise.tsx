@@ -117,16 +117,17 @@ export function AnaliseDetalheAnalise({ analiseId }: Props) {
         />
       </div>
 
-      {/* B-82: Banner bureaus históricos */}
-      {scoresHistoricoCount > 0 && (
-        <Alert>
-          <FileSearch className="h-4 w-4" />
-          <AlertDescription>
-            Este cliente tem <strong>{scoresHistoricoCount}</strong> bureau{scoresHistoricoCount > 1 ? "s" : ""}{" "}
-            em análises anteriores. Consulte o histórico de análises abaixo para acessá-los.
-          </AlertDescription>
-        </Alert>
+      {/* Reabertura — escopo da reanálise */}
+      {analise.analise_anterior_id && (
+        <BoxReaberturaPedido
+          analiseAnteriorId={analise.analise_anterior_id}
+          transicoes={transicoes}
+          analisesAnteriores={analisesAnteriores}
+          condicaoAtual={pedido?.condicao_solicitada}
+          valorAtual={pedido?.valor_liquido}
+        />
       )}
+
 
       {/* Pré-aprovação (Joseph confirma 1-clique) */}
       {analise.pre_aprovado_regra_id && !analise.status_final && (
