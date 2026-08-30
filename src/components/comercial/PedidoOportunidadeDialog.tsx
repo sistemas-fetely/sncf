@@ -482,7 +482,8 @@ export function PedidoOportunidadeDialog({
               )}
             </div>
 
-            <div className="rounded-md border px-3 py-2 space-y-1">
+            {/* Consultar boletos é ação gateada por `acao.mesa_ver_boletos`. */}
+            <div className={podeVerBoletos ? "rounded-md border px-3 py-2 space-y-1" : "hidden"}>
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Boletos</p>
               {boletos.isLoading ? (
                 <div className="flex justify-center py-4">
