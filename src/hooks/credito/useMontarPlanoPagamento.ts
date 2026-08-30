@@ -64,6 +64,7 @@ export function useMontarPlanoPagamento() {
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["cobranca-fila"] });
       qc.invalidateQueries({ queryKey: ["cobranca-proposta"] });
+      qc.invalidateQueries({ queryKey: ["cobranca-plano-existente"] });
       qc.invalidateQueries({ queryKey: ["cobranca-pedido-minimo"] });
       qc.invalidateQueries({ queryKey: ["pedido-detalhe"] });
       qc.invalidateQueries({ queryKey: ["provisoes-pedido"] });

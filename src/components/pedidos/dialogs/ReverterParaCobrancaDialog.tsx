@@ -34,6 +34,7 @@ export function ReverterParaCobrancaDialog({
     setErroRpc(null);
     try {
       await reverter.mutateAsync(pedidoId);
+      onClose();
     } catch (e: any) {
       setErroRpc(e?.message ?? "Erro ao reverter pedido");
     }
