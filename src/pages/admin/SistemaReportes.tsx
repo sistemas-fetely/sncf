@@ -67,6 +67,9 @@ export default function SistemaReportes() {
   const [deleteTarget, setDeleteTarget] = useState<Reporte | null>(null);
   const atualizar = useAtualizarReporte();
   const { data: responsaveis } = useResponsaveisReporte();
+  const { data: nomes } = useNomesUsuarios();
+
+  const nomeDe = (id?: string | null) => (id ? nomes?.[id] : undefined);
 
   const handleDeleteReport = async () => {
     if (!deleteTarget) return;
