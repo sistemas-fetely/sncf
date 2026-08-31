@@ -75,9 +75,9 @@ import { useQueryClient } from "@tanstack/react-query";
  * A linha `tipo = 'tela'` é o acesso de entrar na tela; as linhas
  * `tipo = 'acao'` são os botões daquela tela.
  *
- * APRESENTAÇÃO: a grade só carrega o que é decisão (Linha · Risco · concessão ·
- * Conferido). Contexto de leitura (o que dispara, guarda atual, arquivo, slug)
- * vive no painel lateral de detalhe, aberto ao clicar na linha.
+ * APRESENTAÇÃO: a grade carrega a decisão (Linha · Risco · Guarda atual · concessão ·
+ * Conferido). "Dispara" e "arquivo" permanecem no painel lateral de detalhe, aberto ao
+ * clicar na linha.
  *
  * PREPARADO PARA DEPOIS: `gruposVisiveis` é o único ponto que decide quais
  * colunas de grupo aparecem — basta filtrá-lo para ganhar um seletor de
@@ -461,8 +461,8 @@ export default function ConsoleAcessoTab() {
 
   /** PONTO ÚNICO de decisão de colunas de grupo (ver comentário do topo). */
   const gruposVisiveis: GrupoConsole[] = grupos;
-  /** Colunas fixas: Linha · Risco · Conferido. */
-  const nColunas = porGrupo ? 4 : 3 + gruposVisiveis.length;
+  /** Colunas fixas: Linha · Risco · Guarda atual · Conferido. */
+  const nColunas = porGrupo ? 5 : 4 + gruposVisiveis.length;
   const grupoConcedidas = grupos.find((g) => g.id === filtroConcedidas) ?? null;
 
   /** Menu do cabeçalho da coluna: tira o botão gordo de dentro do <th>. */
@@ -727,13 +727,14 @@ export default function ConsoleAcessoTab() {
             </div>
           </CardHeader>
           <CardContent className="max-h-[70vh] overflow-auto p-0">
-            <Table>
+            <Table className="w-auto">
               <TableHeader className="sticky top-0 z-30 bg-card">
                 <TableRow>
-                  <TableHead className="sticky left-0 z-40 min-w-[220px] bg-card">
+                  <TableHead className="sticky left-0 z-40 w-[320px] max-w-[320px] bg-card">
                     Linha
                   </TableHead>
                   <TableHead className="w-[90px]">Risco</TableHead>
+                  <TableHead className="w-[150px] text-[11px]">Guarda atual</TableHead>
                   {porGrupo ? (
                     <TableHead className="min-w-[120px] text-center">
                       <span className="inline-flex items-center gap-1">
@@ -745,7 +746,7 @@ export default function ConsoleAcessoTab() {
                     </TableHead>
                   ) : (
                     gruposVisiveis.map((g) => (
-                      <TableHead key={g.id} className="w-[56px] px-1 text-center">
+                      <TableHead key={g.id} className="w-[64px] px-1 text-center">
                         <span className="inline-flex items-center gap-0.5">
                           <span
                             className="text-[11px] font-medium"
@@ -795,7 +796,7 @@ export default function ConsoleAcessoTab() {
                         >
                           <TableCell
                             className={cn(
-                              "sticky left-0 z-10 align-top",
+                              "sticky left-0 z-10 max-w-[320px] align-top",
                               ehTela ? "bg-muted" : "bg-card",
                             )}
                           >
@@ -808,7 +809,14 @@ export default function ConsoleAcessoTab() {
                               {!ehTela && l.conferido && (
                                 <ShieldCheck className="h-3.5 w-3.5 text-success" />
                               )}
-                              <span className={cn(ehTela && "font-medium")}>{l.rotulo}</span>
+                              <span
+                                className={cn(
+                                  "whitespace-normal break-words",
+                                  ehTela && "font-medium",
+                                )}
+                              >
+                                {l.rotulo}
+                              </span>
                               {semDeclaracao && l.tipo === "acao" && (
                                 <Badge className="bg-warning/10 px-1 py-0 text-[9px] text-warning hover:bg-warning/10">
                                   ação não declarada
@@ -822,6 +830,9 @@ export default function ConsoleAcessoTab() {
                             </span>
                           </TableCell>
                           <TableCell className="align-top">{badgeRisco(l.risco)}</TableCell>
+                          <TableCell className="align-top text-xs">
+                            {renderGuarda(l.guarda_atual)}
+                          </TableCell>
 
                           {bloqueado ? (
                             <TableCell
