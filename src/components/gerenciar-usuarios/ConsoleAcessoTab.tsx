@@ -668,15 +668,20 @@ export default function ConsoleAcessoTab() {
 
   const totalTelas = modulos.reduce((s, m) => s + telasDoModulo(m).length, 0);
 
-  /** Folha da árvore. `nivel` é só recuo: 1 = tela, 2 = aba sob a tela-mãe. */
-  const renderTela = (t: TelaNodo, nivel: 1 | 2) => (
+  /** Folha da árvore. `nivel` é só recuo; aba desce um passo além da tela-mãe. */
+  const recuoTela: Record<1 | 2 | 3, string> = {
+    1: "ml-4 w-[calc(100%-1rem)]",
+    2: "ml-7 w-[calc(100%-1.75rem)]",
+    3: "ml-10 w-[calc(100%-2.5rem)]",
+  };
+  const renderTela = (t: TelaNodo, nivel: 1 | 2 | 3): JSX.Element => (
     <Fragment key={t.chave}>
       <button
         type="button"
         onClick={() => setTelaSel(t.chave)}
         className={cn(
           "flex items-center gap-2 rounded-md px-2 py-1 text-left text-xs transition-colors hover:bg-accent",
-          nivel === 1 ? "ml-4 w-[calc(100%-1rem)]" : "ml-7 w-[calc(100%-1.75rem)]",
+          recuoTela[nivel],
           t.chave === telaAtiva?.chave && "bg-accent",
         )}
       >
@@ -690,9 +695,10 @@ export default function ConsoleAcessoTab() {
           <BadgeAltoSemGuarda n={t.altoSemGuarda} />
         </span>
       </button>
-      {t.abas.map((a) => renderTela(a, 2))}
+      {t.abas.map((a) => renderTela(a, nivel === 1 ? 2 : 3))}
     </Fragment>
   );
+
 
 
 
