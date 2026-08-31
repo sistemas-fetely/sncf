@@ -94,8 +94,10 @@ function badgeRisco(risco: string | null) {
   return <Badge variant="outline">{r}</Badge>;
 }
 
-const semGuarda = (l: ConsoleAcessoRow) => l.sem_guarda === true;
-const naoDeclarada = (l: ConsoleAcessoRow) => l.declarada !== true;
+/** Escopo não é botão: muda QUANTAS linhas a pessoa vê, não o que ela clica. */
+const ehEscopo = (l: ConsoleAcessoRow) => l.tipo === "escopo";
+const semGuarda = (l: ConsoleAcessoRow) => !ehEscopo(l) && l.sem_guarda === true;
+const naoDeclarada = (l: ConsoleAcessoRow) => !ehEscopo(l) && l.declarada !== true;
 const portaoPorFlag = (l: ConsoleAcessoRow) => l.apenas_super_admin === true;
 const ehAltoSemGuarda = (l: ConsoleAcessoRow) =>
   semGuarda(l) && (l.risco ?? "").toUpperCase() === "ALTO";
