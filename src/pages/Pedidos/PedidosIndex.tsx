@@ -31,6 +31,45 @@ export default function PedidosIndex() {
   const [incluirCancelados, setIncluirCancelados] = useState(false);
   const [riscoAltoAtivo, setRiscoAltoAtivo] = useState(false);
 
+  // Guarda nominal por aba (Fila agora tem slug próprio).
+  const permFila = usePodeVerAba("tela.pedidos");
+  const permDash = usePodeVerAba("tela.dash_pedidos");
+  const permMesa = usePodeVerAba("tela.comercial");
+  const permConsignados = usePodeVerAba("tela.consignado");
+  const permSolicitacoes = usePodeVerAba("tela.solicitacoes");
+
+  const permissoes: Record<Aba, { podeVer: boolean; carregando: boolean }> = {
+    fila: permFila,
+    dash: permDash,
+    recuperacao: permMesa,
+    consignados: permConsignados,
+    solicitacoes: permSolicitacoes,
+  };
+
+  const carregandoPermissoes = ABAS.some((a) => permissoes[a].carregando);
+  const primeiraPermitida = ABAS.find((a) => permissoes[a].podeVer);
+  const abaSolicitada: Aba = ABAS.includes(abaParam as Aba)
+    ? (abaParam as Aba)
+    : "fila";
+  const abaEfetiva: Aba | undefined = carregandoPermissoes
+    ? abaSolicitada
+    : permissoes[abaSolicitada].podeVer
+      ? abaSolicitada
+      : primeiraPermitida;
+
+  // Redireciona para a primeira aba permitida quando a URL aponta para uma proibida.
+  useEffect(() => {
+    if (carregandoPermissoes) return;
+    if (abaEfetiva && abaEfetiva !== abaSolicitada) {
+      const next = new URLSearchParams(searchParams);
+      if (abaEfetiva === "fila") next.delete("aba");
+      else next.set("aba", abaEfetiva);
+      setSearchParams(next);
+    }
+  }, [carregandoPermissoes, abaEfetiva, abaSolicitada, searchParams, setSearchParams]);
+
+
+
 
   // FONTE-UNICA: o contador da aba le a MESMA view/fase default da Mesa Comercial.
   const { data: qtdMesaComercial = 0 } = useQuery({
