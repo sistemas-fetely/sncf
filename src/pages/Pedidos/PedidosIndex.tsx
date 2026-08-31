@@ -27,7 +27,6 @@ export default function PedidosIndex() {
   const [searchParams, setSearchParams] = useSearchParams();
   const estagioParam = searchParams.get("estagio") as EstagioPedido | null;
   const abaParam = searchParams.get("aba");
-  const aba: Aba = ABAS.includes(abaParam as Aba) ? (abaParam as Aba) : "fila";
   const [incluirCancelados, setIncluirCancelados] = useState(false);
   const [riscoAltoAtivo, setRiscoAltoAtivo] = useState(false);
 
