@@ -974,8 +974,11 @@ export default function ConsoleAcessoTab() {
         </Card>
       </div>
 
-      {/* ── Painel de detalhe da linha (contexto de leitura, fora da grade) ── */}
-      <Sheet open={!!detalhe} onOpenChange={(aberto) => !aberto && setDetalhe(null)}>
+      {/* ── Mobile/estreito: o mesmo detalhe volta como Sheet por cima ── */}
+      <Sheet
+        open={!!detalhe && !telaLarga}
+        onOpenChange={(aberto) => !aberto && setDetalhe(null)}
+      >
         <SheetContent className="w-full overflow-y-auto sm:max-w-md">
           {detalhe && (
             <>
@@ -985,85 +988,21 @@ export default function ConsoleAcessoTab() {
                   {detalhe.rota}
                 </SheetDescription>
               </SheetHeader>
-              <div className="mt-4 space-y-4 text-sm">
-                <div className="flex flex-wrap gap-1.5">
-                  {badgeRisco(detalhe.risco)}
-                  {detalhe.contem_dado_sensivel && (
-                    <Badge variant="outline" className="text-[10px]">
-                      LGPD
-                    </Badge>
-                  )}
-                  {detalhe.feature_em_teste && (
-                    <Badge variant="outline" className="bg-warning/10 text-[10px]">
-                      BETA
-                    </Badge>
-                  )}
-                  {portaoPorFlag(detalhe) && (
-                    <Badge variant="outline" className="text-[10px]">
-                      portão por flag
-                    </Badge>
-                  )}
-                  {naoDeclarada(detalhe) && detalhe.tipo === "acao" && (
-                    <Badge className="bg-warning/10 text-[10px] text-warning hover:bg-warning/10">
-                      ação não declarada
-                    </Badge>
-                  )}
-                </div>
-
-                <div>
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                    O que dispara
-                  </p>
-                  <p className="text-xs">{detalhe.dispara ?? "—"}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                    Guarda atual
-                  </p>
-                  <p className="text-xs">{renderGuarda(detalhe.guarda_atual)}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                    Arquivo
-                  </p>
-                  <p className="break-all font-mono text-xs text-muted-foreground">
-                    {detalhe.arquivo ?? "—"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                    Slug da permissão
-                  </p>
-                  <p className="break-all font-mono text-xs text-muted-foreground">
-                    {detalhe.permissao_slug ?? "—"}
-                  </p>
-                </div>
-
-                {(detalhe.telas_cobertas ?? 0) > 1 && (
-                  <div className="rounded-md border bg-muted/30 p-2 text-[11px] leading-snug text-muted-foreground">
-                    Esta permissão é um pacote: vale para {detalhe.telas_cobertas} telas.
-                    Marcar aqui muda todas —{" "}
-                    <span className="font-medium">{detalhe.telas_lista ?? "—"}</span>
-                  </div>
-                )}
-
-                {naoDeclarada(detalhe) && isSuperAdmin && detalhe.acao_superficie_id && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setDeclarando(detalhe);
-                      setDetalhe(null);
-                    }}
-                  >
-                    Declarar no catálogo
-                  </Button>
-                )}
+              <div className="mt-4">
+                <DetalheLinha
+                  linha={detalhe}
+                  isSuperAdmin={isSuperAdmin}
+                  onDeclarar={() => {
+                    setDeclarando(detalhe);
+                    setDetalhe(null);
+                  }}
+                />
               </div>
             </>
           )}
         </SheetContent>
       </Sheet>
+
 
       <DeclararAcaoDialog
         linha={declarando}
