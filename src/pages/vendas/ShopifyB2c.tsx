@@ -469,8 +469,8 @@ export default function ShopifyB2c() {
           </ConteudoAba>
         </TabsContent>
 
-        {podeVerCarrinhos && (
-          <TabsContent value="carrinhos" className="space-y-3">
+        <TabsContent value="carrinhos" className="space-y-3">
+          <ConteudoAba slug="tela.b2c_carrinhos">
             <p className="text-xs text-muted-foreground">
               {carrinhosResumo.qtd} carrinho(s) abandonado(s) · {formatBRL(carrinhosResumo.valor)} em jogo.
             </p>
@@ -540,8 +540,8 @@ export default function ShopifyB2c() {
                 </Table>
               </CardContent>
             </Card>
-          </TabsContent>
-        )}
+          </ConteudoAba>
+        </TabsContent>
 
         <TabsContent value="posvenda">
           <Card>
