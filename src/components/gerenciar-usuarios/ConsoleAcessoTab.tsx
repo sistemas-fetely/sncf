@@ -1071,8 +1071,8 @@ export default function ConsoleAcessoTab() {
               )}
             </div>
           </CardHeader>
-          <CardContent className="max-h-[70vh] overflow-auto p-0">
-            <Table className="w-auto">
+          <CardContent className="overflow-visible p-0">
+            <Table className="w-auto" containerClassName="max-h-[70vh] overflow-auto">
               <TableHeader className="sticky top-0 z-30 bg-card">
                 <TableRow>
                   <TableHead className="sticky left-0 z-40 w-[320px] max-w-[320px] bg-card">
