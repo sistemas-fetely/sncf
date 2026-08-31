@@ -1111,28 +1111,37 @@ export default function ConsoleAcessoTab() {
           </CardContent>
         </Card>
 
-        {/* ── Terceira coluna: detalhe da linha / resumo da tela (telas largas) ── */}
-        <Card className="hidden h-fit lg:sticky lg:top-4 lg:block">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">
-              {detalhe ? detalhe.rotulo : (telaAtiva?.telaLabel ?? "Nenhuma tela")}
-            </CardTitle>
-            <p className="font-mono text-[11px] text-muted-foreground">
-              {detalhe ? detalhe.rota : "Resumo da tela"}
-            </p>
-          </CardHeader>
-          <CardContent className="max-h-[70vh] overflow-y-auto">
-            {detalhe ? (
+        {/* ── Terceira coluna: só existe quando há linha selecionada (telas largas) ── */}
+        {detalhe && (
+          <Card className="hidden h-fit lg:sticky lg:top-4 lg:block">
+            <CardHeader className="pb-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <CardTitle className="text-sm">{detalhe.rotulo}</CardTitle>
+                  <p className="break-all font-mono text-[11px] text-muted-foreground">
+                    {detalhe.rota}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 shrink-0"
+                  aria-label="Fechar detalhe"
+                  onClick={() => setDetalhe(null)}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="max-h-[70vh] overflow-y-auto">
               <DetalheLinha
                 linha={detalhe}
                 isSuperAdmin={isSuperAdmin}
                 onDeclarar={() => setDeclarando(detalhe)}
               />
-            ) : (
-              <ResumoTela tela={telaAtiva} />
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
 
