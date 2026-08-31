@@ -546,62 +546,64 @@ export default function ShopifyB2c() {
         </TabsContent>
 
         <TabsContent value="posvenda">
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Número</TableHead>
-                    <TableHead>Pedido</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Motivo</TableHead>
-                    <TableHead className="text-right">Crédito</TableHead>
-                    <TableHead>Data</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {carregandoDevolucoes ? (
+          <ConteudoAba slug="tela.b2c_pos_venda">
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={7} className="py-8 text-center">
-                        <Skeleton className="mx-auto h-4 w-32" />
-                      </TableCell>
+                      <TableHead>Número</TableHead>
+                      <TableHead>Pedido</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Motivo</TableHead>
+                      <TableHead className="text-right">Crédito</TableHead>
+                      <TableHead>Data</TableHead>
                     </TableRow>
-                  ) : (devolucoes ?? []).length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
-                        Nenhuma devolução da loja registrada.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    (devolucoes ?? []).map((d) => (
-                      <TableRow key={d.id}>
-                        <TableCell className="font-mono text-xs">{d.numero}</TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {txt(d.shopify_pedido_id ?? d.pedido_id)}
-                        </TableCell>
-                        <TableCell>
-                          <Selo estado={d.status === "encerrada" ? "success" : "warning"}>{d.status}</Selo>
-                        </TableCell>
-                        <TableCell className="text-xs">{d.tipo}</TableCell>
-                        <TableCell className="max-w-[280px] text-xs">
-                          <span className="line-clamp-2">
-                            {txt(d.motivo_categoria)} · {d.motivo_texto}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right text-xs tabular-nums">
-                          {formatBRL(d.valor_credito)}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap text-xs">
-                          {formatDateBR(d.criado_em)}
+                  </TableHeader>
+                  <TableBody>
+                    {carregandoDevolucoes ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="py-8 text-center">
+                          <Skeleton className="mx-auto h-4 w-32" />
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                    ) : (devolucoes ?? []).length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                          Nenhuma devolução da loja registrada.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      (devolucoes ?? []).map((d) => (
+                        <TableRow key={d.id}>
+                          <TableCell className="font-mono text-xs">{d.numero}</TableCell>
+                          <TableCell className="font-mono text-xs">
+                            {txt(d.shopify_pedido_id ?? d.pedido_id)}
+                          </TableCell>
+                          <TableCell>
+                            <Selo estado={d.status === "encerrada" ? "success" : "warning"}>{d.status}</Selo>
+                          </TableCell>
+                          <TableCell className="text-xs">{d.tipo}</TableCell>
+                          <TableCell className="max-w-[280px] text-xs">
+                            <span className="line-clamp-2">
+                              {txt(d.motivo_categoria)} · {d.motivo_texto}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right text-xs tabular-nums">
+                            {formatBRL(d.valor_credito)}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap text-xs">
+                            {formatDateBR(d.criado_em)}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </ConteudoAba>
         </TabsContent>
       </Tabs>
       )}
