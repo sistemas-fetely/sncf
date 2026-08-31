@@ -99,21 +99,6 @@ const portaoPorFlag = (l: ConsoleAcessoRow) => l.apenas_super_admin === true;
 const ehAltoSemGuarda = (l: ConsoleAcessoRow) =>
   semGuarda(l) && (l.risco ?? "").toUpperCase() === "ALTO";
 
-/** Sigla curta derivada do nome do grupo (nada hardcoded). */
-function sigla(nome: string): string {
-  const palavras = (nome ?? "")
-    .trim()
-    .split(/\s+/)
-    .filter((p) => p.length > 2);
-  if (palavras.length >= 2) {
-    return palavras
-      .slice(0, 3)
-      .map((p) => p[0])
-      .join("")
-      .toUpperCase();
-  }
-  return (nome ?? "").slice(0, 3).toUpperCase();
-}
 
 function renderGuarda(guarda: string | null) {
   const g = (guarda ?? "").trim();
