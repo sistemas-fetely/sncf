@@ -462,6 +462,7 @@ export default function ShopifyB2c() {
               </CardContent>
             </Card>
           )}
+          </ConteudoAba>
         </TabsContent>
 
         <TabsContent value="dash">
