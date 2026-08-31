@@ -867,30 +867,26 @@ export default function ConsoleAcessoTab() {
                   <TableHead className="w-[90px]">Risco</TableHead>
                   <TableHead className="w-[150px] text-[11px]">Guarda atual</TableHead>
                   {porGrupo ? (
-                    <TableHead className="min-w-[120px] text-center">
-                      <span className="inline-flex items-center gap-1">
-                        Acessa
-                        {grupoLenteId && (
-                          <MenuColuna grupoId={grupoLenteId} nome="grupo escolhido" />
-                        )}
-                      </span>
-                    </TableHead>
+                    <TableHead className="min-w-[120px] text-center">Acessa</TableHead>
                   ) : (
                     gruposVisiveis.map((g) => (
-                      <TableHead key={g.id} className="w-[64px] px-1 text-center">
-                        <span className="inline-flex items-center gap-0.5">
-                          <span
-                            className="text-[11px] font-medium"
-                            title={
-                              g.role_automatico
-                                ? `${g.nome} (${g.role_automatico})`
-                                : g.nome
-                            }
-                          >
-                            {sigla(g.nome)}
-                          </span>
-                          <MenuColuna grupoId={g.id} nome={g.nome} />
+                      <TableHead
+                        key={g.id}
+                        className="w-[90px] max-w-[90px] px-1 text-center align-bottom"
+                      >
+                        <span
+                          className="block whitespace-normal break-words text-[11px] font-medium leading-tight"
+                          title={
+                            g.role_automatico ? `${g.nome} (${g.role_automatico})` : g.nome
+                          }
+                        >
+                          {g.nome}
                         </span>
+                        {g.role_automatico && (
+                          <span className="block text-[9px] font-normal leading-tight text-muted-foreground">
+                            {g.role_automatico}
+                          </span>
+                        )}
                       </TableHead>
                     ))
                   )}
