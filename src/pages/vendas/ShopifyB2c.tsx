@@ -62,15 +62,43 @@ function diasTexto(d: number | null): string {
 export default function ShopifyB2c() {
   const [searchParams, setSearchParams] = useSearchParams();
   const abaParam = searchParams.get("aba");
-  const aba: Aba = ABAS.includes(abaParam as Aba) ? (abaParam as Aba) : "fila";
   const estagioParam = searchParams.get("estagio");
-  // Carrinhos abandonados: dado de contato de quem NÃO comprou — uso de
-  // marketing, separado de operar a fila de pedidos.
-  const { roles } = useAuth();
-  const { data: permitidas } = usePermissoesDoUsuario();
-  const podeVerCarrinhos =
-    (roles ?? []).includes("super_admin") ||
-    temPermissaoTela("tela.b2c_carrinhos", permitidas);
+
+  // Guarda nominal por aba.
+  const permFila = usePodeVerAba("tela.b2c");
+  const permDash = usePodeVerAba("tela.dash_b2c");
+  const permCarrinhos = usePodeVerAba("tela.b2c_carrinhos");
+  const permPosVenda = usePodeVerAba("tela.b2c_pos_venda");
+
+  const permissoes: Record<Aba, { podeVer: boolean; carregando: boolean }> = {
+    fila: permFila,
+    dash: permDash,
+    carrinhos: permCarrinhos,
+    posvenda: permPosVenda,
+  };
+
+  const carregandoPermissoes = ABAS.some((a) => permissoes[a].carregando);
+  const primeiraPermitida = ABAS.find((a) => permissoes[a].podeVer);
+  const abaSolicitada: Aba = ABAS.includes(abaParam as Aba)
+    ? (abaParam as Aba)
+    : "fila";
+  const abaEfetiva: Aba | undefined = carregandoPermissoes
+    ? abaSolicitada
+    : permissoes[abaSolicitada].podeVer
+      ? abaSolicitada
+      : primeiraPermitida;
+
+  // Redireciona para a primeira aba permitida quando a URL aponta para uma proibida.
+  useEffect(() => {
+    if (carregandoPermissoes) return;
+    if (abaEfetiva && abaEfetiva !== abaSolicitada) {
+      const next = new URLSearchParams(searchParams);
+      if (abaEfetiva === "fila") next.delete("aba");
+      else next.set("aba", abaEfetiva);
+      setSearchParams(next);
+    }
+  }, [carregandoPermissoes, abaEfetiva, abaSolicitada, searchParams, setSearchParams]);
+
 
   const [busca, setBusca] = useState("");
   const [uf, setUf] = useState("todas");
