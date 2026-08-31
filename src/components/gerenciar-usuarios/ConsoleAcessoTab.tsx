@@ -312,6 +312,11 @@ export default function ConsoleAcessoTab() {
   const [soNaoDeclaradas, setSoNaoDeclaradas] = useState(false);
   const [concedidasGrupoId, setConcedidasGrupoId] = useState<string | null>(null);
 
+  // ── Liberação em massa (substitui os menus ••• dos cabeçalhos) ──
+  const [massaAberta, setMassaAberta] = useState(false);
+  const [grupoMassaId, setGrupoMassaId] = useState<string | null>(null);
+  const [escopoMassa, setEscopoMassa] = useState<"tela" | "modulo">("tela");
+
   // FAIL-LOUD: erro de query sobe como toast com a mensagem real.
   useEffect(() => {
     if (isError) {
