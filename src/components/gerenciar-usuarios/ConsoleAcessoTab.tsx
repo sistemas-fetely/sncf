@@ -796,7 +796,7 @@ export default function ConsoleAcessoTab() {
                         >
                           <TableCell
                             className={cn(
-                              "sticky left-0 z-10 align-top",
+                              "sticky left-0 z-10 max-w-[320px] align-top",
                               ehTela ? "bg-muted" : "bg-card",
                             )}
                           >
@@ -809,7 +809,14 @@ export default function ConsoleAcessoTab() {
                               {!ehTela && l.conferido && (
                                 <ShieldCheck className="h-3.5 w-3.5 text-success" />
                               )}
-                              <span className={cn(ehTela && "font-medium")}>{l.rotulo}</span>
+                              <span
+                                className={cn(
+                                  "whitespace-normal break-words",
+                                  ehTela && "font-medium",
+                                )}
+                              >
+                                {l.rotulo}
+                              </span>
                               {semDeclaracao && l.tipo === "acao" && (
                                 <Badge className="bg-warning/10 px-1 py-0 text-[9px] text-warning hover:bg-warning/10">
                                   ação não declarada
@@ -823,6 +830,9 @@ export default function ConsoleAcessoTab() {
                             </span>
                           </TableCell>
                           <TableCell className="align-top">{badgeRisco(l.risco)}</TableCell>
+                          <TableCell className="align-top text-xs">
+                            {renderGuarda(l.guarda_atual)}
+                          </TableCell>
 
                           {bloqueado ? (
                             <TableCell
