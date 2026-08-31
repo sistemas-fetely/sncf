@@ -12,7 +12,7 @@ import { type EstagioPedido } from "@/types/pedido";
 import { SolicitacoesSopsAba } from "@/components/pedidos/SolicitacoesSopsAba";
 import { useContagemSolicitacoes } from "@/hooks/pedidos/useSolicitacoesComercial";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { AbaPermitida, ConteudoAba } from "@/components/AbaGate";
+import { AbaPermitida, ConteudoAba, usePodeVerAba } from "@/components/AbaGate";
 
 import { PageShell } from "@/components/layout/PageShell";
 
