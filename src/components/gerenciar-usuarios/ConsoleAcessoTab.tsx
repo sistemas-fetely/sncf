@@ -622,21 +622,22 @@ export default function ConsoleAcessoTab() {
                         type="button"
                         onClick={() => setTelaSel(t.chave)}
                         className={cn(
-                          "ml-4 w-[calc(100%-1rem)] rounded-md px-2 py-1.5 text-left text-xs transition-colors hover:bg-accent",
+                          "ml-4 flex w-[calc(100%-1rem)] items-center gap-2 rounded-md px-2 py-1 text-left text-xs transition-colors hover:bg-accent",
                           t.chave === telaAtiva?.chave && "bg-accent",
                         )}
                       >
-                        <span className="block truncate">{t.telaLabel}</span>
-                        <span className="flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
-                          <span>
+                        <span className="min-w-0 flex-1 truncate">{t.telaLabel}</span>
+                        <span className="flex shrink-0 items-center gap-1.5 text-[10px] text-muted-foreground">
+                          <span className="tabular-nums">
                             {porGrupo && grupoLenteId
                               ? `${concedidasPorTela.get(t.chave) ?? 0}/${t.total}`
-                              : `${t.total} ${t.total === 1 ? "linha" : "linhas"}`}
+                              : t.total}
                           </span>
                           <BadgeAltoSemGuarda n={t.altoSemGuarda} />
                         </span>
                       </button>
                     ))}
+
                 </div>
               );
             })}
