@@ -280,25 +280,29 @@ function DetalheLinha({
 
       <div>
         <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-          O que dispara
+          {ehEscopo(linha) ? "Regra" : "O que dispara"}
         </p>
-        <p className="text-xs">{linha.dispara ?? "—"}</p>
+        <p className="text-xs leading-snug">{linha.dispara ?? "—"}</p>
       </div>
 
-      <div>
-        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-          Guarda atual
-        </p>
-        <p className="text-xs">{renderGuarda(linha.guarda_atual)}</p>
-      </div>
-      <div>
-        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-          Arquivo
-        </p>
-        <p className="break-all font-mono text-xs text-muted-foreground">
-          {linha.arquivo ?? "—"}
-        </p>
-      </div>
+      {!ehEscopo(linha) && (
+        <>
+          <div>
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              Guarda atual
+            </p>
+            <p className="text-xs">{renderGuarda(linha.guarda_atual)}</p>
+          </div>
+          <div>
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              Arquivo
+            </p>
+            <p className="break-all font-mono text-xs text-muted-foreground">
+              {linha.arquivo ?? "—"}
+            </p>
+          </div>
+        </>
+      )}
       <div>
         <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
           Slug da permissão
