@@ -760,17 +760,16 @@ export default function ConsoleAcessoTab() {
           detalhe ? "lg:grid-cols-[300px_1fr_320px]" : "lg:grid-cols-[300px_1fr]",
         )}
       >
-        {/* ── Árvore Módulo → Tela ── */}
+        {/* ── Árvore Módulo → Grupo → Tela ── */}
         <Card className="h-fit">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">
-              Telas ({modulos.reduce((s, m) => s + m.telas.length, 0)})
-            </CardTitle>
+            <CardTitle className="text-sm">Telas ({totalTelas})</CardTitle>
           </CardHeader>
           <CardContent className="max-h-[70vh] space-y-1 overflow-auto p-2">
             {modulos.map((m) => {
               const fechado = modulosFechados.has(m.appChave);
-              const concedidasModulo = m.telas.reduce(
+              const telasModulo = telasDoModulo(m);
+              const concedidasModulo = telasModulo.reduce(
                 (s, t) => s + (concedidasPorTela.get(t.chave) ?? 0),
                 0,
               );
@@ -792,7 +791,7 @@ export default function ConsoleAcessoTab() {
                         <span>
                           {porGrupo && grupoLenteId
                             ? `${concedidasModulo}/${m.totalLinhas}`
-                            : `${m.telas.length} ${m.telas.length === 1 ? "tela" : "telas"} · ${m.totalLinhas} ${m.totalLinhas === 1 ? "linha" : "linhas"}`}
+                            : `${telasModulo.length} ${telasModulo.length === 1 ? "tela" : "telas"} · ${m.totalLinhas} ${m.totalLinhas === 1 ? "linha" : "linhas"}`}
                         </span>
                         <BadgeAltoSemGuarda n={m.altoSemGuarda} />
                       </span>
@@ -807,7 +806,7 @@ export default function ConsoleAcessoTab() {
                         onClick={() =>
                           liberarLinhas(
                             grupoLenteId,
-                            m.telas.flatMap((t) => t.linhas),
+                            telasModulo.flatMap((t) => t.linhas),
                             "deste módulo",
                           )
                         }
@@ -823,31 +822,55 @@ export default function ConsoleAcessoTab() {
                     </p>
                   )}
                   {!fechado &&
-                    m.telas.map((t) => (
-                      <button
-                        key={t.chave}
-                        type="button"
-                        onClick={() => setTelaSel(t.chave)}
-                        className={cn(
-                          "ml-4 flex w-[calc(100%-1rem)] items-center gap-2 rounded-md px-2 py-1 text-left text-xs transition-colors hover:bg-accent",
-                          t.chave === telaAtiva?.chave && "bg-accent",
-                        )}
-                      >
-                        <span className="min-w-0 flex-1 truncate">{t.telaLabel}</span>
-                        <span className="flex shrink-0 items-center gap-1.5 text-[10px] text-muted-foreground">
-                          <span className="tabular-nums">
-                            {porGrupo && grupoLenteId
-                              ? `${concedidasPorTela.get(t.chave) ?? 0}/${t.total}`
-                              : t.total}
-                          </span>
-                          <BadgeAltoSemGuarda n={t.altoSemGuarda} />
-                        </span>
-                      </button>
-                    ))}
-
+                    m.grupos.map((g) => {
+                      // Grupo nulo: as telas ficam no nível 2, sem nível intermediário.
+                      if (!g.label)
+                        return (
+                          <Fragment key={g.chave}>
+                            {g.telas.map((t) => renderTela(t, 1))}
+                          </Fragment>
+                        );
+                      const chaveGrupo = `${m.appChave}|${g.chave}`;
+                      const temSelecionada = telasDoGrupo(g).some(
+                        (t) => t.chave === telaAtiva?.chave,
+                      );
+                      // O grupo da tela selecionada nasce (e permanece) aberto.
+                      const grupoFechado =
+                        gruposFechados.has(chaveGrupo) && !temSelecionada;
+                      const concedidasGrupo = telasDoGrupo(g).reduce(
+                        (s, t) => s + (concedidasPorTela.get(t.chave) ?? 0),
+                        0,
+                      );
+                      return (
+                        <div key={g.chave}>
+                          <button
+                            type="button"
+                            onClick={() => alternarGrupo(chaveGrupo)}
+                            className="ml-3 flex w-[calc(100%-0.75rem)] items-center gap-1.5 rounded-md px-2 py-1 text-left text-xs font-medium transition-colors hover:bg-accent"
+                          >
+                            {grupoFechado ? (
+                              <ChevronRight className="h-3 w-3 shrink-0" />
+                            ) : (
+                              <ChevronDown className="h-3 w-3 shrink-0" />
+                            )}
+                            <span className="min-w-0 flex-1 truncate">{g.label}</span>
+                            <span className="flex shrink-0 items-center gap-1.5 text-[10px] font-normal text-muted-foreground">
+                              <span className="tabular-nums">
+                                {porGrupo && grupoLenteId
+                                  ? `${concedidasGrupo}/${g.totalLinhas}`
+                                  : `${telasDoGrupo(g).length} · ${g.totalLinhas}`}
+                              </span>
+                              <BadgeAltoSemGuarda n={g.altoSemGuarda} />
+                            </span>
+                          </button>
+                          {!grupoFechado && g.telas.map((t) => renderTela(t, 2))}
+                        </div>
+                      );
+                    })}
                 </div>
               );
             })}
+
             {modulos.length === 0 && (
               <p className="p-3 text-xs text-muted-foreground">
                 Nenhuma linha bate com os filtros ativos.
