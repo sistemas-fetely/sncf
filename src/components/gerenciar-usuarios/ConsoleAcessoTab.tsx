@@ -281,54 +281,6 @@ function DetalheLinha({
   );
 }
 
-/** Estado padrão do painel: o painel nunca fica vazio. */
-function ResumoTela({ tela }: { tela: TelaNodo | null }) {
-  if (!tela) {
-    return (
-      <p className="text-xs text-muted-foreground">
-        Selecione uma tela na árvore para ver o resumo.
-      </p>
-    );
-  }
-  const rotas = [...new Set(tela.linhas.map((l) => l.rota))].sort((a, b) =>
-    a.localeCompare(b, "pt-BR"),
-  );
-  const acoes = tela.linhas.filter((l) => l.tipo === "acao").length;
-  const sem = tela.linhas.filter(semGuarda).length;
-  const naoDecl = tela.linhas.filter((l) => l.tipo === "acao" && naoDeclarada(l)).length;
-  const item = (rotulo: string, valor: number, cor?: string) => (
-    <div className="flex items-center justify-between text-xs">
-      <span className="text-muted-foreground">{rotulo}</span>
-      <span className={cn("font-medium tabular-nums", cor)}>{valor}</span>
-    </div>
-  );
-  return (
-    <div className="space-y-3">
-      <div>
-        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-          Rotas cobertas
-        </p>
-        <ul className="mt-1 space-y-0.5">
-          {rotas.map((r) => (
-            <li key={r} className="break-all font-mono text-[11px] text-muted-foreground">
-              {r}
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div className="space-y-1 border-t pt-2">
-        {item("Linhas ao todo", tela.total)}
-        {item("Linhas de ação", acoes)}
-        {item("Sem guarda", sem, "text-warning")}
-        {item("ALTO sem guarda", tela.altoSemGuarda, "text-destructive")}
-        {item("Não declaradas", naoDecl)}
-      </div>
-      <p className="text-[11px] leading-snug text-muted-foreground">
-        Clique em uma linha da grade para ver o detalhe dela aqui.
-      </p>
-    </div>
-  );
-}
 
 export default function ConsoleAcessoTab() {
   const telaLarga = useTelaLarga();
