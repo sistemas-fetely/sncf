@@ -24,9 +24,7 @@ import {
   usePedidosB2c, useCarrinhosAbandonados, useDevolucoesB2c, type PedidoB2cRow,
 } from "@/hooks/vendas/useB2c";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
-import { useAuth } from "@/contexts/AuthContext";
-import { usePermissoesDoUsuario, temPermissaoTela } from "@/hooks/usePermissoesDoUsuario";
-import { AbaPermitida, ConteudoAba } from "@/components/AbaGate";
+import { AbaPermitida, ConteudoAba, usePodeVerAba } from "@/components/AbaGate";
 
 /**
  * Casa do B2C — mesma linguagem da Casa dos Pedidos, regras do canal loja.
