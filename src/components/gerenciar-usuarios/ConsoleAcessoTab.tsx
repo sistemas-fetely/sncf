@@ -529,11 +529,17 @@ export default function ConsoleAcessoTab() {
   }, [modulos, telaSel]);
 
 
+  /** Linhas de escopo da tela ativa — seção própria, ao final da grade. */
+  const escoposDaTela = useMemo(
+    () => (telaAtiva?.linhas ?? []).filter(ehEscopo),
+    [telaAtiva],
+  );
+
   /** Linhas da tela ativa agrupadas por rota (sub-cabeçalho quando > 1 rota). */
   const rotasDaTela = useMemo(() => {
     if (!telaAtiva) return [];
     const porRota = new Map<string, ConsoleAcessoRow[]>();
-    telaAtiva.linhas.forEach((l) => {
+    telaAtiva.linhas.filter((l) => !ehEscopo(l)).forEach((l) => {
       const arr = porRota.get(l.rota) ?? [];
       arr.push(l);
       porRota.set(l.rota, arr);
