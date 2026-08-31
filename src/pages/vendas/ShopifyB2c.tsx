@@ -602,6 +602,7 @@ export default function ShopifyB2c() {
           </Card>
         </TabsContent>
       </Tabs>
+      )}
 
       <PedidoB2cDrawer
         pedido={selecionado}
