@@ -573,35 +573,6 @@ export default function ConsoleAcessoTab() {
   const nColunas = porGrupo ? 5 : 4 + gruposVisiveis.length;
   const grupoConcedidas = grupos.find((g) => g.id === filtroConcedidas) ?? null;
 
-  /** Menu do cabeçalho da coluna: tira o botão gordo de dentro do <th>. */
-  const MenuColuna = ({ grupoId, nome }: { grupoId: string; nome: string }) => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-5 w-5"
-          aria-label={`Ações em massa para ${nome}`}
-        >
-          <MoreHorizontal className="h-3.5 w-3.5" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="z-50">
-        <DropdownMenuItem
-          disabled={liberarParaGrupo.isPending}
-          onClick={() => liberarTelaInteira(grupoId)}
-        >
-          <Sparkles className="mr-2 h-3.5 w-3.5" /> Liberar tela
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          disabled={liberarParaGrupo.isPending || !moduloAtivo}
-          onClick={() => liberarModuloInteiro(grupoId)}
-        >
-          <Sparkles className="mr-2 h-3.5 w-3.5" /> Liberar módulo
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
 
   return (
     <div className="space-y-4">
