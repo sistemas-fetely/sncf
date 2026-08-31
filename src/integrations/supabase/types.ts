@@ -37866,6 +37866,7 @@ export type Database = {
           ativo: boolean
           badge_fonte: string | null
           chave: string
+          descricao: string | null
           dominio: string | null
           dono_override_motivo: string | null
           icone: string | null
@@ -37886,6 +37887,7 @@ export type Database = {
           ativo?: boolean
           badge_fonte?: string | null
           chave: string
+          descricao?: string | null
           dominio?: string | null
           dono_override_motivo?: string | null
           icone?: string | null
@@ -37906,6 +37908,7 @@ export type Database = {
           ativo?: boolean
           badge_fonte?: string | null
           chave?: string
+          descricao?: string | null
           dominio?: string | null
           dono_override_motivo?: string | null
           icone?: string | null
@@ -52887,8 +52890,14 @@ export type Database = {
           contem_dado_sensivel: boolean | null
           declarada: boolean | null
           dispara: string | null
+          eh_aba: boolean | null
           feature_em_teste: boolean | null
+          grupo_chave: string | null
+          grupo_label: string | null
+          grupo_ordem: number | null
           guarda_atual: string | null
+          item_chave: string | null
+          item_label: string | null
           linha_id: string | null
           ordem_linha: number | null
           permissao_id: string | null
@@ -52898,7 +52907,9 @@ export type Database = {
           rota: string | null
           rotulo: string | null
           sem_guarda: boolean | null
+          tela_descricao: string | null
           tela_label: string | null
+          tela_ordem: number | null
           telas_cobertas: number | null
           telas_lista: string | null
           tipo: string | null
@@ -62025,14 +62036,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -62740,14 +62751,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -76768,6 +76779,7 @@ export type Database = {
           ativo: boolean
           badge_fonte: string | null
           chave: string
+          descricao: string | null
           dominio: string | null
           dono_override_motivo: string | null
           icone: string | null
