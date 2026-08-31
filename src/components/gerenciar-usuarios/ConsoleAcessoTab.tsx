@@ -412,6 +412,11 @@ export default function ConsoleAcessoTab() {
     });
   }, [linhas, busca, soSemGuarda, soAltoSemGuarda, soNaoDeclaradas, filtroConcedidas, concedido]);
 
+  /**
+   * Árvore Módulo → Grupo → Tela, montada só a partir da view.
+   * Grupo nulo continua no nível 2 (nenhum grupo sintético é inventado).
+   * Abas (`eh_aba`) descem um nível sob a tela-mãe apontada por `item_label`.
+   */
   const modulos = useMemo<ModuloNodo[]>(() => {
     const porModulo = new Map<string, ModuloNodo>();
     for (const l of linhasFiltradas) {
@@ -422,50 +427,88 @@ export default function ConsoleAcessoTab() {
           appChave,
           appLabel: l.app_label ?? "Sem módulo",
           appOrdem: l.app_ordem ?? 9999,
-          telas: [],
+          grupos: [],
           totalLinhas: 0,
           altoSemGuarda: 0,
           semModulo: (l.app_ordem ?? 9999) === 9999,
         };
         porModulo.set(appChave, mod);
       }
+      const grupoChave = l.grupo_chave ?? "__sem_grupo__";
+      let grupo = mod.grupos.find((g) => g.chave === grupoChave);
+      if (!grupo) {
+        grupo = {
+          chave: grupoChave,
+          label: l.grupo_chave ? (l.grupo_label ?? l.grupo_chave) : null,
+          ordem: l.grupo_ordem ?? 9999,
+          telas: [],
+          totalLinhas: 0,
+          altoSemGuarda: 0,
+        };
+        mod.grupos.push(grupo);
+      }
       const telaLabel = l.tela_label ?? l.rota;
-      let tela = mod.telas.find((t) => t.telaLabel === telaLabel);
+      let tela = grupo.telas.find((t) => t.telaLabel === telaLabel);
       if (!tela) {
         tela = {
-          chave: `${appChave}|${telaLabel}`,
+          chave: `${appChave}|${grupoChave}|${telaLabel}`,
           telaLabel,
+          descricao: l.tela_descricao ?? null,
+          ordem: l.tela_ordem ?? 9999,
+          ehAba: l.eh_aba === true,
+          itemLabel: l.item_label ?? null,
+          appLabel: mod.appLabel,
+          grupoLabel: grupo.label,
           linhas: [],
           total: 0,
           altoSemGuarda: 0,
+          abas: [],
         };
-        mod.telas.push(tela);
+        grupo.telas.push(tela);
       }
       tela.linhas.push(l);
       tela.total += 1;
+      grupo.totalLinhas += 1;
       mod.totalLinhas += 1;
       if (ehAltoSemGuarda(l)) {
         tela.altoSemGuarda += 1;
+        grupo.altoSemGuarda += 1;
         mod.altoSemGuarda += 1;
       }
     }
     const lista = [...porModulo.values()];
     lista.forEach((m) => {
-      m.telas.sort((a, b) => a.telaLabel.localeCompare(b.telaLabel, "pt-BR"));
-      m.telas.forEach((t) =>
-        t.linhas.sort((a, b) => (a.ordem_linha ?? 0) - (b.ordem_linha ?? 0)),
-      );
+      m.grupos.sort((a, b) => a.ordem - b.ordem);
+      m.grupos.forEach((g) => {
+        // Aba é pendurada na tela-mãe do mesmo grupo, quando ela existe na lista.
+        const maes = new Map(g.telas.filter((t) => !t.ehAba).map((t) => [t.telaLabel, t]));
+        const soltas: TelaNodo[] = [];
+        g.telas.forEach((t) => {
+          if (!t.ehAba) return;
+          const mae = t.itemLabel ? maes.get(t.itemLabel) : undefined;
+          if (mae) mae.abas.push(t);
+          else soltas.push(t);
+        });
+        g.telas = [...maes.values(), ...soltas].sort((a, b) => a.ordem - b.ordem);
+        g.telas.forEach((t) => {
+          t.abas.sort((a, b) => a.ordem - b.ordem);
+          [t, ...t.abas].forEach((x) =>
+            x.linhas.sort((a, b) => (a.ordem_linha ?? 0) - (b.ordem_linha ?? 0)),
+          );
+        });
+      });
     });
     return lista.sort((a, b) => a.appOrdem - b.appOrdem);
   }, [linhasFiltradas]);
 
   const telaAtiva = useMemo<TelaNodo | null>(() => {
     for (const m of modulos) {
-      const t = m.telas.find((x) => x.chave === telaSel);
+      const t = telasDoModulo(m).find((x) => x.chave === telaSel);
       if (t) return t;
     }
-    return modulos[0]?.telas[0] ?? null;
+    return modulos[0] ? (telasDoModulo(modulos[0])[0] ?? null) : null;
   }, [modulos, telaSel]);
+
 
   /** Linhas da tela ativa agrupadas por rota (sub-cabeçalho quando > 1 rota). */
   const rotasDaTela = useMemo(() => {
