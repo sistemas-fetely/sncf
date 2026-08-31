@@ -631,7 +631,12 @@ export default function ConsoleAcessoTab() {
 
       {porGrupo && <PainelGrupo grupoId={grupoLenteId} onGrupoChange={setGrupoLenteId} />}
 
-      <div className="grid items-start gap-4 lg:grid-cols-[300px_1fr_320px]">
+      <div
+        className={cn(
+          "grid items-start gap-4",
+          detalhe ? "lg:grid-cols-[300px_1fr_320px]" : "lg:grid-cols-[300px_1fr]",
+        )}
+      >
         {/* ── Árvore Módulo → Tela ── */}
         <Card className="h-fit">
           <CardHeader className="pb-2">
