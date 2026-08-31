@@ -840,6 +840,77 @@ export default function ConsoleAcessoTab() {
                   </SelectContent>
                 </Select>
               )}
+
+              {/* ── Controle único de liberação em massa (era o menu ••• por coluna) ── */}
+              <Popover open={massaAberta} onOpenChange={setMassaAberta}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 text-xs">
+                    <Sparkles className="mr-1.5 h-3.5 w-3.5" /> Liberar em massa
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="z-50 w-72 space-y-3">
+                  {!porGrupo && (
+                    <div className="space-y-1">
+                      <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                        Grupo
+                      </Label>
+                      <Select
+                        value={grupoMassaId ?? ""}
+                        onValueChange={(v) => setGrupoMassaId(v)}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="Escolher o grupo" />
+                        </SelectTrigger>
+                        <SelectContent className="z-50">
+                          {grupos.map((g) => (
+                            <SelectItem key={g.id} value={g.id}>
+                              {g.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  <div className="space-y-1">
+                    <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                      Escopo
+                    </Label>
+                    <Select
+                      value={escopoMassa}
+                      onValueChange={(v) => setEscopoMassa(v as "tela" | "modulo")}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="z-50">
+                        <SelectItem value="tela">Esta tela</SelectItem>
+                        <SelectItem value="modulo">Este módulo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="h-8 w-full text-xs"
+                    disabled={
+                      !grupoMassaEfetivo ||
+                      liberarParaGrupo.isPending ||
+                      qtdMassa === 0
+                    }
+                    onClick={() => {
+                      if (!grupoMassaEfetivo) return;
+                      if (escopoMassa === "tela") liberarTelaInteira(grupoMassaEfetivo);
+                      else liberarModuloInteiro(grupoMassaEfetivo);
+                      setMassaAberta(false);
+                    }}
+                  >
+                    {!grupoMassaEfetivo
+                      ? "Escolha o grupo"
+                      : qtdMassa === 0
+                        ? "Nada a liberar aqui"
+                        : `Liberar ${qtdMassa} ${qtdMassa === 1 ? "linha" : "linhas"}`}
+                  </Button>
+                </PopoverContent>
+              </Popover>
               {temFiltro && (
                 <Button
                   variant="ghost"
