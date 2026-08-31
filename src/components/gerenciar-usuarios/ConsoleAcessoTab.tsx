@@ -171,8 +171,28 @@ function NumeroFaixa({
 interface TelaNodo {
   chave: string;
   telaLabel: string;
+  descricao: string | null;
+  ordem: number;
+  ehAba: boolean;
+  /** Em aba, rótulo da tela-mãe. */
+  itemLabel: string | null;
+  /** Caminho para a migalha do cabeçalho da grade. */
+  appLabel: string;
+  grupoLabel: string | null;
   linhas: ConsoleAcessoRow[];
   total: number;
+  altoSemGuarda: number;
+  /** Abas penduradas nesta tela (nível extra de recuo). */
+  abas: TelaNodo[];
+}
+
+interface GrupoNodo {
+  chave: string;
+  /** Nulo = telas penduradas direto no módulo (sem nível intermediário). */
+  label: string | null;
+  ordem: number;
+  telas: TelaNodo[];
+  totalLinhas: number;
   altoSemGuarda: number;
 }
 
@@ -180,12 +200,22 @@ interface ModuloNodo {
   appChave: string;
   appLabel: string;
   appOrdem: number;
-  telas: TelaNodo[];
+  grupos: GrupoNodo[];
   totalLinhas: number;
   altoSemGuarda: number;
   /** app_ordem 9999 — rotas fora da navegação. */
   semModulo: boolean;
 }
+
+/** Todas as telas do módulo, incluindo abas — para contagens e buscas. */
+function telasDoModulo(m: ModuloNodo): TelaNodo[] {
+  return m.grupos.flatMap((g) => g.telas.flatMap((t) => [t, ...t.abas]));
+}
+
+function telasDoGrupo(g: GrupoNodo): TelaNodo[] {
+  return g.telas.flatMap((t) => [t, ...t.abas]);
+}
+
 
 /** Verdadeiro a partir do breakpoint lg — decide painel fixo vs Sheet. */
 function useTelaLarga() {
