@@ -202,7 +202,152 @@ interface ModuloNodo {
   semModulo: boolean;
 }
 
+/** Verdadeiro a partir do breakpoint lg — decide painel fixo vs Sheet. */
+function useTelaLarga() {
+  const [larga, setLarga] = useState(false);
+  useEffect(() => {
+    const mql = window.matchMedia("(min-width: 1024px)");
+    const aplicar = () => setLarga(mql.matches);
+    aplicar();
+    mql.addEventListener("change", aplicar);
+    return () => mql.removeEventListener("change", aplicar);
+  }, []);
+  return larga;
+}
+
+/** Detalhe de leitura da linha — mesmo conteúdo no painel fixo e no Sheet. */
+function DetalheLinha({
+  linha,
+  isSuperAdmin,
+  onDeclarar,
+}: {
+  linha: ConsoleAcessoRow;
+  isSuperAdmin: boolean;
+  onDeclarar: () => void;
+}) {
+  return (
+    <div className="space-y-4 text-sm">
+      <div className="flex flex-wrap gap-1.5">
+        {badgeRisco(linha.risco)}
+        {linha.contem_dado_sensivel && (
+          <Badge variant="outline" className="text-[10px]">
+            LGPD
+          </Badge>
+        )}
+        {linha.feature_em_teste && (
+          <Badge variant="outline" className="bg-warning/10 text-[10px]">
+            BETA
+          </Badge>
+        )}
+        {portaoPorFlag(linha) && (
+          <Badge variant="outline" className="text-[10px]">
+            portão por flag
+          </Badge>
+        )}
+        {naoDeclarada(linha) && linha.tipo === "acao" && (
+          <Badge className="bg-warning/10 text-[10px] text-warning hover:bg-warning/10">
+            ação não declarada
+          </Badge>
+        )}
+      </div>
+
+      <div>
+        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+          O que dispara
+        </p>
+        <p className="text-xs">{linha.dispara ?? "—"}</p>
+      </div>
+      <div>
+        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+          Guarda atual
+        </p>
+        <p className="text-xs">{renderGuarda(linha.guarda_atual)}</p>
+      </div>
+      <div>
+        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+          Arquivo
+        </p>
+        <p className="break-all font-mono text-xs text-muted-foreground">
+          {linha.arquivo ?? "—"}
+        </p>
+      </div>
+      <div>
+        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+          Slug da permissão
+        </p>
+        <p className="break-all font-mono text-xs text-muted-foreground">
+          {linha.permissao_slug ?? "—"}
+        </p>
+      </div>
+
+      {(linha.telas_cobertas ?? 0) > 1 && (
+        <div className="rounded-md border bg-muted/30 p-2 text-[11px] leading-snug text-muted-foreground">
+          Esta permissão é um pacote: vale para {linha.telas_cobertas} telas. Marcar aqui
+          muda todas — <span className="font-medium">{linha.telas_lista ?? "—"}</span>
+        </div>
+      )}
+
+      {naoDeclarada(linha) && isSuperAdmin && linha.acao_superficie_id && (
+        <Button size="sm" variant="outline" onClick={onDeclarar}>
+          Declarar no catálogo
+        </Button>
+      )}
+    </div>
+  );
+}
+
+/** Estado padrão do painel: o painel nunca fica vazio. */
+function ResumoTela({ tela }: { tela: TelaNodo | null }) {
+  if (!tela) {
+    return (
+      <p className="text-xs text-muted-foreground">
+        Selecione uma tela na árvore para ver o resumo.
+      </p>
+    );
+  }
+  const rotas = [...new Set(tela.linhas.map((l) => l.rota))].sort((a, b) =>
+    a.localeCompare(b, "pt-BR"),
+  );
+  const acoes = tela.linhas.filter((l) => l.tipo === "acao").length;
+  const sem = tela.linhas.filter(semGuarda).length;
+  const naoDecl = tela.linhas.filter((l) => l.tipo === "acao" && naoDeclarada(l)).length;
+  const item = (rotulo: string, valor: number, cor?: string) => (
+    <div className="flex items-center justify-between text-xs">
+      <span className="text-muted-foreground">{rotulo}</span>
+      <span className={cn("font-medium tabular-nums", cor)}>{valor}</span>
+    </div>
+  );
+  return (
+    <div className="space-y-3">
+      <div>
+        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+          Rotas cobertas
+        </p>
+        <ul className="mt-1 space-y-0.5">
+          {rotas.map((r) => (
+            <li key={r} className="break-all font-mono text-[11px] text-muted-foreground">
+              {r}
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="space-y-1 border-t pt-2">
+        {item("Linhas ao todo", tela.total)}
+        {item("Linhas de ação", acoes)}
+        {item("Sem guarda", sem, "text-warning")}
+        {item("ALTO sem guarda", tela.altoSemGuarda, "text-destructive")}
+        {item("Não declaradas", naoDecl)}
+      </div>
+      <p className="text-[11px] leading-snug text-muted-foreground">
+        Clique em uma linha da grade para ver o detalhe dela aqui.
+      </p>
+    </div>
+  );
+}
+
 export default function ConsoleAcessoTab() {
+  const telaLarga = useTelaLarga();
+
   const qc = useQueryClient();
   const { roles } = useAuth();
   const isSuperAdmin = (roles ?? []).includes("super_admin");
