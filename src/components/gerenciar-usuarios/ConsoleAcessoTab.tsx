@@ -786,14 +786,21 @@ export default function ConsoleAcessoTab() {
                       return (
                         <TableRow
                           key={l.linha_id}
-                          onClick={() => setDetalhe(l)}
+                          onClick={() =>
+                            setDetalhe((atual) =>
+                              atual?.linha_id === l.linha_id ? null : l,
+                            )
+                          }
                           className={cn(
                             "cursor-pointer",
                             ehTela && "bg-muted/60 hover:bg-muted/60",
                             !ehTela && semGuarda(l) && "bg-warning/5",
                             !ehTela && l.conferido && "bg-success/5",
+                            detalhe?.linha_id === l.linha_id &&
+                              "ring-1 ring-inset ring-primary",
                           )}
                         >
+
                           <TableCell
                             className={cn(
                               "sticky left-0 z-10 max-w-[320px] align-top",
