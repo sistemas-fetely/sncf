@@ -461,8 +461,8 @@ export default function ConsoleAcessoTab() {
 
   /** PONTO ÚNICO de decisão de colunas de grupo (ver comentário do topo). */
   const gruposVisiveis: GrupoConsole[] = grupos;
-  /** Colunas fixas: Linha · Risco · Conferido. */
-  const nColunas = porGrupo ? 4 : 3 + gruposVisiveis.length;
+  /** Colunas fixas: Linha · Risco · Guarda atual · Conferido. */
+  const nColunas = porGrupo ? 5 : 4 + gruposVisiveis.length;
   const grupoConcedidas = grupos.find((g) => g.id === filtroConcedidas) ?? null;
 
   /** Menu do cabeçalho da coluna: tira o botão gordo de dentro do <th>. */
