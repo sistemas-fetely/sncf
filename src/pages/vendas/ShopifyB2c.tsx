@@ -187,19 +187,30 @@ export default function ShopifyB2c() {
         actions={<ExportarB2cButton linhas={filtrados} />}
       />
 
-        <Tabs value={aba} onValueChange={setAba} className="space-y-4">
+      {carregandoPermissoes ? (
+        <CarregandoAba />
+      ) : !primeiraPermitida ? (
+        <div className="rounded-md border border-border bg-muted/40 px-3 py-6 text-sm text-muted-foreground text-center">
+          Você não tem acesso a nenhuma aba desta tela.
+        </div>
+      ) : (
+        <Tabs value={abaEfetiva ?? abaSolicitada} onValueChange={setAba} className="space-y-4">
           <TabsList>
-            <TabsTrigger value="fila">Fila</TabsTrigger>
+            <AbaPermitida slug="tela.b2c">
+              <TabsTrigger value="fila">Fila</TabsTrigger>
+            </AbaPermitida>
             <AbaPermitida slug="tela.dash_b2c">
               <TabsTrigger value="dash">Dash</TabsTrigger>
             </AbaPermitida>
             <div className="w-px bg-border mx-1.5 self-stretch" aria-hidden />
-            {podeVerCarrinhos && (
+            <AbaPermitida slug="tela.b2c_carrinhos">
               <TabsTrigger value="carrinhos">
                 Carrinhos{carrinhosResumo.qtd > 0 ? ` (${carrinhosResumo.qtd})` : ""}
               </TabsTrigger>
-            )}
-            <TabsTrigger value="posvenda">Pós-venda</TabsTrigger>
+            </AbaPermitida>
+            <AbaPermitida slug="tela.b2c_pos_venda">
+              <TabsTrigger value="posvenda">Pós-venda</TabsTrigger>
+            </AbaPermitida>
           </TabsList>
 
         <TabsContent value="fila" className="space-y-4">
