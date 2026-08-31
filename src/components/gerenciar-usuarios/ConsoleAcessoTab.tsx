@@ -11,12 +11,12 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Label } from "@/components/ui/label";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -36,7 +36,7 @@ import {
   ChevronDown,
   ChevronRight,
   Loader2,
-  MoreHorizontal,
+  
   Search,
   ShieldAlert,
   ShieldCheck,
@@ -99,21 +99,6 @@ const portaoPorFlag = (l: ConsoleAcessoRow) => l.apenas_super_admin === true;
 const ehAltoSemGuarda = (l: ConsoleAcessoRow) =>
   semGuarda(l) && (l.risco ?? "").toUpperCase() === "ALTO";
 
-/** Sigla curta derivada do nome do grupo (nada hardcoded). */
-function sigla(nome: string): string {
-  const palavras = (nome ?? "")
-    .trim()
-    .split(/\s+/)
-    .filter((p) => p.length > 2);
-  if (palavras.length >= 2) {
-    return palavras
-      .slice(0, 3)
-      .map((p) => p[0])
-      .join("")
-      .toUpperCase();
-  }
-  return (nome ?? "").slice(0, 3).toUpperCase();
-}
 
 function renderGuarda(guarda: string | null) {
   const g = (guarda ?? "").trim();
@@ -296,54 +281,6 @@ function DetalheLinha({
   );
 }
 
-/** Estado padrão do painel: o painel nunca fica vazio. */
-function ResumoTela({ tela }: { tela: TelaNodo | null }) {
-  if (!tela) {
-    return (
-      <p className="text-xs text-muted-foreground">
-        Selecione uma tela na árvore para ver o resumo.
-      </p>
-    );
-  }
-  const rotas = [...new Set(tela.linhas.map((l) => l.rota))].sort((a, b) =>
-    a.localeCompare(b, "pt-BR"),
-  );
-  const acoes = tela.linhas.filter((l) => l.tipo === "acao").length;
-  const sem = tela.linhas.filter(semGuarda).length;
-  const naoDecl = tela.linhas.filter((l) => l.tipo === "acao" && naoDeclarada(l)).length;
-  const item = (rotulo: string, valor: number, cor?: string) => (
-    <div className="flex items-center justify-between text-xs">
-      <span className="text-muted-foreground">{rotulo}</span>
-      <span className={cn("font-medium tabular-nums", cor)}>{valor}</span>
-    </div>
-  );
-  return (
-    <div className="space-y-3">
-      <div>
-        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-          Rotas cobertas
-        </p>
-        <ul className="mt-1 space-y-0.5">
-          {rotas.map((r) => (
-            <li key={r} className="break-all font-mono text-[11px] text-muted-foreground">
-              {r}
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div className="space-y-1 border-t pt-2">
-        {item("Linhas ao todo", tela.total)}
-        {item("Linhas de ação", acoes)}
-        {item("Sem guarda", sem, "text-warning")}
-        {item("ALTO sem guarda", tela.altoSemGuarda, "text-destructive")}
-        {item("Não declaradas", naoDecl)}
-      </div>
-      <p className="text-[11px] leading-snug text-muted-foreground">
-        Clique em uma linha da grade para ver o detalhe dela aqui.
-      </p>
-    </div>
-  );
-}
 
 export default function ConsoleAcessoTab() {
   const telaLarga = useTelaLarga();
@@ -374,6 +311,11 @@ export default function ConsoleAcessoTab() {
   const [soAltoSemGuarda, setSoAltoSemGuarda] = useState(false);
   const [soNaoDeclaradas, setSoNaoDeclaradas] = useState(false);
   const [concedidasGrupoId, setConcedidasGrupoId] = useState<string | null>(null);
+
+  // ── Liberação em massa (substitui os menus ••• dos cabeçalhos) ──
+  const [massaAberta, setMassaAberta] = useState(false);
+  const [grupoMassaId, setGrupoMassaId] = useState<string | null>(null);
+  const [escopoMassa, setEscopoMassa] = useState<"tela" | "modulo">("tela");
 
   // FAIL-LOUD: erro de query sobe como toast com a mensagem real.
   useEffect(() => {
@@ -535,17 +477,23 @@ export default function ConsoleAcessoTab() {
     );
   }
 
-  /** Libera todas as linhas declaradas de um conjunto (tela ou módulo). */
-  function liberarLinhas(grupoId: string, alvo: ConsoleAcessoRow[], rotulo: string) {
+  /** Ids que ainda faltam liberar — mesma regra usada pela mutation. */
+  function idsFaltantes(grupoId: string, alvo: ConsoleAcessoRow[]) {
     const ids = alvo
       .filter((l) => l.permissao_id && !portaoPorFlag(l) && l.declarada === true)
       .map((l) => l.permissao_id as string)
       .filter((id) => !concedido.has(`${grupoId}|${id}`));
+    return [...new Set(ids)];
+  }
+
+  /** Libera todas as linhas declaradas de um conjunto (tela ou módulo). */
+  function liberarLinhas(grupoId: string, alvo: ConsoleAcessoRow[], rotulo: string) {
+    const ids = idsFaltantes(grupoId, alvo);
     if (!ids.length) {
       toast.info(`Este grupo já tem tudo ${rotulo}.`);
       return;
     }
-    liberarParaGrupo.mutate({ grupoId, permissaoIds: [...new Set(ids)] });
+    liberarParaGrupo.mutate({ grupoId, permissaoIds: ids });
   }
 
   function liberarTelaInteira(grupoId: string) {
@@ -553,7 +501,7 @@ export default function ConsoleAcessoTab() {
     liberarLinhas(grupoId, telaAtiva.linhas, "desta tela");
   }
 
-  /** Módulo dono da tela ativa — alimenta "Liberar módulo" no cabeçalho. */
+  /** Módulo dono da tela ativa — alimenta o escopo "Este módulo". */
   const moduloAtivo = useMemo(
     () => modulos.find((m) => m.telas.some((t) => t.chave === telaAtiva?.chave)) ?? null,
     [modulos, telaAtiva],
@@ -563,6 +511,21 @@ export default function ConsoleAcessoTab() {
     if (!moduloAtivo) return;
     liberarLinhas(grupoId, moduloAtivo.telas.flatMap((t) => t.linhas), "deste módulo");
   }
+
+  /** Grupo alvo da liberação em massa: travado na lente por grupo. */
+  const grupoMassaEfetivo = porGrupo ? grupoLenteId : grupoMassaId;
+
+  /** Quantas linhas a confirmação vai liberar — nada de clique cego. */
+  const qtdMassa = useMemo(() => {
+    if (!grupoMassaEfetivo) return 0;
+    const alvo =
+      escopoMassa === "modulo"
+        ? (moduloAtivo?.telas.flatMap((t) => t.linhas) ?? [])
+        : (telaAtiva?.linhas ?? []);
+    return idsFaltantes(grupoMassaEfetivo, alvo).length;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grupoMassaEfetivo, escopoMassa, moduloAtivo, telaAtiva, concedido]);
+
 
   /** Concedidas por tela para o grupo da lente — alimenta o contador "3/14". */
   const concedidasPorTela = useMemo(() => {
@@ -610,35 +573,6 @@ export default function ConsoleAcessoTab() {
   const nColunas = porGrupo ? 5 : 4 + gruposVisiveis.length;
   const grupoConcedidas = grupos.find((g) => g.id === filtroConcedidas) ?? null;
 
-  /** Menu do cabeçalho da coluna: tira o botão gordo de dentro do <th>. */
-  const MenuColuna = ({ grupoId, nome }: { grupoId: string; nome: string }) => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-5 w-5"
-          aria-label={`Ações em massa para ${nome}`}
-        >
-          <MoreHorizontal className="h-3.5 w-3.5" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="z-50">
-        <DropdownMenuItem
-          disabled={liberarParaGrupo.isPending}
-          onClick={() => liberarTelaInteira(grupoId)}
-        >
-          <Sparkles className="mr-2 h-3.5 w-3.5" /> Liberar tela
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          disabled={liberarParaGrupo.isPending || !moduloAtivo}
-          onClick={() => liberarModuloInteiro(grupoId)}
-        >
-          <Sparkles className="mr-2 h-3.5 w-3.5" /> Liberar módulo
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
 
   return (
     <div className="space-y-4">
@@ -697,7 +631,12 @@ export default function ConsoleAcessoTab() {
 
       {porGrupo && <PainelGrupo grupoId={grupoLenteId} onGrupoChange={setGrupoLenteId} />}
 
-      <div className="grid items-start gap-4 lg:grid-cols-[300px_1fr_320px]">
+      <div
+        className={cn(
+          "grid items-start gap-4",
+          detalhe ? "lg:grid-cols-[300px_1fr_320px]" : "lg:grid-cols-[300px_1fr]",
+        )}
+      >
         {/* ── Árvore Módulo → Tela ── */}
         <Card className="h-fit">
           <CardHeader className="pb-2">
@@ -855,6 +794,77 @@ export default function ConsoleAcessoTab() {
                   </SelectContent>
                 </Select>
               )}
+
+              {/* ── Controle único de liberação em massa (era o menu ••• por coluna) ── */}
+              <Popover open={massaAberta} onOpenChange={setMassaAberta}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 text-xs">
+                    <Sparkles className="mr-1.5 h-3.5 w-3.5" /> Liberar em massa
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="z-50 w-72 space-y-3">
+                  {!porGrupo && (
+                    <div className="space-y-1">
+                      <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                        Grupo
+                      </Label>
+                      <Select
+                        value={grupoMassaId ?? ""}
+                        onValueChange={(v) => setGrupoMassaId(v)}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="Escolher o grupo" />
+                        </SelectTrigger>
+                        <SelectContent className="z-50">
+                          {grupos.map((g) => (
+                            <SelectItem key={g.id} value={g.id}>
+                              {g.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  <div className="space-y-1">
+                    <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                      Escopo
+                    </Label>
+                    <Select
+                      value={escopoMassa}
+                      onValueChange={(v) => setEscopoMassa(v as "tela" | "modulo")}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="z-50">
+                        <SelectItem value="tela">Esta tela</SelectItem>
+                        <SelectItem value="modulo">Este módulo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="h-8 w-full text-xs"
+                    disabled={
+                      !grupoMassaEfetivo ||
+                      liberarParaGrupo.isPending ||
+                      qtdMassa === 0
+                    }
+                    onClick={() => {
+                      if (!grupoMassaEfetivo) return;
+                      if (escopoMassa === "tela") liberarTelaInteira(grupoMassaEfetivo);
+                      else liberarModuloInteiro(grupoMassaEfetivo);
+                      setMassaAberta(false);
+                    }}
+                  >
+                    {!grupoMassaEfetivo
+                      ? "Escolha o grupo"
+                      : qtdMassa === 0
+                        ? "Nada a liberar aqui"
+                        : `Liberar ${qtdMassa} ${qtdMassa === 1 ? "linha" : "linhas"}`}
+                  </Button>
+                </PopoverContent>
+              </Popover>
               {temFiltro && (
                 <Button
                   variant="ghost"
@@ -882,30 +892,26 @@ export default function ConsoleAcessoTab() {
                   <TableHead className="w-[90px]">Risco</TableHead>
                   <TableHead className="w-[150px] text-[11px]">Guarda atual</TableHead>
                   {porGrupo ? (
-                    <TableHead className="min-w-[120px] text-center">
-                      <span className="inline-flex items-center gap-1">
-                        Acessa
-                        {grupoLenteId && (
-                          <MenuColuna grupoId={grupoLenteId} nome="grupo escolhido" />
-                        )}
-                      </span>
-                    </TableHead>
+                    <TableHead className="min-w-[120px] text-center">Acessa</TableHead>
                   ) : (
                     gruposVisiveis.map((g) => (
-                      <TableHead key={g.id} className="w-[64px] px-1 text-center">
-                        <span className="inline-flex items-center gap-0.5">
-                          <span
-                            className="text-[11px] font-medium"
-                            title={
-                              g.role_automatico
-                                ? `${g.nome} (${g.role_automatico})`
-                                : g.nome
-                            }
-                          >
-                            {sigla(g.nome)}
-                          </span>
-                          <MenuColuna grupoId={g.id} nome={g.nome} />
+                      <TableHead
+                        key={g.id}
+                        className="w-[90px] max-w-[90px] px-1 text-center align-bottom"
+                      >
+                        <span
+                          className="block whitespace-normal break-words text-[11px] font-medium leading-tight"
+                          title={
+                            g.role_automatico ? `${g.nome} (${g.role_automatico})` : g.nome
+                          }
+                        >
+                          {g.nome}
                         </span>
+                        {g.role_automatico && (
+                          <span className="block text-[9px] font-normal leading-tight text-muted-foreground">
+                            {g.role_automatico}
+                          </span>
+                        )}
                       </TableHead>
                     ))
                   )}
@@ -1126,28 +1132,37 @@ export default function ConsoleAcessoTab() {
           </CardContent>
         </Card>
 
-        {/* ── Terceira coluna: detalhe da linha / resumo da tela (telas largas) ── */}
-        <Card className="hidden h-fit lg:sticky lg:top-4 lg:block">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">
-              {detalhe ? detalhe.rotulo : (telaAtiva?.telaLabel ?? "Nenhuma tela")}
-            </CardTitle>
-            <p className="font-mono text-[11px] text-muted-foreground">
-              {detalhe ? detalhe.rota : "Resumo da tela"}
-            </p>
-          </CardHeader>
-          <CardContent className="max-h-[70vh] overflow-y-auto">
-            {detalhe ? (
+        {/* ── Terceira coluna: só existe quando há linha selecionada (telas largas) ── */}
+        {detalhe && (
+          <Card className="hidden h-fit lg:sticky lg:top-4 lg:block">
+            <CardHeader className="pb-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <CardTitle className="text-sm">{detalhe.rotulo}</CardTitle>
+                  <p className="break-all font-mono text-[11px] text-muted-foreground">
+                    {detalhe.rota}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 shrink-0"
+                  aria-label="Fechar detalhe"
+                  onClick={() => setDetalhe(null)}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="max-h-[70vh] overflow-y-auto">
               <DetalheLinha
                 linha={detalhe}
                 isSuperAdmin={isSuperAdmin}
                 onDeclarar={() => setDeclarando(detalhe)}
               />
-            ) : (
-              <ResumoTela tela={telaAtiva} />
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
 
