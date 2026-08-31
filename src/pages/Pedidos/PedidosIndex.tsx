@@ -114,82 +114,94 @@ export default function PedidosIndex() {
       {/* Exportação leva a base para fora: nível 3 (Coordenador) para cima — o componente se autoprotege. */}
       <PageHeader titulo="Casa dos Pedidos" acoes={<ExportarPedidosButton />} />
 
-      <Tabs value={aba} onValueChange={setAba} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="fila">Fila</TabsTrigger>
-          <AbaPermitida slug="tela.dash_pedidos">
-            <TabsTrigger value="dash">Dash</TabsTrigger>
-          </AbaPermitida>
-          {/* Separador: à esquerda, duas leituras da carteira ativa;
-              à direita, salas separadas. */}
-          <div className="w-px bg-border mx-1.5 self-stretch" aria-hidden />
-          <AbaPermitida slug="tela.comercial">
-            <TabsTrigger value="recuperacao">
-              Mesa Comercial{qtdMesaComercial > 0 ? ` (${qtdMesaComercial})` : ""}
-            </TabsTrigger>
-          </AbaPermitida>
-          <AbaPermitida slug="tela.consignado">
-            <TabsTrigger value="consignados">Consignados</TabsTrigger>
-          </AbaPermitida>
-          <AbaPermitida slug="tela.solicitacoes">
-            <TabsTrigger value="solicitacoes">Solicitações ({qtdSolicitacoes})</TabsTrigger>
-          </AbaPermitida>
-        </TabsList>
+      {carregandoPermissoes ? (
+        <CarregandoAba />
+      ) : !primeiraPermitida ? (
+        <div className="rounded-md border border-border bg-muted/40 px-3 py-6 text-sm text-muted-foreground text-center">
+          Você não tem acesso a nenhuma aba desta tela.
+        </div>
+      ) : (
+        <Tabs value={abaEfetiva ?? abaSolicitada} onValueChange={setAba} className="space-y-4">
+          <TabsList>
+            <AbaPermitida slug="tela.pedidos">
+              <TabsTrigger value="fila">Fila</TabsTrigger>
+            </AbaPermitida>
+            <AbaPermitida slug="tela.dash_pedidos">
+              <TabsTrigger value="dash">Dash</TabsTrigger>
+            </AbaPermitida>
+            {/* Separador: à esquerda, duas leituras da carteira ativa;
+                à direita, salas separadas. */}
+            <div className="w-px bg-border mx-1.5 self-stretch" aria-hidden />
+            <AbaPermitida slug="tela.comercial">
+              <TabsTrigger value="recuperacao">
+                Mesa Comercial{qtdMesaComercial > 0 ? ` (${qtdMesaComercial})` : ""}
+              </TabsTrigger>
+            </AbaPermitida>
+            <AbaPermitida slug="tela.consignado">
+              <TabsTrigger value="consignados">Consignados</TabsTrigger>
+            </AbaPermitida>
+            <AbaPermitida slug="tela.solicitacoes">
+              <TabsTrigger value="solicitacoes">Solicitações ({qtdSolicitacoes})</TabsTrigger>
+            </AbaPermitida>
+          </TabsList>
 
-        <TabsContent value="fila" className="space-y-4">
-          {/* Pipeline sticky */}
-          <div className="sticky top-16 z-20 bg-background border-b border-border px-4 md:px-6 py-2">
-            <PipelineHorizontal
-              onClickEstagio={handlePipelineClick}
-              onLimparFiltro={handleLimparFiltro}
-              estagioAtivo={estagioParam}
-              incluirCancelados={incluirCancelados}
-              onToggleCancelados={setIncluirCancelados}
-              riscoAltoAtivo={riscoAltoAtivo}
-              onToggleRiscoAlto={() => setRiscoAltoAtivo((v) => !v)}
-              onAbrirRecuperacao={() => setAba("recuperacao")}
-            />
-          </div>
+          <TabsContent value="fila" className="space-y-4">
+            <ConteudoAba slug="tela.pedidos">
+              {/* Pipeline sticky */}
+              <div className="sticky top-16 z-20 bg-background border-b border-border px-4 md:px-6 py-2">
+                <PipelineHorizontal
+                  onClickEstagio={handlePipelineClick}
+                  onLimparFiltro={handleLimparFiltro}
+                  estagioAtivo={estagioParam}
+                  incluirCancelados={incluirCancelados}
+                  onToggleCancelados={setIncluirCancelados}
+                  riscoAltoAtivo={riscoAltoAtivo}
+                  onToggleRiscoAlto={() => setRiscoAltoAtivo((v) => !v)}
+                  onAbrirRecuperacao={() => setAba("recuperacao")}
+                />
+              </div>
 
-          {/* Tabela */}
-          <div>
-            <FilaPedidosPorArea
-              area="todas"
-              estagios={estagioParam ? [estagioParam] : undefined}
-              apenasAtivos={!estagioParam}
-              incluirCancelados={incluirCancelados}
-              somenteRiscoAlto={riscoAltoAtivo}
-            />
-          </div>
-        </TabsContent>
+              {/* Tabela */}
+              <div>
+                <FilaPedidosPorArea
+                  area="todas"
+                  estagios={estagioParam ? [estagioParam] : undefined}
+                  apenasAtivos={!estagioParam}
+                  incluirCancelados={incluirCancelados}
+                  somenteRiscoAlto={riscoAltoAtivo}
+                />
+              </div>
+            </ConteudoAba>
+          </TabsContent>
 
-        <TabsContent value="dash">
-          <ConteudoAba slug="tela.dash_pedidos">
-            <PainelDashPedidos />
-          </ConteudoAba>
-        </TabsContent>
+          <TabsContent value="dash">
+            <ConteudoAba slug="tela.dash_pedidos">
+              <PainelDashPedidos />
+            </ConteudoAba>
+          </TabsContent>
 
-        <TabsContent value="recuperacao">
-          <ConteudoAba slug="tela.comercial">
-            <Suspense fallback={<CarregandoAba />}>
-              <Oportunidades embutido />
-            </Suspense>
-          </ConteudoAba>
-        </TabsContent>
+          <TabsContent value="recuperacao">
+            <ConteudoAba slug="tela.comercial">
+              <Suspense fallback={<CarregandoAba />}>
+                <Oportunidades embutido />
+              </Suspense>
+            </ConteudoAba>
+          </TabsContent>
 
-        <TabsContent value="consignados">
-          <ConteudoAba slug="tela.consignado">
-            <Suspense fallback={<CarregandoAba />}>
-              <Consignados embutido />
-            </Suspense>
-          </ConteudoAba>
-        </TabsContent>
-        <TabsContent value="solicitacoes">
-          <ConteudoAba slug="tela.solicitacoes">
-            <SolicitacoesSopsAba />
-          </ConteudoAba>
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="consignados">
+            <ConteudoAba slug="tela.consignado">
+              <Suspense fallback={<CarregandoAba />}>
+                <Consignados embutido />
+              </Suspense>
+            </ConteudoAba>
+          </TabsContent>
+          <TabsContent value="solicitacoes">
+            <ConteudoAba slug="tela.solicitacoes">
+              <SolicitacoesSopsAba />
+            </ConteudoAba>
+          </TabsContent>
+        </Tabs>
+      )}
     </PageShell>
   );
 }
