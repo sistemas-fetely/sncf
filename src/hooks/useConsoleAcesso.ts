@@ -17,6 +17,16 @@ export interface ConsoleAcessoRow {
   app_chave: string | null;
   app_label: string | null;
   app_ordem: number | null;
+  /** Nível do meio da navegação: grupo dentro do módulo. Nulo = tela solta. */
+  grupo_chave: string | null;
+  grupo_label: string | null;
+  grupo_ordem: number | null;
+  item_chave: string | null;
+  /** Em aba, é o rótulo da tela-mãe. */
+  item_label: string | null;
+  eh_aba: boolean | null;
+  tela_ordem: number | null;
+  tela_descricao: string | null;
   tela_label: string | null;
   rota: string;
   rotulo: string;
@@ -52,16 +62,18 @@ export function useConsoleAcesso() {
       const { data, error } = await (supabase as any)
         .from("vw_console_acesso")
         .select(
-          "linha_id, tipo, app_chave, app_label, app_ordem, tela_label, rota, rotulo, dispara, arquivo, risco, guarda_atual, sem_guarda, permissao_id, permissao_slug, permissao_nome, declarada, telas_cobertas, telas_lista, contem_dado_sensivel, feature_em_teste, apenas_super_admin, acao_superficie_id, conferido, ordem_linha",
+          "linha_id, tipo, app_chave, app_label, app_ordem, grupo_chave, grupo_label, grupo_ordem, item_chave, item_label, eh_aba, tela_ordem, tela_descricao, tela_label, rota, rotulo, dispara, arquivo, risco, guarda_atual, sem_guarda, permissao_id, permissao_slug, permissao_nome, declarada, telas_cobertas, telas_lista, contem_dado_sensivel, feature_em_teste, apenas_super_admin, acao_superficie_id, conferido, ordem_linha",
         )
         .order("app_ordem")
-        .order("tela_label")
+        .order("grupo_ordem")
+        .order("tela_ordem")
         .order("ordem_linha");
       if (error) throw error;
       return (data ?? []) as ConsoleAcessoRow[];
     },
   });
 }
+
 
 export interface GrupoConsole {
   id: string;
