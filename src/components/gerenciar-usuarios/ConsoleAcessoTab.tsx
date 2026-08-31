@@ -266,12 +266,22 @@ function DetalheLinha({
         )}
       </div>
 
+      {linha.tipo === "tela" && linha.tela_descricao && (
+        <div>
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Descrição
+          </p>
+          <p className="text-xs leading-snug">{linha.tela_descricao}</p>
+        </div>
+      )}
+
       <div>
         <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
           O que dispara
         </p>
         <p className="text-xs">{linha.dispara ?? "—"}</p>
       </div>
+
       <div>
         <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
           Guarda atual
