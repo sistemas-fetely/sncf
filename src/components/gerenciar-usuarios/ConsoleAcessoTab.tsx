@@ -75,9 +75,9 @@ import { useQueryClient } from "@tanstack/react-query";
  * A linha `tipo = 'tela'` é o acesso de entrar na tela; as linhas
  * `tipo = 'acao'` são os botões daquela tela.
  *
- * APRESENTAÇÃO: a grade só carrega o que é decisão (Linha · Risco · concessão ·
- * Conferido). Contexto de leitura (o que dispara, guarda atual, arquivo, slug)
- * vive no painel lateral de detalhe, aberto ao clicar na linha.
+ * APRESENTAÇÃO: a grade carrega a decisão (Linha · Risco · Guarda atual · concessão ·
+ * Conferido). "Dispara" e "arquivo" permanecem no painel lateral de detalhe, aberto ao
+ * clicar na linha.
  *
  * PREPARADO PARA DEPOIS: `gruposVisiveis` é o único ponto que decide quais
  * colunas de grupo aparecem — basta filtrá-lo para ganhar um seletor de
