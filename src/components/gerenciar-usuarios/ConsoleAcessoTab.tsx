@@ -1309,192 +1309,31 @@ export default function ConsoleAcessoTab() {
                         </TableCell>
                       </TableRow>
                     )}
-                    {itens.map((l) => {
-                      const ehTela = l.tipo === "tela";
-                      const semDeclaracao = naoDeclarada(l);
-                      const porFlag = portaoPorFlag(l);
-                      const bloqueado = semDeclaracao || porFlag || !l.permissao_id;
-                      return (
-                        <TableRow
-                          key={l.linha_id}
-                          onClick={() =>
-                            setDetalhe((atual) =>
-                              atual?.linha_id === l.linha_id ? null : l,
-                            )
-                          }
-                          className={cn(
-                            "cursor-pointer",
-                            ehTela && "bg-muted/60 hover:bg-muted/60",
-                            !ehTela && semGuarda(l) && "bg-warning/5",
-                            !ehTela && l.conferido && "bg-success/5",
-                            detalhe?.linha_id === l.linha_id &&
-                              "ring-1 ring-inset ring-primary",
-                          )}
-                        >
-
-                          <TableCell
-                            className={cn(
-                              "sticky left-0 z-10 max-w-[320px] align-top",
-                              ehTela ? "bg-muted" : "bg-card",
-                            )}
-                          >
-                            {ehTela && (
-                              <span className="mb-0.5 block text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                                Acesso à tela
-                              </span>
-                            )}
-                            <span className="flex flex-wrap items-center gap-1.5">
-                              {!ehTela && l.conferido && (
-                                <ShieldCheck className="h-3.5 w-3.5 text-success" />
-                              )}
-                              <span
-                                className={cn(
-                                  "whitespace-normal break-words",
-                                  ehTela && "font-medium",
-                                )}
-                              >
-                                {l.rotulo}
-                              </span>
-                              {semDeclaracao && l.tipo === "acao" && (
-                                <Badge className="bg-warning/10 px-1 py-0 text-[9px] text-warning hover:bg-warning/10">
-                                  ação não declarada
-                                </Badge>
-                              )}
-                              {porFlag && (
-                                <Badge variant="outline" className="px-1 py-0 text-[9px]">
-                                  portão por flag
-                                </Badge>
-                              )}
-                            </span>
-                          </TableCell>
-                          <TableCell className="align-top">{badgeRisco(l.risco)}</TableCell>
-                          <TableCell className="align-top text-xs">
-                            {renderGuarda(l.guarda_atual)}
-                          </TableCell>
-
-                          {bloqueado ? (
-                            <TableCell
-                              colSpan={porGrupo ? 1 : gruposVisiveis.length}
-                              className="align-top text-center"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {porFlag ? (
-                                <span className="text-[11px] text-muted-foreground">
-                                  Governada por papel
-                                </span>
-                              ) : (
-                                <span className="inline-flex flex-wrap items-center justify-center gap-2">
-                                  <span className="inline-flex opacity-40">
-                                    <Checkbox disabled />
-                                  </span>
-                                  {isSuperAdmin && l.acao_superficie_id && (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-7 text-xs"
-                                      onClick={() => setDeclarando(l)}
-                                    >
-                                      Declarar
-                                    </Button>
-                                  )}
-                                </span>
-                              )}
-                            </TableCell>
-                          ) : porGrupo ? (
-                            <TableCell
-                              className="text-center align-top"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {grupoLenteId ? (
-                                <CelulaConcessao
-                                  concedido={concedido.has(
-                                    `${grupoLenteId}|${l.permissao_id}`,
-                                  )}
-                                  nivelMinimo={
-                                    nivelPorCelula.get(
-                                      `${grupoLenteId}|${l.permissao_id}`,
-                                    ) ?? null
-                                  }
-                                  niveis={niveis}
-                                  desabilitado={
-                                    togglePermissao.isPending || definirNivel.isPending
-                                  }
-                                  rotuloAria={l.rotulo}
-                                  onToggle={(v) =>
-                                    alternar(grupoLenteId, l.permissao_id as string, v)
-                                  }
-                                  onNivel={(nivel) =>
-                                    definirNivel.mutate({
-                                      grupoId: grupoLenteId,
-                                      permissaoId: l.permissao_id as string,
-                                      nivelMinimo: nivel,
-                                    })
-                                  }
-                                />
-                              ) : (
-                                <span className="text-[11px] text-muted-foreground">
-                                  escolha o grupo
-                                </span>
-                              )}
-                            </TableCell>
-                          ) : (
-                            gruposVisiveis.map((g) => (
-                              <TableCell
-                                key={g.id}
-                                className="px-1 text-center align-top"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <CelulaConcessao
-                                  concedido={concedido.has(`${g.id}|${l.permissao_id}`)}
-                                  nivelMinimo={
-                                    nivelPorCelula.get(`${g.id}|${l.permissao_id}`) ?? null
-                                  }
-                                  niveis={niveis}
-                                  desabilitado={
-                                    togglePermissao.isPending || definirNivel.isPending
-                                  }
-                                  rotuloAria={`${g.nome} — ${l.rotulo}`}
-                                  onToggle={(v) =>
-                                    alternar(g.id, l.permissao_id as string, v)
-                                  }
-                                  onNivel={(nivel) =>
-                                    definirNivel.mutate({
-                                      grupoId: g.id,
-                                      permissaoId: l.permissao_id as string,
-                                      nivelMinimo: nivel,
-                                    })
-                                  }
-                                />
-                              </TableCell>
-                            ))
-                          )}
-
-                          <TableCell
-                            className="text-center align-top"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {!ehTela && l.acao_superficie_id ? (
-                              <Checkbox
-                                checked={l.conferido === true}
-                                disabled={marcarConferido.isPending}
-                                onCheckedChange={(v) =>
-                                  marcarConferido.mutate({
-                                    acaoId: l.acao_superficie_id as string,
-                                    valor: v === true,
-                                  })
-                                }
-                                aria-label={`Marcar ${l.rotulo} como conferido`}
-                              />
-                            ) : (
-                              <span className="text-xs text-muted-foreground">—</span>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                    {itens.map(renderLinha)}
                   </Fragment>
                 ))}
-                {rotasDaTela.length === 0 && (
+
+                {/* ── Escopo e regras: permissões sem botão, ao final da tela ── */}
+                {escoposDaTela.length > 0 && (
+                  <Fragment key="__escopo__">
+                    <TableRow className="bg-muted/40 hover:bg-muted/40">
+                      <TableCell colSpan={nColunas} className="py-1.5">
+                        <span className="flex flex-wrap items-baseline gap-2">
+                          <span className="text-[11px] font-medium uppercase tracking-wide">
+                            Escopo e regras
+                          </span>
+                          <span className="text-[11px] text-muted-foreground">
+                            Estas permissões mudam o que a pessoa enxerga nesta tela, não
+                            o que ela clica.
+                          </span>
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                    {escoposDaTela.map(renderLinha)}
+                  </Fragment>
+                )}
+
+                {rotasDaTela.length === 0 && escoposDaTela.length === 0 && (
                   <TableRow>
                     <TableCell
                       colSpan={nColunas}
