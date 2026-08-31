@@ -328,6 +328,8 @@ export default function ConsoleAcessoTab() {
   const definirNivel = useDefinirNivelMinimo();
   const [telaSel, setTelaSel] = useState<string | null>(null);
   const [modulosFechados, setModulosFechados] = useState<Set<string>>(new Set());
+  const [gruposFechados, setGruposFechados] = useState<Set<string>>(new Set());
+
   const [declarando, setDeclarando] = useState<ConsoleAcessoRow | null>(null);
   const [detalhe, setDetalhe] = useState<ConsoleAcessoRow | null>(null);
   /** LENTE: mesmo editor, dois eixos. "tela" = escolho a tela e marco grupos;
