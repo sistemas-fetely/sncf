@@ -472,17 +472,23 @@ export default function ConsoleAcessoTab() {
     );
   }
 
-  /** Libera todas as linhas declaradas de um conjunto (tela ou módulo). */
-  function liberarLinhas(grupoId: string, alvo: ConsoleAcessoRow[], rotulo: string) {
+  /** Ids que ainda faltam liberar — mesma regra usada pela mutation. */
+  function idsFaltantes(grupoId: string, alvo: ConsoleAcessoRow[]) {
     const ids = alvo
       .filter((l) => l.permissao_id && !portaoPorFlag(l) && l.declarada === true)
       .map((l) => l.permissao_id as string)
       .filter((id) => !concedido.has(`${grupoId}|${id}`));
+    return [...new Set(ids)];
+  }
+
+  /** Libera todas as linhas declaradas de um conjunto (tela ou módulo). */
+  function liberarLinhas(grupoId: string, alvo: ConsoleAcessoRow[], rotulo: string) {
+    const ids = idsFaltantes(grupoId, alvo);
     if (!ids.length) {
       toast.info(`Este grupo já tem tudo ${rotulo}.`);
       return;
     }
-    liberarParaGrupo.mutate({ grupoId, permissaoIds: [...new Set(ids)] });
+    liberarParaGrupo.mutate({ grupoId, permissaoIds: ids });
   }
 
   function liberarTelaInteira(grupoId: string) {
@@ -490,7 +496,7 @@ export default function ConsoleAcessoTab() {
     liberarLinhas(grupoId, telaAtiva.linhas, "desta tela");
   }
 
-  /** Módulo dono da tela ativa — alimenta "Liberar módulo" no cabeçalho. */
+  /** Módulo dono da tela ativa — alimenta o escopo "Este módulo". */
   const moduloAtivo = useMemo(
     () => modulos.find((m) => m.telas.some((t) => t.chave === telaAtiva?.chave)) ?? null,
     [modulos, telaAtiva],
@@ -500,6 +506,21 @@ export default function ConsoleAcessoTab() {
     if (!moduloAtivo) return;
     liberarLinhas(grupoId, moduloAtivo.telas.flatMap((t) => t.linhas), "deste módulo");
   }
+
+  /** Grupo alvo da liberação em massa: travado na lente por grupo. */
+  const grupoMassaEfetivo = porGrupo ? grupoLenteId : grupoMassaId;
+
+  /** Quantas linhas a confirmação vai liberar — nada de clique cego. */
+  const qtdMassa = useMemo(() => {
+    if (!grupoMassaEfetivo) return 0;
+    const alvo =
+      escopoMassa === "modulo"
+        ? (moduloAtivo?.telas.flatMap((t) => t.linhas) ?? [])
+        : (telaAtiva?.linhas ?? []);
+    return idsFaltantes(grupoMassaEfetivo, alvo).length;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grupoMassaEfetivo, escopoMassa, moduloAtivo, telaAtiva, concedido]);
+
 
   /** Concedidas por tela para o grupo da lente — alimenta o contador "3/14". */
   const concedidasPorTela = useMemo(() => {
