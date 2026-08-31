@@ -972,7 +972,31 @@ export default function ConsoleAcessoTab() {
             </Table>
           </CardContent>
         </Card>
+
+        {/* ── Terceira coluna: detalhe da linha / resumo da tela (telas largas) ── */}
+        <Card className="hidden h-fit lg:sticky lg:top-4 lg:block">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">
+              {detalhe ? detalhe.rotulo : (telaAtiva?.telaLabel ?? "Nenhuma tela")}
+            </CardTitle>
+            <p className="font-mono text-[11px] text-muted-foreground">
+              {detalhe ? detalhe.rota : "Resumo da tela"}
+            </p>
+          </CardHeader>
+          <CardContent className="max-h-[70vh] overflow-y-auto">
+            {detalhe ? (
+              <DetalheLinha
+                linha={detalhe}
+                isSuperAdmin={isSuperAdmin}
+                onDeclarar={() => setDeclarando(detalhe)}
+              />
+            ) : (
+              <ResumoTela tela={telaAtiva} />
+            )}
+          </CardContent>
+        </Card>
       </div>
+
 
       {/* ── Mobile/estreito: o mesmo detalhe volta como Sheet por cima ── */}
       <Sheet
