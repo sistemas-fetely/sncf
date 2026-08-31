@@ -214,6 +214,7 @@ export default function ShopifyB2c() {
           </TabsList>
 
         <TabsContent value="fila" className="space-y-4">
+          <ConteudoAba slug="tela.b2c">
           <div className="sticky top-14 z-20 -mx-6 border-b border-border bg-background px-6 py-2">
             <PipelineB2c
               estagioAtivo={estagioParam}
