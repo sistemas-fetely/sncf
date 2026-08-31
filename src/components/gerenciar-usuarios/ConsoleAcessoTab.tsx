@@ -888,13 +888,40 @@ export default function ConsoleAcessoTab() {
         {/* ── Grade linhas × grupos ── */}
         <Card>
           <CardHeader className="gap-2 pb-2">
+            {/* Migalha Módulo › Grupo › Tela — grupo omitido quando é nulo. */}
             <CardTitle className="text-sm">
-              {telaAtiva ? telaAtiva.telaLabel : "Nenhuma tela"}
+              {telaAtiva ? (
+                <span className="flex flex-wrap items-baseline gap-1">
+                  <span className="text-[11px] font-normal text-muted-foreground">
+                    {telaAtiva.appLabel}
+                  </span>
+                  {telaAtiva.grupoLabel && (
+                    <>
+                      <span className="text-[11px] font-normal text-muted-foreground">
+                        ›
+                      </span>
+                      <span className="text-[11px] font-normal text-muted-foreground">
+                        {telaAtiva.grupoLabel}
+                      </span>
+                    </>
+                  )}
+                  <span className="text-[11px] font-normal text-muted-foreground">›</span>
+                  <span>{telaAtiva.telaLabel}</span>
+                </span>
+              ) : (
+                "Nenhuma tela"
+              )}
             </CardTitle>
+            {telaAtiva?.descricao && (
+              <p className="text-[11px] leading-snug text-muted-foreground">
+                {telaAtiva.descricao}
+              </p>
+            )}
             <p className="text-[11px] text-muted-foreground">
               Clique na linha para ver o detalhe. O chip na célula aparece só quando há
               alçada mínima definida — sem chip, qualquer pessoa do grupo executa.
             </p>
+
 
             {/* ── Barra de filtro ── */}
             <div className="flex flex-wrap items-center gap-2 pt-1">
