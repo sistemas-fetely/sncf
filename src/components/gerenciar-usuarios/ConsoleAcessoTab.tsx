@@ -666,6 +666,36 @@ export default function ConsoleAcessoTab() {
   const nColunas = porGrupo ? 5 : 4 + gruposVisiveis.length;
   const grupoConcedidas = grupos.find((g) => g.id === filtroConcedidas) ?? null;
 
+  const totalTelas = modulos.reduce((s, m) => s + telasDoModulo(m).length, 0);
+
+  /** Folha da árvore. `nivel` é só recuo: 1 = tela, 2 = aba sob a tela-mãe. */
+  const renderTela = (t: TelaNodo, nivel: 1 | 2) => (
+    <Fragment key={t.chave}>
+      <button
+        type="button"
+        onClick={() => setTelaSel(t.chave)}
+        className={cn(
+          "flex items-center gap-2 rounded-md px-2 py-1 text-left text-xs transition-colors hover:bg-accent",
+          nivel === 1 ? "ml-4 w-[calc(100%-1rem)]" : "ml-7 w-[calc(100%-1.75rem)]",
+          t.chave === telaAtiva?.chave && "bg-accent",
+        )}
+      >
+        <span className="min-w-0 flex-1 truncate">{t.telaLabel}</span>
+        <span className="flex shrink-0 items-center gap-1.5 text-[10px] text-muted-foreground">
+          <span className="tabular-nums">
+            {porGrupo && grupoLenteId
+              ? `${concedidasPorTela.get(t.chave) ?? 0}/${t.total}`
+              : t.total}
+          </span>
+          <BadgeAltoSemGuarda n={t.altoSemGuarda} />
+        </span>
+      </button>
+      {t.abas.map((a) => renderTela(a, 2))}
+    </Fragment>
+  );
+
+
+
 
   return (
     <div className="space-y-4">
