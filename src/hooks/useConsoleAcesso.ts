@@ -13,7 +13,8 @@ import { formatError } from "@/lib/format-error";
  */
 export interface ConsoleAcessoRow {
   linha_id: string;
-  tipo: "tela" | "acao";
+  /** `escopo` = permissão sem botão: muda o que a pessoa enxerga, não o que clica. */
+  tipo: "tela" | "acao" | "escopo";
   app_chave: string | null;
   app_label: string | null;
   app_ordem: number | null;
