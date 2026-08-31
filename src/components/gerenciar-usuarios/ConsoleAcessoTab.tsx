@@ -631,6 +631,17 @@ export default function ConsoleAcessoTab() {
     });
   }
 
+  /** Aberto/fechado é independente por grupo; nasce aberto. */
+  function alternarGrupo(chave: string) {
+    setGruposFechados((prev) => {
+      const prox = new Set(prev);
+      if (prox.has(chave)) prox.delete(chave);
+      else prox.add(chave);
+      return prox;
+    });
+  }
+
+
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 p-6 text-muted-foreground">
