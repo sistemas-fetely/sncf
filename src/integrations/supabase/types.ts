@@ -31548,6 +31548,66 @@ export type Database = {
         }
         Relationships: []
       }
+      permissao_tela_escopo: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          nav_chave: string
+          nota: string | null
+          permissao_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          nav_chave: string
+          nota?: string | null
+          permissao_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          nav_chave?: string
+          nota?: string | null
+          permissao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permissao_tela_escopo_nav_chave_fkey"
+            columns: ["nav_chave"]
+            isOneToOne: false
+            referencedRelation: "sncf_navegacao"
+            referencedColumns: ["chave"]
+          },
+          {
+            foreignKeyName: "permissao_tela_escopo_permissao_id_fkey"
+            columns: ["permissao_id"]
+            isOneToOne: false
+            referencedRelation: "permissoes_catalogo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "permissao_tela_escopo_permissao_id_fkey"
+            columns: ["permissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_catalogo_por_app"
+            referencedColumns: ["permissao_id"]
+          },
+          {
+            foreignKeyName: "permissao_tela_escopo_permissao_id_fkey"
+            columns: ["permissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_concessao_viva"
+            referencedColumns: ["permissao_id"]
+          },
+          {
+            foreignKeyName: "permissao_tela_escopo_permissao_id_fkey"
+            columns: ["permissao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_permissao_diagnostico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       permission_packs: {
         Row: {
           ativo: boolean
