@@ -899,19 +899,20 @@ export default function ConsoleAcessoTab() {
                         key={g.id}
                         className="w-[90px] max-w-[90px] px-1 text-center align-bottom"
                       >
+                        {/*
+                          Não exibimos role_automatico aqui porque
+                          grupos_acesso.role_automatico não é consultado por nenhuma
+                          função, policy, view ou trigger do banco, e 7 dos 9 grupos
+                          têm o mesmo valor. Pior, o rótulo sugere que entrar no grupo
+                          concede aquele papel — o que não acontece. Papel vem de
+                          user_roles, por outro caminho.
+                        */}
                         <span
                           className="block whitespace-normal break-words text-[11px] font-medium leading-tight"
-                          title={
-                            g.role_automatico ? `${g.nome} (${g.role_automatico})` : g.nome
-                          }
+                          title={g.nome}
                         >
                           {g.nome}
                         </span>
-                        {g.role_automatico && (
-                          <span className="block text-[9px] font-normal leading-tight text-muted-foreground">
-                            {g.role_automatico}
-                          </span>
-                        )}
                       </TableHead>
                     ))
                   )}
