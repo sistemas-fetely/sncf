@@ -557,44 +557,33 @@ export default function GerenciarUsuarios() {
           </DialogContent>
         </Dialog>
 
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <Card className="border-l-[3px] border-l-info/40">
-          <CardContent className="p-3">
-            <p className="text-xs text-muted-foreground uppercase">Total</p>
-            <p className="text-2xl font-medium flex items-center gap-2">
-              <Users className="h-5 w-5 text-info" />
-              {profiles.length}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-l-[3px] border-l-success/40">
-          <CardContent className="p-3">
-            <p className="text-xs text-muted-foreground uppercase">Ativos</p>
-            <p className="text-2xl font-medium flex items-center gap-2">
-              <UserCheck className="h-5 w-5 text-success" />
-              {approvedCount}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-l-[3px] border-l-warning/40">
-          <CardContent className="p-3">
-            <p className="text-xs text-muted-foreground uppercase">Pendentes</p>
-            <p className="text-2xl font-medium flex items-center gap-2">
-              <UserX className="h-5 w-5 text-warning" />
-              {pendingCount}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-l-[3px] border-l-destructive/40">
-          <CardContent className="p-3">
-            <p className="text-xs text-muted-foreground uppercase">Inativos</p>
-            <p className="text-2xl font-medium flex items-center gap-2">
-              <ShieldAlert className="h-5 w-5 text-destructive" />
-              {bannedCount}
-            </p>
-          </CardContent>
-        </Card>
+      {/* Faixa fina de leitura (não clicável) — mesmos números dos antigos 4 cards. */}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border px-2 py-1.5 text-xs">
+        <span className="inline-flex items-center gap-1">
+          <Users className="h-3.5 w-3.5 text-info" />
+          <span className="font-medium tabular-nums text-info">{profiles.length}</span>
+          <span className="text-muted-foreground">total</span>
+        </span>
+        <span className="text-muted-foreground">·</span>
+        <span className="inline-flex items-center gap-1">
+          <UserCheck className="h-3.5 w-3.5 text-success" />
+          <span className="font-medium tabular-nums text-success">{approvedCount}</span>
+          <span className="text-muted-foreground">ativos</span>
+        </span>
+        <span className="text-muted-foreground">·</span>
+        <span className="inline-flex items-center gap-1">
+          <UserX className="h-3.5 w-3.5 text-warning" />
+          <span className="font-medium tabular-nums text-warning">{pendingCount}</span>
+          <span className="text-muted-foreground">pendentes</span>
+        </span>
+        <span className="text-muted-foreground">·</span>
+        <span className="inline-flex items-center gap-1">
+          <ShieldAlert className="h-3.5 w-3.5 text-destructive" />
+          <span className="font-medium tabular-nums text-destructive">{bannedCount}</span>
+          <span className="text-muted-foreground">inativos</span>
+        </span>
       </div>
+
 
       <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList>
