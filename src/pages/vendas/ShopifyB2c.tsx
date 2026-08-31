@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { AlertTriangle, Copy, ExternalLink } from "lucide-react";
+import { AlertTriangle, Copy, ExternalLink, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/layout/PageShell";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
@@ -24,9 +24,7 @@ import {
   usePedidosB2c, useCarrinhosAbandonados, useDevolucoesB2c, type PedidoB2cRow,
 } from "@/hooks/vendas/useB2c";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
-import { useAuth } from "@/contexts/AuthContext";
-import { usePermissoesDoUsuario, temPermissaoTela } from "@/hooks/usePermissoesDoUsuario";
-import { AbaPermitida, ConteudoAba } from "@/components/AbaGate";
+import { AbaPermitida, ConteudoAba, usePodeVerAba } from "@/components/AbaGate";
 
 /**
  * Casa do B2C — mesma linguagem da Casa dos Pedidos, regras do canal loja.
@@ -64,15 +62,43 @@ function diasTexto(d: number | null): string {
 export default function ShopifyB2c() {
   const [searchParams, setSearchParams] = useSearchParams();
   const abaParam = searchParams.get("aba");
-  const aba: Aba = ABAS.includes(abaParam as Aba) ? (abaParam as Aba) : "fila";
   const estagioParam = searchParams.get("estagio");
-  // Carrinhos abandonados: dado de contato de quem NÃO comprou — uso de
-  // marketing, separado de operar a fila de pedidos.
-  const { roles } = useAuth();
-  const { data: permitidas } = usePermissoesDoUsuario();
-  const podeVerCarrinhos =
-    (roles ?? []).includes("super_admin") ||
-    temPermissaoTela("tela.b2c_carrinhos", permitidas);
+
+  // Guarda nominal por aba.
+  const permFila = usePodeVerAba("tela.b2c");
+  const permDash = usePodeVerAba("tela.dash_b2c");
+  const permCarrinhos = usePodeVerAba("tela.b2c_carrinhos");
+  const permPosVenda = usePodeVerAba("tela.b2c_pos_venda");
+
+  const permissoes: Record<Aba, { podeVer: boolean; carregando: boolean }> = {
+    fila: permFila,
+    dash: permDash,
+    carrinhos: permCarrinhos,
+    posvenda: permPosVenda,
+  };
+
+  const carregandoPermissoes = ABAS.some((a) => permissoes[a].carregando);
+  const primeiraPermitida = ABAS.find((a) => permissoes[a].podeVer);
+  const abaSolicitada: Aba = ABAS.includes(abaParam as Aba)
+    ? (abaParam as Aba)
+    : "fila";
+  const abaEfetiva: Aba | undefined = carregandoPermissoes
+    ? abaSolicitada
+    : permissoes[abaSolicitada].podeVer
+      ? abaSolicitada
+      : primeiraPermitida;
+
+  // Redireciona para a primeira aba permitida quando a URL aponta para uma proibida.
+  useEffect(() => {
+    if (carregandoPermissoes) return;
+    if (abaEfetiva && abaEfetiva !== abaSolicitada) {
+      const next = new URLSearchParams(searchParams);
+      if (abaEfetiva === "fila") next.delete("aba");
+      else next.set("aba", abaEfetiva);
+      setSearchParams(next);
+    }
+  }, [carregandoPermissoes, abaEfetiva, abaSolicitada, searchParams, setSearchParams]);
+
 
   const [busca, setBusca] = useState("");
   const [uf, setUf] = useState("todas");
@@ -161,22 +187,34 @@ export default function ShopifyB2c() {
         actions={<ExportarB2cButton linhas={filtrados} />}
       />
 
-        <Tabs value={aba} onValueChange={setAba} className="space-y-4">
+      {carregandoPermissoes ? (
+        <CarregandoAba />
+      ) : !primeiraPermitida ? (
+        <div className="rounded-md border border-border bg-muted/40 px-3 py-6 text-sm text-muted-foreground text-center">
+          Você não tem acesso a nenhuma aba desta tela.
+        </div>
+      ) : (
+        <Tabs value={abaEfetiva ?? abaSolicitada} onValueChange={setAba} className="space-y-4">
           <TabsList>
-            <TabsTrigger value="fila">Fila</TabsTrigger>
+            <AbaPermitida slug="tela.b2c">
+              <TabsTrigger value="fila">Fila</TabsTrigger>
+            </AbaPermitida>
             <AbaPermitida slug="tela.dash_b2c">
               <TabsTrigger value="dash">Dash</TabsTrigger>
             </AbaPermitida>
             <div className="w-px bg-border mx-1.5 self-stretch" aria-hidden />
-            {podeVerCarrinhos && (
+            <AbaPermitida slug="tela.b2c_carrinhos">
               <TabsTrigger value="carrinhos">
                 Carrinhos{carrinhosResumo.qtd > 0 ? ` (${carrinhosResumo.qtd})` : ""}
               </TabsTrigger>
-            )}
-            <TabsTrigger value="posvenda">Pós-venda</TabsTrigger>
+            </AbaPermitida>
+            <AbaPermitida slug="tela.b2c_pos_venda">
+              <TabsTrigger value="posvenda">Pós-venda</TabsTrigger>
+            </AbaPermitida>
           </TabsList>
 
         <TabsContent value="fila" className="space-y-4">
+          <ConteudoAba slug="tela.b2c">
           <div className="sticky top-14 z-20 -mx-6 border-b border-border bg-background px-6 py-2">
             <PipelineB2c
               estagioAtivo={estagioParam}
@@ -424,6 +462,7 @@ export default function ShopifyB2c() {
               </CardContent>
             </Card>
           )}
+          </ConteudoAba>
         </TabsContent>
 
         <TabsContent value="dash">
@@ -432,8 +471,8 @@ export default function ShopifyB2c() {
           </ConteudoAba>
         </TabsContent>
 
-        {podeVerCarrinhos && (
-          <TabsContent value="carrinhos" className="space-y-3">
+        <TabsContent value="carrinhos" className="space-y-3">
+          <ConteudoAba slug="tela.b2c_carrinhos">
             <p className="text-xs text-muted-foreground">
               {carrinhosResumo.qtd} carrinho(s) abandonado(s) · {formatBRL(carrinhosResumo.valor)} em jogo.
             </p>
@@ -503,68 +542,71 @@ export default function ShopifyB2c() {
                 </Table>
               </CardContent>
             </Card>
-          </TabsContent>
-        )}
+          </ConteudoAba>
+        </TabsContent>
 
         <TabsContent value="posvenda">
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Número</TableHead>
-                    <TableHead>Pedido</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Motivo</TableHead>
-                    <TableHead className="text-right">Crédito</TableHead>
-                    <TableHead>Data</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {carregandoDevolucoes ? (
+          <ConteudoAba slug="tela.b2c_pos_venda">
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={7} className="py-8 text-center">
-                        <Skeleton className="mx-auto h-4 w-32" />
-                      </TableCell>
+                      <TableHead>Número</TableHead>
+                      <TableHead>Pedido</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Motivo</TableHead>
+                      <TableHead className="text-right">Crédito</TableHead>
+                      <TableHead>Data</TableHead>
                     </TableRow>
-                  ) : (devolucoes ?? []).length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
-                        Nenhuma devolução da loja registrada.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    (devolucoes ?? []).map((d) => (
-                      <TableRow key={d.id}>
-                        <TableCell className="font-mono text-xs">{d.numero}</TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {txt(d.shopify_pedido_id ?? d.pedido_id)}
-                        </TableCell>
-                        <TableCell>
-                          <Selo estado={d.status === "encerrada" ? "success" : "warning"}>{d.status}</Selo>
-                        </TableCell>
-                        <TableCell className="text-xs">{d.tipo}</TableCell>
-                        <TableCell className="max-w-[280px] text-xs">
-                          <span className="line-clamp-2">
-                            {txt(d.motivo_categoria)} · {d.motivo_texto}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right text-xs tabular-nums">
-                          {formatBRL(d.valor_credito)}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap text-xs">
-                          {formatDateBR(d.criado_em)}
+                  </TableHeader>
+                  <TableBody>
+                    {carregandoDevolucoes ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="py-8 text-center">
+                          <Skeleton className="mx-auto h-4 w-32" />
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                    ) : (devolucoes ?? []).length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                          Nenhuma devolução da loja registrada.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      (devolucoes ?? []).map((d) => (
+                        <TableRow key={d.id}>
+                          <TableCell className="font-mono text-xs">{d.numero}</TableCell>
+                          <TableCell className="font-mono text-xs">
+                            {txt(d.shopify_pedido_id ?? d.pedido_id)}
+                          </TableCell>
+                          <TableCell>
+                            <Selo estado={d.status === "encerrada" ? "success" : "warning"}>{d.status}</Selo>
+                          </TableCell>
+                          <TableCell className="text-xs">{d.tipo}</TableCell>
+                          <TableCell className="max-w-[280px] text-xs">
+                            <span className="line-clamp-2">
+                              {txt(d.motivo_categoria)} · {d.motivo_texto}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right text-xs tabular-nums">
+                            {formatBRL(d.valor_credito)}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap text-xs">
+                            {formatDateBR(d.criado_em)}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </ConteudoAba>
         </TabsContent>
       </Tabs>
+      )}
 
       <PedidoB2cDrawer
         pedido={selecionado}
@@ -572,5 +614,13 @@ export default function ShopifyB2c() {
         onOpenChange={(o) => !o && setSelecionado(null)}
       />
     </PageShell>
+  );
+}
+
+function CarregandoAba() {
+  return (
+    <div className="flex items-center justify-center py-16">
+      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+    </div>
   );
 }
