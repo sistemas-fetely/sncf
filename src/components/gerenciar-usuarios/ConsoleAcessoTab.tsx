@@ -576,13 +576,19 @@ export default function ConsoleAcessoTab() {
 
   /** Módulo dono da tela ativa — alimenta o escopo "Este módulo". */
   const moduloAtivo = useMemo(
-    () => modulos.find((m) => m.telas.some((t) => t.chave === telaAtiva?.chave)) ?? null,
+    () =>
+      modulos.find((m) => telasDoModulo(m).some((t) => t.chave === telaAtiva?.chave)) ??
+      null,
     [modulos, telaAtiva],
   );
 
   function liberarModuloInteiro(grupoId: string) {
     if (!moduloAtivo) return;
-    liberarLinhas(grupoId, moduloAtivo.telas.flatMap((t) => t.linhas), "deste módulo");
+    liberarLinhas(
+      grupoId,
+      telasDoModulo(moduloAtivo).flatMap((t) => t.linhas),
+      "deste módulo",
+    );
   }
 
   /** Grupo alvo da liberação em massa: travado na lente por grupo. */
@@ -593,7 +599,7 @@ export default function ConsoleAcessoTab() {
     if (!grupoMassaEfetivo) return 0;
     const alvo =
       escopoMassa === "modulo"
-        ? (moduloAtivo?.telas.flatMap((t) => t.linhas) ?? [])
+        ? (moduloAtivo ? telasDoModulo(moduloAtivo).flatMap((t) => t.linhas) : [])
         : (telaAtiva?.linhas ?? []);
     return idsFaltantes(grupoMassaEfetivo, alvo).length;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -605,13 +611,14 @@ export default function ConsoleAcessoTab() {
     const mapa = new Map<string, number>();
     if (!grupoLenteId) return mapa;
     modulos.forEach((m) =>
-      m.telas.forEach((t) => {
+      telasDoModulo(m).forEach((t) => {
         const n = t.linhas.filter(
           (l) => l.permissao_id && concedido.has(`${grupoLenteId}|${l.permissao_id}`),
         ).length;
         mapa.set(t.chave, n);
       }),
     );
+
     return mapa;
   }, [modulos, concedido, grupoLenteId]);
 
