@@ -727,13 +727,14 @@ export default function ConsoleAcessoTab() {
             </div>
           </CardHeader>
           <CardContent className="max-h-[70vh] overflow-auto p-0">
-            <Table>
+            <Table className="w-auto">
               <TableHeader className="sticky top-0 z-30 bg-card">
                 <TableRow>
-                  <TableHead className="sticky left-0 z-40 min-w-[220px] bg-card">
+                  <TableHead className="sticky left-0 z-40 w-[320px] max-w-[320px] bg-card">
                     Linha
                   </TableHead>
                   <TableHead className="w-[90px]">Risco</TableHead>
+                  <TableHead className="w-[150px] text-[11px]">Guarda atual</TableHead>
                   {porGrupo ? (
                     <TableHead className="min-w-[120px] text-center">
                       <span className="inline-flex items-center gap-1">
@@ -745,7 +746,7 @@ export default function ConsoleAcessoTab() {
                     </TableHead>
                   ) : (
                     gruposVisiveis.map((g) => (
-                      <TableHead key={g.id} className="w-[56px] px-1 text-center">
+                      <TableHead key={g.id} className="w-[64px] px-1 text-center">
                         <span className="inline-flex items-center gap-0.5">
                           <span
                             className="text-[11px] font-medium"
