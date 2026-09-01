@@ -71,6 +71,9 @@ type Importacao = {
 type Fonte =
   | "ofx"
   | "safra_lancamentos"
+  | "safra_pix_lancamentos"
+  | "safrapay_agenda_vendas"
+  | "safrapay_recebiveis_vendas"
   | "mp_withdraw"
   | "safrapay_vendas"
   | "safrapay_liquidacao"
@@ -81,6 +84,14 @@ type Fonte =
   | "safra_instrucoes_2via"
   | "safra_francesinha"
   | "retorno_safra";
+
+/** Fontes reconhecidas que não importam nada — redundantes com outra porta. */
+const FONTE_REDUNDANTE: Partial<Record<Fonte, string>> = {
+  safrapay_agenda_vendas:
+    "Redundante com o CSV de vendas SafraPay — os mesmos NSUs chegam por lá. Nada importado.",
+  safrapay_recebiveis_vendas:
+    "Redundante com o CSV de vendas SafraPay — os mesmos NSUs chegam por lá. Nada importado.",
+};
 
 function detectarFonteBase(file: File): "ofx" | "xlsx" | "csv" | "txt" | null {
   const nome = file.name.toLowerCase();
@@ -109,6 +120,11 @@ async function detectarSubtipoXlsx(file: File): Promise<Exclude<Fonte, "ofx">> {
   const sheet = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: null }) as unknown[][];
 
+  // ASSINATURA-MANDA-NO-NOME: o título que o Safra escreve dentro do arquivo tem
+  // precedência sobre qualquer palpite por nome de arquivo ou por cabeçalho.
+  const assinatura = detectarAssinaturaSafraXlsx(rows);
+  if (assinatura) return assinatura;
+
   // Fontes de cobrança Safra: título nas primeiras linhas, em qualquer coluna,
   // sem acento e sem caixa. O nome do arquivo NUNCA é critério — ele varia
   // ("Francesinha (8).xlsx").
@@ -122,6 +138,7 @@ async function detectarSubtipoXlsx(file: File): Promise<Exclude<Fonte, "ofx">> {
   if (/withdraw_id|numero da retirada/.test(cabecalho)) return "mp_withdraw";
   return "safra_lancamentos";
 }
+
 
 /**
  * `extrato_importacoes.fonte_tipo` agora é validado por trigger contra
