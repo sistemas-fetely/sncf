@@ -518,15 +518,41 @@ serve(async (req) => {
       );
     }
 
+    // 4a-ter. PORTÃO PAGO — segunda pergunta ortogonal ao lastro.
+    // lastro = existe recebível vinculado e ele cobre o pedido? (fn_pedido_tem_lastro)
+    // portão = o dinheiro que tinha que vir ANTES já veio? (fn_pedido_portao_liberado)
+    // PORTÃO-NÃO-É-INSTRUMENTO: a unidade é a linha do plano (provisao_recebimento.eh_portao),
+    // qualquer meio; o instrumento só diz onde a prova aparece.
+    // Não exige nível de prova: pago_em basta; nível de prova é eixo da Mesa de Cobrança.
+    const { data: portaoRpc, error: portaoErr } = await supabase
+      .rpc("fn_pedido_portao_liberado", { p_pedido_id: pedido_id });
+    if (portaoErr) {
+      return await falhaLimpando(`Falha ao avaliar o portão do pedido: ${portaoErr.message}`, 500);
+    }
+    const portao = (portaoRpc ?? {}) as {
+      liberado?: boolean; fonte?: string; porque?: string;
+      linhas_abertas?: number; valor_aberto?: number;
+      linhas_portao_total?: number;
+    };
+    if (portao.liberado !== true) {
+      return await falhaLimpando(
+        `${portao.porque ?? "Portão do pedido não está liberado."} ` +
+        `Confirme o pagamento na aba Primeiro Pagamento antes de enviar ao Bling.`,
+        409,
+      );
+    }
+
     console.log("[enviar-pedido-bling] lastro OK", {
       pedido_id, fonte: lastro.fonte, porque: lastro.porque,
       valor_devido: lastro.valor_devido, valor_coberto: lastro.valor_coberto,
+      portao_fonte: portao.fonte, portao_linhas_portao_total: portao.linhas_portao_total,
     });
 
     // Nao existe trava de "dinheiro antes da NF". A condicao pix_faturamento e credito
     // a prazo aprovado na analise: o cliente paga contra a NF, com data de vencimento, e
     // se nao pagar o titulo vence e entra na regua de cobranca — mesma mecanica do boleto.
-    // Lastro (4a) e a unica pergunta que este envio faz sobre recebivel.
+    // Lastro (4a) e portao (4a-ter) sao as duas perguntas ortogonais que este envio faz
+    // sobre recebivel.
 
 
 
