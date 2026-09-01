@@ -1342,7 +1342,8 @@ export default function ExtratoImportacao() {
               Importar auxiliares {arquivosAux.length > 0 ? `(${arquivosAux.length})` : ""}
             </Button>
 
-            <VereditoImportacao itens={resultados} />
+            {/* VEREDITO-EM-UM-LUGAR-SO (01/09/2026): a lista mora no card 1,
+                que cobre os dois fluxos. Duplicar aqui mostrava tudo em dobro. */}
           </CardContent>
         </Card>
 
