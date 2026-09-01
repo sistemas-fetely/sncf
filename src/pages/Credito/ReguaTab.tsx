@@ -544,10 +544,18 @@ export default function ReguaTab() {
    * ATRASO-E-O-EIXO: a régua ordena por atraso, não por etapa da cadência.
    * Etapa é cronologia do roteiro; urgência é o atraso. Desempate por valor.
    */
+  /**
+   * CARTÃO-NÃO-VENCE-PROVA-VENCE: em cartão o cliente não deve nada — a data é
+   * liquidação da adquirente, não vencimento do cliente. Esses títulos vivem na
+   * aba "Sem prova". Filtro de exibição apenas; a view segue intacta.
+   */
+  const semCartao = (t: TituloCobranca) =>
+    ((t as any)._mesa as LinhaMesa | undefined)?.instrumento !== "cartao";
+
   const zonaAtraso = useMemo(
     () =>
       fila
-        .filter((t) => (t.dias_atraso ?? 0) > 0)
+        .filter((t) => (t.dias_atraso ?? 0) > 0 && semCartao(t))
         .sort(
           (a, b) =>
             (b.dias_atraso ?? 0) - (a.dias_atraso ?? 0) ||
@@ -564,8 +572,11 @@ export default function ReguaTab() {
     [fila],
   );
 
+  const foraDaReguaVisivel = useMemo(() => foraDaRegua.filter(semCartao), [foraDaRegua]);
+
   const somaZona1 = useMemo(() => somaValor(zonaAtraso), [zonaAtraso]);
-  const somaZona2 = useMemo(() => somaValor(foraDaRegua), [foraDaRegua]);
+  const somaZona2 = useMemo(() => somaValor(foraDaReguaVisivel), [foraDaReguaVisivel]);
+
   const somaZona3 = useMemo(() => somaValor(zonaAVencer), [zonaAVencer]);
   const somaFila = useMemo(() => somaValor(fila), [fila]);
   const somaPausados = useMemo(() => somaValor(pausados), [pausados]);
