@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
@@ -44,6 +45,8 @@ export interface RenegociarResultado {
   modalidade: 2 | 3;
   filhos: string[];
   instrumentos?: InstrumentoRenegociado[];
+  /** UI apenas: havia boleto vivo no Safra quando o original foi encerrado. */
+  boletoABaixar?: boolean;
 }
 
 interface Parcela {
@@ -140,6 +143,7 @@ function InstrumentoPixBloco({ inst }: { inst: InstrumentoRenegociado }) {
 
 export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) {
   const invalidarRecebivel = useInvalidarRecebivel();
+  const navigate = useNavigate();
   const [modalidade, setModalidade] = useState<Modalidade>(2);
   const [justificativa, setJustificativa] = useState("");
   const [parcelas, setParcelas] = useState<Parcela[]>([
@@ -162,6 +166,14 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
   const podeReemitir =
     titulo.tipo_pagamento === "boleto" &&
     (titulo.boleto_status === "vencido" || isRejeitado);
+
+  /**
+   * Boleto vivo no Safra: encerrar o título aqui NÃO baixa esse boleto.
+   * A baixa exige remessa + SafraNet + retorno (3 passos manuais).
+   */
+  const boletoVivo =
+    titulo.tipo_pagamento === "boleto" &&
+    (titulo.boleto_status === "registrado" || titulo.boleto_status === "vencido");
 
   const somaParcelas = useMemo(
     () => parcelas.reduce((acc, p) => acc + (parseFloat(p.valor.replace(",", ".")) || 0), 0),
@@ -232,9 +244,15 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
       const instrumentos = (res?.instrumentos ?? []).filter((i) => i?.payload);
       const qtd = res?.filhos?.length ?? 0;
 
-      if (instrumentos.length > 0) {
+      if (instrumentos.length > 0 || boletoVivo) {
         // PIX-NAO-FECHA-EM-SILENCIO: o operador precisa levar o código embora.
-        setResultado({ ...res, instrumentos });
+        // Boleto vivo também não fecha em silêncio: falta a remessa de baixa.
+        setResultado({ ...res, instrumentos, boletoABaixar: boletoVivo });
+        if (boletoVivo) {
+          toast.warning(
+            `${qtd} título(s) criado(s). Falta gerar a remessa de baixa do boleto antigo — ele segue pagável no Safra.`,
+          );
+        }
         return;
       }
 
@@ -283,17 +301,49 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
   const pendente = mutation.isPending || mutationReemitir.isPending;
 
   if (resultado) {
+    const temPix = (resultado.instrumentos ?? []).length > 0;
     return (
       <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
         <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Renegociação concluída</DialogTitle>
+            <DialogTitle>
+              {resultado.boletoABaixar
+                ? "Títulos novos criados — falta baixar o boleto antigo"
+                : "Renegociação concluída"}
+            </DialogTitle>
             <DialogDescription>
-              {resultado.filhos?.length ?? 0} título(s) criado(s) · envie o PIX abaixo ao cliente.
+              {resultado.filhos?.length ?? 0} título(s) criado(s)
+              {temPix ? " · envie o PIX abaixo ao cliente." : "."}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
+            {resultado.boletoABaixar && (
+              <Alert className="border-warning/40 bg-warning/10">
+                <AlertDescription className="text-xs text-warning space-y-1">
+                  <p className="font-medium">
+                    Próximo passo — o boleto antigo ainda está pagável no Safra
+                  </p>
+                  <p>1. Gerar a remessa de baixa na tela do Banco Safra.</p>
+                  <p>2. Subir o arquivo gerado no SafraNet.</p>
+                  <p>3. Conferir o retorno (ocorrência 10 — título baixado).</p>
+                  <p>
+                    Até o passo 3, o cliente tem dois boletos vivos para a mesma dívida.
+                  </p>
+                  <Button
+                    size="sm"
+                    className="mt-1"
+                    onClick={() => {
+                      onClose();
+                      navigate("/administrativo/banco-safra");
+                    }}
+                  >
+                    Ir gerar a remessa de baixa
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+
             {(resultado.instrumentos ?? []).map((inst, i) => (
               <InstrumentoPixBloco key={inst.token ?? inst.txid ?? i} inst={inst} />
             ))}
@@ -306,6 +356,7 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
       </Dialog>
     );
   }
+
 
   return (
     <>
@@ -483,15 +534,32 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
                 <Alert className="border-warning/40 bg-warning/10">
                   <AlertDescription className="text-xs text-warning">
                     O título original será encerrado como{" "}
-                    <b>cancelado_recuperacao</b> e não poderá receber pagamentos. Se houver
-                    boleto registrado, a baixa será solicitada automaticamente ao banco.
+                    <b>cancelado_recuperacao</b> e não poderá receber pagamentos.
+                    {boletoVivo && (
+                      <>
+                        <span className="block mt-1">
+                          O boleto antigo <b>continua registrado e pagável no Safra</b>. Ele só
+                          morre depois de três passos manuais: gerar a remessa de baixa na aba
+                          Banco, subir o arquivo no SafraNet e processar o retorno com a
+                          ocorrência 10.
+                        </span>
+                        <span className="block mt-1">
+                          Até lá o cliente tem <b>dois boletos vivos</b> para a mesma dívida.
+                        </span>
+                        <span className="block mt-1">
+                          O nosso número dos títulos novos é outro. O boleto antigo vira lixo —
+                          não envie ao cliente.
+                        </span>
+                      </>
+                    )}
                     {modalidade === 3 && novoInstrumento === "pix" && (
                       <span className="block mt-1">
-                        O QR PIX será gerado automaticamente e aparecerá aqui para você enviar ao cliente.
+                        O QR PIX será gerado e aparecerá aqui para você enviar ao cliente.
                       </span>
                     )}
                   </AlertDescription>
                 </Alert>
+
 
                 {modalidade === 3 && (
                   <div className="space-y-1.5">

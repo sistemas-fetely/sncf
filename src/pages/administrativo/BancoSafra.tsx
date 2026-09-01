@@ -1811,8 +1811,12 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
           <DialogHeader>
             <DialogTitle>Gerar Remessa de Baixa</DialogTitle>
             <DialogDescription>
-              Selecione os títulos com baixa solicitada que entram nesta remessa.
+              Selecione os títulos com baixa solicitada que entram nesta remessa. Este arquivo
+              pede ao Safra a baixa (ocorrência 02) dos boletos listados. Gerar o arquivo aqui
+              não baixa nada: é preciso subir no SafraNet e, até o banco confirmar no retorno,
+              os boletos seguem pagáveis pelo cliente.
             </DialogDescription>
+
           </DialogHeader>
 
           <div className="max-h-[360px] overflow-y-auto border rounded-md">
