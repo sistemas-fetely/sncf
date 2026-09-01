@@ -542,7 +542,8 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
             </p>
           )}
           {linhas.map((l) => (
-            <LinhaParcela key={`${l.origem}-${l.linha_id}`} l={l} />
+            <LinhaParcela key={`${l.origem}-${l.linha_id}`} l={l} pedidoId={pedido.id} />
+
           ))}
         </CardContent>
       </Card>
