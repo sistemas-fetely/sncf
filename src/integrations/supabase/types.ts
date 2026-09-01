@@ -22830,6 +22830,8 @@ export type Database = {
           created_at: string
           data_emissao: string | null
           data_saida: string | null
+          duplicatas: Json | null
+          duplicatas_sync_em: string | null
           emitente_cnpj: string | null
           id: string
           itens_json: Json | null
@@ -22870,6 +22872,8 @@ export type Database = {
           created_at?: string
           data_emissao?: string | null
           data_saida?: string | null
+          duplicatas?: Json | null
+          duplicatas_sync_em?: string | null
           emitente_cnpj?: string | null
           id?: string
           itens_json?: Json | null
@@ -22910,6 +22914,8 @@ export type Database = {
           created_at?: string
           data_emissao?: string | null
           data_saida?: string | null
+          duplicatas?: Json | null
+          duplicatas_sync_em?: string | null
           emitente_cnpj?: string | null
           id?: string
           itens_json?: Json | null
@@ -76208,6 +76214,7 @@ export type Database = {
         Args: { p_motivo?: string; p_nf_id: string }
         Returns: Json
       }
+      fn_nf_eh_venda: { Args: { p_nf_id: string }; Returns: boolean }
       fn_nf_itens_hash: { Args: { p_itens: Json }; Returns: string }
       fn_nf_pos_rateio: { Args: { p_nf_id: number }; Returns: Json }
       fn_nfs_stage_inserir_entrada: { Args: { p_linha: Json }; Returns: Json }
