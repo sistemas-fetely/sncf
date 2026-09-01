@@ -65,10 +65,12 @@ export const PIPELINE_PRINCIPAL: readonly EstagioPedido[] = [
   "em_analise_credito",
   "aguardando_estoque",
   "cobranca",
-  // PEDIDO-CONTADO-TEM-CARD (01/09/2026): aguardando_pagamento voltou ao funil.
-  // Ele sempre contou na FILA ATIVA; sem card, o total não fechava e os pedidos
-  // eram inalcançáveis por clique. Quem é contado tem card.
-  "aguardando_pagamento",
+  // MESA-COMERCIAL (20/08/2026, reafirmado 01/09/2026): aguardando_pagamento NAO tem
+  // card proprio no funil da Fila — e fila do Comercial e se resolve na aba Mesa
+  // Comercial, que ja conta e da acesso a esses pedidos. Segue contando na FILA ATIVA.
+  // Em 01/09 ele foi inserido aqui sob a doutrina PEDIDO-CONTADO-TEM-CARD e o Flavio
+  // derrubou: o funil da Fila e do fluxo logistico/fiscal, nao da cobranca de entrada.
+  // NAO reinserir sem decisao explicita dele.
   "pre_separacao",
   "em_separacao",
   "pre_faturamento",
