@@ -40,8 +40,24 @@ export function PedidosDoParceiroSection({ parceiroId }: { parceiroId: string })
   });
 
   const pedidos = data || [];
-  const { data: nfsPorPedido } = useNfsDosPedidosParceiro(pedidos.map((p) => p.id));
+  const {
+    data: nfsPorPedido,
+    isLoading: nfsCarregando,
+    isError: nfsErro,
+    error: nfsErroObj,
+  } = useNfsDosPedidosParceiro(pedidos.map((p) => p.id));
   const { baixar, baixando, nfEmDownload } = useDownloadNfPdf();
+
+  const nfsToastado = useRef(false);
+  useEffect(() => {
+    if (nfsErro && !nfsToastado.current) {
+      nfsToastado.current = true;
+      toast.error("Não foi possível carregar as NFs dos pedidos", {
+        description: formatError(nfsErroObj),
+      });
+    }
+    if (!nfsErro) nfsToastado.current = false;
+  }, [nfsErro, nfsErroObj]);
 
 
 
