@@ -471,47 +471,59 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
   const [edits, setEdits] = useState<Record<string, { data?: string; valor?: string }>>({});
 
   /**
-   * A parcela 1 é sugerida pela regra pura (faturamento + dia nominal, piso 7d).
-   * As demais seguem a data EFETIVA da parcela 1 — edição em curso na tela tem
-   * precedência sobre o salvo, para o operador ver a cascata antes de gravar.
+   * Sugestão de vencimento vem da RPC `fn_cronograma_sugerido_pedido` — a data
+   * que vale é a da duplicata da NF (fonte "duplicata_nf"); sem duplicata, o
+   * banco calcula ("calculado"). Uma chamada por pedido distinto, não por
+   * título. REGRA-NÃO-MORA-EM-TELA: nada de recalcular data no cliente.
    */
-  const ancoraPorPedido = useMemo(() => {
-    const map: Record<string, string> = {};
-    for (const b of boletos) {
-      if ((b.numero_parcela ?? 1) !== 1) continue;
-      const ped = b.pedido?.id_externo;
-      if (!ped) continue;
-      const efetiva = edits[b.id]?.data ?? b.data_vencimento_atual ?? null;
-      if (efetiva) map[ped] = efetiva;
-    }
-    return map;
-  }, [boletos, edits]);
-
-  /** Sugestão de vencimento por título pendente (só sugestão — nunca grava sozinha). */
-  const sugestoes = useMemo(() => {
-    const map: Record<string, string> = {};
+  const pedidosPendentesIds = useMemo(() => {
+    const ids = new Set<string>();
     for (const b of pendentesEntrada) {
-      const parcela = b.numero_parcela ?? 1;
-      const ped = b.pedido?.id_externo;
-      const ancora = parcela > 1 && ped ? ancoraPorPedido[ped] : null;
-      const s = sugerirVencimentoBoleto(
-        b.pedido?.faturado_em,
-        b.pedido?.condicao_solicitada,
-        parcela,
-        b.total_parcelas,
-        ancora,
-      );
-      if (s) map[b.id] = s;
+      if (b.pedido?.id) ids.add(b.pedido.id);
+    }
+    return [...ids].sort();
+  }, [pendentesEntrada]);
+
+  const { data: cronogramas = {} } = useQuery<Record<string, Record<string, SugestaoVencimentoParcela>>>({
+    queryKey: ["cronograma-sugerido-boletos", pedidosPendentesIds],
+    ...OPCOES_QUERY_RECEBIVEL,
+    enabled: pedidosPendentesIds.length > 0,
+    queryFn: async () => {
+      const out: Record<string, Record<string, SugestaoVencimentoParcela>> = {};
+      for (const pid of pedidosPendentesIds) {
+        const { data, error } = await supabase.rpc("fn_cronograma_sugerido_pedido", {
+          p_pedido_id: pid,
+        });
+        if (error) throw error;
+        out[pid] = (data ?? {}) as Record<string, SugestaoVencimentoParcela>;
+      }
+      return out;
+    },
+  });
+
+  /** Sugestão por título pendente (só sugestão — nunca grava sozinha). */
+  const sugestoes = useMemo(() => {
+    const map: Record<string, SugestaoVencimentoParcela> = {};
+    for (const b of pendentesEntrada) {
+      const pid = b.pedido?.id;
+      if (!pid) continue;
+      const s = cronogramas[pid]?.[String(b.numero_parcela ?? 1)];
+      if (s?.data) map[b.id] = s;
     }
     return map;
-  }, [pendentesEntrada, ancoraPorPedido]);
+  }, [pendentesEntrada, cronogramas]);
 
-  /** Pendentes com sugestão diferente da data salva — universo do dialog em lote. */
+  /**
+   * Pendentes com sugestão diferente da data salva — universo do dialog em lote.
+   * Parcelas com `viavel: false` (data já passou) ficam FORA do lote: não dá
+   * para aplicar em massa uma data inviável — é decisão humana.
+   */
   const pendentesComSugestao = useMemo(
     () =>
-      pendentesEntrada.filter(
-        (b) => sugestoes[b.id] && sugestoes[b.id] !== b.data_vencimento_atual,
-      ),
+      pendentesEntrada.filter((b) => {
+        const s = sugestoes[b.id];
+        return s && s.viavel && s.data !== b.data_vencimento_atual;
+      }),
     [pendentesEntrada, sugestoes],
   );
   const [sugestoesDialogOpen, setSugestoesDialogOpen] = useState(false);
