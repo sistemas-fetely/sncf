@@ -153,6 +153,7 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
   const [novoInstrumento, setNovoInstrumento] = useState<NovoInstrumento>("pix");
   const [showProrrogar, setShowProrrogar] = useState(false);
   const [resultado, setResultado] = useState<RenegociarResultado | null>(null);
+  const permTesouraria = usePermissoesTela("tela.fin_tesouraria");
 
   // Reemissão (modalidade 4)
   const [reemData, setReemData] = useState<string>(amanhaISO());
