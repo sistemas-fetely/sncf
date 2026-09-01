@@ -51,6 +51,8 @@ import { AjustarDescontoDialog } from "@/components/pedidos/dialogs/AjustarDesco
 import { ImpactoEdicaoBanner } from "@/components/pedidos/ImpactoEdicaoBanner";
 import { ReabrirAnaliseAction } from "@/components/pedidos/ReabrirAnaliseAction";
 import { LinkPagamentoCard } from "@/components/pedidos/LinkPagamentoCard";
+import { InstrumentoPixLinha } from "@/components/pedidos/InstrumentoPixLinha";
+
 import { useVoltarParaOrigem } from "@/hooks/useVoltarParaOrigem";
 import { useMontarPlanoPagamento } from "@/hooks/credito/useMontarPlanoPagamento";
 import { PageShell } from "@/components/layout/PageShell";
