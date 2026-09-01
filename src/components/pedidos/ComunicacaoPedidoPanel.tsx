@@ -246,6 +246,12 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
     setDialogTipo(null);
   };
 
+  useEffect(() => {
+    if (!acaoRef) return;
+    acaoRef.current = { abrirEnvio: (tipo: TipoEmail) => abrirDialog(tipo) };
+    return () => { acaoRef.current = null; };
+  }, [acaoRef, abrirDialog]);
+
   const addEmail = () => {
     const e = novoEmail.trim().toLowerCase();
     if (e && !emailsAdicionais.includes(e) && e !== emailPrincipal.trim().toLowerCase()) {
