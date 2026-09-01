@@ -358,11 +358,11 @@ export default function PrevisaoRecebimentos() {
   const atrasadas = useMemo(() => visiveis.filter((r) => r.eh_atrasado), [visiveis]);
   const em30 = useMemo(() => {
     const lim = somarDias(hoje, 30);
-    return visiveis.filter((r) => r.dia_caixa >= hoje && r.dia_caixa <= lim);
+    return visiveis.filter((r) => !r.eh_atrasado && r.dia >= hoje && r.dia <= lim);
   }, [visiveis, hoje]);
   const em90 = useMemo(() => {
     const lim = somarDias(hoje, 90);
-    return visiveis.filter((r) => r.dia_caixa >= hoje && r.dia_caixa <= lim);
+    return visiveis.filter((r) => !r.eh_atrasado && r.dia >= hoje && r.dia <= lim);
   }, [visiveis, hoje]);
 
   const semTaxa = useMemo(() => visiveis.filter((r) => r.taxa_ausente), [visiveis]);
