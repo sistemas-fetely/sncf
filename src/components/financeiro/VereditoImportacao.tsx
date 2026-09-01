@@ -32,7 +32,9 @@ export interface VereditoArquivo {
 /** Motivos que não são descarte de linha, e sim de arquivo inteiro. */
 const MOTIVO_EXTRA: Record<string, string> = {
   arquivo_ja_processado: "Arquivo já processado (nada foi lido)",
+  arquivo_redundante: "Arquivo redundante com outra porta (nada foi lido)",
 };
+
 
 function rotuloMotivo(k: string) {
   return MOTIVO_ROTULO[k as MotivoDescarte] ?? MOTIVO_EXTRA[k] ?? k;
