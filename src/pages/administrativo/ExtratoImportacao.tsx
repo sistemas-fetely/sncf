@@ -1109,27 +1109,25 @@ export default function ExtratoImportacao() {
         })
         .eq("id", impId);
 
+      // O toast diz a conta E o efeito: contagem não responde "o que este
+      // arquivo faz". O veredito detalhado por arquivo mora na lista da tela.
       if (fonte === "retorno_safra") {
-        if (respRetorno?.ja_processado) {
-          toast.info(
-            `${PARSER_ROTULO.retorno_safra} — ${file.name}: sequencial ${respRetorno.nro_sequencial} já processado em ${respRetorno.processado_em}. Nada foi reaplicado.`
-          );
+        // `ja_processado` não chega aqui: aborta antes, com erro visível.
+        const msgRetorno =
+          `${PARSER_ROTULO.retorno_safra} — ${file.name}: sequencial ${respRetorno?.nro_sequencial} · ` +
+          `${respRetorno?.ocorrencias_gravadas} ocorrência(s) registradas · ` +
+          `${respRetorno?.confirmados} confirmado(s) · ${respRetorno?.liquidados} liquidado(s) · ` +
+          `${respRetorno?.rejeitados} rejeitado(s)`;
+        const qtdErros = Array.isArray(respRetorno?.erros) ? respRetorno.erros.length : 0;
+        if (qtdErros > 0) {
+          toast.error(`${msgRetorno} · ${qtdErros} erro(s) na resolução de títulos`);
         } else {
-          const msgRetorno =
-            `${PARSER_ROTULO.retorno_safra} — ${file.name}: sequencial ${respRetorno?.nro_sequencial} · ` +
-            `${respRetorno?.ocorrencias_gravadas} ocorrência(s) registradas · ` +
-            `${respRetorno?.confirmados} confirmado(s) · ${respRetorno?.liquidados} liquidado(s) · ` +
-            `${respRetorno?.rejeitados} rejeitado(s)`;
-          const qtdErros = Array.isArray(respRetorno?.erros) ? respRetorno.erros.length : 0;
-          if (qtdErros > 0) {
-            toast.error(`${msgRetorno} · ${qtdErros} erro(s) na resolução de títulos`);
-          } else {
-            toast.success(msgRetorno);
-          }
+          toast.success(msgRetorno, { description: PARSER_EFEITO.retorno_safra });
         }
       } else {
-        // O veredito detalhado por arquivo mora na lista da tela; o toast é só o aviso.
-        toast.success(`${file.name}: ${cont.resumo()}`);
+        toast.success(`${file.name}: ${cont.resumo()}`, {
+          description: PARSER_EFEITO[fonte],
+        });
       }
     } catch (e) {
       console.error("[ExtratoImportacao] falha ao processar", file.name, e);
