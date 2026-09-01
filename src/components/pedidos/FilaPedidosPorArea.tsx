@@ -1284,20 +1284,25 @@ function CelulaPagamento({
   p: PedidoFilaItem;
   liberacao?: LiberacaoExpedicao;
 }) {
+  // REGRA-NÃO-MORA-EM-RÓTULO: a cor vem do campo `tom` de nivel_prova_dim
+  // (exposto pela view), nunca de um mapa por código aqui no front.
+  const provaEstado = ((): "success" | "warning" | "destructive" | "muted" => {
+    switch (liberacao?.prova_tom) {
+      case "perigo": return "destructive";
+      case "alerta": return "warning";
+      case "ok": return "success";
+      default: return "muted";
+    }
+  })();
+
   const provaLine =
-    (liberacao?.prova_tom === "alerta" || liberacao?.prova_tom === "perigo") &&
-    liberacao?.nivel_prova !== "sem_prova" ? (
+    liberacao?.prova_rotulo && liberacao?.nivel_prova !== "sem_prova" ? (
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <p
-              className={cn(
-                "text-[11px] leading-tight",
-                liberacao.prova_tom === "perigo" ? "text-destructive" : "text-warning"
-              )}
-            >
+            <Selo estado={provaEstado} className="leading-tight">
               {liberacao.prova_rotulo}
-            </p>
+            </Selo>
           </TooltipTrigger>
           <TooltipContent>
             <p className="text-xs max-w-[280px] leading-tight">{liberacao.prova_frase}</p>
@@ -1305,6 +1310,7 @@ function CelulaPagamento({
         </Tooltip>
       </TooltipProvider>
     ) : null;
+
 
   const liberacaoLine = liberacao ? (
     <TooltipProvider>

@@ -10,6 +10,8 @@ import BancoSafra from "@/pages/administrativo/BancoSafra";
 import PrimeiroPagamentoTab from "@/pages/Credito/PrimeiroPagamentoTab";
 import TitulosTab from "@/pages/Credito/TitulosTab";
 import ReguaTab from "@/pages/Credito/ReguaTab";
+import SemProvaTab from "@/pages/Credito/SemProvaTab";
+
 import AdiantamentoSemNfTab from "@/pages/Credito/AdiantamentoSemNfTab";
 import MesaCobranca, { FILAS_AGIR_AGORA } from "@/pages/Credito/MesaCobranca";
 import { useAdiantamentoSemNf } from "@/hooks/credito/useAdiantamentoSemNf";
@@ -1225,6 +1227,9 @@ export default function CobrancaFila() {
   const { data: reguaHoje = [] } = useReguaFilaHoje();
   const totalReguaHoje = reguaHoje.length;
   const totalAgirAgora = (mesaQ.data ?? []).filter((l) => FILAS_AGIR_AGORA.includes(l.fila ?? "")).length;
+  // Aba "Sem prova": mesma leitura da view, sem requisição extra.
+  const totalSemProva = (mesaQ.data ?? []).filter((l) => l.fila === "PAGO_SEM_PROVA").length;
+
 
   const tabTriggerCls =
     "rounded-none border-b-2 border-transparent bg-transparent px-1 pb-3 pt-1 text-muted-foreground data-[state=active]:text-gold data-[state=active]:border-gold data-[state=active]:shadow-none data-[state=active]:bg-transparent";
@@ -1262,6 +1267,8 @@ export default function CobrancaFila() {
           {[
             { value: "mesa", label: `Mesa${totalAgirAgora > 0 ? ` · ${totalAgirAgora}` : ""}` },
             { value: "regua", label: `Régua${totalReguaHoje > 0 ? ` · ${totalReguaHoje}` : ""}` },
+            { value: "sem-prova", label: `Sem prova${totalSemProva > 0 ? ` · ${totalSemProva}` : ""}` },
+
             { value: "fila", label: `Fila${totalPedidos > 0 ? ` · ${totalPedidos}` : ""}` },
             { value: "titulos", label: `Títulos${totalTitulosAbertos > 0 ? ` · ${totalTitulosAbertos}` : ""}` },
             { value: "adiantamento", slug: "tela.cobranca_remessa", label: `Adiantamento s/ NF${totalAdiantamentos > 0 ? ` · ${totalAdiantamentos}` : ""}` },
@@ -1295,6 +1302,11 @@ export default function CobrancaFila() {
         <TabsContent value="regua">
           <ReguaTab />
         </TabsContent>
+
+        <TabsContent value="sem-prova">
+          <SemProvaTab />
+        </TabsContent>
+
 
         <TabsContent value="fila">
           <Tabs defaultValue="materializacao" className="space-y-4">

@@ -544,10 +544,18 @@ export default function ReguaTab() {
    * ATRASO-E-O-EIXO: a régua ordena por atraso, não por etapa da cadência.
    * Etapa é cronologia do roteiro; urgência é o atraso. Desempate por valor.
    */
+  /**
+   * CARTÃO-NÃO-VENCE-PROVA-VENCE: em cartão o cliente não deve nada — a data é
+   * liquidação da adquirente, não vencimento do cliente. Esses títulos vivem na
+   * aba "Sem prova". Filtro de exibição apenas; a view segue intacta.
+   */
+  const semCartao = (t: TituloCobranca) =>
+    ((t as any)._mesa as LinhaMesa | undefined)?.instrumento !== "cartao";
+
   const zonaAtraso = useMemo(
     () =>
       fila
-        .filter((t) => (t.dias_atraso ?? 0) > 0)
+        .filter((t) => (t.dias_atraso ?? 0) > 0 && semCartao(t))
         .sort(
           (a, b) =>
             (b.dias_atraso ?? 0) - (a.dias_atraso ?? 0) ||
@@ -564,8 +572,11 @@ export default function ReguaTab() {
     [fila],
   );
 
+  const foraDaReguaVisivel = useMemo(() => foraDaRegua.filter(semCartao), [foraDaRegua]);
+
   const somaZona1 = useMemo(() => somaValor(zonaAtraso), [zonaAtraso]);
-  const somaZona2 = useMemo(() => somaValor(foraDaRegua), [foraDaRegua]);
+  const somaZona2 = useMemo(() => somaValor(foraDaReguaVisivel), [foraDaReguaVisivel]);
+
   const somaZona3 = useMemo(() => somaValor(zonaAVencer), [zonaAVencer]);
   const somaFila = useMemo(() => somaValor(fila), [fila]);
   const somaPausados = useMemo(() => somaValor(pausados), [pausados]);
@@ -613,7 +624,7 @@ export default function ReguaTab() {
     );
   };
 
-  const totalEmAtraso = zonaAtraso.length + foraDaRegua.length;
+  const totalEmAtraso = zonaAtraso.length + foraDaReguaVisivel.length;
 
   return (
     <div className="space-y-4">
@@ -636,7 +647,7 @@ export default function ReguaTab() {
           />
           <KpiCard
             label="Fora da régua"
-            valor={foraDaRegua.length}
+            valor={foraDaReguaVisivel.length}
             total={somaZona2}
             ativo={false}
             onClick={() => irParaZona("zona-fora-da-regua")}
@@ -705,15 +716,15 @@ export default function ReguaTab() {
             <ZonaHeader
               id="zona-fora-da-regua"
               titulo="Vencido fora da régua"
-              qtd={foraDaRegua.length}
+              qtd={foraDaReguaVisivel.length}
               total={somaZona2}
               tom="warning"
             />
-            {foraDaRegua.length === 0 ? (
+            {foraDaReguaVisivel.length === 0 ? (
               <ZonaVazia texto="Nenhum título vencido bloqueado por falta de lastro." tom="muted" />
             ) : (
               <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-                {foraDaRegua.map((t) => (
+                {foraDaReguaVisivel.map((t) => (
                   <CardForaDaRegua
                     key={t.id}
                     titulo={t}
