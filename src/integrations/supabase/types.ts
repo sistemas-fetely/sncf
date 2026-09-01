@@ -5242,6 +5242,74 @@ export type Database = {
         }
         Relationships: []
       }
+      carteira: {
+        Row: {
+          ancora: string
+          ativo: boolean
+          banco_recebimento_id: string | null
+          codigo: string
+          codigo_banco: string | null
+          created_at: string
+          fonte_prova: string | null
+          gera_caixa: boolean
+          id: string
+          nome: string
+          offset_entre_parcelas_dias: number | null
+          offset_primeira_dias: number
+          ordem: number
+          previsao_confiavel: boolean
+          rotulo_data: string
+          tem_vencimento: boolean
+          updated_at: string
+        }
+        Insert: {
+          ancora: string
+          ativo?: boolean
+          banco_recebimento_id?: string | null
+          codigo: string
+          codigo_banco?: string | null
+          created_at?: string
+          fonte_prova?: string | null
+          gera_caixa?: boolean
+          id?: string
+          nome: string
+          offset_entre_parcelas_dias?: number | null
+          offset_primeira_dias?: number
+          ordem?: number
+          previsao_confiavel?: boolean
+          rotulo_data?: string
+          tem_vencimento?: boolean
+          updated_at?: string
+        }
+        Update: {
+          ancora?: string
+          ativo?: boolean
+          banco_recebimento_id?: string | null
+          codigo?: string
+          codigo_banco?: string | null
+          created_at?: string
+          fonte_prova?: string | null
+          gera_caixa?: boolean
+          id?: string
+          nome?: string
+          offset_entre_parcelas_dias?: number | null
+          offset_primeira_dias?: number
+          ordem?: number
+          previsao_confiavel?: boolean
+          rotulo_data?: string
+          tem_vencimento?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "carteira_banco_recebimento_id_fkey"
+            columns: ["banco_recebimento_id"]
+            isOneToOne: false
+            referencedRelation: "banco_recebimento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cartoes_credito: {
         Row: {
           ativo: boolean
@@ -41143,6 +41211,7 @@ export type Database = {
           boleto_codigo_rejeicao: string | null
           boleto_enviado_em: string | null
           boleto_status: string | null
+          carteira_id: string | null
           chave_pix: string | null
           codigo_barras_boleto: string | null
           condicao_pagamento: string | null
@@ -41156,6 +41225,7 @@ export type Database = {
           data_pagamento_banco: string | null
           data_proxima_acao_regua: string | null
           data_vencimento_atual: string
+          data_vencimento_nf: string | null
           data_vencimento_original: string
           eh_entrada: boolean
           email_cobranca_enviado_em: string | null
@@ -41181,6 +41251,7 @@ export type Database = {
           pix_qr_url: string | null
           pix_token: string | null
           pix_txid: string | null
+          prazo_dias: number | null
           prorrogacao_nova_data: string | null
           prorrogacao_solicitada_em: string | null
           provisao_id: string | null
@@ -41214,6 +41285,7 @@ export type Database = {
           boleto_codigo_rejeicao?: string | null
           boleto_enviado_em?: string | null
           boleto_status?: string | null
+          carteira_id?: string | null
           chave_pix?: string | null
           codigo_barras_boleto?: string | null
           condicao_pagamento?: string | null
@@ -41227,6 +41299,7 @@ export type Database = {
           data_pagamento_banco?: string | null
           data_proxima_acao_regua?: string | null
           data_vencimento_atual: string
+          data_vencimento_nf?: string | null
           data_vencimento_original: string
           eh_entrada?: boolean
           email_cobranca_enviado_em?: string | null
@@ -41252,6 +41325,7 @@ export type Database = {
           pix_qr_url?: string | null
           pix_token?: string | null
           pix_txid?: string | null
+          prazo_dias?: number | null
           prorrogacao_nova_data?: string | null
           prorrogacao_solicitada_em?: string | null
           provisao_id?: string | null
@@ -41285,6 +41359,7 @@ export type Database = {
           boleto_codigo_rejeicao?: string | null
           boleto_enviado_em?: string | null
           boleto_status?: string | null
+          carteira_id?: string | null
           chave_pix?: string | null
           codigo_barras_boleto?: string | null
           condicao_pagamento?: string | null
@@ -41298,6 +41373,7 @@ export type Database = {
           data_pagamento_banco?: string | null
           data_proxima_acao_regua?: string | null
           data_vencimento_atual?: string
+          data_vencimento_nf?: string | null
           data_vencimento_original?: string
           eh_entrada?: boolean
           email_cobranca_enviado_em?: string | null
@@ -41323,6 +41399,7 @@ export type Database = {
           pix_qr_url?: string | null
           pix_token?: string | null
           pix_txid?: string | null
+          prazo_dias?: number | null
           prorrogacao_nova_data?: string | null
           prorrogacao_solicitada_em?: string | null
           provisao_id?: string | null
@@ -41396,6 +41473,13 @@ export type Database = {
             columns: ["banco_recebimento_id"]
             isOneToOne: false
             referencedRelation: "banco_recebimento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_carteira_id_fkey"
+            columns: ["carteira_id"]
+            isOneToOne: false
+            referencedRelation: "carteira"
             referencedColumns: ["id"]
           },
           {
