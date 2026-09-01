@@ -65,7 +65,7 @@ export const PIPELINE_PRINCIPAL: readonly EstagioPedido[] = [
   "em_analise_credito",
   "aguardando_estoque",
   "cobranca",
-  // TODO-PEDIDO-CONTADO-TEM-CARD (01/09/2026): aguardando_pagamento voltou ao funil.
+  // PEDIDO-CONTADO-TEM-CARD (01/09/2026): aguardando_pagamento voltou ao funil.
   // Ele sempre contou na FILA ATIVA; sem card, o total não fechava e os pedidos
   // eram inalcançáveis por clique. Quem é contado tem card.
   "aguardando_pagamento",
