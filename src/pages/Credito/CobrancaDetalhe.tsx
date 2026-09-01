@@ -52,6 +52,8 @@ import { ImpactoEdicaoBanner } from "@/components/pedidos/ImpactoEdicaoBanner";
 import { ReabrirAnaliseAction } from "@/components/pedidos/ReabrirAnaliseAction";
 import { LinkPagamentoCard } from "@/components/pedidos/LinkPagamentoCard";
 import { InstrumentoPixLinha } from "@/components/pedidos/InstrumentoPixLinha";
+import { useGerarPixLinha } from "@/hooks/pedidos/useGerarPixLinha";
+import { useHaverAplicadoPedido } from "@/hooks/pedidos/useHaverAplicadoPedido";
 
 import { useVoltarParaOrigem } from "@/hooks/useVoltarParaOrigem";
 import { useMontarPlanoPagamento } from "@/hooks/credito/useMontarPlanoPagamento";
@@ -296,7 +298,8 @@ function CelulaDinheiro({
 }
 
 function LinhaParcela({ l, pedidoId }: { l: LinhaCobrancaPedido; pedidoId: string }) {
-  const [aberto, setAberto] = useState(false);
+  // Linha sem instrumento nasce aberta — o botão "Gerar QR PIX" tem que estar à vista.
+  const [aberto, setAberto] = useState(() => !l.pago && !l.instrumento_pronto);
   const Icone = ICONE_TIPO[l.tipo_pagamento ?? ""] ?? FileText;
   const valor = Number(l.valor ?? 0);
   const pago = !!l.pago;
@@ -420,7 +423,10 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
   const somaPago = linhas.filter((l) => l.pago).reduce((a, l) => a + Number(l.valor ?? 0), 0);
   const somaAberto = linhas.filter((l) => !l.pago).reduce((a, l) => a + Number(l.valor ?? 0), 0);
   const valorPedido = Number(pedido.valor_liquido ?? 0);
-  const delta = somaLinhas - valorPedido;
+  // HAVER-É-PAGAMENTO: crédito do cliente já aplicado cobre parte do pedido e não entra no plano.
+  const haverQ = useHaverAplicadoPedido(pedido.id);
+  const haverAplicado = haverQ.data ?? 0;
+  const delta = somaLinhas + haverAplicado - valorPedido;
 
   const temInstrumento = linhas.some((l) => l.instrumento_pronto);
   // Passo 3: e-mail interno é teste, não é envio ao cliente.
