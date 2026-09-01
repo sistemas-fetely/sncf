@@ -483,15 +483,32 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
                 <Alert className="border-warning/40 bg-warning/10">
                   <AlertDescription className="text-xs text-warning">
                     O título original será encerrado como{" "}
-                    <b>cancelado_recuperacao</b> e não poderá receber pagamentos. Se houver
-                    boleto registrado, a baixa será solicitada automaticamente ao banco.
+                    <b>cancelado_recuperacao</b> e não poderá receber pagamentos.
+                    {boletoVivo && (
+                      <>
+                        <span className="block mt-1">
+                          O boleto antigo <b>continua registrado e pagável no Safra</b>. Ele só
+                          morre depois de três passos manuais: gerar a remessa de baixa na aba
+                          Banco, subir o arquivo no SafraNet e processar o retorno com a
+                          ocorrência 10.
+                        </span>
+                        <span className="block mt-1">
+                          Até lá o cliente tem <b>dois boletos vivos</b> para a mesma dívida.
+                        </span>
+                        <span className="block mt-1">
+                          O nosso número dos títulos novos é outro. O boleto antigo vira lixo —
+                          não envie ao cliente.
+                        </span>
+                      </>
+                    )}
                     {modalidade === 3 && novoInstrumento === "pix" && (
                       <span className="block mt-1">
-                        O QR PIX será gerado automaticamente e aparecerá aqui para você enviar ao cliente.
+                        O QR PIX será gerado e aparecerá aqui para você enviar ao cliente.
                       </span>
                     )}
                   </AlertDescription>
                 </Alert>
+
 
                 {modalidade === 3 && (
                   <div className="space-y-1.5">
