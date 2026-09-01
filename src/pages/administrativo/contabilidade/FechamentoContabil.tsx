@@ -355,6 +355,263 @@ export default function FechamentoContabil() {
     }
   };
 
+  /* ── exportação primária: Evolução Mensal de Estoque (CFO) ── */
+
+  const [gerandoCfo, setGerandoCfo] = useState(false);
+
+  const Z_RS = '#,##0.00';
+  const Z_UNIT = '#,##0.000000';
+  const Z_PCT = '0.00"%"';
+  const Z_UN = "#,##0";
+
+  /** Aplica formato numérico em colunas (índice → formato) para todas as linhas de dados. */
+  const formatarColunas = (
+    ws: XLSX.WorkSheet,
+    primeiraLinha: number,
+    ultimaLinha: number,
+    formatos: Record<number, string>,
+  ) => {
+    for (let r = primeiraLinha; r <= ultimaLinha; r++) {
+      for (const [c, z] of Object.entries(formatos)) {
+        const ref = XLSX.utils.encode_cell({ r, c: Number(c) });
+        if (ws[ref] && typeof ws[ref].v === "number") ws[ref].z = z;
+      }
+    }
+  };
+
+  const exportarEvolucaoMensal = async () => {
+    setGerandoCfo(true);
+    try {
+      const { data, error } = await supabase.rpc("fn_contabil_evolucao_mensal");
+      if (error) throw error;
+      const dados = (data ?? []) as unknown as EvolucaoLinha[];
+      if (!dados.length) {
+        toast.info("Nenhuma competência fechada para exportar");
+        return;
+      }
+
+      // Competências em ordem cronológica — derivadas do dado, nunca hardcodadas.
+      const compsMap = new Map<string, string>();
+      dados.forEach((l) => compsMap.set(l.competencia, l.rotulo));
+      const comps = [...compsMap.entries()]
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([competencia, rotulo]) => ({ competencia, rotulo }));
+      const ultima = comps[comps.length - 1];
+
+      const chave = (competencia: string, sku: string) => `${competencia}|${sku}`;
+      const porCompSku = new Map<string, EvolucaoLinha>();
+      dados.forEach((l) => porCompSku.set(chave(l.competencia, l.sku), l));
+
+      /* ── Aba 1 — Resumo Mensal ── */
+      const resumo = comps.map(({ competencia, rotulo }) => {
+        const ls = dados.filter((l) => l.competencia === competencia);
+        const entradas = ls.reduce((a, l) => a + num(l.entrada), 0);
+        const saidas = ls.reduce((a, l) => a + num(l.saida), 0);
+        const estoque = ls.reduce((a, l) => a + num(l.estoque), 0);
+        const vNf = ls.reduce((a, l) => a + num(l.valor_nf), 0);
+        const vAt = ls.reduce((a, l) => a + num(l.valor_aterrissagem), 0);
+        const cmv = ls.reduce((a, l) => a + num(l.cmv), 0);
+        return {
+          rotulo,
+          skus: ls.length,
+          entradas,
+          saidas,
+          estoque,
+          vNf,
+          vAt,
+          icms: vNf - vAt,
+          icmsPct: vAt ? ((vNf - vAt) / vAt) * 100 : 0,
+          medioNf: estoque ? vNf / estoque : 0,
+          medioAt: estoque ? vAt / estoque : 0,
+          cmv,
+        };
+      });
+      const ultimoResumo = resumo[resumo.length - 1];
+      const aoaResumo: (string | number | null)[][] = [
+        [
+          "Competência", "SKUs", "Entradas (un)", "Saídas (un)", "Estoque final (un)",
+          "Estoque a Custo NF (R$)", "Estoque a Custo Aterrissagem (R$)",
+          "ICMS creditável (R$)", "ICMS %", "Custo médio NF (R$/un)",
+          "Custo médio Aterr. (R$/un)", "CMV do mês (R$)",
+        ],
+        ...resumo.map((r) => [
+          r.rotulo, r.skus, r.entradas, r.saidas, r.estoque,
+          r.vNf, r.vAt, r.icms, r.icmsPct, r.medioNf, r.medioAt, r.cmv,
+        ]),
+        [
+          "TOTAL",
+          null,
+          resumo.reduce((a, r) => a + r.entradas, 0),
+          resumo.reduce((a, r) => a + r.saidas, 0),
+          // Estoque e valores são SALDO: repetem o último mês, não somam.
+          ultimoResumo.estoque,
+          ultimoResumo.vNf,
+          ultimoResumo.vAt,
+          ultimoResumo.icms,
+          null, null, null,
+          resumo.reduce((a, r) => a + r.cmv, 0),
+        ],
+      ];
+      const wsResumo = XLSX.utils.aoa_to_sheet(aoaResumo);
+      wsResumo["!cols"] = [
+        { wch: 14 }, { wch: 8 }, { wch: 14 }, { wch: 13 }, { wch: 18 },
+        { wch: 22 }, { wch: 28 }, { wch: 18 }, { wch: 9 }, { wch: 20 }, { wch: 22 }, { wch: 16 },
+      ];
+      negritarLinha(wsResumo, 0, 12);
+      negritarLinha(wsResumo, aoaResumo.length - 1, 12);
+      formatarColunas(wsResumo, 1, aoaResumo.length - 1, {
+        1: Z_UN, 2: Z_UN, 3: Z_UN, 4: Z_UN, 5: Z_RS, 6: Z_RS, 7: Z_RS,
+        8: Z_PCT, 9: Z_RS, 10: Z_RS, 11: Z_RS,
+      });
+
+      /* ── Aba 2 — Por Grupo ── */
+      const grupos = [...new Set(dados.map((l) => l.grupo ?? "—"))].sort((a, b) =>
+        a.localeCompare(b, "pt-BR"),
+      );
+      const cabGrupo: (string | number | null)[] = ["Grupo"];
+      comps.forEach(({ rotulo }) => cabGrupo.push(`${rotulo} un`, `${rotulo} Custo NF`, `${rotulo} Aterrissagem`));
+      const linhasGrupo = grupos.map((g) => {
+        const linha: (string | number | null)[] = [g];
+        comps.forEach(({ competencia }) => {
+          const ls = dados.filter((l) => l.competencia === competencia && (l.grupo ?? "—") === g);
+          linha.push(
+            ls.reduce((a, l) => a + num(l.estoque), 0),
+            ls.reduce((a, l) => a + num(l.valor_nf), 0),
+            ls.reduce((a, l) => a + num(l.valor_aterrissagem), 0),
+          );
+        });
+        return linha;
+      });
+      const totalGrupo: (string | number | null)[] = ["TOTAL"];
+      for (let c = 1; c < cabGrupo.length; c++) {
+        totalGrupo.push(linhasGrupo.reduce((a, l) => a + num(l[c]), 0));
+      }
+      const aoaGrupo = [cabGrupo, ...linhasGrupo, totalGrupo];
+      const wsGrupo = XLSX.utils.aoa_to_sheet(aoaGrupo);
+      wsGrupo["!cols"] = [{ wch: 32 }, ...cabGrupo.slice(1).map(() => ({ wch: 16 }))];
+      negritarLinha(wsGrupo, 0, cabGrupo.length);
+      negritarLinha(wsGrupo, aoaGrupo.length - 1, cabGrupo.length);
+      const fmtGrupo: Record<number, string> = {};
+      comps.forEach((_, i) => {
+        fmtGrupo[1 + i * 3] = Z_UN;
+        fmtGrupo[2 + i * 3] = Z_RS;
+        fmtGrupo[3 + i * 3] = Z_RS;
+      });
+      formatarColunas(wsGrupo, 1, aoaGrupo.length - 1, fmtGrupo);
+
+      /* ── Aba 3 — Evolução por SKU ── */
+      const skus = [...new Set(dados.map((l) => l.sku))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+      const ID_COLS = 9;
+      // Faixa de cabeçalho: um rótulo de mês mesclado acima de cada bloco de 6 colunas.
+      const faixa: (string | null)[] = Array(ID_COLS).fill(null);
+      comps.forEach(({ rotulo }) => {
+        faixa.push(rotulo, null, null, null, null, null);
+      });
+      const cabSku: (string | number | null)[] = [
+        "SKU", "Produto", "Grupo", "NCM", "NF de entrada",
+        "Custo NF unit.", "Custo Aterr. unit.", "ICMS %", "IPI %",
+      ];
+      comps.forEach(() =>
+        cabSku.push("Entrada", "Saída", "CMV (R$)", "Estoque", "Valor NF (R$)", "Valor Aterr. (R$)"),
+      );
+      const linhasSku = skus.map((sku) => {
+        const ref = porCompSku.get(chave(ultima.competencia, sku)) ?? dados.find((l) => l.sku === sku)!;
+        const linha: (string | number | null)[] = [
+          sku,
+          ref.produto ?? "",
+          ref.grupo ?? "",
+          ref.ncm ?? "",
+          ref.nf_entrada ?? "",
+          ref.custo_nf_unitario == null ? null : num(ref.custo_nf_unitario),
+          ref.custo_aterrissagem_unitario == null ? null : num(ref.custo_aterrissagem_unitario),
+          ref.icms_aliq == null ? null : num(ref.icms_aliq) * 100,
+          ref.ipi_aliq == null ? null : num(ref.ipi_aliq) * 100,
+        ];
+        comps.forEach(({ competencia }) => {
+          const l = porCompSku.get(chave(competencia, sku));
+          linha.push(
+            num(l?.entrada), num(l?.saida), num(l?.cmv),
+            num(l?.estoque), num(l?.valor_nf), num(l?.valor_aterrissagem),
+          );
+        });
+        return linha;
+      });
+      const totalSku: (string | number | null)[] = ["TOTAL", null, null, null, null, null, null, null, null];
+      for (let c = ID_COLS; c < cabSku.length; c++) {
+        totalSku.push(linhasSku.reduce((a, l) => a + num(l[c]), 0));
+      }
+      const aoaSku = [faixa, cabSku, ...linhasSku, totalSku];
+      const wsSku = XLSX.utils.aoa_to_sheet(aoaSku);
+      wsSku["!cols"] = [
+        { wch: 18 }, { wch: 46 }, { wch: 24 }, { wch: 12 }, { wch: 16 },
+        { wch: 16 }, { wch: 18 }, { wch: 9 }, { wch: 9 },
+        ...comps.flatMap(() => [{ wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 11 }, { wch: 16 }, { wch: 18 }]),
+      ];
+      wsSku["!merges"] = comps.map((_, i) => ({
+        s: { r: 0, c: ID_COLS + i * 6 },
+        e: { r: 0, c: ID_COLS + i * 6 + 5 },
+      }));
+      wsSku["!freeze"] = { xSplit: 3, ySplit: 2 };
+      wsSku["!autofilter"] = {
+        ref: XLSX.utils.encode_range(
+          { r: 1, c: 0 },
+          { r: aoaSku.length - 1, c: cabSku.length - 1 },
+        ),
+      };
+      negritarLinha(wsSku, 0, cabSku.length);
+      negritarLinha(wsSku, 1, cabSku.length);
+      negritarLinha(wsSku, aoaSku.length - 1, cabSku.length);
+      const fmtSku: Record<number, string> = { 5: Z_UNIT, 6: Z_UNIT, 7: Z_PCT, 8: Z_PCT };
+      comps.forEach((_, i) => {
+        const b = ID_COLS + i * 6;
+        fmtSku[b] = Z_UN;
+        fmtSku[b + 1] = Z_UN;
+        fmtSku[b + 2] = Z_RS;
+        fmtSku[b + 3] = Z_UN;
+        fmtSku[b + 4] = Z_RS;
+        fmtSku[b + 5] = Z_RS;
+      });
+      formatarColunas(wsSku, 2, aoaSku.length - 1, fmtSku);
+
+      /* ── Aba 4 — Critério e Premissas ── */
+      const fechamentoRecente = (competencias.data ?? [])
+        .filter((c) => c.status === "fechado")
+        .sort((a, b) => b.competencia.localeCompare(a.competencia))[0];
+      const aoaCriterio: (string | null)[][] = [
+        ["Custo NF", "=  valor do produto na NF  +  IPI"],
+        ["Custo aterrissagem", "=  valor do produto na NF  −  ICMS  +  IPI"],
+        [null, null],
+        ["Item", "Tratamento"],
+        ["Base contábil", "Custo de aterrissagem (ICMS creditável excluído do custo)"],
+        ["Base gerencial", "Custo NF (produto + IPI, sem excluir ICMS)"],
+        ["Fonte dos números", "Snapshots congelados de cada fechamento contábil"],
+        ["Competências incluídas", comps.map((c) => c.rotulo).join(", ")],
+        ...Object.entries(fechamentoRecente?.politica ?? {}).map(([k, v]) => [
+          k,
+          Array.isArray(v) ? v.join(", ") : typeof v === "object" && v !== null ? JSON.stringify(v) : String(v),
+        ]),
+      ];
+      const wsCriterio = XLSX.utils.aoa_to_sheet(aoaCriterio);
+      wsCriterio["!cols"] = [{ wch: 34 }, { wch: 70 }];
+      negritarLinha(wsCriterio, 0, 2);
+      negritarLinha(wsCriterio, 1, 2);
+      negritarLinha(wsCriterio, 3, 2);
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, wsResumo, "Resumo Mensal");
+      XLSX.utils.book_append_sheet(wb, wsGrupo, "Por Grupo");
+      XLSX.utils.book_append_sheet(wb, wsSku, "Evolução por SKU");
+      XLSX.utils.book_append_sheet(wb, wsCriterio, "Critério e Premissas");
+      baixar(wb, `Fetely_Estoque_Mensal_CFO_${ultima.competencia.slice(0, 4)}.xlsx`);
+      toast.success(`Evolução mensal exportada — ${comps.length} competência(s), ${skus.length} SKU(s).`);
+    } catch (e) {
+      toast.error(rawMessage(e));
+    } finally {
+      setGerandoCfo(false);
+    }
+  };
+
+
 
   const invalidar = () => {
     qc.invalidateQueries({ queryKey: ["contabil-competencias"] });
