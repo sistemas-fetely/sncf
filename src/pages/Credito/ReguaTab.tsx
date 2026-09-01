@@ -624,7 +624,7 @@ export default function ReguaTab() {
     );
   };
 
-  const totalEmAtraso = zonaAtraso.length + foraDaRegua.length;
+  const totalEmAtraso = zonaAtraso.length + foraDaReguaVisivel.length;
 
   return (
     <div className="space-y-4">
@@ -647,7 +647,7 @@ export default function ReguaTab() {
           />
           <KpiCard
             label="Fora da régua"
-            valor={foraDaRegua.length}
+            valor={foraDaReguaVisivel.length}
             total={somaZona2}
             ativo={false}
             onClick={() => irParaZona("zona-fora-da-regua")}
@@ -716,15 +716,15 @@ export default function ReguaTab() {
             <ZonaHeader
               id="zona-fora-da-regua"
               titulo="Vencido fora da régua"
-              qtd={foraDaRegua.length}
+              qtd={foraDaReguaVisivel.length}
               total={somaZona2}
               tom="warning"
             />
-            {foraDaRegua.length === 0 ? (
+            {foraDaReguaVisivel.length === 0 ? (
               <ZonaVazia texto="Nenhum título vencido bloqueado por falta de lastro." tom="muted" />
             ) : (
               <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-                {foraDaRegua.map((t) => (
+                {foraDaReguaVisivel.map((t) => (
                   <CardForaDaRegua
                     key={t.id}
                     titulo={t}
