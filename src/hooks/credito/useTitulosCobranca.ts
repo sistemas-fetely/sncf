@@ -7,6 +7,7 @@ import type {
   EixoPrazo,
   EixoInstrumento,
 } from "@/lib/financeiro/eixos-estado";
+import { OPCOES_QUERY_RECEBIVEL } from "@/hooks/recebivel/useInvalidarRecebivel";
 
 export type StatusGestao =
   | "a_vencer"
@@ -177,6 +178,7 @@ const LIMITE_TITULOS = 5000;
 export function useTitulosCobranca() {
   return useQuery({
     queryKey: ["titulos-cobranca"],
+    ...OPCOES_QUERY_RECEBIVEL,
     queryFn: async (): Promise<TituloCobranca[]> => {
       const { data, error } = await (supabase as any)
         .from("vw_titulos_cobranca")

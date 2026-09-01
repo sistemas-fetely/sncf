@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
@@ -23,7 +24,7 @@ interface Props {
 export function BaixarPorPerdaDialog({
   tituloId, numeroTitulo, valor, open, onClose,
 }: Props) {
-  const qc = useQueryClient();
+  const invalidarRecebivel = useInvalidarRecebivel();
   const [motivo, setMotivo] = useState("");
 
   const mut = useMutation({
@@ -43,7 +44,8 @@ export function BaixarPorPerdaDialog({
         valor: number;
       };
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      await invalidarRecebivel();
       toast.success(`Título ${data.numero_titulo} → ${data.status}`, {
         description: formatBRL(data.valor),
       });
@@ -52,7 +54,6 @@ export function BaixarPorPerdaDialog({
           duration: 10000,
         });
       }
-      qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
       onClose();
     },
     onError: (e: Error) => toast.error(e.message),

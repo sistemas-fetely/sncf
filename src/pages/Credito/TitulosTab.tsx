@@ -61,6 +61,7 @@ import {
 } from "@/lib/financeiro/eixos-estado";
 import { SeloPontualidade } from "@/lib/financeiro/pontualidade";
 import { agruparPorPedido, grupoEhUnitario, grupoEstadoDividido, resumoComposicao, type GrupoPedido } from "@/lib/financeiro/agrupar-titulos";
+import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 
 
 
@@ -564,6 +565,7 @@ function LinhaGrupo({
 export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: boolean }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const invalidarRecebivel = useInvalidarRecebivel();
   const { toast } = useToast();
   const { data: titulos = [], isLoading } = useTitulosCobranca();
 
@@ -995,7 +997,6 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
                           return;
                         }
                         sonnerToast.success("Régua despausada.");
-                        qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
                       }}
                     >
                       Despausar
@@ -1171,7 +1172,6 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
                                     return;
                                   }
                                   sonnerToast.success("Prorrogação cancelada.");
-                                  qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
                                 }}
                               >
                                 Cancelar
@@ -1420,7 +1420,6 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
           tipoPagamento={baixando.tipo_pagamento}
           onClose={() => {
             setBaixando(null);
-            qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
           }}
         />
       )}
@@ -1430,7 +1429,6 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
           open={!!convertendo}
           onOpenChange={(v) => {
             if (!v) setConvertendo(null);
-            qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
           }}
           tituloId={convertendo.id}
           numeroTitulo={convertendo.numero_titulo}
@@ -1512,7 +1510,6 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
           open={!!renegociando}
           onClose={() => {
             setRenegociando(null);
-            qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
           }}
         />
       )}
@@ -1544,7 +1541,6 @@ export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: bo
                   return;
                 }
                 sonnerToast.success("Reemissão cancelada.");
-                qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
                 setDetalhe(null);
               }}
             >

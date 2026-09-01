@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
+import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 
 interface Props {
   pedidoId: string;
@@ -20,6 +21,7 @@ interface Props {
 
 export function CancelarPedidoDialog({ pedidoId, pedidoIdExterno, open, onClose }: Props) {
   const qc = useQueryClient();
+  const invalidarRecebivel = useInvalidarRecebivel();
   const [motivo, setMotivo] = useState("");
 
   const mut = useMutation({
@@ -33,9 +35,9 @@ export function CancelarPedidoDialog({ pedidoId, pedidoIdExterno, open, onClose 
       if (data && data.ok === false) throw new Error(data.erro ?? "Erro ao cancelar pedido.");
       return data;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Pedido cancelado.");
-      qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
+      await invalidarRecebivel();
       onClose();
     },
     onError: (e: Error) => toast.error(e.message),

@@ -29,6 +29,7 @@ import { useClonarPedido } from "@/hooks/pedidos/useClonarPedido";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
+import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 
 interface Props {
   pedido_id: string;
@@ -53,6 +54,7 @@ function mensagemErro(e: unknown): string {
 
 export function CancelarPedidoDialog({ pedido_id, id_externo, estagio, cliente_nome }: Props) {
   const qc = useQueryClient();
+  const invalidarRecebivel = useInvalidarRecebivel();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [motivo, setMotivo] = useState("");
@@ -80,11 +82,11 @@ export function CancelarPedidoDialog({ pedido_id, id_externo, estagio, cliente_n
   const rootIdExterno = id_externo.replace(/\/C\d+$/, "");
   const cloneIdExternoPreview = `${rootIdExterno}/C01`;
 
-  const invalidarCredito = () => {
+  const invalidarCredito = async () => {
     invalidarPedido(qc, pedido_id);
     qc.invalidateQueries({ queryKey: ["credito-clientes-haveres"] });
     qc.invalidateQueries({ queryKey: ["haver-disponivel"] });
-    qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
+    await invalidarRecebivel();
   };
 
   const handleOpenChange = (v: boolean) => {
@@ -122,7 +124,7 @@ export function CancelarPedidoDialog({ pedido_id, id_externo, estagio, cliente_n
       setDevolvido(true);
       setConfirmDevolucaoOpen(false);
       setMotivoDevolucao("");
-      invalidarCredito();
+      await invalidarCredito();
       toast({ title: "Crédito anulado — dinheiro será devolvido ao cliente" });
     } catch (e) {
       toast({
@@ -149,7 +151,7 @@ export function CancelarPedidoDialog({ pedido_id, id_externo, estagio, cliente_n
       setDevolvido(false);
       setConfirmReverterOpen(false);
       setMotivoReversao("");
-      invalidarCredito();
+      await invalidarCredito();
       toast({ title: "Devolução desfeita — crédito restaurado" });
     } catch (e) {
       toast({

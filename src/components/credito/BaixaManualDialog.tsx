@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -34,7 +34,7 @@ export function BaixaManualDialog({
   onClose: () => void;
 }) {
   const { toast } = useToast();
-  const qc = useQueryClient();
+  const invalidarRecebivel = useInvalidarRecebivel();
   const [dataPag, setDataPag] = useState(() => hojeISO());
   const [autorizacao, setAutorizacao] = useState("");
   const [loading, setLoading] = useState(false);
@@ -69,8 +69,7 @@ export function BaixaManualDialog({
         if (updErr) throw updErr;
       }
 
-      await qc.invalidateQueries({ queryKey: ["contas-receber-titulos"] });
-      await qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
+      await invalidarRecebivel();
       toast({ title: "Baixa registrada" });
       onClose();
     } catch (e: any) {

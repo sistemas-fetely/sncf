@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { OPCOES_QUERY_RECEBIVEL } from "@/hooks/recebivel/useInvalidarRecebivel";
 
 export type SituacaoConferencia = "CONFERE" | "DIVERGENTE" | "CEGO";
 /**
@@ -32,6 +33,7 @@ export interface BoletoVencimentoConferencia {
 export function useBoletoVencimentoConferencia() {
   return useQuery({
     queryKey: ["boleto-vencimento-conferencia"],
+    ...OPCOES_QUERY_RECEBIVEL,
     queryFn: async (): Promise<Map<string, BoletoVencimentoConferencia>> => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)

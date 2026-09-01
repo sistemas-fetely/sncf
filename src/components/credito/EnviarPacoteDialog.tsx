@@ -13,6 +13,7 @@ import { useEnviarEmailNfBoletos } from "@/hooks/pedidos/useEnviarEmailNfBoletos
 import { useLogEmailEnvio } from "@/hooks/pedidos/usePedidoEmailLog";
 import { useEmailCobrancaParceiro } from "@/hooks/credito/useEmailCobrancaParceiro";
 import type { LinhaMesa } from "@/lib/financeiro/adaptar-titulo-mesa";
+import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 
 const RE_EMAIL = /^[^\s@,]+@[^\s@,]+\.[^\s@,]{2,}$/;
 
@@ -39,6 +40,7 @@ interface Props {
 export function EnviarPacoteDialog({ linha, valorTotalPedido, open, onOpenChange, onEnviado }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const invalidarRecebivel = useInvalidarRecebivel();
   const enviarNfBoletos = useEnviarEmailNfBoletos();
   const logEnvio = useLogEmailEnvio();
   const emailPreferidoQ = useEmailCobrancaParceiro(open ? linha?.parceiro_id : null);
@@ -106,9 +108,7 @@ export function EnviarPacoteDialog({ linha, valorTotalPedido, open, onOpenChange
         titulo_id: linha.titulo_id,
       });
       await Promise.all([
-        qc.invalidateQueries({ queryKey: ["cobranca-mesa"] }),
-        qc.invalidateQueries({ queryKey: ["boletos-safra"] }),
-        qc.invalidateQueries({ queryKey: ["titulos-cobranca"] }),
+        invalidarRecebivel(),
       ]);
       if (onEnviado) await onEnviado();
       onOpenChange(false);

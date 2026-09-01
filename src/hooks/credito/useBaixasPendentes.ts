@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { OPCOES_QUERY_RECEBIVEL } from "@/hooks/recebivel/useInvalidarRecebivel";
 
 export type BaixaPendenteItem = {
   id: string;
@@ -60,6 +61,7 @@ export type BaixasPendentesResult = {
 export function useBaixasPendentes() {
   return useQuery<BaixasPendentesResult>({
     queryKey: ["baixas-pendentes"],
+    ...OPCOES_QUERY_RECEBIVEL,
     refetchOnWindowFocus: true,
     queryFn: async () => {
       // Anotada como `string` de propósito: alarga o literal e evita TS2589 no select aninhado.

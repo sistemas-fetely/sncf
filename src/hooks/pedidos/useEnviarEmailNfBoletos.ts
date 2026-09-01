@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { montarPacoteCobranca, type TituloPacote } from "@/lib/financeiro/montar-pacote-cobranca";
@@ -6,6 +7,7 @@ import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 
 export function useEnviarEmailNfBoletos() {
   const qc = useQueryClient();
+  const invalidarRecebivel = useInvalidarRecebivel();
   const { toast } = useToast();
 
   return useMutation({
@@ -112,14 +114,13 @@ export function useEnviarEmailNfBoletos() {
       return { email: emails[0], id_externo: pedido.id_externo };
     },
 
-    onSuccess: (data, vars) => {
+    onSuccess: async (data, vars) => {
+      await invalidarRecebivel();
       toast({
         title: "NF + boletos enviados",
         description: `Enviado para ${data.email} · ${data.id_externo}`,
       });
       invalidarPedido(qc, vars.pedido_id);
-      qc.invalidateQueries({ queryKey: ["boletos-safra"] });
-      qc.invalidateQueries({ queryKey: ["cobranca-mesa"] });
     },
     onError: (e: Error) => {
       toast({ title: "Erro ao enviar NF + boletos", description: e.message, variant: "destructive" });

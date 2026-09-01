@@ -1,4 +1,5 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
+import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -7,7 +8,7 @@ const fmtDate = (s?: string | null) =>
   s ? new Date(s + "T12:00:00").toLocaleDateString("pt-BR") : "";
 
 export function useEnviarEmailBoleto() {
-  const qc = useQueryClient();
+  const invalidarRecebivel = useInvalidarRecebivel();
   const { toast } = useToast();
 
   return useMutation({
@@ -84,15 +85,12 @@ export function useEnviarEmailBoleto() {
 
       return { email: destinatarios.join(", "), pedido_id_externo: pedido.id_externo };
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      await invalidarRecebivel();
       toast({
         title: "Boleto enviado por email",
         description: `Enviado para ${data.email} · Pedido ${data.pedido_id_externo}`,
       });
-      qc.invalidateQueries({ queryKey: ["banco-safra-boletos"] });
-      qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
-      qc.invalidateQueries({ queryKey: ["boletos-safra"] });
-      qc.invalidateQueries({ queryKey: ["cobranca-mesa"] });
     },
     onError: (e: Error) => {
       toast({ title: "Erro ao enviar boleto", description: e.message, variant: "destructive" });

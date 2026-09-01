@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
@@ -106,7 +107,7 @@ function BadgeTratamento({ t }: { t: Tratamento }) {
 }
 
 export function RegistrarDevolucaoDialog({ pedidoId, pedidoIdExterno, open, onClose }: Props) {
-  const qc = useQueryClient();
+  const invalidarRecebivel = useInvalidarRecebivel();
   const [motivo, setMotivo] = useState("");
   const [nfDevolucao, setNfDevolucao] = useState("");
   const [gerarHaver, setGerarHaver] = useState(false);
@@ -148,7 +149,8 @@ export function RegistrarDevolucaoDialog({ pedidoId, pedidoIdExterno, open, onCl
         haver_valor?: number | null;
       };
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      await invalidarRecebivel();
       const partes = [
         `${data.titulos_devolvidos} título(s) devolvido(s)`,
         `${data.boletos_baixa_solicitada} boleto(s) com baixa solicitada`,
@@ -177,7 +179,6 @@ export function RegistrarDevolucaoDialog({ pedidoId, pedidoIdExterno, open, onCl
           { duration: 12000 },
         );
       }
-      qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
       onClose();
     },
     onError: (e: Error) => toast.error(e.message),

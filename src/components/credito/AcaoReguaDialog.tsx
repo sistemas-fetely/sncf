@@ -18,6 +18,7 @@ import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import type { TituloCobranca } from "@/hooks/credito/useTitulosCobranca";
 import type { ReguaEtapa, CanalRegua } from "@/hooks/credito/useReguaFila";
 import { apelidoParceiro, nomeCanonico, nomeExibicao, nomeTratamento } from "@/lib/parceiros/nome";
+import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 
 
 const CANAIS: { value: CanalRegua; label: string }[] = [
@@ -65,6 +66,7 @@ function formatDiasOffset(dias: number): string {
 
 export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose, reenvio = false, ultimaEm = null }: Props) {
   const qc = useQueryClient();
+  const invalidarRecebivel = useInvalidarRecebivel();
   const [canal, setCanal] = useState<CanalRegua>(etapa?.canal_sugerido ?? "email");
   const [mensagem, setMensagem] = useState<string>("");
   const [observacao, setObservacao] = useState<string>("");
@@ -134,11 +136,9 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose, reenvio = 
 
   const registrarForaMutation = useMutation({
     mutationFn: () => registrar(modo === "enviada" ? canal : null, modo === "enviada" ? mensagem : null),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success(modo === "enviada" ? "Ação registrada." : "Etapa pulada.");
-      qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
-      qc.invalidateQueries({ queryKey: ["regua-log"] });
-      qc.invalidateQueries({ queryKey: ["cobranca-mesa"] });
+      await invalidarRecebivel();
       onClose();
     },
     onError: (err: any) => toast.error(err?.message ?? "Erro ao registrar ação."),
@@ -208,8 +208,7 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose, reenvio = 
       if (respEnvio?.duplicate) {
         // Já havia sido enviado com esta chave: não registra ação de novo.
         toast.info("Este e-mail já havia sido enviado antes — nada foi reenviado.");
-        qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
-        qc.invalidateQueries({ queryKey: ["cobranca-mesa"] });
+        await invalidarRecebivel();
         onClose();
         return;
       }
@@ -217,9 +216,7 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose, reenvio = 
       await registrar("email", mensagem);
 
       toast.success("E-mail enviado e ação registrada.");
-      qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
-      qc.invalidateQueries({ queryKey: ["regua-log"] });
-      qc.invalidateQueries({ queryKey: ["cobranca-mesa"] });
+      await invalidarRecebivel();
       onClose();
     } catch (err: any) {
       toast.error(err?.message ?? "Erro ao enviar e-mail.");
