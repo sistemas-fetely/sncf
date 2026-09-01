@@ -557,9 +557,36 @@ export default function FechamentoContabil() {
         </section>
       )}
 
-      {/* ZONA 4 — posição por SKU */}
+      {/* ZONA 4 — duas bases de valorização */}
       {comp && (
-        <section className="space-y-2">
+        <section className="space-y-3">
+          {/* Faixa comparativa — os dois números sempre juntos, em qualquer aba. */}
+          <div className="flex flex-wrap gap-3">
+            <div className="min-w-[220px] flex-1 rounded-lg border border-primary/40 bg-primary/5 p-4">
+              <p className="text-xs text-muted-foreground">Custo de aterrissagem</p>
+              <p className="mt-1 text-xl tabular-nums">{fmtDinheiro(comp.valor_custo)}</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">Base contábil · ICMS excluído</p>
+            </div>
+            <div className="min-w-[220px] flex-1 rounded-lg border p-4">
+              <p className="text-xs text-muted-foreground">Custo NF</p>
+              <p className="mt-1 text-xl tabular-nums">{fmtDinheiro(comp.valor_custo_nf)}</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">Base gerencial · produto + IPI</p>
+            </div>
+            <div className="min-w-[220px] flex-1 rounded-lg border p-4">
+              <p className="text-xs text-muted-foreground">ICMS creditável excluído</p>
+              <p className="mt-1 text-xl tabular-nums">{fmtDinheiro(comp.icms_excluido)}</p>
+              <p className="text-xs tabular-nums text-muted-foreground">
+                {num(comp.valor_custo) > 0
+                  ? `+${((num(comp.icms_excluido) / num(comp.valor_custo)) * 100).toLocaleString("pt-BR", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}%`
+                  : "—"}
+              </p>
+              <p className="mt-1 text-[11px] text-muted-foreground">Diferença entre as duas bases</p>
+            </div>
+          </div>
+
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-sm font-medium">Posição por SKU</h2>
             {fonte && (
@@ -567,7 +594,28 @@ export default function FechamentoContabil() {
                 {fonte === "snapshot" ? "Snapshot congelado" : "Cálculo ao vivo"}
               </Selo>
             )}
+            <div className="ml-auto flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" onClick={exportarAterrissagem} disabled={!filtradas.length}>
+                <Download className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                Exportar Aterrissagem
+              </Button>
+              <Button variant="outline" size="sm" onClick={exportarCustoNf} disabled={!filtradas.length}>
+                <Download className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                Exportar Custo NF
+              </Button>
+              <Button variant="outline" size="sm" onClick={exportarComparativo} disabled={!filtradas.length}>
+                <Download className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                Exportar Comparativo
+              </Button>
+            </div>
           </div>
+
+          <Tabs value={base} onValueChange={setBase}>
+            <TabsList>
+              <TabsTrigger value="aterrissagem">Custo de Aterrissagem</TabsTrigger>
+              <TabsTrigger value="nf">Custo NF</TabsTrigger>
+            </TabsList>
+          </Tabs>
 
           <TabelaFetely
             busca={{ valor: busca, aoMudar: setBusca, placeholder: "Buscar por SKU ou produto…" }}
@@ -601,44 +649,102 @@ export default function FechamentoContabil() {
             }
           >
             <div className="overflow-x-auto rounded-md border">
-              <table className="w-full text-sm">
-                <thead className="border-b bg-muted/40">
-                  <tr>
-                    <Cabecalho campo="sku">SKU</Cabecalho>
-                    <Cabecalho campo="produto">Produto</Cabecalho>
-                    <Cabecalho campo="centro">Centro</Cabecalho>
-                    <Cabecalho campo="quantidade" num>Quantidade</Cabecalho>
-                    <Cabecalho campo="custo_unitario" num>Custo unitário</Cabecalho>
-                    <Cabecalho campo="valor_total" num>Valor total</Cabecalho>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {visiveis.map((l, i) => (
-                    <tr key={`${l.sku}-${l.centro}-${i}`} className="hover:bg-muted/30">
-                      <td className="whitespace-nowrap px-3 py-2 font-medium">{l.sku}</td>
-                      <td className="max-w-[420px] truncate px-3 py-2 text-muted-foreground">{l.produto ?? "—"}</td>
-                      <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{l.centro ?? "—"}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{fmtUn(l.quantidade)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{fmtUnit(l.custo_unitario)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{fmtDinheiro(l.valor_total)}</td>
+              {base === "nf" ? (
+                <table className="w-full text-sm">
+                  <thead className="border-b bg-muted/40">
+                    <tr>
+                      <Cabecalho campo="sku">SKU</Cabecalho>
+                      <Cabecalho campo="produto">Produto</Cabecalho>
+                      <Cabecalho campo="centro">Centro</Cabecalho>
+                      <Cabecalho campo="quantidade" num>Quantidade</Cabecalho>
+                      <Cabecalho campo="valor_unit_nf" num>Valor unit. NF</Cabecalho>
+                      <Cabecalho campo="ipi_aliq" num>IPI %</Cabecalho>
+                      <Cabecalho campo="custo_nf_unitario" num>Custo NF unitário</Cabecalho>
+                      <Cabecalho campo="valor_nf_total" num>Valor total NF</Cabecalho>
                     </tr>
-                  ))}
-                </tbody>
-                <tfoot className="sticky bottom-0 border-t bg-background">
-                  <tr>
-                    <td colSpan={3} className="px-3 py-2 text-xs text-muted-foreground">
-                      Total da competência
-                    </td>
-                    <td className="px-3 py-2 text-right tabular-nums">{fmtUn(totais.un)}</td>
-                    <td />
-                    <td className="px-3 py-2 text-right tabular-nums">{fmtDinheiro(totais.rs)}</td>
-                  </tr>
-                </tfoot>
-              </table>
+                  </thead>
+                  <tbody className="divide-y">
+                    {visiveis.map((l, i) => {
+                      const semNf = l.custo_nf_unitario == null || l.valor_nf_total == null;
+                      return (
+                        <tr key={`${l.sku}-${l.centro}-${i}`} className="hover:bg-muted/30">
+                          <td className="whitespace-nowrap px-3 py-2 font-medium">
+                            <span className="inline-flex items-center gap-1.5">
+                              {l.sku}
+                              {semNf && <Selo estado="warning">Sem custo NF</Selo>}
+                            </span>
+                          </td>
+                          <td className="max-w-[380px] truncate px-3 py-2 text-muted-foreground">{l.produto ?? "—"}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{l.centro ?? "—"}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{fmtUn(l.quantidade)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {l.valor_unit_nf == null ? "—" : fmtUnit(l.valor_unit_nf)}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">{fmtAliq(l.ipi_aliq)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {l.custo_nf_unitario == null ? "—" : fmtUnit(l.custo_nf_unitario)}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {l.valor_nf_total == null ? "—" : fmtDinheiro(l.valor_nf_total)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot className="sticky bottom-0 border-t bg-background">
+                    <tr>
+                      <td colSpan={3} className="px-3 py-2 text-xs text-muted-foreground">
+                        Total da competência
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums">{fmtUn(totais.un)}</td>
+                      <td />
+                      <td />
+                      <td />
+                      <td className="px-3 py-2 text-right tabular-nums">{fmtDinheiro(totais.rsNf)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead className="border-b bg-muted/40">
+                    <tr>
+                      <Cabecalho campo="sku">SKU</Cabecalho>
+                      <Cabecalho campo="produto">Produto</Cabecalho>
+                      <Cabecalho campo="centro">Centro</Cabecalho>
+                      <Cabecalho campo="quantidade" num>Quantidade</Cabecalho>
+                      <Cabecalho campo="custo_unitario" num>Custo unitário</Cabecalho>
+                      <Cabecalho campo="valor_total" num>Valor total</Cabecalho>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {visiveis.map((l, i) => (
+                      <tr key={`${l.sku}-${l.centro}-${i}`} className="hover:bg-muted/30">
+                        <td className="whitespace-nowrap px-3 py-2 font-medium">{l.sku}</td>
+                        <td className="max-w-[420px] truncate px-3 py-2 text-muted-foreground">{l.produto ?? "—"}</td>
+                        <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{l.centro ?? "—"}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{fmtUn(l.quantidade)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{fmtUnit(l.custo_unitario)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{fmtDinheiro(l.valor_total)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot className="sticky bottom-0 border-t bg-background">
+                    <tr>
+                      <td colSpan={3} className="px-3 py-2 text-xs text-muted-foreground">
+                        Total da competência
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums">{fmtUn(totais.un)}</td>
+                      <td />
+                      <td className="px-3 py-2 text-right tabular-nums">{fmtDinheiro(totais.rs)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              )}
             </div>
           </TabelaFetely>
         </section>
       )}
+
 
       {/* ZONA 6 — política aplicada */}
       {comp?.status === "fechado" && comp.politica && (
