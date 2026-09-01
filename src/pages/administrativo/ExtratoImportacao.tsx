@@ -1250,6 +1250,8 @@ export default function ExtratoImportacao() {
               {processando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
               Importar {arquivos.length > 0 ? `(${arquivos.length})` : ""}
             </Button>
+
+            <VereditoImportacao itens={resultados} />
           </CardContent>
         </Card>
       </div>
