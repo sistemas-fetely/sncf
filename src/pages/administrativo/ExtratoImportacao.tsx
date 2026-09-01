@@ -440,7 +440,12 @@ export default function ExtratoImportacao() {
       // ignoradas — e ignorada sempre declara motivo. Ver contagem-importacao.ts.
       const cont = new ContagemImportacao();
       trilha.contagem = cont;
+      // ORIGEM-FICA-NO-DADO: o CNPJ que o relatório declara no cabeçalho nem
+      // sempre é o da Fetely. Fica registrado em `ignoradas_detalhe.cnpj_relatorio`
+      // para conferência posterior — nunca bloqueia, nunca alerta.
+      let cnpjRelatorio: string | null = null;
       let periodoInicio: string | null = null;
+
       let periodoFim: string | null = null;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let respRetorno: any = null;
