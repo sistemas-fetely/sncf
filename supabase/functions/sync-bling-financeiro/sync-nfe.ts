@@ -163,6 +163,13 @@ for (const nf of items) {
           if (d.linkPDF)  nf.linkPDF = d.linkPDF;
           if (d.linkDanfe && !nf.linkPDF) nf.linkPDF = d.linkDanfe;
 
+          // DUPLICATAS: payload cru do Bling. Array vazio significa "NF sem parcela"
+          // (à vista/bonificação), mas duplicatas_sync_em preenchido prova que o
+          // detalhe foi lido. NULL em ambos significa "nunca passou por este sync".
+          nf._duplicatas = Array.isArray(d.parcelas) ? d.parcelas : [];
+          nf._duplicatasSyncEm = new Date().toISOString();
+
+
           // Pedido linkage (aproveita enquanto já temos o detalhe)
           if (semPedido) {
             pedido_venda_id = await resolvePedidoId(supabase, d.numeroPedidoLoja);
