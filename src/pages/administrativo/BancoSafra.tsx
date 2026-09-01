@@ -61,7 +61,7 @@ import {
   MoreHorizontal,
   Search,
 } from "lucide-react";
-import { sugerirVencimentoBoleto, dataFaturamentoIso } from "@/lib/financeiro/sugerir-vencimento-boleto";
+import type { SugestaoVencimentoParcela } from "@/lib/financeiro/sugerir-vencimento-boleto";
 import { useEnviarEmailBoleto } from "@/hooks/credito/useEnviarEmailBoleto";
 import { useBaixasPendentes } from "@/hooks/credito/useBaixasPendentes";
 import { useRemessasSafra } from "@/hooks/credito/useRemessasSafra";
@@ -93,6 +93,7 @@ type TitulosBoleto = {
   total_parcelas: number | null;
   conta: { parceiro: { razao_social: string | null } | null } | null;
   pedido: {
+    id: string | null;
     id_externo: string | null;
     faturado_em: string | null;
     condicao_solicitada: string | null;
@@ -420,7 +421,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       // Anotada como `string` de propósito: alarga o literal e evita TS2589 no select aninhado.
       // O resultado segue tipado à mão via `as unknown as TitulosBoleto[]` abaixo.
       const SELECT_BOLETOS: string =
-        "id, numero_titulo, status, data_vencimento_atual, valor_bruto, boleto_status, boleto_enviado_em, prorrogacao_nova_data, prorrogacao_solicitada_em, numero_parcela, total_parcelas, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social)), pedido:pedidos(id_externo, faturado_em, condicao_solicitada)";
+        "id, numero_titulo, status, data_vencimento_atual, valor_bruto, boleto_status, boleto_enviado_em, prorrogacao_nova_data, prorrogacao_solicitada_em, numero_parcela, total_parcelas, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social)), pedido:pedidos(id, id_externo, faturado_em, condicao_solicitada)";
       const { data, error } = await supabase
         .from("titulo_a_receber")
         .select(SELECT_BOLETOS)
@@ -470,47 +471,59 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
   const [edits, setEdits] = useState<Record<string, { data?: string; valor?: string }>>({});
 
   /**
-   * A parcela 1 é sugerida pela regra pura (faturamento + dia nominal, piso 7d).
-   * As demais seguem a data EFETIVA da parcela 1 — edição em curso na tela tem
-   * precedência sobre o salvo, para o operador ver a cascata antes de gravar.
+   * Sugestão de vencimento vem da RPC `fn_cronograma_sugerido_pedido` — a data
+   * que vale é a da duplicata da NF (fonte "duplicata_nf"); sem duplicata, o
+   * banco calcula ("calculado"). Uma chamada por pedido distinto, não por
+   * título. REGRA-NÃO-MORA-EM-TELA: nada de recalcular data no cliente.
    */
-  const ancoraPorPedido = useMemo(() => {
-    const map: Record<string, string> = {};
-    for (const b of boletos) {
-      if ((b.numero_parcela ?? 1) !== 1) continue;
-      const ped = b.pedido?.id_externo;
-      if (!ped) continue;
-      const efetiva = edits[b.id]?.data ?? b.data_vencimento_atual ?? null;
-      if (efetiva) map[ped] = efetiva;
-    }
-    return map;
-  }, [boletos, edits]);
-
-  /** Sugestão de vencimento por título pendente (só sugestão — nunca grava sozinha). */
-  const sugestoes = useMemo(() => {
-    const map: Record<string, string> = {};
+  const pedidosPendentesIds = useMemo(() => {
+    const ids = new Set<string>();
     for (const b of pendentesEntrada) {
-      const parcela = b.numero_parcela ?? 1;
-      const ped = b.pedido?.id_externo;
-      const ancora = parcela > 1 && ped ? ancoraPorPedido[ped] : null;
-      const s = sugerirVencimentoBoleto(
-        b.pedido?.faturado_em,
-        b.pedido?.condicao_solicitada,
-        parcela,
-        b.total_parcelas,
-        ancora,
-      );
-      if (s) map[b.id] = s;
+      if (b.pedido?.id) ids.add(b.pedido.id);
+    }
+    return [...ids].sort();
+  }, [pendentesEntrada]);
+
+  const { data: cronogramas = {} } = useQuery<Record<string, Record<string, SugestaoVencimentoParcela>>>({
+    queryKey: ["cronograma-sugerido-boletos", pedidosPendentesIds],
+    ...OPCOES_QUERY_RECEBIVEL,
+    enabled: pedidosPendentesIds.length > 0,
+    queryFn: async () => {
+      const out: Record<string, Record<string, SugestaoVencimentoParcela>> = {};
+      for (const pid of pedidosPendentesIds) {
+        const { data, error } = await supabase.rpc("fn_cronograma_sugerido_pedido", {
+          p_pedido_id: pid,
+        });
+        if (error) throw error;
+        out[pid] = ((data ?? {}) as unknown) as Record<string, SugestaoVencimentoParcela>;
+      }
+      return out;
+    },
+  });
+
+  /** Sugestão por título pendente (só sugestão — nunca grava sozinha). */
+  const sugestoes = useMemo(() => {
+    const map: Record<string, SugestaoVencimentoParcela> = {};
+    for (const b of pendentesEntrada) {
+      const pid = b.pedido?.id;
+      if (!pid) continue;
+      const s = cronogramas[pid]?.[String(b.numero_parcela ?? 1)];
+      if (s?.data) map[b.id] = s;
     }
     return map;
-  }, [pendentesEntrada, ancoraPorPedido]);
+  }, [pendentesEntrada, cronogramas]);
 
-  /** Pendentes com sugestão diferente da data salva — universo do dialog em lote. */
+  /**
+   * Pendentes com sugestão diferente da data salva — universo do dialog em lote.
+   * Parcelas com `viavel: false` (data já passou) ficam FORA do lote: não dá
+   * para aplicar em massa uma data inviável — é decisão humana.
+   */
   const pendentesComSugestao = useMemo(
     () =>
-      pendentesEntrada.filter(
-        (b) => sugestoes[b.id] && sugestoes[b.id] !== b.data_vencimento_atual,
-      ),
+      pendentesEntrada.filter((b) => {
+        const s = sugestoes[b.id];
+        return s && s.viavel && s.data !== b.data_vencimento_atual;
+      }),
     [pendentesEntrada, sugestoes],
   );
   const [sugestoesDialogOpen, setSugestoesDialogOpen] = useState(false);
@@ -725,8 +738,8 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
             "ajustar_vencimento_boleto_pendente",
             {
               p_titulo_id: b.id,
-              p_nova_data: sugestoes[b.id],
-              p_motivo: "Sugestão de vencimento aplicada em lote (NF + condição do pedido)",
+              p_nova_data: sugestoes[b.id].data,
+              p_motivo: "Sugestão de vencimento aplicada em lote (cronograma: duplicata da NF)",
             },
           );
           if (error) throw error;
@@ -1100,12 +1113,6 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                   (() => {
                     const valorAtual = edits[b.id]?.data ?? b.data_vencimento_atual ?? "";
                     const sug = sugestoes[b.id];
-                    const dias = (() => {
-                      const m = (b.pedido?.condicao_solicitada || "").match(/\d+(?:\s*\/\s*\d+)+/);
-                      if (!m) return null;
-                      const arr = m[0].split("/").map((x) => x.trim());
-                      return arr[(b.numero_parcela ?? 1) - 1] ?? null;
-                    })();
                     return (
                       <div className="space-y-1">
                         <Input
@@ -1116,28 +1123,35 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                             setEdits((p) => ({ ...p, [b.id]: { ...p[b.id], data: e.target.value } }))
                           }
                         />
-                        {sug && sug !== valorAtual && (
+                        {sug && sug.data !== valorAtual && !sug.viavel && (
+                          <div className="flex items-center gap-1 text-[11px] text-destructive">
+                            <AlertCircle className="h-3 w-3 shrink-0" />
+                            <span>
+                              Vencimento da NF ({formatDateBR(sug.data)?.slice(0, 5)}) já passou —
+                              precisa de decisão
+                            </span>
+                          </div>
+                        )}
+                        {sug && sug.data !== valorAtual && sug.viavel && (
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <button
                                   type="button"
                                   onClick={() =>
-                                    setEdits((p) => ({ ...p, [b.id]: { ...p[b.id], data: sug } }))
+                                    setEdits((p) => ({ ...p, [b.id]: { ...p[b.id], data: sug.data } }))
                                   }
                                   className="text-[11px] text-muted-foreground hover:text-foreground hover:underline"
                                 >
-                                  {(b.numero_parcela ?? 1) > 1
-                                    ? `P1 ${formatDateBR(ancoraPorPedido[b.pedido?.id_externo ?? ""] ?? null)?.slice(0, 5) ?? "—"}`
-                                    : `Fat ${formatDateBR(dataFaturamentoIso(b.pedido?.faturado_em))?.slice(0, 5) || "—"}`}
-                                  {dias ? ` +${dias}d` : ""} → {formatDateBR(sug)?.slice(0, 5)} ·{" "}
+                                  {sug.fonte === "duplicata_nf" ? "Data da NF" : "Sugestão"} →{" "}
+                                  {formatDateBR(sug.data)?.slice(0, 5)} ·{" "}
                                   <span className="font-medium underline">usar</span>
                                 </button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                {(b.numero_parcela ?? 1) > 1
-                                  ? `Intervalo comercial contado a partir do vencimento da parcela 1`
-                                  : `Faturamento (${formatDateBR(dataFaturamentoIso(b.pedido?.faturado_em))?.slice(0, 5)}) + dias da condição, nunca antes de faturamento + 7 dias`}
+                                {sug.fonte === "duplicata_nf"
+                                  ? "Data lida da duplicata da NF — é a que o cliente vê no documento fiscal"
+                                  : "Calculada pela função do banco (NF sem duplicata)"}
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
@@ -1588,9 +1602,14 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                                   </Badge>
                                 ))}
                                 {(() => {
-                                  const alvos = sp.boletos.filter(
-                                    (b) => sugestoes[b.id] && sugestoes[b.id] !== (edits[b.id]?.data ?? b.data_vencimento_atual ?? ""),
-                                  );
+                                  const alvos = sp.boletos.filter((b) => {
+                                    const s = sugestoes[b.id];
+                                    return (
+                                      s &&
+                                      s.viavel &&
+                                      s.data !== (edits[b.id]?.data ?? b.data_vencimento_atual ?? "")
+                                    );
+                                  });
                                   if (alvos.length === 0) return null;
                                   return (
                                     <button
@@ -1599,7 +1618,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                                       onClick={() =>
                                         setEdits((p) => {
                                           const n = { ...p };
-                                          for (const b of alvos) n[b.id] = { ...n[b.id], data: sugestoes[b.id] };
+                                          for (const b of alvos) n[b.id] = { ...n[b.id], data: sugestoes[b.id].data };
                                           return n;
                                         })
                                       }
@@ -1897,8 +1916,8 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
           <DialogHeader>
             <DialogTitle>Aplicar sugestões de vencimento</DialogTitle>
             <DialogDescription>
-              Faturamento do pedido + dias da condição comercial, nunca antes de faturamento + 7
-              dias. Só títulos nunca registrados no Safra.
+              A data sugerida vem da duplicata da NF quando ela existe; sem duplicata, é calculada
+              pela função do banco. Só títulos nunca registrados no Safra, com data viável.
             </DialogDescription>
           </DialogHeader>
           <div className="max-h-[50vh] overflow-y-auto">
@@ -1922,7 +1941,12 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                       {formatDateBR(b.data_vencimento_atual)}
                     </TableCell>
                     <TableCell className="tabular-nums font-medium">
-                      {formatDateBR(sugestoes[b.id])}
+                      {formatDateBR(sugestoes[b.id].data)}
+                      {sugestoes[b.id].fonte === "duplicata_nf" && (
+                        <Badge variant="outline" className="ml-1.5 text-[10px] font-normal">
+                          data da NF
+                        </Badge>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
