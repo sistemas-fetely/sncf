@@ -263,28 +263,41 @@ function atalhoPeriodo(tipo: "atual" | "anterior" | "tres" | "todo"): [string, s
   return [iso(de), iso(ate)];
 }
 
-function AtalhosPeriodo({ onPick }: { onPick: (de: string, ate: string) => void }) {
+function AtalhosPeriodo({
+  onPick,
+  de,
+  ate,
+}: {
+  onPick: (de: string, ate: string) => void;
+  de?: string;
+  ate?: string;
+}) {
   const itens: { key: "atual" | "anterior" | "tres" | "todo"; label: string }[] = [
     { key: "atual", label: "Mês atual" },
     { key: "anterior", label: "Mês anterior" },
     { key: "tres", label: "Últimos 3 meses" },
     { key: "todo", label: "Todo o período" },
   ];
+  const ativo = de !== undefined && ate !== undefined;
   return (
     <div className="flex flex-wrap gap-2">
-      {itens.map((i) => (
-        <Button
-          key={i.key}
-          size="sm"
-          variant="outline"
-          onClick={() => {
-            const [de, ate] = atalhoPeriodo(i.key);
-            onPick(de, ate);
-          }}
-        >
-          {i.label}
-        </Button>
-      ))}
+      {itens.map((i) => {
+        const [deAtalho, ateAtalho] = atalhoPeriodo(i.key);
+        const selecionado = ativo && de === deAtalho && ate === ateAtalho;
+        return (
+          <Button
+            key={i.key}
+            size="sm"
+            variant={selecionado ? "default" : "outline"}
+            onClick={() => {
+              const [de, ate] = atalhoPeriodo(i.key);
+              onPick(de, ate);
+            }}
+          >
+            {i.label}
+          </Button>
+        );
+      })}
     </div>
   );
 }
