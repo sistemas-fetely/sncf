@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatBRL } from "@/lib/format-currency";
 import { supabase } from "@/integrations/supabase/client";
 import { useGerarPixProvisao } from "@/hooks/pedidos/useGerarPixProvisao";
+import { publicUrl } from "@/lib/urls";
 
 interface Props {
   provisaoId: string;
@@ -68,7 +69,7 @@ export function PixQrCode({
   const qrUrl = portaoPix?.pix_qr_url ?? null;
 
   const temQr = !!payload && !!txid;
-  const linkPublico = token ? `${window.location.origin}/pagar/${token}` : null;
+  const linkPublico = token ? publicUrl(`/pagar/${token}`) : null;
 
   // ── Sobe o PNG do QR pro bucket público (só se ainda não houver imagem) ──
   useEffect(() => {

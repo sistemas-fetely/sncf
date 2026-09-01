@@ -51,6 +51,8 @@ import { AjustarDescontoDialog } from "@/components/pedidos/dialogs/AjustarDesco
 import { ImpactoEdicaoBanner } from "@/components/pedidos/ImpactoEdicaoBanner";
 import { ReabrirAnaliseAction } from "@/components/pedidos/ReabrirAnaliseAction";
 import { LinkPagamentoCard } from "@/components/pedidos/LinkPagamentoCard";
+import { PortaoLinksPanel } from "@/components/pedidos/PortaoLinksPanel";
+import { useHaverAplicadoPedido } from "@/hooks/pedidos/useHaverAplicadoPedido";
 import { useVoltarParaOrigem } from "@/hooks/useVoltarParaOrigem";
 import { useMontarPlanoPagamento } from "@/hooks/credito/useMontarPlanoPagamento";
 import { PageShell } from "@/components/layout/PageShell";
@@ -381,6 +383,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
   const [alterarPagtoOpen, setAlterarPagtoOpen] = useState(false);
   const portaoRegraQ = usePedidoPortaoRegra(pedido.id);
   const linhasQ = useLinhasCobrancaPedido(pedido.id);
+  const haverQ = useHaverAplicadoPedido(pedido.id);
   const linkCardRef = useRef<HTMLDivElement>(null);
   const comunicacaoRef = useRef<HTMLDivElement>(null);
 
@@ -402,7 +405,8 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
   const somaPago = linhas.filter((l) => l.pago).reduce((a, l) => a + Number(l.valor ?? 0), 0);
   const somaAberto = linhas.filter((l) => !l.pago).reduce((a, l) => a + Number(l.valor ?? 0), 0);
   const valorPedido = Number(pedido.valor_liquido ?? 0);
-  const delta = somaLinhas - valorPedido;
+  const haverAplicado = haverQ.data ?? 0;
+  const delta = somaLinhas + haverAplicado - valorPedido;
 
   const temInstrumento = linhas.some((l) => l.instrumento_pronto);
   // Passo 3: e-mail interno é teste, não é envio ao cliente.
@@ -482,6 +486,12 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
           <CelulaDinheiro rotulo="Em aberto" valor={somaAberto} dominante />
         </div>
 
+        {haverAplicado > 0 && (
+          <p className="mt-2 rounded-lg border border-border/60 px-3 py-2 text-xs text-muted-foreground">
+            {fmtBRL.format(haverAplicado)} coberto por crédito do cliente — não entra no plano.
+          </p>
+        )}
+
         {linhasQ.isSuccess && linhas.length > 0 && Math.abs(delta) > 0.01 && (
           <div className="mt-2 flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
@@ -530,6 +540,8 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
           ))}
         </CardContent>
       </Card>
+
+      {!linhasQ.isLoading && <PortaoLinksPanel pedidoId={pedido.id} />}
 
       {/* (e) LINK DE PAGAMENTO DO PEDIDO */}
       <div ref={linkCardRef}>
