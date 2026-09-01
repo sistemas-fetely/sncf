@@ -99,6 +99,7 @@ for (const nf of items) {
     const semPedido = !existing?.pedido_venda_id; const semTransporte = !existing?.transporte_raw;
     const semSerie = !existing?.serie;
     const semArquivo = !existing?.pdf_url || !existing?.xml_url;
+    const semDuplicatas = !existing?.duplicatas_sync_em;
 
     // Nota completa e autorizada dos ultimos 90 dias pode ter sido cancelada DEPOIS
     // do sync — sem reconsulta o cancelamento fica invisivel para sempre.
@@ -106,8 +107,8 @@ for (const nf of items) {
       !!existing.data_emissao && String(existing.data_emissao).slice(0, 10) >= limite90d &&
       revalidados < REVALIDACAO_MAX;
 
-    // Busca detalhe apenas quando falta valor, frete, pedido, transporte, série
-    // ou arquivo (pdf_url/xml_url) — evita rate limit do Bling.
+    // Busca detalhe apenas quando falta valor, frete, pedido, transporte, série,
+    // arquivo (pdf_url/xml_url) ou duplicata — evita rate limit do Bling.
     // Pedido linkage tenta junto quando já estamos no detalhe, mas não aciona sozinho.
     let situacaoDetalhe: string | null = null;
     let numeroPedidoLojaRaw: string | null = null;
@@ -115,7 +116,8 @@ for (const nf of items) {
     let pedidoVendaBlingIdRaw: string | null = null;
     let serieDetalhe: string | null = null;
 
-    if (semValor || semFrete || semPedido || semTransporte || semSerie || semArquivo || revalidarCancelamento) {
+    if (semValor || semFrete || semPedido || semTransporte || semSerie || semArquivo || semDuplicatas || revalidarCancelamento) {
+
       if (revalidarCancelamento) revalidados++;
 
       try {
