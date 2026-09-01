@@ -172,6 +172,10 @@ type Bloco = "extrato" | "auxiliar";
 const BLOCO_DA_FONTE: Record<Fonte, Bloco> = {
   ofx: "extrato",
   safra_lancamentos: "extrato",
+  safra_pix_lancamentos: "auxiliar",
+  safrapay_agenda_vendas: "auxiliar",
+  safrapay_recebiveis_vendas: "auxiliar",
+
   mp_withdraw: "auxiliar",
   safrapay_vendas: "auxiliar",
   safrapay_liquidacao: "auxiliar",
