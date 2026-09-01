@@ -176,6 +176,33 @@ const PARSER_ROTULO: Partial<Record<Fonte, string>> = {
   retorno_safra: "Retorno CNAB 400 Safra (cobrança)",
 };
 
+/**
+ * CONTAGEM-NAO-DIZ-O-EFEITO (01/09/2026)
+ *
+ * A contagem responde "a conta fecha?". Ela não responde "o que este arquivo
+ * faz". Quando os toasts específicos viraram `resumo()`, sumiram frases que
+ * eram REGRA e não decoração ("o Settlement não cria movimentação"). Aqui elas
+ * voltam presas à fonte, e aparecem no toast E no card do veredito.
+ */
+const PARSER_EFEITO: Record<Fonte, string> = {
+  ofx: "Extrato oficial — cria as movimentações bancárias do período.",
+  safra_lancamentos: "Extrato Safra — cria as movimentações bancárias do período.",
+  mp_withdraw: "Retiradas Mercado Pago — cria a transferência quando não há par no extrato.",
+  safrapay_vendas: "Vendas SafraPay — agenda de recebíveis; o dinheiro entra pelo OFX.",
+  safrapay_liquidacao: "Liquidação SafraPay — enriquece a linha do extrato que já existe.",
+  safrapay_ajustes:
+    "Ajuste sempre acompanha um crédito que já está no OFX — não cria dinheiro novo.",
+  super_agenda: "SUPER AGENDA não é importável — é projeção, não movimento.",
+  mp_settlement: "O Settlement não cria movimentação — é só enriquecimento da linha do extrato.",
+  mp_release: "Liberações Mercado Pago — enriquece a linha do extrato.",
+  safra_instrucoes_2via:
+    "Conferência da carteira — não gera movimentação nem baixa em título.",
+  safra_francesinha:
+    "Snapshot diário: enriquece a linha do extrato, nunca insere — o dinheiro do boleto chega pelo OFX. Snapshot repetido não é reaplicado.",
+  retorno_safra:
+    "Resposta do banco à remessa — registra e aplica ocorrências; não cria movimentação bancária.",
+};
+
 
 export default function ExtratoImportacao() {
   const { user } = useAuth();
