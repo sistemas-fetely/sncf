@@ -1184,6 +1184,7 @@ export default function ExtratoImportacao() {
             {
               arquivo: f.name,
               parser: trilha.fonte ? (PARSER_ROTULO[trilha.fonte] ?? trilha.fonte) : "—",
+              efeito: trilha.fonte ? PARSER_EFEITO[trilha.fonte] : undefined,
               resultado: "Importado",
               ok: true,
               contagem: trilha.contagem?.resumo(),
@@ -1197,6 +1198,7 @@ export default function ExtratoImportacao() {
             {
               arquivo: f.name,
               parser: trilha.fonte ? (PARSER_ROTULO[trilha.fonte] ?? trilha.fonte) : "não reconhecido",
+              efeito: trilha.fonte ? PARSER_EFEITO[trilha.fonte] : undefined,
               resultado: formatError(e),
               ok: false,
               contagem: trilha.contagem?.resumo(),
