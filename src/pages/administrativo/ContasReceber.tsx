@@ -216,6 +216,11 @@ const formatMeio = (m: string | null) => (m ? capitalize(m.replace(/_/g, " ")) :
 
 const efetivoDe = (t: RecebivelB2B) => Number(t.valor_efetivo ?? t.valor ?? 0);
 
+const fmtDesvio = (d: number | null | undefined) => {
+  if (d == null || d === 0) return "";
+  return `${d > 0 ? "+" : "−"}${Math.abs(d)}d`;
+};
+
 const iso = (d: Date) => {
   const m = `${d.getMonth() + 1}`.padStart(2, "0");
   const dia = `${d.getDate()}`.padStart(2, "0");
@@ -777,11 +782,6 @@ function AbaB2B() {
   const totalItens = agrupado ? grupos.length : filtrados.length;
   const totalPages = Math.max(1, Math.ceil(totalItens / PAGE_SIZE));
   const pageSafe = Math.min(page, totalPages);
-
-  const fmtDesvio = (d: number | null | undefined) => {
-    if (d == null || d === 0) return "";
-    return `${d > 0 ? "+" : "−"}${Math.abs(d)}d`;
-  };
 
   const linhaTitulo = (t: RecebivelB2B, aninhada: boolean) => {
     const atrasado = t.eh_inadimplente === true;
