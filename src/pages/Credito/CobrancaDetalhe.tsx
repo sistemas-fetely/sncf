@@ -293,7 +293,7 @@ function CelulaDinheiro({
   );
 }
 
-function LinhaParcela({ l }: { l: LinhaCobrancaPedido }) {
+function LinhaParcela({ l, pedidoId }: { l: LinhaCobrancaPedido; pedidoId: string }) {
   const [aberto, setAberto] = useState(false);
   const Icone = ICONE_TIPO[l.tipo_pagamento ?? ""] ?? FileText;
   const valor = Number(l.valor ?? 0);
