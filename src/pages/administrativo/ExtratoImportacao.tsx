@@ -402,13 +402,15 @@ export default function ExtratoImportacao() {
               });
               if (errSaldo) throw errSaldo;
             }
-            linhasSaldo++;
+            cont.ignorar("linha_de_saldo");
             continue; // informativa nunca vira movimentação
           }
           transacoes.push(m);
         }
 
+        // Linha sem data não pode virar movimentação — e não pode sumir calada.
         const movs = transacoes.filter((m) => m.data_transacao);
+        cont.ignorar("sem_data", transacoes.length - movs.length);
         const datas = movs.map((m) => m.data_transacao!).sort();
         periodoInicio = datas[0] || null;
         periodoFim = datas[datas.length - 1] || null;
@@ -438,7 +440,7 @@ export default function ExtratoImportacao() {
         for (const m of comHash) {
           const jaExiste = mapExist.get(m.hash_unico);
           if (jaExiste) {
-            duplicadas++;
+            cont.duplicada();
             // Enriquecer se antes estava null
             if (!jaExiste.contraparte_documento && m.contraparte_documento) {
               const { error: errUp } = await sb
@@ -450,7 +452,7 @@ export default function ExtratoImportacao() {
                 })
                 .eq("id", jaExiste.id);
               if (errUp) throw errUp;
-              enriquecidas++;
+              cont.enriquecidas++;
             }
             continue;
           }
@@ -470,17 +472,13 @@ export default function ExtratoImportacao() {
           });
         }
 
-        for (let i = 0; i < novasRows.length; i += 100) {
-          const lote = novasRows.slice(i, i + 100);
-          const { error } = await sb.from("movimentacoes_bancarias").insert(lote);
-          if (error) throw error;
-        }
-        novas = novasRows.length;
+        // REIMPORTAR-É-INOFENSIVO: conflito conta como duplicada, não derruba.
+        await inserirMovimentacoes(sb, novasRows, cont);
       } else if (fonte === "safra_lancamentos") {
         const buf = await file.arrayBuffer();
         const parsed = parseXlsxSafraLancamentos(buf);
-        linhasLidas = parsed.movimentacoes.length;
-        if (linhasLidas === 0) throw new Error("Nenhuma linha válida na planilha");
+        cont.ler(parsed.movimentacoes.length);
+        if (cont.lidas === 0) throw new Error("Nenhuma linha válida na planilha");
 
         const datas = parsed.movimentacoes
           .map((m) => m.data_transacao!)
@@ -490,6 +488,10 @@ export default function ExtratoImportacao() {
         periodoFim = datas[datas.length - 1] || null;
 
         for (const m of parsed.movimentacoes) {
+          if (!m.data_transacao) {
+            cont.ignorar("sem_data");
+            continue;
+          }
           const valorAssinado = m.tipo === "credito" ? m.valor : -m.valor;
           const hashPrincipal = await gerarHashMov(
             conta,
@@ -507,7 +509,7 @@ export default function ExtratoImportacao() {
             .maybeSingle();
 
           if (exist) {
-            duplicadas++;
+            cont.duplicada();
             const patch: Record<string, unknown> = {};
             if (!exist.contraparte_documento && m.contraparte_documento) {
               patch.contraparte_nome = m.contraparte_nome;
@@ -525,7 +527,7 @@ export default function ExtratoImportacao() {
                 .update(patch)
                 .eq("id", exist.id);
               if (errUp) throw errUp;
-              enriquecidas++;
+              cont.enriquecidas++;
             }
             continue;
           }
@@ -554,14 +556,15 @@ export default function ExtratoImportacao() {
               })
               .eq("id", alvo.id);
             if (errUp) throw errUp;
-            enriquecidas++;
+            // A linha já existia no extrato (veio pelo OFX): é duplicada enriquecida.
+            cont.enriquecer();
             continue;
           }
 
           // Inserir nova
-          const { error: errIns } = await sb
-            .from("movimentacoes_bancarias")
-            .insert({
+          await inserirMovimentacao(
+            sb,
+            {
               conta_bancaria_id: conta,
               data_transacao: m.data_transacao,
               data_hora: m.data_hora,
@@ -576,15 +579,15 @@ export default function ExtratoImportacao() {
               tipo_meio: "pix",
               referencia_pedido: m.referencia_pedido,
               fonte_importacao_id: impId,
-            });
-          if (errIns) throw errIns;
-          novas++;
+            },
+            cont
+          );
         }
       } else if (fonte === "mp_withdraw") {
         const buf = await file.arrayBuffer();
         const parsed = parseXlsxMpWithdraw(buf);
-        linhasLidas = parsed.movimentacoes.length;
-        if (linhasLidas === 0) throw new Error("Nenhum saque válido na planilha");
+        cont.ler(parsed.movimentacoes.length);
+        if (cont.lidas === 0) throw new Error("Nenhum saque válido na planilha");
 
         const datas = parsed.movimentacoes
           .map((m) => m.data_transacao!)
@@ -594,6 +597,10 @@ export default function ExtratoImportacao() {
         periodoFim = datas[datas.length - 1] || null;
 
         for (const m of parsed.movimentacoes) {
+          if (!m.data_transacao) {
+            cont.ignorar("sem_data");
+            continue;
+          }
           const valorAssinado = -m.valor; // saque = débito
           const { data: exist } = await sb
             .from("movimentacoes_bancarias")
@@ -602,7 +609,7 @@ export default function ExtratoImportacao() {
             .maybeSingle();
 
           if (exist) {
-            duplicadas++;
+            cont.duplicada();
             const patch: Record<string, unknown> = {};
             if (!exist.contraparte_documento) {
               patch.contraparte_nome = m.contraparte_nome;
@@ -616,14 +623,14 @@ export default function ExtratoImportacao() {
                 .update(patch)
                 .eq("id", exist.id);
               if (errUp) throw errUp;
-              enriquecidas++;
+              cont.enriquecidas++;
             }
             continue;
           }
 
-          const { error: errIns } = await sb
-            .from("movimentacoes_bancarias")
-            .insert({
+          await inserirMovimentacao(
+            sb,
+            {
               conta_bancaria_id: conta,
               data_transacao: m.data_transacao,
               descricao: m.descricao,
@@ -636,40 +643,43 @@ export default function ExtratoImportacao() {
               contraparte_documento: m.contraparte_documento,
               tipo_meio: m.tipo_meio,
               fonte_importacao_id: impId,
-            });
-          if (errIns) throw errIns;
-          novas++;
+            },
+            cont
+          );
         }
       } else if (fonte === "safrapay_vendas") {
         // Tipo 1 — valor integral da venda e NSU na data da autorização.
         // Não é dinheiro na conta: alimenta a prova de pagamento de cartão.
         const parsed = parseCsvSafraPayTipo1(textoCsv || (await file.text()));
-        linhasLidas = parsed.vendas.length;
-        if (linhasLidas === 0) throw new Error("Nenhuma venda no arquivo SafraPay Tipo 1");
+        cont.ler(parsed.vendas.length);
+        if (cont.lidas === 0) throw new Error("Nenhuma venda no arquivo SafraPay Tipo 1");
 
         const datasV = parsed.vendas.map((v) => v.data_venda).filter(Boolean).sort();
         periodoInicio = datasV[0] || null;
         periodoFim = datasV[datasV.length - 1] || null;
 
         // mdr é coluna gerada no banco (valor_bruto - valor_liquido); nunca enviar do front.
-        const linhas = parsed.vendas
-          .filter((v) => v.nsu && v.data_venda)
-          .map((v) => ({
-            nsu: v.nsu,
-            ec: parsed.ec || null,
-            anomes: parsed.anomes || null,
-            terminal: v.terminal || null,
-            data_venda: v.data_venda,
-            hora: v.hora || null,
-            produto: v.produto || null,
-            modalidade: v.modalidade || null,
-            parcelas: v.parcelas,
-            autorizacao: v.autorizacao || null,
-            valor_bruto: v.valor_bruto,
-            valor_liquido: v.valor_liquido,
-            arquivo_origem: file.name,
-            importado_em: new Date().toISOString(),
-          }));
+        const aproveitaveis = parsed.vendas.filter((v) => v.nsu && v.data_venda);
+        for (const v of parsed.vendas) {
+          if (!v.nsu) cont.ignorar("sem_identificador");
+          else if (!v.data_venda) cont.ignorar("sem_data");
+        }
+        const linhas = aproveitaveis.map((v) => ({
+          nsu: v.nsu,
+          ec: parsed.ec || null,
+          anomes: parsed.anomes || null,
+          terminal: v.terminal || null,
+          data_venda: v.data_venda,
+          hora: v.hora || null,
+          produto: v.produto || null,
+          modalidade: v.modalidade || null,
+          parcelas: v.parcelas,
+          autorizacao: v.autorizacao || null,
+          valor_bruto: v.valor_bruto,
+          valor_liquido: v.valor_liquido,
+          arquivo_origem: file.name,
+          importado_em: new Date().toISOString(),
+        }));
 
         const { data, error } = await sb
           .from("safrapay_venda")
@@ -677,22 +687,29 @@ export default function ExtratoImportacao() {
           .select("nsu");
         if (error) throw error;
 
-        novas = data?.length ?? 0;
-        duplicadas = linhas.length - novas;
+        cont.nova(data?.length ?? 0);
+        cont.duplicada(linhas.length - (data?.length ?? 0));
 
       } else if (fonte === "safrapay_ajustes") {
         // Tipo 3 — ajuste de adquirência sempre acompanha um crédito que já está
         // no OFX: só enriquece, nunca cria linha nova.
         const parsed = parseCsvSafraPayTipo3(textoCsv || (await file.text()));
-        linhasLidas = parsed.ajustes.length;
-        if (linhasLidas === 0) throw new Error("Nenhum ajuste no arquivo SafraPay Tipo 3");
+        cont.ler(parsed.ajustes.length);
+        if (cont.lidas === 0) throw new Error("Nenhum ajuste no arquivo SafraPay Tipo 3");
 
         const datasA = parsed.ajustes.map((a) => a.dt_ajuste).filter(Boolean).sort();
         periodoInicio = datasA[0] || null;
         periodoFim = datasA[datasA.length - 1] || null;
 
         for (const a of parsed.ajustes) {
-          if (!a.dt_ajuste || a.valor === 0) continue;
+          if (!a.dt_ajuste) {
+            cont.ignorar("sem_data");
+            continue;
+          }
+          if (a.valor === 0) {
+            cont.ignorar("sem_valor");
+            continue;
+          }
           const { data: alvoId, error: errEnr } = await sb.rpc("fn_extrato_enriquecer", {
             p_conta: conta,
             p_data: a.dt_ajuste,
@@ -704,22 +721,29 @@ export default function ExtratoImportacao() {
             p_classe: null,
           });
           if (errEnr) throw errEnr;
-          if (alvoId) enriquecidas++;
-          else semPar++;
+          if (alvoId) cont.enriquecer();
+          else cont.ignorar("sem_par_no_extrato");
         }
       } else if (fonte === "safrapay_liquidacao") {
         const text = textoCsv || (await file.text());
         const parsed = parseCsvSafraPayTipo2(text);
 
-        linhasLidas = parsed.parcelas.length;
-        if (linhasLidas === 0) throw new Error("Nenhuma parcela liquidada no arquivo SafraPay Tipo 2");
+        cont.ler(parsed.parcelas.length);
+        if (cont.lidas === 0) throw new Error("Nenhuma parcela liquidada no arquivo SafraPay Tipo 2");
 
         const datas = parsed.parcelas.map(p => p.dt_efetiva).filter(Boolean).sort();
         periodoInicio = datas[0] || null;
         periodoFim = datas[datas.length - 1] || null;
 
         for (const p of parsed.parcelas) {
-          if (!p.dt_efetiva || !p.nsu) continue;
+          if (!p.dt_efetiva) {
+            cont.ignorar("sem_data");
+            continue;
+          }
+          if (!p.nsu) {
+            cont.ignorar("sem_identificador");
+            continue;
+          }
           const hashKey = `safrapay2|${p.nsu}|${p.dt_efetiva}|${p.parcela_num}`;
           const hash = await gerarHashMov(conta, p.dt_efetiva, p.valor_recebido, hashKey);
 
@@ -728,7 +752,7 @@ export default function ExtratoImportacao() {
             .select("id")
             .eq("hash_unico", hash)
             .maybeSingle();
-          if (exist) { duplicadas++; continue; }
+          if (exist) { cont.duplicada(); continue; }
 
           // Antes de inserir: tentar enriquecer a linha do extrato que já
           // representa esse dinheiro. Sem isso, o mesmo valor é contado duas vezes.
@@ -743,29 +767,31 @@ export default function ExtratoImportacao() {
             p_classe: null,
           });
           if (errEnr) throw errEnr;
-          if (alvoId) { enriquecidas++; continue; }
+          if (alvoId) { cont.enriquecer(); continue; }
 
-          const { error: errIns } = await sb.from("movimentacoes_bancarias").insert({
-            conta_bancaria_id: conta,
-            data_transacao: p.dt_efetiva,
-            descricao: `SAFRAPAY ${p.produto} ${p.modalidade} PARC ${p.parcela_num}/${p.ncar} NSU ${p.nsu}`,
-            valor: p.valor_recebido,
-            tipo: "credito",
-            id_transacao_banco: p.nsu,
-            hash_unico: hash,
-            origem: "safrapay_liquidacao",
-            tipo_meio: "cartao",
-            fonte_importacao_id: impId,
-          });
-          if (errIns) throw errIns;
-          novas++;
+          await inserirMovimentacao(
+            sb,
+            {
+              conta_bancaria_id: conta,
+              data_transacao: p.dt_efetiva,
+              descricao: `SAFRAPAY ${p.produto} ${p.modalidade} PARC ${p.parcela_num}/${p.ncar} NSU ${p.nsu}`,
+              valor: p.valor_recebido,
+              tipo: "credito",
+              id_transacao_banco: p.nsu,
+              hash_unico: hash,
+              origem: "safrapay_liquidacao",
+              tipo_meio: "cartao",
+              fonte_importacao_id: impId,
+            },
+            cont
+          );
         }
 
       } else if (fonte === "mp_settlement") {
         const buf = await file.arrayBuffer();
         const parsed = parseXlsxMpSettlement(buf);
-        linhasLidas = parsed.transacoes.length;
-        if (linhasLidas === 0) throw new Error("Nenhuma transação no Settlement MP");
+        cont.ler(parsed.transacoes.length);
+        if (cont.lidas === 0) throw new Error("Nenhuma transação no Settlement MP");
 
         const datas = parsed.transacoes.map(t => t.data_liberacao).filter(Boolean).sort();
         periodoInicio = datas[0] || null;
@@ -773,7 +799,10 @@ export default function ExtratoImportacao() {
 
         // Settlement é ENRIQUECIMENTO, não extrato: não cria movimentação.
         for (const t of parsed.transacoes) {
-          if (!t.id_transacao_mp) continue;
+          if (!t.id_transacao_mp) {
+            cont.ignorar("sem_identificador");
+            continue;
+          }
 
           const tipoMeio = t.tipo_meio_pagamento.toLowerCase().includes("bancaria") ? "pix" : "cartao";
 
@@ -789,15 +818,15 @@ export default function ExtratoImportacao() {
             p_classe: null,
           });
           if (errEnr) throw errEnr;
-          if (alvoId) enriquecidas++;
-          else semPar++;
+          if (alvoId) cont.enriquecer();
+          else cont.ignorar("sem_par_no_extrato");
         }
 
       } else if (fonte === "mp_release") {
         const buf = await file.arrayBuffer();
         const parsed = parseXlsxMpReserveRelease(buf);
-        linhasLidas = parsed.liberacoes.length;
-        if (linhasLidas === 0) throw new Error("Nenhuma liberação no Reserve-Release MP");
+        cont.ler(parsed.liberacoes.length);
+        if (cont.lidas === 0) throw new Error("Nenhuma liberação no Reserve-Release MP");
 
         const datas = parsed.liberacoes.map(l => l.data_liberacao).filter(Boolean).sort();
         periodoInicio = datas[0] || null;
@@ -815,7 +844,10 @@ export default function ExtratoImportacao() {
         const cnpjProprio = (unidade?.cnpj ?? "").replace(/\D/g, "") || null;
 
         for (const l of parsed.liberacoes) {
-          if (!l.id_operacao) continue;
+          if (!l.id_operacao) {
+            cont.ignorar("sem_identificador");
+            continue;
+          }
           const hash = await gerarHashMov(conta, l.data_liberacao, l.valor_liquido, `mp_rr|${l.id_operacao}`);
 
           const { data: exist } = await sb
@@ -823,7 +855,7 @@ export default function ExtratoImportacao() {
             .select("id")
             .eq("hash_unico", hash)
             .maybeSingle();
-          if (exist) { duplicadas++; continue; }
+          if (exist) { cont.duplicada(); continue; }
 
           const desc = l.descricao_mp
             .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -851,32 +883,34 @@ export default function ExtratoImportacao() {
           }
           const ehPagamento = !ehSaque && !ehDevolucao;
 
-          const { error: errIns } = await sb.from("movimentacoes_bancarias").insert({
-            conta_bancaria_id: conta,
-            data_transacao: l.data_liberacao,
-            descricao,
-            valor: l.valor_liquido,
-            tipo: l.valor_liquido < 0 ? "debito" : "credito",
-            id_transacao_banco: l.id_operacao,
-            hash_unico: hash,
-            origem: "mp_release",
-            tipo_meio: tipoMeio,
-            referencia_pedido: l.codigo_referencia || null,
-            classe: ehPagamento ? "recebivel_b2c" : null,
-            classe_definida_por: ehPagamento ? "regra_p1" : null,
-            contraparte_nome: ehSaque ? "FETELY COMERCIO IMPORTACAO E EXPORTACAO LTDA" : null,
-            contraparte_documento: ehSaque ? cnpjProprio : null,
-            fonte_importacao_id: impId,
-          });
-          if (errIns) throw errIns;
-          novas++;
+          await inserirMovimentacao(
+            sb,
+            {
+              conta_bancaria_id: conta,
+              data_transacao: l.data_liberacao,
+              descricao,
+              valor: l.valor_liquido,
+              tipo: l.valor_liquido < 0 ? "debito" : "credito",
+              id_transacao_banco: l.id_operacao,
+              hash_unico: hash,
+              origem: "mp_release",
+              tipo_meio: tipoMeio,
+              referencia_pedido: l.codigo_referencia || null,
+              classe: ehPagamento ? "recebivel_b2c" : null,
+              classe_definida_por: ehPagamento ? "regra_p1" : null,
+              contraparte_nome: ehSaque ? "FETELY COMERCIO IMPORTACAO E EXPORTACAO LTDA" : null,
+              contraparte_documento: ehSaque ? cnpjProprio : null,
+              fonte_importacao_id: impId,
+            },
+            cont
+          );
         }
       } else if (fonte === "safra_instrucoes_2via") {
         // Papel: CONFERÊNCIA. Não escreve no extrato, não dá baixa em título.
         const buf = await file.arrayBuffer();
         const parsed = parseXlsxSafraInstrucoes2Via(buf);
-        linhasLidas = parsed.linhas.length;
-        if (linhasLidas === 0) throw new Error("Nenhum boleto na carteira do relatório");
+        cont.ler(parsed.linhas.length);
+        if (cont.lidas === 0) throw new Error("Nenhum boleto na carteira do relatório");
 
         if (parsed.data_referencia_inferida) {
           toast.warning(
@@ -909,7 +943,7 @@ export default function ExtratoImportacao() {
             });
           if (error) throw error;
         }
-        novas = rows.length;
+        cont.nova(rows.length);
         periodoInicio = parsed.data_referencia;
         periodoFim = parsed.data_referencia;
         setConferencia({ contaId: conta, dataReferencia: parsed.data_referencia });
@@ -920,8 +954,8 @@ export default function ExtratoImportacao() {
         // pelo OFX — inserir aqui duplicaria.
         const buf = await file.arrayBuffer();
         const parsed = parseXlsxSafraFrancesinha(buf);
-        linhasLidas = parsed.linhas.length;
-        if (linhasLidas === 0) throw new Error("Nenhuma linha detalhada na Francesinha");
+        cont.ler(parsed.linhas.length);
+        if (cont.lidas === 0) throw new Error("Nenhuma linha detalhada na Francesinha");
 
         periodoInicio = parsed.data_referencia;
         periodoFim = parsed.data_referencia;
@@ -939,13 +973,16 @@ export default function ExtratoImportacao() {
         if (errJa) throw errJa;
 
         if (jaImportado && jaImportado.length > 0) {
-          duplicadas = linhasLidas;
+          cont.duplicada(cont.lidas);
           toast.info(
             `${file.name}: snapshot de ${formatDateBR(parsed.data_referencia)} já importado — nada refeito.`
           );
         } else {
           for (const l of parsed.linhas) {
-            if (l.valor_pago <= 0) continue;
+            if (l.valor_pago <= 0) {
+              cont.ignorar("sem_valor");
+              continue;
+            }
             const dataPag = l.data_pagamento || parsed.data_referencia;
             const { data: alvoId, error: errEnr } = await sb.rpc("fn_extrato_enriquecer", {
               p_conta: conta,
@@ -958,8 +995,8 @@ export default function ExtratoImportacao() {
               p_classe: "recebivel_titulo",
             });
             if (errEnr) throw errEnr;
-            if (alvoId) enriquecidas++;
-            else semPar++;
+            if (alvoId) cont.enriquecer();
+            else cont.ignorar("sem_par_no_extrato");
           }
         }
       } else if (fonte === "retorno_safra") {
@@ -988,28 +1025,51 @@ export default function ExtratoImportacao() {
 
         respRetorno = resp;
         if (resp?.ja_processado) {
-          linhasLidas = 0;
-          novas = 0;
-          duplicadas = 0;
+          // Sequencial repetido: o arquivo inteiro é duplicata declarada.
+          const lidas = resp?.ocorrencias_arquivo ?? resp?.ocorrencias_gravadas ?? 0;
+          cont.ler(lidas);
+          cont.duplicada(lidas);
         } else {
-          linhasLidas = resp?.ocorrencias_gravadas ?? 0;
-          novas = resp?.ocorrencias_gravadas ?? 0;
-          duplicadas = 0;
+          cont.ler(resp?.ocorrencias_gravadas ?? 0);
+          cont.nova(resp?.ocorrencias_gravadas ?? 0);
         }
 
         // Fonte única de verdade da invalidação do recebível.
         await invalidarRecebivel();
       }
 
+      // CONTA-FECHADA-OU-ERRO: sem conta fechada não existe "concluida".
+      // Prefira falhar visível a passar silencioso.
+      if (!cont.fecha()) {
+        const detalhe = cont.erroContaAberta();
+        await sb
+          .from("extrato_importacoes")
+          .update({
+            status: "erro",
+            erro_detalhe: detalhe,
+            linhas_lidas: cont.lidas,
+            linhas_novas: cont.novas,
+            linhas_enriquecidas: cont.enriquecidas,
+            linhas_duplicadas: cont.duplicadas,
+            linhas_ignoradas: cont.ignoradas,
+            ignoradas_detalhe: cont.detalhe,
+            periodo_inicio: periodoInicio,
+            periodo_fim: periodoFim,
+          })
+          .eq("id", impId);
+        throw new Error(detalhe);
+      }
 
       await sb
         .from("extrato_importacoes")
         .update({
           status: "concluida",
-          linhas_lidas: linhasLidas,
-          linhas_novas: novas,
-          linhas_enriquecidas: enriquecidas,
-          linhas_duplicadas: duplicadas,
+          linhas_lidas: cont.lidas,
+          linhas_novas: cont.novas,
+          linhas_enriquecidas: cont.enriquecidas,
+          linhas_duplicadas: cont.duplicadas,
+          linhas_ignoradas: cont.ignoradas,
+          ignoradas_detalhe: cont.detalhe,
           periodo_inicio: periodoInicio,
           periodo_fim: periodoFim,
         })
@@ -1033,37 +1093,9 @@ export default function ExtratoImportacao() {
             toast.success(msgRetorno);
           }
         }
-      } else if (fonte === "safra_instrucoes_2via") {
-        toast.success(
-          `${PARSER_ROTULO.safra_instrucoes_2via} — ${file.name}: ${novas} boleto(s) na conferência da carteira — nenhuma movimentação ou baixa gerada.`
-        );
-      } else if (fonte === "safra_francesinha") {
-        toast.success(
-          `${PARSER_ROTULO.safra_francesinha} — ${file.name}: ${linhasLidas} liquidação(ões) lidas · ${enriquecidas} enriquecidas` +
-            (semPar > 0 ? ` · ${semPar} sem par no extrato` : "") +
-            (duplicadas > 0 ? " · snapshot repetido" : "")
-        );
-      } else if (fonte === "safrapay_vendas") {
-        toast.success(
-          `${PARSER_ROTULO.safrapay_vendas} — ${file.name}: ${linhasLidas} venda(s) lidas · ${novas} novas · ${duplicadas} já conhecidas`
-        );
-      } else if (fonte === "safrapay_ajustes") {
-        toast.success(
-          `${PARSER_ROTULO.safrapay_ajustes} — ${file.name}: ${linhasLidas} ajuste(s) · ${enriquecidas} enriquecidos` +
-            (semPar > 0 ? ` · ${semPar} sem par no extrato` : "")
-        );
-      } else if (fonte === "mp_settlement") {
-        toast.success(
-          `${PARSER_ROTULO.mp_settlement} — ${file.name}: ${linhasLidas} transação(ões) lidas · ${enriquecidas} enriquecidas` +
-            (semPar > 0 ? ` · ${semPar} sem par no extrato` : "") +
-            " — o Settlement não cria movimentação."
-        );
       } else {
-
-        toast.success(
-          `${file.name}: ${novas} novas · ${enriquecidas} enriquecidas · ${duplicadas} duplicadas` +
-            (linhasSaldo > 0 ? ` · ${linhasSaldo} linha(s) de saldo` : "")
-        );
+        // O veredito detalhado por arquivo mora na lista da tela; o toast é só o aviso.
+        toast.success(`${file.name}: ${cont.resumo()}`);
       }
     } catch (e) {
       console.error("[ExtratoImportacao] falha ao processar", file.name, e);
