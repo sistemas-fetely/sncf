@@ -426,6 +426,7 @@ function AbaB2B() {
   const estadoCarteira = useMemo(() => {
     let aReceber = 0;
     let aReceberQtd = 0;
+    let aReceberSemData = 0;
     let garantido = 0;
     let garantidoQtd = 0;
     let semInstrumento = 0;
@@ -447,6 +448,7 @@ function AbaB2B() {
       if (t.estado_em_aberto !== true) continue;
       aReceber += v;
       aReceberQtd += 1;
+      if (t.data_vencimento_vigente == null) aReceberSemData += v;
 
       const inst = t.eixo_instrumento ?? "";
       if (INSTRUMENTO_GARANTIDO.includes(inst)) {
@@ -476,6 +478,7 @@ function AbaB2B() {
     return {
       aReceber,
       aReceberQtd,
+      aReceberSemData,
       garantido,
       garantidoQtd,
       semInstrumento,
@@ -929,6 +932,11 @@ function AbaB2B() {
             <p className="text-xs text-muted-foreground tabular-nums">
               {estadoCarteira.aReceberQtd} títulos em aberto
             </p>
+            {estadoCarteira.aReceberSemData > 0 && (
+              <p className="text-xs text-muted-foreground tabular-nums">
+                dos quais {formatBRL(estadoCarteira.aReceberSemData)} sem data de vencimento
+              </p>
+            )}
           </CardContent>
         </Card>
 
