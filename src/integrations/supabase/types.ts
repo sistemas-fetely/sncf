@@ -62372,14 +62372,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -63087,14 +63087,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -64466,14 +64466,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -66188,6 +66188,7 @@ export type Database = {
       }
       vw_pedido_nf_arquivo: {
         Row: {
+          bling_id: string | null
           chave_acesso: string | null
           data_emissao: string | null
           estado: string | null
@@ -66195,6 +66196,7 @@ export type Database = {
           numero: string | null
           pdf_url: string | null
           pedido_id: string | null
+          pode_baixar: boolean | null
           serie: string | null
           tem_pdf: boolean | null
           tem_xml: boolean | null
@@ -76276,6 +76278,10 @@ export type Database = {
       }
       fn_pedido_gera_titulo: { Args: { p_pedido_id: string }; Returns: boolean }
       fn_pedido_natureza_alerta: {
+        Args: { p_pedido_id: string }
+        Returns: Json
+      }
+      fn_pedido_portao_liberado: {
         Args: { p_pedido_id: string }
         Returns: Json
       }
