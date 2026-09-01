@@ -37,18 +37,7 @@ import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import * as XLSX from "xlsx";
 import { useNivel } from "@/hooks/useNivel";
 
-import {
-  BadgeProva,
-  BadgeStatus,
-  PROVAS,
-  PROVA_FORA_KPI,
-  PROVA_META,
-  STATUS_EIXOS,
-  STATUS_FORA_KPI,
-  STATUS_META,
-  type EixoProva,
-  type EixoStatus,
-} from "@/lib/financeiro/eixos-estado";
+
 
 
 
