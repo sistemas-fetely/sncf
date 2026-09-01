@@ -10,6 +10,8 @@ import BancoSafra from "@/pages/administrativo/BancoSafra";
 import PrimeiroPagamentoTab from "@/pages/Credito/PrimeiroPagamentoTab";
 import TitulosTab from "@/pages/Credito/TitulosTab";
 import ReguaTab from "@/pages/Credito/ReguaTab";
+import SemProvaTab from "@/pages/Credito/SemProvaTab";
+
 import AdiantamentoSemNfTab from "@/pages/Credito/AdiantamentoSemNfTab";
 import MesaCobranca, { FILAS_AGIR_AGORA } from "@/pages/Credito/MesaCobranca";
 import { useAdiantamentoSemNf } from "@/hooks/credito/useAdiantamentoSemNf";
