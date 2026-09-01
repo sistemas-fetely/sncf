@@ -60,6 +60,8 @@ type Importacao = {
   linhas_novas: number | null;
   linhas_enriquecidas: number | null;
   linhas_duplicadas: number | null;
+  linhas_ignoradas: number | null;
+  ignoradas_detalhe: Record<string, number> | null;
   divergencia_saldo: number | null;
   erro_detalhe: string | null;
   created_at: string;
