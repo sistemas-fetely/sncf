@@ -444,13 +444,21 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
+  // Linha PIX sem QR emitido é a ação mais próxima: o instrumento vive na linha do plano.
+  const temPixPendente = linhas.some(
+    (l) => l.tipo_pagamento === "pix" && !l.pix_txid && !l.pago,
+  );
+
   const acaoPrimaria: { label: string; onClick: () => void } = linhas.length === 0
     ? { label: "Montar plano", onClick: () => navigate(`/recebimento/cobranca/${pedido.id}?refazer=1`) }
     : !temInstrumento
-      ? { label: "Cadastrar link de pagamento", onClick: () => scrollPara(linkCardRef) }
+      ? temPixPendente
+        ? { label: "Gerar QR PIX", onClick: () => scrollPara(planoCardRef) }
+        : { label: "Cadastrar link de pagamento", onClick: () => scrollPara(linkCardRef) }
       : !enviadoAoCliente
         ? { label: "Enviar cobrança", onClick: () => scrollPara(comunicacaoRef) }
         : { label: "Reenviar cobrança", onClick: () => scrollPara(comunicacaoRef) };
+
 
   function refazerPlano() {
     if (emCobranca) {
