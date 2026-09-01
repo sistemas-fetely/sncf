@@ -1053,10 +1053,16 @@ export default function ExtratoImportacao() {
 
         respRetorno = resp;
         if (resp?.ja_processado) {
-          // Sequencial repetido: o arquivo inteiro é duplicata declarada.
-          const lidas = resp?.ocorrencias_arquivo ?? resp?.ocorrencias_gravadas ?? 0;
-          cont.ler(lidas);
-          cont.duplicada(lidas);
+          // ZERO-NAO-E-CONTA-FECHADA (01/09/2026): a edge, no caminho
+          // `ja_processado`, devolve só `nro_sequencial` e `processado_em` —
+          // não devolve o total de ocorrências do arquivo. Ler 0 e conciliar 0
+          // fecharia a conta trivialmente e pintaria verde sem ter contado
+          // nada. Falha visível, como manda o FAIL-LOUD.
+          throw new Error(
+            `Retorno ${resp.nro_sequencial} já processado em ${resp.processado_em}. ` +
+              `Nada foi reaplicado — e a RPC não informa o total de ocorrências do arquivo, ` +
+              `então a contagem não pode ser conferida.`
+          );
         } else {
           cont.ler(resp?.ocorrencias_gravadas ?? 0);
           cont.nova(resp?.ocorrencias_gravadas ?? 0);
