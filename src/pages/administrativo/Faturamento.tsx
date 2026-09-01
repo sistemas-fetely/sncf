@@ -627,8 +627,9 @@ function somarLinhas(rows: LinhaBase[], componente: Componente) {
 // Aba NFs consideradas
 // ════════════════════════════════════════════════
 type NfCol =
-  | "nf_ref" | "data_emissao" | "cliente" | "unidades" | "receita"
-  | "cmv_pct" | "icms_pct" | "margem_bruta_pct" | "resultado" | "resultado_pct";
+  | "nf_ref" | "data_emissao" | "cliente" | "uf" | "canal" | "cfop"
+  | "unidades" | "receita" | "cmv_pct" | "icms_pct" | "margem_bruta_pct"
+  | "resultado" | "resultado_pct";
 
 function AbaNfs({
   rows, isLoading, isError, error, canalOk, componente, mes, onPedido,
@@ -659,6 +660,9 @@ function AbaNfs({
         case "nf_ref": return x.r.nf_ref;
         case "data_emissao": return x.r.data_emissao;
         case "cliente": return x.r.cliente;
+        case "uf": return x.r.uf;
+        case "canal": return x.r.canal;
+        case "cfop": return x.r.cfops;
         case "unidades": return n(x.r.unidades);
         case "receita": return x.d.receita;
         case "cmv_pct": return x.d.cmv_pct;
@@ -737,13 +741,13 @@ function AbaNfs({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>NF</TableHead>
-                  <TableHead>Data</TableHead>
+                  <SortHead col="nf_ref" label="NF" sortCol={sortCol} sortDir={sortDir} onSort={toggle} />
+                  <SortHead col="data_emissao" label="Data" sortCol={sortCol} sortDir={sortDir} onSort={toggle} />
                   <TableHead>Pedido</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>UF</TableHead>
-                  <TableHead>Canal</TableHead>
-                  <TableHead>CFOP</TableHead>
+                  <SortHead col="cliente" label="Cliente" sortCol={sortCol} sortDir={sortDir} onSort={toggle} />
+                  <SortHead col="uf" label="UF" sortCol={sortCol} sortDir={sortDir} onSort={toggle} />
+                  <SortHead col="canal" label="Canal" sortCol={sortCol} sortDir={sortDir} onSort={toggle} />
+                  <SortHead col="cfop" label="CFOP" sortCol={sortCol} sortDir={sortDir} onSort={toggle} />
                   <SortHead col="unidades" label="Unidades" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
                   <SortHead col="receita" label="Receita" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
                   <SortHead col="cmv_pct" label="CMV %" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
