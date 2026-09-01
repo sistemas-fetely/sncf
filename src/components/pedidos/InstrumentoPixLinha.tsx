@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { QRCodeCanvas, QRCodeSVG } from "qrcode.react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { useGerarPixLinha } from "@/hooks/pedidos/useGerarPixLinha";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -81,33 +82,16 @@ export function InstrumentoPixLinha({
 
   const ehPix = tipoPagamento === "pix";
 
-  const gerar = useMutation({
-    mutationFn: async () => {
-      const fn = origem === "provisao" ? "gerar_pix_provisao" : "gerar_pix_titulo";
-      const args = origem === "provisao" ? { p_provisao_id: linhaId } : { p_titulo_id: linhaId };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any).rpc(fn, args);
-      // FAIL-LOUD: a mensagem do Postgres explica exatamente o que está errado.
-      if (error) throw new Error(error.message || formatError(error));
-      return data as PixGerado;
-    },
-    onSuccess: (data) => {
-      setGerado(data ?? null);
-      toast({
-        title: "QR Code PIX gerado",
-        description: `Identificador no extrato: ${data?.txid ?? "—"}`,
-      });
-      qc.invalidateQueries({ queryKey: ["linhas-cobranca-pedido", pedidoId] });
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedidoId] });
-    },
-    onError: (e: unknown) => {
-      toast({
-        title: "Não foi possível gerar o PIX",
-        description: e instanceof Error ? e.message : formatError(e),
-        variant: "destructive",
-      });
-    },
-  });
+  const gerarBase = useGerarPixLinha(pedidoId);
+  // Mesma mutation do rodapé da Cobrança — aqui só espelha o retorno no estado local.
+  const gerar = {
+    ...gerarBase,
+    mutate: () =>
+      gerarBase.mutate(
+        { linhaId, origem },
+        { onSuccess: (data) => setGerado(data ?? null) },
+      ),
+  };
 
   const payload = gerado?.payload ?? linkPagamento ?? null;
   const txid = gerado?.txid ?? pixTxid ?? null;
