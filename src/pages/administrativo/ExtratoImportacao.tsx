@@ -201,6 +201,9 @@ const PARSER_ROTULO: Partial<Record<Fonte, string>> = {
   safrapay_ajustes: "SafraPay Tipo 3 - Ajustes",
   super_agenda: "SafraPay SUPER AGENDA (não importável)",
   retorno_safra: "Retorno CNAB 400 Safra (cobrança)",
+  safra_pix_lancamentos: "Safra Lançamentos e Devoluções (PIX)",
+  safrapay_agenda_vendas: "SafraPay Agenda de Vendas (não importável)",
+  safrapay_recebiveis_vendas: "SafraPay Recebíveis de Vendas (não importável)",
 };
 
 /**
@@ -214,6 +217,11 @@ const PARSER_ROTULO: Partial<Record<Fonte, string>> = {
 const PARSER_EFEITO: Record<Fonte, string> = {
   ofx: "Extrato oficial — cria as movimentações bancárias do período.",
   safra_lancamentos: "Extrato Safra — cria as movimentações bancárias do período.",
+  safra_pix_lancamentos:
+    "PIX enviados e recebidos — enriquece a linha do extrato com pedido e pagador. Nunca cria movimentação.",
+  safrapay_agenda_vendas: FONTE_REDUNDANTE.safrapay_agenda_vendas!,
+  safrapay_recebiveis_vendas: FONTE_REDUNDANTE.safrapay_recebiveis_vendas!,
+
   mp_withdraw: "Retiradas Mercado Pago — cria a transferência quando não há par no extrato.",
   safrapay_vendas: "Vendas SafraPay — agenda de recebíveis; o dinheiro entra pelo OFX.",
   safrapay_liquidacao: "Liquidação SafraPay — enriquece a linha do extrato que já existe.",
