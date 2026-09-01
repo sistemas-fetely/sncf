@@ -741,13 +741,13 @@ function AbaNfs({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>NF</TableHead>
-                  <TableHead>Data</TableHead>
+                  <SortHead col="nf_ref" label="NF" sortCol={sortCol} sortDir={sortDir} onSort={toggle} />
+                  <SortHead col="data_emissao" label="Data" sortCol={sortCol} sortDir={sortDir} onSort={toggle} />
                   <TableHead>Pedido</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>UF</TableHead>
-                  <TableHead>Canal</TableHead>
-                  <TableHead>CFOP</TableHead>
+                  <SortHead col="cliente" label="Cliente" sortCol={sortCol} sortDir={sortDir} onSort={toggle} />
+                  <SortHead col="uf" label="UF" sortCol={sortCol} sortDir={sortDir} onSort={toggle} />
+                  <SortHead col="canal" label="Canal" sortCol={sortCol} sortDir={sortDir} onSort={toggle} />
+                  <SortHead col="cfop" label="CFOP" sortCol={sortCol} sortDir={sortDir} onSort={toggle} />
                   <SortHead col="unidades" label="Unidades" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
                   <SortHead col="receita" label="Receita" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
                   <SortHead col="cmv_pct" label="CMV %" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
