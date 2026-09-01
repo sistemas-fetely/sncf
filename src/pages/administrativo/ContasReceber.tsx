@@ -1339,7 +1339,14 @@ function AbaB2B() {
                     sort={sort}
                     setSort={setSort}
                   />
-                  <SortTh label="Desvio" sortKey="desvio_registro_dias" sort={sort} setSort={setSort} />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <SortTh label="Banco moveu" sortKey="desvio_registro_dias" sort={sort} setSort={setSort} />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Dias que o boleto registrado no banco deslocou o vencimento definido pela NF.
+                    </TooltipContent>
+                  </Tooltip>
                   <SortTh
                     label="Valor"
                     sortKey="valor_efetivo"
@@ -1424,12 +1431,12 @@ function AbaB2B() {
                               </TableCell>
                               <TableCell
                                 className={
-                                  g.desvioMax != null && Math.abs(g.desvioMax) > 15
+                                  g.desvioAlerta
                                     ? "text-sm tabular-nums text-warning"
                                     : "text-sm tabular-nums"
                                 }
                               >
-                                {fmtDesvio(g.desvioMax)}
+                                {g.desvioTexto ?? ""}
                               </TableCell>
                               <TableCell className="text-right font-medium tabular-nums">
                                 {formatBRL(g.total)}
