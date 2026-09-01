@@ -1125,6 +1125,8 @@ function AbaB2B() {
         <CardContent className="space-y-4 p-4">
           <div className="flex flex-wrap items-center gap-4">
             <AtalhosPeriodo
+              de={dataDe}
+              ate={dataAte}
               onPick={(de, ate) => {
                 setDataDe(de);
                 setDataAte(ate);
