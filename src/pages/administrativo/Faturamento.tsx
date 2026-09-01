@@ -660,6 +660,9 @@ function AbaNfs({
         case "nf_ref": return x.r.nf_ref;
         case "data_emissao": return x.r.data_emissao;
         case "cliente": return x.r.cliente;
+        case "uf": return x.r.uf;
+        case "canal": return x.r.canal;
+        case "cfop": return x.r.cfops;
         case "unidades": return n(x.r.unidades);
         case "receita": return x.d.receita;
         case "cmv_pct": return x.d.cmv_pct;
