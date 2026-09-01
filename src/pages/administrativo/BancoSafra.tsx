@@ -739,7 +739,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
             {
               p_titulo_id: b.id,
               p_nova_data: sugestoes[b.id].data,
-              p_motivo: "Sugestão de vencimento aplicada em lote (NF + condição do pedido)",
+              p_motivo: "Sugestão de vencimento aplicada em lote (cronograma: duplicata da NF)",
             },
           );
           if (error) throw error;
