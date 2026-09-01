@@ -342,12 +342,10 @@ export default function ExtratoImportacao() {
 
 
     try {
-      let linhasLidas = 0;
-      let novas = 0;
-      let enriquecidas = 0;
-      let duplicadas = 0;
-      let linhasSaldo = 0;
-      let semPar = 0;
+      // CONTA-FECHADA-OU-ERRO: toda linha lida cai em novas, duplicadas ou
+      // ignoradas — e ignorada sempre declara motivo. Ver contagem-importacao.ts.
+      const cont = new ContagemImportacao();
+      trilha.contagem = cont;
       let periodoInicio: string | null = null;
       let periodoFim: string | null = null;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
