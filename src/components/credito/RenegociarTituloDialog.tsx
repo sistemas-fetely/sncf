@@ -283,17 +283,49 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
   const pendente = mutation.isPending || mutationReemitir.isPending;
 
   if (resultado) {
+    const temPix = (resultado.instrumentos ?? []).length > 0;
     return (
       <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
         <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Renegociação concluída</DialogTitle>
+            <DialogTitle>
+              {resultado.boletoABaixar
+                ? "Títulos novos criados — falta baixar o boleto antigo"
+                : "Renegociação concluída"}
+            </DialogTitle>
             <DialogDescription>
-              {resultado.filhos?.length ?? 0} título(s) criado(s) · envie o PIX abaixo ao cliente.
+              {resultado.filhos?.length ?? 0} título(s) criado(s)
+              {temPix ? " · envie o PIX abaixo ao cliente." : "."}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
+            {resultado.boletoABaixar && (
+              <Alert className="border-warning/40 bg-warning/10">
+                <AlertDescription className="text-xs text-warning space-y-1">
+                  <p className="font-medium">
+                    Próximo passo — o boleto antigo ainda está pagável no Safra
+                  </p>
+                  <p>1. Gerar a remessa de baixa na tela do Banco Safra.</p>
+                  <p>2. Subir o arquivo gerado no SafraNet.</p>
+                  <p>3. Conferir o retorno (ocorrência 10 — título baixado).</p>
+                  <p>
+                    Até o passo 3, o cliente tem dois boletos vivos para a mesma dívida.
+                  </p>
+                  <Button
+                    size="sm"
+                    className="mt-1"
+                    onClick={() => {
+                      onClose();
+                      navigate("/administrativo/banco-safra");
+                    }}
+                  >
+                    Ir gerar a remessa de baixa
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+
             {(resultado.instrumentos ?? []).map((inst, i) => (
               <InstrumentoPixBloco key={inst.token ?? inst.txid ?? i} inst={inst} />
             ))}
@@ -306,6 +338,7 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
       </Dialog>
     );
   }
+
 
   return (
     <>
