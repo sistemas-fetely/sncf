@@ -242,14 +242,18 @@ serve(async (req) => {
       const totais = resultados.reduce((acc, r) => ({
         criados: acc.criados + (r.criados || 0),
         atualizados: acc.atualizados + (r.atualizados || 0),
-        erros: acc.erros + (r.erros || 0),
+        erros: acc.erros + (r.erros || 0) + (r.entradasComErro || 0),
       }), { criados: 0, atualizados: 0, erros: 0 });
 
       const algumNaoFinalizou = resultados.some((r) => !r.finalizada);
       const statusFinal = totais.erros > 0 ? "parcial" : algumNaoFinalizou ? "parcial" : "sucesso";
-      const detalhe = resultados.map((r) =>
-        `${r.entidade}: ${r.criados}n/${r.atualizados}a/${r.erros}e${r.finalizada ? "" : "↪"}${r.ultimoErro ? ` [ERR: ${String(r.ultimoErro).slice(0, 120)}]` : ""}`
-      ).join(" | ");
+      const detalhe = resultados.map((r) => {
+        const base = `${r.entidade}: ${r.criados}n/${r.atualizados}a/${r.erros}e${r.finalizada ? "" : "↪"}${r.ultimoErro ? ` [ERR: ${String(r.ultimoErro).slice(0, 120)}]` : ""}`;
+        // FAIL-LOUD: a varredura de NF de entrada pode explodir inteira sem deixar rastro.
+        // Enquanto os contadores nao apareciam aqui, ela ficou 3 dias quebrada sem alarme.
+        if (r.entradasEncontradas === undefined) return base;
+        return `${base} | entrada: ${r.entradasEncontradas}f/${r.entradasGravadas}g/${r.entradasComReferencia}ref/${r.entradasComErro}e`;
+      }).join(" | ");
 
       if (logId) await supabase.from("integracoes_sync_log").update({
         status: statusFinal,

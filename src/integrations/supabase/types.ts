@@ -76133,6 +76133,7 @@ export type Database = {
       }
       fn_nf_itens_hash: { Args: { p_itens: Json }; Returns: string }
       fn_nf_pos_rateio: { Args: { p_nf_id: number }; Returns: Json }
+      fn_nfs_stage_inserir_entrada: { Args: { p_linha: Json }; Returns: Json }
       fn_norm_texto: { Args: { p_texto: string }; Returns: string }
       fn_norm_vendedor: { Args: { p_txt: string }; Returns: string }
       fn_normaliza_vendedor: { Args: { p_texto: string }; Returns: string }

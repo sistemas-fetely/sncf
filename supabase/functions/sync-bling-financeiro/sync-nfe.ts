@@ -437,12 +437,12 @@ async function syncNfeEntradas(
           tem_xml_obrigatorio: true,
         };
 
-        // Reprocessar nao pode duplicar nem sobrescrever trabalho humano na linha.
-        const { error: upErr } = await supabase
-          .from("nfs_stage")
-          .upsert(linha, { onConflict: "nf_chave_acesso", ignoreDuplicates: true });
-        if (upErr) throw new Error("UPSERT nfs_stage: " + upErr.message);
-        gravadas++;
+        // ON CONFLICT do PostgREST nao infere indice parcial (42P10). A RPC repete o
+        // predicado de uniq_nfs_stage_chave_ativa e e idempotente por construcao.
+        const { data: rpcOut, error: upErr } = await supabase
+          .rpc("fn_nfs_stage_inserir_entrada", { p_linha: linha });
+        if (upErr) throw new Error("fn_nfs_stage_inserir_entrada: " + upErr.message);
+        if (rpcOut?.acao === "criada") gravadas++;
         // trg_stage_sugere_devolucao dispara sozinho para linhas com nf_referenciada_chave.
       } catch (e) {
         comErro++;
