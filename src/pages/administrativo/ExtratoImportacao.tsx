@@ -1145,7 +1145,7 @@ export default function ExtratoImportacao() {
       // O toast diz a conta E o efeito: contagem não responde "o que este
       // arquivo faz". O veredito detalhado por arquivo mora na lista da tela.
       if (fonte === "retorno_safra") {
-        // `ja_processado` não chega aqui: aborta antes, com erro visível.
+        // `ja_processado` não chega aqui: fecha antes, em tom neutro.
         const msgRetorno =
           `${PARSER_ROTULO.retorno_safra} — ${file.name}: sequencial ${respRetorno?.nro_sequencial} · ` +
           `${respRetorno?.ocorrencias_gravadas} ocorrência(s) registradas · ` +
