@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { QRCodeCanvas, QRCodeSVG } from "qrcode.react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { useGerarPixLinha } from "@/hooks/pedidos/useGerarPixLinha";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
