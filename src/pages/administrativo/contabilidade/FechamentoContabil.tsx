@@ -43,6 +43,8 @@ interface Competencia {
   status: StatusComp;
   unidades: number;
   valor_custo: number;
+  valor_custo_nf: number | null;
+  icms_excluido: number | null;
   skus: number;
   fechado_em: string | null;
   obs: string | null;
@@ -66,6 +68,12 @@ interface LinhaPosicao {
   quantidade: number;
   custo_unitario: number;
   valor_total: number;
+  custo_nf_unitario: number | null;
+  valor_nf_total: number | null;
+  icms_aliq: number | null;
+  ipi_aliq: number | null;
+  valor_unit_nf: number | null;
+  delta_icms: number | null;
   fonte: "snapshot" | "calculado";
 }
 
@@ -79,6 +87,13 @@ const fmtUn = (v: number | null | undefined) =>
 
 const fmtUnit = (v: number | null | undefined) =>
   Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+
+/** Alíquota vem como fração (0.0675) — exibida como 6,75%. */
+const fmtAliq = (v: number | null | undefined) =>
+  v == null ? "—" : `${(Number(v) * 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+
+const num = (v: unknown) => Number(v || 0);
+
 
 const SELO_STATUS: Record<StatusComp, { estado: EstadoSelo; texto: string }> = {
   fechado: { estado: "success", texto: "Fechado" },
