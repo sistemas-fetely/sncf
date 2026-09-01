@@ -1113,12 +1113,6 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                   (() => {
                     const valorAtual = edits[b.id]?.data ?? b.data_vencimento_atual ?? "";
                     const sug = sugestoes[b.id];
-                    const dias = (() => {
-                      const m = (b.pedido?.condicao_solicitada || "").match(/\d+(?:\s*\/\s*\d+)+/);
-                      if (!m) return null;
-                      const arr = m[0].split("/").map((x) => x.trim());
-                      return arr[(b.numero_parcela ?? 1) - 1] ?? null;
-                    })();
                     return (
                       <div className="space-y-1">
                         <Input
@@ -1129,28 +1123,35 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                             setEdits((p) => ({ ...p, [b.id]: { ...p[b.id], data: e.target.value } }))
                           }
                         />
-                        {sug && sug !== valorAtual && (
+                        {sug && sug.data !== valorAtual && !sug.viavel && (
+                          <div className="flex items-center gap-1 text-[11px] text-destructive">
+                            <AlertCircle className="h-3 w-3 shrink-0" />
+                            <span>
+                              Vencimento da NF ({formatDateBR(sug.data)?.slice(0, 5)}) já passou —
+                              precisa de decisão
+                            </span>
+                          </div>
+                        )}
+                        {sug && sug.data !== valorAtual && sug.viavel && (
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <button
                                   type="button"
                                   onClick={() =>
-                                    setEdits((p) => ({ ...p, [b.id]: { ...p[b.id], data: sug } }))
+                                    setEdits((p) => ({ ...p, [b.id]: { ...p[b.id], data: sug.data } }))
                                   }
                                   className="text-[11px] text-muted-foreground hover:text-foreground hover:underline"
                                 >
-                                  {(b.numero_parcela ?? 1) > 1
-                                    ? `P1 ${formatDateBR(ancoraPorPedido[b.pedido?.id_externo ?? ""] ?? null)?.slice(0, 5) ?? "—"}`
-                                    : `Fat ${formatDateBR(dataFaturamentoIso(b.pedido?.faturado_em))?.slice(0, 5) || "—"}`}
-                                  {dias ? ` +${dias}d` : ""} → {formatDateBR(sug)?.slice(0, 5)} ·{" "}
+                                  {sug.fonte === "duplicata_nf" ? "Data da NF" : "Sugestão"} →{" "}
+                                  {formatDateBR(sug.data)?.slice(0, 5)} ·{" "}
                                   <span className="font-medium underline">usar</span>
                                 </button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                {(b.numero_parcela ?? 1) > 1
-                                  ? `Intervalo comercial contado a partir do vencimento da parcela 1`
-                                  : `Faturamento (${formatDateBR(dataFaturamentoIso(b.pedido?.faturado_em))?.slice(0, 5)}) + dias da condição, nunca antes de faturamento + 7 dias`}
+                                {sug.fonte === "duplicata_nf"
+                                  ? "Data lida da duplicata da NF — é a que o cliente vê no documento fiscal"
+                                  : "Calculada pela função do banco (NF sem duplicata)"}
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
