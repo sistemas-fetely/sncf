@@ -338,7 +338,18 @@ function AbaB2B() {
   const { data, isLoading } = useQuery({
     queryKey: ["recebivel-gestao"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      /* View de gestão ainda não tipada no client gerado. */
+      const cliente = supabase as unknown as {
+        from: (tabela: string) => {
+          select: (cols: string) => {
+            order: (
+              col: string,
+              opts: { ascending: boolean }
+            ) => Promise<{ data: unknown; error: { message: string } | null }>;
+          };
+        };
+      };
+      const { data, error } = await cliente
         .from("vw_recebivel_gestao")
         .select("*")
         .order("data_vencimento", { ascending: true });
