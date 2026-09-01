@@ -253,8 +253,11 @@ for (const nf of items) {
       numero_pedido_loja:        numeroPedidoLojaRaw ?? existing?.numero_pedido_loja ?? null,
       bling_pedido_venda_numero: pedidoVendaNumeroRaw ?? existing?.bling_pedido_venda_numero ?? null,
       bling_pedido_venda_id:     pedidoVendaBlingIdRaw ?? existing?.bling_pedido_venda_id ?? null,
+      duplicatas:                nf._duplicatas ?? existing?.duplicatas ?? null,
+      duplicatas_sync_em:        nf._duplicatasSyncEm ?? existing?.duplicatas_sync_em ?? null,
     };
     if (pedido_venda_id) registro.pedido_venda_id = pedido_venda_id;
+
     if (vinculoNovo) {
       registro.vinculo_origem = 'bling';
       registro.vinculo_em = new Date().toISOString();
