@@ -8,8 +8,15 @@
  * Arquivo com erro fica em destaque e não desaparece sozinho.
  */
 
-import { FileText, CheckCircle2, AlertTriangle } from "lucide-react";
+import { FileText, CheckCircle2, AlertTriangle, Info } from "lucide-react";
 import { MOTIVO_ROTULO, type MotivoDescarte } from "@/lib/financeiro/contagem-importacao";
+
+/**
+ * Três estados, não dois. "neutro" é o sucesso idempotente: o arquivo já tinha
+ * sido processado e nada foi lido nem reaplicado. Não é verde (não entrou nada)
+ * nem vermelho (não falhou nada).
+ */
+export type TomVeredito = "ok" | "neutro" | "erro";
 
 export interface VereditoArquivo {
   arquivo: string;
@@ -17,13 +24,18 @@ export interface VereditoArquivo {
   /** Frase curta do EFEITO do arquivo — o que ele faz, além da conta fechar. */
   efeito?: string;
   resultado: string;
-  ok: boolean;
+  tom: TomVeredito;
   contagem?: string;
   ignoradas?: Record<string, number>;
 }
 
+/** Motivos que não são descarte de linha, e sim de arquivo inteiro. */
+const MOTIVO_EXTRA: Record<string, string> = {
+  arquivo_ja_processado: "Arquivo já processado (nada foi lido)",
+};
+
 function rotuloMotivo(k: string) {
-  return MOTIVO_ROTULO[k as MotivoDescarte] ?? k;
+  return MOTIVO_ROTULO[k as MotivoDescarte] ?? MOTIVO_EXTRA[k] ?? k;
 }
 
 export function VereditoImportacao({ itens }: { itens: VereditoArquivo[] }) {
@@ -38,16 +50,20 @@ export function VereditoImportacao({ itens }: { itens: VereditoArquivo[] }) {
           <div
             key={`${r.arquivo}-${i}`}
             className={
-              r.ok
-                ? "px-3 py-2 space-y-1"
-                : "px-3 py-2 space-y-1 bg-destructive/10 border-l-2 border-destructive"
+              r.tom === "erro"
+                ? "px-3 py-2 space-y-1 bg-destructive/10 border-l-2 border-destructive"
+                : r.tom === "neutro"
+                  ? "px-3 py-2 space-y-1 bg-muted/50 border-l-2 border-muted-foreground/40"
+                  : "px-3 py-2 space-y-1"
             }
           >
             <div className="flex items-center gap-2">
-              {r.ok ? (
-                <CheckCircle2 className="h-3 w-3 shrink-0 text-success" />
-              ) : (
+              {r.tom === "erro" ? (
                 <AlertTriangle className="h-3 w-3 shrink-0 text-destructive" />
+              ) : r.tom === "neutro" ? (
+                <Info className="h-3 w-3 shrink-0 text-muted-foreground" />
+              ) : (
+                <CheckCircle2 className="h-3 w-3 shrink-0 text-success" />
               )}
               <FileText className="h-3 w-3 shrink-0" />
               <span className="font-medium">{r.arquivo}</span>
@@ -56,7 +72,11 @@ export function VereditoImportacao({ itens }: { itens: VereditoArquivo[] }) {
 
             {r.efeito && <div className="text-muted-foreground italic">{r.efeito}</div>}
 
-            <div className={r.ok ? "text-muted-foreground" : "text-destructive font-medium"}>
+            <div
+              className={
+                r.tom === "erro" ? "text-destructive font-medium" : "text-muted-foreground"
+              }
+            >
               {r.resultado}
             </div>
 
