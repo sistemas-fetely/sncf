@@ -668,28 +668,63 @@ function AbaB2B() {
       if (arr) arr.push(t);
       else mapa.set(chave, [t]);
     }
-    const maisFrequente = <K,>(valores: K[]): K => {
-      const c = new Map<K, number>();
-      for (const v of valores) c.set(v, (c.get(v) ?? 0) + 1);
-      let melhor = valores[0];
-      let qtd = -1;
-      for (const [v, n] of c) if (n > qtd) { melhor = v; qtd = n; }
-      return melhor;
-    };
     return Array.from(mapa.entries()).map(([chave, titulos]) => {
       const primeiro = titulos[0];
       const vencimentos = titulos
         .filter((t) => t.estado_em_aberto === true && t.data_vencimento_vigente)
         .map((t) => t.data_vencimento_vigente as string)
         .sort();
+
+      // PIOR-ESTADO-VENCE: o grupo vale pelo membro mais grave, nunca pela moda.
       const estadosDistintos = new Set(titulos.map((t) => t.estado_rotulo));
-      const estadoPrevalente = maisFrequente(
-        titulos.map((t) => ({ rotulo: t.estado_rotulo, cor: t.estado_cor })).map((e) => JSON.stringify(e))
+      const misto = estadosDistintos.size > 1;
+      const inadimplente = titulos.find((t) => t.eh_inadimplente === true);
+      const vencido = titulos.find(
+        (t) =>
+          t.estado_em_aberto === true &&
+          t.data_vencimento_vigente != null &&
+          t.data_vencimento_vigente < hojeIso
       );
-      const estado = JSON.parse(estadoPrevalente) as { rotulo: string | null; cor: string | null };
+      const aberto = titulos.find((t) => t.estado_em_aberto === true);
+      const fechados = titulos.filter((t) => t.estado_em_aberto !== true);
+      const recenteFechado =
+        fechados.length > 0
+          ? [...fechados].sort((a, b) => {
+              const da =
+                a.data_recebimento_efetiva ||
+                a.data_pagamento_banco ||
+                a.data_pagamento ||
+                a.data_vencimento_vigente ||
+                "";
+              const db =
+                b.data_recebimento_efetiva ||
+                b.data_pagamento_banco ||
+                b.data_pagamento ||
+                b.data_vencimento_vigente ||
+                "";
+              return db.localeCompare(da);
+            })[0]
+          : null;
+      const escolhido = inadimplente || vencido || aberto || recenteFechado || primeiro;
+      const estadoRotulo = escolhido.estado_rotulo ?? null;
+      const estadoCor = escolhido.estado_cor ?? null;
+
       const desvios = titulos
         .map((t) => t.desvio_registro_dias)
         .filter((d): d is number => d != null);
+      const desvioAlerta = desvios.some((d) => Math.abs(d) > 15);
+      const signedDesvio = (d: number) =>
+        `${d > 0 ? "+" : d < 0 ? "−" : ""}${Math.abs(d)}d`;
+      const desvioTexto = (() => {
+        if (desvios.length === 0) return null;
+        const unicos = Array.from(new Set(desvios));
+        if (unicos.length === 1 && unicos[0] === 0) return null;
+        if (unicos.length === 1) return fmtDesvio(unicos[0]);
+        const min = Math.min(...desvios);
+        const max = Math.max(...desvios);
+        return `${signedDesvio(min)} a ${signedDesvio(max)}`;
+      })();
+
       return {
         chave,
         titulos,
@@ -704,20 +739,18 @@ function AbaB2B() {
         ),
         rotuloData: primeiro.carteira_rotulo_data,
         proximoVencimento: vencimentos[0] ?? null,
-        desvioMax:
-          desvios.length > 0
-            ? desvios.reduce((a, b) => (Math.abs(b) > Math.abs(a) ? b : a), desvios[0])
-            : null,
+        desvioTexto,
+        desvioAlerta,
         total: titulos.reduce((s, t) => s + efetivoDe(t), 0),
-        estadoRotulo: estado.rotulo,
-        estadoCor: estado.cor,
-        misto: estadosDistintos.size > 1,
+        estadoRotulo,
+        estadoCor,
+        misto,
         ocultos: Math.max(0, (universo.get(chave)?.n ?? titulos.length) - titulos.length),
         totalUniverso:
           universo.get(chave)?.total ?? titulos.reduce((s, t) => s + efetivoDe(t), 0),
       };
     });
-  }, [filtrados, data]);
+  }, [filtrados, data, hojeIso]);
 
   const [abertos, setAbertos] = useState<Set<string>>(new Set());
   const toggleGrupo = (chave: string) =>
