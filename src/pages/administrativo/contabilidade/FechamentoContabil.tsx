@@ -875,15 +875,20 @@ export default function FechamentoContabil() {
               </Selo>
             )}
             <div className="ml-auto flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="sm" onClick={exportarAterrissagem} disabled={!filtradas.length}>
+              {/* Exportação primária: independe da competência selecionada — leva todas as fechadas. */}
+              <Button variant="default" size="sm" onClick={() => void exportarEvolucaoMensal()} disabled={gerandoCfo}>
+                <FileSpreadsheet className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                {gerandoCfo ? "Gerando..." : "Exportar Evolução Mensal (CFO)"}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={exportarAterrissagem} disabled={!filtradas.length}>
                 <Download className="mr-1.5 h-4 w-4" aria-hidden="true" />
                 Exportar Aterrissagem
               </Button>
-              <Button variant="outline" size="sm" onClick={exportarCustoNf} disabled={!filtradas.length}>
+              <Button variant="ghost" size="sm" onClick={exportarCustoNf} disabled={!filtradas.length}>
                 <Download className="mr-1.5 h-4 w-4" aria-hidden="true" />
                 Exportar Custo NF
               </Button>
-              <Button variant="outline" size="sm" onClick={exportarComparativo} disabled={!filtradas.length}>
+              <Button variant="ghost" size="sm" onClick={exportarComparativo} disabled={!filtradas.length}>
                 <Download className="mr-1.5 h-4 w-4" aria-hidden="true" />
                 Exportar Comparativo
               </Button>
