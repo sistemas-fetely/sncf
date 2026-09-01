@@ -40,6 +40,8 @@ interface Props {
   exige_portao?: boolean;
   /** Se falso, a natureza de operação não gera título — cobrança e histórico ficam ocultos. */
   gera_titulo_receber?: boolean;
+  /** Permite que a página dispare o envio de fora (ex.: botão do rodapé). */
+  acaoRef?: React.MutableRefObject<{ abrirEnvio: (tipo: TipoEmail) => void } | null>;
 }
 
 const TIPO_LABEL: Record<TipoEmail, { btn: string; title: string; desc: string }> = {
