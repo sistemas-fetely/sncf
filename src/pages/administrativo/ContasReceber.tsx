@@ -620,15 +620,19 @@ function AbaB2B() {
     );
     if (sort) {
       arr = [...arr].sort((a, b) => {
-        const va = (a as any)[sort.key] ?? "";
-        const vb = (b as any)[sort.key] ?? "";
+        const campo = (t: RecebivelB2B) =>
+          (t as unknown as Record<string, string | number | boolean | null>)[sort.key] ?? "";
+        const va = campo(a);
+        const vb = campo(b);
         if (typeof va === "string" && typeof vb === "string") {
           return sort.dir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
         }
         if (typeof va === "number" && typeof vb === "number") {
           return sort.dir === "asc" ? va - vb : vb - va;
         }
-        return sort.dir === "asc" ? (va > vb ? 1 : -1) : va < vb ? 1 : -1;
+        const sa = String(va);
+        const sb = String(vb);
+        return sort.dir === "asc" ? sa.localeCompare(sb) : sb.localeCompare(sa);
       });
     }
     return arr;
