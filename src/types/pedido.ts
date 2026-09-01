@@ -65,8 +65,10 @@ export const PIPELINE_PRINCIPAL: readonly EstagioPedido[] = [
   "em_analise_credito",
   "aguardando_estoque",
   "cobranca",
-  // MESA-COMERCIAL (20/08/2026): aguardando_pagamento nao tem card proprio no
-  // funil — mora na aba Mesa Comercial. Segue contando na FILA ATIVA.
+  // TODO-PEDIDO-CONTADO-TEM-CARD (01/09/2026): aguardando_pagamento voltou ao funil.
+  // Ele sempre contou na FILA ATIVA; sem card, o total não fechava e os pedidos
+  // eram inalcançáveis por clique. Quem é contado tem card.
+  "aguardando_pagamento",
   "pre_separacao",
   "em_separacao",
   "pre_faturamento",

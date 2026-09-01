@@ -1,8 +1,7 @@
 import { Suspense, lazy, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { PipelineHorizontal } from "@/components/pedidos/PipelineHorizontal";
 import { FilaPedidosPorArea } from "@/components/pedidos/FilaPedidosPorArea";
 import { PainelDashPedidos } from "@/components/pedidos/PainelDashPedidos";
@@ -11,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { type EstagioPedido } from "@/types/pedido";
 import { SolicitacoesSopsAba } from "@/components/pedidos/SolicitacoesSopsAba";
 import { useContagemSolicitacoes } from "@/hooks/pedidos/useSolicitacoesComercial";
+import { useMesaComercialContagem } from "@/hooks/pedidos/useMesaComercialContagem";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AbaPermitida, ConteudoAba, usePodeVerAba } from "@/components/AbaGate";
 
@@ -25,6 +25,7 @@ type Aba = (typeof ABAS)[number];
 
 export default function PedidosIndex() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const qc = useQueryClient();
   const estagioParam = searchParams.get("estagio") as EstagioPedido | null;
   const abaParam = searchParams.get("aba");
   const [incluirCancelados, setIncluirCancelados] = useState(false);
@@ -70,21 +71,14 @@ export default function PedidosIndex() {
 
 
 
-  // FONTE-UNICA: o contador da aba le a MESMA view/fase default da Mesa Comercial.
-  const { data: qtdMesaComercial = 0 } = useQuery({
-    queryKey: ["mesa-comercial-contagem"],
-    staleTime: 30 * 1000,
-    queryFn: async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { count, error } = await (supabase as any)
-        .from("vw_mesa_comercial")
-        .select("pedido_id", { count: "exact", head: true })
-        .eq("fase_mesa", "oportunidade");
-      if (error) throw error;
-      return count ?? 0;
-    },
-  });
-
+  // FONTE-UNICA-DA-MESA-COMERCIAL: mesmo hook do card do funil.
+  const {
+    data: mesaComercial,
+    isError: mesaErro,
+    error: mesaErroObj,
+  } = useMesaComercialContagem();
+  const qtdMesaComercial = mesaComercial?.total ?? 0;
+  const mesaErroMsg = (mesaErroObj as Error)?.message ?? "erro desconhecido";
 
   const { data: qtdSolicitacoes = 0 } = useContagemSolicitacoes();
 
@@ -96,16 +90,24 @@ export default function PedidosIndex() {
     setSearchParams(next);
   };
 
+  // O funil precisa se atualizar junto com a lista no MESMO clique.
+  const revalidarFunil = () => {
+    qc.invalidateQueries({ queryKey: ["pedidos-pipeline"] });
+    qc.invalidateQueries({ queryKey: ["mesa-comercial-contagem"] });
+  };
+
   const handlePipelineClick = (estagio: EstagioPedido) => {
     const next = new URLSearchParams(searchParams);
     next.set("estagio", estagio);
     setSearchParams(next);
+    revalidarFunil();
   };
 
   const handleLimparFiltro = () => {
     const next = new URLSearchParams(searchParams);
     next.delete("estagio");
     setSearchParams(next);
+    revalidarFunil();
   };
 
   return (
@@ -132,8 +134,17 @@ export default function PedidosIndex() {
                 à direita, salas separadas. */}
             <div className="w-px bg-border mx-1.5 self-stretch" aria-hidden />
             <AbaPermitida slug="tela.comercial">
-              <TabsTrigger value="recuperacao">
-                Mesa Comercial{qtdMesaComercial > 0 ? ` (${qtdMesaComercial})` : ""}
+              <TabsTrigger
+                value="recuperacao"
+                title={
+                  mesaErro
+                    ? `Não foi possível ler a contagem: ${mesaErroMsg}`
+                    : "Pedidos que o Comercial trabalha: aguardando pagamento + recuperação de venda."
+                }
+              >
+                {mesaErro
+                  ? "Mesa Comercial (—)"
+                  : `Mesa Comercial${qtdMesaComercial > 0 ? ` (${qtdMesaComercial})` : ""}`}
               </TabsTrigger>
             </AbaPermitida>
             <AbaPermitida slug="tela.consignado">
