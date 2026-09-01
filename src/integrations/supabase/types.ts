@@ -3524,6 +3524,7 @@ export type Database = {
       banco_recebimento: {
         Row: {
           ativo: boolean
+          conta_bancaria_id: string | null
           created_at: string
           id: string
           nome: string
@@ -3537,6 +3538,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          conta_bancaria_id?: string | null
           created_at?: string
           id?: string
           nome: string
@@ -3550,6 +3552,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          conta_bancaria_id?: string | null
           created_at?: string
           id?: string
           nome?: string
@@ -3562,6 +3565,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "banco_recebimento_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "banco_recebimento_pix_conta_bancaria_id_fkey"
             columns: ["pix_conta_bancaria_id"]
@@ -57746,6 +57756,30 @@ export type Database = {
           receita_faturada: number | null
           resultado_competencia: number | null
           ticket_medio: number | null
+        }
+        Relationships: []
+      }
+      vw_fluxo_caixa_recebiveis_diario: {
+        Row: {
+          cliente: string | null
+          conta_bancaria_id: string | null
+          conta_cor: string | null
+          conta_nome: string | null
+          data_vencimento_atual: string | null
+          dia: string | null
+          dia_caixa: string | null
+          eh_atrasado: boolean | null
+          instrumento: string | null
+          numero_titulo: string | null
+          origem: string | null
+          origem_id: string | null
+          parceiro_id: string | null
+          pedido_id: string | null
+          qualidade: string | null
+          taxa_ausente: boolean | null
+          taxa_prevista: number | null
+          valor_bruto: number | null
+          valor_liquido: number | null
         }
         Relationships: []
       }

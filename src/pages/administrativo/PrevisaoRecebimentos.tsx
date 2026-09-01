@@ -1,14 +1,17 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { PageShell } from "@/components/layout/PageShell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -21,437 +24,669 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip as RTooltip,
-  Legend,
-} from "recharts";
-import {
-  TrendingDown,
-  ArrowDownToLine,
-  Calendar,
-  AlertTriangle,
-  HelpCircle,
-  Receipt,
-  Wallet,
-} from "lucide-react";
-import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { AlertTriangle, ArrowDownToLine } from "lucide-react";
+import { formatBRL } from "@/lib/format-currency";
+import { hojeISO, fmtData, parseDataPura } from "@/lib/data";
+import { cn } from "@/lib/utils";
 
-type Row = {
-  id: string;
+/* ---------------- tipos ---------------- */
+
+type Camada = "firme" | "em_registro" | "promessa" | "sem_prova" | "condicional";
+type Instrumento = "boleto" | "cartao" | "pix" | "conta_corrente" | "haver";
+
+interface FluxoLinha {
+  origem_id: string;
+  origem: "titulo" | "provisao";
   numero_titulo: string | null;
-  numero_parcela: number | null;
-  total_parcelas: number | null;
-  conta_id: string | null;
+  pedido_id: string;
   parceiro_id: string | null;
   cliente: string | null;
-  meio_pagamento: "boleto" | "cartao" | "pix" | string | null;
-  valor: number;
-  nf_id: string | null;
-  nf_numero: string | null;
-  data_vencimento: string | null;
-  estagio: "a_faturar" | "a_receber" | string;
-  condicional: boolean;
-  data_liquidacao_prevista: string | null;
-  mes_referencia: string | null;
-};
+  instrumento: Instrumento;
+  qualidade: Camada;
+  dia: string;
+  dia_caixa: string;
+  eh_atrasado: boolean;
+  data_vencimento_atual: string | null;
+  conta_bancaria_id: string | null;
+  conta_nome: string | null;
+  conta_cor: string | null;
+  valor_bruto: number;
+  taxa_prevista: number;
+  valor_liquido: number;
+  taxa_ausente: boolean;
+}
 
-const MESES = [
-  "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
-  "Jul", "Ago", "Set", "Out", "Nov", "Dez",
+interface ContaBancaria {
+  id: string;
+  nome_exibicao: string | null;
+  cor: string | null;
+  ativo: boolean | null;
+}
+
+interface Coluna {
+  id: string; // uuid ou "__sem_conta__"
+  nome: string;
+  cor: string | null;
+}
+
+interface LinhaGrade {
+  chave: string; // "__atrasado__" ou dia_caixa
+  rotulo: string;
+  atrasado: boolean;
+  fimDeSemana: boolean;
+  mes: string | null; // rótulo de mês quando muda
+  porConta: Record<string, number>;
+  total: number;
+  acumulado: number;
+  linhas: FluxoLinha[];
+}
+
+const SEM_CONTA = "__sem_conta__";
+const NUM = "tabular-nums";
+
+const CAMADAS: { id: Camada; rotulo: string; descricao: string }[] = [
+  {
+    id: "firme",
+    rotulo: "Firme",
+    descricao:
+      "Boleto registrado no banco ou cartão com autorização capturada. Instrumento que força o pagamento.",
+  },
+  {
+    id: "em_registro",
+    rotulo: "Em registro",
+    descricao:
+      "Boleto enviado na remessa, retorno do banco ainda não confirmou o registro.",
+  },
+  {
+    id: "promessa",
+    rotulo: "Promessa",
+    descricao:
+      "PIX a prazo — tem vencimento combinado, mas nenhum instrumento cobra sozinho. Depende de régua.",
+  },
+  {
+    id: "sem_prova",
+    rotulo: "Sem prova",
+    descricao:
+      "Cartão faturado sem NSU gravado. Não é dúvida comercial, é pendência de dado nossa.",
+  },
+  {
+    id: "condicional",
+    rotulo: "Condicional",
+    descricao: "Provisão pré-NF. Só vira caixa se a nota for emitida.",
+  },
 ];
 
-function mesLabel(iso: string) {
-  const [y, m] = iso.split("-").map(Number);
-  return `${MESES[m - 1]}/${String(y).slice(2)}`;
+const ROTULO_CAMADA: Record<Camada, string> = {
+  firme: "Firme",
+  em_registro: "Em registro",
+  promessa: "Promessa",
+  sem_prova: "Sem prova",
+  condicional: "Condicional",
+};
+
+const ROTULO_INSTRUMENTO: Record<Instrumento, string> = {
+  boleto: "Boleto",
+  cartao: "Cartão",
+  pix: "PIX",
+  conta_corrente: "Conta corrente",
+  haver: "Haver",
+};
+
+function somaLiquido(rows: FluxoLinha[]): number {
+  return rows.reduce((acc, r) => acc + Number(r.valor_liquido || 0), 0);
 }
 
-function diasAFrente(dateIso: string | null, n: number, hoje: Date) {
-  if (!dateIso) return false;
-  const d = new Date(dateIso + "T00:00:00");
-  const lim = new Date(hoje);
-  lim.setDate(lim.getDate() + n);
-  return d >= hoje && d <= lim;
+function diaSemanaCurto(iso: string): string {
+  const d = parseDataPura(iso);
+  if (!d) return "";
+  return d
+    .toLocaleDateString("pt-BR", { weekday: "short" })
+    .replace(".", "")
+    .toLowerCase();
 }
+
+function ehFimDeSemana(iso: string): boolean {
+  const d = parseDataPura(iso);
+  if (!d) return false;
+  const w = d.getDay();
+  return w === 0 || w === 6;
+}
+
+function rotuloMes(iso: string): string {
+  const d = parseDataPura(iso);
+  if (!d) return "";
+  const s = d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function somarDias(iso: string, dias: number): string {
+  const d = parseDataPura(iso);
+  if (!d) return iso;
+  d.setDate(d.getDate() + dias);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+function quebraPorInstrumento(rows: FluxoLinha[]): string[] {
+  const ordem: Instrumento[] = ["boleto", "cartao", "pix"];
+  const out: string[] = [];
+  for (const i of ordem) {
+    const v = somaLiquido(rows.filter((r) => r.instrumento === i));
+    if (v > 0) out.push(`${ROTULO_INSTRUMENTO[i]} ${formatBRL(v)}`);
+  }
+  return out;
+}
+
+/* ---------------- página ---------------- */
 
 export default function PrevisaoRecebimentos() {
-  const [filtroInstr, setFiltroInstr] = useState<string>("todos");
-  const [filtroEstagio, setFiltroEstagio] = useState<string>("todos");
+  const [camadas, setCamadas] = useState<Camada[]>(["firme"]);
+  const [instr, setInstr] = useState<string>("todos");
+  const [diaAberto, setDiaAberto] = useState<LinhaGrade | null>(null);
+
+  const hoje = hojeISO();
 
   const { data: rows, isLoading } = useQuery({
-    queryKey: ["vw-previsao-recebimentos"],
-    queryFn: async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("vw_previsao_recebimentos")
-        .select("*")
-        .order("data_liquidacao_prevista", { ascending: true });
+    queryKey: ["fluxo-caixa-recebiveis-diario"],
+    queryFn: async (): Promise<FluxoLinha[]> => {
+      const { data, error } = await supabase
+        .from("vw_fluxo_caixa_recebiveis_diario")
+        .select("*");
       if (error) throw error;
-      return (data || []) as Row[];
+      return (data ?? []) as unknown as FluxoLinha[];
     },
   });
 
-  const hoje = useMemo(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }, []);
+  const { data: contas } = useQuery({
+    queryKey: ["contas-bancarias-ativas-fluxo"],
+    queryFn: async (): Promise<ContaBancaria[]> => {
+      const { data, error } = await supabase
+        .from("contas_bancarias")
+        .select("id, nome_exibicao, cor, ativo")
+        .eq("ativo", true);
+      if (error) throw error;
+      return (data ?? []) as ContaBancaria[];
+    },
+  });
 
-  const all = rows || [];
+  const todas = rows ?? [];
 
-  const semRegua = all.filter((r) => !r.data_liquidacao_prevista).length;
+  const visiveis = useMemo(() => {
+    return todas.filter((r) => {
+      if (!camadas.includes(r.qualidade)) return false;
+      if (instr === "todos") return true;
+      if (instr === "outros")
+        return !["boleto", "cartao", "pix"].includes(r.instrumento);
+      return r.instrumento === instr;
+    });
+  }, [todas, camadas, instr]);
 
-  // KPI splits
-  function splitFirmCond(filter: (r: Row) => boolean) {
-    let firme = 0;
-    let cond = 0;
-    for (const r of all) {
-      if (!filter(r)) continue;
-      if (r.condicional) cond += Number(r.valor || 0);
-      else firme += Number(r.valor || 0);
+  const totalPorCamada = useMemo(() => {
+    const map = {} as Record<Camada, number>;
+    for (const c of CAMADAS) map[c.id] = 0;
+    for (const r of todas) {
+      map[r.qualidade] = (map[r.qualidade] ?? 0) + Number(r.valor_liquido || 0);
     }
-    return { firme, cond, total: firme + cond };
+    return map;
+  }, [todas]);
+
+  const colunas = useMemo<Coluna[]>(() => {
+    const usados = new Set(visiveis.map((r) => r.conta_bancaria_id ?? SEM_CONTA));
+    const ativas = (contas ?? [])
+      .filter((c) => usados.has(c.id))
+      .map<Coluna>((c) => ({
+        id: c.id,
+        nome: c.nome_exibicao || "Conta",
+        cor: c.cor,
+      }))
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+
+    // contas presentes nos dados que não vieram na lista de ativas
+    const conhecidas = new Set(ativas.map((c) => c.id));
+    const extras = new Map<string, Coluna>();
+    for (const r of visiveis) {
+      if (!r.conta_bancaria_id) continue;
+      if (conhecidas.has(r.conta_bancaria_id)) continue;
+      if (extras.has(r.conta_bancaria_id)) continue;
+      extras.set(r.conta_bancaria_id, {
+        id: r.conta_bancaria_id,
+        nome: r.conta_nome || "Conta",
+        cor: r.conta_cor,
+      });
+    }
+    const lista = [...ativas, ...[...extras.values()].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))];
+
+    if (usados.has(SEM_CONTA)) {
+      lista.push({ id: SEM_CONTA, nome: "Sem conta definida", cor: null });
+    }
+    return lista;
+  }, [visiveis, contas]);
+
+  const grade = useMemo<LinhaGrade[]>(() => {
+    const atrasadas = visiveis.filter((r) => r.eh_atrasado);
+    const futuras = visiveis.filter((r) => !r.eh_atrasado);
+
+    const porDia = new Map<string, FluxoLinha[]>();
+    for (const r of futuras) {
+      const k = r.dia_caixa;
+      const arr = porDia.get(k);
+      if (arr) arr.push(r);
+      else porDia.set(k, [r]);
+    }
+
+    const montar = (
+      chave: string,
+      rotulo: string,
+      linhas: FluxoLinha[],
+      atrasado: boolean,
+      fimDeSemana: boolean,
+    ): LinhaGrade => {
+      const porConta: Record<string, number> = {};
+      for (const r of linhas) {
+        const k = r.conta_bancaria_id ?? SEM_CONTA;
+        porConta[k] = (porConta[k] ?? 0) + Number(r.valor_liquido || 0);
+      }
+      return {
+        chave,
+        rotulo,
+        atrasado,
+        fimDeSemana,
+        mes: null,
+        porConta,
+        total: somaLiquido(linhas),
+        acumulado: 0,
+        linhas,
+      };
+    };
+
+    const out: LinhaGrade[] = [];
+    if (atrasadas.length > 0) {
+      out.push(montar("__atrasado__", "Atrasado — até hoje", atrasadas, true, false));
+    }
+
+    const dias = [...porDia.keys()].sort((a, b) => a.localeCompare(b));
+    let mesAtual: string | null = null;
+    for (const d of dias) {
+      const linha = montar(
+        d,
+        `${diaSemanaCurto(d)}, ${fmtData(d).slice(0, 5)}`,
+        porDia.get(d) ?? [],
+        false,
+        ehFimDeSemana(d),
+      );
+      const mes = d.slice(0, 7);
+      if (mes !== mesAtual) {
+        linha.mes = rotuloMes(d);
+        mesAtual = mes;
+      }
+      out.push(linha);
+    }
+
+    let acc = 0;
+    for (const l of out) {
+      acc += l.total;
+      l.acumulado = acc;
+    }
+    return out;
+  }, [visiveis]);
+
+  const totaisColuna = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const c of colunas) map[c.id] = 0;
+    for (const r of visiveis) {
+      const k = r.conta_bancaria_id ?? SEM_CONTA;
+      map[k] = (map[k] ?? 0) + Number(r.valor_liquido || 0);
+    }
+    return map;
+  }, [visiveis, colunas]);
+
+  const totalVisao = useMemo(() => somaLiquido(visiveis), [visiveis]);
+
+  const atrasadas = useMemo(() => visiveis.filter((r) => r.eh_atrasado), [visiveis]);
+  const em30 = useMemo(() => {
+    const lim = somarDias(hoje, 30);
+    return visiveis.filter((r) => r.dia_caixa >= hoje && r.dia_caixa <= lim);
+  }, [visiveis, hoje]);
+  const em90 = useMemo(() => {
+    const lim = somarDias(hoje, 90);
+    return visiveis.filter((r) => r.dia_caixa >= hoje && r.dia_caixa <= lim);
+  }, [visiveis, hoje]);
+
+  const semTaxa = useMemo(() => visiveis.filter((r) => r.taxa_ausente), [visiveis]);
+
+  const foraDaVisao = useMemo(
+    () =>
+      CAMADAS.filter((c) => !camadas.includes(c.id) && (totalPorCamada[c.id] ?? 0) > 0),
+    [camadas, totalPorCamada],
+  );
+
+  function toggleCamada(c: Camada) {
+    setCamadas((prev) =>
+      prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c],
+    );
   }
 
-  const k30 = splitFirmCond((r) => diasAFrente(r.data_liquidacao_prevista, 30, hoje));
-  const k60 = splitFirmCond((r) => diasAFrente(r.data_liquidacao_prevista, 60, hoje));
-  const k90 = splitFirmCond((r) => diasAFrente(r.data_liquidacao_prevista, 90, hoje));
-  const kAtraso = splitFirmCond((r) => {
-    if (!r.data_liquidacao_prevista) return false;
-    return new Date(r.data_liquidacao_prevista + "T00:00:00") < hoje;
-  });
-  const kTotal = splitFirmCond(() => true);
-
-  // Gráfico por mês
-  const chartData = useMemo(() => {
-    const map = new Map<string, { mes: string; firme: number; condicional: number }>();
-    for (const r of all) {
-      if (!r.mes_referencia || !r.data_liquidacao_prevista) continue;
-      const iso = String(r.mes_referencia).substring(0, 7);
-      if (!map.has(iso)) map.set(iso, { mes: iso, firme: 0, condicional: 0 });
-      const o = map.get(iso)!;
-      if (r.condicional) o.condicional += Number(r.valor || 0);
-      else o.firme += Number(r.valor || 0);
-    }
-    return Array.from(map.values())
-      .sort((a, b) => a.mes.localeCompare(b.mes))
-      .map((d) => ({ ...d, label: mesLabel(d.mes) }));
-  }, [all]);
-
-  // Tabela filtrada
-  const tabela = useMemo(() => {
-    return all
-      .filter((r) => filtroInstr === "todos" || r.meio_pagamento === filtroInstr)
-      .filter((r) => {
-        if (filtroEstagio === "todos") return true;
-        if (filtroEstagio === "firme") return !r.condicional;
-        return r.condicional;
-      })
-      .sort((a, b) => {
-        const da = a.data_liquidacao_prevista || "9999-99-99";
-        const db = b.data_liquidacao_prevista || "9999-99-99";
-        return da.localeCompare(db);
-      });
-  }, [all, filtroInstr, filtroEstagio]);
+  const cards = [
+    { titulo: "Atrasado", rows: atrasadas, destaque: true },
+    { titulo: "Próximos 30 dias", rows: em30, destaque: false },
+    { titulo: "Próximos 90 dias", rows: em90, destaque: false },
+    { titulo: "Total na visão", rows: visiveis, destaque: false },
+  ];
 
   return (
     <TooltipProvider>
-      <div className="p-6 space-y-6">
+      <PageShell>
         <PageHeader
-          titulo="Previsão de Recebimentos"
+          titulo="Fluxo de Recebimentos"
           icone={ArrowDownToLine}
-          estado={
-            <>
-              Lente de tesouraria: contraparte de entrada do Fluxo de Caixa Futuro. Soma dois
-              estágios do funil — <strong>Firme</strong> (NF emitida) e{" "}
-              <strong>Condicional</strong> (pré-NF, só entra se a NF for emitida).
-            </>
-          }
+          estado="Quanto entra, em que dia, em qual conta. Valor líquido de taxa de adquirente."
         />
 
-        {/* Doutrina */}
-        <Card className="border-admin/20 bg-admin/5">
-          <CardContent className="pt-4 text-xs text-muted-foreground flex items-start gap-3">
-            <HelpCircle className="h-4 w-4 text-admin mt-0.5 shrink-0" />
-            <div className="space-y-1">
-              <p>
-                <Badge variant="outline" className="bg-success/10 text-success border-success/40 mr-1">Firme</Badge>
-                Título com NF emitida — entrada quase certa.
-              </p>
-              <p>
-                <Badge variant="outline" className="bg-warning/10 text-warning border-warning/40 mr-1">Condicional</Badge>
-                Pré-NF — esse caixa só entra <em>se a NF for emitida</em>. Tratado como cenário, não como caixa firmado.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Filtros */}
+        <div className="flex flex-wrap items-center gap-2">
+          {CAMADAS.map((c) => {
+            const ativo = camadas.includes(c.id);
+            return (
+              <Tooltip key={c.id}>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={ativo ? "default" : "outline"}
+                    onClick={() => toggleCamada(c.id)}
+                    className="h-8"
+                  >
+                    <span>{c.rotulo}</span>
+                    <span className={cn("ml-2 text-xs opacity-80", NUM)}>
+                      {formatBRL(totalPorCamada[c.id] ?? 0)}
+                    </span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs text-xs">
+                  {c.descricao}
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
 
-        {/* KPIs */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          <KpiCard
-            icon={<AlertTriangle className="h-3 w-3 text-destructive" />}
-            label="Atrasado"
-            k={kAtraso}
-            accent="text-destructive"
-            sub="liquidação prevista já passou"
-          />
-          <KpiCard
-            icon={<Calendar className="h-3 w-3 text-admin" />}
-            label="Próximos 30 dias"
-            k={k30}
-            accent="text-admin"
-          />
-          <KpiCard
-            icon={<Calendar className="h-3 w-3 text-warning" />}
-            label="Próximos 60 dias"
-            k={k60}
-            accent="text-warning"
-          />
-          <KpiCard
-            icon={<Calendar className="h-3 w-3 text-info" />}
-            label="Próximos 90 dias"
-            k={k90}
-            accent="text-info"
-          />
-          <KpiCard
-            icon={<Wallet className="h-3 w-3 text-success" />}
-            label="Total previsto"
-            k={kTotal}
-            accent="text-success"
-            big
-          />
+          <div className="ml-auto">
+            <Select value={instr} onValueChange={setInstr}>
+              <SelectTrigger className="h-8 w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os instrumentos</SelectItem>
+                <SelectItem value="boleto">Boleto</SelectItem>
+                <SelectItem value="cartao">Cartão</SelectItem>
+                <SelectItem value="pix">PIX</SelectItem>
+                <SelectItem value="outros">Outros</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        {/* Gráfico */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-medium flex items-center gap-2">
-                <TrendingDown className="h-4 w-4 text-admin" />
-                Previsão de entrada por mês
-              </h2>
-              {semRegua > 0 && (
-                <span className="text-[11px] text-muted-foreground italic">
-                  {semRegua} título(s) sem régua de liquidação — ignorado(s) no gráfico
-                </span>
-              )}
-            </div>
-            {isLoading ? (
-              <Skeleton className="h-72 w-full" />
-            ) : chartData.length === 0 ? (
-              <div className="py-12 text-center text-sm text-muted-foreground">
-                Nenhuma previsão de recebimento.
-              </div>
-            ) : (
-              <div className="h-72 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                    <YAxis
-                      tick={{ fontSize: 11 }}
-                      tickFormatter={(v) =>
-                        Number(v).toLocaleString("pt-BR", {
-                          notation: "compact",
-                          maximumFractionDigits: 1,
-                        })
-                      }
-                    />
-                    <RTooltip
-                      formatter={(v: number) => formatBRL(Number(v))}
-                      labelStyle={{ fontSize: 12 }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: 12 }} />
-                    <Bar dataKey="firme" stackId="a" fill="hsl(160 70% 40%)" name="Firme (NF)" />
-                    <Bar
-                      dataKey="condicional"
-                      stackId="a"
-                      fill="hsl(40 90% 70%)"
-                      name="Condicional (pré-NF)"
-                      fillOpacity={0.65}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Cartões */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {cards.map((c) => {
+            const quebra = quebraPorInstrumento(c.rows);
+            return (
+              <Card key={c.titulo} className="card-shadow">
+                <CardContent className="p-4 space-y-1">
+                  <p className="text-xs text-muted-foreground">{c.titulo}</p>
+                  <p
+                    className={cn(
+                      "text-2xl font-normal",
+                      NUM,
+                      c.destaque && somaLiquido(c.rows) > 0 ? "text-destructive" : "",
+                    )}
+                  >
+                    {formatBRL(somaLiquido(c.rows))}
+                  </p>
+                  <p className={cn("text-[11px] text-muted-foreground", NUM)}>
+                    {quebra.length > 0 ? quebra.join(" · ") : "—"}
+                  </p>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
 
-        {/* Tabela */}
-        <Card>
-          <CardContent className="pt-6 space-y-4">
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <h2 className="text-base font-medium flex items-center gap-2">
-                <Receipt className="h-4 w-4 text-admin" />
-                Títulos previstos
-              </h2>
-              <div className="flex gap-2">
-                <Select value={filtroInstr} onValueChange={setFiltroInstr}>
-                  <SelectTrigger className="h-8 w-[160px] text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos instrumentos</SelectItem>
-                    <SelectItem value="boleto">Boleto</SelectItem>
-                    <SelectItem value="cartao">Cartão</SelectItem>
-                    <SelectItem value="pix">PIX</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={filtroEstagio} onValueChange={setFiltroEstagio}>
-                  <SelectTrigger className="h-8 w-[160px] text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos estágios</SelectItem>
-                    <SelectItem value="firme">Firme (NF)</SelectItem>
-                    <SelectItem value="condicional">Condicional</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+        {/* Pendência de dado */}
+        {semTaxa.length > 0 && (
+          <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/5 px-3 py-2 text-xs text-muted-foreground">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
+            <span>
+              {semTaxa.length} título(s) de cartão sem taxa de adquirente prevista —{" "}
+              <span className={NUM}>{formatBRL(somaLiquido(semTaxa))}</span> entrando
+              bruto.
+            </span>
+          </div>
+        )}
 
-            {isLoading ? (
-              <div className="space-y-2">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <Skeleton key={i} className="h-10 w-full" />
-                ))}
-              </div>
-            ) : tabela.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                Nenhum título com os filtros atuais.
+        {/* Grade */}
+        {isLoading ? (
+          <Card>
+            <CardContent className="space-y-2 p-4">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <Skeleton key={i} className="h-8 w-full" />
+              ))}
+            </CardContent>
+          </Card>
+        ) : grade.length === 0 ? (
+          <Card>
+            <CardContent className="p-10 text-center text-sm text-muted-foreground">
+              <p>Nenhum recebível nas camadas selecionadas.</p>
+              <p className="mt-1 text-xs">
+                Tente ligar outras camadas acima — em registro, promessa ou condicional.
               </p>
-            ) : (
-              <div className="rounded-md border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead className="w-24">Instrumento</TableHead>
-                      <TableHead className="w-28">Estágio</TableHead>
-                      <TableHead className="w-28">Vencimento</TableHead>
-                      <TableHead className="w-32">Prev. liquidação</TableHead>
-                      <TableHead className="w-24">NF</TableHead>
-                      <TableHead className="text-right w-32">Valor</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {tabela.map((r) => (
-                      <TableRow
-                        key={r.id}
-                        className={
-                          r.condicional
-                            ? "bg-warning/10 [background-image:repeating-linear-gradient(45deg,transparent_0,transparent_6px,hsl(40_90%_70%/0.08)_6px,hsl(40_90%_70%/0.08)_12px)]"
-                            : ""
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="p-0">
+              <Table containerClassName="max-h-[70vh] overflow-auto">
+                <TableHeader className="sticky top-0 z-20 bg-card">
+                  <TableRow>
+                    <TableHead className="sticky left-0 z-10 bg-card">Dia</TableHead>
+                    {colunas.map((c) => (
+                      <TableHead
+                        key={c.id}
+                        className="whitespace-nowrap text-right"
+                        style={
+                          c.cor
+                            ? { boxShadow: `inset 0 -2px 0 0 ${c.cor}` }
+                            : undefined
                         }
                       >
-                        <TableCell className="text-xs">
-                          <div className="font-medium">{r.cliente || "—"}</div>
-                          {r.numero_titulo && (
-                            <div className="text-[10px] text-muted-foreground">
-                              {r.numero_titulo}
-                              {r.total_parcelas && r.total_parcelas > 1
-                                ? ` · ${r.numero_parcela}/${r.total_parcelas}`
-                                : ""}
-                            </div>
+                        {c.nome}
+                      </TableHead>
+                    ))}
+                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead className="text-right">Acumulado</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {grade.map((l) => (
+                    <Fragment key={l.chave}>
+                      {l.mes && (
+                        <TableRow className="hover:bg-transparent">
+                          <TableCell
+                            colSpan={colunas.length + 3}
+                            className="bg-muted/40 py-1 text-[11px] uppercase tracking-wide text-muted-foreground"
+                          >
+                            {l.mes}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      <TableRow
+                        onClick={() => setDiaAberto(l)}
+                        className={cn(
+                          "cursor-pointer",
+                          l.atrasado && "bg-destructive/5 hover:bg-destructive/10",
+                        )}
+                      >
+                        <TableCell
+                          className={cn(
+                            "sticky left-0 z-10 whitespace-nowrap bg-card",
+                            l.atrasado && "bg-destructive/5 font-medium text-destructive",
+                            l.fimDeSemana && "text-muted-foreground",
                           )}
+                        >
+                          <span className="flex items-center gap-1.5">
+                            {l.atrasado && <AlertTriangle className="h-3.5 w-3.5" />}
+                            {l.rotulo}
+                          </span>
                         </TableCell>
-                        <TableCell className="text-xs capitalize">
-                          {r.meio_pagamento || "—"}
-                        </TableCell>
-                        <TableCell>
-                          {r.condicional ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Badge
-                                  variant="outline"
-                                  className="text-[10px] bg-warning/10 text-warning border-warning/40"
-                                >
-                                  Condicional
-                                </Badge>
-                              </TooltipTrigger>
-                              <TooltipContent className="max-w-xs text-xs">
-                                Depende da emissão da NF. Esse caixa só entra se a NF for
-                                emitida.
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : (
-                            <Badge
-                              variant="outline"
-                              className="text-[10px] bg-success/10 text-success border-success/40"
+                        {colunas.map((c) => {
+                          const v = l.porConta[c.id];
+                          return (
+                            <TableCell
+                              key={c.id}
+                              className={cn("text-right", NUM)}
                             >
-                              Firme
-                            </Badge>
-                          )}
+                              {v ? (
+                                formatBRL(v)
+                              ) : (
+                                <span className="text-muted-foreground/40">—</span>
+                              )}
+                            </TableCell>
+                          );
+                        })}
+                        <TableCell className={cn("text-right font-medium", NUM)}>
+                          {formatBRL(l.total)}
                         </TableCell>
-                        <TableCell className="text-xs whitespace-nowrap">
-                          {formatDateBR(r.data_vencimento)}
-                        </TableCell>
-                        <TableCell className="text-xs whitespace-nowrap">
-                          {formatDateBR(r.data_liquidacao_prevista)}
-                        </TableCell>
-                        <TableCell className="text-xs">{r.nf_numero || "—"}</TableCell>
-                        <TableCell className="text-right font-mono text-xs">
-                          {formatBRL(Number(r.valor || 0))}
+                        <TableCell
+                          className={cn("text-right text-muted-foreground", NUM)}
+                        >
+                          {formatBRL(l.acumulado)}
                         </TableCell>
                       </TableRow>
+                    </Fragment>
+                  ))}
+                </TableBody>
+                <TableFooter>
+                  <TableRow>
+                    <TableCell className="sticky left-0 z-10">Total</TableCell>
+                    {colunas.map((c) => (
+                      <TableCell key={c.id} className={cn("text-right", NUM)}>
+                        {formatBRL(totaisColuna[c.id] ?? 0)}
+                      </TableCell>
                     ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </TooltipProvider>
-  );
-}
+                    <TableCell className={cn("text-right font-medium", NUM)}>
+                      {formatBRL(totalVisao)}
+                    </TableCell>
+                    <TableCell />
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
 
-function KpiCard({
-  icon,
-  label,
-  k,
-  accent,
-  sub,
-  big,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  k: { firme: number; cond: number; total: number };
-  accent: string;
-  sub?: string;
-  big?: boolean;
-}) {
-  return (
-    <Card>
-      <CardContent className="pt-4">
-        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-          {icon} {label}
-        </p>
-        <p className={`${big ? "text-2xl" : "text-xl"} font-medium ${accent}`}>
-          {formatBRL(k.total)}
-        </p>
-        <div className="text-[10px] text-muted-foreground mt-1 space-y-0.5">
-          <div className="flex justify-between gap-2">
-            <span className="text-success">Firme</span>
-            <span className="font-mono">{formatBRL(k.firme)}</span>
-          </div>
-          <div className="flex justify-between gap-2">
-            <span className="text-warning">Condicional</span>
-            <span className="font-mono">{formatBRL(k.cond)}</span>
-          </div>
-          {sub && <div className="italic pt-0.5">{sub}</div>}
-        </div>
-      </CardContent>
-    </Card>
+        {/* Fora da visão */}
+        {foraDaVisao.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            Fora da visão atual:{" "}
+            {foraDaVisao
+              .map(
+                (c) =>
+                  `${formatBRL(totalPorCamada[c.id] ?? 0)} (${c.rotulo.toLowerCase()})`,
+              )
+              .join(", ")}
+          </p>
+        )}
+
+        {/* Detalhe do dia */}
+        <Sheet open={!!diaAberto} onOpenChange={(v) => !v && setDiaAberto(null)}>
+          <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
+            {diaAberto && (
+              <>
+                <SheetHeader>
+                  <SheetTitle className="text-base">{diaAberto.rotulo}</SheetTitle>
+                  <SheetDescription>
+                    {diaAberto.linhas.length} recebível(is) ·{" "}
+                    {formatBRL(diaAberto.total)} líquido
+                  </SheetDescription>
+                </SheetHeader>
+
+                <div className="mt-4 space-y-2">
+                  {[...diaAberto.linhas]
+                    .sort((a, b) => Number(b.valor_liquido) - Number(a.valor_liquido))
+                    .map((r) => (
+                      <div
+                        key={`${r.origem}-${r.origem_id}`}
+                        className="rounded-md border p-3 text-sm"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate font-medium">
+                              {r.cliente || "Cliente não informado"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {r.numero_titulo || "sem número"} ·{" "}
+                              {ROTULO_INSTRUMENTO[r.instrumento]} · vence{" "}
+                              {fmtData(r.data_vencimento_atual)}
+                            </p>
+                          </div>
+                          <Badge variant="outline" className="shrink-0 text-[10px]">
+                            {ROTULO_CAMADA[r.qualidade]}
+                          </Badge>
+                        </div>
+                        <div
+                          className={cn(
+                            "mt-2 grid grid-cols-3 gap-2 text-xs text-muted-foreground",
+                            NUM,
+                          )}
+                        >
+                          <div>
+                            <p className="text-[10px] uppercase">Bruto</p>
+                            <p>{formatBRL(r.valor_bruto)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase">Taxa prevista</p>
+                            <p className="flex items-center gap-1">
+                              {formatBRL(r.taxa_prevista)}
+                              {r.taxa_ausente && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <AlertTriangle className="h-3 w-3 text-warning" />
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs text-xs">
+                                    Taxa de adquirente não prevista — o valor está
+                                    entrando bruto
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase">Líquido</p>
+                            <p className="font-medium text-foreground">
+                              {formatBRL(r.valor_liquido)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </>
+            )}
+          </SheetContent>
+        </Sheet>
+      </PageShell>
+    </TooltipProvider>
   );
 }
