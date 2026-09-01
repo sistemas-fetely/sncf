@@ -435,8 +435,8 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
     : !temInstrumento
       ? { label: "Cadastrar link de pagamento", onClick: () => scrollPara(linkCardRef) }
       : !enviadoAoCliente
-        ? { label: "Enviar cobrança", onClick: () => scrollPara(comunicacaoRef) }
-        : { label: "Reenviar cobrança", onClick: () => scrollPara(comunicacaoRef) };
+        ? { label: "Enviar cobrança", onClick: () => comunicacaoAcaoRef.current?.abrirEnvio("cobranca") }
+        : { label: "Reenviar cobrança", onClick: () => comunicacaoAcaoRef.current?.abrirEnvio("cobranca") };
 
   function refazerPlano() {
     if (emCobranca) {
@@ -549,12 +549,13 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
       </div>
 
       {/* (f) COMUNICAÇÃO */}
-      <div ref={comunicacaoRef}>
+      <div>
         <ComunicacaoPedidoPanel
           pedido_id={pedido.id}
           parceiro_id={pedido.parceiro_id}
           estagio={pedido.estagio}
           exige_portao={!!portaoRegraQ.data?.exige_portao_regra}
+          acaoRef={comunicacaoAcaoRef}
         />
       </div>
 
