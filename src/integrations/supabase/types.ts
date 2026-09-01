@@ -8153,6 +8153,13 @@ export type Database = {
             foreignKeyName: "consignado_acerto_nf_id_fkey"
             columns: ["nf_id"]
             isOneToOne: false
+            referencedRelation: "vw_nf_vs_boleto_divergencia"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "consignado_acerto_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
             referencedRelation: "vw_pedido_nf_arquivo"
             referencedColumns: ["nf_id"]
           },
@@ -21316,6 +21323,13 @@ export type Database = {
             foreignKeyName: "movimentacao_estoque_nf_saida_id_fkey"
             columns: ["nf_saida_id"]
             isOneToOne: false
+            referencedRelation: "vw_nf_vs_boleto_divergencia"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_nf_saida_id_fkey"
+            columns: ["nf_saida_id"]
+            isOneToOne: false
             referencedRelation: "vw_pedido_nf_arquivo"
             referencedColumns: ["nf_id"]
           },
@@ -22649,6 +22663,13 @@ export type Database = {
             foreignKeyName: "nf_devolucao_vinculo_nf_saida_id_fkey"
             columns: ["nf_saida_id"]
             isOneToOne: false
+            referencedRelation: "vw_nf_vs_boleto_divergencia"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "nf_devolucao_vinculo_nf_saida_id_fkey"
+            columns: ["nf_saida_id"]
+            isOneToOne: false
             referencedRelation: "vw_pedido_nf_arquivo"
             referencedColumns: ["nf_id"]
           },
@@ -23577,6 +23598,13 @@ export type Database = {
             foreignKeyName: "nfs_emitidas_substituida_por_nf_id_fkey"
             columns: ["substituida_por_nf_id"]
             isOneToOne: false
+            referencedRelation: "vw_nf_vs_boleto_divergencia"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "nfs_emitidas_substituida_por_nf_id_fkey"
+            columns: ["substituida_por_nf_id"]
+            isOneToOne: false
             referencedRelation: "vw_pedido_nf_arquivo"
             referencedColumns: ["nf_id"]
           },
@@ -24213,6 +24241,13 @@ export type Database = {
             columns: ["nf_id"]
             isOneToOne: false
             referencedRelation: "vw_nf_vinculo_excecao"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_venda_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_vs_boleto_divergencia"
             referencedColumns: ["nf_id"]
           },
           {
@@ -42117,6 +42152,13 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_nf_id_fkey"
             columns: ["nf_id"]
             isOneToOne: false
+            referencedRelation: "vw_nf_vs_boleto_divergencia"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
             referencedRelation: "vw_pedido_nf_arquivo"
             referencedColumns: ["nf_id"]
           },
@@ -47929,6 +47971,13 @@ export type Database = {
             foreignKeyName: "xpm_nf_fila_nf_id_fkey"
             columns: ["nf_id"]
             isOneToOne: false
+            referencedRelation: "vw_nf_vs_boleto_divergencia"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "xpm_nf_fila_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
             referencedRelation: "vw_pedido_nf_arquivo"
             referencedColumns: ["nf_id"]
           },
@@ -48362,6 +48411,13 @@ export type Database = {
             columns: ["nf_id"]
             isOneToOne: true
             referencedRelation: "vw_nf_vinculo_excecao"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "xpm_pedido_fila_b2c_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: true
+            referencedRelation: "vw_nf_vs_boleto_divergencia"
             referencedColumns: ["nf_id"]
           },
           {
@@ -62574,6 +62630,13 @@ export type Database = {
             foreignKeyName: "nfs_emitidas_substituida_por_nf_id_fkey"
             columns: ["substituida_por_nf_id"]
             isOneToOne: false
+            referencedRelation: "vw_nf_vs_boleto_divergencia"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "nfs_emitidas_substituida_por_nf_id_fkey"
+            columns: ["substituida_por_nf_id"]
+            isOneToOne: false
             referencedRelation: "vw_pedido_nf_arquivo"
             referencedColumns: ["nf_id"]
           },
@@ -62731,6 +62794,32 @@ export type Database = {
             referencedColumns: ["codigo"]
           },
         ]
+      }
+      vw_nf_vs_boleto_divergencia: {
+        Row: {
+          boleto_status: string | null
+          data_emissao: string | null
+          dias_dif: number | null
+          duplicatas_sync_em: string | null
+          n_dup: number | null
+          n_tit: number | null
+          nf: string | null
+          nf_id: string | null
+          numero_parcela: number | null
+          numero_titulo: string | null
+          pedido: string | null
+          posicao: number | null
+          serie: string | null
+          situacao: string | null
+          status: string | null
+          tipo_pagamento: string | null
+          valor_bruto: number | null
+          valor_nf: number | null
+          venc_boleto: string | null
+          venc_nf: string | null
+          veredito: string | null
+        }
+        Relationships: []
       }
       vw_nfs_stage_completude: {
         Row: {
@@ -62949,14 +63038,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -63777,14 +63866,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -65156,14 +65245,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -69909,6 +69998,13 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_nf_id_fkey"
             columns: ["nf_id"]
             isOneToOne: false
+            referencedRelation: "vw_nf_vs_boleto_divergencia"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
             referencedRelation: "vw_pedido_nf_arquivo"
             referencedColumns: ["nf_id"]
           },
@@ -70727,6 +70823,13 @@ export type Database = {
             columns: ["nf_id"]
             isOneToOne: false
             referencedRelation: "vw_nf_vinculo_excecao"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_vs_boleto_divergencia"
             referencedColumns: ["nf_id"]
           },
           {
@@ -72853,6 +72956,13 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_nf_id_fkey"
             columns: ["nf_id"]
             isOneToOne: false
+            referencedRelation: "vw_nf_vs_boleto_divergencia"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
             referencedRelation: "vw_pedido_nf_arquivo"
             referencedColumns: ["nf_id"]
           },
@@ -73706,6 +73816,13 @@ export type Database = {
             columns: ["nf_id"]
             isOneToOne: false
             referencedRelation: "vw_nf_vinculo_excecao"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_vs_boleto_divergencia"
             referencedColumns: ["nf_id"]
           },
           {
