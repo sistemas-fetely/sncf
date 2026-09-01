@@ -189,7 +189,9 @@ export function PipelineHorizontal({
   // ativos (sem entregue) + cancelados apenas com o toggle ligado.
   // Desvio (recuperação) NUNCA entra: é outra sala.
   const { totalQtd, totalSla, riscoVermelhoQtd, riscoVermelhoValor } = useMemo(() => {
-    const excluidosSempre = new Set<string>(["entregue"]);
+    // aguardando_pagamento nao tem card no funil, entao nao entra no total —
+    // FILA ATIVA e exatamente a soma dos cards visiveis.
+    const excluidosSempre = new Set<string>(["entregue", "aguardando_pagamento"]);
     const naoAtivos = new Set<string>(["cancelado"]);
     let qtd = 0;
     let sla = 0;
