@@ -1125,7 +1125,7 @@ export default function ExtratoImportacao() {
     setResultados([]);
     try {
       for (const f of files) {
-        const trilha: { fonte?: Fonte } = {};
+        const trilha: { fonte?: Fonte; contagem?: ContagemImportacao } = {};
         try {
           if (await ehRelatorioPagamentosItau(f)) {
             toast.error(
@@ -1150,6 +1150,8 @@ export default function ExtratoImportacao() {
               parser: trilha.fonte ? (PARSER_ROTULO[trilha.fonte] ?? trilha.fonte) : "—",
               resultado: "Importado",
               ok: true,
+              contagem: trilha.contagem?.resumo(),
+              ignoradas: trilha.contagem?.detalhe,
             },
           ]);
         } catch (e) {
@@ -1161,6 +1163,8 @@ export default function ExtratoImportacao() {
               parser: trilha.fonte ? (PARSER_ROTULO[trilha.fonte] ?? trilha.fonte) : "não reconhecido",
               resultado: formatError(e),
               ok: false,
+              contagem: trilha.contagem?.resumo(),
+              ignoradas: trilha.contagem?.detalhe,
             },
           ]);
         }
