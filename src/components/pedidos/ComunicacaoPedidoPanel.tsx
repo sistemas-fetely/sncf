@@ -63,7 +63,7 @@ function fmtDateTime(iso: string): string {
   }
 }
 
-export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_portao, gera_titulo_receber = true }: Props) {
+export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_portao, gera_titulo_receber = true, acaoRef }: Props) {
   const qc = useQueryClient();
 
   // ── Queries ──
