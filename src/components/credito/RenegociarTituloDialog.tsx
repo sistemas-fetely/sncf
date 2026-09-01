@@ -248,6 +248,11 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
         // PIX-NAO-FECHA-EM-SILENCIO: o operador precisa levar o código embora.
         // Boleto vivo também não fecha em silêncio: falta a remessa de baixa.
         setResultado({ ...res, instrumentos, boletoABaixar: boletoVivo });
+        if (boletoVivo) {
+          toast.warning(
+            `${qtd} título(s) criado(s). Falta gerar a remessa de baixa do boleto antigo — ele segue pagável no Safra.`,
+          );
+        }
         return;
       }
 
