@@ -354,17 +354,30 @@ function LinhaParcela({ l, pedidoId }: { l: LinhaCobrancaPedido; pedidoId: strin
       </button>
 
       {aberto && (
-        <div className="pl-11 pr-4 pb-3 space-y-1.5">
-          {l.link_pagamento && <CopiavelInline label="Link" valor={l.link_pagamento} />}
+        <div className="pl-11 pr-4 pb-3 space-y-1.5 min-w-0">
+          {l.link_pagamento && l.tipo_pagamento !== "pix" && (
+            <CopiavelInline label="Link" valor={l.link_pagamento} />
+          )}
           {l.linha_digitavel && <CopiavelInline label="Linha digitável" valor={l.linha_digitavel} />}
+          <InstrumentoPixLinha
+            linhaId={l.linha_id}
+            origem={l.origem}
+            pedidoId={pedidoId}
+            tipoPagamento={l.tipo_pagamento}
+            pago={l.pago}
+            linkPagamento={l.link_pagamento}
+            pixTxid={l.pix_txid}
+            pixToken={l.pix_token}
+            pixQrUrl={l.pix_qr_url}
+            valor={Number(l.valor ?? 0)}
+          />
           {l.nosso_numero && (
             <p className="text-xs text-muted-foreground">Nosso número: {l.nosso_numero}</p>
           )}
           {l.boleto_status && (
             <p className="text-xs text-muted-foreground">Boleto: {l.boleto_status}</p>
           )}
-          {l.pix_txid && <p className="text-xs text-muted-foreground">PIX txid: {l.pix_txid}</p>}
-          {!temInstrumento && (
+          {!temInstrumento && l.tipo_pagamento !== "pix" && (
             <p className="flex items-center gap-2 text-xs text-muted-foreground">
               <Info className="h-3.5 w-3.5" />
               Nenhum link ou boleto emitido para esta parcela
@@ -372,6 +385,7 @@ function LinhaParcela({ l, pedidoId }: { l: LinhaCobrancaPedido; pedidoId: strin
           )}
         </div>
       )}
+
     </div>
   );
 }
