@@ -8736,29 +8736,41 @@ export type Database = {
       contabil_fechamento_item: {
         Row: {
           centro_id: string | null
+          custo_nf_unitario: number | null
           custo_unitario: number
           fechamento_id: string
+          icms_aliq: number | null
           id: string
+          ipi_aliq: number | null
           quantidade: number
           sku: string
+          valor_nf_total: number | null
           valor_total: number
         }
         Insert: {
           centro_id?: string | null
+          custo_nf_unitario?: number | null
           custo_unitario: number
           fechamento_id: string
+          icms_aliq?: number | null
           id?: string
+          ipi_aliq?: number | null
           quantidade: number
           sku: string
+          valor_nf_total?: number | null
           valor_total: number
         }
         Update: {
           centro_id?: string | null
+          custo_nf_unitario?: number | null
           custo_unitario?: number
           fechamento_id?: string
+          icms_aliq?: number | null
           id?: string
+          ipi_aliq?: number | null
           quantidade?: number
           sku?: string
+          valor_nf_total?: number | null
           valor_total?: number
         }
         Relationships: [
@@ -53240,6 +53252,7 @@ export type Database = {
           competencia: string | null
           fechado_em: string | null
           gates_bloqueantes: number | null
+          icms_excluido: number | null
           obs: string | null
           politica: Json | null
           rotulo: string | null
@@ -53247,6 +53260,7 @@ export type Database = {
           status: string | null
           unidades: number | null
           valor_custo: number | null
+          valor_custo_nf: number | null
         }
         Relationships: []
       }
@@ -75783,12 +75797,18 @@ export type Database = {
         Args: { p_competencia: string }
         Returns: {
           centro: string
+          custo_nf_unitario: number
           custo_unitario: number
+          delta_icms: number
           fonte: string
+          icms_aliq: number
+          ipi_aliq: number
           produto: string
           quantidade: number
           sku: string
+          valor_nf_total: number
           valor_total: number
+          valor_unit_nf: number
         }[]
       }
       fn_contabil_reabrir: {
