@@ -202,8 +202,14 @@ export default function FechamentoContabil() {
   const totais = useMemo(
     () =>
       filtradas.reduce(
-        (acc, l) => ({ un: acc.un + Number(l.quantidade || 0), rs: acc.rs + Number(l.valor_total || 0) }),
-        { un: 0, rs: 0 }
+        (acc, l) => ({
+          un: acc.un + num(l.quantidade),
+          rs: acc.rs + num(l.valor_total),
+          // Linha sem custo NF entra como 0 na soma — a própria linha sinaliza o furo.
+          rsNf: acc.rsNf + num(l.valor_nf_total),
+          delta: acc.delta + num(l.delta_icms),
+        }),
+        { un: 0, rs: 0, rsNf: 0, delta: 0 }
       ),
     [filtradas]
   );
@@ -211,6 +217,144 @@ export default function FechamentoContabil() {
   const fonte = linhas[0]?.fonte;
   const gatesBloqueantes = (gates.data ?? []).filter((g) => g.severidade === "bloqueante" && g.quantidade > 0);
   const todosLimpos = (gates.data ?? []).length > 0 && (gates.data ?? []).every((g) => g.quantidade === 0);
+
+  /* ── exportações .xlsx (padrão PacoteContador: monta no cliente, baixa Blob) ── */
+
+  const sufixoArquivo = selecionada ? `${selecionada.slice(5, 7)}-${selecionada.slice(0, 4)}` : "";
+
+  const negritarLinha = (ws: XLSX.WorkSheet, linha: number, colunas: number) => {
+    for (let c = 0; c < colunas; c++) {
+      const ref = XLSX.utils.encode_cell({ r: linha, c });
+      if (ws[ref]) ws[ref].s = { font: { bold: true } };
+    }
+  };
+
+  const baixar = (wb: XLSX.WorkBook, nome: string) => {
+    const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" }) as ArrayBuffer;
+    const blob = new Blob([buf], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nome;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportarAterrissagem = () => {
+    try {
+      const aoa = [
+        ["SKU", "Produto", "Centro", "Quantidade", "Custo Unitário", "Valor Total"],
+        ...filtradas.map((l) => [
+          l.sku,
+          l.produto ?? "",
+          l.centro ?? "",
+          num(l.quantidade),
+          num(l.custo_unitario),
+          num(l.valor_total),
+        ]),
+        ["TOTAL", "", "", totais.un, null, totais.rs],
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws["!cols"] = [{ wch: 18 }, { wch: 46 }, { wch: 16 }, { wch: 12 }, { wch: 14 }, { wch: 16 }];
+      negritarLinha(ws, 0, 6);
+      negritarLinha(ws, aoa.length - 1, 6);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Posição de Estoque");
+      baixar(wb, `Fetely_Estoque_Aterrissagem_${sufixoArquivo}.xlsx`);
+    } catch (e) {
+      toast.error(rawMessage(e));
+    }
+  };
+
+  const exportarCustoNf = () => {
+    try {
+      const aoa = [
+        ["SKU", "Produto", "Centro", "Quantidade", "Valor Unit. NF", "IPI %", "Custo NF Unitário", "Valor Total NF"],
+        ...filtradas.map((l) => [
+          l.sku,
+          l.produto ?? "",
+          l.centro ?? "",
+          num(l.quantidade),
+          l.valor_unit_nf == null ? null : num(l.valor_unit_nf),
+          l.ipi_aliq == null ? null : num(l.ipi_aliq) * 100,
+          l.custo_nf_unitario == null ? null : num(l.custo_nf_unitario),
+          l.valor_nf_total == null ? null : num(l.valor_nf_total),
+        ]),
+        ["TOTAL", "", "", totais.un, null, null, null, totais.rsNf],
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws["!cols"] = [
+        { wch: 18 }, { wch: 46 }, { wch: 16 }, { wch: 12 },
+        { wch: 15 }, { wch: 9 }, { wch: 18 }, { wch: 17 },
+      ];
+      negritarLinha(ws, 0, 8);
+      negritarLinha(ws, aoa.length - 1, 8);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Posição de Estoque");
+      baixar(wb, `Fetely_Estoque_CustoNF_${sufixoArquivo}.xlsx`);
+    } catch (e) {
+      toast.error(rawMessage(e));
+    }
+  };
+
+  const exportarComparativo = () => {
+    try {
+      const aoa = [
+        [
+          "SKU", "Produto", "Centro", "Quantidade",
+          "Custo Aterrissagem Unit.", "Valor Aterrissagem",
+          "Custo NF Unit.", "Valor NF", "ICMS %", "IPI %", "Diferença",
+        ],
+        ...filtradas.map((l) => [
+          l.sku,
+          l.produto ?? "",
+          l.centro ?? "",
+          num(l.quantidade),
+          num(l.custo_unitario),
+          num(l.valor_total),
+          l.custo_nf_unitario == null ? null : num(l.custo_nf_unitario),
+          l.valor_nf_total == null ? null : num(l.valor_nf_total),
+          l.icms_aliq == null ? null : num(l.icms_aliq) * 100,
+          l.ipi_aliq == null ? null : num(l.ipi_aliq) * 100,
+          l.delta_icms == null ? null : num(l.delta_icms),
+        ]),
+        ["TOTAL", "", "", totais.un, null, totais.rs, null, totais.rsNf, null, null, totais.delta],
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws["!cols"] = [
+        { wch: 18 }, { wch: 46 }, { wch: 16 }, { wch: 12 }, { wch: 22 }, { wch: 18 },
+        { wch: 16 }, { wch: 16 }, { wch: 9 }, { wch: 9 }, { wch: 16 },
+      ];
+      negritarLinha(ws, 0, 11);
+      negritarLinha(ws, aoa.length - 1, 11);
+
+      const criterio: (string | null)[][] = [
+        ["Competência", comp?.rotulo ?? ""],
+        ["Status", comp?.status ?? ""],
+        ["Fechado em", comp?.fechado_em ? new Date(comp.fechado_em).toLocaleString("pt-BR") : "—"],
+        ["Fonte da posição", fonte === "snapshot" ? "Snapshot congelado" : "Cálculo ao vivo"],
+        [null, null],
+        ["Critério", "Valor"],
+        ...Object.entries(comp?.politica ?? {}).map(([k, v]) => [
+          k,
+          Array.isArray(v) ? v.join(", ") : typeof v === "object" && v !== null ? JSON.stringify(v) : String(v),
+        ]),
+      ];
+      const wsCriterio = XLSX.utils.aoa_to_sheet(criterio);
+      wsCriterio["!cols"] = [{ wch: 34 }, { wch: 60 }];
+      negritarLinha(wsCriterio, 5, 2);
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Comparativo");
+      XLSX.utils.book_append_sheet(wb, wsCriterio, "Critério");
+      baixar(wb, `Fetely_Estoque_Comparativo_${sufixoArquivo}.xlsx`);
+    } catch (e) {
+      toast.error(rawMessage(e));
+    }
+  };
+
 
   const invalidar = () => {
     qc.invalidateQueries({ queryKey: ["contabil-competencias"] });
