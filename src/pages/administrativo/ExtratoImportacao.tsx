@@ -257,7 +257,7 @@ export default function ExtratoImportacao() {
     file: File,
     conta: string,
     bloco: Bloco,
-    trilha: { fonte?: Fonte; resumo?: string } = {}
+    trilha: { fonte?: Fonte; resumo?: string; contagem?: ContagemImportacao } = {}
   ) {
     if (!conta || !user) throw new Error("Selecione a conta bancária");
     const base = detectarFonteBase(file);
