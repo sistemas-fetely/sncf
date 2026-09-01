@@ -77,6 +77,29 @@ interface LinhaPosicao {
   fonte: "snapshot" | "calculado";
 }
 
+/** Linha da RPC fn_contabil_evolucao_mensal: um SKU por competência fechada. */
+interface EvolucaoLinha {
+  competencia: string;
+  rotulo: string;
+  sku: string;
+  produto: string | null;
+  grupo: string | null;
+  ncm: string | null;
+  nf_entrada: string | null;
+  entrada: number;
+  saida: number;
+  cmv: number;
+  estoque: number;
+  valor_nf: number;
+  valor_aterrissagem: number;
+  custo_nf_unitario: number | null;
+  custo_aterrissagem_unitario: number | null;
+  icms_aliq: number | null;
+  ipi_aliq: number | null;
+}
+
+
+
 /* ───────────────────────────── formato ───────────────────────────── */
 
 const fmtDinheiro = (v: number | null | undefined) =>
