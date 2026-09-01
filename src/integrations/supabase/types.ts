@@ -12384,6 +12384,45 @@ export type Database = {
         }
         Relationships: []
       }
+      dre_movimento_motivo: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          dre_linha_codigo: string | null
+          motivo: string
+          observacao: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          dre_linha_codigo?: string | null
+          motivo: string
+          observacao?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          dre_linha_codigo?: string | null
+          motivo?: string
+          observacao?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dre_movimento_motivo_dre_linha_codigo_fkey"
+            columns: ["dre_linha_codigo"]
+            isOneToOne: false
+            referencedRelation: "dre_linha"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "dre_movimento_motivo_dre_linha_codigo_fkey"
+            columns: ["dre_linha_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_dre_mensal"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
       dre_refresh_estado: {
         Row: {
           duracao_ms: number | null
@@ -55227,12 +55266,6 @@ export type Database = {
         }
         Relationships: []
       }
-      vw_dre_meses: {
-        Row: {
-          mes: string | null
-        }
-        Relationships: []
-      }
       vw_embalagem_calibracao: {
         Row: {
           atendimento_declarado: boolean | null
@@ -63054,14 +63087,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
