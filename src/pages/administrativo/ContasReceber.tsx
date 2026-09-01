@@ -331,7 +331,7 @@ function AbaB2B() {
   const [qualidadeAberta, setQualidadeAberta] = useState(false);
   const [baseMensal, setBaseMensal] = useState<BaseMensal>("competencia");
   const [recebimentosAtivos, setRecebimentosAtivos] = useState<Set<EixoRecebimento>>(
-    new Set<EixoRecebimento>(["em_aberto", "quitado", "compensado"])
+    new Set<EixoRecebimento>(["em_aberto"])
   );
 
   const [page, setPage] = useState(1);
@@ -824,14 +824,53 @@ function AbaB2B() {
           </Badge>
         </TableCell>
         <TableCell className={atrasado ? "text-destructive font-medium text-sm" : "text-sm"}>
-          {t.data_vencimento_vigente ? (
-            formatDateBR(t.data_vencimento_vigente)
-          ) : (
-            <span className="text-muted-foreground">—</span>
-          )}
-          {t.carteira_rotulo_data && (
-            <div className="text-[10px] text-muted-foreground">{t.carteira_rotulo_data}</div>
-          )}
+          {(() => {
+            const rec = t.eixo_recebimento;
+            if (rec === "quitado" || rec === "compensado") {
+              if (t.data_liquidacao) {
+                return (
+                  <>
+                    {formatDateBR(t.data_liquidacao)}
+                    <div className="text-[10px] text-muted-foreground">Recebido em</div>
+                  </>
+                );
+              }
+              return (
+                <>
+                  <span className="text-muted-foreground">—</span>
+                  <div className="text-[10px] text-warning">Recebido, data não registrada</div>
+                </>
+              );
+            }
+            if (rec === "devolvido") {
+              return (
+                <>
+                  {t.data_vencimento_vigente ? formatDateBR(t.data_vencimento_vigente) : <span className="text-muted-foreground">—</span>}
+                  <div className="text-[10px] text-muted-foreground">Devolvido</div>
+                </>
+              );
+            }
+            if (rec === "cancelado") {
+              return (
+                <>
+                  {t.data_vencimento_vigente ? formatDateBR(t.data_vencimento_vigente) : <span className="text-muted-foreground">—</span>}
+                  <div className="text-[10px] text-muted-foreground">Cancelado</div>
+                </>
+              );
+            }
+            return (
+              <>
+                {t.data_vencimento_vigente ? (
+                  formatDateBR(t.data_vencimento_vigente)
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+                {t.carteira_rotulo_data && (
+                  <div className="text-[10px] text-muted-foreground">{t.carteira_rotulo_data}</div>
+                )}
+              </>
+            );
+          })()}
         </TableCell>
         <TableCell
           className={
