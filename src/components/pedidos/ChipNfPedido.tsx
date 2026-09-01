@@ -41,13 +41,12 @@ export function ChipNfPedido({ pedidoId }: { pedidoId: string }) {
   // FAIL-LOUD: erro de consulta nunca se disfarça de "pedido sem NF".
   if (isError) {
     return (
-      <Selo
-        className="inline-flex items-center gap-1 bg-destructive/10 text-destructive border-destructive/40 font-medium shrink-0"
-        title={formatError(error)}
-      >
-        <AlertCircle className="h-3 w-3" />
-        NF: erro
-      </Selo>
+      <span className="inline-flex shrink-0" title={formatError(error)}>
+        <Selo className="inline-flex items-center gap-1 bg-destructive/10 text-destructive border-destructive/40 font-medium">
+          <AlertCircle className="h-3 w-3" />
+          NF: erro
+        </Selo>
+      </span>
     );
   }
 
