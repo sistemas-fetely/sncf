@@ -1301,6 +1301,11 @@ export default function CobrancaFila() {
           <ReguaTab />
         </TabsContent>
 
+        <TabsContent value="sem-prova">
+          <SemProvaTab />
+        </TabsContent>
+
+
         <TabsContent value="fila">
           <Tabs defaultValue="materializacao" className="space-y-4">
             <TabsList className="bg-transparent p-0 h-auto gap-2">
