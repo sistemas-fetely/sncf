@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { OPCOES_QUERY_RECEBIVEL } from "@/hooks/recebivel/useInvalidarRecebivel";
 
 export interface TituloCompleto {
   id: string;
@@ -21,6 +22,7 @@ export interface TituloCompleto {
 export function useTodosTitulos() {
   return useQuery({
     queryKey: ["todos-titulos"],
+    ...OPCOES_QUERY_RECEBIVEL,
     staleTime: 30 * 1000,
     queryFn: async (): Promise<TituloCompleto[]> => {
       const { data, error } = await (supabase as any)

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { TituloBoletoPendente, BoletoStatus } from "@/types/credito";
+import { OPCOES_QUERY_RECEBIVEL } from "@/hooks/recebivel/useInvalidarRecebivel";
 
 interface Options {
   busca?: string;
@@ -10,6 +11,7 @@ interface Options {
 export function useTitulosBoleto(opts: Options = {}) {
   return useQuery({
     queryKey: ["titulos-boleto", opts],
+    ...OPCOES_QUERY_RECEBIVEL,
     staleTime: 20 * 1000,
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

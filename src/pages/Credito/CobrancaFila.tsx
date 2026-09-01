@@ -47,6 +47,7 @@ import { formatBRL } from "@/lib/format-currency";
 import { baixarArquivoRemessa } from "@/lib/financeiro/baixarArquivoRemessa";
 import { supabase } from "@/integrations/supabase/client";
 import type { TituloBoletoPendente, ValidacaoRemessa, BoletoStatus, ResultadoRetorno } from "@/types/credito";
+import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -381,6 +382,7 @@ function TitulosBoletoTab() {
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [gerarOpen, setGerarOpen] = useState(false);
   const qc = useQueryClient();
+  const invalidarRecebivel = useInvalidarRecebivel();
 
   const { data = [], isLoading } = useTitulosBoleto({
     busca: busca || undefined,
@@ -535,12 +537,9 @@ function TitulosBoletoTab() {
         open={gerarOpen}
         onClose={() => setGerarOpen(false)}
         titulos={titulosSelecionados}
-        onSuccess={() => {
+        onSuccess={async () => {
           setSelecionados(new Set());
-          qc.invalidateQueries({ queryKey: ["titulos-boleto"] });
-          qc.invalidateQueries({ queryKey: ["remessas-safra"] });
-          qc.invalidateQueries({ queryKey: ["boletos-safra"] });
-          qc.invalidateQueries({ queryKey: ["cobranca-mesa"] });
+          await invalidarRecebivel();
         }}
       />
     </div>
@@ -682,6 +681,7 @@ function CancelarRemessaDialog({
   onClose: () => void;
 }) {
   const qc = useQueryClient();
+  const invalidarRecebivel = useInvalidarRecebivel();
   const { toast } = useToast();
   const [motivo, setMotivo] = useState("");
   const [cancelando, setCancelando] = useState(false);
@@ -701,12 +701,7 @@ function CancelarRemessaDialog({
       toast({
         title: `${data?.arquivo_nome ?? remessa.arquivo_nome} cancelada — ${liberados} título(s) liberado(s)`,
       });
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: ["remessas-safra"] }),
-        qc.invalidateQueries({ queryKey: ["boletos-safra"] }),
-        qc.invalidateQueries({ queryKey: ["baixas-pendentes"] }),
-        qc.invalidateQueries({ queryKey: ["cobranca-mesa"] }),
-      ]);
+      await invalidarRecebivel();
       setMotivo("");
       onClose();
     } catch (e) {
@@ -810,6 +805,7 @@ function CancelarRemessaDialog({
 }
 
 function RemessasSafraTab() {
+  const invalidarRecebivel = useInvalidarRecebivel();
   const [importarOpen, setImportarOpen] = useState(false);
 
   const [marcarEnviadaTarget, setMarcarEnviadaTarget] = useState<{ id: string; arquivo_nome: string } | null>(null);
@@ -859,9 +855,7 @@ function RemessasSafraTab() {
         .eq("id", marcarEnviadaTarget.id);
       if (error) throw error;
       toast({ title: "Remessa marcada como enviada", description: marcarEnviadaTarget.arquivo_nome });
-      qc.invalidateQueries({ queryKey: ["remessas-safra"] });
-      qc.invalidateQueries({ queryKey: ["boletos-safra"] });
-      qc.invalidateQueries({ queryKey: ["cobranca-mesa"] });
+      await invalidarRecebivel();
       setMarcarEnviadaTarget(null);
     } catch (e) {
       toast({
@@ -1057,11 +1051,8 @@ function RemessasSafraTab() {
       <ImportarRetornoModal
         open={importarOpen}
         onClose={() => setImportarOpen(false)}
-        onSuccess={() => {
-          qc.invalidateQueries({ queryKey: ["remessas-safra"] });
-          qc.invalidateQueries({ queryKey: ["titulos-boleto"] });
-          qc.invalidateQueries({ queryKey: ["boletos-safra"] });
-          qc.invalidateQueries({ queryKey: ["cobranca-mesa"] });
+        onSuccess={async () => {
+          await invalidarRecebivel();
         }}
       />
 

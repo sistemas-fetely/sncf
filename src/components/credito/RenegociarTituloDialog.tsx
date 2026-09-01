@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
@@ -138,7 +139,7 @@ function InstrumentoPixBloco({ inst }: { inst: InstrumentoRenegociado }) {
 
 
 export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) {
-  const qc = useQueryClient();
+  const invalidarRecebivel = useInvalidarRecebivel();
   const [modalidade, setModalidade] = useState<Modalidade>(2);
   const [justificativa, setJustificativa] = useState("");
   const [parcelas, setParcelas] = useState<Parcela[]>([
@@ -225,10 +226,8 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
     },
     onSuccess: async (data) => {
       await registrarAcaoRegua();
+      await invalidarRecebivel();
       const res = data as RenegociarResultado;
-      qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
-      qc.invalidateQueries({ queryKey: ["regua-log"] });
-      qc.invalidateQueries({ queryKey: ["cobranca-mesa"] });
 
       const instrumentos = (res?.instrumentos ?? []).filter((i) => i?.payload);
       const qtd = res?.filhos?.length ?? 0;
@@ -271,10 +270,9 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
       if (error) throw new Error(error.message);
       return data as { acao: "reset_direto" | "baixa_agendada"; mensagem: string };
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      await invalidarRecebivel();
       toast.success(data?.mensagem ?? "Reemissão solicitada.");
-      qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
-      qc.invalidateQueries({ queryKey: ["cobranca-mesa"] });
       onClose();
     },
     onError: (err: any) => toast.error(err?.message ?? "Erro ao solicitar reemissão."),

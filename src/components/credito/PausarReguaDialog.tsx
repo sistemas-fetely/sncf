@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { TituloCobranca } from "@/hooks/credito/useTitulosCobranca";
 import type { ReguaEtapa } from "@/hooks/credito/useReguaFila";
+import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 
 interface Props {
   titulo: TituloCobranca;
@@ -20,6 +21,7 @@ interface Props {
 
 export function PausarReguaDialog({ titulo, etapa, open, onClose }: Props) {
   const qc = useQueryClient();
+  const invalidarRecebivel = useInvalidarRecebivel();
   const [motivo, setMotivo] = useState("");
 
   const mutation = useMutation({
@@ -40,11 +42,9 @@ export function PausarReguaDialog({ titulo, etapa, open, onClose }: Props) {
       if (data && data.ok === false) throw new Error(data.erro ?? "Erro ao pausar régua.");
       return data;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Régua pausada para este título.");
-      qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
-      qc.invalidateQueries({ queryKey: ["regua-log"] });
-      qc.invalidateQueries({ queryKey: ["cobranca-mesa"] });
+      await invalidarRecebivel();
       setMotivo("");
       onClose();
     },

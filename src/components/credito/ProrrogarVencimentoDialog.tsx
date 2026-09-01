@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
@@ -24,7 +25,7 @@ function amanhaISO(): string {
 }
 
 export function ProrrogarVencimentoDialog({ titulo, open, onClose }: Props) {
-  const qc = useQueryClient();
+  const invalidarRecebivel = useInvalidarRecebivel();
   const minData = useMemo(() => amanhaISO(), []);
   const [novaData, setNovaData] = useState<string>(minData);
 
@@ -41,9 +42,9 @@ export function ProrrogarVencimentoDialog({ titulo, open, onClose }: Props) {
       if (data && data.ok === false) throw new Error(data.erro ?? "Erro ao registrar prorrogação.");
       return data;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      await invalidarRecebivel();
       toast.success("Prorrogação registrada. Gere a remessa para enviar ao banco.");
-      qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
       onClose();
     },
     onError: (err: any) => toast.error(err?.message ?? "Erro ao registrar prorrogação."),

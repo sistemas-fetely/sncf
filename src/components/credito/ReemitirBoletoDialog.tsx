@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -9,8 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 import type { TituloCobranca } from "@/hooks/credito/useTitulosCobranca";
 import { hojeISO } from "@/lib/data";
+
 
 interface Props {
   titulo: TituloCobranca;
@@ -24,7 +27,8 @@ function amanhaISO(): string {
 }
 
 export function ReemitirBoletoDialog({ titulo, open, onClose }: Props) {
-  const qc = useQueryClient();
+  const invalidarRecebivel = useInvalidarRecebivel();
+  const navigate = useNavigate();
   const minData = useMemo(() => amanhaISO(), []);
   const [novaData, setNovaData] = useState<string>(minData);
   const [novoValor, setNovoValor] = useState<string>(
@@ -58,9 +62,22 @@ export function ReemitirBoletoDialog({ titulo, open, onClose }: Props) {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data: any) => {
-      toast.success(data?.mensagem ?? "Reemissão solicitada.");
-      qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
+    onSuccess: async (data: any) => {
+      // Reemissão de boleto REJEITADO só se completa com a remessa de entrada,
+      // que vive em outra tela. Sem esta ação o operador não descobre o 2º passo.
+      if (data?.acao === "reset_direto") {
+        toast.success(data?.mensagem ?? "Título pronto para nova remessa de entrada.", {
+          duration: 15000,
+          action: {
+            label: "Gerar remessa de entrada",
+            onClick: () =>
+              navigate(`/administrativo/banco-safra?entrada=${titulo.id}`),
+          },
+        });
+      } else {
+        toast.success(data?.mensagem ?? "Reemissão solicitada.");
+      }
+      await invalidarRecebivel();
       onClose();
     },
     onError: (err: any) => toast.error(err?.message ?? "Erro ao solicitar reemissão."),

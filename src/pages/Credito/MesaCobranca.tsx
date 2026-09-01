@@ -34,6 +34,7 @@ import {
   seloEntrega, seloInstrumento, seloEnvio, EntregaResumoInline,
   fmtDataMesa, fmtDataHoraMesa, textoUltimoEnvio, AVISO_PROVA_ENVIO,
 } from "@/lib/financeiro/mesa-lastros";
+import { OPCOES_QUERY_RECEBIVEL } from "@/hooks/recebivel/useInvalidarRecebivel";
 
 /** Filas em que a régua opera dentro da Mesa (fusão Mesa × Régua). */
 const FILAS_REGUA = new Set<string>(["A_COBRAR", "A_VENCER"]);
@@ -210,6 +211,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
   const qc = useQueryClient();
   const q = useQuery({
     queryKey: ["cobranca-mesa"],
+    ...OPCOES_QUERY_RECEBIVEL,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("vw_cobranca_mesa")

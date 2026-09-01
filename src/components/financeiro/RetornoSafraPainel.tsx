@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { formatError } from "@/lib/format-error";
 import { BlocoErroBoundary } from "@/components/BlocoErroBoundary";
+import { OPCOES_QUERY_RECEBIVEL, useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
@@ -98,7 +99,7 @@ const ARQUIVO_STATUS: Record<string, string> = {
 
 export function RetornoSafraPainel() {
   const { user } = useAuth();
-  const qc = useQueryClient();
+  const invalidarRecebivel = useInvalidarRecebivel();
   const [marcando, setMarcando] = useState<string | null>(null);
   const [de, setDe] = useState("");
   const [ate, setAte] = useState("");
@@ -106,6 +107,7 @@ export function RetornoSafraPainel() {
 
   const { data: ocorrencias = [], isLoading } = useQuery({
     queryKey: ["safra-retorno-pendente"],
+    ...OPCOES_QUERY_RECEBIVEL,
     queryFn: async () => {
       const { data, error } = await sb
         .from("vw_safra_retorno_pendente")
@@ -119,6 +121,7 @@ export function RetornoSafraPainel() {
 
   const { data: arquivos = [], isLoading: loadingArq } = useQuery({
     queryKey: ["safra-retorno-arquivos"],
+    ...OPCOES_QUERY_RECEBIVEL,
     queryFn: async () => {
       const { data, error } = await sb
         .from("safra_retorno_arquivo")
@@ -132,6 +135,7 @@ export function RetornoSafraPainel() {
 
   const { data: sequencia = [] } = useQuery({
     queryKey: ["safra-retorno-sequencia"],
+    ...OPCOES_QUERY_RECEBIVEL,
     queryFn: async () => {
       const { data, error } = await sb
         .from("vw_safra_retorno_sequencia")
@@ -185,7 +189,7 @@ export function RetornoSafraPainel() {
         .eq("id", id);
       if (error) throw error;
       toast.success("Ocorrência marcada como tratada.");
-      await qc.invalidateQueries({ queryKey: ["safra-retorno-pendente"] });
+      await invalidarRecebivel();
     } catch (e) {
       toast.error("Falha ao marcar como tratado: " + formatError(e));
     } finally {

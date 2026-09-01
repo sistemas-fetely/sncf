@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
@@ -71,6 +72,7 @@ export function DevolucaoParcialDialog({
   pedidoId, pedidoIdExterno, parceiroId, open, onClose,
 }: Props) {
   const qc = useQueryClient();
+  const invalidarRecebivel = useInvalidarRecebivel();
   const navigate = useNavigate();
   const [valorStr, setValorStr] = useState("");
   const [nfDevolucao, setNfDevolucao] = useState("");
@@ -181,7 +183,8 @@ export function DevolucaoParcialDialog({
         };
       };
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      await invalidarRecebivel();
       toast.success(
         `Devolução parcial de ${formatBRL(data.valor_devolvido)} registrada`,
         { description: `Desfecho: ${DESFECHO_LABEL[data.desfecho]}` },
@@ -205,13 +208,8 @@ export function DevolucaoParcialDialog({
           );
         }
       }
-      qc.invalidateQueries({ queryKey: ["titulos-cobranca"] });
       qc.invalidateQueries({ queryKey: ["credito-cliente"] });
       qc.invalidateQueries({ queryKey: ["haveres-cliente"] });
-      qc.invalidateQueries({ queryKey: ["baixas-pendentes"] });
-      if (parceiroId) {
-        qc.invalidateQueries({ queryKey: ["cliente-detalhe", parceiroId] });
-      }
       onClose();
     },
     onError: (e: Error) => toast.error(e.message),

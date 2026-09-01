@@ -1,7 +1,8 @@
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -67,6 +68,7 @@ import { useRemessasSafra } from "@/hooks/credito/useRemessasSafra";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { RetornoSafraPainel } from "@/components/financeiro/RetornoSafraPainel";
 import { hojeISO } from "@/lib/data";
+import { OPCOES_QUERY_RECEBIVEL, useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 
 /** Dias corridos desde uma data ISO (null se inválida). */
 function diasDesde(iso: string | null | undefined): number | null {
@@ -401,7 +403,8 @@ function AcoesGrupoCliente({
 
 export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: () => void } = {}) {
   const { toast } = useToast();
-  const qc = useQueryClient();
+  const invalidarRecebivel = useInvalidarRecebivel();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data: baixasPendentesData } = useBaixasPendentes();
   const countSolicitada = baixasPendentesData?.countSolicitada ?? 0;
   const baixaSolicitadaItens = baixasPendentesData?.baixaSolicitada ?? [];
@@ -412,6 +415,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
 
   const { data: boletos = [], isLoading: loadingBoletos, refetch: refetchBoletos } = useQuery<TitulosBoleto[]>({
     queryKey: ["boletos-safra"],
+    ...OPCOES_QUERY_RECEBIVEL,
     queryFn: async () => {
       // Anotada como `string` de propósito: alarga o literal e evita TS2589 no select aninhado.
       // O resultado segue tipado à mão via `as unknown as TitulosBoleto[]` abaixo.
@@ -429,16 +433,11 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
   });
 
   /**
-   * Revalida TODO consumidor de `titulo_a_receber` no hub de Cobrança.
-   * Banco Safra (`boletos-safra`) e Mesa de Cobrança (`cobranca-mesa`) leem o mesmo
-   * dado de fundo — qualquer ação que muda boleto precisa invalidar os dois caches.
+   * Revalida TODO consumidor do domínio recebível via `useInvalidarRecebivel`
+   * (fonte única de verdade). Aqui fica apenas o `refetch` local desta tela.
    */
   const revalidarTitulos = async () => {
-    await Promise.all([
-      refetchBoletos(),
-      qc.invalidateQueries({ queryKey: ["boletos-safra"] }),
-      qc.invalidateQueries({ queryKey: ["cobranca-mesa"] }),
-    ]);
+    await Promise.all([refetchBoletos(), invalidarRecebivel()]);
   };
 
   const [gerandoBaixa, setGerandoBaixa] = useState(false);
@@ -543,6 +542,22 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     setBuscaEntrada("");
     setEntradaDialogOpen(true);
   };
+  /**
+   * Deep link `?entrada=<titulo_id>` — fecha o laço da reemissão de boleto rejeitado:
+   * o toast do ReemitirBoletoDialog traz o operador direto para cá com o diálogo
+   * de entrada aberto e o título já selecionado.
+   */
+  const entradaParam = searchParams.get("entrada");
+  useEffect(() => {
+    if (!entradaParam || loadingBoletos) return;
+    if (!pendentesEntrada.some((b) => b.id === entradaParam)) return;
+    abrirDialogEntrada([entradaParam]);
+    const next = new URLSearchParams(searchParams);
+    next.delete("entrada");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entradaParam, loadingBoletos, pendentesEntrada]);
+
   const fecharDialogEntrada = () => {
     setEntradaDialogOpen(false);
     setEscopoEntrada(null);
@@ -675,7 +690,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
             description: r?.erro ?? "A RPC recusou o ajuste sem informar motivo.",
             variant: "destructive",
           });
-          void revalidarTitulos();
+          await revalidarTitulos();
           return; // mantém edits[b.id] para o operador corrigir
         }
       }
@@ -691,7 +706,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
 
       setEdits((p) => { const n = { ...p }; delete n[b.id]; return n; });
       toast({ title: "Boleto atualizado", description: `${b.numero_titulo} salvo com sucesso.` });
-      void revalidarTitulos();
+      await revalidarTitulos();
     } catch (e) {
       toast({ title: "Erro ao salvar", description: (e as Error).message, variant: "destructive" });
     } finally {
@@ -755,9 +770,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       URL.revokeObjectURL(url);
       toast({ title: `Remessa de baixa gerada: ${data.qtd_titulos} boleto(s)` });
       setBaixaDialogOpen(false);
-      await qc.invalidateQueries({ queryKey: ["baixas-pendentes"] });
-      await qc.invalidateQueries({ queryKey: ["remessas-safra"] });
-      void revalidarTitulos();
+      await revalidarTitulos();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: "Erro ao gerar baixa", description: msg, variant: "destructive" });
@@ -782,7 +795,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       a.click();
       URL.revokeObjectURL(url);
       toast({ title: `Remessa de prorrogação gerada: ${data.qtd_titulos} boleto(s)` });
-      void revalidarTitulos();
+      await revalidarTitulos();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: "Erro ao gerar prorrogação", description: msg, variant: "destructive" });
@@ -815,8 +828,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         description: data.valor_total != null ? `Total: ${formatBRL(Number(data.valor_total))}` : undefined,
       });
       fecharDialogEntrada();
-      await qc.invalidateQueries({ queryKey: ["boletos-safra"] });
-      void revalidarTitulos();
+      await revalidarTitulos();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: "Erro ao gerar entrada", description: msg, variant: "destructive" });

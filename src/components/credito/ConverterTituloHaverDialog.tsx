@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
   DialogDescription,
@@ -23,6 +24,7 @@ const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BR
 export function ConverterTituloHaverDialog({ open, onOpenChange, tituloId, numeroTitulo, valor }: Props) {
   const [motivo, setMotivo] = useState("");
   const qc = useQueryClient();
+  const invalidarRecebivel = useInvalidarRecebivel();
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -33,9 +35,9 @@ export function ConverterTituloHaverDialog({ open, onOpenChange, tituloId, numer
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      await invalidarRecebivel();
       toast.success("Título convertido em crédito com sucesso");
-      qc.invalidateQueries({ queryKey: ["todos-titulos"] });
       qc.invalidateQueries({ queryKey: ["credito-clientes-haveres"] });
       qc.invalidateQueries({ queryKey: ["haver-disponivel"] });
       onOpenChange(false);
