@@ -768,7 +768,7 @@ function AbaB2B() {
   const pageSafe = Math.min(page, totalPages);
 
   const fmtDesvio = (d: number | null | undefined) => {
-    if (d == null || d === 0) return d === 0 ? "0d" : "";
+    if (d == null || d === 0) return "";
     return `${d > 0 ? "+" : "−"}${Math.abs(d)}d`;
   };
 
@@ -813,7 +813,11 @@ function AbaB2B() {
           </Badge>
         </TableCell>
         <TableCell className={atrasado ? "text-destructive font-medium text-sm" : "text-sm"}>
-          {formatDateBR(t.data_vencimento_vigente)}
+          {t.data_vencimento_vigente ? (
+            formatDateBR(t.data_vencimento_vigente)
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          )}
           {t.carteira_rotulo_data && (
             <div className="text-[10px] text-muted-foreground">{t.carteira_rotulo_data}</div>
           )}
