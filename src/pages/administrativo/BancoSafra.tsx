@@ -1602,9 +1602,14 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                                   </Badge>
                                 ))}
                                 {(() => {
-                                  const alvos = sp.boletos.filter(
-                                    (b) => sugestoes[b.id] && sugestoes[b.id] !== (edits[b.id]?.data ?? b.data_vencimento_atual ?? ""),
-                                  );
+                                  const alvos = sp.boletos.filter((b) => {
+                                    const s = sugestoes[b.id];
+                                    return (
+                                      s &&
+                                      s.viavel &&
+                                      s.data !== (edits[b.id]?.data ?? b.data_vencimento_atual ?? "")
+                                    );
+                                  });
                                   if (alvos.length === 0) return null;
                                   return (
                                     <button
@@ -1613,7 +1618,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                                       onClick={() =>
                                         setEdits((p) => {
                                           const n = { ...p };
-                                          for (const b of alvos) n[b.id] = { ...n[b.id], data: sugestoes[b.id] };
+                                          for (const b of alvos) n[b.id] = { ...n[b.id], data: sugestoes[b.id].data };
                                           return n;
                                         })
                                       }
