@@ -1262,6 +1262,8 @@ export default function CobrancaFila() {
           {[
             { value: "mesa", label: `Mesa${totalAgirAgora > 0 ? ` · ${totalAgirAgora}` : ""}` },
             { value: "regua", label: `Régua${totalReguaHoje > 0 ? ` · ${totalReguaHoje}` : ""}` },
+            { value: "sem-prova", label: `Sem prova${totalSemProva > 0 ? ` · ${totalSemProva}` : ""}` },
+
             { value: "fila", label: `Fila${totalPedidos > 0 ? ` · ${totalPedidos}` : ""}` },
             { value: "titulos", label: `Títulos${totalTitulosAbertos > 0 ? ` · ${totalTitulosAbertos}` : ""}` },
             { value: "adiantamento", slug: "tela.cobranca_remessa", label: `Adiantamento s/ NF${totalAdiantamentos > 0 ? ` · ${totalAdiantamentos}` : ""}` },
