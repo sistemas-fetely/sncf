@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
@@ -44,6 +45,8 @@ export interface RenegociarResultado {
   modalidade: 2 | 3;
   filhos: string[];
   instrumentos?: InstrumentoRenegociado[];
+  /** UI apenas: havia boleto vivo no Safra quando o original foi encerrado. */
+  boletoABaixar?: boolean;
 }
 
 interface Parcela {
@@ -140,6 +143,7 @@ function InstrumentoPixBloco({ inst }: { inst: InstrumentoRenegociado }) {
 
 export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) {
   const invalidarRecebivel = useInvalidarRecebivel();
+  const navigate = useNavigate();
   const [modalidade, setModalidade] = useState<Modalidade>(2);
   const [justificativa, setJustificativa] = useState("");
   const [parcelas, setParcelas] = useState<Parcela[]>([
@@ -162,6 +166,14 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
   const podeReemitir =
     titulo.tipo_pagamento === "boleto" &&
     (titulo.boleto_status === "vencido" || isRejeitado);
+
+  /**
+   * Boleto vivo no Safra: encerrar o título aqui NÃO baixa esse boleto.
+   * A baixa exige remessa + SafraNet + retorno (3 passos manuais).
+   */
+  const boletoVivo =
+    titulo.tipo_pagamento === "boleto" &&
+    (titulo.boleto_status === "registrado" || titulo.boleto_status === "vencido");
 
   const somaParcelas = useMemo(
     () => parcelas.reduce((acc, p) => acc + (parseFloat(p.valor.replace(",", ".")) || 0), 0),
@@ -232,9 +244,10 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
       const instrumentos = (res?.instrumentos ?? []).filter((i) => i?.payload);
       const qtd = res?.filhos?.length ?? 0;
 
-      if (instrumentos.length > 0) {
+      if (instrumentos.length > 0 || boletoVivo) {
         // PIX-NAO-FECHA-EM-SILENCIO: o operador precisa levar o código embora.
-        setResultado({ ...res, instrumentos });
+        // Boleto vivo também não fecha em silêncio: falta a remessa de baixa.
+        setResultado({ ...res, instrumentos, boletoABaixar: boletoVivo });
         return;
       }
 
