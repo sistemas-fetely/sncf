@@ -391,6 +391,34 @@ export default function ExtratoImportacao() {
         );
       }
 
+      // FONTE-RECONHECIDA-NAO-E-ERRO: Agenda de Vendas e Recebíveis de Vendas
+      // trazem os mesmos NSUs que já entram pelos CSVs tipo 1 e 2. Reconhecer e
+      // recusar com dignidade: registra, tom neutro, invariante 0 = 0 + 0 + 0.
+      const redundante = FONTE_REDUNDANTE[fonte];
+      if (redundante) {
+        await sb
+          .from("extrato_importacoes")
+          .update({
+            status: "concluida",
+            linhas_lidas: 0,
+            linhas_novas: 0,
+            linhas_enriquecidas: 0,
+            linhas_duplicadas: 0,
+            linhas_ignoradas: 0,
+            ignoradas_detalhe: { arquivo_redundante: 1 },
+            erro_detalhe: null,
+          })
+          .eq("id", impId);
+        trilha.neutro = {
+          resultado: `${PARSER_ROTULO[fonte]} — nada importado`,
+          contagem: "arquivo não lido — redundante com o CSV de vendas SafraPay",
+          detalhe: { arquivo_redundante: 1 },
+        };
+        toast.info(`${file.name}: ${redundante}`);
+        return;
+      }
+
+
       const blocoCerto = BLOCO_DA_FONTE[fonte];
       if (blocoCerto !== bloco) {
         toast.warning(
