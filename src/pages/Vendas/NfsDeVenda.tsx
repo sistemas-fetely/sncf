@@ -12,7 +12,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useNfsEmitidas, type NfEmitida } from "@/hooks/vendas/useNfsEmitidas";
-import { FileText, ExternalLink, Search, RefreshCw, Download, Loader2 } from "lucide-react";
+import { FileText, ExternalLink, Search, RefreshCw, Download, Loader2, AlertCircle } from "lucide-react";
+import { formatError } from "@/lib/format-error";
 import { useDownloadNfPdf } from "@/hooks/nf/useDownloadNfPdf";
 import { cn } from "@/lib/utils";
 import { apelidoParceiro } from "@/lib/parceiros/nome";
@@ -119,7 +120,7 @@ function AbaNFs() {
   const [situacaoFiltro, setSituacaoFiltro] = useState<string>("todas");
   const [mesFiltro, setMesFiltro] = useState<string>("todos");
   const [syncing, setSyncing] = useState(false);
-  const { data: nfs = [], isLoading, refetch } = useNfsEmitidas();
+  const { data: nfs = [], isLoading, isError, error, refetch } = useNfsEmitidas();
 
   async function handleSincronizar() {
     setSyncing(true);
@@ -133,8 +134,8 @@ function AbaNFs() {
         toast.success(`Sincronizado: ${msg}${data?.continuar ? " (continua)" : ""}`);
       }
       await refetch();
-    } catch (e: any) {
-      toast.error("Falha na sincronização: " + (e?.message || String(e)));
+    } catch (e) {
+      toast.error("Falha na sincronização: " + formatError(e));
     } finally {
       setSyncing(false);
     }
@@ -302,6 +303,15 @@ function AbaNFs() {
                 <SkeletonRow />
                 <SkeletonRow />
               </>
+            ) : isError ? (
+              <TableRow>
+                <TableCell colSpan={9} className="text-center py-12">
+                  <span className="inline-flex items-center gap-2 text-destructive text-sm" title={formatError(error)}>
+                    <AlertCircle className="h-4 w-4" />
+                    Não foi possível carregar as NFs — {formatError(error)}
+                  </span>
+                </TableCell>
+              </TableRow>
             ) : filtrados.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
