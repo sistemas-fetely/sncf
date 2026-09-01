@@ -134,8 +134,8 @@ function AbaNFs() {
         toast.success(`Sincronizado: ${msg}${data?.continuar ? " (continua)" : ""}`);
       }
       await refetch();
-    } catch (e: any) {
-      toast.error("Falha na sincronização: " + (e?.message || String(e)));
+    } catch (e) {
+      toast.error("Falha na sincronização: " + formatError(e));
     } finally {
       setSyncing(false);
     }
