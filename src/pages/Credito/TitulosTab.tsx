@@ -562,22 +562,14 @@ function LinhaGrupo({
   );
 }
 
-export default function TitulosTab({ somenteComNf = false }: { somenteComNf?: boolean }) {
+export default function TitulosTab() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const invalidarRecebivel = useInvalidarRecebivel();
   const { toast } = useToast();
   const { data: titulos = [], isLoading } = useTitulosCobranca();
 
-  /* Escopo da tela. "Faturado" = título com NF vinculada — teste positivo em
-     nf_id, não lista de estágios. Conferido no vivo: nf_id existe em exatamente
-     os três estágios pós-NF (faturado/em_transporte/entregue) e em nenhum outro,
-     nenhum pedido com nota emitida ficou sem vínculo, e NF é tudo-ou-nada por
-     pedido — então este escopo nunca parte um grupo em dois. */
-  const universo = useMemo(
-    () => (somenteComNf ? titulos.filter((t) => t.nf_id != null) : titulos),
-    [titulos, somenteComNf],
-  );
+  const universo = titulos;
   const enviarBoleto = useEnviarEmailBoleto();
   const enviarCobranca = useEnviarEmailCobranca();
   const [confirmarEnvioBoleto, setConfirmarEnvioBoleto] = useState<TituloCobranca | null>(null);

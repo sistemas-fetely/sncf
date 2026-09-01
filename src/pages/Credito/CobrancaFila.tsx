@@ -1204,13 +1204,6 @@ export default function CobrancaFila() {
   const totalTitulosAbertos = titulosCobranca.filter(
     (t) => t.status_gestao === "a_vencer" || t.status_gestao === "vence_hoje" || t.status_gestao === "atrasado",
   ).length;
-  // Faturado = título com NF vinculada. Mesmo critério de "aberto" do irmão acima,
-  // para os dois números serem comparáveis.
-  const totalTitulosFaturados = titulosCobranca.filter(
-    (t) =>
-      t.nf_id != null &&
-      (t.status_gestao === "a_vencer" || t.status_gestao === "vence_hoje" || t.status_gestao === "atrasado"),
-  ).length;
   // Badge conta só o que exige AÇÃO NOSSA: aguardando gerar + aguardando envio.
   // Bloco "enviada aguardando retorno" fica fora — a bola está com o banco.
   const totalBaixasPend = baixasPendentes?.countAcoesNossas ?? 0;
@@ -1328,22 +1321,8 @@ export default function CobrancaFila() {
         </TabsContent>
 
         <TabsContent value="titulos">
-          <Tabs defaultValue="todos" className="space-y-4">
-            <TabsList className="bg-transparent p-0 h-auto gap-2">
-              <TabsTrigger value="todos" className={pillTriggerCls}>
-                Todos{totalTitulosAbertos > 0 ? ` · ${totalTitulosAbertos}` : ""}
-              </TabsTrigger>
-              <TabsTrigger value="faturados" className={pillTriggerCls}>
-                Faturados{totalTitulosFaturados > 0 ? ` · ${totalTitulosFaturados}` : ""}
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="todos">
-              <TitulosTab />
-            </TabsContent>
-            <TabsContent value="faturados">
-              <TitulosTab somenteComNf />
-            </TabsContent>
-          </Tabs>
+          {/* sub-aba Faturados removida em 01/09/2026 porque todo título vivo tem NF por construção (RECEBÍVEL-NASCE-PAREADO), então o filtro nunca divergia de Todos */}
+          <TitulosTab />
         </TabsContent>
 
         <TabsContent value="adiantamento">
