@@ -228,7 +228,7 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
     setInjetadoVendedorNestaAbertura(true);
   }, [dialogOpen, vendedorEmail, emailPrincipal, emailsAdicionais, injetadoVendedorNestaAbertura]);
 
-  const abrirDialog = (tipo: TipoEmail) => {
+  const abrirDialog = useCallback((tipo: TipoEmail) => {
     setDialogTipo(tipo);
     const principal = (emailPreferido ?? "").trim().toLowerCase();
     setEmailPrincipal(emailPreferido ?? "");
@@ -238,7 +238,7 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
     setNovoLink("");
     setGeradoEm(hojeISO());
     setDialogOpen(true);
-  };
+  }, [emailPreferido, vendedorEmail]);
 
   const fecharDialog = () => {
     if (sending) return;
