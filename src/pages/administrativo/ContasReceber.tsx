@@ -139,6 +139,15 @@ const RECEBIMENTO_ORDEM: EixoRecebimento[] = [
   "cancelado",
 ];
 
+/** Achados de qualidade de dado, com denominador explícito. */
+type Achado =
+  | "sobreposicao"
+  | "renegociacao"
+  | "sem_prova"
+  | "data_divergente"
+  | "meio_divergente"
+  | "inadimplente";
+
 /** Instrumento que prova a cobrança registrada no banco. */
 const INSTRUMENTO_GARANTIDO = ["registrado", "conciliado", "liquidado_banco"];
 
