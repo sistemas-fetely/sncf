@@ -530,7 +530,8 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
       )}
 
       {/* (d) LISTA ÚNICA DE PARCELAS */}
-      <Card>
+      <Card ref={planoCardRef}>
+
         <CardHeader>
           <CardTitle className="text-base">Plano de pagamento</CardTitle>
         </CardHeader>
