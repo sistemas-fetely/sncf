@@ -75401,6 +75401,14 @@ export type Database = {
         Args: { p_boleto_stage_id: string; p_cpr_id: string }
         Returns: Json
       }
+      anexar_titulo_pago_a_credito: {
+        Args: {
+          p_movimentacao_id: string
+          p_nota?: string
+          p_titulo_id: string
+        }
+        Returns: Json
+      }
       apagar_conta_pagar: {
         Args: { p_apagar_grupo_inteiro?: boolean; p_id: string }
         Returns: Json
@@ -76731,14 +76739,9 @@ export type Database = {
         Returns: string
       }
       fn_cron_rolling_contratos: { Args: never; Returns: number }
-      fn_cronograma_seguro: {
-        Args: {
-          p_ancora: string
-          p_condicao: string
-          p_parcela: number
-          p_total: number
-        }
-        Returns: string
+      fn_cronograma_sugerido_pedido: {
+        Args: { p_pedido_id: string }
+        Returns: Json
       }
       fn_cronograma_vencimentos: {
         Args: {
