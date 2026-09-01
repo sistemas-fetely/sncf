@@ -191,9 +191,18 @@ export default function ExtratoImportacao() {
   const [conferencia, setConferencia] = useState<{ contaId: string; dataReferencia: string } | null>(
     null
   );
-  // 1c — o operador precisa ver qual parser cada arquivo acionou
+  // VEREDITO-POR-ARQUIVO (01/09/2026): um toast só escondia arquivo que falhou.
+  // Cada arquivo do upload deixa a própria linha, com o parser que o leu e a
+  // conta fechada. Erro fica na tela e não desaparece sozinho.
   const [resultados, setResultados] = useState<
-    { arquivo: string; parser: string; resultado: string; ok: boolean }[]
+    {
+      arquivo: string;
+      parser: string;
+      resultado: string;
+      ok: boolean;
+      contagem?: string;
+      ignoradas?: Record<string, number>;
+    }[]
   >([]);
 
 
