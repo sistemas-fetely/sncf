@@ -1,10 +1,11 @@
-import { FileText, Loader2 } from "lucide-react";
+import { AlertCircle, FileText, Loader2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { useNfsDoPedido, type NfDoPedido } from "@/hooks/nf/useNfsDoPedido";
 import { useDownloadNfPdf } from "@/hooks/nf/useDownloadNfPdf";
 import { Selo } from "@/components/pedidos/prazoEntrega";
 import { cn } from "@/lib/utils";
+import { formatError } from "@/lib/format-error";
 
 function nomeArquivo(nf: NfDoPedido) {
   return `NF-${nf.numero ?? nf.id}${nf.serie ? `-${nf.serie}` : ""}`;
@@ -34,8 +35,21 @@ function textoSituacao(situacao: string | null) {
  * Sem NF, não renderiza nada.
  */
 export function ChipNfPedido({ pedidoId }: { pedidoId: string }) {
-  const { data } = useNfsDoPedido(pedidoId);
+  const { data, isError, error } = useNfsDoPedido(pedidoId);
   const { baixar, baixando, nfEmDownload } = useDownloadNfPdf();
+
+  // FAIL-LOUD: erro de consulta nunca se disfarça de "pedido sem NF".
+  if (isError) {
+    return (
+      <Selo
+        className="inline-flex items-center gap-1 bg-destructive/10 text-destructive border-destructive/40 font-medium shrink-0"
+        title={formatError(error)}
+      >
+        <AlertCircle className="h-3 w-3" />
+        NF: erro
+      </Selo>
+    );
+  }
 
   const principal = data?.principal;
   if (!principal?.numero) return null;
