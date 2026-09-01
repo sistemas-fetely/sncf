@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
+import { usePermissoesTela } from "@/hooks/usePermissoesTela";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
