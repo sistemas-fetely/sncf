@@ -483,7 +483,7 @@ function ZonaVazia({ texto, tom }: { texto: string; tom: "success" | "muted" }) 
   );
 }
 
-async function despausarTitulo(tituloId: string, qc: ReturnType<typeof useQueryClient>) {
+async function despausarTitulo(tituloId: string, invalidarRecebivel: () => Promise<void>) {
   const { data, error } = await (supabase as any).rpc("despausar_regua_titulo", {
     p_titulo_id: tituloId,
   });
@@ -775,7 +775,7 @@ export default function ReguaTab() {
                     size="sm"
                     variant="outline"
                     className="w-full h-7 text-xs"
-                    onClick={() => despausarTitulo(t.id, qc)}
+                    onClick={() => despausarTitulo(t.id, invalidarRecebivel)}
                   >
                     <Play className="h-3 w-3 mr-1" /> Despausar
                   </Button>
