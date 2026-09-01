@@ -90,14 +90,77 @@ type RecebivelB2B = {
   /* eixo faturamento removido: a view só traz título faturado (com NF) */
   data_liquidacao_prevista: string | null;
   desvio_previsao_dias: number | null;
-  /* dois eixos: prova (a venda foi validada no banco) e status (onde está o dinheiro desta parcela) */
-  eixo_prova: EixoProva;
-  eixo_status: EixoStatus;
+  /* eixos legados mantidos no tipo (a view continua entregando) */
+  eixo_prova: string | null;
+  eixo_status: string | null;
 
   compensado_por: "banco" | "manual" | null;
   eh_inadimplencia: boolean | null;
   condicao_parcelamento: string | null;
+  /* envelope de gestão (vw_recebivel_gestao) */
+  eixo_recebimento: EixoRecebimento | null;
+  eixo_instrumento: string | null;
+  eh_inadimplente: boolean | null;
+  estado_rotulo: string | null;
+  estado_cor: string | null;
+  estado_ordem: number | null;
+  estado_em_aberto: boolean | null;
+  carteira_codigo: string | null;
+  carteira_nome: string | null;
+  carteira_ordem: number | null;
+  carteira_rotulo_data: string | null;
+  carteira_previsao_confiavel: boolean | null;
+  carteira_gera_caixa: boolean | null;
+  data_vencimento_nf: string | null;
+  data_vencimento_instrumento: string | null;
+  data_vencimento_vigente: string | null;
+  desvio_registro_dias: number | null;
+  sobreposicao_instrumento: boolean | null;
+  renegociacao_humana: boolean | null;
+  qualidade: "firme" | "em_registro" | "promessa" | "sem_prova" | null;
 };
+
+/** O dinheiro chegou? Eixo único de recebimento da view de gestão. */
+type EixoRecebimento = "em_aberto" | "quitado" | "compensado" | "devolvido" | "cancelado";
+
+const RECEBIMENTO_LABEL: Record<EixoRecebimento, string> = {
+  em_aberto: "Em aberto",
+  quitado: "Quitado",
+  compensado: "Compensado",
+  devolvido: "Devolvido",
+  cancelado: "Cancelado",
+};
+
+const RECEBIMENTO_ORDEM: EixoRecebimento[] = [
+  "em_aberto",
+  "quitado",
+  "compensado",
+  "devolvido",
+  "cancelado",
+];
+
+/** Instrumento que prova a cobrança registrada no banco. */
+const INSTRUMENTO_GARANTIDO = ["registrado", "conciliado", "liquidado_banco"];
+
+/** Cor semântica do estado, como a view a declara. */
+const CLASSE_ESTADO: Record<string, string> = {
+  destructive: "bg-destructive/10 text-destructive border-0",
+  amber: "bg-warning/10 text-warning border-0",
+  emerald: "bg-success/10 text-success border-0",
+  muted: "bg-muted text-muted-foreground border-0",
+};
+
+function BadgeEstado({ rotulo, cor }: { rotulo: string | null; cor: string | null }) {
+  if (!rotulo) return <span className="text-muted-foreground">—</span>;
+  const classe = cor ? CLASSE_ESTADO[cor] : undefined;
+  if (!classe)
+    return (
+      <Badge variant="outline" className="text-xs">
+        {rotulo}
+      </Badge>
+    );
+  return <Badge className={`text-xs ${classe}`}>{rotulo}</Badge>;
+}
 
 
 
