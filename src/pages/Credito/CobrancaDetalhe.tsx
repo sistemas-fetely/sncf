@@ -451,16 +451,29 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
   }
 
   // Linha PIX sem QR emitido é a ação mais próxima: o instrumento vive na linha do plano.
-  const temPixPendente = linhas.some(
+  const pixPendentes = linhas.filter(
     (l) => l.tipo_pagamento === "pix" && !l.pix_txid && !l.pago,
   );
+  const gerarPix = useGerarPixLinha(pedido.id);
 
-  const acaoPrimaria: { label: string; onClick: () => void } = linhas.length === 0
+  // Botão que promete gerar TEM que gerar: com uma única parcela PIX pendente, emite direto.
+  // Com mais de uma, o sistema não escolhe sozinho — só leva a tela até o plano.
+  const acaoPrimaria: { label: string; onClick: () => void; carregando?: boolean } = linhas.length === 0
     ? { label: "Montar plano", onClick: () => navigate(`/recebimento/cobranca/${pedido.id}?refazer=1`) }
     : !temInstrumento
-      ? temPixPendente
-        ? { label: "Gerar QR PIX", onClick: () => scrollPara(planoCardRef) }
-        : { label: "Cadastrar link de pagamento", onClick: () => scrollPara(linkCardRef) }
+      ? pixPendentes.length === 1
+        ? {
+            label: "Gerar QR PIX",
+            carregando: gerarPix.isPending,
+            onClick: () =>
+              gerarPix.mutate(
+                { linhaId: pixPendentes[0].linha_id, origem: pixPendentes[0].origem },
+                { onSuccess: () => scrollPara(planoCardRef) },
+              ),
+          }
+        : pixPendentes.length > 1
+          ? { label: "Ver parcelas para gerar QR", onClick: () => scrollPara(planoCardRef) }
+          : { label: "Cadastrar link de pagamento", onClick: () => scrollPara(linkCardRef) }
       : !enviadoAoCliente
         ? { label: "Enviar cobrança", onClick: () => scrollPara(comunicacaoRef) }
         : { label: "Reenviar cobrança", onClick: () => scrollPara(comunicacaoRef) };
@@ -584,7 +597,10 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
       <div className="flex items-center justify-between gap-3">
         <SmartBackButton fallback="/recebimento/cobranca" fallbackLabel="Voltar ao pedido" />
         <div className="flex items-center gap-2">
-          <Button onClick={acaoPrimaria.onClick}>{acaoPrimaria.label}</Button>
+          <Button onClick={acaoPrimaria.onClick} disabled={acaoPrimaria.carregando}>
+            {acaoPrimaria.carregando && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            {acaoPrimaria.label}
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon" aria-label="Mais ações">
