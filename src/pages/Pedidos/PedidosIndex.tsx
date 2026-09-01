@@ -2,7 +2,6 @@ import { Suspense, lazy, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { PipelineHorizontal } from "@/components/pedidos/PipelineHorizontal";
 import { FilaPedidosPorArea } from "@/components/pedidos/FilaPedidosPorArea";
 import { PainelDashPedidos } from "@/components/pedidos/PainelDashPedidos";
@@ -26,6 +25,7 @@ type Aba = (typeof ABAS)[number];
 
 export default function PedidosIndex() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const qc = useQueryClient();
   const estagioParam = searchParams.get("estagio") as EstagioPedido | null;
   const abaParam = searchParams.get("aba");
   const [incluirCancelados, setIncluirCancelados] = useState(false);
