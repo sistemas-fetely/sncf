@@ -83,17 +83,23 @@ for (const nf of items) {
     let pedido_venda_id: string | null = null;
     const sitNum = typeof nf.situacao === "object" ? nf.situacao?.valor : nf.situacao;
 
+    // FALLBACK-EXIGE-SELECT: todo campo usado em `existing?.campo ?? null` abaixo
+    // TEM que estar neste select. Se nao estiver, o coalesce apaga o dado na
+    // proxima passada em que o detalhe nao for buscado. Caso que provou:
+    // tipo_venda estava de fora e sobrou preenchido em apenas 7 de 435 NFs.
     const { data: existing } = await supabase
       .from("nfs_emitidas")
-      .select("id, numero, situacao, data_emissao, valor_nota, pedido_venda_id, valor_frete, transportadora_nome, transportadora_cnpj, itens_json, numero_pedido_loja, bling_pedido_venda_numero, bling_pedido_venda_id, transporte_raw, serie, pdf_url, xml_url")
+      .select("id, numero, situacao, data_emissao, valor_nota, pedido_venda_id, valor_frete, transportadora_nome, transportadora_cnpj, itens_json, numero_pedido_loja, bling_pedido_venda_numero, bling_pedido_venda_id, transporte_raw, serie, pdf_url, xml_url, tipo_venda, raw, duplicatas, duplicatas_sync_em")
       .eq("bling_id", blingId)
       .maybeSingle();
+
 
     const semValor = !existing || !existing.valor_nota || Number(existing.valor_nota) === 0;
     const semFrete = !existing?.valor_frete || Number(existing.valor_frete) === 0;
     const semPedido = !existing?.pedido_venda_id; const semTransporte = !existing?.transporte_raw;
     const semSerie = !existing?.serie;
     const semArquivo = !existing?.pdf_url || !existing?.xml_url;
+    const semDuplicatas = !existing?.duplicatas_sync_em;
 
     // Nota completa e autorizada dos ultimos 90 dias pode ter sido cancelada DEPOIS
     // do sync — sem reconsulta o cancelamento fica invisivel para sempre.
@@ -101,8 +107,8 @@ for (const nf of items) {
       !!existing.data_emissao && String(existing.data_emissao).slice(0, 10) >= limite90d &&
       revalidados < REVALIDACAO_MAX;
 
-    // Busca detalhe apenas quando falta valor, frete, pedido, transporte, série
-    // ou arquivo (pdf_url/xml_url) — evita rate limit do Bling.
+    // Busca detalhe apenas quando falta valor, frete, pedido, transporte, série,
+    // arquivo (pdf_url/xml_url) ou duplicata — evita rate limit do Bling.
     // Pedido linkage tenta junto quando já estamos no detalhe, mas não aciona sozinho.
     let situacaoDetalhe: string | null = null;
     let numeroPedidoLojaRaw: string | null = null;
@@ -110,7 +116,8 @@ for (const nf of items) {
     let pedidoVendaBlingIdRaw: string | null = null;
     let serieDetalhe: string | null = null;
 
-    if (semValor || semFrete || semPedido || semTransporte || semSerie || semArquivo || revalidarCancelamento) {
+    if (semValor || semFrete || semPedido || semTransporte || semSerie || semArquivo || semDuplicatas || revalidarCancelamento) {
+
       if (revalidarCancelamento) revalidados++;
 
       try {
