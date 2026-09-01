@@ -10,9 +10,10 @@
  */
 import { useMemo, useState, useEffect } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ChevronDown, ChevronUp, Lock, LockOpen, CheckCircle2, ArrowUpDown, BookLock } from "lucide-react";
+import { ChevronDown, ChevronUp, Lock, LockOpen, CheckCircle2, ArrowUpDown, BookLock, Download } from "lucide-react";
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageTitle } from "@/components/layout/PageTitle";
@@ -22,12 +23,15 @@ import { EstadoVazio } from "@/components/ui/estado-vazio";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { rawMessage } from "@/lib/format-error";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
+
 
 /* ────────────────────────────── tipos ────────────────────────────── */
 
@@ -39,6 +43,8 @@ interface Competencia {
   status: StatusComp;
   unidades: number;
   valor_custo: number;
+  valor_custo_nf: number | null;
+  icms_excluido: number | null;
   skus: number;
   fechado_em: string | null;
   obs: string | null;
@@ -62,6 +68,12 @@ interface LinhaPosicao {
   quantidade: number;
   custo_unitario: number;
   valor_total: number;
+  custo_nf_unitario: number | null;
+  valor_nf_total: number | null;
+  icms_aliq: number | null;
+  ipi_aliq: number | null;
+  valor_unit_nf: number | null;
+  delta_icms: number | null;
   fonte: "snapshot" | "calculado";
 }
 
@@ -75,6 +87,13 @@ const fmtUn = (v: number | null | undefined) =>
 
 const fmtUnit = (v: number | null | undefined) =>
   Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+
+/** Alíquota vem como fração (0.0675) — exibida como 6,75%. */
+const fmtAliq = (v: number | null | undefined) =>
+  v == null ? "—" : `${(Number(v) * 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+
+const num = (v: unknown) => Number(v || 0);
+
 
 const SELO_STATUS: Record<StatusComp, { estado: EstadoSelo; texto: string }> = {
   fechado: { estado: "success", texto: "Fechado" },
@@ -110,6 +129,9 @@ export default function FechamentoContabil() {
   const [dialogReabrir, setDialogReabrir] = useState(false);
   const [obs, setObs] = useState("");
   const [motivo, setMotivo] = useState("");
+  // Aba da tabela de posição vive na URL, em ?base= (padrão: aterrissagem).
+  const [base, setBase] = useAbaUrl("aterrissagem", undefined, "base");
+
 
   const competencias = useQuery({
     queryKey: ["contabil-competencias"],
@@ -180,8 +202,14 @@ export default function FechamentoContabil() {
   const totais = useMemo(
     () =>
       filtradas.reduce(
-        (acc, l) => ({ un: acc.un + Number(l.quantidade || 0), rs: acc.rs + Number(l.valor_total || 0) }),
-        { un: 0, rs: 0 }
+        (acc, l) => ({
+          un: acc.un + num(l.quantidade),
+          rs: acc.rs + num(l.valor_total),
+          // Linha sem custo NF entra como 0 na soma — a própria linha sinaliza o furo.
+          rsNf: acc.rsNf + num(l.valor_nf_total),
+          delta: acc.delta + num(l.delta_icms),
+        }),
+        { un: 0, rs: 0, rsNf: 0, delta: 0 }
       ),
     [filtradas]
   );
@@ -189,6 +217,144 @@ export default function FechamentoContabil() {
   const fonte = linhas[0]?.fonte;
   const gatesBloqueantes = (gates.data ?? []).filter((g) => g.severidade === "bloqueante" && g.quantidade > 0);
   const todosLimpos = (gates.data ?? []).length > 0 && (gates.data ?? []).every((g) => g.quantidade === 0);
+
+  /* ── exportações .xlsx (padrão PacoteContador: monta no cliente, baixa Blob) ── */
+
+  const sufixoArquivo = selecionada ? `${selecionada.slice(5, 7)}-${selecionada.slice(0, 4)}` : "";
+
+  const negritarLinha = (ws: XLSX.WorkSheet, linha: number, colunas: number) => {
+    for (let c = 0; c < colunas; c++) {
+      const ref = XLSX.utils.encode_cell({ r: linha, c });
+      if (ws[ref]) ws[ref].s = { font: { bold: true } };
+    }
+  };
+
+  const baixar = (wb: XLSX.WorkBook, nome: string) => {
+    const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" }) as ArrayBuffer;
+    const blob = new Blob([buf], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nome;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportarAterrissagem = () => {
+    try {
+      const aoa = [
+        ["SKU", "Produto", "Centro", "Quantidade", "Custo Unitário", "Valor Total"],
+        ...filtradas.map((l) => [
+          l.sku,
+          l.produto ?? "",
+          l.centro ?? "",
+          num(l.quantidade),
+          num(l.custo_unitario),
+          num(l.valor_total),
+        ]),
+        ["TOTAL", "", "", totais.un, null, totais.rs],
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws["!cols"] = [{ wch: 18 }, { wch: 46 }, { wch: 16 }, { wch: 12 }, { wch: 14 }, { wch: 16 }];
+      negritarLinha(ws, 0, 6);
+      negritarLinha(ws, aoa.length - 1, 6);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Posição de Estoque");
+      baixar(wb, `Fetely_Estoque_Aterrissagem_${sufixoArquivo}.xlsx`);
+    } catch (e) {
+      toast.error(rawMessage(e));
+    }
+  };
+
+  const exportarCustoNf = () => {
+    try {
+      const aoa = [
+        ["SKU", "Produto", "Centro", "Quantidade", "Valor Unit. NF", "IPI %", "Custo NF Unitário", "Valor Total NF"],
+        ...filtradas.map((l) => [
+          l.sku,
+          l.produto ?? "",
+          l.centro ?? "",
+          num(l.quantidade),
+          l.valor_unit_nf == null ? null : num(l.valor_unit_nf),
+          l.ipi_aliq == null ? null : num(l.ipi_aliq) * 100,
+          l.custo_nf_unitario == null ? null : num(l.custo_nf_unitario),
+          l.valor_nf_total == null ? null : num(l.valor_nf_total),
+        ]),
+        ["TOTAL", "", "", totais.un, null, null, null, totais.rsNf],
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws["!cols"] = [
+        { wch: 18 }, { wch: 46 }, { wch: 16 }, { wch: 12 },
+        { wch: 15 }, { wch: 9 }, { wch: 18 }, { wch: 17 },
+      ];
+      negritarLinha(ws, 0, 8);
+      negritarLinha(ws, aoa.length - 1, 8);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Posição de Estoque");
+      baixar(wb, `Fetely_Estoque_CustoNF_${sufixoArquivo}.xlsx`);
+    } catch (e) {
+      toast.error(rawMessage(e));
+    }
+  };
+
+  const exportarComparativo = () => {
+    try {
+      const aoa = [
+        [
+          "SKU", "Produto", "Centro", "Quantidade",
+          "Custo Aterrissagem Unit.", "Valor Aterrissagem",
+          "Custo NF Unit.", "Valor NF", "ICMS %", "IPI %", "Diferença",
+        ],
+        ...filtradas.map((l) => [
+          l.sku,
+          l.produto ?? "",
+          l.centro ?? "",
+          num(l.quantidade),
+          num(l.custo_unitario),
+          num(l.valor_total),
+          l.custo_nf_unitario == null ? null : num(l.custo_nf_unitario),
+          l.valor_nf_total == null ? null : num(l.valor_nf_total),
+          l.icms_aliq == null ? null : num(l.icms_aliq) * 100,
+          l.ipi_aliq == null ? null : num(l.ipi_aliq) * 100,
+          l.delta_icms == null ? null : num(l.delta_icms),
+        ]),
+        ["TOTAL", "", "", totais.un, null, totais.rs, null, totais.rsNf, null, null, totais.delta],
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws["!cols"] = [
+        { wch: 18 }, { wch: 46 }, { wch: 16 }, { wch: 12 }, { wch: 22 }, { wch: 18 },
+        { wch: 16 }, { wch: 16 }, { wch: 9 }, { wch: 9 }, { wch: 16 },
+      ];
+      negritarLinha(ws, 0, 11);
+      negritarLinha(ws, aoa.length - 1, 11);
+
+      const criterio: (string | null)[][] = [
+        ["Competência", comp?.rotulo ?? ""],
+        ["Status", comp?.status ?? ""],
+        ["Fechado em", comp?.fechado_em ? new Date(comp.fechado_em).toLocaleString("pt-BR") : "—"],
+        ["Fonte da posição", fonte === "snapshot" ? "Snapshot congelado" : "Cálculo ao vivo"],
+        [null, null],
+        ["Critério", "Valor"],
+        ...Object.entries(comp?.politica ?? {}).map(([k, v]) => [
+          k,
+          Array.isArray(v) ? v.join(", ") : typeof v === "object" && v !== null ? JSON.stringify(v) : String(v),
+        ]),
+      ];
+      const wsCriterio = XLSX.utils.aoa_to_sheet(criterio);
+      wsCriterio["!cols"] = [{ wch: 34 }, { wch: 60 }];
+      negritarLinha(wsCriterio, 5, 2);
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Comparativo");
+      XLSX.utils.book_append_sheet(wb, wsCriterio, "Critério");
+      baixar(wb, `Fetely_Estoque_Comparativo_${sufixoArquivo}.xlsx`);
+    } catch (e) {
+      toast.error(rawMessage(e));
+    }
+  };
+
 
   const invalidar = () => {
     qc.invalidateQueries({ queryKey: ["contabil-competencias"] });
@@ -391,9 +557,36 @@ export default function FechamentoContabil() {
         </section>
       )}
 
-      {/* ZONA 4 — posição por SKU */}
+      {/* ZONA 4 — duas bases de valorização */}
       {comp && (
-        <section className="space-y-2">
+        <section className="space-y-3">
+          {/* Faixa comparativa — os dois números sempre juntos, em qualquer aba. */}
+          <div className="flex flex-wrap gap-3">
+            <div className="min-w-[220px] flex-1 rounded-lg border border-primary/40 bg-primary/5 p-4">
+              <p className="text-xs text-muted-foreground">Custo de aterrissagem</p>
+              <p className="mt-1 text-xl tabular-nums">{fmtDinheiro(comp.valor_custo)}</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">Base contábil · ICMS excluído</p>
+            </div>
+            <div className="min-w-[220px] flex-1 rounded-lg border p-4">
+              <p className="text-xs text-muted-foreground">Custo NF</p>
+              <p className="mt-1 text-xl tabular-nums">{fmtDinheiro(comp.valor_custo_nf)}</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">Base gerencial · produto + IPI</p>
+            </div>
+            <div className="min-w-[220px] flex-1 rounded-lg border p-4">
+              <p className="text-xs text-muted-foreground">ICMS creditável excluído</p>
+              <p className="mt-1 text-xl tabular-nums">{fmtDinheiro(comp.icms_excluido)}</p>
+              <p className="text-xs tabular-nums text-muted-foreground">
+                {num(comp.valor_custo) > 0
+                  ? `+${((num(comp.icms_excluido) / num(comp.valor_custo)) * 100).toLocaleString("pt-BR", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}%`
+                  : "—"}
+              </p>
+              <p className="mt-1 text-[11px] text-muted-foreground">Diferença entre as duas bases</p>
+            </div>
+          </div>
+
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-sm font-medium">Posição por SKU</h2>
             {fonte && (
@@ -401,7 +594,28 @@ export default function FechamentoContabil() {
                 {fonte === "snapshot" ? "Snapshot congelado" : "Cálculo ao vivo"}
               </Selo>
             )}
+            <div className="ml-auto flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" onClick={exportarAterrissagem} disabled={!filtradas.length}>
+                <Download className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                Exportar Aterrissagem
+              </Button>
+              <Button variant="outline" size="sm" onClick={exportarCustoNf} disabled={!filtradas.length}>
+                <Download className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                Exportar Custo NF
+              </Button>
+              <Button variant="outline" size="sm" onClick={exportarComparativo} disabled={!filtradas.length}>
+                <Download className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                Exportar Comparativo
+              </Button>
+            </div>
           </div>
+
+          <Tabs value={base} onValueChange={setBase}>
+            <TabsList>
+              <TabsTrigger value="aterrissagem">Custo de Aterrissagem</TabsTrigger>
+              <TabsTrigger value="nf">Custo NF</TabsTrigger>
+            </TabsList>
+          </Tabs>
 
           <TabelaFetely
             busca={{ valor: busca, aoMudar: setBusca, placeholder: "Buscar por SKU ou produto…" }}
@@ -435,44 +649,102 @@ export default function FechamentoContabil() {
             }
           >
             <div className="overflow-x-auto rounded-md border">
-              <table className="w-full text-sm">
-                <thead className="border-b bg-muted/40">
-                  <tr>
-                    <Cabecalho campo="sku">SKU</Cabecalho>
-                    <Cabecalho campo="produto">Produto</Cabecalho>
-                    <Cabecalho campo="centro">Centro</Cabecalho>
-                    <Cabecalho campo="quantidade" num>Quantidade</Cabecalho>
-                    <Cabecalho campo="custo_unitario" num>Custo unitário</Cabecalho>
-                    <Cabecalho campo="valor_total" num>Valor total</Cabecalho>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {visiveis.map((l, i) => (
-                    <tr key={`${l.sku}-${l.centro}-${i}`} className="hover:bg-muted/30">
-                      <td className="whitespace-nowrap px-3 py-2 font-medium">{l.sku}</td>
-                      <td className="max-w-[420px] truncate px-3 py-2 text-muted-foreground">{l.produto ?? "—"}</td>
-                      <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{l.centro ?? "—"}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{fmtUn(l.quantidade)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{fmtUnit(l.custo_unitario)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{fmtDinheiro(l.valor_total)}</td>
+              {base === "nf" ? (
+                <table className="w-full text-sm">
+                  <thead className="border-b bg-muted/40">
+                    <tr>
+                      <Cabecalho campo="sku">SKU</Cabecalho>
+                      <Cabecalho campo="produto">Produto</Cabecalho>
+                      <Cabecalho campo="centro">Centro</Cabecalho>
+                      <Cabecalho campo="quantidade" num>Quantidade</Cabecalho>
+                      <Cabecalho campo="valor_unit_nf" num>Valor unit. NF</Cabecalho>
+                      <Cabecalho campo="ipi_aliq" num>IPI %</Cabecalho>
+                      <Cabecalho campo="custo_nf_unitario" num>Custo NF unitário</Cabecalho>
+                      <Cabecalho campo="valor_nf_total" num>Valor total NF</Cabecalho>
                     </tr>
-                  ))}
-                </tbody>
-                <tfoot className="sticky bottom-0 border-t bg-background">
-                  <tr>
-                    <td colSpan={3} className="px-3 py-2 text-xs text-muted-foreground">
-                      Total da competência
-                    </td>
-                    <td className="px-3 py-2 text-right tabular-nums">{fmtUn(totais.un)}</td>
-                    <td />
-                    <td className="px-3 py-2 text-right tabular-nums">{fmtDinheiro(totais.rs)}</td>
-                  </tr>
-                </tfoot>
-              </table>
+                  </thead>
+                  <tbody className="divide-y">
+                    {visiveis.map((l, i) => {
+                      const semNf = l.custo_nf_unitario == null || l.valor_nf_total == null;
+                      return (
+                        <tr key={`${l.sku}-${l.centro}-${i}`} className="hover:bg-muted/30">
+                          <td className="whitespace-nowrap px-3 py-2 font-medium">
+                            <span className="inline-flex items-center gap-1.5">
+                              {l.sku}
+                              {semNf && <Selo estado="warning">Sem custo NF</Selo>}
+                            </span>
+                          </td>
+                          <td className="max-w-[380px] truncate px-3 py-2 text-muted-foreground">{l.produto ?? "—"}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{l.centro ?? "—"}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{fmtUn(l.quantidade)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {l.valor_unit_nf == null ? "—" : fmtUnit(l.valor_unit_nf)}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">{fmtAliq(l.ipi_aliq)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {l.custo_nf_unitario == null ? "—" : fmtUnit(l.custo_nf_unitario)}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {l.valor_nf_total == null ? "—" : fmtDinheiro(l.valor_nf_total)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot className="sticky bottom-0 border-t bg-background">
+                    <tr>
+                      <td colSpan={3} className="px-3 py-2 text-xs text-muted-foreground">
+                        Total da competência
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums">{fmtUn(totais.un)}</td>
+                      <td />
+                      <td />
+                      <td />
+                      <td className="px-3 py-2 text-right tabular-nums">{fmtDinheiro(totais.rsNf)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead className="border-b bg-muted/40">
+                    <tr>
+                      <Cabecalho campo="sku">SKU</Cabecalho>
+                      <Cabecalho campo="produto">Produto</Cabecalho>
+                      <Cabecalho campo="centro">Centro</Cabecalho>
+                      <Cabecalho campo="quantidade" num>Quantidade</Cabecalho>
+                      <Cabecalho campo="custo_unitario" num>Custo unitário</Cabecalho>
+                      <Cabecalho campo="valor_total" num>Valor total</Cabecalho>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {visiveis.map((l, i) => (
+                      <tr key={`${l.sku}-${l.centro}-${i}`} className="hover:bg-muted/30">
+                        <td className="whitespace-nowrap px-3 py-2 font-medium">{l.sku}</td>
+                        <td className="max-w-[420px] truncate px-3 py-2 text-muted-foreground">{l.produto ?? "—"}</td>
+                        <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{l.centro ?? "—"}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{fmtUn(l.quantidade)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{fmtUnit(l.custo_unitario)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{fmtDinheiro(l.valor_total)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot className="sticky bottom-0 border-t bg-background">
+                    <tr>
+                      <td colSpan={3} className="px-3 py-2 text-xs text-muted-foreground">
+                        Total da competência
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums">{fmtUn(totais.un)}</td>
+                      <td />
+                      <td className="px-3 py-2 text-right tabular-nums">{fmtDinheiro(totais.rs)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              )}
             </div>
           </TabelaFetely>
         </section>
       )}
+
 
       {/* ZONA 6 — política aplicada */}
       {comp?.status === "fechado" && comp.politica && (
