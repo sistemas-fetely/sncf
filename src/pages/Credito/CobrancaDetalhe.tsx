@@ -51,10 +51,6 @@ import { AjustarDescontoDialog } from "@/components/pedidos/dialogs/AjustarDesco
 import { ImpactoEdicaoBanner } from "@/components/pedidos/ImpactoEdicaoBanner";
 import { ReabrirAnaliseAction } from "@/components/pedidos/ReabrirAnaliseAction";
 import { LinkPagamentoCard } from "@/components/pedidos/LinkPagamentoCard";
-import { InstrumentoPixLinha } from "@/components/pedidos/InstrumentoPixLinha";
-import { useGerarPixLinha } from "@/hooks/pedidos/useGerarPixLinha";
-import { useHaverAplicadoPedido } from "@/hooks/pedidos/useHaverAplicadoPedido";
-
 import { useVoltarParaOrigem } from "@/hooks/useVoltarParaOrigem";
 import { useMontarPlanoPagamento } from "@/hooks/credito/useMontarPlanoPagamento";
 import { PageShell } from "@/components/layout/PageShell";
@@ -297,9 +293,8 @@ function CelulaDinheiro({
   );
 }
 
-function LinhaParcela({ l, pedidoId }: { l: LinhaCobrancaPedido; pedidoId: string }) {
-  // Linha sem instrumento nasce aberta — o botão "Gerar QR PIX" tem que estar à vista.
-  const [aberto, setAberto] = useState(() => !l.pago && !l.instrumento_pronto);
+function LinhaParcela({ l }: { l: LinhaCobrancaPedido }) {
+  const [aberto, setAberto] = useState(false);
   const Icone = ICONE_TIPO[l.tipo_pagamento ?? ""] ?? FileText;
   const valor = Number(l.valor ?? 0);
   const pago = !!l.pago;
@@ -359,30 +354,17 @@ function LinhaParcela({ l, pedidoId }: { l: LinhaCobrancaPedido; pedidoId: strin
       </button>
 
       {aberto && (
-        <div className="pl-11 pr-4 pb-3 space-y-1.5 min-w-0">
-          {l.link_pagamento && l.tipo_pagamento !== "pix" && (
-            <CopiavelInline label="Link" valor={l.link_pagamento} />
-          )}
+        <div className="pl-11 pr-4 pb-3 space-y-1.5">
+          {l.link_pagamento && <CopiavelInline label="Link" valor={l.link_pagamento} />}
           {l.linha_digitavel && <CopiavelInline label="Linha digitável" valor={l.linha_digitavel} />}
-          <InstrumentoPixLinha
-            linhaId={l.linha_id}
-            origem={l.origem}
-            pedidoId={pedidoId}
-            tipoPagamento={l.tipo_pagamento}
-            pago={l.pago}
-            linkPagamento={l.link_pagamento}
-            pixTxid={l.pix_txid}
-            pixToken={l.pix_token}
-            pixQrUrl={l.pix_qr_url}
-            valor={Number(l.valor ?? 0)}
-          />
           {l.nosso_numero && (
             <p className="text-xs text-muted-foreground">Nosso número: {l.nosso_numero}</p>
           )}
           {l.boleto_status && (
             <p className="text-xs text-muted-foreground">Boleto: {l.boleto_status}</p>
           )}
-          {!temInstrumento && l.tipo_pagamento !== "pix" && (
+          {l.pix_txid && <p className="text-xs text-muted-foreground">PIX txid: {l.pix_txid}</p>}
+          {!temInstrumento && (
             <p className="flex items-center gap-2 text-xs text-muted-foreground">
               <Info className="h-3.5 w-3.5" />
               Nenhum link ou boleto emitido para esta parcela
@@ -390,7 +372,6 @@ function LinhaParcela({ l, pedidoId }: { l: LinhaCobrancaPedido; pedidoId: strin
           )}
         </div>
       )}
-
     </div>
   );
 }
@@ -400,9 +381,8 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
   const [alterarPagtoOpen, setAlterarPagtoOpen] = useState(false);
   const portaoRegraQ = usePedidoPortaoRegra(pedido.id);
   const linhasQ = useLinhasCobrancaPedido(pedido.id);
-  const planoCardRef = useRef<HTMLDivElement>(null);
-
-
+  const linkCardRef = useRef<HTMLDivElement>(null);
+  const comunicacaoRef = useRef<HTMLDivElement>(null);
 
   const emailLogQ = useQuery({
     queryKey: ["cobranca-email-log", pedido.id],
@@ -422,10 +402,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
   const somaPago = linhas.filter((l) => l.pago).reduce((a, l) => a + Number(l.valor ?? 0), 0);
   const somaAberto = linhas.filter((l) => !l.pago).reduce((a, l) => a + Number(l.valor ?? 0), 0);
   const valorPedido = Number(pedido.valor_liquido ?? 0);
-  // HAVER-É-PAGAMENTO: crédito do cliente já aplicado cobre parte do pedido e não entra no plano.
-  const haverQ = useHaverAplicadoPedido(pedido.id);
-  const haverAplicado = haverQ.data ?? 0;
-  const delta = somaLinhas + haverAplicado - valorPedido;
+  const delta = somaLinhas - valorPedido;
 
   const temInstrumento = linhas.some((l) => l.instrumento_pronto);
   // Passo 3: e-mail interno é teste, não é envio ao cliente.
@@ -445,28 +422,17 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
 
   const emCobranca = pedido.estagio === "cobranca";
 
-  // Linha PIX sem QR emitido é a ação mais próxima: o instrumento vive na linha do plano.
-  const pixPendentes = linhas.filter(
-    (l) => l.tipo_pagamento === "pix" && !l.pix_txid && !l.pago,
-  );
-  const gerarPix = useGerarPixLinha(pedido.id);
+  function scrollPara(ref: RefObject<HTMLDivElement>) {
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
 
-  // Botão primário só quando a ação NÃO existe em outro lugar da tela.
-  const acaoPrimaria: { label: string; onClick: () => void; carregando?: boolean } | null =
-    linhas.length === 0
-      ? { label: "Montar plano", onClick: () => navigate(`/recebimento/cobranca/${pedido.id}?refazer=1`) }
-      : pixPendentes.length === 1
-        ? {
-            label: "Gerar QR PIX",
-            carregando: gerarPix.isPending,
-            onClick: () =>
-              gerarPix.mutate(
-                { linhaId: pixPendentes[0].linha_id, origem: pixPendentes[0].origem },
-                { onSuccess: () => planoCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }) },
-              ),
-          }
-        : null;
-
+  const acaoPrimaria: { label: string; onClick: () => void } = linhas.length === 0
+    ? { label: "Montar plano", onClick: () => navigate(`/recebimento/cobranca/${pedido.id}?refazer=1`) }
+    : !temInstrumento
+      ? { label: "Cadastrar link de pagamento", onClick: () => scrollPara(linkCardRef) }
+      : !enviadoAoCliente
+        ? { label: "Enviar cobrança", onClick: () => scrollPara(comunicacaoRef) }
+        : { label: "Reenviar cobrança", onClick: () => scrollPara(comunicacaoRef) };
 
   function refazerPlano() {
     if (emCobranca) {
@@ -516,12 +482,6 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
           <CelulaDinheiro rotulo="Em aberto" valor={somaAberto} dominante />
         </div>
 
-        {haverAplicado > 0 && (
-          <p className="mt-2 rounded-lg border border-border/60 px-3 py-2 text-xs text-muted-foreground">
-            {fmtBRL.format(haverAplicado)} coberto por crédito do cliente — não entra no plano.
-          </p>
-        )}
-
         {linhasQ.isSuccess && linhas.length > 0 && Math.abs(delta) > 0.01 && (
           <div className="mt-2 flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
@@ -554,8 +514,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
       )}
 
       {/* (d) LISTA ÚNICA DE PARCELAS */}
-      <Card ref={planoCardRef}>
-
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Plano de pagamento</CardTitle>
         </CardHeader>
@@ -567,19 +526,18 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
             </p>
           )}
           {linhas.map((l) => (
-            <LinhaParcela key={`${l.origem}-${l.linha_id}`} l={l} pedidoId={pedido.id} />
-
+            <LinhaParcela key={`${l.origem}-${l.linha_id}`} l={l} />
           ))}
         </CardContent>
       </Card>
 
       {/* (e) LINK DE PAGAMENTO DO PEDIDO */}
-      <div>
+      <div ref={linkCardRef}>
         <LinkPagamentoCard pedidoId={pedido.id} />
       </div>
 
       {/* (f) COMUNICAÇÃO */}
-      <div>
+      <div ref={comunicacaoRef}>
         <ComunicacaoPedidoPanel
           pedido_id={pedido.id}
           parceiro_id={pedido.parceiro_id}
@@ -592,12 +550,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
       <div className="flex items-center justify-between gap-3">
         <SmartBackButton fallback="/recebimento/cobranca" fallbackLabel="Voltar ao pedido" />
         <div className="flex items-center gap-2">
-          {acaoPrimaria && (
-            <Button onClick={acaoPrimaria.onClick} disabled={acaoPrimaria.carregando}>
-              {acaoPrimaria.carregando && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {acaoPrimaria.label}
-            </Button>
-          )}
+          <Button onClick={acaoPrimaria.onClick}>{acaoPrimaria.label}</Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon" aria-label="Mais ações">
