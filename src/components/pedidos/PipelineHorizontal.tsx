@@ -285,7 +285,7 @@ export function PipelineHorizontal({
         <button
           type="button"
           onClick={() => onLimparFiltro?.()}
-          title="Pedidos em andamento. Não inclui entregues nem recuperação de venda. Cancelados entram só com o toggle ao lado. Para ver histórico completo, use a busca."
+          title="Pedidos em andamento na SOps — exatamente a soma dos cards ao lado. Não inclui entregues, aguardando pagamento nem recuperação de venda (esses dois moram na Mesa Comercial). Cancelados entram só com o toggle ao lado."
           className={cn(
             "group relative flex flex-col items-center justify-center rounded-md border py-2 px-3 transition-all duration-200 min-w-[76px]",
             "gold-border-hover focus-visible:outline-none",
