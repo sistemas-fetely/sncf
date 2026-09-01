@@ -527,6 +527,12 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
           <CelulaDinheiro rotulo="Em aberto" valor={somaAberto} dominante />
         </div>
 
+        {haverAplicado > 0 && (
+          <p className="mt-2 rounded-lg border border-border/60 px-3 py-2 text-xs text-muted-foreground">
+            {fmtBRL.format(haverAplicado)} coberto por crédito do cliente — não entra no plano.
+          </p>
+        )}
+
         {linhasQ.isSuccess && linhas.length > 0 && Math.abs(delta) > 0.01 && (
           <div className="mt-2 flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
