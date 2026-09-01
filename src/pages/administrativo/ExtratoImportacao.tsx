@@ -38,7 +38,7 @@ import * as XLSX from "xlsx";
 import { gerarHashMov } from "@/lib/financeiro/hash-mov";
 import { ContagemImportacao } from "@/lib/financeiro/contagem-importacao";
 import { inserirMovimentacao, inserirMovimentacoes } from "@/lib/financeiro/inserir-mov";
-import { VereditoImportacao } from "@/components/financeiro/VereditoImportacao";
+import { VereditoImportacao, type VereditoArquivo } from "@/components/financeiro/VereditoImportacao";
 
 import { formatDateBR } from "@/lib/format-currency";
 import { formatError, rawMessage } from "@/lib/format-error";
@@ -176,6 +176,33 @@ const PARSER_ROTULO: Partial<Record<Fonte, string>> = {
   retorno_safra: "Retorno CNAB 400 Safra (cobrança)",
 };
 
+/**
+ * CONTAGEM-NAO-DIZ-O-EFEITO (01/09/2026)
+ *
+ * A contagem responde "a conta fecha?". Ela não responde "o que este arquivo
+ * faz". Quando os toasts específicos viraram `resumo()`, sumiram frases que
+ * eram REGRA e não decoração ("o Settlement não cria movimentação"). Aqui elas
+ * voltam presas à fonte, e aparecem no toast E no card do veredito.
+ */
+const PARSER_EFEITO: Record<Fonte, string> = {
+  ofx: "Extrato oficial — cria as movimentações bancárias do período.",
+  safra_lancamentos: "Extrato Safra — cria as movimentações bancárias do período.",
+  mp_withdraw: "Retiradas Mercado Pago — cria a transferência quando não há par no extrato.",
+  safrapay_vendas: "Vendas SafraPay — agenda de recebíveis; o dinheiro entra pelo OFX.",
+  safrapay_liquidacao: "Liquidação SafraPay — enriquece a linha do extrato que já existe.",
+  safrapay_ajustes:
+    "Ajuste sempre acompanha um crédito que já está no OFX — não cria dinheiro novo.",
+  super_agenda: "SUPER AGENDA não é importável — é projeção, não movimento.",
+  mp_settlement: "O Settlement não cria movimentação — é só enriquecimento da linha do extrato.",
+  mp_release: "Liberações Mercado Pago — enriquece a linha do extrato.",
+  safra_instrucoes_2via:
+    "Conferência da carteira — não gera movimentação nem baixa em título.",
+  safra_francesinha:
+    "Snapshot diário: enriquece a linha do extrato, nunca insere — o dinheiro do boleto chega pelo OFX. Snapshot repetido não é reaplicado.",
+  retorno_safra:
+    "Resposta do banco à remessa — registra e aplica ocorrências; não cria movimentação bancária.",
+};
+
 
 export default function ExtratoImportacao() {
   const { user } = useAuth();
@@ -195,16 +222,7 @@ export default function ExtratoImportacao() {
   // VEREDITO-POR-ARQUIVO (01/09/2026): um toast só escondia arquivo que falhou.
   // Cada arquivo do upload deixa a própria linha, com o parser que o leu e a
   // conta fechada. Erro fica na tela e não desaparece sozinho.
-  const [resultados, setResultados] = useState<
-    {
-      arquivo: string;
-      parser: string;
-      resultado: string;
-      ok: boolean;
-      contagem?: string;
-      ignoradas?: Record<string, number>;
-    }[]
-  >([]);
+  const [resultados, setResultados] = useState<VereditoArquivo[]>([]);
 
 
 
@@ -919,6 +937,10 @@ export default function ExtratoImportacao() {
           );
         }
 
+        // `rows.length === parsed.linhas.length` POR CONSTRUÇÃO: é `.map` puro,
+        // sem filtro nenhum entre o que o parser leu e o que vai ao banco.
+        // Se algum dia entrar filtro aqui, cada linha descartada tem que
+        // declarar `cont.ignorar(motivo)` ou a conta deixa de fechar.
         const rows = parsed.linhas.map((l) => ({
           conta_bancaria_id: conta,
           data_referencia: parsed.data_referencia,
@@ -1026,10 +1048,16 @@ export default function ExtratoImportacao() {
 
         respRetorno = resp;
         if (resp?.ja_processado) {
-          // Sequencial repetido: o arquivo inteiro é duplicata declarada.
-          const lidas = resp?.ocorrencias_arquivo ?? resp?.ocorrencias_gravadas ?? 0;
-          cont.ler(lidas);
-          cont.duplicada(lidas);
+          // ZERO-NAO-E-CONTA-FECHADA (01/09/2026): a edge, no caminho
+          // `ja_processado`, devolve só `nro_sequencial` e `processado_em` —
+          // não devolve o total de ocorrências do arquivo. Ler 0 e conciliar 0
+          // fecharia a conta trivialmente e pintaria verde sem ter contado
+          // nada. Falha visível, como manda o FAIL-LOUD.
+          throw new Error(
+            `Retorno ${resp.nro_sequencial} já processado em ${resp.processado_em}. ` +
+              `Nada foi reaplicado — e a RPC não informa o total de ocorrências do arquivo, ` +
+              `então a contagem não pode ser conferida.`
+          );
         } else {
           cont.ler(resp?.ocorrencias_gravadas ?? 0);
           cont.nova(resp?.ocorrencias_gravadas ?? 0);
@@ -1076,27 +1104,25 @@ export default function ExtratoImportacao() {
         })
         .eq("id", impId);
 
+      // O toast diz a conta E o efeito: contagem não responde "o que este
+      // arquivo faz". O veredito detalhado por arquivo mora na lista da tela.
       if (fonte === "retorno_safra") {
-        if (respRetorno?.ja_processado) {
-          toast.info(
-            `${PARSER_ROTULO.retorno_safra} — ${file.name}: sequencial ${respRetorno.nro_sequencial} já processado em ${respRetorno.processado_em}. Nada foi reaplicado.`
-          );
+        // `ja_processado` não chega aqui: aborta antes, com erro visível.
+        const msgRetorno =
+          `${PARSER_ROTULO.retorno_safra} — ${file.name}: sequencial ${respRetorno?.nro_sequencial} · ` +
+          `${respRetorno?.ocorrencias_gravadas} ocorrência(s) registradas · ` +
+          `${respRetorno?.confirmados} confirmado(s) · ${respRetorno?.liquidados} liquidado(s) · ` +
+          `${respRetorno?.rejeitados} rejeitado(s)`;
+        const qtdErros = Array.isArray(respRetorno?.erros) ? respRetorno.erros.length : 0;
+        if (qtdErros > 0) {
+          toast.error(`${msgRetorno} · ${qtdErros} erro(s) na resolução de títulos`);
         } else {
-          const msgRetorno =
-            `${PARSER_ROTULO.retorno_safra} — ${file.name}: sequencial ${respRetorno?.nro_sequencial} · ` +
-            `${respRetorno?.ocorrencias_gravadas} ocorrência(s) registradas · ` +
-            `${respRetorno?.confirmados} confirmado(s) · ${respRetorno?.liquidados} liquidado(s) · ` +
-            `${respRetorno?.rejeitados} rejeitado(s)`;
-          const qtdErros = Array.isArray(respRetorno?.erros) ? respRetorno.erros.length : 0;
-          if (qtdErros > 0) {
-            toast.error(`${msgRetorno} · ${qtdErros} erro(s) na resolução de títulos`);
-          } else {
-            toast.success(msgRetorno);
-          }
+          toast.success(msgRetorno, { description: PARSER_EFEITO.retorno_safra });
         }
       } else {
-        // O veredito detalhado por arquivo mora na lista da tela; o toast é só o aviso.
-        toast.success(`${file.name}: ${cont.resumo()}`);
+        toast.success(`${file.name}: ${cont.resumo()}`, {
+          description: PARSER_EFEITO[fonte],
+        });
       }
     } catch (e) {
       console.error("[ExtratoImportacao] falha ao processar", file.name, e);
@@ -1149,6 +1175,7 @@ export default function ExtratoImportacao() {
             {
               arquivo: f.name,
               parser: trilha.fonte ? (PARSER_ROTULO[trilha.fonte] ?? trilha.fonte) : "—",
+              efeito: trilha.fonte ? PARSER_EFEITO[trilha.fonte] : undefined,
               resultado: "Importado",
               ok: true,
               contagem: trilha.contagem?.resumo(),
@@ -1162,6 +1189,7 @@ export default function ExtratoImportacao() {
             {
               arquivo: f.name,
               parser: trilha.fonte ? (PARSER_ROTULO[trilha.fonte] ?? trilha.fonte) : "não reconhecido",
+              efeito: trilha.fonte ? PARSER_EFEITO[trilha.fonte] : undefined,
               resultado: formatError(e),
               ok: false,
               contagem: trilha.contagem?.resumo(),
@@ -1342,7 +1370,8 @@ export default function ExtratoImportacao() {
               Importar auxiliares {arquivosAux.length > 0 ? `(${arquivosAux.length})` : ""}
             </Button>
 
-            <VereditoImportacao itens={resultados} />
+            {/* VEREDITO-EM-UM-LUGAR-SO (01/09/2026): a lista mora no card 1,
+                que cobre os dois fluxos. Duplicar aqui mostrava tudo em dobro. */}
           </CardContent>
         </Card>
 

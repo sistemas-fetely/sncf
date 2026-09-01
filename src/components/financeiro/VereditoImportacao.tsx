@@ -14,6 +14,8 @@ import { MOTIVO_ROTULO, type MotivoDescarte } from "@/lib/financeiro/contagem-im
 export interface VereditoArquivo {
   arquivo: string;
   parser: string;
+  /** Frase curta do EFEITO do arquivo — o que ele faz, além da conta fechar. */
+  efeito?: string;
   resultado: string;
   ok: boolean;
   contagem?: string;
@@ -51,6 +53,8 @@ export function VereditoImportacao({ itens }: { itens: VereditoArquivo[] }) {
               <span className="font-medium">{r.arquivo}</span>
               <span className="text-muted-foreground">→ {r.parser}</span>
             </div>
+
+            {r.efeito && <div className="text-muted-foreground italic">{r.efeito}</div>}
 
             <div className={r.ok ? "text-muted-foreground" : "text-destructive font-medium"}>
               {r.resultado}

@@ -2818,6 +2818,13 @@ export type Database = {
             foreignKeyName: "auditoria_resumo_nfe_falhas_nfs_stage_id_fkey"
             columns: ["nfs_stage_id"]
             isOneToOne: false
+            referencedRelation: "vw_nfs_stage_roteada"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auditoria_resumo_nfe_falhas_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
             referencedRelation: "vw_pj_notas_fiscais"
             referencedColumns: ["nf_id"]
           },
@@ -5524,6 +5531,54 @@ export type Database = {
           nome?: string
         }
         Relationships: []
+      }
+      cfop_entrada_traducao: {
+        Row: {
+          ativo: boolean
+          cfop_emitente: string
+          confirmado_por_contador: boolean
+          criado_em: string
+          destino_codigo: string
+          emitente_proprio: boolean
+          observacao: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cfop_emitente: string
+          confirmado_por_contador?: boolean
+          criado_em?: string
+          destino_codigo: string
+          emitente_proprio?: boolean
+          observacao?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cfop_emitente?: string
+          confirmado_por_contador?: boolean
+          criado_em?: string
+          destino_codigo?: string
+          emitente_proprio?: boolean
+          observacao?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cfop_entrada_traducao_destino_codigo_fkey"
+            columns: ["destino_codigo"]
+            isOneToOne: false
+            referencedRelation: "nf_entrada_destino"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "cfop_entrada_traducao_destino_codigo_fkey"
+            columns: ["destino_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_nfs_stage_roteada"
+            referencedColumns: ["destino"]
+          },
+        ]
       }
       cfop_natureza: {
         Row: {
@@ -11220,6 +11275,13 @@ export type Database = {
             foreignKeyName: "despesas_documento_id_fkey"
             columns: ["documento_id"]
             isOneToOne: false
+            referencedRelation: "vw_nfs_stage_roteada"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesas_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
             referencedRelation: "vw_pj_notas_fiscais"
             referencedColumns: ["nf_id"]
           },
@@ -15697,6 +15759,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_nfs_stage_mercadoria_pendente"
             referencedColumns: ["nfs_stage_id"]
+          },
+          {
+            foreignKeyName: "ged_documentos_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nfs_stage_roteada"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "ged_documentos_nfs_stage_id_fkey"
@@ -22643,10 +22712,77 @@ export type Database = {
             foreignKeyName: "nf_devolucao_vinculo_nfs_stage_id_fkey"
             columns: ["nfs_stage_id"]
             isOneToOne: false
+            referencedRelation: "vw_nfs_stage_roteada"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nf_devolucao_vinculo_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
             referencedRelation: "vw_pj_notas_fiscais"
             referencedColumns: ["nf_id"]
           },
         ]
+      }
+      nf_entrada_destino: {
+        Row: {
+          abre_pendencia_retorno: boolean
+          ativo: boolean
+          codigo: string
+          compoe_custo: boolean
+          cor: string | null
+          criado_em: string
+          descricao: string
+          eh_imobilizado: boolean
+          entra_estoque: boolean
+          exige_decisao_humana: boolean
+          fecha_pendencia_retorno: boolean
+          gera_cpr: boolean
+          ordem: number
+          reverte_receita: boolean
+          rota_mesa: string | null
+          rotulo: string
+          updated_at: string
+        }
+        Insert: {
+          abre_pendencia_retorno?: boolean
+          ativo?: boolean
+          codigo: string
+          compoe_custo?: boolean
+          cor?: string | null
+          criado_em?: string
+          descricao: string
+          eh_imobilizado?: boolean
+          entra_estoque?: boolean
+          exige_decisao_humana?: boolean
+          fecha_pendencia_retorno?: boolean
+          gera_cpr?: boolean
+          ordem?: number
+          reverte_receita?: boolean
+          rota_mesa?: string | null
+          rotulo: string
+          updated_at?: string
+        }
+        Update: {
+          abre_pendencia_retorno?: boolean
+          ativo?: boolean
+          codigo?: string
+          compoe_custo?: boolean
+          cor?: string | null
+          criado_em?: string
+          descricao?: string
+          eh_imobilizado?: boolean
+          entra_estoque?: boolean
+          exige_decisao_humana?: boolean
+          fecha_pendencia_retorno?: boolean
+          gera_cpr?: boolean
+          ordem?: number
+          reverte_receita?: boolean
+          rota_mesa?: string | null
+          rotulo?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       nf_entrada_finalidade: {
         Row: {
@@ -23457,6 +23593,11 @@ export type Database = {
           criada_por: string | null
           data_vencimento: string | null
           descricao: string | null
+          destino_codigo: string | null
+          destino_definido_em: string | null
+          destino_definido_por: string | null
+          destino_motivo: string | null
+          destino_origem: string
           duplicatas: Json | null
           fin_nfe: number | null
           fonte: string
@@ -23512,6 +23653,11 @@ export type Database = {
           criada_por?: string | null
           data_vencimento?: string | null
           descricao?: string | null
+          destino_codigo?: string | null
+          destino_definido_em?: string | null
+          destino_definido_por?: string | null
+          destino_motivo?: string | null
+          destino_origem?: string
           duplicatas?: Json | null
           fin_nfe?: number | null
           fonte?: string
@@ -23567,6 +23713,11 @@ export type Database = {
           criada_por?: string | null
           data_vencimento?: string | null
           descricao?: string | null
+          destino_codigo?: string | null
+          destino_definido_em?: string | null
+          destino_definido_por?: string | null
+          destino_motivo?: string | null
+          destino_origem?: string
           duplicatas?: Json | null
           fin_nfe?: number | null
           fonte?: string
@@ -23703,6 +23854,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pj_pagamentos"
             referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_destino_codigo_fkey"
+            columns: ["destino_codigo"]
+            isOneToOne: false
+            referencedRelation: "nf_entrada_destino"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "nfs_stage_destino_codigo_fkey"
+            columns: ["destino_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_nfs_stage_roteada"
+            referencedColumns: ["destino"]
           },
           {
             foreignKeyName: "nfs_stage_parceiro_id_fkey"
@@ -23886,6 +24051,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_nfs_stage_mercadoria_pendente"
             referencedColumns: ["nfs_stage_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_documentos_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nfs_stage_roteada"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_documentos_nfs_stage_id_fkey"
@@ -54148,6 +54320,13 @@ export type Database = {
             foreignKeyName: "despesas_documento_id_fkey"
             columns: ["documento_id"]
             isOneToOne: false
+            referencedRelation: "vw_nfs_stage_roteada"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesas_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
             referencedRelation: "vw_pj_notas_fiscais"
             referencedColumns: ["nf_id"]
           },
@@ -62770,14 +62949,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -62805,6 +62984,119 @@ export type Database = {
           valor_no_xml: number | null
         }
         Relationships: []
+      }
+      vw_nfs_stage_roteada: {
+        Row: {
+          abre_pendencia_retorno: boolean | null
+          cfops: string | null
+          compoe_custo: boolean | null
+          conta_pagar_id: string | null
+          destino: string | null
+          destino_cor: string | null
+          destino_rotulo: string | null
+          eh_imobilizado: boolean | null
+          emitente_proprio: boolean | null
+          entra_estoque: boolean | null
+          exige_decisao_humana: boolean | null
+          fecha_pendencia_retorno: boolean | null
+          fin_nfe: number | null
+          fonte: string | null
+          fornecedor_cnpj: string | null
+          fornecedor_razao_social: string | null
+          gera_cpr: boolean | null
+          id: string | null
+          motivo_descarte: string | null
+          natureza_operacao: string | null
+          nf_data_emissao: string | null
+          nf_numero: string | null
+          nf_referenciada_chave: string | null
+          nf_serie: string | null
+          plano_contas_id: string | null
+          reverte_receita: boolean | null
+          rota_mesa: string | null
+          status: string | null
+          tipo_documento: string | null
+          valor: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar_receber_ativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "v_cpr_bola_redonda"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_furos"
+            referencedColumns: ["sugestao_cpr_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contas_pagar_consolidado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cpr_cobertura"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_match_sugestoes"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_documentos_envio_estados"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_plano_contas_id_fkey"
+            columns: ["plano_contas_id"]
+            isOneToOne: false
+            referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vw_nivel_resumo: {
         Row: {
@@ -63485,14 +63777,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -64864,14 +65156,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -76638,6 +76930,15 @@ export type Database = {
       fn_nf_estado_terminal: { Args: { p_nf_id: string }; Returns: string }
       fn_nf_itens_hash: { Args: { p_itens: Json }; Returns: string }
       fn_nf_pos_rateio: { Args: { p_nf_id: number }; Returns: Json }
+      fn_nfs_stage_destino: { Args: { p_stage_id: string }; Returns: string }
+      fn_nfs_stage_destino_calc: {
+        Args: {
+          p_fornecedor_cnpj: string
+          p_itens: Json
+          p_tipo_documento: string
+        }
+        Returns: string
+      }
       fn_nfs_stage_inserir_entrada: { Args: { p_linha: Json }; Returns: Json }
       fn_nome_do_usuario: { Args: { p_user?: string }; Returns: string }
       fn_norm_texto: { Args: { p_texto: string }; Returns: string }
