@@ -1190,7 +1190,11 @@ export default function ExtratoImportacao() {
     setResultados([]);
     try {
       for (const f of files) {
-        const trilha: { fonte?: Fonte; contagem?: ContagemImportacao } = {};
+        const trilha: {
+          fonte?: Fonte;
+          contagem?: ContagemImportacao;
+          neutro?: { resultado: string; contagem?: string; detalhe?: Record<string, number> };
+        } = {};
         try {
           if (await ehRelatorioPagamentosItau(f)) {
             toast.error(
@@ -1202,7 +1206,7 @@ export default function ExtratoImportacao() {
                 arquivo: f.name,
                 parser: "itau_pagamentos",
                 resultado: "Use o card 'Pagamentos Itaú' no bloco 2",
-                ok: false,
+                tom: "erro",
               },
             ]);
             continue;
@@ -1214,10 +1218,10 @@ export default function ExtratoImportacao() {
               arquivo: f.name,
               parser: trilha.fonte ? (PARSER_ROTULO[trilha.fonte] ?? trilha.fonte) : "—",
               efeito: trilha.fonte ? PARSER_EFEITO[trilha.fonte] : undefined,
-              resultado: "Importado",
-              ok: true,
-              contagem: trilha.contagem?.resumo(),
-              ignoradas: trilha.contagem?.detalhe,
+              resultado: trilha.neutro?.resultado ?? "Importado",
+              tom: trilha.neutro ? "neutro" : "ok",
+              contagem: trilha.neutro?.contagem ?? trilha.contagem?.resumo(),
+              ignoradas: trilha.neutro?.detalhe ?? trilha.contagem?.detalhe,
             },
           ]);
         } catch (e) {
@@ -1229,7 +1233,7 @@ export default function ExtratoImportacao() {
               parser: trilha.fonte ? (PARSER_ROTULO[trilha.fonte] ?? trilha.fonte) : "não reconhecido",
               efeito: trilha.fonte ? PARSER_EFEITO[trilha.fonte] : undefined,
               resultado: formatError(e),
-              ok: false,
+              tom: "erro",
               contagem: trilha.contagem?.resumo(),
               ignoradas: trilha.contagem?.detalhe,
             },
