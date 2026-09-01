@@ -76731,6 +76731,28 @@ export type Database = {
         Returns: string
       }
       fn_cron_rolling_contratos: { Args: never; Returns: number }
+      fn_cronograma_seguro: {
+        Args: {
+          p_ancora: string
+          p_condicao: string
+          p_parcela: number
+          p_total: number
+        }
+        Returns: string
+      }
+      fn_cronograma_vencimentos: {
+        Args: {
+          p_ancora: string
+          p_condicao: string
+          p_total_parcelas?: number
+          p_venc_parcela1?: string
+        }
+        Returns: {
+          data_vencimento: string
+          dias_nominais: number
+          parcela: number
+        }[]
+      }
       fn_custo_recalcular: {
         Args: { p_skus?: string[] }
         Returns: {

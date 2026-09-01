@@ -31,6 +31,9 @@ import { parseXlsxMpReserveRelease } from "@/lib/financeiro/xlsx-mp-reserve-rele
 import { parseXlsxSafraInstrucoes2Via } from "@/lib/financeiro/xlsx-safra-instrucoes-parser";
 import { parseXlsxSafraFrancesinha } from "@/lib/financeiro/xlsx-safra-francesinha-parser";
 import { temTitulo, textoPrimeirasLinhas } from "@/lib/financeiro/xlsx-titulo";
+import { detectarAssinaturaSafraXlsx } from "@/lib/financeiro/xlsx-safra-assinatura";
+import { parseXlsxSafraPixLancamentos } from "@/lib/financeiro/xlsx-safra-pix-lancamentos-parser";
+
 import { ehRetornoSafra } from "@/lib/financeiro/cnab-retorno-safra-parser";
 
 import { ResumoSafraCarteira } from "@/components/financeiro/ResumoSafraCarteira";
@@ -71,6 +74,9 @@ type Importacao = {
 type Fonte =
   | "ofx"
   | "safra_lancamentos"
+  | "safra_pix_lancamentos"
+  | "safrapay_agenda_vendas"
+  | "safrapay_recebiveis_vendas"
   | "mp_withdraw"
   | "safrapay_vendas"
   | "safrapay_liquidacao"
@@ -81,6 +87,14 @@ type Fonte =
   | "safra_instrucoes_2via"
   | "safra_francesinha"
   | "retorno_safra";
+
+/** Fontes reconhecidas que não importam nada — redundantes com outra porta. */
+const FONTE_REDUNDANTE: Partial<Record<Fonte, string>> = {
+  safrapay_agenda_vendas:
+    "Redundante com o CSV de vendas SafraPay — os mesmos NSUs chegam por lá. Nada importado.",
+  safrapay_recebiveis_vendas:
+    "Redundante com o CSV de vendas SafraPay — os mesmos NSUs chegam por lá. Nada importado.",
+};
 
 function detectarFonteBase(file: File): "ofx" | "xlsx" | "csv" | "txt" | null {
   const nome = file.name.toLowerCase();
@@ -109,6 +123,11 @@ async function detectarSubtipoXlsx(file: File): Promise<Exclude<Fonte, "ofx">> {
   const sheet = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: null }) as unknown[][];
 
+  // ASSINATURA-MANDA-NO-NOME: o título que o Safra escreve dentro do arquivo tem
+  // precedência sobre qualquer palpite por nome de arquivo ou por cabeçalho.
+  const assinatura = detectarAssinaturaSafraXlsx(rows);
+  if (assinatura) return assinatura;
+
   // Fontes de cobrança Safra: título nas primeiras linhas, em qualquer coluna,
   // sem acento e sem caixa. O nome do arquivo NUNCA é critério — ele varia
   // ("Francesinha (8).xlsx").
@@ -123,6 +142,7 @@ async function detectarSubtipoXlsx(file: File): Promise<Exclude<Fonte, "ofx">> {
   return "safra_lancamentos";
 }
 
+
 /**
  * `extrato_importacoes.fonte_tipo` agora é validado por trigger contra
  * `extrato_fontes` — cada fonte grava o próprio código, sem disfarce.
@@ -131,6 +151,12 @@ async function detectarSubtipoXlsx(file: File): Promise<Exclude<Fonte, "ofx">> {
 const FONTE_TIPO_DB: Record<Fonte, string> = {
   ofx: "ofx",
   safra_lancamentos: "safra_lancamentos",
+  // O código `safra_lancamentos` da dimensão JÁ É "Lançamentos e Devoluções (PIX)".
+  safra_pix_lancamentos: "safra_lancamentos",
+  // Fontes reconhecidas e fora do escopo: a dimensão as trata como agenda (papel `fora`).
+  safrapay_agenda_vendas: "agenda_vendas",
+  safrapay_recebiveis_vendas: "agenda_vendas",
+
   mp_withdraw: "mp_withdraw",
   safrapay_vendas: "safrapay_vendas",
   safrapay_liquidacao: "safrapay_liquidacao",
@@ -149,6 +175,10 @@ type Bloco = "extrato" | "auxiliar";
 const BLOCO_DA_FONTE: Record<Fonte, Bloco> = {
   ofx: "extrato",
   safra_lancamentos: "extrato",
+  safra_pix_lancamentos: "auxiliar",
+  safrapay_agenda_vendas: "auxiliar",
+  safrapay_recebiveis_vendas: "auxiliar",
+
   mp_withdraw: "auxiliar",
   safrapay_vendas: "auxiliar",
   safrapay_liquidacao: "auxiliar",
@@ -174,6 +204,9 @@ const PARSER_ROTULO: Partial<Record<Fonte, string>> = {
   safrapay_ajustes: "SafraPay Tipo 3 - Ajustes",
   super_agenda: "SafraPay SUPER AGENDA (não importável)",
   retorno_safra: "Retorno CNAB 400 Safra (cobrança)",
+  safra_pix_lancamentos: "Safra Lançamentos e Devoluções (PIX)",
+  safrapay_agenda_vendas: "SafraPay Agenda de Vendas (não importável)",
+  safrapay_recebiveis_vendas: "SafraPay Recebíveis de Vendas (não importável)",
 };
 
 /**
@@ -187,6 +220,11 @@ const PARSER_ROTULO: Partial<Record<Fonte, string>> = {
 const PARSER_EFEITO: Record<Fonte, string> = {
   ofx: "Extrato oficial — cria as movimentações bancárias do período.",
   safra_lancamentos: "Extrato Safra — cria as movimentações bancárias do período.",
+  safra_pix_lancamentos:
+    "PIX enviados e recebidos — enriquece a linha do extrato com pedido e pagador. Nunca cria movimentação.",
+  safrapay_agenda_vendas: FONTE_REDUNDANTE.safrapay_agenda_vendas!,
+  safrapay_recebiveis_vendas: FONTE_REDUNDANTE.safrapay_recebiveis_vendas!,
+
   mp_withdraw: "Retiradas Mercado Pago — cria a transferência quando não há par no extrato.",
   safrapay_vendas: "Vendas SafraPay — agenda de recebíveis; o dinheiro entra pelo OFX.",
   safrapay_liquidacao: "Liquidação SafraPay — enriquece a linha do extrato que já existe.",
@@ -353,6 +391,34 @@ export default function ExtratoImportacao() {
         );
       }
 
+      // FONTE-RECONHECIDA-NAO-E-ERRO: Agenda de Vendas e Recebíveis de Vendas
+      // trazem os mesmos NSUs que já entram pelos CSVs tipo 1 e 2. Reconhecer e
+      // recusar com dignidade: registra, tom neutro, invariante 0 = 0 + 0 + 0.
+      const redundante = FONTE_REDUNDANTE[fonte];
+      if (redundante) {
+        await sb
+          .from("extrato_importacoes")
+          .update({
+            status: "concluida",
+            linhas_lidas: 0,
+            linhas_novas: 0,
+            linhas_enriquecidas: 0,
+            linhas_duplicadas: 0,
+            linhas_ignoradas: 0,
+            ignoradas_detalhe: { arquivo_redundante: 1 },
+            erro_detalhe: null,
+          })
+          .eq("id", impId);
+        trilha.neutro = {
+          resultado: `${PARSER_ROTULO[fonte]} — nada importado`,
+          contagem: "arquivo não lido — redundante com o CSV de vendas SafraPay",
+          detalhe: { arquivo_redundante: 1 },
+        };
+        toast.info(`${file.name}: ${redundante}`);
+        return;
+      }
+
+
       const blocoCerto = BLOCO_DA_FONTE[fonte];
       if (blocoCerto !== bloco) {
         toast.warning(
@@ -374,7 +440,12 @@ export default function ExtratoImportacao() {
       // ignoradas — e ignorada sempre declara motivo. Ver contagem-importacao.ts.
       const cont = new ContagemImportacao();
       trilha.contagem = cont;
+      // ORIGEM-FICA-NO-DADO: o CNPJ que o relatório declara no cabeçalho nem
+      // sempre é o da Fetely. Fica registrado em `ignoradas_detalhe.cnpj_relatorio`
+      // para conferência posterior — nunca bloqueia, nunca alerta.
+      let cnpjRelatorio: string | null = null;
       let periodoInicio: string | null = null;
+
       let periodoFim: string | null = null;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let respRetorno: any = null;
@@ -611,7 +682,60 @@ export default function ExtratoImportacao() {
             cont
           );
         }
+      } else if (fonte === "safra_pix_lancamentos") {
+        // ENRIQUECIMENTO PURO. Os EndToEnd deste arquivo já entraram pelo OFX —
+        // inserir aqui é o `duplicate key` que quebrava a importação. O que ele
+        // acrescenta é pedido, nome e CPF/CNPJ do pagador, e nada mais.
+        const buf = await file.arrayBuffer();
+        const parsed = parseXlsxSafraPixLancamentos(buf);
+        cont.ler(parsed.linhas.length);
+        if (cont.lidas === 0) throw new Error("Nenhuma linha de PIX na planilha");
+
+        const datasPix = parsed.linhas.map((l) => l.data_transacao).filter(Boolean).sort() as string[];
+        periodoInicio = datasPix[0] || null;
+        periodoFim = datasPix[datasPix.length - 1] || null;
+        cnpjRelatorio = parsed.cnpj_relatorio;
+
+        for (const l of parsed.linhas) {
+          if (!l.id_transacao_banco) {
+            cont.ignorar("sem_identificador");
+            continue;
+          }
+          const { data: alvo, error: errBusca } = await sb
+            .from("movimentacoes_bancarias")
+            .select("id, referencia_pedido, contraparte_nome, contraparte_documento, data_hora")
+            .eq("id_transacao_banco", l.id_transacao_banco)
+            .limit(1)
+            .maybeSingle();
+          if (errBusca) throw errBusca;
+          if (!alvo) {
+            // Sem par no extrato: NÃO insere. O dinheiro entra pelo OFX.
+            cont.ignorar("sem_par_no_extrato");
+            continue;
+          }
+
+          // Nunca sobrescrever campo já preenchido.
+          const patch: Record<string, unknown> = {};
+          if (!alvo.referencia_pedido && l.referencia_pedido)
+            patch.referencia_pedido = l.referencia_pedido;
+          if (!alvo.contraparte_nome && l.contraparte_nome)
+            patch.contraparte_nome = l.contraparte_nome;
+          if (!alvo.contraparte_documento && l.contraparte_documento)
+            patch.contraparte_documento = l.contraparte_documento;
+          if (!alvo.data_hora && l.data_hora) patch.data_hora = l.data_hora;
+
+          if (Object.keys(patch).length > 0) {
+            const { error: errUp } = await sb
+              .from("movimentacoes_bancarias")
+              .update(patch)
+              .eq("id", alvo.id);
+            if (errUp) throw errUp;
+          }
+          // A linha do arquivo é, por definição, duplicada de algo que já existe.
+          cont.enriquecer();
+        }
       } else if (fonte === "mp_withdraw") {
+
         const buf = await file.arrayBuffer();
         const parsed = parseXlsxMpWithdraw(buf);
         cont.ler(parsed.movimentacoes.length);
@@ -1119,7 +1243,9 @@ export default function ExtratoImportacao() {
             linhas_enriquecidas: cont.enriquecidas,
             linhas_duplicadas: cont.duplicadas,
             linhas_ignoradas: cont.ignoradas,
-            ignoradas_detalhe: cont.detalhe,
+            ignoradas_detalhe: cnpjRelatorio
+              ? { ...cont.detalhe, cnpj_relatorio: cnpjRelatorio }
+              : cont.detalhe,
             periodo_inicio: periodoInicio,
             periodo_fim: periodoFim,
           })
@@ -1136,7 +1262,10 @@ export default function ExtratoImportacao() {
           linhas_enriquecidas: cont.enriquecidas,
           linhas_duplicadas: cont.duplicadas,
           linhas_ignoradas: cont.ignoradas,
-          ignoradas_detalhe: cont.detalhe,
+          ignoradas_detalhe: cnpjRelatorio
+            ? { ...cont.detalhe, cnpj_relatorio: cnpjRelatorio }
+            : cont.detalhe,
+
           periodo_inicio: periodoInicio,
           periodo_fim: periodoFim,
         })
