@@ -354,8 +354,8 @@ export default function ExtratoImportacao() {
       if (fonte === "ofx") {
         const text = await file.text();
         const parsed = parseOFX(text, { manterLinhasSaldo: true });
-        linhasLidas = parsed.movimentacoes.length;
-        if (linhasLidas === 0) throw new Error("Nenhuma movimentação no OFX");
+        cont.ler(parsed.movimentacoes.length);
+        if (cont.lidas === 0) throw new Error("Nenhuma movimentação no OFX");
 
         // LEDGERBAL do arquivo → saldo do dia
         if (parsed.saldo != null && parsed.saldoData) {
