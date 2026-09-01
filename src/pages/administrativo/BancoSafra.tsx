@@ -495,7 +495,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
           p_pedido_id: pid,
         });
         if (error) throw error;
-        out[pid] = (data ?? {}) as Record<string, SugestaoVencimentoParcela>;
+        out[pid] = ((data ?? {}) as unknown) as Record<string, SugestaoVencimentoParcela>;
       }
       return out;
     },
@@ -738,7 +738,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
             "ajustar_vencimento_boleto_pendente",
             {
               p_titulo_id: b.id,
-              p_nova_data: sugestoes[b.id],
+              p_nova_data: sugestoes[b.id].data,
               p_motivo: "Sugestão de vencimento aplicada em lote (NF + condição do pedido)",
             },
           );
