@@ -79,14 +79,14 @@ export function seloEntrega(l: LinhaMesa) {
       return (
         <Selo
           texto="Em trânsito"
-          tom="ambar"
+          tom="neutro"
           tooltip={`Mercadoria em trânsito${l.entrega_previsao ? ` — previsão ${fmtDataMesa(l.entrega_previsao)}` : ""}`}
         />
       );
     case "sem_rastreio":
       return <Selo texto="Sem rastreio" tom="neutro" tooltip="Não há rastreio registrado para esta entrega" />;
     case "sem_prova":
-      return <Selo texto="Entregue sem prova" tom="ambar" tooltip="Entrega sem prova formal registrada" />;
+      return <Selo texto="Entregue sem prova" tom="neutro" tooltip="Entrega sem prova formal registrada" />;
     default:
       return (
         <Selo

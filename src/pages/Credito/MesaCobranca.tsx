@@ -45,6 +45,8 @@ const FILAS_REGUA = new Set<string>(["A_COBRAR", "A_VENCER"]);
 // ── Ordem de trabalho (fixa) ──
 // Devolução e ocorrência de transportadora são trabalho de Logística: as filas
 // ENTREGA_DEVOLVIDA e ENTREGA_PROBLEMA não existem mais na vw_cobranca_mesa.
+// ENTREGA_ATRASADA saiu em 01/09/2026: o prazo corre da emissão da NF, entrega
+// atrasada não suspende cobrança (declaração Flavio). Entrega vira selo informativo.
 const FILAS: { chave: string; label: string }[] = [
   { chave: "A_ENVIAR", label: "A enviar — NF + boleto + cópia do pedido" },
   { chave: "A_EMITIR_BOLETO", label: "A emitir boleto" },
@@ -52,7 +54,6 @@ const FILAS: { chave: string; label: string }[] = [
   { chave: "A_COBRAR", label: "A cobrar" },
   { chave: "EMAIL_BLOQUEADO", label: "Sem canal de e-mail" },
   { chave: "A_VENCER", label: "A vencer (D-3)" },
-  { chave: "ENTREGA_ATRASADA", label: "Entrega atrasada" },
   { chave: "CONCILIAR", label: "Conciliar — não cobrar" },
   { chave: "PAGO_SEM_PROVA", label: "Pago sem prova" },
   { chave: "BOLETO_EM_CURSO_BANCO", label: "Boleto em curso no banco" },
@@ -83,7 +84,7 @@ function BadgeProva({ classe }: { classe: string | null | undefined }) {
 const GRUPOS: Record<"agir" | "vigiar" | "nao", string[]> = {
   agir: ["A_ENVIAR", "A_EMITIR_BOLETO", "A_REEMITIR_BOLETO", "A_COBRAR", "EMAIL_BLOQUEADO"],
   vigiar: ["A_VENCER", "BOLETO_EM_CURSO_BANCO", "EM_CURSO"],
-  nao: ["CONCILIAR", "ENTREGA_ATRASADA", "NAO_COBRAVEL", "PAGO_SEM_PROVA"],
+  nao: ["CONCILIAR", "NAO_COBRAVEL", "PAGO_SEM_PROVA"],
 };
 
 
