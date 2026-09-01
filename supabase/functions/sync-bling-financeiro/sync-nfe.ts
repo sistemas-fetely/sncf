@@ -83,11 +83,16 @@ for (const nf of items) {
     let pedido_venda_id: string | null = null;
     const sitNum = typeof nf.situacao === "object" ? nf.situacao?.valor : nf.situacao;
 
+    // FALLBACK-EXIGE-SELECT: todo campo usado em `existing?.campo ?? null` abaixo
+    // TEM que estar neste select. Se nao estiver, o coalesce apaga o dado na
+    // proxima passada em que o detalhe nao for buscado. Caso que provou:
+    // tipo_venda estava de fora e sobrou preenchido em apenas 7 de 435 NFs.
     const { data: existing } = await supabase
       .from("nfs_emitidas")
-      .select("id, numero, situacao, data_emissao, valor_nota, pedido_venda_id, valor_frete, transportadora_nome, transportadora_cnpj, itens_json, numero_pedido_loja, bling_pedido_venda_numero, bling_pedido_venda_id, transporte_raw, serie, pdf_url, xml_url")
+      .select("id, numero, situacao, data_emissao, valor_nota, pedido_venda_id, valor_frete, transportadora_nome, transportadora_cnpj, itens_json, numero_pedido_loja, bling_pedido_venda_numero, bling_pedido_venda_id, transporte_raw, serie, pdf_url, xml_url, tipo_venda, raw, duplicatas, duplicatas_sync_em")
       .eq("bling_id", blingId)
       .maybeSingle();
+
 
     const semValor = !existing || !existing.valor_nota || Number(existing.valor_nota) === 0;
     const semFrete = !existing?.valor_frete || Number(existing.valor_frete) === 0;
