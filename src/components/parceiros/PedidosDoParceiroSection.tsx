@@ -1,5 +1,7 @@
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Package, FileText, Code } from "lucide-react";
+import { Package, FileText, Code, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,8 +40,24 @@ export function PedidosDoParceiroSection({ parceiroId }: { parceiroId: string })
   });
 
   const pedidos = data || [];
-  const { data: nfsPorPedido } = useNfsDosPedidosParceiro(pedidos.map((p) => p.id));
+  const {
+    data: nfsPorPedido,
+    isLoading: nfsCarregando,
+    isError: nfsErro,
+    error: nfsErroObj,
+  } = useNfsDosPedidosParceiro(pedidos.map((p) => p.id));
   const { baixar, baixando, nfEmDownload } = useDownloadNfPdf();
+
+  const nfsToastado = useRef(false);
+  useEffect(() => {
+    if (nfsErro && !nfsToastado.current) {
+      nfsToastado.current = true;
+      toast.error("Não foi possível carregar as NFs dos pedidos", {
+        description: formatError(nfsErroObj),
+      });
+    }
+    if (!nfsErro) nfsToastado.current = false;
+  }, [nfsErro, nfsErroObj]);
 
 
 
@@ -129,6 +147,20 @@ export function PedidosDoParceiroSection({ parceiroId }: { parceiroId: string })
                     </TableCell>
                     <TableCell className="text-right whitespace-nowrap">
                       {(() => {
+                        if (nfsCarregando) {
+                          return <Skeleton className="h-4 w-16 ml-auto" />;
+                        }
+                        if (nfsErro) {
+                          return (
+                            <span
+                              className="inline-flex items-center gap-1 rounded-md border border-destructive/40 bg-destructive/10 text-destructive px-2 py-1 text-xs"
+                              title={formatError(nfsErroObj)}
+                            >
+                              <AlertCircle className="h-3 w-3" />
+                              NF: erro ao carregar
+                            </span>
+                          );
+                        }
                         const nf = nfsPorPedido?.get(p.id);
                         if (!nf?.nf_id) return <span className="text-muted-foreground">—</span>;
                         const emDownload = baixando && nfEmDownload === nf.nf_id;
