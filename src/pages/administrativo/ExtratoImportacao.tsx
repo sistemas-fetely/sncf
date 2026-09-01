@@ -946,6 +946,10 @@ export default function ExtratoImportacao() {
           );
         }
 
+        // `rows.length === parsed.linhas.length` POR CONSTRUÇÃO: é `.map` puro,
+        // sem filtro nenhum entre o que o parser leu e o que vai ao banco.
+        // Se algum dia entrar filtro aqui, cada linha descartada tem que
+        // declarar `cont.ignorar(motivo)` ou a conta deixa de fechar.
         const rows = parsed.linhas.map((l) => ({
           conta_bancaria_id: conta,
           data_referencia: parsed.data_referencia,
