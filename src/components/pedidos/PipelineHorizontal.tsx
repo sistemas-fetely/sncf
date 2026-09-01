@@ -189,7 +189,9 @@ export function PipelineHorizontal({
   // ativos (sem entregue) + cancelados apenas com o toggle ligado.
   // Desvio (recuperação) NUNCA entra: é outra sala.
   const { totalQtd, totalSla, riscoVermelhoQtd, riscoVermelhoValor } = useMemo(() => {
-    const excluidosSempre = new Set<string>(["entregue"]);
+    // aguardando_pagamento nao tem card no funil, entao nao entra no total —
+    // FILA ATIVA e exatamente a soma dos cards visiveis.
+    const excluidosSempre = new Set<string>(["entregue", "aguardando_pagamento"]);
     const naoAtivos = new Set<string>(["cancelado"]);
     let qtd = 0;
     let sla = 0;
@@ -283,7 +285,7 @@ export function PipelineHorizontal({
         <button
           type="button"
           onClick={() => onLimparFiltro?.()}
-          title="Pedidos em andamento. Não inclui entregues nem recuperação de venda. Cancelados entram só com o toggle ao lado. Para ver histórico completo, use a busca."
+          title="Pedidos em andamento na SOps — exatamente a soma dos cards ao lado. Não inclui entregues, aguardando pagamento nem recuperação de venda (esses dois moram na Mesa Comercial). Cancelados entram só com o toggle ao lado."
           className={cn(
             "group relative flex flex-col items-center justify-center rounded-md border py-2 px-3 transition-all duration-200 min-w-[76px]",
             "gold-border-hover focus-visible:outline-none",
@@ -368,25 +370,25 @@ export function PipelineHorizontal({
           );
         })}
 
-        {/* PERMISSÃO-SEGUE-O-DADO: o card entrega contagem e VALOR da Recuperação. Sem tela.comercial, nem o número aparece — o portão da aba não basta se o KPI vaza por fora. */}
+        {/* PERMISSÃO-SEGUE-O-DADO: o card entrega contagem e VALOR da Mesa Comercial. Sem tela.comercial, nem o número aparece — o portão da aba não basta se o KPI vaza por fora. */}
         {podeVerComercial && (
           <>
             {/* Divisor: daqui pra frente não é passo do fluxo */}
             <div className="w-px bg-border mx-1 self-stretch" />
 
-            {/* Recuperação — fora da carteira ativa */}
+            {/* Mesa Comercial — fora da carteira ativa */}
             <button
               type="button"
               onClick={() => onAbrirRecuperacao?.()}
-              title="Desvio: pedidos fora da carteira ativa (recuperação de venda). Aguardando pagamento agora tem card próprio no funil. Clique para abrir a Mesa Comercial."
+              title="Fora da carteira ativa. Pedidos que aguardam pagamento ou estoque — clique para abrir a aba Mesa Comercial."
               className={cn(
                 "flex w-[104px] shrink-0 flex-col items-center justify-center rounded-md border border-dashed bg-muted/40 py-2 px-2 text-muted-foreground transition-all duration-200",
                 "gold-border-hover focus-visible:outline-none",
-                !mesaErro && (mesaComercial?.recuperacaoQtd ?? 0) === 0 && "opacity-40",
+                !mesaErro && (mesaComercial?.total ?? 0) === 0 && "opacity-40",
               )}
             >
               <span className="text-[10px] font-medium uppercase tracking-wide leading-tight">
-                Recuperação
+                Mesa Comercial
               </span>
               {mesaErro ? (
                 <>
@@ -406,10 +408,10 @@ export function PipelineHorizontal({
               ) : (
                 <>
                   <span className="text-[11px] font-medium tabular-nums">
-                    {mesaComercial?.recuperacaoQtd ?? 0} {(mesaComercial?.recuperacaoQtd ?? 0) === 1 ? "pedido" : "pedidos"}
+                    {mesaComercial?.total ?? 0} {(mesaComercial?.total ?? 0) === 1 ? "pedido" : "pedidos"}
                   </span>
                   <span className="text-[10px] tabular-nums">
-                    {fmtBRL.format(mesaComercial?.recuperacaoValor ?? 0)}
+                    {fmtBRL.format(mesaComercial?.valorTotal ?? 0)}
                   </span>
                 </>
               )}

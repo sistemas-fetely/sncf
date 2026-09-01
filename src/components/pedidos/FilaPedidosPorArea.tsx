@@ -525,14 +525,16 @@ export function FilaPedidosPorArea({
       const vistos = new Set(base.map((p) => p.id));
       base = [...base, ...pedidosPorApelido.filter((p) => !vistos.has(p.id))];
     }
-    // Desvio não é fase: recuperação de venda só entra se pedida explicitamente
-    // em `estagios`. Nem no universo padrão, nem com `incluirCancelados`.
-    const desvioPedidoExplicitamente = !!estagios?.some(
-      (e) => e === "recuperacao_venda",
-    );
-    if (!desvioPedidoExplicitamente) {
-      base = base.filter((p) => p.estagio !== "recuperacao_venda");
-    }
+    // MESA-COMERCIAL — aguardando_pagamento e recuperacao_venda sao trabalhados na aba
+    // Mesa Comercial; nao poluem a fila da SOps nem com incluirCancelados. Só entram
+    // se pedidos explicitamente em `estagios`.
+    const foraDaFila = ["recuperacao_venda", "aguardando_pagamento"] as const;
+    foraDaFila.forEach((est) => {
+      const pedidoExplicitamente = !!estagios?.some((e) => e === est);
+      if (!pedidoExplicitamente) {
+        base = base.filter((p) => p.estagio !== est);
+      }
+    });
     if (marcacaoFilter === "sem") base = base.filter((p) => !p.marcacao);
     else if (marcacaoFilter === "com") base = base.filter((p) => !!p.marcacao);
     else if (marcacaoFilter !== "todas") base = base.filter((p) => p.marcacao === marcacaoFilter);
