@@ -12,9 +12,7 @@ import TitulosTab from "@/pages/Credito/TitulosTab";
 import ReguaTab from "@/pages/Credito/ReguaTab";
 import SemProvaTab from "@/pages/Credito/SemProvaTab";
 
-import AdiantamentoSemNfTab from "@/pages/Credito/AdiantamentoSemNfTab";
 import MesaCobranca, { FILAS_AGIR_AGORA } from "@/pages/Credito/MesaCobranca";
-import { useAdiantamentoSemNf } from "@/hooks/credito/useAdiantamentoSemNf";
 
 import CreditoClientesIndex from "@/pages/Credito/CreditoClientesIndex";
 import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
@@ -1199,8 +1197,6 @@ export default function CobrancaFila() {
   const [subTabBanco, setSubTabBanco] = useState("remessas");
 
   const totalPedidos = pedidos.length;
-  const { data: adiantamentosSemNf } = useAdiantamentoSemNf();
-  const totalAdiantamentos = adiantamentosSemNf?.length ?? 0;
   const totalTitulosAbertos = titulosCobranca.filter(
     (t) => t.status_gestao === "a_vencer" || t.status_gestao === "vence_hoje" || t.status_gestao === "atrasado",
   ).length;
@@ -1264,7 +1260,7 @@ export default function CobrancaFila() {
 
             { value: "fila", label: `Fila${totalPedidos > 0 ? ` · ${totalPedidos}` : ""}` },
             { value: "titulos", label: `Títulos${totalTitulosAbertos > 0 ? ` · ${totalTitulosAbertos}` : ""}` },
-            { value: "adiantamento", slug: "tela.cobranca_remessa", label: `Adiantamento s/ NF${totalAdiantamentos > 0 ? ` · ${totalAdiantamentos}` : ""}` },
+            // aba Adiantamento s/ NF removida em 01/09/2026 — alarme coberto pelo motor de auditoria (pedido-sem-recebivel, pre-nf-sem-lastro, plano-cobranca-fora-do-liquido)
             { value: "banco", slug: "tela.cobranca_remessa", label: "Banco" },
             { value: "credito-cliente", slug: "tela.credito", label: "Crédito do cliente" },
           ].map((tab) => {
@@ -1325,12 +1321,7 @@ export default function CobrancaFila() {
           <TitulosTab />
         </TabsContent>
 
-        <TabsContent value="adiantamento">
-          <ConteudoAba slug="tela.cobranca_remessa">
-            <AdiantamentoSemNfTab />
-          </ConteudoAba>
-        </TabsContent>
-
+        {/* aba Adiantamento s/ NF removida em 01/09/2026 — alarme coberto pelo motor de auditoria (pedido-sem-recebivel, pre-nf-sem-lastro, plano-cobranca-fora-do-liquido) */}
         <TabsContent value="banco">
           <ConteudoAba slug="tela.cobranca_remessa">
             <Tabs value={subTabBanco} onValueChange={setSubTabBanco} className="space-y-4">
