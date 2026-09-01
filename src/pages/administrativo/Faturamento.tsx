@@ -627,8 +627,9 @@ function somarLinhas(rows: LinhaBase[], componente: Componente) {
 // Aba NFs consideradas
 // ════════════════════════════════════════════════
 type NfCol =
-  | "nf_ref" | "data_emissao" | "cliente" | "unidades" | "receita"
-  | "cmv_pct" | "icms_pct" | "margem_bruta_pct" | "resultado" | "resultado_pct";
+  | "nf_ref" | "data_emissao" | "cliente" | "uf" | "canal" | "cfop"
+  | "unidades" | "receita" | "cmv_pct" | "icms_pct" | "margem_bruta_pct"
+  | "resultado" | "resultado_pct";
 
 function AbaNfs({
   rows, isLoading, isError, error, canalOk, componente, mes, onPedido,
