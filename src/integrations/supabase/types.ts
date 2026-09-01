@@ -75780,6 +75780,28 @@ export type Database = {
           tipo_linha: string
         }[]
       }
+      fn_contabil_evolucao_mensal: {
+        Args: never
+        Returns: {
+          cmv: number
+          competencia: string
+          custo_aterrissagem_unitario: number
+          custo_nf_unitario: number
+          entrada: number
+          estoque: number
+          grupo: string
+          icms_aliq: number
+          ipi_aliq: number
+          ncm: string
+          nf_entrada: string
+          produto: string
+          rotulo: string
+          saida: number
+          sku: string
+          valor_aterrissagem: number
+          valor_nf: number
+        }[]
+      }
       fn_contabil_fechar: {
         Args: { p_competencia: string; p_forcar?: boolean; p_obs?: string }
         Returns: Json
