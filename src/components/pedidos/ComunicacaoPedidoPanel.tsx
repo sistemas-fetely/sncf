@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,8 @@ interface Props {
   exige_portao?: boolean;
   /** Se falso, a natureza de operação não gera título — cobrança e histórico ficam ocultos. */
   gera_titulo_receber?: boolean;
+  /** Permite que a página dispare o envio de fora (ex.: botão do rodapé). */
+  acaoRef?: React.MutableRefObject<{ abrirEnvio: (tipo: TipoEmail) => void } | null>;
 }
 
 const TIPO_LABEL: Record<TipoEmail, { btn: string; title: string; desc: string }> = {
@@ -61,7 +63,7 @@ function fmtDateTime(iso: string): string {
   }
 }
 
-export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_portao, gera_titulo_receber = true }: Props) {
+export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_portao, gera_titulo_receber = true, acaoRef }: Props) {
   const qc = useQueryClient();
 
   // ── Queries ──
@@ -226,7 +228,7 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
     setInjetadoVendedorNestaAbertura(true);
   }, [dialogOpen, vendedorEmail, emailPrincipal, emailsAdicionais, injetadoVendedorNestaAbertura]);
 
-  const abrirDialog = (tipo: TipoEmail) => {
+  const abrirDialog = useCallback((tipo: TipoEmail) => {
     setDialogTipo(tipo);
     const principal = (emailPreferido ?? "").trim().toLowerCase();
     setEmailPrincipal(emailPreferido ?? "");
@@ -236,13 +238,19 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
     setNovoLink("");
     setGeradoEm(hojeISO());
     setDialogOpen(true);
-  };
+  }, [emailPreferido, vendedorEmail]);
 
   const fecharDialog = () => {
     if (sending) return;
     setDialogOpen(false);
     setDialogTipo(null);
   };
+
+  useEffect(() => {
+    if (!acaoRef) return;
+    acaoRef.current = { abrirEnvio: (tipo: TipoEmail) => abrirDialog(tipo) };
+    return () => { acaoRef.current = null; };
+  }, [acaoRef, abrirDialog]);
 
   const addEmail = () => {
     const e = novoEmail.trim().toLowerCase();
