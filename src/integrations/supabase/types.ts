@@ -61222,13 +61222,19 @@ export type Database = {
         Row: {
           cancelado_em: string | null
           data_emissao: string | null
+          financial_status: string | null
+          fonte_cancelamento: string | null
+          ja_substituida: boolean | null
+          nf_apos_cancelamento: boolean | null
           nf_id: string | null
           numero: string | null
           numero_pedido_loja: string | null
           pedido: string | null
+          refunded_amount: number | null
           serie: string | null
           situacao: string | null
           titulos_indevidos: number | null
+          unidades_baixadas: number | null
           valor_nota: number | null
         }
         Relationships: []
@@ -61740,10 +61746,13 @@ export type Database = {
       }
       vw_nf_substituicao_sugerida: {
         Row: {
+          ambas_autorizadas: boolean | null
           cliente: string | null
           data_substituida: string | null
           data_substituta: string | null
           dias_entre: number | null
+          itens_identicos: boolean | null
+          motivo_suspeita: string | null
           nf_substituida: string | null
           nf_substituida_id: string | null
           nf_substituta: string | null
@@ -75251,6 +75260,7 @@ export type Database = {
         Args: { p_motivo?: string; p_nf_id: string }
         Returns: Json
       }
+      fn_nf_itens_hash: { Args: { p_itens: Json }; Returns: string }
       fn_nf_pos_rateio: { Args: { p_nf_id: number }; Returns: Json }
       fn_norm_texto: { Args: { p_texto: string }; Returns: string }
       fn_norm_vendedor: { Args: { p_txt: string }; Returns: string }
