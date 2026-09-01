@@ -400,9 +400,8 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
   const [alterarPagtoOpen, setAlterarPagtoOpen] = useState(false);
   const portaoRegraQ = usePedidoPortaoRegra(pedido.id);
   const linhasQ = useLinhasCobrancaPedido(pedido.id);
-  const linkCardRef = useRef<HTMLDivElement>(null);
   const planoCardRef = useRef<HTMLDivElement>(null);
-  const comunicacaoRef = useRef<HTMLDivElement>(null);
+
 
 
   const emailLogQ = useQuery({
@@ -446,37 +445,27 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
 
   const emCobranca = pedido.estagio === "cobranca";
 
-  function scrollPara(ref: RefObject<HTMLDivElement>) {
-    ref.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }
-
   // Linha PIX sem QR emitido é a ação mais próxima: o instrumento vive na linha do plano.
   const pixPendentes = linhas.filter(
     (l) => l.tipo_pagamento === "pix" && !l.pix_txid && !l.pago,
   );
   const gerarPix = useGerarPixLinha(pedido.id);
 
-  // Botão que promete gerar TEM que gerar: com uma única parcela PIX pendente, emite direto.
-  // Com mais de uma, o sistema não escolhe sozinho — só leva a tela até o plano.
-  const acaoPrimaria: { label: string; onClick: () => void; carregando?: boolean } = linhas.length === 0
-    ? { label: "Montar plano", onClick: () => navigate(`/recebimento/cobranca/${pedido.id}?refazer=1`) }
-    : !temInstrumento
-      ? pixPendentes.length === 1
+  // Botão primário só quando a ação NÃO existe em outro lugar da tela.
+  const acaoPrimaria: { label: string; onClick: () => void; carregando?: boolean } | null =
+    linhas.length === 0
+      ? { label: "Montar plano", onClick: () => navigate(`/recebimento/cobranca/${pedido.id}?refazer=1`) }
+      : pixPendentes.length === 1
         ? {
             label: "Gerar QR PIX",
             carregando: gerarPix.isPending,
             onClick: () =>
               gerarPix.mutate(
                 { linhaId: pixPendentes[0].linha_id, origem: pixPendentes[0].origem },
-                { onSuccess: () => scrollPara(planoCardRef) },
+                { onSuccess: () => planoCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }) },
               ),
           }
-        : pixPendentes.length > 1
-          ? { label: "Ver parcelas para gerar QR", onClick: () => scrollPara(planoCardRef) }
-          : { label: "Cadastrar link de pagamento", onClick: () => scrollPara(linkCardRef) }
-      : !enviadoAoCliente
-        ? { label: "Enviar cobrança", onClick: () => scrollPara(comunicacaoRef) }
-        : { label: "Reenviar cobrança", onClick: () => scrollPara(comunicacaoRef) };
+        : null;
 
 
   function refazerPlano() {
@@ -585,12 +574,12 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
       </Card>
 
       {/* (e) LINK DE PAGAMENTO DO PEDIDO */}
-      <div ref={linkCardRef}>
+      <div>
         <LinkPagamentoCard pedidoId={pedido.id} />
       </div>
 
       {/* (f) COMUNICAÇÃO */}
-      <div ref={comunicacaoRef}>
+      <div>
         <ComunicacaoPedidoPanel
           pedido_id={pedido.id}
           parceiro_id={pedido.parceiro_id}
@@ -603,10 +592,12 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
       <div className="flex items-center justify-between gap-3">
         <SmartBackButton fallback="/recebimento/cobranca" fallbackLabel="Voltar ao pedido" />
         <div className="flex items-center gap-2">
-          <Button onClick={acaoPrimaria.onClick} disabled={acaoPrimaria.carregando}>
-            {acaoPrimaria.carregando && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {acaoPrimaria.label}
-          </Button>
+          {acaoPrimaria && (
+            <Button onClick={acaoPrimaria.onClick} disabled={acaoPrimaria.carregando}>
+              {acaoPrimaria.carregando && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {acaoPrimaria.label}
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon" aria-label="Mais ações">
