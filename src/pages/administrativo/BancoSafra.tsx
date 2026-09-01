@@ -1916,8 +1916,8 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
           <DialogHeader>
             <DialogTitle>Aplicar sugestões de vencimento</DialogTitle>
             <DialogDescription>
-              Faturamento do pedido + dias da condição comercial, nunca antes de faturamento + 7
-              dias. Só títulos nunca registrados no Safra.
+              A data sugerida vem da duplicata da NF quando ela existe; sem duplicata, é calculada
+              pela função do banco. Só títulos nunca registrados no Safra, com data viável.
             </DialogDescription>
           </DialogHeader>
           <div className="max-h-[50vh] overflow-y-auto">
@@ -1941,7 +1941,12 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                       {formatDateBR(b.data_vencimento_atual)}
                     </TableCell>
                     <TableCell className="tabular-nums font-medium">
-                      {formatDateBR(sugestoes[b.id])}
+                      {formatDateBR(sugestoes[b.id].data)}
+                      {sugestoes[b.id].fonte === "duplicata_nf" && (
+                        <Badge variant="outline" className="ml-1.5 text-[10px] font-normal">
+                          data da NF
+                        </Badge>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
