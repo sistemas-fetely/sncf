@@ -1225,6 +1225,9 @@ export default function CobrancaFila() {
   const { data: reguaHoje = [] } = useReguaFilaHoje();
   const totalReguaHoje = reguaHoje.length;
   const totalAgirAgora = (mesaQ.data ?? []).filter((l) => FILAS_AGIR_AGORA.includes(l.fila ?? "")).length;
+  // Aba "Sem prova": mesma leitura da view, sem requisição extra.
+  const totalSemProva = (mesaQ.data ?? []).filter((l) => l.fila === "PAGO_SEM_PROVA").length;
+
 
   const tabTriggerCls =
     "rounded-none border-b-2 border-transparent bg-transparent px-1 pb-3 pt-1 text-muted-foreground data-[state=active]:text-gold data-[state=active]:border-gold data-[state=active]:shadow-none data-[state=active]:bg-transparent";
