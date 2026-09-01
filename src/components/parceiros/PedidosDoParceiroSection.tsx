@@ -97,6 +97,12 @@ export function PedidosDoParceiroSection({ parceiroId }: { parceiroId: string })
             {partes.length > 0 && (
               <p className="text-xs text-muted-foreground">{partes.join(" · ")}</p>
             )}
+            {nfsErro && (
+              <p className="text-destructive text-xs">
+                Os dados de NF não puderam ser carregados — a coluna NF não reflete a realidade.{" "}
+                {formatError(nfsErroObj)}
+              </p>
+            )}
             <Table>
               <TableHeader>
                 <TableRow>
