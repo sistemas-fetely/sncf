@@ -28,7 +28,19 @@ export async function exigirAcao(
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return negado("Não autorizado", 401);
   }
-  const { data: u, error: eUser } = await sb.auth.getUser(authHeader.replace("Bearer ", ""));
+
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const token = authHeader.replace("Bearer ", "");
+  // ATOR-SISTEMA-TAMBEM-PASSA (01/09/2026): esta guarda nasceu pensando em
+  // pessoa clicando botao, mas a mesma edge e chamada por cron com service
+  // role. `auth.getUser(serviceKey)` devolve vazio -> 401 -> a fila B2C morreu
+  // em silencio por 3 dias (13 pedidos). Maquina nao tem auth.uid(); a autoria
+  // dela e `ator_tipo='sistema'`, previsto na doutrina AUTORIA-NAO-SE-PERDE.
+  if (serviceKey && token === serviceKey) {
+    return { ok: true, userId: null, status: 200, erro: null };
+  }
+
+  const { data: u, error: eUser } = await sb.auth.getUser(token);
   const userId: string | null = u?.user?.id ?? null;
   if (eUser || !userId) return negado("Não autorizado", 401);
 
