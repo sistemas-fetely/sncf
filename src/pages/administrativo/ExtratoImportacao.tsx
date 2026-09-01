@@ -1063,16 +1063,39 @@ export default function ExtratoImportacao() {
 
         respRetorno = resp;
         if (resp?.ja_processado) {
-          // ZERO-NAO-E-CONTA-FECHADA (01/09/2026): a edge, no caminho
-          // `ja_processado`, devolve só `nro_sequencial` e `processado_em` —
-          // não devolve o total de ocorrências do arquivo. Ler 0 e conciliar 0
-          // fecharia a conta trivialmente e pintaria verde sem ter contado
-          // nada. Falha visível, como manda o FAIL-LOUD.
-          throw new Error(
-            `Retorno ${resp.nro_sequencial} já processado em ${resp.processado_em}. ` +
-              `Nada foi reaplicado — e a RPC não informa o total de ocorrências do arquivo, ` +
-              `então a contagem não pode ser conferida.`
-          );
+          // DOIS-ZEROS-DIFERENTES (01/09/2026): zero por OMISSÃO — o parser leu
+          // N linhas e contabilizou menos — continua sendo erro alto. Zero
+          // porque NADA FOI LIDO — sequencial já processado, a edge nem abre o
+          // arquivo — é sucesso idempotente (REIMPORTAR-É-INOFENSIVO), desde
+          // que o motivo do zero fique declarado no registro.
+          // O motivo vai direto em `ignoradas_detalhe` no update, sem passar
+          // pelo contador: `linhas_ignoradas` fica 0 e a invariante
+          // lidas = novas + duplicadas + ignoradas (0 = 0 + 0 + 0) segue de pé.
+          cont.ler(0);
+          const msgJa =
+            `Retorno ${resp.nro_sequencial} já processado em ${resp.processado_em} — ` +
+            `nada foi reaplicado.`;
+          await sb
+            .from("extrato_importacoes")
+            .update({
+              status: "concluida",
+              linhas_lidas: 0,
+              linhas_novas: 0,
+              linhas_enriquecidas: 0,
+              linhas_duplicadas: 0,
+              linhas_ignoradas: 0,
+              ignoradas_detalhe: { arquivo_ja_processado: 1 },
+              erro_detalhe: null,
+            })
+            .eq("id", impId);
+          trilha.neutro = {
+            resultado: msgJa,
+            contagem: "arquivo não lido — sequencial já processado",
+            detalhe: { arquivo_ja_processado: 1 },
+          };
+          toast.info(`${file.name}: ${msgJa}`);
+          await invalidarRecebivel();
+          return;
         } else {
           cont.ler(resp?.ocorrencias_gravadas ?? 0);
           cont.nova(resp?.ocorrencias_gravadas ?? 0);
