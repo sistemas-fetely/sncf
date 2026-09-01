@@ -332,16 +332,23 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
                   <p>
                     Até o passo 3, o cliente tem dois boletos vivos para a mesma dívida.
                   </p>
-                  <Button
-                    size="sm"
-                    className="mt-1"
-                    onClick={() => {
-                      onClose();
-                      navigate("/administrativo/banco-safra");
-                    }}
-                  >
-                    Ir gerar a remessa de baixa
-                  </Button>
+                  {!permTesouraria.carregando && permTesouraria.podeVer && (
+                    <Button
+                      size="sm"
+                      className="mt-1"
+                      onClick={() => {
+                        onClose();
+                        navigate("/administrativo/banco-safra");
+                      }}
+                    >
+                      Ir gerar a remessa de baixa
+                    </Button>
+                  )}
+                  {!permTesouraria.carregando && !permTesouraria.podeVer && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      A remessa de baixa é gerada na tela Banco Safra. Peça a quem tem acesso a essa tela.
+                    </p>
+                  )}
                 </AlertDescription>
               </Alert>
             )}
