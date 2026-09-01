@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageCircle, MoreHorizontal, FileSpreadsheet, Tag, Download, Flame, Loader2, FileText } from "lucide-react";
+import { Search, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageCircle, MoreHorizontal, FileSpreadsheet, Tag, Download, Flame, Loader2, FileText, AlertTriangle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import {
@@ -296,49 +296,90 @@ function CelulaCobranca({ cobranca }: { cobranca: LastroCobranca | undefined }) 
 }
 
 function CelulaEstoque({ cob }: { cob: CoberturaPedido | undefined }) {
-  if (!cob || cob.cobertura_pedido === "faturado") {
+  if (!cob) {
     return <span className="text-muted-foreground">—</span>;
   }
 
   const pct = Math.round(cob.pct_coberto);
-  if (pct === 100) {
-    return <span className="text-muted-foreground tabular-nums">100%</span>;
-  }
-
-  const unCobertas = Math.round(cob.un_cobertas);
+  const itensTotal = Math.round(cob.itens_total);
+  const itensCobertos = Math.round(cob.itens_cobertos);
+  const itensParciais = Math.round(cob.itens_parciais);
+  const itensDescobertos = Math.round(cob.itens_descobertos);
+  const itensProblematicos = itensParciais + itensDescobertos;
   const unTotal = Math.round(cob.un_total);
+  const unCobertas = Math.round(cob.un_cobertas);
   const unDescobertas = Math.round(cob.un_descobertas);
-  const tooltip = cob.na_fila === false
-    ? `${unCobertas} de ${unTotal} unidades com lastro\nPedido fora da fila de reserva — estágio não reserva estoque.`
-    : `${unCobertas} de ${unTotal} unidades com lastro`;
 
-  if (pct === 0) {
+  const tooltip = [
+    `Itens: ${itensCobertos} cobertos · ${itensParciais} parciais · ${itensDescobertos} descobertos`,
+    `Unidades: ${unCobertas} de ${unTotal} com lastro`,
+    cob.na_fila === false ? "Pedido fora da fila de reserva — estágio não reserva estoque." : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  if (cob.cobertura_pedido === "faturado") {
     return (
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Badge variant="outline" className="rounded px-1.5 py-0 text-[10px] border-destructive/50 text-destructive">
-              Sem estoque
-            </Badge>
+            <span className="text-muted-foreground tabular-nums">Faturado</span>
           </TooltipTrigger>
           <TooltipContent>
-            <p className="text-xs max-w-[200px] whitespace-pre-line">{tooltip}</p>
+            <p className="text-xs max-w-[220px] whitespace-pre-line">{tooltip}</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
     );
   }
 
+  if (cob.cobertura_pedido === "coberto") {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge
+              variant="outline"
+              className="rounded px-1.5 py-0 text-[10px] border-success/50 text-success gap-1"
+            >
+              100%
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="text-xs max-w-[220px] whitespace-pre-line">{tooltip}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  const config =
+    cob.cobertura_pedido === "descoberto"
+      ? { classe: "border-destructive/50 text-destructive", icone: true }
+      : { classe: "border-warning/50 text-warning", icone: true };
+
+  const sublinhado =
+    itensProblematicos === 1
+      ? `1 de ${itensTotal} itens · ${unDescobertas} un sem lastro`
+      : `${itensProblematicos} de ${itensTotal} itens · ${unDescobertas} un sem lastro`;
+
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Badge variant="outline" className="rounded px-1.5 py-0 text-[10px] tabular-nums border-warning/50 text-warning">
-            {pct}% · faltam {unDescobertas} un
-          </Badge>
+          <div className="space-y-0.5">
+            <Badge
+              variant="outline"
+              className={cn("rounded px-1.5 py-0 text-[10px] tabular-nums gap-1", config.classe)}
+            >
+              {config.icone && <AlertTriangle className="h-3 w-3" />}
+              {pct}%
+            </Badge>
+            <p className="text-[10px] text-muted-foreground tabular-nums">{sublinhado}</p>
+          </div>
         </TooltipTrigger>
         <TooltipContent>
-          <p className="text-xs max-w-[200px] whitespace-pre-line">{tooltip}</p>
+          <p className="text-xs max-w-[220px] whitespace-pre-line">{tooltip}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
