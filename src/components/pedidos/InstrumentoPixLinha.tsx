@@ -17,6 +17,7 @@ import { Check, Copy, ExternalLink, Loader2, QrCode, RefreshCw } from "lucide-re
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
+import { publicUrl } from "@/lib/urls";
 
 interface PixGerado {
   payload: string;
@@ -96,7 +97,7 @@ export function InstrumentoPixLinha({
   const payload = gerado?.payload ?? linkPagamento ?? null;
   const txid = gerado?.txid ?? pixTxid ?? null;
   const token = gerado?.token ?? pixToken ?? null;
-  const linkPublico = token ? `${window.location.origin}/pagar/${token}` : null;
+  const linkPublico = token ? publicUrl(`/pagar/${token}`) : null;
 
   // ── Sobe o PNG do QR pro bucket público (só provisão, só se não houver imagem) ──
   useEffect(() => {
