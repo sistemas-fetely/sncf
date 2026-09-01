@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
+import { usePermissoesTela } from "@/hooks/usePermissoesTela";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
@@ -152,6 +153,7 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
   const [novoInstrumento, setNovoInstrumento] = useState<NovoInstrumento>("pix");
   const [showProrrogar, setShowProrrogar] = useState(false);
   const [resultado, setResultado] = useState<RenegociarResultado | null>(null);
+  const permTesouraria = usePermissoesTela("tela.fin_tesouraria");
 
   // Reemissão (modalidade 4)
   const [reemData, setReemData] = useState<string>(amanhaISO());
@@ -330,16 +332,23 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
                   <p>
                     Até o passo 3, o cliente tem dois boletos vivos para a mesma dívida.
                   </p>
-                  <Button
-                    size="sm"
-                    className="mt-1"
-                    onClick={() => {
-                      onClose();
-                      navigate("/administrativo/banco-safra");
-                    }}
-                  >
-                    Ir gerar a remessa de baixa
-                  </Button>
+                  {!permTesouraria.carregando && permTesouraria.podeVer && (
+                    <Button
+                      size="sm"
+                      className="mt-1"
+                      onClick={() => {
+                        onClose();
+                        navigate("/administrativo/banco-safra");
+                      }}
+                    >
+                      Ir gerar a remessa de baixa
+                    </Button>
+                  )}
+                  {!permTesouraria.carregando && !permTesouraria.podeVer && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      A remessa de baixa é gerada na tela Banco Safra. Peça a quem tem acesso a essa tela.
+                    </p>
+                  )}
                 </AlertDescription>
               </Alert>
             )}
