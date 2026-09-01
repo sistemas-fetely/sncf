@@ -1005,7 +1005,13 @@ export default function ExtratoImportacao() {
         if (errJa) throw errJa;
 
         if (jaImportado && jaImportado.length > 0) {
+          // Snapshot repetido é sucesso idempotente, não falha: a conta fecha
+          // com tudo em `duplicadas` e o veredito sai em tom neutro.
           cont.duplicada(cont.lidas);
+          trilha.neutro = {
+            resultado: `Snapshot de ${formatDateBR(parsed.data_referencia)} já importado — nada refeito`,
+            contagem: cont.resumo(),
+          };
           toast.info(
             `${file.name}: snapshot de ${formatDateBR(parsed.data_referencia)} já importado — nada refeito.`
           );
