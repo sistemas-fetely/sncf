@@ -148,6 +148,12 @@ async function detectarSubtipoXlsx(file: File): Promise<Exclude<Fonte, "ofx">> {
 const FONTE_TIPO_DB: Record<Fonte, string> = {
   ofx: "ofx",
   safra_lancamentos: "safra_lancamentos",
+  // O código `safra_lancamentos` da dimensão JÁ É "Lançamentos e Devoluções (PIX)".
+  safra_pix_lancamentos: "safra_lancamentos",
+  // Fontes reconhecidas e fora do escopo: a dimensão as trata como agenda (papel `fora`).
+  safrapay_agenda_vendas: "agenda_vendas",
+  safrapay_recebiveis_vendas: "agenda_vendas",
+
   mp_withdraw: "mp_withdraw",
   safrapay_vendas: "safrapay_vendas",
   safrapay_liquidacao: "safrapay_liquidacao",
