@@ -674,7 +674,6 @@ function TabelaTitulosRemessa({
 }
 
 function CancelarRemessaDialog({
-  const invalidarRecebivel = useInvalidarRecebivel();
   remessa,
   onClose,
 }: {
@@ -682,6 +681,7 @@ function CancelarRemessaDialog({
   onClose: () => void;
 }) {
   const qc = useQueryClient();
+  const invalidarRecebivel = useInvalidarRecebivel();
   const { toast } = useToast();
   const [motivo, setMotivo] = useState("");
   const [cancelando, setCancelando] = useState(false);
