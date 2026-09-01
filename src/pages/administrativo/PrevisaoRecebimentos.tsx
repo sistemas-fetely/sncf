@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -318,7 +318,7 @@ export default function PrevisaoRecebimentos() {
     }
 
     const dias = [...porDia.keys()].sort((a, b) => a.localeCompare(b));
-    let mesAtual = out.length > 0 ? null : null;
+    let mesAtual: string | null = null;
     for (const d of dias) {
       const linha = montar(
         d,
@@ -520,9 +520,9 @@ export default function PrevisaoRecebimentos() {
                 </TableHeader>
                 <TableBody>
                   {grade.map((l) => (
-                    <>
+                    <Fragment key={l.chave}>
                       {l.mes && (
-                        <TableRow key={`mes-${l.chave}`} className="hover:bg-transparent">
+                        <TableRow className="hover:bg-transparent">
                           <TableCell
                             colSpan={colunas.length + 3}
                             className="bg-muted/40 py-1 text-[11px] uppercase tracking-wide text-muted-foreground"
@@ -532,7 +532,6 @@ export default function PrevisaoRecebimentos() {
                         </TableRow>
                       )}
                       <TableRow
-                        key={l.chave}
                         onClick={() => setDiaAberto(l)}
                         className={cn(
                           "cursor-pointer",
@@ -575,7 +574,7 @@ export default function PrevisaoRecebimentos() {
                           {formatBRL(l.acumulado)}
                         </TableCell>
                       </TableRow>
-                    </>
+                    </Fragment>
                   ))}
                 </TableBody>
                 <TableFooter>
