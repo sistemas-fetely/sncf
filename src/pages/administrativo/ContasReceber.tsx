@@ -631,6 +631,14 @@ function AbaB2B() {
     );
     if (sort) {
       arr = [...arr].sort((a, b) => {
+        if (sort.key === "data_vencimento_vigente") {
+          const va = a.data_vencimento_vigente ?? null;
+          const vb = b.data_vencimento_vigente ?? null;
+          if (va === vb) return 0;
+          if (va == null) return 1; // nulls last
+          if (vb == null) return -1;
+          return sort.dir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
+        }
         const campo = (t: RecebivelB2B) =>
           (t as unknown as Record<string, string | number | boolean | null>)[sort.key] ?? "";
         const va = campo(a);
