@@ -40,6 +40,7 @@ import { gerarHashMov } from "@/lib/financeiro/hash-mov";
 import { formatDateBR } from "@/lib/format-currency";
 import { formatError, rawMessage } from "@/lib/format-error";
 import { BlocoErroBoundary } from "@/components/BlocoErroBoundary";
+import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
@@ -174,6 +175,7 @@ const PARSER_ROTULO: Partial<Record<Fonte, string>> = {
 export default function ExtratoImportacao() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const invalidarRecebivel = useInvalidarRecebivel();
   const [conta, setConta] = useState<string>("");
   const [contaAux, setContaAux] = useState<string>("");
   const [arquivos, setArquivos] = useState<File[]>([]);
@@ -984,9 +986,8 @@ export default function ExtratoImportacao() {
           duplicadas = 0;
         }
 
-        qc.invalidateQueries({ queryKey: ["safra-retorno-pendente"] });
-        qc.invalidateQueries({ queryKey: ["safra-retorno-arquivos"] });
-        qc.invalidateQueries({ queryKey: ["safra-retorno-sequencia"] });
+        // Fonte única de verdade da invalidação do recebível.
+        await invalidarRecebivel();
       }
 
 
