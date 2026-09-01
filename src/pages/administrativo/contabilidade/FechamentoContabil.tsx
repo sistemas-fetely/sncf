@@ -129,6 +129,9 @@ export default function FechamentoContabil() {
   const [dialogReabrir, setDialogReabrir] = useState(false);
   const [obs, setObs] = useState("");
   const [motivo, setMotivo] = useState("");
+  // Aba da tabela de posição vive na URL, em ?base= (padrão: aterrissagem).
+  const [base, setBase] = useAbaUrl("aterrissagem", undefined, "base");
+
 
   const competencias = useQuery({
     queryKey: ["contabil-competencias"],
