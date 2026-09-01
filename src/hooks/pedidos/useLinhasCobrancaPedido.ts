@@ -21,7 +21,9 @@ export interface LinhaCobrancaPedido {
   pago_em: string | null;
   link_pagamento: string | null;
   pix_txid: string | null;
+  pix_token: string | null;
   pix_qr_url: string | null;
+
   linha_digitavel: string | null;
   boleto_status: string | null;
   nosso_numero: string | null;

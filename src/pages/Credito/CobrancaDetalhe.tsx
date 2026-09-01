@@ -51,6 +51,8 @@ import { AjustarDescontoDialog } from "@/components/pedidos/dialogs/AjustarDesco
 import { ImpactoEdicaoBanner } from "@/components/pedidos/ImpactoEdicaoBanner";
 import { ReabrirAnaliseAction } from "@/components/pedidos/ReabrirAnaliseAction";
 import { LinkPagamentoCard } from "@/components/pedidos/LinkPagamentoCard";
+import { InstrumentoPixLinha } from "@/components/pedidos/InstrumentoPixLinha";
+
 import { useVoltarParaOrigem } from "@/hooks/useVoltarParaOrigem";
 import { useMontarPlanoPagamento } from "@/hooks/credito/useMontarPlanoPagamento";
 import { PageShell } from "@/components/layout/PageShell";
@@ -293,7 +295,7 @@ function CelulaDinheiro({
   );
 }
 
-function LinhaParcela({ l }: { l: LinhaCobrancaPedido }) {
+function LinhaParcela({ l, pedidoId }: { l: LinhaCobrancaPedido; pedidoId: string }) {
   const [aberto, setAberto] = useState(false);
   const Icone = ICONE_TIPO[l.tipo_pagamento ?? ""] ?? FileText;
   const valor = Number(l.valor ?? 0);
@@ -354,17 +356,30 @@ function LinhaParcela({ l }: { l: LinhaCobrancaPedido }) {
       </button>
 
       {aberto && (
-        <div className="pl-11 pr-4 pb-3 space-y-1.5">
-          {l.link_pagamento && <CopiavelInline label="Link" valor={l.link_pagamento} />}
+        <div className="pl-11 pr-4 pb-3 space-y-1.5 min-w-0">
+          {l.link_pagamento && l.tipo_pagamento !== "pix" && (
+            <CopiavelInline label="Link" valor={l.link_pagamento} />
+          )}
           {l.linha_digitavel && <CopiavelInline label="Linha digitável" valor={l.linha_digitavel} />}
+          <InstrumentoPixLinha
+            linhaId={l.linha_id}
+            origem={l.origem}
+            pedidoId={pedidoId}
+            tipoPagamento={l.tipo_pagamento}
+            pago={l.pago}
+            linkPagamento={l.link_pagamento}
+            pixTxid={l.pix_txid}
+            pixToken={l.pix_token}
+            pixQrUrl={l.pix_qr_url}
+            valor={Number(l.valor ?? 0)}
+          />
           {l.nosso_numero && (
             <p className="text-xs text-muted-foreground">Nosso número: {l.nosso_numero}</p>
           )}
           {l.boleto_status && (
             <p className="text-xs text-muted-foreground">Boleto: {l.boleto_status}</p>
           )}
-          {l.pix_txid && <p className="text-xs text-muted-foreground">PIX txid: {l.pix_txid}</p>}
-          {!temInstrumento && (
+          {!temInstrumento && l.tipo_pagamento !== "pix" && (
             <p className="flex items-center gap-2 text-xs text-muted-foreground">
               <Info className="h-3.5 w-3.5" />
               Nenhum link ou boleto emitido para esta parcela
@@ -372,6 +387,7 @@ function LinhaParcela({ l }: { l: LinhaCobrancaPedido }) {
           )}
         </div>
       )}
+
     </div>
   );
 }
@@ -382,7 +398,9 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
   const portaoRegraQ = usePedidoPortaoRegra(pedido.id);
   const linhasQ = useLinhasCobrancaPedido(pedido.id);
   const linkCardRef = useRef<HTMLDivElement>(null);
+  const planoCardRef = useRef<HTMLDivElement>(null);
   const comunicacaoRef = useRef<HTMLDivElement>(null);
+
 
   const emailLogQ = useQuery({
     queryKey: ["cobranca-email-log", pedido.id],
@@ -426,13 +444,21 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
+  // Linha PIX sem QR emitido é a ação mais próxima: o instrumento vive na linha do plano.
+  const temPixPendente = linhas.some(
+    (l) => l.tipo_pagamento === "pix" && !l.pix_txid && !l.pago,
+  );
+
   const acaoPrimaria: { label: string; onClick: () => void } = linhas.length === 0
     ? { label: "Montar plano", onClick: () => navigate(`/recebimento/cobranca/${pedido.id}?refazer=1`) }
     : !temInstrumento
-      ? { label: "Cadastrar link de pagamento", onClick: () => scrollPara(linkCardRef) }
+      ? temPixPendente
+        ? { label: "Gerar QR PIX", onClick: () => scrollPara(planoCardRef) }
+        : { label: "Cadastrar link de pagamento", onClick: () => scrollPara(linkCardRef) }
       : !enviadoAoCliente
         ? { label: "Enviar cobrança", onClick: () => scrollPara(comunicacaoRef) }
         : { label: "Reenviar cobrança", onClick: () => scrollPara(comunicacaoRef) };
+
 
   function refazerPlano() {
     if (emCobranca) {
@@ -514,7 +540,8 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
       )}
 
       {/* (d) LISTA ÚNICA DE PARCELAS */}
-      <Card>
+      <Card ref={planoCardRef}>
+
         <CardHeader>
           <CardTitle className="text-base">Plano de pagamento</CardTitle>
         </CardHeader>
@@ -526,7 +553,8 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
             </p>
           )}
           {linhas.map((l) => (
-            <LinhaParcela key={`${l.origem}-${l.linha_id}`} l={l} />
+            <LinhaParcela key={`${l.origem}-${l.linha_id}`} l={l} pedidoId={pedido.id} />
+
           ))}
         </CardContent>
       </Card>

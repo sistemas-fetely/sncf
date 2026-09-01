@@ -65506,6 +65506,7 @@ export type Database = {
           pago_em: string | null
           pedido_id: string | null
           pix_qr_url: string | null
+          pix_token: string | null
           pix_txid: string | null
           tipo_pagamento: string | null
           total_parcelas: number | null
