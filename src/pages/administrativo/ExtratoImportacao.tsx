@@ -1243,7 +1243,9 @@ export default function ExtratoImportacao() {
             linhas_enriquecidas: cont.enriquecidas,
             linhas_duplicadas: cont.duplicadas,
             linhas_ignoradas: cont.ignoradas,
-            ignoradas_detalhe: cont.detalhe,
+            ignoradas_detalhe: cnpjRelatorio
+              ? { ...cont.detalhe, cnpj_relatorio: cnpjRelatorio }
+              : cont.detalhe,
             periodo_inicio: periodoInicio,
             periodo_fim: periodoFim,
           })
@@ -1260,7 +1262,10 @@ export default function ExtratoImportacao() {
           linhas_enriquecidas: cont.enriquecidas,
           linhas_duplicadas: cont.duplicadas,
           linhas_ignoradas: cont.ignoradas,
-          ignoradas_detalhe: cont.detalhe,
+          ignoradas_detalhe: cnpjRelatorio
+            ? { ...cont.detalhe, cnpj_relatorio: cnpjRelatorio }
+            : cont.detalhe,
+
           periodo_inicio: periodoInicio,
           periodo_fim: periodoFim,
         })
