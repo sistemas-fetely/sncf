@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePedidosPipeline } from "@/hooks/pedidos/usePedidosPipeline";
+import { useMesaComercialContagem } from "@/hooks/pedidos/useMesaComercialContagem";
 import { usePermissoesTela } from "@/hooks/usePermissoesTela";
 import {
   ESTAGIO_LABELS_CURTO,
@@ -102,7 +103,11 @@ export function PipelineHorizontal({
 }: Props) {
   const { data, isLoading, isError, error } = usePedidosPipeline();
 
-  const { data: pagamentoVencido } = useQuery({
+  const {
+    data: pagamentoVencido,
+    isError: pagVencidoErro,
+    error: pagVencidoErroObj,
+  } = useQuery({
     queryKey: ["pedidos-pagamento-vencido-count"],
     staleTime: 30 * 1000,
     queryFn: async () => {
@@ -172,23 +177,13 @@ export function PipelineHorizontal({
   // Fail-closed: enquanto carrega, o card não existe.
   const podeVerComercial = permComercial.podeVer && !permComercial.carregando;
 
-  // FONTE-UNICA: o card da Mesa Comercial le a MESMA view que a tabela da aba.
-  const { data: mesaComercial } = useQuery({
-    queryKey: ["mesa-comercial-card"],
-    staleTime: 30 * 1000,
-    queryFn: async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("vw_oportunidades_comercial")
-        .select("valor_em_jogo");
-      if (error) throw error;
-      const rows = (data ?? []) as Array<{ valor_em_jogo: number | null }>;
-      return {
-        qtd: rows.length,
-        valor: rows.reduce((s, r) => s + Number(r.valor_em_jogo || 0), 0),
-      };
-    },
-  });
+  // FONTE-UNICA-DA-MESA-COMERCIAL: card e contador da aba leem o mesmo hook.
+  const {
+    data: mesaComercial,
+    isError: mesaErro,
+    error: mesaErroObj,
+  } = useMesaComercialContagem();
+  const mesaErroMsg = (mesaErroObj as Error)?.message ?? "erro desconhecido";
 
   // Universo do card "Fila ativa" = exatamente o que a tabela mostra por padrão:
   // ativos (sem entregue) + cancelados apenas com o toggle ligado.
@@ -238,6 +233,12 @@ export function PipelineHorizontal({
 
   return (
     <div className="space-y-2">
+      {/* FAIL-LOUD: falha de leitura nunca vira ausência silenciosa de tarja. */}
+      {pagVencidoErro && (
+        <div className="text-xs text-destructive">
+          Não foi possível ler pagamento vencido: {(pagVencidoErroObj as Error)?.message ?? "erro desconhecido"}
+        </div>
+      )}
       {(riscoVermelhoQtd > 0 || totalSla > 0 || (pagamentoVencido?.ativos ?? 0) > 0 || (pagamentoVencido?.entregues ?? 0) > 0) && (
         <div className="flex items-center gap-4 text-xs flex-wrap">
           {riscoVermelhoQtd > 0 && (
@@ -367,32 +368,51 @@ export function PipelineHorizontal({
           );
         })}
 
-        {/* PERMISSÃO-SEGUE-O-DADO: o card entrega contagem e VALOR da Mesa Comercial. Sem tela.comercial, nem o número aparece — o portão da aba não basta se o KPI vaza por fora. */}
+        {/* PERMISSÃO-SEGUE-O-DADO: o card entrega contagem e VALOR da Recuperação. Sem tela.comercial, nem o número aparece — o portão da aba não basta se o KPI vaza por fora. */}
         {podeVerComercial && (
           <>
             {/* Divisor: daqui pra frente não é passo do fluxo */}
             <div className="w-px bg-border mx-1 self-stretch" />
 
-            {/* Mesa Comercial — fora da carteira ativa */}
+            {/* Recuperação — fora da carteira ativa */}
             <button
               type="button"
               onClick={() => onAbrirRecuperacao?.()}
-              title="Fora da carteira ativa. Pedidos que aguardam pagamento ou estoque — clique para abrir a aba Mesa Comercial."
+              title="Desvio: pedidos fora da carteira ativa (recuperação de venda). Aguardando pagamento agora tem card próprio no funil. Clique para abrir a Mesa Comercial."
               className={cn(
                 "flex w-[104px] shrink-0 flex-col items-center justify-center rounded-md border border-dashed bg-muted/40 py-2 px-2 text-muted-foreground transition-all duration-200",
                 "gold-border-hover focus-visible:outline-none",
-                (mesaComercial?.qtd ?? 0) === 0 && "opacity-40",
+                !mesaErro && (mesaComercial?.recuperacaoQtd ?? 0) === 0 && "opacity-40",
               )}
             >
               <span className="text-[10px] font-medium uppercase tracking-wide leading-tight">
-                Mesa Comercial
+                Recuperação
               </span>
-              <span className="text-[11px] font-medium tabular-nums">
-                {mesaComercial?.qtd ?? 0} {(mesaComercial?.qtd ?? 0) === 1 ? "pedido" : "pedidos"}
-              </span>
-              <span className="text-[10px] tabular-nums">
-                {fmtBRL.format(mesaComercial?.valor ?? 0)}
-              </span>
+              {mesaErro ? (
+                <>
+                  <span
+                    className="text-[11px] font-medium tabular-nums text-destructive"
+                    title={`Não foi possível ler a Mesa Comercial: ${mesaErroMsg}`}
+                  >
+                    —
+                  </span>
+                  <span
+                    className="text-[10px] tabular-nums text-destructive"
+                    title={`Não foi possível ler a Mesa Comercial: ${mesaErroMsg}`}
+                  >
+                    —
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="text-[11px] font-medium tabular-nums">
+                    {mesaComercial?.recuperacaoQtd ?? 0} {(mesaComercial?.recuperacaoQtd ?? 0) === 1 ? "pedido" : "pedidos"}
+                  </span>
+                  <span className="text-[10px] tabular-nums">
+                    {fmtBRL.format(mesaComercial?.recuperacaoValor ?? 0)}
+                  </span>
+                </>
+              )}
             </button>
           </>
         )}
