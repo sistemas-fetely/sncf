@@ -677,7 +677,60 @@ export default function ExtratoImportacao() {
             cont
           );
         }
+      } else if (fonte === "safra_pix_lancamentos") {
+        // ENRIQUECIMENTO PURO. Os EndToEnd deste arquivo já entraram pelo OFX —
+        // inserir aqui é o `duplicate key` que quebrava a importação. O que ele
+        // acrescenta é pedido, nome e CPF/CNPJ do pagador, e nada mais.
+        const buf = await file.arrayBuffer();
+        const parsed = parseXlsxSafraPixLancamentos(buf);
+        cont.ler(parsed.linhas.length);
+        if (cont.lidas === 0) throw new Error("Nenhuma linha de PIX na planilha");
+
+        const datasPix = parsed.linhas.map((l) => l.data_transacao).filter(Boolean).sort() as string[];
+        periodoInicio = datasPix[0] || null;
+        periodoFim = datasPix[datasPix.length - 1] || null;
+        cnpjRelatorio = parsed.cnpj_relatorio;
+
+        for (const l of parsed.linhas) {
+          if (!l.id_transacao_banco) {
+            cont.ignorar("sem_identificador");
+            continue;
+          }
+          const { data: alvo, error: errBusca } = await sb
+            .from("movimentacoes_bancarias")
+            .select("id, referencia_pedido, contraparte_nome, contraparte_documento, data_hora")
+            .eq("id_transacao_banco", l.id_transacao_banco)
+            .limit(1)
+            .maybeSingle();
+          if (errBusca) throw errBusca;
+          if (!alvo) {
+            // Sem par no extrato: NÃO insere. O dinheiro entra pelo OFX.
+            cont.ignorar("sem_par_no_extrato");
+            continue;
+          }
+
+          // Nunca sobrescrever campo já preenchido.
+          const patch: Record<string, unknown> = {};
+          if (!alvo.referencia_pedido && l.referencia_pedido)
+            patch.referencia_pedido = l.referencia_pedido;
+          if (!alvo.contraparte_nome && l.contraparte_nome)
+            patch.contraparte_nome = l.contraparte_nome;
+          if (!alvo.contraparte_documento && l.contraparte_documento)
+            patch.contraparte_documento = l.contraparte_documento;
+          if (!alvo.data_hora && l.data_hora) patch.data_hora = l.data_hora;
+
+          if (Object.keys(patch).length > 0) {
+            const { error: errUp } = await sb
+              .from("movimentacoes_bancarias")
+              .update(patch)
+              .eq("id", alvo.id);
+            if (errUp) throw errUp;
+          }
+          // A linha do arquivo é, por definição, duplicada de algo que já existe.
+          cont.enriquecer();
+        }
       } else if (fonte === "mp_withdraw") {
+
         const buf = await file.arrayBuffer();
         const parsed = parseXlsxMpWithdraw(buf);
         cont.ler(parsed.movimentacoes.length);
