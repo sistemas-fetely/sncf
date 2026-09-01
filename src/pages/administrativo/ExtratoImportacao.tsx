@@ -31,6 +31,9 @@ import { parseXlsxMpReserveRelease } from "@/lib/financeiro/xlsx-mp-reserve-rele
 import { parseXlsxSafraInstrucoes2Via } from "@/lib/financeiro/xlsx-safra-instrucoes-parser";
 import { parseXlsxSafraFrancesinha } from "@/lib/financeiro/xlsx-safra-francesinha-parser";
 import { temTitulo, textoPrimeirasLinhas } from "@/lib/financeiro/xlsx-titulo";
+import { detectarAssinaturaSafraXlsx } from "@/lib/financeiro/xlsx-safra-assinatura";
+import { parseXlsxSafraPixLancamentos } from "@/lib/financeiro/xlsx-safra-pix-lancamentos-parser";
+
 import { ehRetornoSafra } from "@/lib/financeiro/cnab-retorno-safra-parser";
 
 import { ResumoSafraCarteira } from "@/components/financeiro/ResumoSafraCarteira";
