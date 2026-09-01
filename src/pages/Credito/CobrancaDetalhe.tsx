@@ -398,7 +398,9 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
   const portaoRegraQ = usePedidoPortaoRegra(pedido.id);
   const linhasQ = useLinhasCobrancaPedido(pedido.id);
   const linkCardRef = useRef<HTMLDivElement>(null);
+  const planoCardRef = useRef<HTMLDivElement>(null);
   const comunicacaoRef = useRef<HTMLDivElement>(null);
+
 
   const emailLogQ = useQuery({
     queryKey: ["cobranca-email-log", pedido.id],
