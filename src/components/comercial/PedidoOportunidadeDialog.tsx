@@ -37,7 +37,7 @@ import { ClienteHistoricoBloco } from "@/components/comercial/ClienteHistorico";
 import { usePermissoesMesa } from "@/hooks/comercial/usePermissoesMesa";
 import { useStatusComercialLog } from "@/hooks/comercial/useMesaComercial";
 import { useBoletosDoPedido } from "@/hooks/pedidos/useBoletosDoPedido";
-import type { BoletoVigente } from "@/components/credito/AvisoBoletosVivos";
+import type { BoletoTitulo } from "@/hooks/pedidos/useBoletosDoPedido";
 import { BotaoBaixarBoletoPdf, baixarBoletoPdf } from "@/components/credito/BotaoBaixarBoletoPdf";
 import { usePedidoPortaoAtual } from "@/hooks/pedidos/usePedidoPortaoAtual";
 import { useDiagnosticoPagamento } from "@/hooks/comercial/usePedidoOportunidadeDetalhe";
@@ -65,9 +65,9 @@ export function chipSituacao(situacao: string | null | undefined): string {
 }
 
 /**
- * FONTE-UNICA-DO-BOLETO (02/09/2026): a situação do boleto NÃO é `titulo.boleto_status`
- * — durante a reemissão essa coluna descreve o boleto que está MORRENDO. Quem responde
- * "dá para entregar?" é `vw_titulo_boleto_vigente`.
+ * TITULO-DIZ-COMO-ESTA, VIGENTE-DIZ-SE-ENTREGA (02/09/2026): `vw_titulo_boleto_vigente`
+ * responde apenas "dá para entregar?" (botão de download e aviso de reemissão). A
+ * situação da parcela vem do título — ver `situacaoBoletoTitulo` abaixo.
  */
 /**
  * CARNE-VEM-DEPOIS: isto e N PDFs, um por parcela. O PDF unico com N paginas exige
@@ -125,26 +125,55 @@ function BaixarTodosBoletos({
   );
 }
 
-function situacaoBoletoVigente(v: BoletoVigente | null): {
+/**
+ * TITULO-DIZ-COMO-ESTA, VIGENTE-DIZ-SE-ENTREGA (02/09/2026). A coluna Situacao le
+ * titulo_a_receber (status + boleto_status), que e a mesma fonte da tela de Cobranca.
+ * O boleto vigente responde OUTRA pergunta — se da para entregar ao cliente — e so
+ * governa o botao de download e o aviso de reemissao. Confundir as duas fez o
+ * PED-1001 mostrar 'Sem boleto vivo' em tres parcelas ja quitadas.
+ */
+function situacaoBoletoTitulo(b: BoletoTitulo): {
   rotulo: string;
   classe: string;
   tooltip?: string;
 } {
-  if (!v || !v.nosso_numero) {
-    return { rotulo: "Sem boleto vivo", classe: "text-muted-foreground" };
-  }
-  if (v.vigente_em_baixa) {
+  const v = b.boleto_vigente;
+  if (v?.vigente_em_baixa) {
     return { rotulo: "Em reemissão — não entregar", classe: "text-destructive" };
   }
-  if (v.enviavel) return { rotulo: "Registrado", classe: "text-success" };
-  if (["emitido", "registrado"].includes((v.situacao ?? "").toLowerCase())) {
+  if (b.status === "cancelado" || b.status === "cancelado_recuperacao") {
+    return { rotulo: "Cancelado", classe: "text-muted-foreground" };
+  }
+  if (b.status === "devolvido") {
+    return { rotulo: "Devolvido", classe: "text-muted-foreground" };
+  }
+  if (b.status === "pago") {
     return {
-      rotulo: "Vencido",
-      classe: "text-warning",
-      tooltip: "Boleto vencido continua pagável — o cliente paga com juros e multa.",
+      rotulo: "Pago",
+      classe: "text-success",
+      tooltip: b.boleto_status === "pago_banco" ? "Liquidado pelo banco (retorno CNAB)." : undefined,
     };
   }
-  return { rotulo: v.situacao ?? "—", classe: "text-muted-foreground" };
+  if (b.status === "aberto") {
+    if (b.boleto_status === "baixado_banco") {
+      return { rotulo: "Baixado no banco", classe: "text-warning" };
+    }
+    if (b.boleto_status === "rejeitado") {
+      return { rotulo: "Rejeitado", classe: "text-destructive" };
+    }
+    if (b.boleto_status === "pendente" || !b.boleto_status) {
+      return { rotulo: "Sem boleto emitido", classe: "text-muted-foreground" };
+    }
+    if (b.data_vencimento_atual && b.data_vencimento_atual < new Date().toISOString().slice(0, 10)) {
+      return {
+        rotulo: "Vencido",
+        classe: "text-warning",
+        tooltip: "Boleto vencido continua pagável — o cliente paga com juros e multa.",
+      };
+    }
+    return { rotulo: "Em aberto", classe: "text-foreground" };
+  }
+  return { rotulo: b.status ?? "—", classe: "text-muted-foreground" };
 }
 
 
@@ -689,7 +718,7 @@ export function PedidoOportunidadeDialog({
                   </TableHeader>
                   <TableBody>
                     {(boletos.data?.boletoTitulos ?? []).map((b) => {
-                      const sit = situacaoBoletoVigente(b.boleto_vigente);
+                      const sit = situacaoBoletoTitulo(b);
                       return (
                       <TableRow key={b.id}>
                         <TableCell className="text-xs">
@@ -708,7 +737,7 @@ export function PedidoOportunidadeDialog({
                           {formatBRL(b.valor_bruto ?? 0)}
                         </TableCell>
                         <TableCell className="font-mono text-xs">
-                          {b.boleto_vigente?.nosso_numero || "—"}
+                          {b.boleto_vigente?.nosso_numero ?? b.boleto_ultimo?.nosso_numero ?? "—"}
                         </TableCell>
                         <TableCell className={`text-xs ${sit.classe}`} title={sit.tooltip}>
                           {sit.rotulo}
