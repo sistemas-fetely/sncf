@@ -15,6 +15,7 @@ import { useNfsEmitidas, type NfEmitida } from "@/hooks/vendas/useNfsEmitidas";
 import { FileText, ExternalLink, Search, RefreshCw, Download, Loader2, AlertCircle } from "lucide-react";
 import { formatError } from "@/lib/format-error";
 import { useDownloadNfPdf } from "@/hooks/nf/useDownloadNfPdf";
+import { nomeArquivoNf } from "@/lib/nf/nome-arquivo";
 import { cn } from "@/lib/utils";
 import { apelidoParceiro } from "@/lib/parceiros/nome";
 import { useAuth } from "@/contexts/AuthContext";
@@ -390,7 +391,15 @@ function AbaNFs() {
                           className="h-8 w-8 p-0"
                           disabled={baixando && nfEmDownload === n.id}
                           onClick={() =>
-                            baixar({ nf_id: n.id, nome: `NF-${n.numero ?? n.id}${n.serie ? `-${n.serie}` : ""}` })
+                            baixar({
+                              nf_id: n.id,
+                              nome: nomeArquivoNf({
+                                pedidoRef: n.pedido?.id_externo ?? n.pedido_ref,
+                                numero: n.numero,
+                                serie: n.serie,
+                                fallbackId: n.id,
+                              }),
+                            })
                           }
                           title="Baixar PDF da NF"
                         >

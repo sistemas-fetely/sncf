@@ -6,10 +6,7 @@ import { useDownloadNfPdf } from "@/hooks/nf/useDownloadNfPdf";
 import { Selo } from "@/components/pedidos/prazoEntrega";
 import { cn } from "@/lib/utils";
 import { formatError } from "@/lib/format-error";
-
-function nomeArquivo(nf: NfDoPedido) {
-  return `NF-${nf.numero ?? nf.id}${nf.serie ? `-${nf.serie}` : ""}`;
-}
+import { nomeArquivoNf } from "@/lib/nf/nome-arquivo";
 
 function fmtEmissao(v: string | null) {
   if (!v) return "—";
@@ -34,9 +31,23 @@ function textoSituacao(situacao: string | null) {
  * Clicar baixa o DANFE. "+N" abre as demais NFs do pedido, cada uma com download.
  * Sem NF, não renderiza nada.
  */
-export function ChipNfPedido({ pedidoId }: { pedidoId: string }) {
+export function ChipNfPedido({
+  pedidoId,
+  pedidoRef,
+}: {
+  pedidoId: string;
+  /** NOME-DE-ARQUIVO-FALA-O-PEDIDO: `pedidos.id_externo`, para o nome do download. */
+  pedidoRef?: string | null;
+}) {
   const { data, isError, error } = useNfsDoPedido(pedidoId);
   const { baixar, baixando, nfEmDownload } = useDownloadNfPdf();
+  const nomeArquivo = (nf: NfDoPedido) =>
+    nomeArquivoNf({
+      pedidoRef,
+      numero: nf.numero,
+      serie: nf.serie,
+      fallbackId: nf.id,
+    });
 
   // FAIL-LOUD: erro de consulta nunca se disfarça de "pedido sem NF".
   if (isError) {

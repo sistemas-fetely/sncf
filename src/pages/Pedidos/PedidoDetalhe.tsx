@@ -1525,7 +1525,7 @@ export default function PedidoDetalhe() {
             <h1 className="font-serif text-[26px] font-medium tracking-tight text-foreground leading-tight truncate">
               Pedido {rotuloPedido}
             </h1>
-            <ChipNfPedido pedidoId={pedido.id} />
+            <ChipNfPedido pedidoId={pedido.id} pedidoRef={pedido.id_externo} />
           </div>
           <p className="text-[15px] text-muted-foreground truncate">
             {pedido.parceiro_id ? (

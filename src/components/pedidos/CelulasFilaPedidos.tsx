@@ -3,9 +3,17 @@ import { cn } from "@/lib/utils";
 import type { EntregaLinhaInfo } from "@/hooks/pedidos/usePedidoEntrega";
 import { useDownloadNfPdf } from "@/hooks/nf/useDownloadNfPdf";
 import { BlocoPrazo, Selo, fmtDataCurta, proveniencia } from "@/components/pedidos/prazoEntrega";
+import { nomeArquivoNf } from "@/lib/nf/nome-arquivo";
 
 /** Linha da NF na coluna Valor: faturamento é fato do dinheiro. */
-export function LinhaNfFila({ info }: { info: EntregaLinhaInfo | undefined }) {
+export function LinhaNfFila({
+  info,
+  pedidoRef,
+}: {
+  info: EntregaLinhaInfo | undefined;
+  /** NOME-DE-ARQUIVO-FALA-O-PEDIDO: `pedidos.id_externo`, para o nome do download. */
+  pedidoRef?: string | null;
+}) {
   const { baixar, baixando } = useDownloadNfPdf();
   if (!info?.nf_numero) return null;
   const naoAutorizada = !!info.nf_situacao && info.nf_situacao !== "autorizada";
@@ -17,7 +25,15 @@ export function LinhaNfFila({ info }: { info: EntregaLinhaInfo | undefined }) {
       onClick={(e) => {
         e.stopPropagation();
         if (info.nf_id) {
-          baixar({ nf_id: info.nf_id, nome: `NF-${info.nf_numero}${info.nf_serie ? `-${info.nf_serie}` : ""}` });
+          baixar({
+            nf_id: info.nf_id,
+            nome: nomeArquivoNf({
+              pedidoRef,
+              numero: info.nf_numero,
+              serie: info.nf_serie,
+              fallbackId: info.nf_id,
+            }),
+          });
         }
       }}
       title={info.nf_id ? "Baixar PDF da NF" : undefined}

@@ -11,6 +11,7 @@ import { usePedidoRelogio } from "@/hooks/pedidos/usePedidoRelogio";
 import type { PedidoRisco } from "@/hooks/pedidos/usePedidoRisco";
 import { usePedidosEntregaLote, type EntregaLinhaInfo } from "@/hooks/pedidos/usePedidoEntrega";
 import { useDownloadNfPdf } from "@/hooks/nf/useDownloadNfPdf";
+import { nomeArquivoNf } from "@/lib/nf/nome-arquivo";
 import { useLiberacaoExpedicaoLote, type LiberacaoExpedicao } from "@/hooks/pedidos/useLiberacaoExpedicao";
 import { useCoberturaPedidos, type CoberturaPedido } from "@/lib/pedidoDestaque";
 import { CelulaEntregaFila, LinhaNfFila } from "@/components/pedidos/CelulasFilaPedidos";
@@ -1002,7 +1003,7 @@ export function FilaPedidosPorArea({
                   <TableCell>
                     <p className="font-medium">{fmtBRL.format(p.valor_liquido)}</p>
                     <div onClick={(e) => e.stopPropagation()}>
-                      <LinhaNfFila info={entregaMap?.get(p.id)} />
+                      <LinhaNfFila info={entregaMap?.get(p.id)} pedidoRef={p.id_externo} />
                     </div>
                   </TableCell>
                   <TableCell>
@@ -1621,7 +1622,12 @@ function AcoesLinha({ p, temMsg, risco, nfInfo }: { p: PedidoFilaItem; temMsg: b
               onSelect={() =>
                 baixarNf({
                   nf_id: nfInfo!.nf_id!,
-                  nome: `NF-${nfInfo!.nf_numero}${nfInfo!.nf_serie ? `-${nfInfo!.nf_serie}` : ""}`,
+                  nome: nomeArquivoNf({
+                    pedidoRef: p.id_externo,
+                    numero: nfInfo!.nf_numero,
+                    serie: nfInfo!.nf_serie,
+                    fallbackId: nfInfo!.nf_id,
+                  }),
                 })
               }
             >
