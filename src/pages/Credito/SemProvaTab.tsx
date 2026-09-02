@@ -364,6 +364,7 @@ export default function SemProvaTab() {
         </section>
       ))}
 
+      {mostra("instrumento") && (
       <section className="space-y-2">
         <BlocoHeader
           titulo={BLOCO_INSTRUMENTO}
