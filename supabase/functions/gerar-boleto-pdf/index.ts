@@ -414,10 +414,10 @@ serve(async (req) => {
       pagador_endereco:  enderecoPagador,
       numero_documento:  `${t.pedido?.id_externo ?? t.numero_titulo}-${String(t.numero_parcela).padStart(2, "0")}`,
       data_documento:    t.data_criacao ?? new Date().toISOString().slice(0, 10),
-      data_vencimento:   t.data_vencimento_atual,
-      valor:             Number(t.valor_bruto),
-      linha_digitavel:   t.linha_digitavel,
-      codigo_barras:     t.codigo_barras_boleto,
+      data_vencimento:   bv.data_vencimento,
+      valor:             Number(bv.valor ?? t.valor_bruto),
+      linha_digitavel:   bv.linha_digitavel,
+      codigo_barras:     bv.codigo_barras,
       instrucoes,
     };
 
