@@ -541,6 +541,13 @@ export default function NFsStage() {
           n.nf_numero?.toLowerCase().includes(t),
       );
     }
+    if (destinoFiltro) {
+      if (destinoFiltro === "__sem_destino__") {
+        list = list.filter((n) => !n.destino_codigo);
+      } else {
+        list = list.filter((n) => n.destino_codigo === destinoFiltro);
+      }
+    }
 
     // Ordenação
     list = ordenarPor(list, sort, {
@@ -553,7 +560,7 @@ export default function NFsStage() {
     });
 
     return list;
-  }, [nfs, filtroPill, mesFiltro, busca, sort, resolvidasNaSessao]);
+  }, [nfs, filtroPill, mesFiltro, busca, destinoFiltro, sort, resolvidasNaSessao]);
 
   // KPIs — refletem filtro de mês ativo (mas ignoram a pill, senão eram sempre iguais)
   const totals = useMemo(() => {
