@@ -57,14 +57,24 @@ const novoResumo = (): ResumoEntidade => ({
 
 /* ---------------------------------------------------------------- adaptadores */
 
+function extrairCursor(nextUrl: string | null): string | null {
+  if (!nextUrl) return null;
+  try {
+    return new URL(nextUrl).searchParams.get("cursor");
+  } catch {
+    return null;
+  }
+}
+
 /** Envelope v1 (sandbox + produção): { data: [{access_key, xml}], page: {next} } */
-function adaptarV1(json: any): { docs: DocQive[]; next: string | null; total: number | null } {
+function adaptarV1(json: any): { docs: DocQive[]; nextUrl: string | null; cursor: string | null; total: number | null } {
   const docs: DocQive[] = (Array.isArray(json?.data) ? json.data : []).map((d: any) => ({
     chave: typeof d?.access_key === "string" ? d.access_key : null,
     xmlBase64: typeof d?.xml === "string" ? d.xml : null,
   }));
-  const next = typeof json?.page?.next === "string" && json.page.next ? json.page.next : null;
-  return { docs, next, total: typeof json?.count === "number" ? json.count : null };
+  const nextUrl = typeof json?.page?.next === "string" && json.page.next ? json.page.next : null;
+  const cursor = extrairCursor(nextUrl);
+  return { docs, nextUrl, cursor, total: typeof json?.count === "number" ? json.count : null };
 }
 
 /**
@@ -326,7 +336,7 @@ Deno.serve(async (req) => {
             }
 
             const payload = await resp.json();
-            const { docs, next } = adaptarV1(payload);
+            const { docs, cursor: proximoCursor } = adaptarV1(payload);
             resumo.paginas++;
             resumo.encontrados += docs.length;
 
@@ -401,7 +411,16 @@ Deno.serve(async (req) => {
               }
             }
 
-            cursor = next;
+            if (docs.length === 0) {
+              resumo.interrompido_por = "pagina_vazia";
+              break;
+            }
+            if (proximoCursor && proximoCursor === cursor) {
+              resumo.interrompido_por = "cursor_repetido";
+              break;
+            }
+
+            cursor = proximoCursor;
             resumo.cursor_final = cursor;
 
             const restante = Number(resp.headers.get("X-RateLimit-Remaining") ?? "999");
@@ -409,7 +428,7 @@ Deno.serve(async (req) => {
               resumo.interrompido_por = "rate_limit";
               break;
             }
-            if (!next) break;
+            if (!proximoCursor) break;
           }
         } finally {
           await supabase
