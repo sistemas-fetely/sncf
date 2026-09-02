@@ -525,35 +525,45 @@ Deno.serve(async (req) => {
             if (!proximoCursor) break;
           }
         } finally {
-          // CURSOR-SO-AVANCA-SOBRE-SUCESSO: uma execução com erro não pode marcar
-          // como lido o que não foi absorvido. Notas fiscais perdidas sem alarme
-          // são inaceitáveis em integração fiscal.
-          const houveErroDocumento = resumo.erros > 0;
-          const houveErroEntidade = !!resumo.erro;
-          const podeAvancar = !houveErroDocumento && !houveErroEntidade;
-
-          const updatePayload: Record<string, unknown> = {
-            em_execucao: false,
-            ultima_pagina: resumo.paginas,
-            total_processado: (cur.total_processado ?? 0) + resumo.gravados,
-          };
-
-          if (podeAvancar) {
-            updatePayload.ultimo_bling_id = cursor;
-            updatePayload.ultima_data_corte = ate.toISOString();
-            resumo.cursor_avancou = true;
-          } else {
-            // Preserva os valores que já estavam no banco — a fila não andou.
-            updatePayload.ultimo_bling_id = cur.ultimo_bling_id;
-            updatePayload.ultima_data_corte = cur.ultima_data_corte;
+          // SIMULACAO-NAO-MOVE-A-FILA: em simulação só a trava é liberada.
+          if (simular) {
             resumo.cursor_avancou = false;
-          }
+            await supabase
+              .from("integracoes_sync_cursor")
+              .update({ em_execucao: false })
+              .eq("id", cur.id);
+          } else {
+            // CURSOR-SO-AVANCA-SOBRE-SUCESSO: uma execução com erro não pode marcar
+            // como lido o que não foi absorvido. Notas fiscais perdidas sem alarme
+            // são inaceitáveis em integração fiscal.
+            const houveErroDocumento = resumo.erros > 0;
+            const houveErroEntidade = !!resumo.erro;
+            const podeAvancar = !houveErroDocumento && !houveErroEntidade;
 
-          await supabase
-            .from("integracoes_sync_cursor")
-            .update(updatePayload)
-            .eq("id", cur.id);
+            const updatePayload: Record<string, unknown> = {
+              em_execucao: false,
+              ultima_pagina: resumo.paginas,
+              total_processado: (cur.total_processado ?? 0) + resumo.gravados,
+            };
+
+            if (podeAvancar) {
+              updatePayload.ultimo_bling_id = cursor;
+              updatePayload.ultima_data_corte = ate.toISOString();
+              resumo.cursor_avancou = true;
+            } else {
+              // Preserva os valores que já estavam no banco — a fila não andou.
+              updatePayload.ultimo_bling_id = cur.ultimo_bling_id;
+              updatePayload.ultima_data_corte = cur.ultima_data_corte;
+              resumo.cursor_avancou = false;
+            }
+
+            await supabase
+              .from("integracoes_sync_cursor")
+              .update(updatePayload)
+              .eq("id", cur.id);
+          }
         }
+
       } catch (e) {
         resumo.erro = e instanceof Error ? e.message : String(e);
         console.error(`[sync-qive-dfe] entidade ${entidade} falhou:`, e);
