@@ -399,6 +399,53 @@ Deno.serve(async (req) => {
 
                 const numero = p?.numero ?? null;
 
+                if (resumo.amostra.length < 5) {
+                  const cfops = Array.from(
+                    new Set(
+                      (p?.itens ?? [])
+                        .map((it) => it.cfop)
+                        .filter((c): c is string => typeof c === "string" && c !== ""),
+                    ),
+                  );
+                  resumo.amostra.push({
+                    chave,
+                    numero,
+                    data_emissao: p?.data_emissao ?? null,
+                    cnpj: p?.cnpj ?? null,
+                    razao_social: p?.razao_social ?? null,
+                    valor: p?.valor ?? null,
+                    natureza_operacao: p?.natureza_operacao ?? null,
+                    fin_nfe: p?.fin_nfe ?? null,
+                    referenciada: p?.referenciada ?? null,
+                    qtd_itens: p?.itens?.length ?? 0,
+                    cfops,
+                  });
+                }
+
+                // SIMULACAO-NAO-ESCREVE: nada de RPC, só leitura para saber se já existe.
+                if (simular) {
+                  const { data: existente, error: existeErr } = await supabase
+                    .from("nfs_stage")
+                    .select("id")
+                    .eq("nf_chave_acesso", chave)
+                    .not("status", "in", '("descartada","duplicata")')
+                    .maybeSingle();
+                  if (existeErr) {
+                    anotarErro(resumo, `consulta de existência falhou (${chave}): ${existeErr.message}`);
+                    console.error(`[${entidade}] consulta de existência falhou (${chave}):`, existeErr.message);
+                    continue;
+                  }
+                  if (existente) {
+                    resumo.ja_existiam++;
+                  } else {
+                    resumo.seriam_gravados++;
+                    if (p?.referenciada) resumo.com_referencia++;
+                  }
+                  continue;
+                }
+
+
+
                 // ÍNDICE-PARCIAL-VAI-POR-RPC: `uniq_nfs_stage_chave_ativa` é
                 // parcial (WHERE status <> descartada/duplicata) e o PostgREST
                 // não infere índice parcial em ON CONFLICT — o upsert falhava
