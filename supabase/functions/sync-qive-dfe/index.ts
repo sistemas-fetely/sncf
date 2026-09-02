@@ -38,6 +38,8 @@ interface ResumoEntidade {
   primeiro_erro: string | null;
   paginas: number;
   cursor_final: string | null;
+  /** CURSOR-SO-AVANCA-SOBRE-SUCESSO: diz explicitamente se a fila andou. */
+  cursor_avancou: boolean;
   interrompido_por?: string;
   erro?: string;
 }
