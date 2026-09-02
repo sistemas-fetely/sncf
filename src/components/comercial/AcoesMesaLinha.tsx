@@ -3,10 +3,11 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Copy, FileText, FileCode2, Receipt, MoreHorizontal } from "lucide-react";
+import { Copy, FileText, FileCode2, Receipt, MoreHorizontal, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { SolicitarSopsAcao } from "@/components/comercial/SolicitarSopsAcao";
 import { usePermissoesMesa } from "@/hooks/comercial/usePermissoesMesa";
+import { useDownloadNfPdf } from "@/hooks/nf/useDownloadNfPdf";
 import type { MesaComercialRow } from "@/hooks/comercial/useMesaComercial";
 
 /**
@@ -16,6 +17,13 @@ import type { MesaComercialRow } from "@/hooks/comercial/useMesaComercial";
  *
  * PERMISSAO-NAO-EXISTE-NA-TELA: sem a permissão nominal da ação, o ícone
  * também não renderiza — e é diferente de falta de DADO, que explica no tooltip.
+ *
+ * MECANISMO-ANTES-DE-URL: PDF e XML da NF baixam pelo mecanismo canônico da casa
+ * (`useDownloadNfPdf` -> edge function `nf-download`), igual a NfsDeVenda, ChipNfPedido
+ * e Fila. `nf_pdf_url`/`nf_xml_url` são CACHE de link assinado do Bling (~48h) e não
+ * funcionam abertos no navegador do usuário: o Bling pede validação de CNPJ sem sessão,
+ * e o XML volta como `text/xml`, que o navegador renderiza em vez de baixar. O servidor
+ * resolve link fresco pelo `bling_id` e devolve `attachment`. Nada de `window.open`.
  */
 async function copiarLink(link: string) {
   try {
@@ -26,6 +34,15 @@ async function copiarLink(link: string) {
       description: e instanceof Error ? e.message : undefined,
     });
   }
+}
+
+/** Nome do arquivo baixado. O hook concatena a extensão. */
+function nomeArquivoNf(linha: MesaComercialRow, formato: "pdf" | "xml"): string {
+  if (formato === "xml" && linha.nf_chave) return `NFe-${linha.nf_chave}`;
+  if (linha.nf_numero) {
+    return `NF-${linha.nf_numero}${linha.nf_serie ? `-${linha.nf_serie}` : ""}`;
+  }
+  return `NF-${linha.nf_id}`;
 }
 
 interface AcaoItem {
@@ -44,6 +61,10 @@ export function AcoesMesaLinha({
 }) {
   const [sopsAberto, setSopsAberto] = useState(false);
   const { podeCopiarLink, podeBaixarNf, podeVerBoletos } = usePermissoesMesa();
+  const { baixar, baixando, nfEmDownload } = useDownloadNfPdf();
+
+  // FAIL-LOUD já mora no hook: erro do servidor sobe como toast com o corpo real.
+  const baixandoEstaNf = baixando && nfEmDownload === linha.nf_id;
 
   const acoes: AcaoItem[] = [];
 
@@ -55,20 +76,34 @@ export function AcoesMesaLinha({
       executar: () => void copiarLink(linha.link_pagamento!),
     });
   }
-  if (podeBaixarNf && linha.tem_pdf && linha.nf_pdf_url) {
+  if (podeBaixarNf && linha.tem_pdf && linha.nf_id) {
     acoes.push({
       chave: "pdf",
       rotulo: `Baixar NF PDF${linha.nf_numero ? ` (${linha.nf_numero})` : ""}`,
-      icone: <FileText className="h-4 w-4" />,
-      executar: () => window.open(linha.nf_pdf_url!, "_blank", "noopener,noreferrer"),
+      icone: baixandoEstaNf
+        ? <Loader2 className="h-4 w-4 animate-spin" />
+        : <FileText className="h-4 w-4" />,
+      executar: () =>
+        baixar({
+          nf_id: linha.nf_id!,
+          formato: "pdf",
+          nome: nomeArquivoNf(linha, "pdf"),
+        }),
     });
   }
-  if (podeBaixarNf && linha.tem_xml && linha.nf_xml_url) {
+  if (podeBaixarNf && linha.tem_xml && linha.nf_id) {
     acoes.push({
       chave: "xml",
-      rotulo: "Baixar NF XML",
-      icone: <FileCode2 className="h-4 w-4" />,
-      executar: () => window.open(linha.nf_xml_url!, "_blank", "noopener,noreferrer"),
+      rotulo: `Baixar NF XML${linha.nf_numero ? ` (${linha.nf_numero})` : ""}`,
+      icone: baixandoEstaNf
+        ? <Loader2 className="h-4 w-4 animate-spin" />
+        : <FileCode2 className="h-4 w-4" />,
+      executar: () =>
+        baixar({
+          nf_id: linha.nf_id!,
+          formato: "xml",
+          nome: nomeArquivoNf(linha, "xml"),
+        }),
     });
   }
   if (podeVerBoletos && (linha.boletos_qtd ?? 0) > 0) {
@@ -83,6 +118,7 @@ export function AcoesMesaLinha({
   // "Solicitar ao SOPS" tem gate próprio dentro do componente da ação.
   const visiveis = acoes.slice(0, 3);
   const excedente = acoes.slice(3);
+  const ehAcaoDeNf = (chave: string) => chave === "pdf" || chave === "xml";
 
   return (
     <div className="flex items-center justify-end gap-1">
@@ -93,6 +129,7 @@ export function AcoesMesaLinha({
           variant="ghost"
           className="h-7 w-7"
           title={a.rotulo}
+          disabled={ehAcaoDeNf(a.chave) && baixandoEstaNf}
           onClick={a.executar}
         >
           {a.icone}
@@ -114,7 +151,12 @@ export function AcoesMesaLinha({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {excedente.map((a) => (
-              <DropdownMenuItem key={a.chave} onClick={a.executar} className="gap-2 text-xs">
+              <DropdownMenuItem
+                key={a.chave}
+                onClick={a.executar}
+                disabled={ehAcaoDeNf(a.chave) && baixandoEstaNf}
+                className="gap-2 text-xs"
+              >
                 {a.icone}
                 {a.rotulo}
               </DropdownMenuItem>

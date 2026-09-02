@@ -1206,15 +1206,27 @@ export default function NFsStage() {
       toast.error("Documento não disponível");
       return;
     }
-    const { data } = await supabase.storage
+    // XML-NAO-SE-LE-NA-TELA: sem `download`, o Storage serve o XML como text/xml
+    // e o navegador renderiza o codigo em vez de baixar. PDF continua abrindo
+    // no visualizador, que ali e o comportamento util.
+    const nomeArquivo =
+      doc.storage_path.split("/").pop() ||
+      `${tipo}-${nf.nf_numero ?? nf.id}.${tipo === "xml" ? "xml" : "pdf"}`;
+    const { data, error } = await supabase.storage
       .from("nfs-stage")
-      .createSignedUrl(doc.storage_path, 60 * 5);
-    if (data?.signedUrl) {
-      window.open(data.signedUrl, "_blank");
-    } else {
-      toast.error("Falha ao gerar link do arquivo");
+      .createSignedUrl(doc.storage_path, 60 * 5, {
+        ...(tipo === "xml" ? { download: nomeArquivo } : {}),
+      });
+    // FAIL-LOUD: o motivo real sobe no toast.
+    if (error || !data?.signedUrl) {
+      toast.error("Falha ao gerar link do arquivo", {
+        description: error?.message,
+      });
+      return;
     }
+    window.open(data.signedUrl, "_blank");
   }
+
 
   // Atalhos de teclado
   useEffect(() => {

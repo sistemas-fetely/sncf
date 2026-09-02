@@ -547,9 +547,10 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
             metaProvisoria={detalhe.meta_provisoria}
             nfNumero={detalhe.nf_numero}
             nfChave={detalhe.nf_chave}
-            nfPdfUrl={detalhe.nf_pdf_url}
-            nfXmlUrl={detalhe.nf_xml_url}
+            nfId={detalhe.nf_id}
+            nfSerie={detalhe.nf_serie}
             temPdf={detalhe.tem_pdf}
+
             temXml={detalhe.tem_xml}
             boletosValorAberto={detalhe.boletos_valor_aberto}
             comprovantesQtd={detalhe.comprovantes_qtd}
