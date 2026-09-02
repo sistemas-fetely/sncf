@@ -1767,10 +1767,9 @@ export default function NFsStage() {
                                     {nf.destino_rotulo}
                                   </Badge>
                                   {nf.destino_exige_humano && (
-                                    <AlertCircle
-                                      className="h-3.5 w-3.5 text-destructive"
-                                      title="Este destino pede decisão humana"
-                                    />
+                                    <span title="Este destino pede decisão humana">
+                                      <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+                                    </span>
                                   )}
                                 </div>
                               </TooltipTrigger>
