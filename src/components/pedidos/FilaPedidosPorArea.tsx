@@ -525,10 +525,11 @@ export function FilaPedidosPorArea({
       const vistos = new Set(base.map((p) => p.id));
       base = [...base, ...pedidosPorApelido.filter((p) => !vistos.has(p.id))];
     }
-    // MESA-COMERCIAL — aguardando_pagamento e recuperacao_venda sao trabalhados na aba
-    // Mesa Comercial; nao poluem a fila da SOps nem com incluirCancelados. Só entram
-    // se pedidos explicitamente em `estagios`.
-    const foraDaFila = ["recuperacao_venda", "aguardando_pagamento"] as const;
+    // FILA-MOSTRA-O-QUE-EXISTE (02/09/2026): aguardando_pagamento VOLTA para a lista.
+    // Ele nao tem card no funil, mas some-lo da tabela criava pedido invisivel —
+    // fora da fila e fora do card da Mesa. O selo "Mesa Comercial" na coluna Estagio
+    // continua dizendo quem trabalha. Recuperacao (desvio) segue fora: é outra sala.
+    const foraDaFila = ["recuperacao_venda"] as const;
     foraDaFila.forEach((est) => {
       const pedidoExplicitamente = !!estagios?.some((e) => e === est);
       if (!pedidoExplicitamente) {

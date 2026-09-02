@@ -182,21 +182,28 @@ export function PipelineHorizontal({
     data: mesaComercial,
     isError: mesaErro,
     error: mesaErroObj,
+    isPending: mesaCarregando,
   } = useMesaComercialContagem();
   const mesaErroMsg = (mesaErroObj as Error)?.message ?? "erro desconhecido";
 
   // Universo do card "Fila ativa" = exatamente o que a tabela mostra por padrão:
-  // ativos (sem entregue) + cancelados apenas com o toggle ligado.
+  // ativos (sem entregue) + cancelados apenas com o toggle ligado. Inclui
+  // aguardando_pagamento, que aparece na tabela mesmo sem card no funil.
   // Desvio (recuperação) NUNCA entra: é outra sala.
-  const { totalQtd, totalSla, riscoVermelhoQtd, riscoVermelhoValor } = useMemo(() => {
-    // aguardando_pagamento nao tem card no funil, entao nao entra no total —
-    // FILA ATIVA e exatamente a soma dos cards visiveis.
-    const excluidosSempre = new Set<string>(["entregue", "aguardando_pagamento"]);
+  const { totalQtd, totalSla, riscoVermelhoQtd, riscoVermelhoValor, semCardQtd } = useMemo(() => {
+    // FILA-MOSTRA-O-QUE-EXISTE (02/09/2026): aguardando_pagamento CONTA na FILA ATIVA
+    // e aparece na tabela, mas segue sem card proprio (mora na Mesa Comercial).
+    // Consequencia assumida: o total pode passar da soma dos cards. `semCardQtd`
+    // existe para o tooltip declarar a diferenca — total que nao fecha, sem explicar,
+    // e o que gerou a decisao anterior.
+    const excluidosSempre = new Set<string>(["entregue"]);
+    const semCard = new Set<string>(["aguardando_pagamento"]);
     const naoAtivos = new Set<string>(["cancelado"]);
     let qtd = 0;
     let sla = 0;
     let rQtd = 0;
     let rValor = 0;
+    let semCardQtd = 0;
     (data || []).forEach((row) => {
       const e = row.estagio as string;
       const ehDesvio =
@@ -210,8 +217,9 @@ export function PipelineHorizontal({
       sla += Number(row.qtd_sla_estourado || 0);
       rQtd += Number(row.qtd_risco_vermelho || 0);
       rValor += Number(row.valor_risco_vermelho || 0);
+      if (semCard.has(e)) semCardQtd += Number(row.qtd || 0);
     });
-    return { totalQtd: qtd, totalSla: sla, riscoVermelhoQtd: rQtd, riscoVermelhoValor: rValor };
+    return { totalQtd: qtd, totalSla: sla, riscoVermelhoQtd: rQtd, riscoVermelhoValor: rValor, semCardQtd };
   }, [data, incluirCancelados]);
 
 
@@ -285,7 +293,12 @@ export function PipelineHorizontal({
         <button
           type="button"
           onClick={() => onLimparFiltro?.()}
-          title="Pedidos em andamento na SOps — exatamente a soma dos cards ao lado. Não inclui entregues, aguardando pagamento nem recuperação de venda (esses dois moram na Mesa Comercial). Cancelados entram só com o toggle ao lado."
+          title={
+            "Pedidos em andamento — todos aparecem na tabela abaixo. Não inclui entregues nem recuperação de venda (desvio, tratado na Mesa Comercial). Cancelados entram só com o toggle ao lado." +
+            (semCardQtd > 0
+              ? ` Inclui ${semCardQtd} aguardando pagamento, que não tem card próprio: o total é ${semCardQtd} maior que a soma dos cards ao lado.`
+              : "")
+          }
           className={cn(
             "group relative flex flex-col items-center justify-center rounded-md border py-2 px-3 transition-all duration-200 min-w-[76px]",
             "gold-border-hover focus-visible:outline-none",
@@ -384,13 +397,21 @@ export function PipelineHorizontal({
               className={cn(
                 "flex w-[104px] shrink-0 flex-col items-center justify-center rounded-md border border-dashed bg-muted/40 py-2 px-2 text-muted-foreground transition-all duration-200",
                 "gold-border-hover focus-visible:outline-none",
-                !mesaErro && (mesaComercial?.total ?? 0) === 0 && "opacity-40",
+                !mesaErro && !mesaCarregando && (mesaComercial?.total ?? 0) === 0 && "opacity-40",
               )}
             >
               <span className="text-[10px] font-medium uppercase tracking-wide leading-tight">
                 Mesa Comercial
               </span>
-              {mesaErro ? (
+              {/* ZERO-NAO-E-CARREGANDO (02/09/2026): a view é pesada; enquanto não
+                  responde o card mostra "…", nunca 0 — zero exibido como resposta é
+                  mentira sobre o dado, e some com pedido que existe. */}
+              {mesaCarregando && !mesaErro ? (
+                <>
+                  <span className="text-[11px] font-medium tabular-nums text-muted-foreground">…</span>
+                  <span className="text-[10px] tabular-nums text-muted-foreground">…</span>
+                </>
+              ) : mesaErro ? (
                 <>
                   <span
                     className="text-[11px] font-medium tabular-nums text-destructive"
