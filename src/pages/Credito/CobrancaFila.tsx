@@ -1221,7 +1221,23 @@ export default function CobrancaFila() {
     .filter(ehLinhaDaMesa)
     .filter((l) => FILAS_AGIR_AGORA.includes(l.fila ?? "")).length;
   // Aba "Sem prova": mesma leitura da view, sem requisição extra.
-  const totalSemProva = (mesaQ.data ?? []).filter((l) => l.fila === "PAGO_SEM_PROVA").length;
+  // COBRANCA-SEPARA-CLIENTE-DE-DEFEITO (02/09/2026): a aba deixou de ser so
+  // "sem prova". O contador soma tudo que impede receber e nao e divida do
+  // cliente. NAO_COBRAVEL fica FORA da contagem: e bloco informativo, nao
+  // problema — contar regime proprio como problema inflaria o numero e treinaria
+  // o operador a ignorar a aba.
+  const FILAS_PROBLEMA_COBRANCA = [
+    "PAGO_SEM_PROVA",
+    "A_REEMITIR_BOLETO",
+    "A_EMITIR_BOLETO",
+    "EMAIL_BLOQUEADO",
+    "A_ENVIAR",
+  ];
+  const totalSemProva = (mesaQ.data ?? []).filter(
+    (l) =>
+      FILAS_PROBLEMA_COBRANCA.includes(l.fila ?? "") ||
+      (l.fila === "CONCILIAR" && l.instrumento === "cartao"),
+  ).length;
 
 
   const tabTriggerCls =
@@ -1260,7 +1276,10 @@ export default function CobrancaFila() {
           {[
             { value: "mesa", label: `Mesa${totalAgirAgora > 0 ? ` · ${totalAgirAgora}` : ""}` },
             { value: "regua", label: `Régua${totalReguaHoje > 0 ? ` · ${totalReguaHoje}` : ""}` },
-            { value: "sem-prova", label: `Sem prova${totalSemProva > 0 ? ` · ${totalSemProva}` : ""}` },
+            {
+              value: "sem-prova",
+              label: `Problemas Cobrança${totalSemProva > 0 ? ` · ${totalSemProva}` : ""}`,
+            },
 
             { value: "fila", label: `Fila${totalPedidos > 0 ? ` · ${totalPedidos}` : ""}` },
             { value: "titulos", label: `Títulos${totalTitulosAbertos > 0 ? ` · ${totalTitulosAbertos}` : ""}` },
