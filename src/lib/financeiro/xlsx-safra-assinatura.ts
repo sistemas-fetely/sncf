@@ -15,11 +15,14 @@ import { temTitulo } from "./xlsx-titulo";
 export type AssinaturaSafraXlsx =
   | "safra_pix_lancamentos"
   | "safrapay_agenda_vendas"
-  | "safrapay_recebiveis_vendas";
+  | "safrapay_recebiveis";
 
 export function detectarAssinaturaSafraXlsx(rows: unknown[][]): AssinaturaSafraXlsx | null {
   if (temTitulo(rows, /lancamentos e devolucoes/)) return "safra_pix_lancamentos";
+  // "Recebiveis de Vendas" é a LIQUIDAÇÃO (repasse) — vem antes de qualquer
+  // teste de "agenda de vendas", que é a AUTORIZAÇÃO.
+  if (temTitulo(rows, /recebiveis de vendas/)) return "safrapay_recebiveis";
   if (temTitulo(rows, /agenda de vendas/)) return "safrapay_agenda_vendas";
-  if (temTitulo(rows, /recebiveis de vendas/)) return "safrapay_recebiveis_vendas";
   return null;
 }
+
