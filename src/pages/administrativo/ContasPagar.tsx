@@ -106,6 +106,13 @@ type Conta = {
   saldo?: number | null;
   situacao_pagamento?: "nao_pago" | "parcial" | "pago" | "cancelado" | null;
   qtd_pagamentos?: number | null;
+  // ESTADO × PROVAS — a view devolve o estado já resolvido pelo banco.
+  data_pretendida: string | null;
+  estado_rotulo: string | null;
+  estado_cor: string | null;
+  estado_ordem: number | null;
+  estado_terminal: boolean | null;
+  estado_exige_data: boolean | null;
 };
 
 // Status de CPR: mapa canônico em `@/lib/financeiro/status-cpr`.
@@ -115,7 +122,23 @@ const diasAteVencer = (d: string | null) => {
   return Math.ceil((new Date(d + "T00:00:00").getTime() - Date.now()) / 86400000);
 };
 
-type KpiFilter = "para_agir" | "atrasadas" | "aguardando" | "pendencia" | null;
+/** hoje + 7 dias, em Brasília, como "YYYY-MM-DD". */
+function limiteSemana(): string {
+  const [a, m, d] = hojeISO().split("-").map(Number);
+  const dt = new Date(Date.UTC(a, m - 1, d + 7));
+  return dt.toISOString().slice(0, 10);
+}
+
+type KpiFilter = "a_aprovar" | "a_programar" | "esta_semana" | "vencido" | null;
+
+/** Regras dos KPIs — perguntas do trilho, uma fonte só para card e filtro. */
+const REGRA_KPI: Record<Exclude<KpiFilter, null>, (c: Conta, limite: string) => boolean> = {
+  a_aprovar: (c) => c.status === "aberto",
+  a_programar: (c) => c.status === "aprovado" && !c.data_pretendida,
+  esta_semana: (c, limite) =>
+    c.status === "programado" && !!c.data_pretendida && c.data_pretendida <= limite,
+  vencido: (c) => c.atrasada === true,
+};
 
 export default function ContasPagar() {
   const qc = useQueryClient();
