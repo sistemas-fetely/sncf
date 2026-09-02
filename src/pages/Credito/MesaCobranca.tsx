@@ -62,7 +62,6 @@ const FILAS: { chave: string; label: string }[] = [
   { chave: "EMAIL_BLOQUEADO", label: "Sem canal de e-mail" },
   { chave: "A_VENCER", label: "A vencer (D-3)" },
   { chave: "CONCILIAR", label: "Conciliar — não cobrar" },
-  { chave: "PAGO_SEM_PROVA", label: "Pago sem prova" },
   { chave: "BOLETO_EM_CURSO_BANCO", label: "Boleto em curso no banco" },
   { chave: "EM_CURSO", label: "Em curso" },
   { chave: "NAO_COBRAVEL", label: "Não cobrável" },
