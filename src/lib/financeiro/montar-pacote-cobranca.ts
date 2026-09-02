@@ -26,6 +26,24 @@ export interface TituloPacote {
   tipo_pagamento: string | null;
   boleto_status: string | null;
   linha_digitavel: string | null;
+  /**
+   * FONTE-UNICA-DO-BOLETO (02/09/2026): quando presentes, estes campos vem de
+   * `vw_titulo_boleto_vigente` e VENCEM as colunas do titulo. Durante a janela de
+   * reemissao as colunas do titulo descrevem o boleto que esta MORRENDO; enviar
+   * dali entregaria ao cliente um boleto que o banco vai baixar.
+   * Opcionais so para nao quebrar chamador que ainda nao faz o join.
+   */
+  boleto_vigente?: {
+    enviavel: boolean;
+    nosso_numero: string | null;
+    linha_digitavel: string | null;
+    data_vencimento: string | null;
+    valor: number | null;
+    situacao: string | null;
+    vigente_em_baixa: boolean;
+    boletos_vivos: number;
+    nosso_numero_em_baixa: string | null;
+  } | null;
   pix_txid?: string | null;
   pix_qr_url?: string | null;
   pix_token?: string | null;
@@ -105,10 +123,19 @@ export function montarPacoteCobranca(titulos: TituloPacote[]): PacoteCobranca {
     .sort((a, b) => (a.numero_parcela ?? 0) - (b.numero_parcela ?? 0));
 
   // Guard de linha digitável: SÓ para título aberto de boleto.
-  const pendentes = titulosBoleto.filter(
-    (t) => !ENVIAVEIS.has(t.boleto_status ?? "") || !t.linha_digitavel,
+  const pendentes = titulosBoleto.filter((t) =>
+    t.boleto_vigente
+      ? !t.boleto_vigente.enviavel
+      : !ENVIAVEIS.has(t.boleto_status ?? "") || !t.linha_digitavel,
   );
   if (pendentes.length > 0) {
+    // Unico boleto vivo esta em baixa: nao e "sem remessa", e "nao entregar este".
+    const emBaixa = pendentes.find((t) => t.boleto_vigente?.vigente_em_baixa);
+    if (emBaixa) {
+      throw new Error(
+        `Parcela ${emBaixa.numero_parcela}: o único boleto (${emBaixa.boleto_vigente?.nosso_numero}) está em baixa no banco e não deve ir ao cliente. Gere a remessa de entrada da reemissão antes de enviar.`,
+      );
+    }
     const vencido = pendentes.find((t) => t.boleto_status === "vencido");
     const rejeitado = pendentes.find((t) => t.boleto_status === "rejeitado");
     if (vencido) {
@@ -132,14 +159,17 @@ export function montarPacoteCobranca(titulos: TituloPacote[]): PacoteCobranca {
     );
   }
 
-  const boletos: BoletoPacote[] = titulosBoleto.map((t) => ({
-    titulo_id: t.id,
-    numero_parcela: t.numero_parcela,
-    parcela: `${t.numero_parcela ?? "—"}/${t.total_parcelas ?? "—"}`,
-    vencimento: fmtDataBR(t.data_vencimento_atual),
-    valor: fmtBRL.format(Number(t.valor_bruto ?? 0)),
-    linha_digitavel: t.linha_digitavel,
-  }));
+  const boletos: BoletoPacote[] = titulosBoleto.map((t) => {
+    const bv = t.boleto_vigente;
+    return {
+      titulo_id: t.id,
+      numero_parcela: t.numero_parcela,
+      parcela: `${t.numero_parcela ?? "—"}/${t.total_parcelas ?? "—"}`,
+      vencimento: fmtDataBR(bv?.data_vencimento ?? t.data_vencimento_atual),
+      valor: fmtBRL.format(Number(bv?.valor ?? t.valor_bruto ?? 0)),
+      linha_digitavel: bv ? bv.linha_digitavel : t.linha_digitavel,
+    };
+  });
 
   const titulosPix = abertos
     .filter((t) => (t.tipo_pagamento ?? "").toLowerCase() === "pix")

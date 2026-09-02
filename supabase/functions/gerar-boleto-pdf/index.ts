@@ -328,8 +328,30 @@ serve(async (req) => {
     const t = titulo as any;
     const parceiro = t.conta?.parceiro;
 
-    if (!t.nosso_numero_seq || !t.linha_digitavel || !t.codigo_barras_boleto) {
-      return new Response(JSON.stringify({ ok: false, erro: "Boleto sem nosso numero. Execute gerar-remessa-safra primeiro." }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // FONTE-UNICA-DO-BOLETO (02/09/2026): o que o cliente imprime vem de
+    // `vw_titulo_boleto_vigente`, NAO das colunas do titulo. Durante a janela de
+    // reemissao (REEMISSAO-NAO-ESPERA-BAIXA) as colunas do titulo descrevem o boleto
+    // que esta MORRENDO; imprimir dali entregaria ao cliente um boleto que o banco
+    // vai baixar. A view escolhe o vivo mais recente que nao esta em baixa.
+    const { data: vig, error: vErr } = await sb
+      .from("vw_titulo_boleto_vigente")
+      .select("nosso_numero, linha_digitavel, codigo_barras, data_vencimento, valor, situacao, enviavel, vigente_em_baixa, boletos_vivos, nosso_numero_em_baixa")
+      .eq("titulo_id", tituloId)
+      .maybeSingle();
+    if (vErr) {
+      return new Response(JSON.stringify({ ok: false, erro: `Falha ao resolver o boleto vigente: ${vErr.message}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    // deno-lint-ignore no-explicit-any
+    const bv = vig as any;
+
+    if (!bv || !bv.nosso_numero || !bv.linha_digitavel || !bv.codigo_barras) {
+      return new Response(JSON.stringify({ ok: false, erro: "Título sem boleto vivo. Execute gerar-remessa-safra primeiro." }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (bv.vigente_em_baixa) {
+      return new Response(JSON.stringify({
+        ok: false,
+        erro: `O único boleto deste título (${bv.nosso_numero}) está em processo de baixa no banco e não deve ser entregue ao cliente. Gere a remessa de entrada da reemissão primeiro.`,
+      }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const { data: paramRows } = await sb.from("parametros_remessa_safra").select("chave, valor");
@@ -354,7 +376,7 @@ serve(async (req) => {
     if (multaNum > 0) {
       const multaInt = Math.floor(multaNum / 100);
       const multaDec = String(multaNum % 100).padStart(2, "0");
-      const dataMultaObj = new Date(t.data_vencimento_atual + "T00:00:00");
+      const dataMultaObj = new Date(bv.data_vencimento + "T00:00:00");
       dataMultaObj.setDate(dataMultaObj.getDate() + 1);
       const dataMultaStr = dataMultaObj.toLocaleDateString("pt-BR");
       instrucoes.push(`MULTA DE ${multaInt},${multaDec}% A PARTIR DE ${dataMultaStr}`);
@@ -386,16 +408,16 @@ serve(async (req) => {
       beneficiario_cnpj: "63.591.078/0001-48",
       agencia_cedente:   agenciaCedente,
       carteira:          params.tipo_carteira ?? "60",
-      nosso_numero_seq:  t.nosso_numero_seq,
+      nosso_numero_seq:  bv.nosso_numero,
       pagador_nome:      parceiro?.razao_social ?? "—",
       pagador_doc:       parceiro?.cnpj ?? parceiro?.cpf ?? "—",
       pagador_endereco:  enderecoPagador,
       numero_documento:  `${t.pedido?.id_externo ?? t.numero_titulo}-${String(t.numero_parcela).padStart(2, "0")}`,
       data_documento:    t.data_criacao ?? new Date().toISOString().slice(0, 10),
-      data_vencimento:   t.data_vencimento_atual,
-      valor:             Number(t.valor_bruto),
-      linha_digitavel:   t.linha_digitavel,
-      codigo_barras:     t.codigo_barras_boleto,
+      data_vencimento:   bv.data_vencimento,
+      valor:             Number(bv.valor ?? t.valor_bruto),
+      linha_digitavel:   bv.linha_digitavel,
+      codigo_barras:     bv.codigo_barras,
       instrucoes,
     };
 
@@ -403,7 +425,7 @@ serve(async (req) => {
     const pdfBase64 = bytesToBase64(pdfBytes);
 
     return new Response(
-      JSON.stringify({ ok: true, pdf_base64: pdfBase64, nome_arquivo: `boleto_${t.nosso_numero_seq}.pdf` }),
+      JSON.stringify({ ok: true, pdf_base64: pdfBase64, nome_arquivo: `boleto_${bv.nosso_numero}.pdf` }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
 

@@ -42,7 +42,25 @@ export function useEnviarEmailNfBoletos() {
         .order("numero_parcela", { ascending: true });
       if (errT) throw new Error(errT.message);
 
-      const pacote = montarPacoteCobranca((titulosRaw ?? []) as TituloPacote[]);
+      // FONTE-UNICA-DO-BOLETO: o que vai ao cliente vem do boleto VIGENTE, nao das
+      // colunas do titulo. FAIL-LOUD: sem isso o montador cairia no caminho antigo
+      // e poderia enviar o boleto que esta em baixa.
+      const { data: vigentes, error: errV } = await (supabase as any)
+        .from("vw_titulo_boleto_vigente")
+        .select(
+          "titulo_id, enviavel, nosso_numero, linha_digitavel, data_vencimento, valor, situacao, vigente_em_baixa, boletos_vivos, nosso_numero_em_baixa",
+        )
+        .in("titulo_id", (titulosRaw ?? []).map((t: any) => t.id));
+      if (errV) throw new Error(`Falha ao resolver o boleto vigente: ${errV.message}`);
+      const porTitulo = new Map<string, any>(
+        (vigentes ?? []).map((v: any) => [v.titulo_id, v]),
+      );
+      const titulosComVigente = (titulosRaw ?? []).map((t: any) => ({
+        ...t,
+        boleto_vigente: porTitulo.get(t.id) ?? null,
+      }));
+
+      const pacote = montarPacoteCobranca(titulosComVigente as TituloPacote[]);
 
       // c) NF (PDF sempre; XML só no envio de faturamento)
       const { data: anexosResp, error: anexosErr } = await supabase.functions.invoke(

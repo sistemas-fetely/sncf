@@ -33,6 +33,7 @@ import { apelidoParceiro } from "@/lib/parceiros/nome";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
+import { AvisoBoletosVivos, BoletoVigenteLinhas } from "@/components/credito/AvisoBoletosVivos";
 import { BadgeStatusGestao } from "@/lib/financeiro/status-gestao";
 import { BaixaManualDialog } from "@/components/credito/BaixaManualDialog";
 import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTituloHaverDialog";
@@ -1088,25 +1089,12 @@ export default function TitulosTab() {
                       {detalhe.boleto_status === "rejeitado" && detalhe.boleto_codigo_rejeicao && (
                         <MotivoRejeicaoSafra codigo={detalhe.boleto_codigo_rejeicao} />
                       )}
-                      <div className="text-xs">
-                        <span className="text-muted-foreground">Nosso número: </span>
-                        <span className="font-mono">{detalhe.nosso_numero_seq ?? "—"}</span>
-                      </div>
-                      {detalhe.linha_digitavel && (
-                        <div className="flex items-center gap-2">
-                          <code className="text-[11px] break-all bg-muted px-2 py-1 rounded flex-1">
-                            {detalhe.linha_digitavel}
-                          </code>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => copiar(detalhe.linha_digitavel!)}
-                          >
-                            <Copy className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      )}
+                      <AvisoBoletosVivos tituloId={detalhe.id} />
+                      <BoletoVigenteLinhas
+                        tituloId={detalhe.id}
+                        fallbackNossoNumero={detalhe.nosso_numero_seq}
+                        onCopiar={copiar}
+                      />
                       <EnviosBoletoSection
                         pedidoId={detalhe.pedido_id}
                         tituloId={detalhe.id}

@@ -337,9 +337,20 @@ serve(async (req) => {
     };
 
     // ── histórico do boleto (titulo_boleto): situação sempre em dia ─────────
-    async function marcarBoleto(nossoNumero: string, situacao: string, campoData: string | null) {
-      const patch: Record<string, unknown> = { situacao };
+    // FONTE-UNICA-DO-BOLETO (02/09/2026): esta tabela e a fonte que os consumidores
+    // voltados ao CLIENTE leem (PDF, pacote de cobranca). Toda alteracao que muda o
+    // que esta impresso no boleto — vencimento, valor, linha digitavel — tem de
+    // chegar aqui, senao o cliente recebe papel velho. `extra` existe para isso.
+    async function marcarBoleto(
+      nossoNumero: string,
+      situacao: string | null,
+      campoData: string | null,
+      extra?: Record<string, unknown>,
+    ) {
+      const patch: Record<string, unknown> = { ...(extra ?? {}) };
+      if (situacao) patch.situacao = situacao;
       if (campoData) patch[campoData] = new Date().toISOString();
+      if (Object.keys(patch).length === 0) return;
       const { error } = await sb.from("titulo_boleto").update(patch).eq("nosso_numero", nossoNumero);
       if (error) console.error(`[retorno-safra] titulo_boleto ${nossoNumero}:`, error);
     }
@@ -1006,6 +1017,15 @@ serve(async (req) => {
               .update(updatePayload as any)
               .eq("id", t.id);
 
+            // FONTE-UNICA-DO-BOLETO: o que o cliente vai imprimir mudou. Sem esta
+            // sincronia o `titulo_boleto` guarda a data de ANTES da prorrogacao e
+            // qualquer consumidor que o leia manda a linha digitavel errada.
+            await marcarBoleto(linha.nossoNumero, reativarBoleto ? "registrado" : null, null, {
+              data_vencimento: novaData,
+              linha_digitavel: novaLinhaDigitavel,
+              codigo_barras:   novoCodigoBarras,
+            });
+
             const eventoLog = tinhaProrrogPendente ? "prorrogacao_confirmada" : "vencimento_alterado";
             await sb.from("titulo_instrumento_log").insert({
               titulo_id: t.id,
@@ -1069,15 +1089,37 @@ serve(async (req) => {
               continue;
             }
             const novoDesconto = Number((base - novoValor).toFixed(2));
+
+            // O VALOR MORA DENTRO DO CODIGO DE BARRAS. A ocorrencia 14 recalcula por
+            // causa do fator de vencimento; a 51 tem de recalcular pelo mesmo motivo,
+            // com o valor. Sem isso o boleto na mao do cliente cobra o valor ANTIGO.
+            const { linha: linha51, barras: barras51 } = montarLinhaDigitavel(
+              String(t.nosso_numero_seq),
+              t.data_vencimento_atual,
+              Math.round(novoValor * 100),
+              params,
+            );
+
             const { error: upErr51 } = await sb.from("titulo_a_receber")
               // deno-lint-ignore no-explicit-any
-              .update({ valor_desconto: novoDesconto } as any)
+              .update({
+                valor_desconto:       novoDesconto,
+                linha_digitavel:      linha51,
+                codigo_barras_boleto: barras51,
+              } as any)
               .eq("id", t.id);
             if (upErr51) {
               erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `alteração 51 update: ${upErr51.message}` });
               marcarDesfecho(linha.numeroLinha, false, "erro no update de valor");
               continue;
             }
+
+            // FONTE-UNICA-DO-BOLETO: sincroniza o que o cliente imprime.
+            await marcarBoleto(linha.nossoNumero, null, null, {
+              valor:           novoValor,
+              linha_digitavel: linha51,
+              codigo_barras:   barras51,
+            });
             alertas.push(`Valor alterado para ${novoValor.toFixed(2)} — título ${linha.nossoNumero}.`);
             if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
             contadores.alteracoes++;
