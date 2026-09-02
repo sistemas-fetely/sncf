@@ -547,17 +547,33 @@ serve(async (req) => {
 
     const tituloIds: string[] = Array.isArray(body.titulo_ids) ? body.titulo_ids : [];
 
+    // REEMISSAO-NAO-ESPERA-BAIXA (02/09/2026): titulo com reemissao pendente entra
+    // na MESMA remessa de entrada em que a baixa do boleto velho e enviada. O boleto
+    // novo nasce SO em `titulo_boleto`; `titulo_a_receber` continua carregando o
+    // boleto que esta morrendo ate o retorno (ocorrencia 09/10/40) adota-lo.
+    // Por isso NAO se escreve nosso_numero_seq / linha / boleto_status nesse caso.
     let query = sb
       .from("titulo_a_receber")
       .select(`id, numero_titulo, numero_parcela, total_parcelas, valor_bruto, data_vencimento_atual, boleto_status, tipo_pagamento,
+        reemissao_nova_data, reemissao_novo_valor, nosso_numero_seq,
         conta:contas_pagar_receber(parceiro:parceiros_comerciais(id, razao_social, cnpj, cpf, email, cadastro_incompleto, logradouro, numero, bairro, cep, cidade, uf))`)
-      .eq("boleto_status", "pendente")
+      .in("boleto_status", ["pendente", "baixa_solicitada", "baixa_remessa_gerada"])
       .eq("tipo_pagamento", "boleto")
       .not("status", "in", "(pago,pago_com_atraso,pago_judicial,cancelado,cancelado_recuperacao)");
     if (tituloIds.length > 0) query = query.in("id", tituloIds);
 
-    const { data: titulos, error: titulosErr } = await query;
+    const { data: titulosBrutos, error: titulosErr } = await query;
     if (titulosErr) throw new Error(`Erro ao buscar títulos: ${titulosErr.message}`);
+
+    // Titulo em baixa SEM reemissao pendente nao tem boleto novo a emitir — e o estado
+    // normal de quem passou por `renegociar_titulo` (a divida foi para um titulo -R1).
+    // Nao estava no escopo antes desta mudanca: sai do lote em SILENCIO. Só vira erro
+    // se o operador pediu esse titulo nominalmente, porque aí a intencao foi explicita.
+    // deno-lint-ignore no-explicit-any
+    const titulos = (titulosBrutos as any[] | null)?.filter((t: any) =>
+      t.boleto_status === "pendente" || t.reemissao_nova_data || tituloIds.includes(t.id)
+    ) ?? null;
+
     if (!titulos || titulos.length === 0) {
       return new Response(JSON.stringify({ ok: false, erro: "Nenhum título encontrado" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
