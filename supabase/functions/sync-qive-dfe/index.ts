@@ -34,6 +34,8 @@ interface ResumoEntidade {
   ja_existiam: number;
   com_referencia: number;
   erros: number;
+  /** ERRO-DE-DOCUMENTO-NAO-FICA-MUDO: o resumo diz POR QUE deu zero. */
+  primeiro_erro: string | null;
   paginas: number;
   cursor_final: string | null;
   interrompido_por?: string;
@@ -51,9 +53,16 @@ const novoResumo = (): ResumoEntidade => ({
   ja_existiam: 0,
   com_referencia: 0,
   erros: 0,
+  primeiro_erro: null,
   paginas: 0,
   cursor_final: null,
 });
+
+function anotarErro(resumo: ResumoEntidade, msg: string) {
+  resumo.erros++;
+  if (!resumo.primeiro_erro) resumo.primeiro_erro = msg;
+}
+
 
 /* ---------------------------------------------------------------- adaptadores */
 
