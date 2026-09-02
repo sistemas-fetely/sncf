@@ -463,6 +463,36 @@ export default function NFsStage() {
     },
   });
 
+  // Última execução da integração Qive
+  const { data: qiveCursor } = useQuery({
+    queryKey: ["integracoes-sync-cursor", "qive"],
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("integracoes_sync_cursor")
+        .select("entidade, ultima_data_corte, total_processado")
+        .eq("sistema", "qive");
+      if (error) throw error;
+      return (data || []) as Array<{
+        entidade: string;
+        ultima_data_corte: string | null;
+        total_processado: number;
+      }>;
+    },
+  });
+
+  const qiveResumo = useMemo(() => {
+    if (!qiveCursor || qiveCursor.length === 0) return null;
+    const datas = qiveCursor
+      .map((c) => c.ultima_data_corte)
+      .filter((d): d is string => !!d);
+    const ultima = datas.length > 0
+      ? new Date(Math.max(...datas.map((d) => new Date(d).getTime()))).toISOString()
+      : null;
+    const total = qiveCursor.reduce((s, c) => s + (c.total_processado || 0), 0);
+    return { ultima, total };
+  }, [qiveCursor]);
+
   // Filtro + Ordenação
   const filtered = useMemo(() => {
     let list = nfs || [];
