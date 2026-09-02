@@ -47,6 +47,13 @@ const FILAS_REGUA = new Set<string>(["A_COBRAR", "A_VENCER"]);
 // ENTREGA_DEVOLVIDA e ENTREGA_PROBLEMA não existem mais na vw_cobranca_mesa.
 // ENTREGA_ATRASADA saiu em 01/09/2026: o prazo corre da emissão da NF, entrega
 // atrasada não suspende cobrança (declaração Flavio). Entrega vira selo informativo.
+//
+// UM-TÍTULO-UM-LUGAR (02/09/2026): PAGO_SEM_PROVA saiu da Mesa — vive na aba
+// "Sem prova", que o classifica por gravidade de prova (divergente > sem prova >
+// declarado > crédito atrasado). CONCILIAR-cartão também saiu: é o bloco
+// "aguardando liquidação da adquirente" da mesma aba. A fila CONCILIAR continua
+// aqui porque a view também joga pix-sem-prazo nela, e a aba só olha cartão.
+// A Mesa é fila de cobrança; conciliação de prova não é trabalho dela.
 const FILAS: { chave: string; label: string }[] = [
   { chave: "A_ENVIAR", label: "A enviar — NF + boleto + cópia do pedido" },
   { chave: "A_EMITIR_BOLETO", label: "A emitir boleto" },
