@@ -788,7 +788,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                     ["Envio falhou em", fmtData(detalhe.envio_falhou_em)],
                     ["Motivo da falha de envio", detalhe.envio_falha_motivo ?? "—"],
                     ["Fila", detalhe.fila ?? "—"],
-                    ["Classe de prova", detalhe.prova_classe ?? "—"],
+                    
                     ["Nível de prova", detalhe.nivel_prova ?? "—"],
                     ["Ação sugerida", detalhe.acao_sugerida ?? "—"],
                     ["Ressalvas", detalhe.ressalvas ?? "—"],
