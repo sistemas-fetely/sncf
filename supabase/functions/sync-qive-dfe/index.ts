@@ -336,7 +336,7 @@ Deno.serve(async (req) => {
             }
 
             const payload = await resp.json();
-            const { docs, next } = adaptarV1(payload);
+            const { docs, cursor: proximoCursor } = adaptarV1(payload);
             resumo.paginas++;
             resumo.encontrados += docs.length;
 
@@ -411,7 +411,16 @@ Deno.serve(async (req) => {
               }
             }
 
-            cursor = next;
+            if (docs.length === 0) {
+              resumo.interrompido_por = "pagina_vazia";
+              break;
+            }
+            if (proximoCursor && proximoCursor === cursor) {
+              resumo.interrompido_por = "cursor_repetido";
+              break;
+            }
+
+            cursor = proximoCursor;
             resumo.cursor_final = cursor;
 
             const restante = Number(resp.headers.get("X-RateLimit-Remaining") ?? "999");
@@ -419,7 +428,7 @@ Deno.serve(async (req) => {
               resumo.interrompido_por = "rate_limit";
               break;
             }
-            if (!next) break;
+            if (!proximoCursor) break;
           }
         } finally {
           await supabase
