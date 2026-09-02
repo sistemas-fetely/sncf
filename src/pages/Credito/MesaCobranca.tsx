@@ -286,14 +286,6 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
     return { qtd: alvo.length, soma: alvo.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0) };
   }, [linhas]);
 
-  const resumoPagoSemProva = useMemo(() => {
-    const alvo = linhas.filter((l) => l.fila === "PAGO_SEM_PROVA");
-    return {
-      qtd: alvo.length,
-      soma: alvo.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0),
-      qtdDivergente: alvo.filter((l) => l.prova_classe === "divergente").length,
-    };
-  }, [linhas]);
 
   const porFila = useMemo(() => {
 
