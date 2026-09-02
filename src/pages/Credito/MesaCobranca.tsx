@@ -368,7 +368,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
         </div>
 
         {/* Cartões-resumo */}
-        <div className="grid gap-3 sm:grid-cols-5">
+        <div className="grid gap-3 sm:grid-cols-4">
 
           {/* VENCIDO — transversal a todas as filas, primeiro da fila visual. */}
           <Card
