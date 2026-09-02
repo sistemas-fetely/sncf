@@ -72,7 +72,7 @@ const FILAS: { chave: string; label: string }[] = [
 const GRUPOS: Record<"agir" | "vigiar" | "nao", string[]> = {
   agir: ["A_ENVIAR", "A_EMITIR_BOLETO", "A_REEMITIR_BOLETO", "A_COBRAR", "EMAIL_BLOQUEADO"],
   vigiar: ["A_VENCER", "BOLETO_EM_CURSO_BANCO", "EM_CURSO"],
-  nao: ["CONCILIAR", "NAO_COBRAVEL", "PAGO_SEM_PROVA"],
+  nao: ["CONCILIAR", "NAO_COBRAVEL"],
 };
 
 
