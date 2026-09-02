@@ -78,7 +78,7 @@ type Fonte =
   | "safra_lancamentos"
   | "safra_pix_lancamentos"
   | "safrapay_agenda_vendas"
-  | "safrapay_recebiveis_vendas"
+  | "safrapay_recebiveis"
   | "mp_withdraw"
   | "safrapay_vendas"
   | "safrapay_liquidacao"
