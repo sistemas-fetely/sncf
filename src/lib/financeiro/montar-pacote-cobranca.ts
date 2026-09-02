@@ -159,14 +159,17 @@ export function montarPacoteCobranca(titulos: TituloPacote[]): PacoteCobranca {
     );
   }
 
-  const boletos: BoletoPacote[] = titulosBoleto.map((t) => ({
-    titulo_id: t.id,
-    numero_parcela: t.numero_parcela,
-    parcela: `${t.numero_parcela ?? "—"}/${t.total_parcelas ?? "—"}`,
-    vencimento: fmtDataBR(t.data_vencimento_atual),
-    valor: fmtBRL.format(Number(t.valor_bruto ?? 0)),
-    linha_digitavel: t.linha_digitavel,
-  }));
+  const boletos: BoletoPacote[] = titulosBoleto.map((t) => {
+    const bv = t.boleto_vigente;
+    return {
+      titulo_id: t.id,
+      numero_parcela: t.numero_parcela,
+      parcela: `${t.numero_parcela ?? "—"}/${t.total_parcelas ?? "—"}`,
+      vencimento: fmtDataBR(bv?.data_vencimento ?? t.data_vencimento_atual),
+      valor: fmtBRL.format(Number(bv?.valor ?? t.valor_bruto ?? 0)),
+      linha_digitavel: bv ? bv.linha_digitavel : t.linha_digitavel,
+    };
+  });
 
   const titulosPix = abertos
     .filter((t) => (t.tipo_pagamento ?? "").toLowerCase() === "pix")
