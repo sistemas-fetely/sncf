@@ -1,6 +1,7 @@
 /**
  * Resumo da carteira Safra (conferência) — somente leitura.
- * Lê `safra_carteira_conferencia` e `vw_safra_carteira_divergencia`.
+ * Lê `safra_carteira_conferencia`, `vw_safra_carteira_divergencia` e
+ * `vw_safra_carteira_cobertura`.
  * Não corrige nada: divergência é decisão humana, tratada na Auditoria.
  */
 import { useQuery } from "@tanstack/react-query";
@@ -9,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, ShieldAlert } from "lucide-react";
+import { AlertTriangle, ShieldAlert, ScanSearch } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -45,13 +46,17 @@ export function ResumoSafraCarteira({ contaId, dataReferencia }: Props) {
     },
   });
 
+  // BUG CORRIGIDO (02/09/2026): esta query filtrava só por data_referencia,
+  // sem conta_bancaria_id — com duas contas, o painel de uma mostraria a
+  // divergência da outra.
   const divergencia = useQuery({
-    queryKey: ["safra-carteira-divergencia", dataReferencia],
-    enabled: !!dataReferencia,
+    queryKey: ["safra-carteira-divergencia", contaId, dataReferencia],
+    enabled: !!contaId && !!dataReferencia,
     queryFn: async () => {
       const { data, error } = await sb
         .from("vw_safra_carteira_divergencia")
-        .select("diagnostico, valor_boleto, valor_recebido, delta_valor")
+        .select("diagnostico, valor_boleto, valor_recebido, delta_valor, conta_bancaria_id")
+        .eq("conta_bancaria_id", contaId)
         .eq("data_referencia", dataReferencia);
       if (error) throw error;
       return (data || []) as {
@@ -63,13 +68,46 @@ export function ResumoSafraCarteira({ contaId, dataReferencia }: Props) {
     },
   });
 
-  if (carteira.isError || divergencia.isError) {
+  // COBERTURA-DECLARA-FRACAO (02/09/2026): o relatório "Recebimentos -
+  // Instruções 2a via" às vezes sai filtrado por período. Sem esta leitura o
+  // painel chamava 19 linhas de "Total na carteira" e exibia selo verde
+  // "Conferido" sobre 114 boletos vivos que não estavam no arquivo.
+  // Não classificamos parcial/completo — declaramos a fração.
+  const cobertura = useQuery({
+    queryKey: ["safra-carteira-cobertura", contaId, dataReferencia],
+    enabled: !!contaId && !!dataReferencia,
+    queryFn: async () => {
+      const { data, error } = await sb
+        .from("vw_safra_carteira_cobertura")
+        .select(
+          "linhas_no_relatorio, cobertura_valida, cobertura_motivo, vivos_no_sncf, confirmados, ausentes, valor_ausente, cobertura_pct"
+        )
+        .eq("conta_bancaria_id", contaId)
+        .eq("data_referencia", dataReferencia)
+        .maybeSingle();
+      if (error) throw error;
+      return (data || null) as {
+        linhas_no_relatorio: number | null;
+        cobertura_valida: boolean | null;
+        cobertura_motivo: string | null;
+        vivos_no_sncf: number | null;
+        confirmados: number | null;
+        ausentes: number | null;
+        valor_ausente: number | null;
+        cobertura_pct: number | null;
+      } | null;
+    },
+  });
+
+  if (carteira.isError || divergencia.isError || cobertura.isError) {
     return (
       <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>Falha ao ler a conferência da carteira</AlertTitle>
         <AlertDescription className="text-xs">
-          {(carteira.error as Error)?.message || (divergencia.error as Error)?.message}
+          {(carteira.error as Error)?.message ||
+            (divergencia.error as Error)?.message ||
+            (cobertura.error as Error)?.message}
         </AlertDescription>
       </Alert>
     );
@@ -100,6 +138,12 @@ export function ResumoSafraCarteira({ contaId, dataReferencia }: Props) {
   const problemas = Array.from(porDiagnostico.entries()).filter(([k]) => k !== "ok");
   const totalProblema = problemas.reduce((s, [, v]) => s + v.valor, 0);
 
+  const cob = cobertura.data;
+  const coberturaValida = !!cob?.cobertura_valida;
+  const ausentes = Number(cob?.ausentes ?? 0);
+  const relatorioIncompleto = coberturaValida && ausentes > 0;
+  const qtdeOk = porDiagnostico.get("ok")?.qtde ?? 0;
+
   return (
     <div className="space-y-3">
       <Card>
@@ -125,7 +169,7 @@ export function ResumoSafraCarteira({ contaId, dataReferencia }: Props) {
               </div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground">Total na carteira</div>
+              <div className="text-xs text-muted-foreground">Boletos neste relatório</div>
               <div className="text-lg font-medium">{linhas.length}</div>
               <div className="text-xs text-muted-foreground">
                 {formatBRL(somaBoleto(linhas))} em boletos
@@ -134,15 +178,23 @@ export function ResumoSafraCarteira({ contaId, dataReferencia }: Props) {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {Array.from(porDiagnostico.entries()).map(([k, v]) => (
-              <Badge
-                key={k}
-                variant={k === "ok" ? "outline" : "destructive"}
-                className={k === "ok" ? "bg-success/10 text-success border-success/30" : ""}
-              >
-                {DIAGNOSTICO_ROTULO[k] || k}: {v.qtde}
-              </Badge>
-            ))}
+            {Array.from(porDiagnostico.entries()).map(([k, v]) => {
+              // Selo verde só quando o relatório cobre toda a carteira viva.
+              // Relatório parcial nunca dá "tudo conferido".
+              const okCompleto = k === "ok" && coberturaValida && ausentes === 0;
+              return (
+                <Badge
+                  key={k}
+                  variant={k === "ok" ? "outline" : "destructive"}
+                  className={
+                    okCompleto ? "bg-success/10 text-success border-success/30" : undefined
+                  }
+                >
+                  {DIAGNOSTICO_ROTULO[k] || k}: {v.qtde}
+                  {k === "ok" && !okCompleto ? ` das ${linhas.length} linhas lidas` : ""}
+                </Badge>
+              );
+            })}
             {porDiagnostico.size === 0 && (
               <span className="text-xs text-muted-foreground">
                 Sem comparação disponível para esta data de referência.
@@ -151,6 +203,47 @@ export function ResumoSafraCarteira({ contaId, dataReferencia }: Props) {
           </div>
         </CardContent>
       </Card>
+
+      {cob && (
+        <Alert
+          className={
+            relatorioIncompleto ? "border-warning/40 bg-warning/5" : undefined
+          }
+        >
+          <ScanSearch className="h-4 w-4" />
+          <AlertTitle className="text-sm">
+            {coberturaValida
+              ? `Cobertura do relatório — ${cob.confirmados ?? 0} de ${
+                  cob.vivos_no_sncf ?? 0
+                } boletos que o SNCF considera vivos no Safra`
+              : "Cobertura não calculável para esta data"}
+          </AlertTitle>
+          <AlertDescription className="space-y-1 text-xs">
+            {coberturaValida ? (
+              <>
+                {ausentes > 0 ? (
+                  <div>
+                    <span className="font-medium">{ausentes} boleto(s) não apareceram</span> neste
+                    relatório · {formatBRL(Number(cob.valor_ausente ?? 0))} fora do arquivo. O
+                    relatório do Safra sai filtrado por período — este arquivo é um recorte, não a
+                    carteira inteira. Baixe o relatório sem filtro de data para conferir o resto.
+                  </div>
+                ) : (
+                  <div>
+                    Todos os boletos vivos do SNCF apareceram neste relatório. Cobertura completa.
+                  </div>
+                )}
+                <div className="text-muted-foreground">
+                  {qtdeOk} linha(s) conferida(s) de {linhas.length} lida(s) ·{" "}
+                  {cob.cobertura_pct ?? 0}% da carteira viva.
+                </div>
+              </>
+            ) : (
+              <div className="text-muted-foreground">{cob.cobertura_motivo}</div>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {problemas.length > 0 && (
         <Alert variant="destructive">
