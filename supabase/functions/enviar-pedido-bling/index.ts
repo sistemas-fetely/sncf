@@ -935,8 +935,45 @@ if (itensSemProdutoBling.length > 0) {
       ...(obsInternas ? { observacoesInternas: obsInternas } : {}),
     };
 
-    const tipoFrete = valorFrete === 0 ? 9 : (pedido.frete_tipo === "FOB" ? 1 : 0);
-    const pesoReal = Number(pedido.peso_bruto_total ?? 0);
+    // DIMENSÃO-VIA-TABELA: a regra de modal de frete mora em `frete_tipos.mod_frete_nf`,
+    // nunca no código. A versão anterior fazia
+    // `valorFrete === 0 ? 9 : (frete_tipo === "FOB" ? 1 : 0)` — dois erros empilhados:
+    // (1) `9` = "sem ocorrência de transporte" mandava pro Bling como se não houvesse
+    //     transporte todo pedido com frete zerado — medido: 75 de 198 envios com
+    //     `fretePorConta` errado, 69 deles `CIF_ABSORVIDO` (ex.: PED-2164);
+    // (2) `"FOB"` está inativo na dimensão — o ativo é `FOB_CLIENTE`; o ramo do `1`
+    //     nunca era alcançado.
+    // Fallback honesto: sem modelo de frete declarado na dimensão, `9` ("sem ocorrência
+    // de transporte") é o que sabemos — mas logado, pra não virar silêncio.
+    const { data: freteTipoDim } = pedido.frete_tipo
+      ? await supabase
+          .from("frete_tipos")
+          .select("mod_frete_nf")
+          .eq("codigo", pedido.frete_tipo)
+          .maybeSingle()
+      : { data: null };
+    const tipoFrete = freteTipoDim?.mod_frete_nf ?? 9;
+    const fretePorContaFallback = freteTipoDim?.mod_frete_nf == null;
+
+    // PESO-REAL-É-O-DA-XPM: `pedidos.peso_bruto_total` é a soma TEÓRICA dos itens
+    // (trigger), não o peso da caixa fechada. Medido: PED-2164 → SNCF 4,7 kg × XPM 7 kg;
+    // PED-2171 → SNCF 25,9 kg × XPM 12 kg. A XPM informa o peso e o total de volumes da
+    // expedição — é esse número que vai na NF e na transportadora.
+    // UMA busca só: peso_bruto e quantidade_volumes vêm da mesma linha.
+    // Sem código XPM ou sem linha: cai no teórico — não é erro e não bloqueia o envio.
+    const { data: xpmExp } = pedido.xpm_expedicao_codigo
+      ? await supabase
+          .from("xpm_expedicao")
+          .select("peso_bruto, quantidade_volumes")
+          .eq("codigo", pedido.xpm_expedicao_codigo)
+          .maybeSingle()
+      : { data: null };
+    const pesoXpm = Number(xpmExp?.peso_bruto ?? 0);
+    const fontePeso: "xpm" | "teorico" = pesoXpm > 0 ? "xpm" : "teorico";
+    // Quando o envio migrar pro pré-faturamento, `teorico` vira sinal de que o pedido
+    // chegou cedo demais (a XPM ainda não pesou a caixa).
+    const pesoReal = fontePeso === "xpm" ? pesoXpm : Number(pedido.peso_bruto_total ?? 0);
+    const qtdVolumes = Number(xpmExp?.quantidade_volumes ?? 0);
 
     if (transpNome || valorFrete > 0 || pesoReal > 0) {
       // BLING V3: A TRANSPORTADORA VIVE EM `transporte.contato`, NÃO EM `transporte.transportadora`.
@@ -948,6 +985,12 @@ if (itensSemProdutoBling.length > 0) {
       // Campos válidos de `transporte` na v3: fretePorConta, frete, quantidadeVolumes,
       // pesoBruto, prazoEntrega, contato, etiqueta, volumes. `pesoLiquido` NÃO é um deles
       // (ia pelo mesmo ralo silencioso) — removido.
+      //
+      // VOLUMES-SEM-QUEBRA (decidido com o Flavio): enviamos `quantidadeVolumes` (o total
+      // que a XPM informa) e NÃO montamos o array `volumes`. Montar a quebra por caixa
+      // exigiria inventar a divisão do peso entre volumes — dado fabricado numa nota
+      // fiscal. Se um dia a XPM mandar a quebra real, o array entra com dado real.
+      // Ninguém "completa" isso depois.
       payload.transporte = {
         fretePorConta: tipoFrete,
         ...(blingTransportadoraId
@@ -957,6 +1000,7 @@ if (itensSemProdutoBling.length > 0) {
             : {}),
         ...(valorFrete > 0 ? { frete: parseFloat(valorFrete.toFixed(2)) } : {}),
         ...(pesoReal > 0 ? { pesoBruto: parseFloat(pesoReal.toFixed(3)) } : {}),
+        ...(qtdVolumes > 0 ? { quantidadeVolumes: qtdVolumes } : {}),
       };
     }
 
