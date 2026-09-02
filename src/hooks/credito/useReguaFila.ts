@@ -64,18 +64,24 @@ export function useReguaEtapas() {
  * Fonte da régua = vw_cobranca_mesa. O gate de elegibilidade vive no banco
  * (`regua_elegivel`); a tela não recalcula nada.
  *
- * COBRANCA-SEPARA-CLIENTE-DE-DEFEITO (02/09/2026): a Régua cobra PESSOA.
- * Defeito de instrumento (boleto a reemitir/emitir, e-mail bloqueado, NF não
- * enviada) saiu daqui e vive em Problemas Cobrança. Antes, A_REEMITIR_BOLETO
- * vinha com `regua_elegivel = true` e a operação cobrava o cliente de um boleto
- * que não funciona.
+ * COBRANCA-SEPARA-CLIENTE-DE-DEFEITO (02/09/2026) — CORRIGIDO NO MESMO DIA.
+ *
+ * Tentativa inicial: excluir daqui as filas de defeito de instrumento
+ * (A_REEMITIR_BOLETO, A_EMITIR_BOLETO, EMAIL_BLOQUEADO, A_ENVIAR), porque a
+ * operação escalava régua contra cliente cujo boleto não funciona.
+ *
+ * ERRADO, e revertido: aquilo escondeu 7 títulos VENCIDOS (R$ 10.635,21, um com
+ * 9 dias de atraso) da tela de quem cobra, violando VENCIDO-NAO-DESAPARECE.
+ * Boleto errado gera cobrança inadequada; vencido invisível gera dívida
+ * esquecida — o segundo é pior.
+ *
+ * A separação certa é por RÓTULO, não por ocultação: `seloInstrumento()` já
+ * renderiza "Reemitir" (âmbar, "Boleto exige reemissão antes de cobrar") e
+ * "Sem boleto" (vermelho) aqui na Régua. O aviso já existia; faltava só não
+ * esconder a linha. Um título vencido pode aparecer na Régua E em Problemas
+ * Cobrança: lá é "conserte isto", aqui é "está vencido, não escale ainda".
  */
-const FILAS_DEFEITO_INSTRUMENTO = [
-  "A_REEMITIR_BOLETO",
-  "A_EMITIR_BOLETO",
-  "EMAIL_BLOQUEADO",
-  "A_ENVIAR",
-] as const;
+
 
 export function useReguaFilaHoje() {
   return useQuery({
@@ -86,7 +92,6 @@ export function useReguaFilaHoje() {
         .select("*")
         .eq("regua_elegivel", true)
         .eq("pausa_regua_automatica", false)
-        .not("fila", "in", `(${FILAS_DEFEITO_INSTRUMENTO.join(",")})`)
         .order("data_proxima_acao_regua", { ascending: true, nullsFirst: false })
         .limit(500);
       if (error) throw error;
@@ -104,9 +109,11 @@ export function useReguaFilaHoje() {
  * PAGO_SEM_PROVA fica na aba Mesa (conciliação, não cobrança) e por isso
  * é excluído daqui junto com NAO_COBRAVEL.
  *
- * CONCILIAR cartão também sai: aparecia AQUI e em Problemas Cobrança ao mesmo
- * tempo (duplicação real, verificada em 02/09/2026). Dono único agora é
- * Problemas Cobrança.
+ * CONCILIAR cartão APARECE nos dois lugares, de propósito. Chegamos a excluí-lo
+ * daqui em 02/09/2026 para eliminar "duplicação", e isso zerou este bloco —
+ * 4 títulos vencidos entre 1 e 9 dias sumiram da vista de quem cobra.
+ * Duplicação com contexto diferente não é defeito: em Problemas Cobrança é
+ * "conciliar a adquirente", aqui é "está vencido e a régua não pode escalar".
  */
 export function useReguaVencidoForaDaFila() {
   return useQuery({
@@ -117,11 +124,7 @@ export function useReguaVencidoForaDaFila() {
         .select("*")
         .gt("dias_atraso", 0)
         .eq("regua_elegivel", false)
-        .not(
-          "fila",
-          "in",
-          `(NAO_COBRAVEL,PAGO_SEM_PROVA,CONCILIAR,${FILAS_DEFEITO_INSTRUMENTO.join(",")})`,
-        )
+        .not("fila", "in", "(NAO_COBRAVEL,PAGO_SEM_PROVA)")
         .order("dias_atraso", { ascending: false })
         .limit(500);
       if (error) throw error;
