@@ -50,7 +50,16 @@ export interface MesaComercialRow {
   meta_provisoria: boolean | null;
   nf_numero: string | null;
   nf_chave: string | null;
+  /**
+   * MECANISMO-ANTES-DE-URL: `nf_id` e o que a Mesa usa para baixar NF, via edge
+   * function `nf-download` (resolve link fresco no Bling pelo servidor).
+   * `nf_pdf_url`/`nf_xml_url` sao CACHE de link assinado (~48h) e nao servem para
+   * abrir no navegador do usuario — ficam so como diagnostico.
+   */
+  nf_id: string | null;
+  nf_serie: string | null;
   nf_pdf_url: string | null;
+
   nf_xml_url: string | null;
   tem_pdf: boolean | null;
   tem_xml: boolean | null;
