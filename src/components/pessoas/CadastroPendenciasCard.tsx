@@ -3,7 +3,7 @@ import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { fmtDataBR } from "@/lib/data";
+import { fmtData } from "@/lib/data";
 
 interface PendenciaRow {
   fase_nome: string | null;
@@ -57,7 +57,7 @@ export default function CadastroPendenciasCard({ vinculoId }: { vinculoId: strin
                 <Badge variant={g.atrasado ? "destructive" : "outline"}>{g.qtd}</Badge>
                 <span className={g.atrasado ? "text-destructive font-medium" : "font-medium"}>{fase}</span>
                 <span className="text-muted-foreground text-xs">
-                  {g.responsavel || "sem dono"} · prazo {g.prazo ? fmtDataBR(g.prazo) : "—"}
+                  {g.responsavel || "sem dono"} · prazo {g.prazo ? fmtData(g.prazo) : "—"}
                 </span>
               </li>
             ))}
