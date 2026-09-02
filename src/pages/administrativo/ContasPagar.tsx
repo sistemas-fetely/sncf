@@ -451,44 +451,45 @@ export default function ContasPagar() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard
             icon={Flame}
-            label="Para agir"
-            count={kpis.para_agir.count}
-            valor={kpis.para_agir.valor}
+            label="A aprovar"
+            count={kpis.a_aprovar.count}
+            valor={kpis.a_aprovar.valor}
             color="text-warning"
             border="border-warning/40"
-            active={kpiFilter === "para_agir"}
-            onClick={() => setKpiFilter(kpiFilter === "para_agir" ? null : "para_agir")}
-          />
-          <KpiCard
-            icon={AlertTriangle}
-            label="Atrasadas"
-            count={kpis.atrasadas.count}
-            valor={kpis.atrasadas.valor}
-            color="text-destructive"
-            border="border-destructive/40"
-            active={kpiFilter === "atrasadas"}
-            onClick={() => setKpiFilter(kpiFilter === "atrasadas" ? null : "atrasadas")}
+            active={kpiFilter === "a_aprovar"}
+            onClick={() => setKpiFilter(kpiFilter === "a_aprovar" ? null : "a_aprovar")}
           />
           <KpiCard
             icon={Clock}
-            label="Enviado para Pagamento"
-            count={kpis.aguardando.count}
-            valor={kpis.aguardando.valor}
-            color="text-success"
-            border="border-success/40"
-            active={kpiFilter === "aguardando"}
-            onClick={() => setKpiFilter(kpiFilter === "aguardando" ? null : "aguardando")}
+            label="A programar"
+            count={kpis.a_programar.count}
+            valor={kpis.a_programar.valor}
+            color="text-info"
+            border="border-info/40"
+            active={kpiFilter === "a_programar"}
+            onClick={() => setKpiFilter(kpiFilter === "a_programar" ? null : "a_programar")}
           />
           <KpiCard
-            icon={AlertCircle}
-            label="Pendência de dados"
-            count={kpis.pendencia.count}
-            valor={kpis.pendencia.valor}
-            color="text-warning"
-            border="border-warning/40"
-            active={kpiFilter === "pendencia"}
-            onClick={() => setKpiFilter(kpiFilter === "pendencia" ? null : "pendencia")}
+            icon={CalendarDays}
+            label="Esta semana"
+            count={kpis.esta_semana.count}
+            valor={kpis.esta_semana.valor}
+            color="text-success"
+            border="border-success/40"
+            active={kpiFilter === "esta_semana"}
+            onClick={() => setKpiFilter(kpiFilter === "esta_semana" ? null : "esta_semana")}
           />
+          <KpiCard
+            icon={AlertTriangle}
+            label="Vencido"
+            count={kpis.vencido.count}
+            valor={kpis.vencido.valor}
+            color="text-destructive"
+            border="border-destructive/40"
+            active={kpiFilter === "vencido"}
+            onClick={() => setKpiFilter(kpiFilter === "vencido" ? null : "vencido")}
+          />
+
         </div>
       </div>
 
