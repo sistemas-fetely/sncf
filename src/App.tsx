@@ -119,6 +119,7 @@ const FalaFetelyConhecimento = lazy(() => import("@/pages/fala-fetely/Conhecimen
 const MinhasMemorias = lazy(() => import("@/pages/fala-fetely/MinhasMemorias"));
 const MeusDados = lazy(() => import("@/pages/MeusDados"));
 const MeusAcessos = lazy(() => import("@/pages/MeusAcessos"));
+const MeuCadastro = lazy(() => import("@/pages/MeuCadastro"));
 const MinhasNotas = lazy(() => import("@/pages/MinhasNotas"));
 const MinhasNotificacoes = lazy(() => import("@/pages/MinhasNotificacoes"));
 const SistemaReportes = lazy(() => import("@/pages/admin/SistemaReportes"));
@@ -441,6 +442,7 @@ const App = () => (
                 <Route path="/fala-fetely/memorias" element={<MinhasMemorias />} />
                 <Route path="/meus-dados" element={<MeusDados />} />
                 <Route path="/meus-acessos" element={<MeusAcessos />} />
+                <Route path="/meu-cadastro" element={<MeuCadastro />} />
                 <Route path="/minhas-notas" element={<MinhasNotas />} />
                 <Route path="/minhas-notificacoes" element={<MinhasNotificacoes />} />
               </Route>
