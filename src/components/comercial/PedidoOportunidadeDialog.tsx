@@ -28,6 +28,8 @@ import {
 } from "@/hooks/comercial/usePedidoOportunidadeDetalhe";
 import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { ComprovantePagamentoBloco } from "@/components/comercial/ComprovantePagamentoBloco";
+import { useDownloadNfPdf } from "@/hooks/nf/useDownloadNfPdf";
+
 import { useComprovantesPedido } from "@/hooks/comercial/useComprovantePagamento";
 import { SolicitarSopsAcao } from "@/components/comercial/SolicitarSopsAcao";
 import { ClienteHistoricoBloco } from "@/components/comercial/ClienteHistorico";
@@ -87,9 +89,14 @@ interface Props {
   metaProvisoria?: boolean | null;
   nfNumero?: string | null;
   nfChave?: string | null;
-  nfPdfUrl?: string | null;
-  nfXmlUrl?: string | null;
+  /**
+   * MECANISMO-ANTES-DE-URL: baixa de NF e por `nfId`, via edge function `nf-download`.
+   * As URLs cacheadas do Bling (link assinado ~48h) sairam de proposito.
+   */
+  nfId?: string | null;
+  nfSerie?: string | null;
   temPdf?: boolean | null;
+
   temXml?: boolean | null;
   boletosValorAberto?: number | null;
   comprovantesQtd?: number | null;
@@ -129,10 +136,11 @@ export function PedidoOportunidadeDialog({
   metaProvisoria,
   nfNumero,
   nfChave,
-  nfPdfUrl,
-  nfXmlUrl,
+  nfId,
+  nfSerie,
   temPdf,
   temXml,
+
   boletosValorAberto,
   comprovantesQtd,
   comprovanteStatus,
@@ -154,6 +162,18 @@ export function PedidoOportunidadeDialog({
     usePermissaoAcao("acao.confirmar_pagamento_declarado");
   const { permitido: podeEnviarLink, carregando: carregandoEnviarLink } =
     usePermissaoAcao("acao.enviar_link_pagamento");
+
+  /**
+   * MECANISMO-ANTES-DE-URL: mesma via de NfsDeVenda, ChipNfPedido e Fila.
+   * FAIL-LOUD ja mora no hook: o corpo real do erro do servidor vira o toast.
+   */
+  const { baixar: baixarNf, baixando: baixandoNf } = useDownloadNfPdf();
+  const nomeArquivoNf = (formato: "pdf" | "xml") => {
+    if (formato === "xml" && nfChave) return `NFe-${nfChave}`;
+    if (nfNumero) return `NF-${nfNumero}${nfSerie ? `-${nfSerie}` : ""}`;
+    return `NF-${nfId}`;
+  };
+
 
   const total = (itens.data ?? []).reduce((s, i) => s + Number(i.subtotal || 0), 0);
   const podeEnviar = texto.trim().length > 0 && !adicionar.isPending;
@@ -491,24 +511,41 @@ export function PedidoOportunidadeDialog({
                   {/* `acao.mesa_baixar_nf` cobre PDF e XML: é a mesma nota. */}
                   {podeBaixarNf && (
                     <div className="flex flex-wrap gap-2 pt-1">
-                      {temPdf && nfPdfUrl && (
+                      {temPdf && nfId && (
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => window.open(nfPdfUrl, "_blank", "noopener,noreferrer")}
+                          disabled={baixandoNf}
+                          onClick={() =>
+                            baixarNf({
+                              nf_id: nfId,
+                              formato: "pdf",
+                              nome: nomeArquivoNf("pdf"),
+                            })
+                          }
                         >
+                          {baixandoNf && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
                           Baixar PDF
                         </Button>
                       )}
-                      {temXml && nfXmlUrl && (
+                      {temXml && nfId && (
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => window.open(nfXmlUrl, "_blank", "noopener,noreferrer")}
+                          disabled={baixandoNf}
+                          onClick={() =>
+                            baixarNf({
+                              nf_id: nfId,
+                              formato: "xml",
+                              nome: nomeArquivoNf("xml"),
+                            })
+                          }
                         >
+                          {baixandoNf && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
                           Baixar XML
                         </Button>
                       )}
+
                     </div>
                   )}
                 </>
