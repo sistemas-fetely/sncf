@@ -289,6 +289,7 @@ export default function PessoaEntradaRapida() {
   }
 
   async function salvar() {
+    setTentouSalvar(true);
     if (faltando.length > 0) {
       toast.error("Faltam campos obrigatórios: " + faltando.join(", "));
       return;
