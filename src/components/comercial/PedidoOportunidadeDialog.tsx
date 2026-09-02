@@ -756,3 +756,102 @@ export function PedidoOportunidadeDialog({
   );
 }
 
+/**
+ * A-TELA-NUNCA-MENTE: "sem portão pendente" esconde quatro histórias diferentes.
+ * Só leitura — nada aqui escreve no banco.
+ */
+function DiagnosticoAbaPagamento({
+  pedidoId,
+  idExterno,
+  aberto,
+}: {
+  pedidoId: string;
+  idExterno: string | null;
+  aberto: boolean;
+}) {
+  const { data, isLoading, error } = useDiagnosticoPagamento(pedidoId, aberto);
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-8">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+  // FAIL-LOUD: sem o diagnóstico a tela diz que não sabe, não inventa explicação.
+  if (error || !data) {
+    return (
+      <Alert variant="destructive">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Não foi possível diagnosticar o pagamento</AlertTitle>
+        <AlertDescription>{(error as Error)?.message ?? "Consulta sem retorno."}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  const ref = data.id_externo ?? idExterno ?? "";
+  const ehB2c = (data.canal ?? "").toUpperCase() === "B2C" || ref.startsWith("SHP-");
+
+  // CASO A — B2C: pagou no checkout, antes de chegar aqui.
+  if (ehB2c) {
+    return (
+      <Alert>
+        <AlertTitle>Pago no checkout</AlertTitle>
+        <AlertDescription>
+          Pedido B2C: o pagamento acontece no checkout da loja, antes de chegar aqui. Este
+          pedido não tem portão a confirmar.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // CASO B — nenhuma linha de provisão: não existe plano para cobrar.
+  if (data.linhas === 0) {
+    return (
+      <Alert>
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Sem plano de recebimento</AlertTitle>
+        <AlertDescription className="space-y-2">
+          <p>
+            Este pedido não tem plano de pagamento montado, então não existe parcela para
+            confirmar nem portão para fechar. Condição pedida:{" "}
+            {data.condicao_solicitada || "não informada"}. O plano precisa ser montado antes
+            de cobrar.
+          </p>
+          {ref.includes("/") && (
+            <p>
+              Este pedido nasceu de um split de um pedido já faturado — o plano do pai não
+              existe mais para herdar. A condição da revenda é decisão comercial nova.
+            </p>
+          )}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // CASO C — tem plano, mas nenhuma linha é portão: comprovante não fecha nada.
+  if (data.linhasPortao === 0) {
+    return (
+      <Alert variant="destructive">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Plano sem portão definido</AlertTitle>
+        <AlertDescription>
+          Existem {data.linhas} parcelas no plano, mas nenhuma está marcada como portão de
+          pagamento. Sem portão, o comprovante não tem o que fechar.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // CASO D — portão existe e já está todo confirmado.
+  return (
+    <Alert className="border-success/50">
+      <AlertTitle className="text-success">Portão já fechado</AlertTitle>
+      <AlertDescription className="text-muted-foreground">
+        Todas as linhas de portão deste pedido já foram confirmadas.
+      </AlertDescription>
+    </Alert>
+  );
+}
+
+
