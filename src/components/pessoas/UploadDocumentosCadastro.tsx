@@ -26,7 +26,7 @@ interface DocumentSlot {
 export interface UploadedFile {
   key: string;
   name: string;
-  url: string;
+  path: string;
 }
 
 interface Props {
@@ -77,10 +77,6 @@ export default function UploadDocumentosCadastro({ pessoaId, documentos, uploade
       return;
     }
 
-    const { data: urlData } = supabase.storage
-      .from("documentos-cadastro")
-      .getPublicUrl(filePath);
-
     if (file.type.startsWith("image/")) {
       const blobUrl = URL.createObjectURL(file);
       setPreviews((prev) => {
@@ -90,7 +86,7 @@ export default function UploadDocumentosCadastro({ pessoaId, documentos, uploade
     }
 
     const newFiles = uploadedFiles.filter((f) => f.key !== key);
-    newFiles.push({ key, name: file.name, url: urlData.publicUrl });
+    newFiles.push({ key, name: file.name, path: filePath });
     onFilesChange(newFiles);
 
     toast.success("Documento enviado");
@@ -101,10 +97,7 @@ export default function UploadDocumentosCadastro({ pessoaId, documentos, uploade
     const file = getUploadedFile(key);
     if (!file) return;
 
-    const ext = file.name.split(".").pop() || "jpg";
-    const filePath = `${pessoaId}/${key}.${ext}`;
-
-    const { error } = await supabase.storage.from("documentos-cadastro").remove([filePath]);
+    const { error } = await supabase.storage.from("documentos-cadastro").remove([file.path]);
 
     if (error) {
       // FAIL-LOUD: o arquivo continua no bucket, então não sai da lista.
