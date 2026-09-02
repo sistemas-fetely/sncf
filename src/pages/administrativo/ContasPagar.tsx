@@ -391,6 +391,46 @@ export default function ContasPagar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, kpiFilter, busca, statusFilter, solicitanteFilter, dataDe, dataAte, pendenciaMap, solicitanteMap, nfStatusMap, sort]);
 
+  /**
+   * AUSÊNCIA DE LINHA NA TRANSIÇÃO = BOTÃO NÃO EXISTE.
+   * Uma consulta para a página toda — o hook devolve Map<cpr_id, acoes[]>.
+   */
+  const { data: acoesMap } = useTituloPagarAcoes(filtrados.map((c) => c.id));
+  const transicionar = useTituloPagarTransicionar();
+
+  const [acaoPendente, setAcaoPendente] = useState<
+    { conta: Conta; acao: TituloPagarAcao } | null
+  >(null);
+  const [motivo, setMotivo] = useState("");
+  const [dataPretendida, setDataPretendida] = useState("");
+
+  function executar(cprId: string, acao: TituloPagarAcao, m?: string, d?: string) {
+    transicionar.mutate({
+      cprId,
+      para: acao.para,
+      motivo: m || undefined,
+      dataPretendida: d || null,
+    });
+  }
+
+  function abrirAcao(conta: Conta, acao: TituloPagarAcao) {
+    if (acao.exige_motivo || acao.exige_data_pretendida) {
+      setMotivo("");
+      setDataPretendida(conta.data_pretendida || "");
+      setAcaoPendente({ conta, acao });
+      return;
+    }
+    executar(conta.id, acao);
+  }
+
+  function confirmarAcaoPendente() {
+    if (!acaoPendente) return;
+    const { conta, acao } = acaoPendente;
+    executar(conta.id, acao, acao.exige_motivo ? motivo : undefined, acao.exige_motivo ? undefined : dataPretendida);
+    setAcaoPendente(null);
+  }
+
+
   const temFiltroAtivo =
     !!busca.trim() ||
     !!dataDe ||
