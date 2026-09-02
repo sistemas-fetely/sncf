@@ -588,11 +588,11 @@ export function PedidoOportunidadeDialog({
                         <TableCell className="text-xs">
                           {b.numero_parcela}/{b.total_parcelas}
                           {(b.boleto_vigente?.boletos_vivos ?? 0) > 1 && (
-                            <AlertTriangle
-                              className="ml-1 inline h-3 w-3 text-warning"
-                              title="Mais de um boleto vivo neste título — confira com o Financeiro."
-                            />
+                            <span title="Mais de um boleto vivo neste título — confira com o Financeiro.">
+                              <AlertTriangle className="ml-1 inline h-3 w-3 text-warning" />
+                            </span>
                           )}
+
                         </TableCell>
                         <TableCell className="text-xs">
                           {formatDateBR(b.data_vencimento_atual)}
