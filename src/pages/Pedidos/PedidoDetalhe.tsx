@@ -69,8 +69,7 @@ import { AnotarPedidoDialog } from "@/components/pedidos/dialogs/AnotarPedidoDia
 import { CanalFopTab } from "@/components/pedidos/CanalFopTab";
 import { BotaoEditarPedido } from "@/components/pedidos/BotaoEditarPedido";
 import { EditarItensDialog } from "@/components/pedidos/dialogs/EditarItensDialog";
-import { ConfirmarPortaoPagoDialog } from "@/components/pedidos/dialogs/ConfirmarPortaoPagoDialog";
-import { ConfirmarCartaoCapturadoDialog } from "@/components/pedidos/dialogs/ConfirmarCartaoCapturadoDialog";
+import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 import { usePlanoAbertoPedido, rotuloMeio } from "@/hooks/pedidos/usePlanoAbertoPedido";
 import { SplitsPedidoSection } from "@/components/pedidos/SplitsPedidoSection";
 import { BotaoSplitPedido } from "@/components/pedidos/BotaoSplitPedido";

@@ -43,7 +43,7 @@ import { formatDateBR } from "@/lib/format-currency";
 import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialog";
 import { EnviarBlingDialog } from "@/components/pedidos/dialogs/EnviarBlingDialog";
 import { EmpurrarXpmLinhaDialog } from "@/components/pedidos/dialogs/EmpurrarXpmLinhaDialog";
-import { ConfirmarPortaoPagoDialog } from "@/components/pedidos/dialogs/ConfirmarPortaoPagoDialog";
+import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 import { TabelaCadastroDialog } from "@/components/pedidos/dialogs/TabelaCadastroDialog";
 import { ExportarPedidoDialog } from "@/components/pedidos/dialogs/ExportarPedidoDialog";
 import { Button } from "@/components/ui/button";
@@ -1560,7 +1560,24 @@ function AcoesLinha({ p, temMsg, risco, nfInfo }: { p: PedidoFilaItem; temMsg: b
         </Button>
       )}
       {p.estagio === "aguardando_pagamento" && (
-        <ConfirmarPortaoPagoDialog pedido_id={p.id} variante="discreta" />
+        <>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+            title="Confirmar pagamento"
+            aria-label="Confirmar pagamento"
+            onClick={() => setConfirmarPagamentoAberto(true)}
+          >
+            <BadgeCheck className="h-4 w-4" />
+          </Button>
+          <ConfirmarPagamentoDialog
+            pedidoId={p.id}
+            aberto={confirmarPagamentoAberto}
+            aoFechar={() => setConfirmarPagamentoAberto(false)}
+            modo="sops"
+          />
+        </>
       )}
       {p.estagio === "pre_separacao" && !p.bling_id_destino && (
         <EnviarBlingDialog
