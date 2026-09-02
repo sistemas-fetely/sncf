@@ -495,7 +495,7 @@ export default function ContasPagar() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todos os status</SelectItem>
-            {STATUS_CPR_VALIDOS.map((s) => (
+            {STATUS_CPR_FILTRAVEIS.map((s) => (
               <SelectItem key={s} value={s}>
                 {getStatusCprMeta(s).label}
               </SelectItem>
