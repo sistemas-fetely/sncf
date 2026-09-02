@@ -328,8 +328,30 @@ serve(async (req) => {
     const t = titulo as any;
     const parceiro = t.conta?.parceiro;
 
-    if (!t.nosso_numero_seq || !t.linha_digitavel || !t.codigo_barras_boleto) {
-      return new Response(JSON.stringify({ ok: false, erro: "Boleto sem nosso numero. Execute gerar-remessa-safra primeiro." }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // FONTE-UNICA-DO-BOLETO (02/09/2026): o que o cliente imprime vem de
+    // `vw_titulo_boleto_vigente`, NAO das colunas do titulo. Durante a janela de
+    // reemissao (REEMISSAO-NAO-ESPERA-BAIXA) as colunas do titulo descrevem o boleto
+    // que esta MORRENDO; imprimir dali entregaria ao cliente um boleto que o banco
+    // vai baixar. A view escolhe o vivo mais recente que nao esta em baixa.
+    const { data: vig, error: vErr } = await sb
+      .from("vw_titulo_boleto_vigente")
+      .select("nosso_numero, linha_digitavel, codigo_barras, data_vencimento, valor, situacao, enviavel, vigente_em_baixa, boletos_vivos, nosso_numero_em_baixa")
+      .eq("titulo_id", tituloId)
+      .maybeSingle();
+    if (vErr) {
+      return new Response(JSON.stringify({ ok: false, erro: `Falha ao resolver o boleto vigente: ${vErr.message}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    // deno-lint-ignore no-explicit-any
+    const bv = vig as any;
+
+    if (!bv || !bv.nosso_numero || !bv.linha_digitavel || !bv.codigo_barras) {
+      return new Response(JSON.stringify({ ok: false, erro: "Título sem boleto vivo. Execute gerar-remessa-safra primeiro." }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (bv.vigente_em_baixa) {
+      return new Response(JSON.stringify({
+        ok: false,
+        erro: `O único boleto deste título (${bv.nosso_numero}) está em processo de baixa no banco e não deve ser entregue ao cliente. Gere a remessa de entrada da reemissão primeiro.`,
+      }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const { data: paramRows } = await sb.from("parametros_remessa_safra").select("chave, valor");
