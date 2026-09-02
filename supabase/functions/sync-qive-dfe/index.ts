@@ -38,6 +38,8 @@ interface ResumoEntidade {
   primeiro_erro: string | null;
   paginas: number;
   cursor_final: string | null;
+  /** CURSOR-SO-AVANCA-SOBRE-SUCESSO: diz explicitamente se a fila andou. */
+  cursor_avancou: boolean;
   interrompido_por?: string;
   erro?: string;
 }
@@ -56,6 +58,7 @@ const novoResumo = (): ResumoEntidade => ({
   primeiro_erro: null,
   paginas: 0,
   cursor_final: null,
+  cursor_avancou: false,
 });
 
 function anotarErro(resumo: ResumoEntidade, msg: string) {
@@ -302,8 +305,11 @@ Deno.serve(async (req) => {
           .eq("id", cur.id);
 
         let cursor: string | null = cur.ultimo_bling_id ?? null;
+        // SOBREPOSICAO-DE-1H: documentos capturados no exato instante do corte
+        // podem cair fora dos dois intervalos. Reprocessar é inofensivo (RPC devolve
+        // ja_existia), mas perder documento não é.
         const de = cur.ultima_data_corte
-          ? new Date(cur.ultima_data_corte)
+          ? new Date(new Date(cur.ultima_data_corte).getTime() - 3600 * 1000)
           : new Date(Date.now() - 30 * 24 * 3600 * 1000);
         const ate = new Date();
 
@@ -449,15 +455,33 @@ Deno.serve(async (req) => {
             if (!proximoCursor) break;
           }
         } finally {
+          // CURSOR-SO-AVANCA-SOBRE-SUCESSO: uma execução com erro não pode marcar
+          // como lido o que não foi absorvido. Notas fiscais perdidas sem alarme
+          // são inaceitáveis em integração fiscal.
+          const houveErroDocumento = resumo.erros > 0;
+          const houveErroEntidade = !!resumo.erro;
+          const podeAvancar = !houveErroDocumento && !houveErroEntidade;
+
+          const updatePayload: Record<string, unknown> = {
+            em_execucao: false,
+            ultima_pagina: resumo.paginas,
+            total_processado: (cur.total_processado ?? 0) + resumo.gravados,
+          };
+
+          if (podeAvancar) {
+            updatePayload.ultimo_bling_id = cursor;
+            updatePayload.ultima_data_corte = ate.toISOString();
+            resumo.cursor_avancou = true;
+          } else {
+            // Preserva os valores que já estavam no banco — a fila não andou.
+            updatePayload.ultimo_bling_id = cur.ultimo_bling_id;
+            updatePayload.ultima_data_corte = cur.ultima_data_corte;
+            resumo.cursor_avancou = false;
+          }
+
           await supabase
             .from("integracoes_sync_cursor")
-            .update({
-              em_execucao: false,
-              ultimo_bling_id: cursor,
-              ultima_pagina: resumo.paginas,
-              ultima_data_corte: ate.toISOString(),
-              total_processado: (cur.total_processado ?? 0) + resumo.gravados,
-            })
+            .update(updatePayload)
             .eq("id", cur.id);
         }
       } catch (e) {
