@@ -376,10 +376,12 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                       <TableHead>Pedido</TableHead>
                       <TableHead>Cliente</TableHead>
                       <TableHead className="text-right">Valor</TableHead>
+                      {mostrarFaseEntrega && <TableHead>Fase &amp; entrega</TableHead>}
                       <TableHead className="text-right">Tempo</TableHead>
                       <TableHead>Vendedor</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
+
                   </TableHeader>
                   <TableBody>
                     {filtradas.map((r) => (
