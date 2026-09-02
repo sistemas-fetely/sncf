@@ -52398,12 +52398,14 @@ export type Database = {
       }
       vw_cartao_lote_dia: {
         Row: {
-          comp_total: number | null
+          comp_bruto: number | null
+          comp_mdr: number | null
+          comp_recebido: number | null
+          composicao_menos_lote: number | null
           conta_bancaria_id: string | null
           data_transacao: string | null
           ja_amarrados: number | null
           lote_ids: string[] | null
-          lote_menos_composicao: number | null
           lote_total: number | null
           lotes_qtd: number | null
           nsus: string[] | null
@@ -63279,14 +63281,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -75948,6 +75950,14 @@ export type Database = {
           p_nota?: string
           p_nsu: string
           p_titulo_ids: string[]
+        }
+        Returns: Json
+      }
+      conciliar_cartao_lote: {
+        Args: {
+          p_movimentacao_id: string
+          p_nota?: string
+          p_tolerancia_pct?: number
         }
         Returns: Json
       }
