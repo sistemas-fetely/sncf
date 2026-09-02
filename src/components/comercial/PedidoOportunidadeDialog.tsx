@@ -37,8 +37,12 @@ import { ClienteHistoricoBloco } from "@/components/comercial/ClienteHistorico";
 import { usePermissoesMesa } from "@/hooks/comercial/usePermissoesMesa";
 import { useStatusComercialLog } from "@/hooks/comercial/useMesaComercial";
 import { useBoletosDoPedido } from "@/hooks/pedidos/useBoletosDoPedido";
+import type { BoletoVigente } from "@/components/credito/AvisoBoletosVivos";
 import { usePedidoPortaoAtual } from "@/hooks/pedidos/usePedidoPortaoAtual";
+import { useDiagnosticoPagamento } from "@/hooks/comercial/usePedidoOportunidadeDetalhe";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { hojeISO } from "@/lib/data";
+
 
 
 
