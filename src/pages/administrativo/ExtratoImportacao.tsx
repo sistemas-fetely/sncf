@@ -234,7 +234,7 @@ const PARSER_EFEITO: Record<Fonte, string> = {
   mp_withdraw: "Retiradas Mercado Pago — cria a transferência quando não há par no extrato.",
   safrapay_vendas: "Vendas SafraPay — agenda de recebíveis; o dinheiro entra pelo OFX.",
   safrapay_liquidacao:
-    "Liquidação SafraPay — grava a composição do lote (NSU, parcela, taxa) e enriquece a linha do extrato. Não cria movimentação.",
+    "Liquidação SafraPay — grava a composição do lote (NSU, parcela, MDR = bruto − recebido). A conta é sobre a composição; enriquecer o extrato é efeito secundário.",
   safrapay_ajustes:
     "Ajuste sempre acompanha um crédito que já está no OFX — não cria dinheiro novo.",
   super_agenda: "SUPER AGENDA não é importável — é projeção, não movimento.",
@@ -952,6 +952,9 @@ export default function ExtratoImportacao() {
 
         // COMPOSICAO-DO-LOTE: mesma gravação do XLSX "Recebíveis de Vendas".
         const loteDoDia = await resolverLotesDoDia(sb, conta, datas);
+        // Contagem sombra: o efeito no extrato é secundário e não entra no
+        // veredito deste parser, mas o helper de inserção exige um contador.
+        const contExtrato = new ContagemImportacao();
 
         for (const p of parsed.parcelas) {
           if (!p.dt_efetiva) {
@@ -1017,7 +1020,7 @@ export default function ExtratoImportacao() {
           if (errEnr) throw errEnr;
           if (alvoId) continue;
 
-          await inserirMovimentacaoSemContar(
+          await inserirMovimentacao(
             sb,
             {
               conta_bancaria_id: conta,
@@ -1031,7 +1034,7 @@ export default function ExtratoImportacao() {
               tipo_meio: "cartao",
               fonte_importacao_id: impId,
             },
-            cont
+            contExtrato
           );
         }
 
