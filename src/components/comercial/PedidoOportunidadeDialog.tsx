@@ -37,7 +37,7 @@ import { ClienteHistoricoBloco } from "@/components/comercial/ClienteHistorico";
 import { usePermissoesMesa } from "@/hooks/comercial/usePermissoesMesa";
 import { useStatusComercialLog } from "@/hooks/comercial/useMesaComercial";
 import { useBoletosDoPedido } from "@/hooks/pedidos/useBoletosDoPedido";
-import type { BoletoVigente } from "@/components/credito/AvisoBoletosVivos";
+import type { BoletoTitulo } from "@/hooks/pedidos/useBoletosDoPedido";
 import { BotaoBaixarBoletoPdf, baixarBoletoPdf } from "@/components/credito/BotaoBaixarBoletoPdf";
 import { usePedidoPortaoAtual } from "@/hooks/pedidos/usePedidoPortaoAtual";
 import { useDiagnosticoPagamento } from "@/hooks/comercial/usePedidoOportunidadeDetalhe";
@@ -718,7 +718,7 @@ export function PedidoOportunidadeDialog({
                   </TableHeader>
                   <TableBody>
                     {(boletos.data?.boletoTitulos ?? []).map((b) => {
-                      const sit = situacaoBoletoVigente(b.boleto_vigente);
+                      const sit = situacaoBoletoTitulo(b);
                       return (
                       <TableRow key={b.id}>
                         <TableCell className="text-xs">
