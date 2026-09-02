@@ -7,18 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
-} from "@/components/ui/dialog";
-import { Search, Info, Loader2 } from "lucide-react";
+import { Search, Info } from "lucide-react";
 import { formatCNPJ } from "@/lib/cnpj";
 import { formatBRL } from "@/lib/format-currency";
-import { useConfirmarPagamentoPortao } from "@/hooks/pedidos/useConfirmarPagamentoPortao";
 import { useCartaoAbertoPorPedido } from "@/hooks/credito/useCartaoAbertoPorPedido";
-import { ConfirmarCartaoCapturadoDialog } from "@/components/pedidos/dialogs/ConfirmarCartaoCapturadoDialog";
-import { hojeISO } from "@/lib/data";
+import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 
 const fmtDate = (iso: string) =>
   iso ? new Date(iso + "T00:00:00").toLocaleDateString("pt-BR") : "—";
@@ -28,35 +21,13 @@ export default function PrimeiroPagamentoTab() {
   const { data, isLoading } = usePrimeiroPagamentoFila({ busca: busca || undefined });
   const total = data?.length ?? 0;
 
-  const [confirmando, setConfirmando] = useState<{ pedidoId: string; rotulo: string } | null>(null);
-  const [dataPagamento, setDataPagamento] = useState<string>(() => hojeISO());
-  const [observacao, setObservacao] = useState<string>("");
+  // REFERENCIA-SEMPRE: uma única tela de confirmação, modo SOPS (anexo opcional).
+  const [confirmando, setConfirmando] = useState<{ pedidoId: string } | null>(null);
 
-  const confirmar = useConfirmarPagamentoPortao();
-
-  // CARTAO-E-CAPTURA-UNICA: cartão não fecha por confirmação manual — o banco recusa
-  // (confirmar_portao_pago levanta exceção). A fila oferece a captura por NSU no lugar.
+  // CARTAO-E-CAPTURA-UNICA: cartão fecha pela captura (NSU), com a adquirente da vez.
   const { data: cartaoAberto } = useCartaoAbertoPorPedido(
     (data ?? []).filter((p) => p.tipo_pagamento === "cartao").map((p) => p.pedido_id),
   );
-
-  async function handleConfirmar() {
-    if (!confirmando) return;
-    await confirmar.mutateAsync({
-      pedido_id: confirmando.pedidoId,
-      data_pagamento: dataPagamento,
-      observacao,
-    });
-    setConfirmando(null);
-    setObservacao("");
-    setDataPagamento(hojeISO());
-  }
-
-  function abrirDialog(pedidoId: string, rotulo: string) {
-    setDataPagamento(hojeISO());
-    setObservacao("");
-    setConfirmando({ pedidoId, rotulo });
-  }
 
   return (
     <div className="space-y-4">
@@ -132,21 +103,12 @@ export default function PrimeiroPagamentoTab() {
                   {p.dias_aguardando} dia{p.dias_aguardando !== 1 ? "s" : ""}
                 </TableCell>
                 <TableCell className="text-right">
-                  {p.tipo_pagamento === "cartao" ? (
-                    <ConfirmarCartaoCapturadoDialog
-                      pedidoId={p.pedido_id}
-                      parcelasAbertas={cartaoAberto?.[p.pedido_id]?.parcelas ?? 1}
-                      valorAberto={cartaoAberto?.[p.pedido_id]?.valor ?? p.valor}
-                      triggerLabel="Confirmar captura"
-                    />
-                  ) : (
-                    <Button
-                      size="sm"
-                      onClick={() => abrirDialog(p.pedido_id, `${p.id_externo} · ${p.parceiro_nome}`)}
-                    >
-                      Confirmar pagamento
-                    </Button>
-                  )}
+                  <Button
+                    size="sm"
+                    onClick={() => setConfirmando({ pedidoId: p.pedido_id })}
+                  >
+                    {p.tipo_pagamento === "cartao" ? "Confirmar captura" : "Confirmar pagamento"}
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -154,49 +116,14 @@ export default function PrimeiroPagamentoTab() {
         </Table>
       </div>
 
-      <Dialog open={!!confirmando} onOpenChange={(v) => !v && !confirmar.isPending && setConfirmando(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar pagamento do portão</DialogTitle>
-            <DialogDescription>{confirmando?.rotulo}</DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="data-pagamento">Data do pagamento</Label>
-              <Input
-                id="data-pagamento"
-                type="date"
-                value={dataPagamento}
-                onChange={(e) => setDataPagamento(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="observacao">Observação (opcional)</Label>
-              <Textarea
-                id="observacao"
-                value={observacao}
-                onChange={(e) => setObservacao(e.target.value)}
-                placeholder="Ex.: PIX recebido na conta Safra"
-                rows={3}
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmando(null)} disabled={confirmar.isPending}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleConfirmar}
-              disabled={confirmar.isPending}
-            >
-              {confirmar.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Confirmar pagamento
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {confirmando && (
+        <ConfirmarPagamentoDialog
+          pedidoId={confirmando.pedidoId}
+          aberto
+          aoFechar={() => setConfirmando(null)}
+          modo="sops"
+        />
+      )}
     </div>
   );
 }
