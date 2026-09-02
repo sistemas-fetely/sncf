@@ -34,6 +34,7 @@ import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
 import { AvisoBoletosVivos, BoletoVigenteLinhas } from "@/components/credito/AvisoBoletosVivos";
+import { EsperaRetornoSafra } from "@/components/credito/EsperaRetornoSafra";
 import { BadgeStatusGestao } from "@/lib/financeiro/status-gestao";
 import { BaixaManualDialog } from "@/components/credito/BaixaManualDialog";
 import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTituloHaverDialog";
@@ -1092,6 +1093,7 @@ export default function TitulosTab() {
                       {detalhe.boleto_status === "rejeitado" && detalhe.boleto_codigo_rejeicao && (
                         <MotivoRejeicaoSafra codigo={detalhe.boleto_codigo_rejeicao} />
                       )}
+                      <EsperaRetornoSafra tituloId={detalhe.id} />
                       <AvisoBoletosVivos tituloId={detalhe.id} />
                       <BoletoVigenteLinhas
                         tituloId={detalhe.id}
