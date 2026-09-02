@@ -417,7 +417,9 @@ export default function SemProvaTab() {
           </div>
         )}
       </section>
+      )}
 
+      {mostra("nao_cobravel") && (
       <section className="space-y-2">
         <BlocoHeader
           titulo={BLOCO_NAO_COBRAVEL}
