@@ -59,6 +59,34 @@ export function chipSituacao(situacao: string | null | undefined): string {
   return SITUACAO_CHIP[situacao ?? ""] ?? "Em aberto";
 }
 
+/**
+ * FONTE-UNICA-DO-BOLETO (02/09/2026): a situação do boleto NÃO é `titulo.boleto_status`
+ * — durante a reemissão essa coluna descreve o boleto que está MORRENDO. Quem responde
+ * "dá para entregar?" é `vw_titulo_boleto_vigente`.
+ */
+function situacaoBoletoVigente(v: BoletoVigente | null): {
+  rotulo: string;
+  classe: string;
+  tooltip?: string;
+} {
+  if (!v || !v.nosso_numero) {
+    return { rotulo: "Sem boleto vivo", classe: "text-muted-foreground" };
+  }
+  if (v.vigente_em_baixa) {
+    return { rotulo: "Em reemissão — não entregar", classe: "text-destructive" };
+  }
+  if (v.enviavel) return { rotulo: "Registrado", classe: "text-success" };
+  if (["emitido", "registrado"].includes((v.situacao ?? "").toLowerCase())) {
+    return {
+      rotulo: "Vencido",
+      classe: "text-warning",
+      tooltip: "Boleto vencido continua pagável — o cliente paga com juros e multa.",
+    };
+  }
+  return { rotulo: v.situacao ?? "—", classe: "text-muted-foreground" };
+}
+
+
 function formatDataHora(valor: string | null): string {
   if (!valor) return "—";
   const d = new Date(valor);
