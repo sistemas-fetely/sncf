@@ -585,11 +585,35 @@ serve(async (req) => {
       if (!p) { erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "Parceiro não encontrado" }); continue; }
       if (p.cadastro_incompleto) erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "Cadastro incompleto" });
       if (!p.email) erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "E-mail não cadastrado" });
-      if (Number(t.valor_bruto) <= 0) erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "Valor inválido" });
+      if (valorEfetivo(t) <= 0) erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "Valor inválido" });
       const hojeISO = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
-      if (t.data_vencimento_atual < hojeISO) erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "Vencimento no passado" });
+      if (vencEfetivo(t) < hojeISO) erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "Vencimento no passado" });
       if (t.tipo_pagamento !== "boleto") erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "Não é boleto" });
-      if (t.boleto_status !== "pendente") erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: `Status inválido: ${t.boleto_status}` });
+
+      // Status: 'pendente' entra sempre. Os dois estados de baixa entram SO com
+      // reemissao pendente — sem ela, um titulo em baixa nao tem boleto novo a emitir.
+      if (t.boleto_status !== "pendente") {
+        if (!t.reemissao_nova_data) {
+          erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: `Status ${t.boleto_status} sem reemissão pendente — nada a emitir` });
+          continue;
+        }
+        // GUARD (caso NEW FESTA, 01/09): se ja existe boleto novo emitido/registrado
+        // para este titulo, nao emitir outro. Sem isso o cliente acumula boletos vivos.
+        const { data: jaEmitido, error: errJa } = await sb
+          .from("titulo_boleto")
+          .select("nosso_numero, situacao")
+          .eq("titulo_id", t.id)
+          .in("situacao", ["emitido", "registrado"])
+          .neq("nosso_numero", String(t.nosso_numero_seq ?? ""));
+        if (errJa) throw new Error(`Erro ao conferir boletos vivos do título ${t.numero_titulo}: ${errJa.message}`);
+        if (jaEmitido && jaEmitido.length > 0) {
+          erros.push({
+            titulo_id: t.id,
+            numero_titulo: t.numero_titulo,
+            motivo: `Já existe boleto novo ${jaEmitido[0].nosso_numero} (${jaEmitido[0].situacao}) aguardando retorno — emitir outro deixaria o cliente com múltiplos boletos vivos`,
+          });
+        }
+      }
     }
     if (erros.length > 0) {
       return new Response(JSON.stringify({ ok: false, erro: "Títulos com bloqueios", erros }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
