@@ -513,15 +513,29 @@ serve(async (req) => {
         // REGISTRO (02)  — banco é a autoridade para o nosso número confirmado
         // ═══════════════════════════════════════════════════════════════════
         if (categoria === "registro") {
-          const { error: errRegistro } = await sb
-            .from("titulo_a_receber")
-            .update({ boleto_status: "registrado", nosso_numero_safra: linha.nossoNumero })
-            .eq("id", t.id);
-          if (errRegistro) {
-            erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `update registro: ${errRegistro.message}` });
-            marcarDesfecho(linha.numeroLinha, false, "erro no update de registro");
-            continue;
+          // REEMISSAO-NAO-ESPERA-BAIXA (02/09/2026): quando o boleto NOVO confirma
+          // registro enquanto o VELHO ainda espera a baixa, o titulo nao pode ser
+          // sobrescrito — ele e a chave do retorno da baixa. O boleto novo fica
+          // vivo apenas em `titulo_boleto` ate a baixa voltar e adota-lo.
+          const emBaixa = t.boleto_status === "baixa_solicitada" || t.boleto_status === "baixa_remessa_gerada";
+          const boletoNovo = emBaixa && String(t.nosso_numero_seq ?? "") !== linha.nossoNumero;
+
+          if (!boletoNovo) {
+            const { error: errRegistro } = await sb
+              .from("titulo_a_receber")
+              .update({ boleto_status: "registrado", nosso_numero_safra: linha.nossoNumero })
+              .eq("id", t.id);
+            if (errRegistro) {
+              erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `update registro: ${errRegistro.message}` });
+              marcarDesfecho(linha.numeroLinha, false, "erro no update de registro");
+              continue;
+            }
+          } else {
+            alertas.push(
+              `ℹ Boleto NOVO ${linha.nossoNumero} registrado no título ${t.numero_titulo} — o anterior (${t.nosso_numero_seq}) segue aguardando baixa. DOIS boletos vivos: enviar ao cliente apenas o novo.`
+            );
           }
+
           await marcarBoleto(linha.nossoNumero, "registrado", "registrado_em");
           if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
           contadores.registros++;
