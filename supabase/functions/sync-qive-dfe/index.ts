@@ -360,55 +360,64 @@ Deno.serve(async (req) => {
                 }
 
                 const numero = p?.numero ?? null;
-                const linha = {
-                  fonte: "qive",
-                  tipo_documento: entidade,
-                  nf_chave_acesso: chave,
-                  nf_numero: numero,
-                  nf_serie: p?.serie ?? null,
-                  nf_data_emissao: p?.data_emissao ?? null,
-                  fornecedor_cnpj: p?.cnpj ? p.cnpj.replace(/\D/g, "") : null,
-                  fornecedor_razao_social: p?.razao_social ?? null,
-                  valor: p?.valor ?? null,
-                  natureza_operacao: p?.natureza_operacao ?? null,
-                  fin_nfe: p?.fin_nfe ?? null,
-                  nf_referenciada_chave: p?.referenciada ?? null,
-                  itens: p?.itens ?? null,
-                  descricao: `${entidade.toUpperCase()} ${numero ?? chave.slice(-9)} · Qive`,
-                  tem_xml_obrigatorio: true,
-                  // destino_codigo é calculado pelo trigger trg_nfs_stage_destino
-                };
 
-                const { data: inserida, error: upErr } = await supabase
-                  .from("nfs_stage")
-                  .upsert(linha, {
-                    onConflict: "nf_chave_acesso",
-                    ignoreDuplicates: true,
-                  })
-                  .select("id");
+                // ÍNDICE-PARCIAL-VAI-POR-RPC: `uniq_nfs_stage_chave_ativa` é
+                // parcial (WHERE status <> descartada/duplicata) e o PostgREST
+                // não infere índice parcial em ON CONFLICT — o upsert falhava
+                // com 42P10 e nada era gravado. A RPC testa a existência antes.
+                const { data: r, error: rpcErr } = await supabase.rpc(
+                  "fn_nfs_stage_inserir_qive",
+                  {
+                    p_fonte: "qive",
+                    p_tipo_documento: entidade,
+                    p_nf_chave_acesso: chave,
+                    p_nf_numero: numero,
+                    p_nf_serie: p?.serie ?? null,
+                    p_nf_data_emissao: p?.data_emissao ?? null,
+                    p_fornecedor_cnpj: p?.cnpj ? p.cnpj.replace(/\D/g, "") : null,
+                    p_fornecedor_razao_social: p?.razao_social ?? null,
+                    p_valor: p?.valor ?? null,
+                    p_natureza_operacao: p?.natureza_operacao ?? null,
+                    p_fin_nfe: p?.fin_nfe ?? null,
+                    p_nf_referenciada_chave: p?.referenciada ?? null,
+                    p_itens: p?.itens ?? null,
+                    p_descricao: `${entidade.toUpperCase()} ${numero ?? chave.slice(-9)} · Qive`,
+                  },
+                );
 
-                if (upErr) {
-                  resumo.erros++;
-                  console.error(`[${entidade}] upsert falhou (${chave}):`, upErr.message);
+                if (rpcErr) {
+                  anotarErro(resumo, `RPC falhou (${chave}): ${rpcErr.message}`);
+                  console.error(`[${entidade}] RPC falhou (${chave}):`, rpcErr.message);
                   continue;
                 }
 
-                if (inserida && inserida.length > 0) {
+                const ret = r as
+                  | { ok: boolean; ja_existia?: boolean; id?: string; erro?: string; sqlstate?: string }
+                  | null;
+
+                if (!ret || ret.ok === false) {
+                  const msg = ret?.erro ?? "retorno vazio da RPC";
+                  anotarErro(resumo, `${chave}: ${msg}`);
+                  console.error(`[${entidade}] insercao recusada (${chave}):`, msg);
+                  continue;
+                }
+
+                if (ret.ja_existia === true) {
+                  resumo.ja_existiam++;
+                } else {
                   resumo.gravados++;
                   if (p?.referenciada) resumo.com_referencia++;
                   // QIVE-MANDA-EM-NOTA-DE-FORNECEDOR: emitente externo é fonte
-                  // autoritativa; com ignoreDuplicates quem chegou primeiro fica.
+                  // autoritativa; quem chegou primeiro fica.
                   if (p?.cnpj && !p.cnpj.startsWith(CNPJ_FETELY_PREFIXO)) {
-                    // nada a fazer hoje — registrado apenas para leitura do log
                     console.log(`[${entidade}] nota de fornecedor externo: ${chave}`);
                   }
-                } else {
-                  resumo.ja_existiam++;
                 }
               } catch (e) {
-                resumo.erros++;
+                anotarErro(resumo, e instanceof Error ? e.message : String(e));
                 console.error(`[${entidade}] erro no documento:`, e);
               }
+
             }
 
             if (docs.length === 0) {
