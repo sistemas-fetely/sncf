@@ -78809,6 +78809,22 @@ export type Database = {
           similares: Json
         }[]
       }
+      sugerir_conciliacao_credito: {
+        Args: { p_limite?: number }
+        Returns: {
+          confianca: number
+          data_transacao: string
+          delta: number
+          movimentacao_id: string
+          parceiro: string
+          pedido: string
+          regra: string
+          titulo_ids: string[]
+          titulos: string
+          valor_credito: number
+          valor_titulos: number
+        }[]
+      }
       sugerir_matches_lancamento: {
         Args: { p_lancamento_id: string }
         Returns: {
