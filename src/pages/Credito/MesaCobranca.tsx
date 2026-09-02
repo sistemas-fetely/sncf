@@ -434,51 +434,6 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
           })}
 
 
-        {/* PAGO SEM PROVA — conciliação, não inadimplência. */}
-        <Card
-          onClick={() => { setSoVencido(false); setGrupoAtivo(null); setFilaF((f) => (f === "PAGO_SEM_PROVA" ? "todas" : "PAGO_SEM_PROVA")); }}
-          className={`cursor-pointer transition ${
-            filaF === "PAGO_SEM_PROVA"
-              ? resumoPagoSemProva.qtdDivergente > 0 ? "ring-2 ring-destructive" : "ring-2 ring-warning"
-              : "hover:bg-muted/50"
-          } ${
-            resumoPagoSemProva.qtd > 0
-              ? resumoPagoSemProva.qtdDivergente > 0
-                ? "border-destructive bg-destructive/10"
-                : "border-warning bg-warning/10"
-              : "border-muted bg-muted/30 opacity-70"
-          }`}
-        >
-          <CardContent className="p-3">
-            <div
-              className={`text-[11px] font-medium tracking-wide ${
-                resumoPagoSemProva.qtd > 0
-                  ? resumoPagoSemProva.qtdDivergente > 0 ? "text-destructive" : "text-warning"
-                  : "text-muted-foreground"
-              }`}
-            >
-              PAGO SEM PROVA
-            </div>
-            {resumoPagoSemProva.qtd > 0 ? (
-              <>
-                <div className="mt-1 flex items-baseline gap-2">
-                  <span className={`text-2xl font-medium tabular-nums ${resumoPagoSemProva.qtdDivergente > 0 ? "text-destructive" : "text-warning"}`}>
-                    {resumoPagoSemProva.qtd}
-                  </span>
-                  <span className="text-xs text-muted-foreground">títulos</span>
-                </div>
-                <div className={`text-sm font-medium tabular-nums ${resumoPagoSemProva.qtdDivergente > 0 ? "text-destructive" : "text-warning"}`}>
-                  {formatBRL(resumoPagoSemProva.soma)}
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="mt-1 text-sm text-muted-foreground">nenhum</div>
-                <div className="text-sm tabular-nums text-muted-foreground">{formatBRL(0)}</div>
-              </>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
 
