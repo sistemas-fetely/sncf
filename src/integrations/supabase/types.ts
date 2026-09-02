@@ -36349,6 +36349,42 @@ export type Database = {
         }
         Relationships: []
       }
+      rota_codigo: {
+        Row: {
+          abas: string[] | null
+          arquivo: string | null
+          eh_redirect: boolean
+          eh_stub: boolean
+          levantado_em: string
+          levantado_por: string | null
+          pilar: string | null
+          redirect_para: string | null
+          rota: string
+        }
+        Insert: {
+          abas?: string[] | null
+          arquivo?: string | null
+          eh_redirect?: boolean
+          eh_stub?: boolean
+          levantado_em?: string
+          levantado_por?: string | null
+          pilar?: string | null
+          redirect_para?: string | null
+          rota: string
+        }
+        Update: {
+          abas?: string[] | null
+          arquivo?: string | null
+          eh_redirect?: boolean
+          eh_stub?: boolean
+          levantado_em?: string
+          levantado_por?: string | null
+          pilar?: string | null
+          redirect_para?: string | null
+          rota?: string
+        }
+        Relationships: []
+      }
       safra_carteira_conferencia: {
         Row: {
           conta_bancaria_id: string
@@ -42029,6 +42065,13 @@ export type Database = {
             referencedColumns: ["remessa_id"]
           },
           {
+            foreignKeyName: "titulo_a_receber_baixa_remessa_id_fkey"
+            columns: ["baixa_remessa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_remessa_sem_retorno"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "titulo_a_receber_banco_recebimento_id_fkey"
             columns: ["banco_recebimento_id"]
             isOneToOne: false
@@ -42680,6 +42723,13 @@ export type Database = {
             referencedColumns: ["remessa_id"]
           },
           {
+            foreignKeyName: "titulo_a_receber_remessa_safra_id_fkey"
+            columns: ["remessa_safra_id"]
+            isOneToOne: false
+            referencedRelation: "vw_remessa_sem_retorno"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "titulo_a_receber_titulo_pai_id_fkey"
             columns: ["titulo_pai_id"]
             isOneToOne: false
@@ -42974,6 +43024,13 @@ export type Database = {
             referencedColumns: ["remessa_id"]
           },
           {
+            foreignKeyName: "titulo_boleto_remessa_baixa_id_fkey"
+            columns: ["remessa_baixa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_remessa_sem_retorno"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "titulo_boleto_remessa_entrada_id_fkey"
             columns: ["remessa_entrada_id"]
             isOneToOne: false
@@ -42993,6 +43050,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["remessa_id"]
+          },
+          {
+            foreignKeyName: "titulo_boleto_remessa_entrada_id_fkey"
+            columns: ["remessa_entrada_id"]
+            isOneToOne: false
+            referencedRelation: "vw_remessa_sem_retorno"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "titulo_boleto_titulo_id_fkey"
@@ -43255,6 +43319,13 @@ export type Database = {
             referencedColumns: ["remessa_id"]
           },
           {
+            foreignKeyName: "titulo_instrumento_baixa_remessa_id_fkey"
+            columns: ["baixa_remessa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_remessa_sem_retorno"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "titulo_instrumento_estado_fkey"
             columns: ["estado"]
             isOneToOne: false
@@ -43281,6 +43352,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["remessa_id"]
+          },
+          {
+            foreignKeyName: "titulo_instrumento_remessa_safra_id_fkey"
+            columns: ["remessa_safra_id"]
+            isOneToOne: false
+            referencedRelation: "vw_remessa_sem_retorno"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "titulo_instrumento_substituido_por_id_fkey"
@@ -63281,14 +63359,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -64109,14 +64187,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -65488,14 +65566,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -71571,6 +71649,57 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_remessa_sem_retorno: {
+        Row: {
+          arquivo_nome: string | null
+          diagnostico: string | null
+          dias_desde_envio: number | null
+          dias_desde_geracao: number | null
+          enviada_em: string | null
+          gerado_em: string | null
+          id: string | null
+          nro_sequencial: number | null
+          qtd_titulos: number | null
+          status: string | null
+          tipo: string | null
+          titulos_ainda_na_fila: number | null
+          titulos_vinculados: number | null
+          valor_total: number | null
+        }
+        Insert: {
+          arquivo_nome?: string | null
+          diagnostico?: never
+          dias_desde_envio?: never
+          dias_desde_geracao?: never
+          enviada_em?: string | null
+          gerado_em?: string | null
+          id?: string | null
+          nro_sequencial?: number | null
+          qtd_titulos?: number | null
+          status?: string | null
+          tipo?: string | null
+          titulos_ainda_na_fila?: never
+          titulos_vinculados?: never
+          valor_total?: number | null
+        }
+        Update: {
+          arquivo_nome?: string | null
+          diagnostico?: never
+          dias_desde_envio?: never
+          dias_desde_geracao?: never
+          enviada_em?: string | null
+          gerado_em?: string | null
+          id?: string | null
+          nro_sequencial?: number | null
+          qtd_titulos?: number | null
+          status?: string | null
+          tipo?: string | null
+          titulos_ainda_na_fila?: never
+          titulos_vinculados?: never
+          valor_total?: number | null
+        }
+        Relationships: []
+      }
       vw_reserva_skus_orfaos: {
         Row: {
           pedidos: number | null
@@ -71599,6 +71728,29 @@ export type Database = {
           sku: string | null
         }
         Relationships: []
+      }
+      vw_safra_carteira_cobertura: {
+        Row: {
+          ausentes: number | null
+          cobertura_motivo: string | null
+          cobertura_pct: number | null
+          cobertura_valida: boolean | null
+          confirmados: number | null
+          conta_bancaria_id: string | null
+          data_referencia: string | null
+          linhas_no_relatorio: number | null
+          valor_ausente: number | null
+          vivos_no_sncf: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "safra_carteira_conferencia_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vw_safra_carteira_divergencia: {
         Row: {
@@ -72895,6 +73047,13 @@ export type Database = {
             referencedColumns: ["remessa_id"]
           },
           {
+            foreignKeyName: "titulo_a_receber_baixa_remessa_id_fkey"
+            columns: ["baixa_remessa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_remessa_sem_retorno"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "titulo_a_receber_banco_recebimento_id_fkey"
             columns: ["banco_recebimento_id"]
             isOneToOne: false
@@ -73537,6 +73696,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["remessa_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_remessa_safra_id_fkey"
+            columns: ["remessa_safra_id"]
+            isOneToOne: false
+            referencedRelation: "vw_remessa_sem_retorno"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "titulo_a_receber_titulo_pai_id_fkey"
@@ -74375,6 +74541,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_remessa_safra_titulos"
             referencedColumns: ["remessa_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_remessa_safra_id_fkey"
+            columns: ["remessa_safra_id"]
+            isOneToOne: false
+            referencedRelation: "vw_remessa_sem_retorno"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "titulo_a_receber_titulo_renegociado_origem_id_fkey"
