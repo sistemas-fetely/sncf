@@ -583,7 +583,8 @@ export default function ExtratoImportacao() {
             valor: m.valor,
             tipo: m.tipo,
             id_transacao_banco: m.id_transacao_banco,
-            hash_unico: m.hash_unico,
+            hash_unico: m.identidade.hash,
+
             origem: "ofx",
             contraparte_nome: m.contraparte_nome,
             contraparte_documento: m.contraparte_documento,
