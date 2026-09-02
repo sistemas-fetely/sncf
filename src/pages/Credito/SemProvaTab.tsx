@@ -340,6 +340,34 @@ export default function SemProvaTab() {
           </div>
         )}
       </section>
+
+      <section className="space-y-2">
+        <BlocoHeader
+          titulo={BLOCO_NAO_COBRAVEL}
+          qtd={naoCobravel.length}
+          total={soma(naoCobravel)}
+          tom="muted"
+        />
+        <p className="text-xs text-muted-foreground">
+          Informativo, não é problema: consignado, haver e permuta têm ciclo próprio e por isso
+          ficam fora da régua. Aparecem aqui porque antes não apareciam em nenhuma tela — e
+          invisível não é o mesmo que resolvido.
+        </p>
+        {naoCobravel.length === 0 ? (
+          <div className="rounded-md border border-dashed px-3 py-3 text-xs text-muted-foreground">
+            Nenhum título em regime próprio.
+          </div>
+        ) : (
+          <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+            {naoCobravel
+              .slice()
+              .sort((a, b) => Number(b.valor_atual ?? 0) - Number(a.valor_atual ?? 0))
+              .map((l) => (
+                <CardSemProva key={l.titulo_id} l={l} />
+              ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
