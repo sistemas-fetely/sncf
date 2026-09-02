@@ -47,6 +47,13 @@ const FILAS_REGUA = new Set<string>(["A_COBRAR", "A_VENCER"]);
 // ENTREGA_DEVOLVIDA e ENTREGA_PROBLEMA não existem mais na vw_cobranca_mesa.
 // ENTREGA_ATRASADA saiu em 01/09/2026: o prazo corre da emissão da NF, entrega
 // atrasada não suspende cobrança (declaração Flavio). Entrega vira selo informativo.
+//
+// UM-TÍTULO-UM-LUGAR (02/09/2026): PAGO_SEM_PROVA saiu da Mesa — vive na aba
+// "Sem prova", que o classifica por gravidade de prova (divergente > sem prova >
+// declarado > crédito atrasado). CONCILIAR-cartão também saiu: é o bloco
+// "aguardando liquidação da adquirente" da mesma aba. A fila CONCILIAR continua
+// aqui porque a view também joga pix-sem-prazo nela, e a aba só olha cartão.
+// A Mesa é fila de cobrança; conciliação de prova não é trabalho dela.
 const FILAS: { chave: string; label: string }[] = [
   { chave: "A_ENVIAR", label: "A enviar — NF + boleto + cópia do pedido" },
   { chave: "A_EMITIR_BOLETO", label: "A emitir boleto" },
@@ -55,36 +62,17 @@ const FILAS: { chave: string; label: string }[] = [
   { chave: "EMAIL_BLOQUEADO", label: "Sem canal de e-mail" },
   { chave: "A_VENCER", label: "A vencer (D-3)" },
   { chave: "CONCILIAR", label: "Conciliar — não cobrar" },
-  { chave: "PAGO_SEM_PROVA", label: "Pago sem prova" },
   { chave: "BOLETO_EM_CURSO_BANCO", label: "Boleto em curso no banco" },
   { chave: "EM_CURSO", label: "Em curso" },
   { chave: "NAO_COBRAVEL", label: "Não cobrável" },
 ];
 
-const ROTULO_PROVA_CLASSE: Record<string, string> = {
-  divergente: "movimentação não bate",
-  declarado_humano: "sem lastro",
-  sem_prova: "sem prova",
-  credito_atrasado: "crédito atrasado",
-};
-
-function BadgeProva({ classe }: { classe: string | null | undefined }) {
-  if (!classe) return null;
-  const cls = classe === "divergente"
-    ? "bg-destructive/10 text-destructive hover:bg-destructive/10"
-    : "bg-warning/10 text-warning hover:bg-warning/10";
-  return (
-    <Badge className={`shrink-0 text-[10px] ${cls}`}>
-      {ROTULO_PROVA_CLASSE[classe] ?? classe}
-    </Badge>
-  );
-}
 
 
 const GRUPOS: Record<"agir" | "vigiar" | "nao", string[]> = {
   agir: ["A_ENVIAR", "A_EMITIR_BOLETO", "A_REEMITIR_BOLETO", "A_COBRAR", "EMAIL_BLOQUEADO"],
   vigiar: ["A_VENCER", "BOLETO_EM_CURSO_BANCO", "EM_CURSO"],
-  nao: ["CONCILIAR", "NAO_COBRAVEL", "PAGO_SEM_PROVA"],
+  nao: ["CONCILIAR", "NAO_COBRAVEL"],
 };
 
 
@@ -92,6 +80,23 @@ const NAO_COBRAR = new Set<string>(GRUPOS.nao);
 
 /** Filas do bloco AGIR AGORA — usado também pelo badge da aba no hub. */
 export const FILAS_AGIR_AGORA = GRUPOS.agir;
+
+/**
+ * FONTE-ÚNICA-DO-DOMÍNIO-DA-MESA: quem é da Mesa e quem não é. A Mesa e o badge
+ * da aba no hub usam ESTE predicado — nunca uma cópia. Antes o badge contava a
+ * view crua e dizia "Mesa · 9" com 2 títulos na tela.
+ *
+ * Fora da Mesa:
+ *  - `regua_elegivel = true`  → é da aba Régua;
+ *  - `PAGO_SEM_PROVA`         → é da aba Sem prova (conciliação, não cobrança);
+ *  - `CONCILIAR` + cartão     → bloco da adquirente na aba Sem prova.
+ */
+export function ehLinhaDaMesa(l: { regua_elegivel?: boolean | null; fila?: string | null; instrumento?: string | null }): boolean {
+  if (l.regua_elegivel === true) return false;
+  if (l.fila === "PAGO_SEM_PROVA") return false;
+  if (l.fila === "CONCILIAR" && l.instrumento === "cartao") return false;
+  return true;
+}
 
 const FILAS_BOLETO = new Set<string>(["A_EMITIR_BOLETO", "A_REEMITIR_BOLETO"]);
 
@@ -225,11 +230,11 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
   /**
    * A Mesa é a PRIMEIRA ENTREGA do pacote: só vive aqui o título que ainda não
    * é elegível à régua (sem mercadoria entregue, sem instrumento ou sem prova
-   * de envio). Assim que `regua_elegivel` vira true, o título passa a ser da
-   * aba Régua e sai da Mesa — nunca aparece nos dois lugares.
+   * de envio) e que não pertence à aba Sem prova. Um título nunca aparece em
+   * duas abas — ver `ehLinhaDaMesa`.
    */
   const linhas = useMemo(
-    () => (q.data ?? []).filter((l) => l.regua_elegivel !== true),
+    () => (q.data ?? []).filter(ehLinhaDaMesa),
     [q.data],
   );
 
@@ -281,14 +286,6 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
     return { qtd: alvo.length, soma: alvo.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0) };
   }, [linhas]);
 
-  const resumoPagoSemProva = useMemo(() => {
-    const alvo = linhas.filter((l) => l.fila === "PAGO_SEM_PROVA");
-    return {
-      qtd: alvo.length,
-      soma: alvo.reduce((s, l) => s + Number(l.valor_atual ?? 0), 0),
-      qtdDivergente: alvo.filter((l) => l.prova_classe === "divergente").length,
-    };
-  }, [linhas]);
 
   const porFila = useMemo(() => {
 
@@ -371,7 +368,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
         </div>
 
         {/* Cartões-resumo */}
-        <div className="grid gap-3 sm:grid-cols-5">
+        <div className="grid gap-3 sm:grid-cols-4">
 
           {/* VENCIDO — transversal a todas as filas, primeiro da fila visual. */}
           <Card
@@ -437,51 +434,6 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
           })}
 
 
-        {/* PAGO SEM PROVA — conciliação, não inadimplência. */}
-        <Card
-          onClick={() => { setSoVencido(false); setGrupoAtivo(null); setFilaF((f) => (f === "PAGO_SEM_PROVA" ? "todas" : "PAGO_SEM_PROVA")); }}
-          className={`cursor-pointer transition ${
-            filaF === "PAGO_SEM_PROVA"
-              ? resumoPagoSemProva.qtdDivergente > 0 ? "ring-2 ring-destructive" : "ring-2 ring-warning"
-              : "hover:bg-muted/50"
-          } ${
-            resumoPagoSemProva.qtd > 0
-              ? resumoPagoSemProva.qtdDivergente > 0
-                ? "border-destructive bg-destructive/10"
-                : "border-warning bg-warning/10"
-              : "border-muted bg-muted/30 opacity-70"
-          }`}
-        >
-          <CardContent className="p-3">
-            <div
-              className={`text-[11px] font-medium tracking-wide ${
-                resumoPagoSemProva.qtd > 0
-                  ? resumoPagoSemProva.qtdDivergente > 0 ? "text-destructive" : "text-warning"
-                  : "text-muted-foreground"
-              }`}
-            >
-              PAGO SEM PROVA
-            </div>
-            {resumoPagoSemProva.qtd > 0 ? (
-              <>
-                <div className="mt-1 flex items-baseline gap-2">
-                  <span className={`text-2xl font-medium tabular-nums ${resumoPagoSemProva.qtdDivergente > 0 ? "text-destructive" : "text-warning"}`}>
-                    {resumoPagoSemProva.qtd}
-                  </span>
-                  <span className="text-xs text-muted-foreground">títulos</span>
-                </div>
-                <div className={`text-sm font-medium tabular-nums ${resumoPagoSemProva.qtdDivergente > 0 ? "text-destructive" : "text-warning"}`}>
-                  {formatBRL(resumoPagoSemProva.soma)}
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="mt-1 text-sm text-muted-foreground">nenhum</div>
-                <div className="text-sm tabular-nums text-muted-foreground">{formatBRL(0)}</div>
-              </>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
 
@@ -571,11 +523,6 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                             {f.qtdVencido} vencido{f.qtdVencido > 1 ? "s" : ""} · {formatBRL(f.totalVencido)}
                           </Badge>
                         )}
-                        {f.chave === "PAGO_SEM_PROVA" && (
-                          <Badge className="shrink-0 bg-warning/10 text-warning hover:bg-warning/10 text-[10px]">
-                            conciliação
-                          </Badge>
-                        )}
                       </div>
 
 
@@ -638,7 +585,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                       {seloEntrega(g.urgente)}
                                       {seloInstrumento(g.urgente)}
                                       {seloEnvio(g.urgente)}
-                                      <BadgeProva classe={g.urgente.prova_classe} />
+                                      
                                     </span>
                                     {g.ressalvas && (
                                       <span className="min-w-0 text-[10px] text-warning">{g.ressalvas}</span>
@@ -673,7 +620,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                         <TableHead className="h-8">Atraso</TableHead>
                                         <TableHead className="h-8">Lastros</TableHead>
                                         <TableHead className="h-8">Ressalvas</TableHead>
-                                        {FILAS_REGUA.has(f.chave) && f.chave !== "PAGO_SEM_PROVA" && (
+                                        {FILAS_REGUA.has(f.chave) && (
                                           <TableHead className="h-8">Régua</TableHead>
                                         )}
 
@@ -695,7 +642,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                               {l.numero_parcela && l.total_parcelas ? (
                                                 <span className="text-muted-foreground"> {l.numero_parcela}/{l.total_parcelas}</span>
                                               ) : null}
-                                              <BadgeProva classe={l.prova_classe} />
+                                              
                                             </div>
                                           </TableCell>
 
@@ -719,7 +666,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                             )}
                                             <EntregaResumoInline l={l} />
                                           </TableCell>
-                                          {FILAS_REGUA.has(f.chave) && f.chave !== "PAGO_SEM_PROVA" && (
+                                          {FILAS_REGUA.has(f.chave) && (
                                             <TableCell className="py-1.5" onClick={(e) => e.stopPropagation()}>
 
                                               {!tituloAdapt || !etapa ? (
@@ -841,7 +788,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                     ["Envio falhou em", fmtData(detalhe.envio_falhou_em)],
                     ["Motivo da falha de envio", detalhe.envio_falha_motivo ?? "—"],
                     ["Fila", detalhe.fila ?? "—"],
-                    ["Classe de prova", detalhe.prova_classe ?? "—"],
+                    
                     ["Nível de prova", detalhe.nivel_prova ?? "—"],
                     ["Ação sugerida", detalhe.acao_sugerida ?? "—"],
                     ["Ressalvas", detalhe.ressalvas ?? "—"],

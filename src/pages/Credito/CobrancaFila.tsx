@@ -12,7 +12,7 @@ import TitulosTab from "@/pages/Credito/TitulosTab";
 import ReguaTab from "@/pages/Credito/ReguaTab";
 import SemProvaTab from "@/pages/Credito/SemProvaTab";
 
-import MesaCobranca, { FILAS_AGIR_AGORA } from "@/pages/Credito/MesaCobranca";
+import MesaCobranca, { FILAS_AGIR_AGORA, ehLinhaDaMesa } from "@/pages/Credito/MesaCobranca";
 
 import CreditoClientesIndex from "@/pages/Credito/CreditoClientesIndex";
 import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
@@ -1215,7 +1215,11 @@ export default function CobrancaFila() {
   });
   const { data: reguaHoje = [] } = useReguaFilaHoje();
   const totalReguaHoje = reguaHoje.length;
-  const totalAgirAgora = (mesaQ.data ?? []).filter((l) => FILAS_AGIR_AGORA.includes(l.fila ?? "")).length;
+  // Badge da Mesa: mesmo domínio da tela (`ehLinhaDaMesa`) — antes contava a
+  // view crua e dizia "Mesa · 9" com 2 títulos visíveis.
+  const totalAgirAgora = (mesaQ.data ?? [])
+    .filter(ehLinhaDaMesa)
+    .filter((l) => FILAS_AGIR_AGORA.includes(l.fila ?? "")).length;
   // Aba "Sem prova": mesma leitura da view, sem requisição extra.
   const totalSemProva = (mesaQ.data ?? []).filter((l) => l.fila === "PAGO_SEM_PROVA").length;
 
