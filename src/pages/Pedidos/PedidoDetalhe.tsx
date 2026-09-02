@@ -83,6 +83,7 @@ import { MigrarOportunidadeDialog } from "@/components/comercial/MigrarOportunid
 import { RetomarOportunidadeDialog } from "@/components/comercial/RetomarOportunidadeDialog";
 
 import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
+import { PreFaturamentoCard } from "@/components/pedidos/PreFaturamentoCard";
 import { useNivel } from "@/hooks/useNivel";
 import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { useAuth } from "@/contexts/AuthContext";
