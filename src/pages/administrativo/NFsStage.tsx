@@ -317,8 +317,10 @@ export default function NFsStage() {
   }
 
   type QiveEntidadeResumo = {
+    simulado: boolean;
     encontrados: number;
     gravados: number;
+    seriam_gravados: number;
     ja_existiam: number;
     com_referencia: number;
     erros: number;
@@ -326,6 +328,8 @@ export default function NFsStage() {
     cursor_final: string | null;
     interrompido_por: string | null;
     erro: string | null;
+    primeiro_erro: string | null;
+    amostra: unknown[];
   };
 
   async function buscarNaQive() {
@@ -335,6 +339,7 @@ export default function NFsStage() {
       if (resp.error) throw new Error(resp.error.message);
       const data = resp.data as {
         ok: boolean;
+        simulado: boolean;
         ambiente: string;
         por_entidade: Record<string, QiveEntidadeResumo>;
         duracao_ms: number;
@@ -346,16 +351,37 @@ export default function NFsStage() {
         return;
       }
       const entidades = Object.entries(data.por_entidade || {});
+      const totalSeriamGravados = entidades.reduce(
+        (s, [, r]) => s + (r.seriam_gravados || 0),
+        0,
+      );
       const totalGravados = entidades.reduce((s, [, r]) => s + (r.gravados || 0), 0);
       const totalJaExistiam = entidades.reduce((s, [, r]) => s + (r.ja_existiam || 0), 0);
       const entidadesComErro = entidades
         .filter(([, r]) => (r.erro || "").length > 0)
         .map(([nome]) => nome.toUpperCase());
+      const primeiroErroEntidade = entidades.find(([, r]) => (r.erro || "").length > 0)?.[1];
+      const primeiroErro = primeiroErroEntidade?.primeiro_erro
+        ? primeiroErroEntidade.primeiro_erro.slice(0, 120) +
+          (primeiroErroEntidade.primeiro_erro.length > 120 ? "…" : "")
+        : null;
+
       if (entidadesComErro.length > 0) {
-        toast.warning(
-          `Qive (${data.ambiente}): ${totalGravados} gravadas, ${totalJaExistiam} já existiam. Atenção em ${entidadesComErro.join(", ")}.`,
-          { duration: 6000 }
-        );
+        const base = data.simulado
+          ? `Simulação (${data.ambiente}): ${totalSeriamGravados} seriam gravados, ${totalJaExistiam} já existem. Nada foi salvo.`
+          : `Qive (${data.ambiente}): ${totalGravados} gravada${totalGravados === 1 ? "" : "s"}, ${totalJaExistiam} já existia${totalJaExistiam === 1 ? "" : "m"}.`;
+        const erroSuffix = primeiroErro
+          ? ` Erro em ${entidadesComErro[0]}: ${primeiroErro}`
+          : ` Atenção em ${entidadesComErro.join(", ")}.`;
+        toast.warning(base + erroSuffix, { duration: 6000 });
+      } else if (data.simulado) {
+        if (totalSeriamGravados === 0 && totalJaExistiam === 0) {
+          toast.info(`Simulação (${data.ambiente}): nenhum documento encontrado. Nada foi salvo.`);
+        } else {
+          toast.info(
+            `Simulação (${data.ambiente}): ${totalSeriamGravados} documento${totalSeriamGravados === 1 ? "" : "s"} seriam gravados, ${totalJaExistiam} já exist${totalJaExistiam === 1 ? "e" : "em"}. Nada foi salvo.`
+          );
+        }
       } else if (totalGravados === 0) {
         toast.info(`Qive (${data.ambiente}): nenhum documento novo encontrado.`);
       } else {
@@ -1254,14 +1280,14 @@ export default function NFsStage() {
                 onClick={buscarNaQive}
                 disabled={buscandoQive}
                 className="gap-2"
-                title="Buscar documentos fiscais na Qive (sandbox — dados fictícios para validação)"
+                title="Busca documentos na Qive em modo simulação (sandbox) — nada é gravado"
               >
                 {buscandoQive ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <CloudDownload className="h-4 w-4" />
                 )}
-                {buscandoQive ? "Buscando..." : "Buscar na Qive"}
+                {buscandoQive ? "Buscando..." : "Simular busca na Qive"}
               </Button>
               <Button
                 variant="outline"
