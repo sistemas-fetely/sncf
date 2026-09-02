@@ -378,10 +378,13 @@ export default function ContasPagar() {
       parceiro: (c) => c.parceiros_comerciais?.razao_social || c.fornecedor_cliente || "",
       descricao: (c) => c.descricao || "",
       vencimento: (c) => c.data_vencimento || "",
+      // nulos por último nas duas direções (ordenarPor já trata null assim)
+      pretendida: (c) => c.data_pretendida ?? null,
       meio_pagamento: (c) => c.formas_pagamento?.nome || "",
       categoria: (c) => c.plano_contas?.nome || "",
       valor: (c) => Number(c.valor) || 0,
-      status: (c) => c.status || "",
+      // ESTADO × PROVAS — a ordem é a do banco, não a alfabética do slug.
+      status: (c) => c.estado_ordem ?? null,
     });
 
     return lista;
