@@ -17,6 +17,9 @@ interface EnviarBlingResponse {
 interface EnviarBlingParams {
   pedido_id: string;
   remessa_id?: string;
+  /** Override declarado do pré-faturamento (mínimo 15 caracteres, mesmo
+   *  padrão do `forcar` em empurrar-pedido-xpm). */
+  motivo?: string;
 }
 
 export function useEnviarBling() {
@@ -24,9 +27,10 @@ export function useEnviarBling() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ pedido_id, remessa_id }: EnviarBlingParams): Promise<EnviarBlingResponse> => {
+    mutationFn: async ({ pedido_id, remessa_id, motivo }: EnviarBlingParams): Promise<EnviarBlingResponse> => {
       const body: Record<string, string> = { pedido_id };
       if (remessa_id) body.remessa_id = remessa_id;
+      if (motivo) body.motivo = motivo;
 
       const { data, error } = await supabase.functions.invoke<EnviarBlingResponse>(
         "enviar-pedido-bling",
