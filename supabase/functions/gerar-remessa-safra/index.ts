@@ -562,10 +562,17 @@ serve(async (req) => {
       return new Response(JSON.stringify({ ok: false, erro: "Nenhum título encontrado" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Data e valor EFETIVOS: quando ha reemissao pendente, o boleto novo nasce com a
+    // data/valor da reemissao, nao com os do titulo (que ainda descrevem o boleto velho).
+    // deno-lint-ignore no-explicit-any
+    const vencEfetivo = (t: any): string => t.reemissao_nova_data ?? t.data_vencimento_atual;
+    // deno-lint-ignore no-explicit-any
+    const valorEfetivo = (t: any): number => Number(t.reemissao_novo_valor ?? t.valor_bruto);
+
     // Defesa em profundidade: rejeitar vencimentos no passado
     const hojeGuard = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
     // deno-lint-ignore no-explicit-any
-    const passados = (titulos as any[]).filter((t: any) => t.data_vencimento_atual < hojeGuard);
+    const passados = (titulos as any[]).filter((t: any) => vencEfetivo(t) < hojeGuard);
     if (passados.length > 0) {
       return new Response(
         JSON.stringify({
