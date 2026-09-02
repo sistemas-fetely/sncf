@@ -70,26 +70,31 @@ export function BotaoBaixarBoletoPdf({
     <FileText className="h-4 w-4 text-muted-foreground" />
   );
 
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
+  const botao = (
+    <Button
             variant={variant}
             size={rotulo ? "sm" : "icon"}
             className={rotulo ? undefined : "h-7 w-7"}
             disabled={loading || desabilitado}
             onClick={baixar}
           >
-            {rotulo ? (
-              <>
-                {icone}
-                <span className="ml-2">{rotulo}</span>
-              </>
-            ) : (
-              icone
-            )}
-          </Button>
+      {rotulo ? (
+        <>
+          {icone}
+          <span className="ml-2">{rotulo}</span>
+        </>
+      ) : (
+        icone
+      )}
+    </Button>
+  );
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        {/* Botão desabilitado não emite eventos: o span carrega o tooltip do motivo. */}
+        <TooltipTrigger asChild>
+          {desabilitado ? <span className="inline-flex">{botao}</span> : botao}
         </TooltipTrigger>
         <TooltipContent>
           {motivoDesabilitado ?? "Baixar espelho do boleto (PDF)"}
