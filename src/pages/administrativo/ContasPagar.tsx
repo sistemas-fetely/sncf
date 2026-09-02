@@ -648,6 +648,13 @@ export default function ContasPagar() {
                       >
                         {formatDateBR(c.data_vencimento)}
                       </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {c.data_pretendida ? (
+                          formatDateBR(c.data_pretendida)
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                       <TableCell className="whitespace-nowrap text-xs">
                         {meio ? (
                           <div className="flex flex-col gap-0.5">
