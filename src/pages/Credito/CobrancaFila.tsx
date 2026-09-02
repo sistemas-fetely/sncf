@@ -12,7 +12,7 @@ import TitulosTab from "@/pages/Credito/TitulosTab";
 import ReguaTab from "@/pages/Credito/ReguaTab";
 import SemProvaTab from "@/pages/Credito/SemProvaTab";
 
-import MesaCobranca, { FILAS_AGIR_AGORA } from "@/pages/Credito/MesaCobranca";
+import MesaCobranca, { FILAS_AGIR_AGORA, ehLinhaDaMesa } from "@/pages/Credito/MesaCobranca";
 
 import CreditoClientesIndex from "@/pages/Credito/CreditoClientesIndex";
 import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
