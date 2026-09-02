@@ -6859,6 +6859,8 @@ export type Database = {
       }
       comprovante_pagamento: {
         Row: {
+          adquirente_id: string | null
+          banco_recebimento_id: string | null
           beneficiario_cnpj_lido: string | null
           chave_lida: string | null
           conciliacao_nota: string | null
@@ -6873,6 +6875,7 @@ export type Database = {
           divergencia_valor: number | null
           hash_arquivo: string
           id: string
+          instituicao_lida: string | null
           mime_type: string | null
           motivo_recusa: string | null
           movimentacao_id: string | null
@@ -6888,6 +6891,8 @@ export type Database = {
           valor_lido: number | null
         }
         Insert: {
+          adquirente_id?: string | null
+          banco_recebimento_id?: string | null
           beneficiario_cnpj_lido?: string | null
           chave_lida?: string | null
           conciliacao_nota?: string | null
@@ -6902,6 +6907,7 @@ export type Database = {
           divergencia_valor?: number | null
           hash_arquivo: string
           id?: string
+          instituicao_lida?: string | null
           mime_type?: string | null
           motivo_recusa?: string | null
           movimentacao_id?: string | null
@@ -6917,6 +6923,8 @@ export type Database = {
           valor_lido?: number | null
         }
         Update: {
+          adquirente_id?: string | null
+          banco_recebimento_id?: string | null
           beneficiario_cnpj_lido?: string | null
           chave_lida?: string | null
           conciliacao_nota?: string | null
@@ -6931,6 +6939,7 @@ export type Database = {
           divergencia_valor?: number | null
           hash_arquivo?: string
           id?: string
+          instituicao_lida?: string | null
           mime_type?: string | null
           motivo_recusa?: string | null
           movimentacao_id?: string | null
@@ -6946,6 +6955,20 @@ export type Database = {
           valor_lido?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "comprovante_pagamento_adquirente_id_fkey"
+            columns: ["adquirente_id"]
+            isOneToOne: false
+            referencedRelation: "adquirente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_banco_recebimento_id_fkey"
+            columns: ["banco_recebimento_id"]
+            isOneToOne: false
+            referencedRelation: "banco_recebimento"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "comprovante_pagamento_movimentacao_id_fkey"
             columns: ["movimentacao_id"]
@@ -78113,6 +78136,7 @@ export type Database = {
       }
       confirmar_cartao_capturado: {
         Args: {
+          p_adquirente_id?: string
           p_data_captura?: string
           p_nsu: string
           p_observacao?: string
@@ -78123,6 +78147,7 @@ export type Database = {
       }
       confirmar_comprovante_pagamento: {
         Args: {
+          p_banco_recebimento_id?: string
           p_chave: string
           p_comprovante_id: string
           p_data: string
