@@ -666,7 +666,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                             )}
                                             <EntregaResumoInline l={l} />
                                           </TableCell>
-                                          {FILAS_REGUA.has(f.chave) && f.chave !== "PAGO_SEM_PROVA" && (
+                                          {FILAS_REGUA.has(f.chave) && (
                                             <TableCell className="py-1.5" onClick={(e) => e.stopPropagation()}>
 
                                               {!tituloAdapt || !etapa ? (
