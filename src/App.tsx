@@ -264,6 +264,11 @@ function RedirectToPessoasPJ() {
   return <Navigate to="/pessoas?tipo=PJ" replace />;
 }
 
+// MUNDO MORTO: este wizard gravava em colaboradores_clt (0 linhas), fora de pessoas/vinculos. Cadastro oficial = /pessoas/novo.
+function RedirectToPessoasNovo() {
+  return <Navigate to="/pessoas/novo" replace />;
+}
+
 // Redirects para rotas legadas migradas para /admin
 function CargosIdRedirect() {
   const { id } = useParams();
@@ -521,9 +526,10 @@ const App = () => (
                     <RedirectToPessoasCLT />
                   </ProtectedRoute>
                 } />
+                {/* MUNDO MORTO: este wizard gravava em colaboradores_clt (0 linhas), fora de pessoas/vinculos. Cadastro oficial = /pessoas/novo. */}
                 <Route path="/colaboradores/novo" element={
                   <ProtectedRoute>
-                    <CadastroColaboradorCLTWrapper />
+                    <RedirectToPessoasNovo />
                   </ProtectedRoute>
                 } />
                 <Route path="/colaboradores/:id" element={
@@ -575,9 +581,10 @@ const App = () => (
                     <RedirectToPessoasPJ />
                   </ProtectedRoute>
                 } />
+                {/* MUNDO MORTO: este wizard gravava em contratos_pj sem pessoa/vinculo ativo. Cadastro oficial = /pessoas/novo. */}
                 <Route path="/contratos-pj/novo" element={
                   <ProtectedRoute>
-                    <CadastroContratoPJ />
+                    <RedirectToPessoasNovo />
                   </ProtectedRoute>
                 } />
                 <Route path="/contratos-pj/novo-manual" element={

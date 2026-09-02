@@ -1,3 +1,5 @@
+// MUNDO MORTO: este wizard gravava em contratos_pj sem pessoa/vinculo ativo. Cadastro oficial = /pessoas/novo.
+// DEPRECIADO — mantido apenas para leitura; a rota /contratos-pj/novo redireciona para /pessoas/novo.
 import { useState, useRef } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";

@@ -1,3 +1,5 @@
+// MUNDO MORTO: este wizard gravava em colaboradores_clt (0 linhas), fora de pessoas/vinculos. Cadastro oficial = /pessoas/novo.
+// DEPRECIADO — mantido apenas para leitura; a rota /colaboradores/novo redireciona para /pessoas/novo.
 import { useState, useEffect, useRef } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";

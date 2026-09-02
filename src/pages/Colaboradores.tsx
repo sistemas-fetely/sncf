@@ -124,12 +124,6 @@ export default function Colaboradores() {
       <PageHeader
         titulo="Colaboradores"
         estado="Gerenciamento de colaboradores CLT e PJ"
-        acoes={
-          <Button className="gap-2" onClick={() => navigate("/colaboradores/novo")}>
-            <Plus className="h-4 w-4" />
-            Novo Colaborador
-          </Button>
-        }
       />
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
