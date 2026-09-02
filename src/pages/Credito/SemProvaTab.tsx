@@ -392,7 +392,9 @@ export default function SemProvaTab() {
           </div>
         )}
       </section>
+      )}
 
+      {mostra("cartao") && (
       <section className="space-y-2">
         <BlocoHeader
           titulo={BLOCO_CARTAO}
