@@ -295,9 +295,10 @@ Deno.serve(async (req) => {
     };
 
     const por_entidade: Record<Entidade, ResumoEntidade> = {
-      nfe: novoResumo(),
-      cte: novoResumo(),
-      nfse: novoResumo(),
+      nfe: novoResumo(simular),
+      cte: novoResumo(simular),
+      nfse: novoResumo(simular),
+
     };
 
     for (const entidade of ENTIDADES) {
