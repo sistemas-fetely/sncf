@@ -69,6 +69,62 @@ export function chipSituacao(situacao: string | null | undefined): string {
  * — durante a reemissão essa coluna descreve o boleto que está MORRENDO. Quem responde
  * "dá para entregar?" é `vw_titulo_boleto_vigente`.
  */
+/**
+ * CARNE-VEM-DEPOIS: isto e N PDFs, um por parcela. O PDF unico com N paginas exige
+ * refatorar gerar-boleto-pdf para aceitar titulo_ids[] — fatia separada, mexe em edge function.
+ */
+function BaixarTodosBoletos({
+  habilitados,
+  emReemissao,
+}: {
+  habilitados: string[];
+  emReemissao: number;
+}) {
+  const [progresso, setProgresso] = useState<number | null>(null);
+
+  if (habilitados.length < 2) return null;
+
+  async function baixarTodos() {
+    const erros: string[] = [];
+    let ok = 0;
+    for (let i = 0; i < habilitados.length; i++) {
+      setProgresso(i + 1);
+      try {
+        // Em série de propósito: cada invoke gera um PDF; paralelizar castiga a função.
+        await baixarBoletoPdf(habilitados[i]);
+        ok++;
+      } catch (e: any) {
+        erros.push(e?.message ?? "Falha ao gerar PDF");
+      }
+    }
+    setProgresso(null);
+    if (erros.length > 0) {
+      toast.error(`${erros.length} boleto(s) falharam.`, { description: erros[0] });
+    }
+    if (ok > 0) {
+      toast.success(
+        `${ok} boleto${ok > 1 ? "s" : ""} baixado${ok > 1 ? "s" : ""}.` +
+          (emReemissao > 0
+            ? ` ${emReemissao} em reemissão foi pulado${emReemissao > 1 ? "s" : ""}.`
+            : ""),
+      );
+    }
+  }
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      disabled={progresso !== null}
+      onClick={baixarTodos}
+    >
+      {progresso !== null
+        ? `Baixando ${progresso} de ${habilitados.length}…`
+        : "Baixar todos"}
+    </Button>
+  );
+}
+
 function situacaoBoletoVigente(v: BoletoVigente | null): {
   rotulo: string;
   classe: string;
@@ -594,7 +650,25 @@ export function PedidoOportunidadeDialog({
             {/* Consultar boletos é ação gateada por `acao.mesa_ver_boletos`. */}
             {podeVerBoletos && (
             <div className="rounded-md border px-3 py-2 space-y-1">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Boletos</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Boletos</p>
+                {podeBaixarBoleto && (
+                  <BaixarTodosBoletos
+                    habilitados={(boletos.data?.boletoTitulos ?? [])
+                      .filter(
+                        (b) =>
+                          !!b.boleto_vigente?.nosso_numero &&
+                          !b.boleto_vigente?.vigente_em_baixa,
+                      )
+                      .map((b) => b.id)}
+                    emReemissao={
+                      (boletos.data?.boletoTitulos ?? []).filter(
+                        (b) => !!b.boleto_vigente?.vigente_em_baixa,
+                      ).length
+                    }
+                  />
+                )}
+              </div>
               {boletos.isLoading ? (
                 <div className="flex justify-center py-4">
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
