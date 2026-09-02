@@ -58,6 +58,7 @@ const novoResumo = (): ResumoEntidade => ({
   primeiro_erro: null,
   paginas: 0,
   cursor_final: null,
+  cursor_avancou: false,
 });
 
 function anotarErro(resumo: ResumoEntidade, msg: string) {
