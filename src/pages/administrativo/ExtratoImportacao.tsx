@@ -33,6 +33,8 @@ import { parseXlsxSafraFrancesinha } from "@/lib/financeiro/xlsx-safra-francesin
 import { temTitulo, textoPrimeirasLinhas } from "@/lib/financeiro/xlsx-titulo";
 import { detectarAssinaturaSafraXlsx } from "@/lib/financeiro/xlsx-safra-assinatura";
 import { parseXlsxSafraPixLancamentos } from "@/lib/financeiro/xlsx-safra-pix-lancamentos-parser";
+import { parseXlsxSafraPayRecebiveis } from "@/lib/financeiro/xlsx-safrapay-recebiveis-parser";
+
 
 import { ehRetornoSafra } from "@/lib/financeiro/cnab-retorno-safra-parser";
 
@@ -76,7 +78,7 @@ type Fonte =
   | "safra_lancamentos"
   | "safra_pix_lancamentos"
   | "safrapay_agenda_vendas"
-  | "safrapay_recebiveis_vendas"
+  | "safrapay_recebiveis"
   | "mp_withdraw"
   | "safrapay_vendas"
   | "safrapay_liquidacao"
@@ -91,9 +93,7 @@ type Fonte =
 /** Fontes reconhecidas que não importam nada — redundantes com outra porta. */
 const FONTE_REDUNDANTE: Partial<Record<Fonte, string>> = {
   safrapay_agenda_vendas:
-    "Redundante com o CSV de vendas SafraPay — os mesmos NSUs chegam por lá. Nada importado.",
-  safrapay_recebiveis_vendas:
-    "Redundante com o CSV de vendas SafraPay — os mesmos NSUs chegam por lá. Nada importado.",
+    "Agenda de Vendas é a AUTORIZAÇÃO — os 55 NSUs já vivem em safrapay_venda. Nada importado.",
 };
 
 function detectarFonteBase(file: File): "ofx" | "xlsx" | "csv" | "txt" | null {
@@ -155,7 +155,8 @@ const FONTE_TIPO_DB: Record<Fonte, string> = {
   safra_pix_lancamentos: "safra_lancamentos",
   // Fontes reconhecidas e fora do escopo: a dimensão as trata como agenda (papel `fora`).
   safrapay_agenda_vendas: "agenda_vendas",
-  safrapay_recebiveis_vendas: "agenda_vendas",
+  // "Recebiveis de Vendas" é o repasse: a dimensão já tem o código da liquidação.
+  safrapay_recebiveis: "safrapay_liquidacao",
 
   mp_withdraw: "mp_withdraw",
   safrapay_vendas: "safrapay_vendas",
@@ -177,7 +178,7 @@ const BLOCO_DA_FONTE: Record<Fonte, Bloco> = {
   safra_lancamentos: "extrato",
   safra_pix_lancamentos: "auxiliar",
   safrapay_agenda_vendas: "auxiliar",
-  safrapay_recebiveis_vendas: "auxiliar",
+  safrapay_recebiveis: "auxiliar",
 
   mp_withdraw: "auxiliar",
   safrapay_vendas: "auxiliar",
@@ -206,7 +207,7 @@ const PARSER_ROTULO: Partial<Record<Fonte, string>> = {
   retorno_safra: "Retorno CNAB 400 Safra (cobrança)",
   safra_pix_lancamentos: "Safra Lançamentos e Devoluções (PIX)",
   safrapay_agenda_vendas: "SafraPay Agenda de Vendas (não importável)",
-  safrapay_recebiveis_vendas: "SafraPay Recebíveis de Vendas (não importável)",
+  safrapay_recebiveis: "SafraPay Recebíveis de Vendas (composição do lote)",
 };
 
 /**
@@ -223,7 +224,8 @@ const PARSER_EFEITO: Record<Fonte, string> = {
   safra_pix_lancamentos:
     "PIX enviados e recebidos — enriquece a linha do extrato com pedido e pagador. Nunca cria movimentação.",
   safrapay_agenda_vendas: FONTE_REDUNDANTE.safrapay_agenda_vendas!,
-  safrapay_recebiveis_vendas: FONTE_REDUNDANTE.safrapay_recebiveis_vendas!,
+  safrapay_recebiveis:
+    "Composição do lote de cartão — grava NSU, parcela e taxa por repasse. Não cria movimentação bancária.",
 
   mp_withdraw: "Retiradas Mercado Pago — cria a transferência quando não há par no extrato.",
   safrapay_vendas: "Vendas SafraPay — agenda de recebíveis; o dinheiro entra pelo OFX.",
@@ -391,9 +393,9 @@ export default function ExtratoImportacao() {
         );
       }
 
-      // FONTE-RECONHECIDA-NAO-E-ERRO: Agenda de Vendas e Recebíveis de Vendas
-      // trazem os mesmos NSUs que já entram pelos CSVs tipo 1 e 2. Reconhecer e
-      // recusar com dignidade: registra, tom neutro, invariante 0 = 0 + 0 + 0.
+      // FONTE-RECONHECIDA-NAO-E-ERRO: a Agenda de Vendas é a AUTORIZAÇÃO e os
+      // NSUs dela já vivem em `safrapay_venda`. Reconhecer e recusar com
+      // dignidade: registra, tom neutro, invariante 0 = 0 + 0 + 0.
       const redundante = FONTE_REDUNDANTE[fonte];
       if (redundante) {
         await sb
@@ -411,7 +413,7 @@ export default function ExtratoImportacao() {
           .eq("id", impId);
         trilha.neutro = {
           resultado: `${PARSER_ROTULO[fonte]} — nada importado`,
-          contagem: "arquivo não lido — redundante com o CSV de vendas SafraPay",
+          contagem: "arquivo não lido — a autorização já existe em safrapay_venda",
           detalhe: { arquivo_redundante: 1 },
         };
         toast.info(`${file.name}: ${redundante}`);
@@ -756,7 +758,85 @@ export default function ExtratoImportacao() {
           // A linha do arquivo é, por definição, duplicada de algo que já existe.
           cont.enriquecer();
         }
+      } else if (fonte === "safrapay_recebiveis") {
+        // COMPOSICAO-DO-LOTE: este parser NÃO toca o extrato. Ele grava a
+        // composição do repasse (NSU, parcela, taxa) em `safrapay_liquidacao`,
+        // que é a chave que liga o lote "RESUMO VENDAS CARTAO" a título.
+        const buf = await file.arrayBuffer();
+        const parsed = parseXlsxSafraPayRecebiveis(buf);
+        cont.ler(parsed.linhas.length);
+        if (cont.lidas === 0) throw new Error("Nenhuma linha de recebível na planilha");
+        cnpjRelatorio = parsed.cnpj_relatorio;
+
+        const datasPag = parsed.linhas
+          .map((l) => l.data_pagamento)
+          .filter(Boolean)
+          .sort() as string[];
+        periodoInicio = datasPag[0] || null;
+        periodoFim = datasPag[datasPag.length - 1] || null;
+
+        // Lote do OFX por dia: só vincula quando o dia tem UM lote. Vários lotes
+        // no mesmo dia é casamento por subconjunto — decisão humana, não do parser.
+        const loteDoDia = new Map<string, string | null>();
+        for (const dia of Array.from(new Set(datasPag))) {
+          const { data: lotes, error: errLote } = await sb
+            .from("movimentacoes_bancarias")
+            .select("id")
+            .eq("conta_bancaria_id", conta)
+            .eq("data_transacao", dia)
+            .eq("tipo", "credito")
+            .ilike("descricao", "RESUMO VENDAS CARTAO%")
+            .limit(3);
+          if (errLote) throw errLote;
+          loteDoDia.set(dia, (lotes || []).length === 1 ? lotes[0].id : null);
+        }
+
+        for (const l of parsed.linhas) {
+          if (!l.nsu) {
+            cont.ignorar("sem_identificador");
+            continue;
+          }
+          if (!l.data_pagamento) {
+            cont.ignorar("sem_data");
+            continue;
+          }
+          const taxa =
+            l.valor_bruto_parcela != null && l.valor_liquido != null
+              ? Number((l.valor_bruto_parcela - l.valor_liquido).toFixed(2))
+              : null;
+
+          const { data: inseridas, error: errIns } = await sb
+            .from("safrapay_liquidacao")
+            .upsert(
+              [
+                {
+                  nsu: l.nsu,
+                  parcela: l.parcela,
+                  total_parcelas: l.total_parcelas,
+                  data_pagamento: l.data_pagamento,
+                  valor_bruto_parcela: l.valor_bruto_parcela,
+                  valor_liquido: l.valor_liquido,
+                  taxa_mdr: taxa,
+                  bandeira: l.bandeira,
+                  modalidade: l.modalidade,
+                  terminal: l.terminal,
+                  ec: l.ec,
+                  cartao_mascarado: l.cartao_mascarado,
+                  autorizacao: l.autorizacao,
+                  movimentacao_id: loteDoDia.get(l.data_pagamento) ?? null,
+                  fonte_importacao_id: impId,
+                  origem: "safrapay_recebiveis",
+                },
+              ],
+              { onConflict: "nsu,parcela,data_pagamento", ignoreDuplicates: true }
+            )
+            .select("id");
+          if (errIns) throw errIns;
+          if ((inseridas || []).length > 0) cont.nova();
+          else cont.duplicada();
+        }
       } else if (fonte === "mp_withdraw") {
+
 
         const buf = await file.arrayBuffer();
         const parsed = parseXlsxMpWithdraw(buf);

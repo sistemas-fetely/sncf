@@ -36721,6 +36721,194 @@ export type Database = {
           },
         ]
       }
+      safrapay_liquidacao: {
+        Row: {
+          anomes: string | null
+          autorizacao: string | null
+          bandeira: string | null
+          cartao_mascarado: string | null
+          created_at: string
+          data_pagamento: string
+          data_prevista: string | null
+          data_venda: string | null
+          ec: string | null
+          fonte_importacao_id: string | null
+          id: string
+          modalidade: string | null
+          movimentacao_id: string | null
+          nsu: string
+          origem: string
+          parcela: number
+          taxa_mdr: number | null
+          terminal: string | null
+          total_parcelas: number | null
+          updated_at: string
+          valor_bruto_parcela: number | null
+          valor_liquido: number
+        }
+        Insert: {
+          anomes?: string | null
+          autorizacao?: string | null
+          bandeira?: string | null
+          cartao_mascarado?: string | null
+          created_at?: string
+          data_pagamento: string
+          data_prevista?: string | null
+          data_venda?: string | null
+          ec?: string | null
+          fonte_importacao_id?: string | null
+          id?: string
+          modalidade?: string | null
+          movimentacao_id?: string | null
+          nsu: string
+          origem?: string
+          parcela: number
+          taxa_mdr?: number | null
+          terminal?: string | null
+          total_parcelas?: number | null
+          updated_at?: string
+          valor_bruto_parcela?: number | null
+          valor_liquido: number
+        }
+        Update: {
+          anomes?: string | null
+          autorizacao?: string | null
+          bandeira?: string | null
+          cartao_mascarado?: string | null
+          created_at?: string
+          data_pagamento?: string
+          data_prevista?: string | null
+          data_venda?: string | null
+          ec?: string | null
+          fonte_importacao_id?: string | null
+          id?: string
+          modalidade?: string | null
+          movimentacao_id?: string | null
+          nsu?: string
+          origem?: string
+          parcela?: number
+          taxa_mdr?: number | null
+          terminal?: string | null
+          total_parcelas?: number | null
+          updated_at?: string
+          valor_bruto_parcela?: number | null
+          valor_liquido?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "safrapay_liquidacao_fonte_importacao_id_fkey"
+            columns: ["fonte_importacao_id"]
+            isOneToOne: false
+            referencedRelation: "extrato_importacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "safrapay_liquidacao_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "movimentacoes_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "safrapay_liquidacao_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cartao_credito_par"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "safrapay_liquidacao_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ciclo_titulo"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "safrapay_liquidacao_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_cartao_sugestoes"
+            referencedColumns: ["ofx_id"]
+          },
+          {
+            foreignKeyName: "safrapay_liquidacao_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_furos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "safrapay_liquidacao_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_match_nf_sugestoes"
+            referencedColumns: ["mov_id"]
+          },
+          {
+            foreignKeyName: "safrapay_liquidacao_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_match_sugestoes"
+            referencedColumns: ["mov_id"]
+          },
+          {
+            foreignKeyName: "safrapay_liquidacao_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_extrato_conta"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "safrapay_liquidacao_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_creditos_nao_conciliados"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "safrapay_liquidacao_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_movimentacao_destino"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "safrapay_liquidacao_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pagamento_alocacao_detalhe"
+            referencedColumns: ["mov_id"]
+          },
+          {
+            foreignKeyName: "safrapay_liquidacao_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pares_transferencia_sugeridos"
+            referencedColumns: ["credito_id"]
+          },
+          {
+            foreignKeyName: "safrapay_liquidacao_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pares_transferencia_sugeridos"
+            referencedColumns: ["debito_id"]
+          },
+          {
+            foreignKeyName: "safrapay_liquidacao_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pix_candidato_conciliacao"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "safrapay_liquidacao_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_b2c_pedido"
+            referencedColumns: ["movimentacao_id"]
+          },
+        ]
+      }
       safrapay_venda: {
         Row: {
           anomes: string | null
