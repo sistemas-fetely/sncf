@@ -576,14 +576,23 @@ export function PedidoOportunidadeDialog({
                       <TableHead>Parcela</TableHead>
                       <TableHead>Vencimento</TableHead>
                       <TableHead className="text-right">Valor</TableHead>
+                      <TableHead>Nosso número</TableHead>
                       <TableHead>Situação</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(boletos.data?.boletoTitulos ?? []).map((b) => (
+                    {(boletos.data?.boletoTitulos ?? []).map((b) => {
+                      const sit = situacaoBoletoVigente(b.boleto_vigente);
+                      return (
                       <TableRow key={b.id}>
                         <TableCell className="text-xs">
                           {b.numero_parcela}/{b.total_parcelas}
+                          {(b.boleto_vigente?.boletos_vivos ?? 0) > 1 && (
+                            <AlertTriangle
+                              className="ml-1 inline h-3 w-3 text-warning"
+                              title="Mais de um boleto vivo neste título — confira com o Financeiro."
+                            />
+                          )}
                         </TableCell>
                         <TableCell className="text-xs">
                           {formatDateBR(b.data_vencimento_atual)}
@@ -591,11 +600,18 @@ export function PedidoOportunidadeDialog({
                         <TableCell className="text-right text-xs">
                           {formatBRL(b.valor_bruto ?? 0)}
                         </TableCell>
-                        <TableCell className="text-xs">{b.boleto_status || "—"}</TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {b.boleto_vigente?.nosso_numero || "—"}
+                        </TableCell>
+                        <TableCell className={`text-xs ${sit.classe}`} title={sit.tooltip}>
+                          {sit.rotulo}
+                        </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
+
               )}
               {(boletosValorAberto ?? 0) > 0 && (
                 <p className="text-xs text-muted-foreground">
