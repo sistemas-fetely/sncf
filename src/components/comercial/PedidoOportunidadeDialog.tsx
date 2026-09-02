@@ -38,6 +38,7 @@ import { usePermissoesMesa } from "@/hooks/comercial/usePermissoesMesa";
 import { useStatusComercialLog } from "@/hooks/comercial/useMesaComercial";
 import { useBoletosDoPedido } from "@/hooks/pedidos/useBoletosDoPedido";
 import type { BoletoVigente } from "@/components/credito/AvisoBoletosVivos";
+import { BotaoBaixarBoletoPdf, baixarBoletoPdf } from "@/components/credito/BotaoBaixarBoletoPdf";
 import { usePedidoPortaoAtual } from "@/hooks/pedidos/usePedidoPortaoAtual";
 import { useDiagnosticoPagamento } from "@/hooks/comercial/usePedidoOportunidadeDetalhe";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -68,6 +69,62 @@ export function chipSituacao(situacao: string | null | undefined): string {
  * — durante a reemissão essa coluna descreve o boleto que está MORRENDO. Quem responde
  * "dá para entregar?" é `vw_titulo_boleto_vigente`.
  */
+/**
+ * CARNE-VEM-DEPOIS: isto e N PDFs, um por parcela. O PDF unico com N paginas exige
+ * refatorar gerar-boleto-pdf para aceitar titulo_ids[] — fatia separada, mexe em edge function.
+ */
+function BaixarTodosBoletos({
+  habilitados,
+  emReemissao,
+}: {
+  habilitados: string[];
+  emReemissao: number;
+}) {
+  const [progresso, setProgresso] = useState<number | null>(null);
+
+  if (habilitados.length < 2) return null;
+
+  async function baixarTodos() {
+    const erros: string[] = [];
+    let ok = 0;
+    for (let i = 0; i < habilitados.length; i++) {
+      setProgresso(i + 1);
+      try {
+        // Em série de propósito: cada invoke gera um PDF; paralelizar castiga a função.
+        await baixarBoletoPdf(habilitados[i]);
+        ok++;
+      } catch (e: any) {
+        erros.push(e?.message ?? "Falha ao gerar PDF");
+      }
+    }
+    setProgresso(null);
+    if (erros.length > 0) {
+      toast.error(`${erros.length} boleto(s) falharam.`, { description: erros[0] });
+    }
+    if (ok > 0) {
+      toast.success(
+        `${ok} boleto${ok > 1 ? "s" : ""} baixado${ok > 1 ? "s" : ""}.` +
+          (emReemissao > 0
+            ? ` ${emReemissao} em reemissão foi pulado${emReemissao > 1 ? "s" : ""}.`
+            : ""),
+      );
+    }
+  }
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      disabled={progresso !== null}
+      onClick={baixarTodos}
+    >
+      {progresso !== null
+        ? `Baixando ${progresso} de ${habilitados.length}…`
+        : "Baixar todos"}
+    </Button>
+  );
+}
+
 function situacaoBoletoVigente(v: BoletoVigente | null): {
   rotulo: string;
   classe: string;
@@ -237,7 +294,7 @@ export function PedidoOportunidadeDialog({
   const boletos = useBoletosDoPedido(open ? pedidoId : undefined);
   const statusLog = useStatusComercialLog(pedidoId, open);
   // PERMISSAO-NOMINAL-POR-ACAO: mesmos gates da linha da mesa, mesma fonte.
-  const { podeCopiarLink, podeBaixarNf, podeVerBoletos } = usePermissoesMesa();
+  const { podeCopiarLink, podeBaixarNf, podeVerBoletos, podeBaixarBoleto } = usePermissoesMesa();
 
 
   const comprovantes = useComprovantesPedido(pedidoId, open);
@@ -593,7 +650,25 @@ export function PedidoOportunidadeDialog({
             {/* Consultar boletos é ação gateada por `acao.mesa_ver_boletos`. */}
             {podeVerBoletos && (
             <div className="rounded-md border px-3 py-2 space-y-1">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Boletos</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Boletos</p>
+                {podeBaixarBoleto && (
+                  <BaixarTodosBoletos
+                    habilitados={(boletos.data?.boletoTitulos ?? [])
+                      .filter(
+                        (b) =>
+                          !!b.boleto_vigente?.nosso_numero &&
+                          !b.boleto_vigente?.vigente_em_baixa,
+                      )
+                      .map((b) => b.id)}
+                    emReemissao={
+                      (boletos.data?.boletoTitulos ?? []).filter(
+                        (b) => !!b.boleto_vigente?.vigente_em_baixa,
+                      ).length
+                    }
+                  />
+                )}
+              </div>
               {boletos.isLoading ? (
                 <div className="flex justify-center py-4">
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -609,6 +684,7 @@ export function PedidoOportunidadeDialog({
                       <TableHead className="text-right">Valor</TableHead>
                       <TableHead>Nosso número</TableHead>
                       <TableHead>Situação</TableHead>
+                      {podeBaixarBoleto && <TableHead className="w-10">Ações</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -637,6 +713,24 @@ export function PedidoOportunidadeDialog({
                         <TableCell className={`text-xs ${sit.classe}`} title={sit.tooltip}>
                           {sit.rotulo}
                         </TableCell>
+                        {podeBaixarBoleto && (
+                          <TableCell className="text-right">
+                            {/* Estado do dado manda: em reemissão aparece desabilitado com o motivo. */}
+                            {b.boleto_vigente?.nosso_numero ? (
+                              <BotaoBaixarBoletoPdf
+                                tituloId={b.id}
+                                desabilitado={!!b.boleto_vigente.vigente_em_baixa}
+                                motivoDesabilitado={
+                                  b.boleto_vigente.vigente_em_baixa
+                                    ? "Boleto em reemissão no banco — não entregue este ao cliente."
+                                    : sit.rotulo === "Vencido"
+                                      ? "Boleto vencido — o cliente paga com juros e multa."
+                                      : undefined
+                                }
+                              />
+                            ) : null}
+                          </TableCell>
+                        )}
                       </TableRow>
                       );
                     })}
