@@ -879,6 +879,7 @@ function AcaoPrimaria({ pedido, parceiro, estagio, geraTituloReceber }: { pedido
 function AcoesAguardandoPagamento({ pedido }: { pedido: any; geraTituloReceber?: boolean }) {
   const { data: plano } = usePlanoAbertoPedido(pedido.id);
   const { temNivel } = useNivel();
+  const [confirmarAberto, setConfirmarAberto] = useState(false);
 
   const cartao = (plano ?? []).filter((l) => (l.tipo_pagamento ?? "").toLowerCase() === "cartao");
   const linhaALinha = (plano ?? []).filter((l) =>
@@ -896,24 +897,28 @@ function AcoesAguardandoPagamento({ pedido }: { pedido: any; geraTituloReceber?:
       .join(", ");
   };
 
+  // REFERENCIA-SEMPRE, ANEXO-CONFORME-QUEM-E: uma só tela, modo SOPS.
   return (
     <div className="flex flex-col gap-2 w-full">
-      {temNivel(3) && cartao.length > 0 && (
-        <ConfirmarCartaoCapturadoDialog
-          pedidoId={pedido.id}
-          parcelasAbertas={cartao.length}
-          valorAberto={cartao.reduce((acc, l) => acc + Number(l.valor ?? 0), 0)}
-        />
-      )}
-      {temNivel(3) && linhaALinha.length > 0 && (
-        <ConfirmarPortaoPagoDialog
-          pedido_id={pedido.id}
-          meios={["pix", "boleto"]}
-          faltaLabel={cartao.length ? resumoMeios(cartao) : null}
-        />
-      )}
-      {temNivel(3) && !cartao.length && !linhaALinha.length && (
-        <ConfirmarPortaoPagoDialog pedido_id={pedido.id} />
+      {temNivel(3) && (
+        <>
+          <Button size="sm" onClick={() => setConfirmarAberto(true)}>
+            {cartao.length > 0 && linhaALinha.length === 0
+              ? "Confirmar captura"
+              : "Confirmar pagamento"}
+          </Button>
+          {cartao.length > 0 && linhaALinha.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Cartão em aberto: {resumoMeios(cartao)} — fecha pela captura (NSU).
+            </p>
+          )}
+          <ConfirmarPagamentoDialog
+            pedidoId={pedido.id}
+            aberto={confirmarAberto}
+            aoFechar={() => setConfirmarAberto(false)}
+            modo="sops"
+          />
+        </>
       )}
     </div>
   );
