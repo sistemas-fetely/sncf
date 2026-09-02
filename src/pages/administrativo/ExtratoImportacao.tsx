@@ -758,7 +758,85 @@ export default function ExtratoImportacao() {
           // A linha do arquivo é, por definição, duplicada de algo que já existe.
           cont.enriquecer();
         }
+      } else if (fonte === "safrapay_recebiveis") {
+        // COMPOSICAO-DO-LOTE: este parser NÃO toca o extrato. Ele grava a
+        // composição do repasse (NSU, parcela, taxa) em `safrapay_liquidacao`,
+        // que é a chave que liga o lote "RESUMO VENDAS CARTAO" a título.
+        const buf = await file.arrayBuffer();
+        const parsed = parseXlsxSafraPayRecebiveis(buf);
+        cont.ler(parsed.linhas.length);
+        if (cont.lidas === 0) throw new Error("Nenhuma linha de recebível na planilha");
+        cnpjRelatorio = parsed.cnpj_relatorio;
+
+        const datasPag = parsed.linhas
+          .map((l) => l.data_pagamento)
+          .filter(Boolean)
+          .sort() as string[];
+        periodoInicio = datasPag[0] || null;
+        periodoFim = datasPag[datasPag.length - 1] || null;
+
+        // Lote do OFX por dia: só vincula quando o dia tem UM lote. Vários lotes
+        // no mesmo dia é casamento por subconjunto — decisão humana, não do parser.
+        const loteDoDia = new Map<string, string | null>();
+        for (const dia of Array.from(new Set(datasPag))) {
+          const { data: lotes, error: errLote } = await sb
+            .from("movimentacoes_bancarias")
+            .select("id")
+            .eq("conta_bancaria_id", conta)
+            .eq("data_transacao", dia)
+            .eq("tipo", "credito")
+            .ilike("descricao", "RESUMO VENDAS CARTAO%")
+            .limit(3);
+          if (errLote) throw errLote;
+          loteDoDia.set(dia, (lotes || []).length === 1 ? lotes[0].id : null);
+        }
+
+        for (const l of parsed.linhas) {
+          if (!l.nsu) {
+            cont.ignorar("sem_identificador");
+            continue;
+          }
+          if (!l.data_pagamento) {
+            cont.ignorar("sem_data");
+            continue;
+          }
+          const taxa =
+            l.valor_bruto_parcela != null && l.valor_liquido != null
+              ? Number((l.valor_bruto_parcela - l.valor_liquido).toFixed(2))
+              : null;
+
+          const { data: inseridas, error: errIns } = await sb
+            .from("safrapay_liquidacao")
+            .upsert(
+              [
+                {
+                  nsu: l.nsu,
+                  parcela: l.parcela,
+                  total_parcelas: l.total_parcelas,
+                  data_pagamento: l.data_pagamento,
+                  valor_bruto_parcela: l.valor_bruto_parcela,
+                  valor_liquido: l.valor_liquido,
+                  taxa_mdr: taxa,
+                  bandeira: l.bandeira,
+                  modalidade: l.modalidade,
+                  terminal: l.terminal,
+                  ec: l.ec,
+                  cartao_mascarado: l.cartao_mascarado,
+                  autorizacao: l.autorizacao,
+                  movimentacao_id: loteDoDia.get(l.data_pagamento) ?? null,
+                  fonte_importacao_id: impId,
+                  origem: "safrapay_recebiveis",
+                },
+              ],
+              { onConflict: "nsu,parcela,data_pagamento", ignoreDuplicates: true }
+            )
+            .select("id");
+          if (errIns) throw errIns;
+          if ((inseridas || []).length > 0) cont.nova();
+          else cont.duplicada();
+        }
       } else if (fonte === "mp_withdraw") {
+
 
         const buf = await file.arrayBuffer();
         const parsed = parseXlsxMpWithdraw(buf);
