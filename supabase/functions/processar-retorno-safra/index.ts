@@ -305,6 +305,37 @@ serve(async (req) => {
     const remessasComRejeicao = new Set<string>();
     const remessasInstrucaoTocadas = new Set<string>();  // baixa / prorrogacao
 
+    // EVENTO-NO-TITULO (02/09/2026): antes desta data o retorno CNAB aplicava
+    // efeito no titulo e gravava rastro SO em safra_retorno_ocorrencia. Quem
+    // abria o titulo nao via como ele foi pago. Cartao gravava evento_titulo,
+    // boleto nao. Coletor abaixo fecha a assimetria. Gravacao em lote no fim,
+    // e falha aqui NUNCA derruba a liquidacao — vai para `erros`.
+    const eventosTitulo: Array<{
+      titulo_id: string;
+      tipo_evento: string;
+      origem: string;
+      ator: string;
+      payload: Record<string, unknown>;
+    }> = [];
+    const registrarEvento = (
+      tituloId: string,
+      tipo: string,
+      extra: Record<string, unknown>,
+    ) => {
+      eventosTitulo.push({
+        titulo_id: tituloId,
+        tipo_evento: tipo,
+        origem: "CONCILIACAO",
+        ator: "retorno_safra",
+        payload: {
+          arquivo: arquivoNome,
+          retorno_sequencial: nroSequencial,
+          data_movimento: dataMovimento,
+          ...extra,
+        },
+      });
+    };
+
     // ── histórico do boleto (titulo_boleto): situação sempre em dia ─────────
     async function marcarBoleto(nossoNumero: string, situacao: string, campoData: string | null) {
       const patch: Record<string, unknown> = { situacao };
@@ -592,6 +623,14 @@ serve(async (req) => {
                 origem: "retorno_safra",
                 nosso_numero_anterior: linha.nossoNumero,
               } as any);
+              registrarEvento(t.id, "baixa_recusada_boleto_vivo_cnab", {
+                nosso_numero: linha.nossoNumero,
+                ocorrencia: linha.ocorrencia,
+                motivo_rejeicao: linha.motivoRejeicao,
+                motivo_descricao: descMotivo,
+                nota:
+                  "Boleto SEGUE VALIDO no Safra — o cliente ainda pode pagar. Reenviar a baixa antes de reemitir.",
+              });
               contadores.rejeicoes++;
               marcarDesfecho(linha.numeroLinha, true, null);
               alertas.push(
@@ -760,6 +799,16 @@ serve(async (req) => {
           }
 
           if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
+          registrarEvento(t.id, "liquidacao_confirmada_cnab", {
+            nosso_numero: linha.nossoNumero,
+            ocorrencia: linha.ocorrencia,
+            valor_titulo: Number(t.valor_bruto),
+            valor_creditado: valorCreditado,
+            juros_mora: jurosArq,
+            desconto: descontoArq,
+            data_pagamento: dataPagamentoIso.slice(0, 10),
+            movimentacao: movimentacaoBaixaId,
+          });
           contadores.liquidacoes++;
           marcarDesfecho(linha.numeroLinha, true, null);
           continue;
@@ -815,6 +864,16 @@ serve(async (req) => {
           }
           if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
           if (t.baixa_remessa_id) remessasInstrucaoTocadas.add(t.baixa_remessa_id);
+          registrarEvento(t.id, "baixa_confirmada_cnab", {
+            nosso_numero: linha.nossoNumero,
+            ocorrencia: linha.ocorrencia,
+            valor_titulo: Number(t.valor_bruto),
+            baixa_solicitada_por_nos: linha.ocorrencia !== "09",
+            nota:
+              linha.ocorrencia === "09"
+                ? "Baixa automatica pelo banco — nao solicitada pelo SNCF"
+                : "Baixa confirmada em resposta a remessa de instrucao",
+          });
           contadores.baixas++;
           marcarDesfecho(linha.numeroLinha, true, null);
           continue;
@@ -925,6 +984,16 @@ serve(async (req) => {
             alertas.push(`Prorrogação confirmada — novo vencimento ${novaData} — título ${linha.nossoNumero}. Código de barras recalculado. PDF do boleto deve ser regenerado antes do reenvio ao cliente.`);
             if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
             if (t.baixa_remessa_id) remessasInstrucaoTocadas.add(t.baixa_remessa_id);
+            registrarEvento(t.id, "vencimento_alterado_cnab", {
+              nosso_numero: linha.nossoNumero,
+              ocorrencia: linha.ocorrencia,
+              vencimento_anterior: dataAnteriorVenc,
+              vencimento_novo: novaData,
+              boleto_reativado: reativarBoleto,
+              era_prorrogacao_pedida_por_nos: tinhaProrrogPendente,
+              nota:
+                "Codigo de barras recalculado — o PDF na mao do cliente esta invalido e precisa ser regerado.",
+            });
             contadores.alteracoes++;
             marcarDesfecho(linha.numeroLinha, true, null);
             continue;
@@ -1019,6 +1088,25 @@ serve(async (req) => {
         .from("safra_retorno_ocorrencia")
         .upsert(rowsOc.slice(i, i + 200), { onConflict: "nro_sequencial,linha" });
       if (errOc) erros.push({ linha: 0, nosso_numero: "", erro: `gravar ocorrências: ${errOc.message}` });
+    }
+
+    // ── EVENTO-NO-TITULO: grava o rastro no grão do TÍTULO ────────────────
+    // FAIL-LOUD sem derrubar efeito: o dinheiro e o estado do título já foram
+    // aplicados acima. Se a trilha falhar, ela grita em `erros` (que vai para
+    // o relatório persistido), mas não desfaz uma liquidação confirmada.
+    if (eventosTitulo.length > 0) {
+      for (let i = 0; i < eventosTitulo.length; i += 200) {
+        const { error: errEv } = await sb
+          .from("evento_titulo")
+          .insert(eventosTitulo.slice(i, i + 200) as any);
+        if (errEv) {
+          erros.push({
+            linha: 0,
+            nosso_numero: "",
+            erro: `gravar evento_titulo (${eventosTitulo.length} evento(s)): ${errEv.message}`,
+          });
+        }
+      }
     }
 
     // ── promoção do selo das remessas pelo vínculo real dos títulos ────────
