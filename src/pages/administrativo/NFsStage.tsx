@@ -1740,6 +1740,44 @@ export default function NFsStage() {
                         {formatBRL(nf.valor)}
                       </TableCell>
                       <TableCell>
+                        {nf.destino_rotulo ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="inline-flex items-center gap-1.5">
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[10px] py-0 h-5 px-1.5 border-current/30"
+                                    style={{
+                                      color: nf.destino_cor || undefined,
+                                      borderColor: nf.destino_cor ? `${nf.destino_cor}4d` : undefined,
+                                      backgroundColor: nf.destino_cor ? `${nf.destino_cor}14` : undefined,
+                                    }}
+                                  >
+                                    {nf.destino_rotulo}
+                                  </Badge>
+                                  {nf.destino_exige_humano && (
+                                    <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+                                  )}
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="text-xs font-medium">{nf.destino_rotulo}</p>
+                                {nf.destino_motivo && (
+                                  <p className="text-[11px] text-muted-foreground mt-0.5">{nf.destino_motivo}</p>
+                                )}
+                                <p className="text-[10px] text-muted-foreground mt-1">
+                                  {nf.destino_gera_cpr ? "Gera CPR" : "Não gera CPR"}
+                                  {nf.destino_entra_estoque ? " · entra no estoque" : ""}
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         <div className="mb-1">
                           {nf.status === "descartada" || nf.motivo_descarte ? null : nf.revisada_em ? (
                             nf.revisao_origem === "motor" ? (
