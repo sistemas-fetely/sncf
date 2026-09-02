@@ -65,9 +65,9 @@ export function chipSituacao(situacao: string | null | undefined): string {
 }
 
 /**
- * FONTE-UNICA-DO-BOLETO (02/09/2026): a situação do boleto NÃO é `titulo.boleto_status`
- * — durante a reemissão essa coluna descreve o boleto que está MORRENDO. Quem responde
- * "dá para entregar?" é `vw_titulo_boleto_vigente`.
+ * TITULO-DIZ-COMO-ESTA, VIGENTE-DIZ-SE-ENTREGA (02/09/2026): `vw_titulo_boleto_vigente`
+ * responde apenas "dá para entregar?" (botão de download e aviso de reemissão). A
+ * situação da parcela vem do título — ver `situacaoBoletoTitulo` abaixo.
  */
 /**
  * CARNE-VEM-DEPOIS: isto e N PDFs, um por parcela. O PDF unico com N paginas exige
