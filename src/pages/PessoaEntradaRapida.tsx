@@ -642,6 +642,11 @@ export default function PessoaEntradaRapida() {
                     type={campo === "data_admissao" ? "date" : "text"}
                     value={clt[campo]}
                     onChange={(e) => setClt((s) => ({ ...s, [campo]: e.target.value }))}
+                    onBlur={() => marcar(`clt_${campo}`)}
+                  />
+                  <ErroCampo
+                    mostrar={mostrarErro(`clt_${campo}`)}
+                    mensagem={!clt[campo].trim() ? `Informe ${rotulo.toLowerCase()}` : null}
                   />
                 </div>
               ))}
@@ -650,14 +655,9 @@ export default function PessoaEntradaRapida() {
         </>
       )}
 
-      {faltando.length > 0 && (
-        <p className="text-xs text-muted-foreground">
-          Falta preencher: {faltando.join(" · ")}
-        </p>
-      )}
-
       <div className="flex flex-wrap items-center gap-2">
-        <Button variant="outline" onClick={() => navigate("/pessoas")} disabled={salvando}>Cancelar</Button>
+        <Button variant="ghost" onClick={() => navigate("/pessoas")} disabled={salvando}>Cancelar</Button>
+
         <Button onClick={salvar} disabled={salvando || faltando.length > 0} className="gap-2">
           {salvando && <Loader2 className="h-4 w-4 animate-spin" />}
           {salvando ? "Criando..." : "Criar pessoa"}
