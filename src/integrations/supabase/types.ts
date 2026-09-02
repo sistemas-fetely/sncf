@@ -77323,6 +77323,25 @@ export type Database = {
         Returns: string
       }
       fn_nfs_stage_inserir_entrada: { Args: { p_linha: Json }; Returns: Json }
+      fn_nfs_stage_inserir_qive: {
+        Args: {
+          p_descricao: string
+          p_fin_nfe: number
+          p_fonte: string
+          p_fornecedor_cnpj: string
+          p_fornecedor_razao_social: string
+          p_itens: Json
+          p_natureza_operacao: string
+          p_nf_chave_acesso: string
+          p_nf_data_emissao: string
+          p_nf_numero: string
+          p_nf_referenciada_chave: string
+          p_nf_serie: string
+          p_tipo_documento: string
+          p_valor: number
+        }
+        Returns: Json
+      }
       fn_nome_do_usuario: { Args: { p_user?: string }; Returns: string }
       fn_norm_texto: { Args: { p_texto: string }; Returns: string }
       fn_norm_vendedor: { Args: { p_txt: string }; Returns: string }
