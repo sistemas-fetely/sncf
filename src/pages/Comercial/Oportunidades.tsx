@@ -34,6 +34,9 @@ import {
   type MesaComercialRow,
 } from "@/hooks/comercial/useMesaComercial";
 import { usePermissoesMesa } from "@/hooks/comercial/usePermissoesMesa";
+import { useMesaEntrega } from "@/hooks/comercial/useMesaEntrega";
+import { FaseEntregaCelula } from "@/components/comercial/FaseEntregaCelula";
+
 
 
 /**
