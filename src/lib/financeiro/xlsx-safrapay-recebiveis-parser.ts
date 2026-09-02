@@ -97,30 +97,62 @@ function extrairCnpjRelatorio(rows: unknown[][]): string | null {
   return null;
 }
 
+/**
+ * COLUNA-VEM-DO-CABECALHO: as posições fixas ficam como plano B, mas quem manda
+ * é o nome do cabeçalho. Trocar `Valor Bruto da Venda` por `Valor Líquido da
+ * Venda` zera o MDR sem erro nenhum na tela — defeito silencioso.
+ */
+function indicePorNome(rows: unknown[][]): Record<string, number> {
+  const cab = rows[LINHA_CABECALHO] || [];
+  const mapa: Record<string, number> = {};
+  cab.forEach((c, i) => {
+    const k = txt(c).toLowerCase().replace(/\s+/g, " ");
+    if (k) mapa[k] = i;
+  });
+  return mapa;
+}
+
+function idx(mapa: Record<string, number>, nome: string, padrao: number): number {
+  const i = mapa[nome.toLowerCase()];
+  return i == null ? padrao : i;
+}
+
 export function parseXlsxSafraPayRecebiveis(buffer: ArrayBuffer): SafraPayRecebiveisParsed {
   const wb = XLSX.read(buffer, { type: "array", cellDates: true });
   const ws = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: null }) as unknown[][];
 
   const cnpj_relatorio = extrairCnpjRelatorio(rows);
+  const cab = indicePorNome(rows);
+  const cData = idx(cab, "Data do Pagamento", 0);
+  const cBandeira = idx(cab, "Bandeira", 1);
+  const cCartao = idx(cab, "Número do Cartão", 2);
+  const cModalidade = idx(cab, "Modalidade", 3);
+  const cTerminal = idx(cab, "Número do Terminal", 4);
+  const cEc = idx(cab, "Estabelecimento Comercial", 5);
+  const cBruto = idx(cab, "Valor Bruto da Venda", 6);
+  const cLiquido = idx(cab, "Valor Líquido da Venda", 7);
+  const cNsu = idx(cab, "Número Sequencial Único", 8);
+  const cAut = idx(cab, "Número de Autorização", 9);
+  const cParcela = idx(cab, "Parcela", 10);
   const linhas: LinhaRecebivelSafraPay[] = [];
 
   for (let i = LINHA_CABECALHO + 1; i < rows.length; i++) {
     const r = rows[i] || [];
     if (r.every((c) => c == null || txt(c) === "")) continue;
 
-    const { parcela, total } = parseParcelaRecebivel(r[10]);
+    const { parcela, total } = parseParcelaRecebivel(r[cParcela]);
     linhas.push({
-      data_pagamento: parseDataSafraPay(r[0]),
-      bandeira: txt(r[1]) || null,
-      cartao_mascarado: txt(r[2]) || null,
-      modalidade: txt(r[3]) || null,
-      terminal: txt(r[4]) || null,
-      ec: txt(r[5]) || null,
-      valor_bruto_parcela: parseValorSafraPay(r[6]),
-      valor_liquido: parseValorSafraPay(r[7]),
-      nsu: txt(r[8]).replace(/^'/, "") || null,
-      autorizacao: txt(r[9]) || null,
+      data_pagamento: parseDataSafraPay(r[cData]),
+      bandeira: txt(r[cBandeira]) || null,
+      cartao_mascarado: txt(r[cCartao]) || null,
+      modalidade: txt(r[cModalidade]) || null,
+      terminal: txt(r[cTerminal]) || null,
+      ec: txt(r[cEc]) || null,
+      valor_bruto_parcela: parseValorSafraPay(r[cBruto]),
+      valor_liquido: parseValorSafraPay(r[cLiquido]),
+      nsu: txt(r[cNsu]).replace(/^'/, "") || null,
+      autorizacao: txt(r[cAut]) || null,
       parcela,
       total_parcelas: total,
     });

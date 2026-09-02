@@ -122,13 +122,13 @@ export async function gravarLiquidacaoSafraPay(
   // MDR são recalculados. Foi assim que o histórico com MDR zerado se conserta
   // sozinho, sem ninguém mexer no dado à mão. O resto da linha fica como está:
   // reimportação corrige valor, não reescreve vínculo.
-  const { data: existente, error: errBusca } = await sb
+  let busca = sb
     .from("safrapay_liquidacao")
     .select("id")
     .eq("nsu", nsu)
-    .eq("parcela", l.parcela)
-    .eq("data_pagamento", l.data_pagamento)
-    .maybeSingle();
+    .eq("data_pagamento", l.data_pagamento);
+  busca = l.parcela == null ? busca.is("parcela", null) : busca.eq("parcela", l.parcela);
+  const { data: existente, error: errBusca } = await busca.maybeSingle();
   if (errBusca) throw errBusca;
 
   if (existente) {
