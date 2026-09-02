@@ -386,7 +386,7 @@ export default function PessoaEntradaRapida() {
               </ul>
             )}
             <div className="flex flex-wrap gap-2 pt-2">
-              <Button variant="outline" onClick={() => navigate("/pessoas")}>Voltar para pessoas</Button>
+              <Button variant="ghost" onClick={() => navigate("/pessoas")}>Voltar para pessoas</Button>
               <Button onClick={() => navigate(`/pessoas/${sucesso.pessoaId}/editar`)}>Completar cadastro</Button>
             </div>
           </CardContent>
