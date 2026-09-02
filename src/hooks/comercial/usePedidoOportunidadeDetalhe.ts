@@ -18,6 +18,58 @@ export interface ObsComercial {
   criado_em: string | null;
 }
 
+/**
+ * A-TELA-NUNCA-MENTE: aba Pagamento vazia esconde quatro situações diferentes.
+ * Este diagnóstico é SÓ LEITURA: canal/condição do pedido + contagem leve das
+ * linhas de `provisao_recebimento`.
+ */
+export interface DiagnosticoPagamento {
+  canal: string | null;
+  condicao_solicitada: string | null;
+  id_externo: string | null;
+  eh_split: boolean;
+  linhas: number;
+  linhasPortao: number;
+  portaoPago: number;
+}
+
+export function useDiagnosticoPagamento(pedidoId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: ["oportunidade-diagnostico-pagamento", pedidoId],
+    enabled: !!pedidoId && enabled,
+    queryFn: async (): Promise<DiagnosticoPagamento> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sb = supabase as any;
+      const { data: pedido, error: errP } = await sb
+        .from("pedidos")
+        .select("canal, condicao_solicitada, id_externo, split_de_pedido_id")
+        .eq("id", pedidoId)
+        .single();
+      if (errP) throw errP;
+
+      const { data: linhas, error: errL } = await sb
+        .from("provisao_recebimento")
+        .select("id, eh_portao, pago_em")
+        .eq("pedido_id", pedidoId);
+      if (errL) throw errL;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const lista = (linhas ?? []) as any[];
+      const portao = lista.filter((l) => l.eh_portao);
+      return {
+        canal: pedido?.canal ?? null,
+        condicao_solicitada: pedido?.condicao_solicitada ?? null,
+        id_externo: pedido?.id_externo ?? null,
+        eh_split:
+          !!pedido?.split_de_pedido_id || String(pedido?.id_externo ?? "").includes("/"),
+        linhas: lista.length,
+        linhasPortao: portao.length,
+        portaoPago: portao.filter((l) => l.pago_em).length,
+      };
+    },
+  });
+}
+
 /** Itens do pedido (aba "Itens" do dialog de oportunidade). */
 export function useItensPedidoOportunidade(pedidoId: string | null, enabled = true) {
   return useQuery({

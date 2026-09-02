@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Copy, Loader2 } from "lucide-react";
+import { AlertTriangle, Copy, Loader2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -37,8 +37,12 @@ import { ClienteHistoricoBloco } from "@/components/comercial/ClienteHistorico";
 import { usePermissoesMesa } from "@/hooks/comercial/usePermissoesMesa";
 import { useStatusComercialLog } from "@/hooks/comercial/useMesaComercial";
 import { useBoletosDoPedido } from "@/hooks/pedidos/useBoletosDoPedido";
+import type { BoletoVigente } from "@/components/credito/AvisoBoletosVivos";
 import { usePedidoPortaoAtual } from "@/hooks/pedidos/usePedidoPortaoAtual";
+import { useDiagnosticoPagamento } from "@/hooks/comercial/usePedidoOportunidadeDetalhe";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { hojeISO } from "@/lib/data";
+
 
 
 
@@ -58,6 +62,34 @@ export const SITUACAO_CHIP: Record<string, string> = {
 export function chipSituacao(situacao: string | null | undefined): string {
   return SITUACAO_CHIP[situacao ?? ""] ?? "Em aberto";
 }
+
+/**
+ * FONTE-UNICA-DO-BOLETO (02/09/2026): a situação do boleto NÃO é `titulo.boleto_status`
+ * — durante a reemissão essa coluna descreve o boleto que está MORRENDO. Quem responde
+ * "dá para entregar?" é `vw_titulo_boleto_vigente`.
+ */
+function situacaoBoletoVigente(v: BoletoVigente | null): {
+  rotulo: string;
+  classe: string;
+  tooltip?: string;
+} {
+  if (!v || !v.nosso_numero) {
+    return { rotulo: "Sem boleto vivo", classe: "text-muted-foreground" };
+  }
+  if (v.vigente_em_baixa) {
+    return { rotulo: "Em reemissão — não entregar", classe: "text-destructive" };
+  }
+  if (v.enviavel) return { rotulo: "Registrado", classe: "text-success" };
+  if (["emitido", "registrado"].includes((v.situacao ?? "").toLowerCase())) {
+    return {
+      rotulo: "Vencido",
+      classe: "text-warning",
+      tooltip: "Boleto vencido continua pagável — o cliente paga com juros e multa.",
+    };
+  }
+  return { rotulo: v.situacao ?? "—", classe: "text-muted-foreground" };
+}
+
 
 function formatDataHora(valor: string | null): string {
   if (!valor) return "—";
@@ -389,9 +421,8 @@ export function PedidoOportunidadeDialog({
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
             ) : !temPortao ? (
-              <p className="text-sm text-muted-foreground py-6 text-center">
-                Este pedido não tem portão de pagamento pendente.
-              </p>
+              <DiagnosticoAbaPagamento pedidoId={pedidoId} idExterno={idExterno} aberto={open} />
+
             ) : (
               <>
                 <div className="rounded-md border px-3 py-2 space-y-1">
@@ -576,14 +607,23 @@ export function PedidoOportunidadeDialog({
                       <TableHead>Parcela</TableHead>
                       <TableHead>Vencimento</TableHead>
                       <TableHead className="text-right">Valor</TableHead>
+                      <TableHead>Nosso número</TableHead>
                       <TableHead>Situação</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(boletos.data?.boletoTitulos ?? []).map((b) => (
+                    {(boletos.data?.boletoTitulos ?? []).map((b) => {
+                      const sit = situacaoBoletoVigente(b.boleto_vigente);
+                      return (
                       <TableRow key={b.id}>
                         <TableCell className="text-xs">
                           {b.numero_parcela}/{b.total_parcelas}
+                          {(b.boleto_vigente?.boletos_vivos ?? 0) > 1 && (
+                            <span title="Mais de um boleto vivo neste título — confira com o Financeiro.">
+                              <AlertTriangle className="ml-1 inline h-3 w-3 text-warning" />
+                            </span>
+                          )}
+
                         </TableCell>
                         <TableCell className="text-xs">
                           {formatDateBR(b.data_vencimento_atual)}
@@ -591,11 +631,18 @@ export function PedidoOportunidadeDialog({
                         <TableCell className="text-right text-xs">
                           {formatBRL(b.valor_bruto ?? 0)}
                         </TableCell>
-                        <TableCell className="text-xs">{b.boleto_status || "—"}</TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {b.boleto_vigente?.nosso_numero || "—"}
+                        </TableCell>
+                        <TableCell className={`text-xs ${sit.classe}`} title={sit.tooltip}>
+                          {sit.rotulo}
+                        </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
+
               )}
               {(boletosValorAberto ?? 0) > 0 && (
                 <p className="text-xs text-muted-foreground">
@@ -708,4 +755,103 @@ export function PedidoOportunidadeDialog({
     </Sheet>
   );
 }
+
+/**
+ * A-TELA-NUNCA-MENTE: "sem portão pendente" esconde quatro histórias diferentes.
+ * Só leitura — nada aqui escreve no banco.
+ */
+function DiagnosticoAbaPagamento({
+  pedidoId,
+  idExterno,
+  aberto,
+}: {
+  pedidoId: string;
+  idExterno: string | null;
+  aberto: boolean;
+}) {
+  const { data, isLoading, error } = useDiagnosticoPagamento(pedidoId, aberto);
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-8">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+  // FAIL-LOUD: sem o diagnóstico a tela diz que não sabe, não inventa explicação.
+  if (error || !data) {
+    return (
+      <Alert variant="destructive">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Não foi possível diagnosticar o pagamento</AlertTitle>
+        <AlertDescription>{(error as Error)?.message ?? "Consulta sem retorno."}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  const ref = data.id_externo ?? idExterno ?? "";
+  const ehB2c = (data.canal ?? "").toUpperCase() === "B2C" || ref.startsWith("SHP-");
+
+  // CASO A — B2C: pagou no checkout, antes de chegar aqui.
+  if (ehB2c) {
+    return (
+      <Alert>
+        <AlertTitle>Pago no checkout</AlertTitle>
+        <AlertDescription>
+          Pedido B2C: o pagamento acontece no checkout da loja, antes de chegar aqui. Este
+          pedido não tem portão a confirmar.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // CASO B — nenhuma linha de provisão: não existe plano para cobrar.
+  if (data.linhas === 0) {
+    return (
+      <Alert>
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Sem plano de recebimento</AlertTitle>
+        <AlertDescription className="space-y-2">
+          <p>
+            Este pedido não tem plano de pagamento montado, então não existe parcela para
+            confirmar nem portão para fechar. Condição pedida:{" "}
+            {data.condicao_solicitada || "não informada"}. O plano precisa ser montado antes
+            de cobrar.
+          </p>
+          {ref.includes("/") && (
+            <p>
+              Este pedido nasceu de um split de um pedido já faturado — o plano do pai não
+              existe mais para herdar. A condição da revenda é decisão comercial nova.
+            </p>
+          )}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // CASO C — tem plano, mas nenhuma linha é portão: comprovante não fecha nada.
+  if (data.linhasPortao === 0) {
+    return (
+      <Alert variant="destructive">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Plano sem portão definido</AlertTitle>
+        <AlertDescription>
+          Existem {data.linhas} parcelas no plano, mas nenhuma está marcada como portão de
+          pagamento. Sem portão, o comprovante não tem o que fechar.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // CASO D — portão existe e já está todo confirmado.
+  return (
+    <Alert className="border-success/50">
+      <AlertTitle className="text-success">Portão já fechado</AlertTitle>
+      <AlertDescription className="text-muted-foreground">
+        Todas as linhas de portão deste pedido já foram confirmadas.
+      </AlertDescription>
+    </Alert>
+  );
+}
+
 

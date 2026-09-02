@@ -34,6 +34,9 @@ import {
   type MesaComercialRow,
 } from "@/hooks/comercial/useMesaComercial";
 import { usePermissoesMesa } from "@/hooks/comercial/usePermissoesMesa";
+import { useMesaEntrega } from "@/hooks/comercial/useMesaEntrega";
+import { FaseEntregaCelula } from "@/components/comercial/FaseEntregaCelula";
+
 
 
 /**
@@ -81,6 +84,10 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
   const { data: statusOpcoes = [] } = useStatusComercialOpcoes();
   const { data: pagamentoOpcoes = [] } = usePagamentoEstadoOpcoes();
   const { podeVerTodos, carregando: carregandoPerms } = usePermissoesMesa();
+  /** Fase & entrega só interessa em "Em andamento" — em Oportunidades o eixo é comercial. */
+  const mostrarFaseEntrega = grupo === "em_andamento";
+  const { data: entrega } = useMesaEntrega();
+
 
   /**
 
@@ -376,10 +383,12 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                       <TableHead>Pedido</TableHead>
                       <TableHead>Cliente</TableHead>
                       <TableHead className="text-right">Valor</TableHead>
+                      {mostrarFaseEntrega && <TableHead>Fase &amp; entrega</TableHead>}
                       <TableHead className="text-right">Tempo</TableHead>
                       <TableHead>Vendedor</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
+
                   </TableHeader>
                   <TableBody>
                     {filtradas.map((r) => (
@@ -506,12 +515,18 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                             </div>
                           )}
                         </TableCell>
+                        {mostrarFaseEntrega && (
+                          <TableCell className="align-top">
+                            <FaseEntregaCelula linha={entrega?.porPedido.get(r.pedido_id)} />
+                          </TableCell>
+                        )}
                         <TableCell className="text-right align-top">
                           <div className="text-sm">{r.dias_desde_pedido ?? 0}d do pedido</div>
                           <div className="text-xs text-muted-foreground">
                             {formatDateBR(r.data_pedido)}
                           </div>
                         </TableCell>
+
                         <TableCell className="text-xs align-top">
                           {r.vendedor_nome || "—"}
                         </TableCell>
