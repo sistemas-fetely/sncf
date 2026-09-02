@@ -590,6 +590,9 @@ export default function ContasPagar() {
                   <SortableTableHead column="vencimento" sort={sort} onSort={setSort}>
                     Vencimento
                   </SortableTableHead>
+                  <SortableTableHead column="pretendida" sort={sort} onSort={setSort}>
+                    Pretendida
+                  </SortableTableHead>
                   <SortableTableHead column="meio_pagamento" sort={sort} onSort={setSort}>
                     Meio de pagamento
                   </SortableTableHead>
