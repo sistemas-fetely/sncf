@@ -104,26 +104,46 @@ function BlocoHeader({
 }
 
 function CardResumo({
-  label, qtd, total, tom,
+  label, qtd, total, tom, ativo, onClick,
 }: {
   label: string;
   qtd: number;
   total: number;
   tom: "destructive" | "warning" | "muted";
+  /** Filtro selecionado: o card fica em destaque e o clique volta a "todos". */
+  ativo?: boolean;
+  onClick?: () => void;
 }) {
+  // Card de contagem zero nao filtra: clique sem resultado ensina o operador
+  // que o card nao funciona.
+  const clicavel = !!onClick && qtd > 0;
   return (
-    <div
+    <button
+      type="button"
+      onClick={clicavel ? onClick : undefined}
+      disabled={!clicavel}
+      aria-pressed={ativo}
+      title={
+        clicavel
+          ? ativo
+            ? "Clique para ver todos os blocos"
+            : `Ver só: ${label}`
+          : `${label} — nada nesta classe`
+      }
       className={cn(
-        "text-left p-3 rounded-lg border bg-card",
+        "text-left p-3 rounded-lg border bg-card transition-colors",
+        clicavel && "hover:bg-muted/50 cursor-pointer",
+        !clicavel && "opacity-60 cursor-default",
         tom === "destructive" && "border-destructive/40 text-destructive",
         tom === "warning" && "border-warning/40 text-warning",
         tom === "muted" && "border-border",
+        ativo && "ring-2 ring-offset-1 ring-current bg-muted/60",
       )}
     >
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className="text-2xl font-medium mt-1">{qtd}</div>
       <div className="text-xs text-muted-foreground tabular-nums">{formatBRL(total)}</div>
-    </div>
+    </button>
   );
 }
 
