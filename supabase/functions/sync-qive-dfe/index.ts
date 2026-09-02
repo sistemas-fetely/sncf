@@ -357,13 +357,13 @@ Deno.serve(async (req) => {
                     p = parseXml(decodificarBase64(doc.xmlBase64));
                   } catch (e) {
                     console.error(`[${entidade}] XML ilegível (${doc.chave}):`, e);
-                    resumo.erros++;
+                    anotarErro(resumo, `XML ilegível (${doc.chave}): ${e instanceof Error ? e.message : String(e)}`);
                   }
                 }
 
                 const chave = doc.chave ?? p?.chave ?? null;
                 if (!chave) {
-                  resumo.erros++;
+                  anotarErro(resumo, "documento sem chave de acesso");
                   console.error(`[${entidade}] documento sem chave de acesso, ignorado`);
                   continue;
                 }
