@@ -31,6 +31,8 @@ const CNPJ_FETELY_PREFIXO = "63591078";
 interface ResumoEntidade {
   encontrados: number;
   gravados: number;
+  /** SIMULACAO-NAO-ESCREVE: quantos seriam gravados se não fosse simulação. */
+  seriam_gravados: number;
   ja_existiam: number;
   com_referencia: number;
   erros: number;
@@ -40,6 +42,9 @@ interface ResumoEntidade {
   cursor_final: string | null;
   /** CURSOR-SO-AVANCA-SOBRE-SUCESSO: diz explicitamente se a fila andou. */
   cursor_avancou: boolean;
+  simulado: boolean;
+  /** 5 primeiros documentos parseados — confere o parse sem gravar nada. */
+  amostra: unknown[];
   interrompido_por?: string;
   erro?: string;
 }
@@ -49,9 +54,10 @@ interface DocQive {
   xmlBase64: string | null;
 }
 
-const novoResumo = (): ResumoEntidade => ({
+const novoResumo = (simulado: boolean): ResumoEntidade => ({
   encontrados: 0,
   gravados: 0,
+  seriam_gravados: 0,
   ja_existiam: 0,
   com_referencia: 0,
   erros: 0,
@@ -59,7 +65,10 @@ const novoResumo = (): ResumoEntidade => ({
   paginas: 0,
   cursor_final: null,
   cursor_avancou: false,
+  simulado,
+  amostra: [],
 });
+
 
 function anotarErro(resumo: ResumoEntidade, msg: string) {
   resumo.erros++;
