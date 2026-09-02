@@ -633,7 +633,7 @@ export default function PessoaEntradaRapida() {
           </Alert>
           <Card>
             <CardHeader><CardTitle>Dados legais obrigatórios (CLT)</CardTitle></CardHeader>
-            <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <CardContent className="space-y-4">
               {CAMPOS_CLT.map(([campo, rotulo]) => (
                 <div className="space-y-1.5" key={campo}>
                   <Label htmlFor={`clt-${campo}`}>{rotulo} *</Label>
