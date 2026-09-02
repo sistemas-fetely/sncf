@@ -1659,6 +1659,7 @@ export default function NFsStage() {
                   <SortableTableHead column="valor" sort={sort} onSort={setSort} className="w-28" align="right">
                     Valor
                   </SortableTableHead>
+                  <TableHead className="w-32">Destino</TableHead>
                   <SortableTableHead column="categoria" sort={sort} onSort={setSort} className="min-w-[220px]">
                     Categoria
                   </SortableTableHead>
