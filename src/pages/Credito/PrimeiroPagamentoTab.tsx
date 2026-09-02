@@ -10,7 +10,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Search, Info } from "lucide-react";
 import { formatCNPJ } from "@/lib/cnpj";
 import { formatBRL } from "@/lib/format-currency";
-import { useCartaoAbertoPorPedido } from "@/hooks/credito/useCartaoAbertoPorPedido";
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 
 const fmtDate = (iso: string) =>
@@ -23,11 +22,6 @@ export default function PrimeiroPagamentoTab() {
 
   // REFERENCIA-SEMPRE: uma única tela de confirmação, modo SOPS (anexo opcional).
   const [confirmando, setConfirmando] = useState<{ pedidoId: string } | null>(null);
-
-  // CARTAO-E-CAPTURA-UNICA: cartão fecha pela captura (NSU), com a adquirente da vez.
-  const { data: cartaoAberto } = useCartaoAbertoPorPedido(
-    (data ?? []).filter((p) => p.tipo_pagamento === "cartao").map((p) => p.pedido_id),
-  );
 
   return (
     <div className="space-y-4">
