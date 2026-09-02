@@ -26,6 +26,7 @@ export type MotivoDescarte =
   | "fora_do_periodo"
   | "fora_do_escopo"
   | "sem_valor"
+  | "boleto_em_aberto"
   | "sem_data"
   | "sem_identificador"
   | "sem_par_no_extrato"
@@ -40,6 +41,13 @@ export const MOTIVO_ROTULO: Record<MotivoDescarte, string> = {
   fora_do_periodo: "Fora do período importado",
   fora_do_escopo: "Fora do escopo desta fonte",
   sem_valor: "Sem valor",
+  // BOLETO-ABERTO-NAO-E-DESCARTE (02/09/2026): a Francesinha traz a carteira
+  // inteira, aberta e liquidada. Boleto aberto tem valor_pago = 0 e nao tem o
+  // que enriquecer — nao e falha. Antes caia em `sem_valor` e 32 de 35 linhas
+  // apareciam como "ignoradas", indistinguiveis de um arquivo que quebrou.
+  // `sem_valor` fica reservado para onde valor zero e REALMENTE estranho
+  // (ajuste SafraPay Tipo 3 de R$ 0,00).
+  boleto_em_aberto: "Boleto em aberto (nada a conciliar)",
   sem_data: "Sem data",
   sem_identificador: "Sem identificador (NSU / ID de operação)",
   sem_par_no_extrato: "Sem par no extrato para enriquecer",

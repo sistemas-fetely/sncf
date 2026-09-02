@@ -1241,7 +1241,9 @@ export default function ExtratoImportacao() {
         } else {
           for (const l of parsed.linhas) {
             if (l.valor_pago <= 0) {
-              cont.ignorar("sem_valor");
+              // Boleto em aberto: a Francesinha traz a carteira inteira, e
+              // linha sem pagamento nao tem par no extrato por definicao.
+              cont.ignorar("boleto_em_aberto");
               continue;
             }
             const dataPag = l.data_pagamento || parsed.data_referencia;
