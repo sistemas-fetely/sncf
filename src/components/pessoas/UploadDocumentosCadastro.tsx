@@ -1,3 +1,14 @@
+/**
+ * UploadDocumentosCadastro — herdeiro do antigo StepUploadDocumentos
+ * (src/components/cadastro-publico/, apagado em 02/09/2026 junto com o
+ * modelo de token/convite, que saiu do banco).
+ *
+ * Agora o caminho no bucket é {pessoa_id}/{tipo}.{ext} — a policy só deixa
+ * a própria pessoa escrever na pasta do seu pessoa_id.
+ * Preview vem do File local; delete é FAIL-LOUD (arquivo que não saiu do
+ * bucket não sai da lista).
+ */
+
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -12,37 +23,21 @@ interface DocumentSlot {
   required?: boolean;
 }
 
-interface UploadedFile {
+export interface UploadedFile {
   key: string;
   name: string;
   url: string;
 }
 
-interface StepUploadDocumentosProps {
-  tipo: "clt" | "pj";
-  token: string;
+interface Props {
+  pessoaId: string;
+  documentos: DocumentSlot[];
   uploadedFiles: UploadedFile[];
   onFilesChange: (files: UploadedFile[]) => void;
 }
 
-const CLT_DOCUMENTS: DocumentSlot[] = [
-  { key: "foto_rosto", label: "Foto Social", required: true },
-  { key: "rg_cnh_frente", label: "RG ou CNH (Frente)", required: true },
-  { key: "rg_cnh_verso", label: "RG ou CNH (Verso)" },
-  { key: "comprovante_residencia", label: "Comprovante de Residência" },
-];
-
-const PJ_DOCUMENTS: DocumentSlot[] = [
-  { key: "foto_rosto", label: "Foto Social", required: true },
-  { key: "rg_cnh_frente", label: "RG ou CNH (Frente)", required: true },
-  { key: "rg_cnh_verso", label: "RG ou CNH (Verso)" },
-  { key: "contrato_social", label: "Contrato Social", required: true },
-  { key: "cartao_cnpj", label: "Cartão CNPJ" },
-];
-
-export default function StepUploadDocumentos({ tipo, token, uploadedFiles, onFilesChange }: StepUploadDocumentosProps) {
+export default function UploadDocumentosCadastro({ pessoaId, documentos, uploadedFiles, onFilesChange }: Props) {
   const [uploading, setUploading] = useState<string | null>(null);
-  // Superfície anônima: pré-visualização vem do File local, nunca do storage.
   const [previews, setPreviews] = useState<Record<string, string>>({});
   const previewsRef = useRef<Record<string, string>>({});
   previewsRef.current = previews;
@@ -53,9 +48,7 @@ export default function StepUploadDocumentos({ tipo, token, uploadedFiles, onFil
   }, []);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  const documents = tipo === "clt" ? CLT_DOCUMENTS : PJ_DOCUMENTS;
-
-  const getUploadedFile = (key: string) => uploadedFiles.find(f => f.key === key);
+  const getUploadedFile = (key: string) => uploadedFiles.find((f) => f.key === key);
 
   const handleUpload = async (key: string, file: File) => {
     if (file.size > 10 * 1024 * 1024) {
@@ -72,7 +65,7 @@ export default function StepUploadDocumentos({ tipo, token, uploadedFiles, onFil
     setUploading(key);
 
     const ext = file.name.split(".").pop() || "jpg";
-    const filePath = `${token}/${key}.${ext}`;
+    const filePath = `${pessoaId}/${key}.${ext}`;
 
     const { error } = await supabase.storage
       .from("documentos-cadastro")
@@ -96,11 +89,11 @@ export default function StepUploadDocumentos({ tipo, token, uploadedFiles, onFil
       });
     }
 
-    const newFiles = uploadedFiles.filter(f => f.key !== key);
+    const newFiles = uploadedFiles.filter((f) => f.key !== key);
     newFiles.push({ key, name: file.name, url: urlData.publicUrl });
     onFilesChange(newFiles);
 
-    toast.success("Documento enviado!");
+    toast.success("Documento enviado");
     setUploading(null);
   };
 
@@ -108,9 +101,8 @@ export default function StepUploadDocumentos({ tipo, token, uploadedFiles, onFil
     const file = getUploadedFile(key);
     if (!file) return;
 
-    // Extract path from URL
     const ext = file.name.split(".").pop() || "jpg";
-    const filePath = `${token}/${key}.${ext}`;
+    const filePath = `${pessoaId}/${key}.${ext}`;
 
     const { error } = await supabase.storage.from("documentos-cadastro").remove([filePath]);
 
@@ -126,95 +118,88 @@ export default function StepUploadDocumentos({ tipo, token, uploadedFiles, onFil
       return resto;
     });
 
-    onFilesChange(uploadedFiles.filter(f => f.key !== key));
-    toast.success("Documento removido.");
+    onFilesChange(uploadedFiles.filter((f) => f.key !== key));
+    toast.success("Documento removido");
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium mb-2">Upload de Documentos</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Envie cópia dos documentos solicitados abaixo. Formatos aceitos: JPG, PNG, WebP ou PDF (máx. 10MB cada).
-        </p>
-      </div>
+    <div className="space-y-4">
+      {documentos.map((doc) => {
+        const uploaded = getUploadedFile(doc.key);
+        const isUploading = uploading === doc.key;
 
-      <div className="space-y-4">
-        {documents.map((doc) => {
-          const uploaded = getUploadedFile(doc.key);
-          const isUploading = uploading === doc.key;
-
-          return (
-            <Card key={doc.key} className={uploaded ? "border-success/40 bg-success/10" : ""}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {previews[doc.key] && (
-                      <img
-                        src={previews[doc.key]}
-                        alt={doc.label}
-                        className="h-10 w-10 rounded object-cover border shrink-0"
-                      />
-                    )}
-                    {uploaded ? (
-                      <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
-                    ) : (
-                      <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
-                    )}
-                    <div>
-                      <Label className="text-sm font-medium">
-                        {doc.label} {doc.required && <span className="text-destructive">*</span>}
-                      </Label>
-                      {uploaded && (
-                        <p className="text-xs text-muted-foreground mt-0.5">{uploaded.name}</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {uploaded && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive"
-                        onClick={() => handleRemove(doc.key)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                    <Button
-                      type="button"
-                      variant={uploaded ? "outline" : "default"}
-                      size="sm"
-                      disabled={isUploading}
-                      onClick={() => fileInputRefs.current[doc.key]?.click()}
-                      className="gap-2"
-                    >
-                      {isUploading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Upload className="h-4 w-4" />
-                      )}
-                      {uploaded ? "Substituir" : "Enviar"}
-                    </Button>
-                    <input
-                      ref={(el) => { fileInputRefs.current[doc.key] = el; }}
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,application/pdf"
-                      className="hidden"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) handleUpload(doc.key, f);
-                        e.target.value = "";
-                      }}
+        return (
+          <Card key={doc.key} className={uploaded ? "border-success/40 bg-success/10" : ""}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  {previews[doc.key] && (
+                    <img
+                      src={previews[doc.key]}
+                      alt={doc.label}
+                      className="h-10 w-10 shrink-0 rounded border object-cover"
                     />
+                  )}
+                  {uploaded ? (
+                    <CheckCircle2 className="h-5 w-5 shrink-0 text-success" />
+                  ) : (
+                    <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
+                  )}
+                  <div className="min-w-0">
+                    <Label className="text-sm font-medium">
+                      {doc.label} {doc.required && <span className="text-destructive">*</span>}
+                    </Label>
+                    {uploaded && (
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">{uploaded.name}</p>
+                    )}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                <div className="flex items-center gap-2">
+                  {uploaded && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive"
+                      onClick={() => handleRemove(doc.key)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant={uploaded ? "outline" : "default"}
+                    size="sm"
+                    disabled={isUploading}
+                    onClick={() => fileInputRefs.current[doc.key]?.click()}
+                    className="gap-2"
+                  >
+                    {isUploading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4" />
+                    )}
+                    {uploaded ? "Substituir" : "Enviar"}
+                  </Button>
+                  <input
+                    ref={(el) => {
+                      fileInputRefs.current[doc.key] = el;
+                    }}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleUpload(doc.key, f);
+                      e.target.value = "";
+                    }}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }
