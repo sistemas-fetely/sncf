@@ -237,12 +237,25 @@ Deno.serve(async (req) => {
     );
 
     let ambiente: "sandbox" | "producao" = "sandbox";
+    let simularExplicito: boolean | null = null;
     try {
       const body = await req.json();
       if (body?.ambiente === "producao") ambiente = "producao";
+      if (typeof body?.simular === "boolean") simularExplicito = body.simular;
     } catch {
       // sem body → sandbox
     }
+
+    // SANDBOX-NAO-ESCREVE-EM-PRODUCAO: `ambiente` decide de onde busca; sem esta
+    // regra, dados fictícios do sandbox caíam em `nfs_stage` (tabela de produção)
+    // e o trigger de despesas os transformava em lançamentos contábeis.
+    const simular = simularExplicito ?? (ambiente === "sandbox");
+    if (ambiente === "sandbox" && !simular) {
+      console.warn(
+        "[sync-qive-dfe] ATENÇÃO: ambiente=sandbox com simular=false — DADOS FICTÍCIOS SERÃO GRAVADOS EM nfs_stage (TABELA DE PRODUÇÃO).",
+      );
+    }
+
 
     const base =
       ambiente === "producao"
