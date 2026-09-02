@@ -1,7 +1,7 @@
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useMemo, useState, type ComponentProps } from "react";
-import { getStatusCprMeta, STATUS_CPR_FILTRAVEIS } from "@/lib/financeiro/status-cpr";
+import { getStatusCprMeta, STATUS_CPR_FILTRAVEIS, STATUS_CPR_META } from "@/lib/financeiro/status-cpr";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,25 +30,47 @@ import {
   type SortState,
 } from "@/components/shared/SortableTableHead";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
   ArrowUpFromLine,
   Plus,
   Upload,
   Flame,
   AlertTriangle,
   Clock,
-  AlertCircle,
-  
+  CalendarDays,
+  MoreVertical,
   FileWarning,
   PackageOpen,
   X,
 } from "lucide-react";
 import AcoesInlineConta from "@/components/financeiro/AcoesInlineConta";
+import {
+  useTituloPagarAcoes,
+  useTituloPagarTransicionar,
+  type TituloPagarAcao,
+} from "@/hooks/financeiro/useTituloPagarEstado";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import ContaPagarDetalheDrawer from "@/components/financeiro/ContaPagarDetalheDrawer";
 import { NovaContaPagarSheet } from "@/components/financeiro/NovaContaPagarSheet";
 import { ImportarNFDespesaDialog } from "@/components/financeiro/ImportarNFDespesaDialog";
 import { getMeioPagamentoIcon } from "@/lib/financeiro/meio-pagamento-icon";
 import { cn } from "@/lib/utils";
+import { hojeISO } from "@/lib/data";
 
 type Conta = {
   id: string;
@@ -83,16 +105,35 @@ type Conta = {
   saldo?: number | null;
   situacao_pagamento?: "nao_pago" | "parcial" | "pago" | "cancelado" | null;
   qtd_pagamentos?: number | null;
+  // ESTADO × PROVAS — a view devolve o estado já resolvido pelo banco.
+  data_pretendida: string | null;
+  estado_rotulo: string | null;
+  estado_cor: string | null;
+  estado_ordem: number | null;
+  estado_terminal: boolean | null;
+  estado_exige_data: boolean | null;
 };
 
 // Status de CPR: mapa canônico em `@/lib/financeiro/status-cpr`.
 
-const diasAteVencer = (d: string | null) => {
-  if (!d) return 999;
-  return Math.ceil((new Date(d + "T00:00:00").getTime() - Date.now()) / 86400000);
-};
 
-type KpiFilter = "para_agir" | "atrasadas" | "aguardando" | "pendencia" | null;
+/** hoje + 7 dias, em Brasília, como "YYYY-MM-DD". */
+function limiteSemana(): string {
+  const [a, m, d] = hojeISO().split("-").map(Number);
+  const dt = new Date(Date.UTC(a, m - 1, d + 7));
+  return dt.toISOString().slice(0, 10);
+}
+
+type KpiFilter = "a_aprovar" | "a_programar" | "esta_semana" | "vencido" | null;
+
+/** Regras dos KPIs — perguntas do trilho, uma fonte só para card e filtro. */
+const REGRA_KPI: Record<Exclude<KpiFilter, null>, (c: Conta, limite: string) => boolean> = {
+  a_aprovar: (c) => c.status === "aberto",
+  a_programar: (c) => c.status === "aprovado" && !c.data_pretendida,
+  esta_semana: (c, limite) =>
+    c.status === "programado" && !!c.data_pretendida && c.data_pretendida <= limite,
+  vencido: (c) => c.atrasada === true,
+};
 
 export default function ContasPagar() {
   const qc = useQueryClient();
@@ -280,51 +321,30 @@ export default function ContasPagar() {
     return !!s && s.nf_aplicavel && !s.vinculo_nf_completo;
   };
 
-  type SortColumn = "parceiro" | "descricao" | "vencimento" | "meio_pagamento" | "categoria" | "valor" | "status";
+  type SortColumn = "parceiro" | "descricao" | "vencimento" | "pretendida" | "meio_pagamento" | "categoria" | "valor" | "status";
   const [sort, setSort] = useState<SortState<SortColumn> | null>({ column: "vencimento", direction: "asc" });
+
+  const limite = limiteSemana();
 
   const kpis = useMemo(() => {
     const lista = data || [];
-    const para_agir = lista.filter(
-      (c) => ["aberto", "aprovado"].includes(c.status) && diasAteVencer(c.data_vencimento) <= 7,
-    );
-    const atrasadas = lista.filter(
-      (c) => c.atrasada && !["enviado_para_pagamento", "realizada", "cancelado"].includes(c.status),
-    );
-    const aguardando = lista.filter((c) => c.status === "enviado_para_pagamento");
-    const pendencia = lista.filter(
-      (c) =>
-        !["cancelado", "realizada"].includes(c.status) &&
-        (pendenciaMap.has(c.id) || temPendenciaNF(c.id)),
-    );
     const sumValor = (arr: Conta[]) => arr.reduce((s, c) => s + Number(c.valor || 0), 0);
-    return {
-      para_agir: { count: para_agir.length, valor: sumValor(para_agir) },
-      atrasadas: { count: atrasadas.length, valor: sumValor(atrasadas) },
-      aguardando: { count: aguardando.length, valor: sumValor(aguardando) },
-      pendencia: { count: pendencia.length, valor: sumValor(pendencia) },
+    const bloco = (k: Exclude<KpiFilter, null>) => {
+      const arr = lista.filter((c) => REGRA_KPI[k](c, limite));
+      return { count: arr.length, valor: sumValor(arr) };
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, pendenciaMap, nfStatusMap]);
+    return {
+      a_aprovar: bloco("a_aprovar"),
+      a_programar: bloco("a_programar"),
+      esta_semana: bloco("esta_semana"),
+      vencido: bloco("vencido"),
+    };
+  }, [data, limite]);
 
   const filtrados = useMemo(() => {
     let lista = data || [];
-    if (kpiFilter === "para_agir") {
-      lista = lista.filter(
-        (c) => ["aberto", "aprovado"].includes(c.status) && diasAteVencer(c.data_vencimento) <= 7,
-      );
-    } else if (kpiFilter === "atrasadas") {
-      lista = lista.filter(
-        (c) => c.atrasada && !["enviado_para_pagamento", "realizada", "cancelado"].includes(c.status),
-      );
-    } else if (kpiFilter === "aguardando") {
-      lista = lista.filter((c) => c.status === "enviado_para_pagamento");
-    } else if (kpiFilter === "pendencia") {
-      lista = lista.filter(
-        (c) =>
-          !["cancelado", "realizada"].includes(c.status) &&
-          (pendenciaMap.has(c.id) || temPendenciaNF(c.id)),
-      );
+    if (kpiFilter) {
+      lista = lista.filter((c) => REGRA_KPI[kpiFilter](c, limite));
     }
     if (busca.trim()) {
       const b = busca.toLowerCase();
@@ -353,15 +373,58 @@ export default function ContasPagar() {
       parceiro: (c) => c.parceiros_comerciais?.razao_social || c.fornecedor_cliente || "",
       descricao: (c) => c.descricao || "",
       vencimento: (c) => c.data_vencimento || "",
+      // nulos por último nas duas direções (ordenarPor já trata null assim)
+      pretendida: (c) => c.data_pretendida ?? null,
       meio_pagamento: (c) => c.formas_pagamento?.nome || "",
       categoria: (c) => c.plano_contas?.nome || "",
       valor: (c) => Number(c.valor) || 0,
-      status: (c) => c.status || "",
+      // ESTADO × PROVAS — a ordem é a do banco, não a alfabética do slug.
+      status: (c) => c.estado_ordem ?? null,
     });
 
     return lista;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, kpiFilter, busca, statusFilter, solicitanteFilter, dataDe, dataAte, pendenciaMap, solicitanteMap, nfStatusMap, sort]);
+
+  /**
+   * AUSÊNCIA DE LINHA NA TRANSIÇÃO = BOTÃO NÃO EXISTE.
+   * Uma consulta para a página toda — o hook devolve Map<cpr_id, acoes[]>.
+   */
+  const { data: acoesMap } = useTituloPagarAcoes(filtrados.map((c) => c.id));
+  const transicionar = useTituloPagarTransicionar();
+
+  const [acaoPendente, setAcaoPendente] = useState<
+    { conta: Conta; acao: TituloPagarAcao } | null
+  >(null);
+  const [motivo, setMotivo] = useState("");
+  const [dataPretendida, setDataPretendida] = useState("");
+
+  function executar(cprId: string, acao: TituloPagarAcao, m?: string, d?: string) {
+    transicionar.mutate({
+      cprId,
+      para: acao.para,
+      motivo: m || undefined,
+      dataPretendida: d || null,
+    });
+  }
+
+  function abrirAcao(conta: Conta, acao: TituloPagarAcao) {
+    if (acao.exige_motivo || acao.exige_data_pretendida) {
+      setMotivo("");
+      setDataPretendida(conta.data_pretendida || "");
+      setAcaoPendente({ conta, acao });
+      return;
+    }
+    executar(conta.id, acao);
+  }
+
+  function confirmarAcaoPendente() {
+    if (!acaoPendente) return;
+    const { conta, acao } = acaoPendente;
+    executar(conta.id, acao, acao.exige_motivo ? motivo : undefined, acao.exige_motivo ? undefined : dataPretendida);
+    setAcaoPendente(null);
+  }
+
 
   const temFiltroAtivo =
     !!busca.trim() ||
@@ -423,44 +486,45 @@ export default function ContasPagar() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard
             icon={Flame}
-            label="Para agir"
-            count={kpis.para_agir.count}
-            valor={kpis.para_agir.valor}
+            label="A aprovar"
+            count={kpis.a_aprovar.count}
+            valor={kpis.a_aprovar.valor}
             color="text-warning"
             border="border-warning/40"
-            active={kpiFilter === "para_agir"}
-            onClick={() => setKpiFilter(kpiFilter === "para_agir" ? null : "para_agir")}
-          />
-          <KpiCard
-            icon={AlertTriangle}
-            label="Atrasadas"
-            count={kpis.atrasadas.count}
-            valor={kpis.atrasadas.valor}
-            color="text-destructive"
-            border="border-destructive/40"
-            active={kpiFilter === "atrasadas"}
-            onClick={() => setKpiFilter(kpiFilter === "atrasadas" ? null : "atrasadas")}
+            active={kpiFilter === "a_aprovar"}
+            onClick={() => setKpiFilter(kpiFilter === "a_aprovar" ? null : "a_aprovar")}
           />
           <KpiCard
             icon={Clock}
-            label="Enviado para Pagamento"
-            count={kpis.aguardando.count}
-            valor={kpis.aguardando.valor}
-            color="text-success"
-            border="border-success/40"
-            active={kpiFilter === "aguardando"}
-            onClick={() => setKpiFilter(kpiFilter === "aguardando" ? null : "aguardando")}
+            label="A programar"
+            count={kpis.a_programar.count}
+            valor={kpis.a_programar.valor}
+            color="text-info"
+            border="border-info/40"
+            active={kpiFilter === "a_programar"}
+            onClick={() => setKpiFilter(kpiFilter === "a_programar" ? null : "a_programar")}
           />
           <KpiCard
-            icon={AlertCircle}
-            label="Pendência de dados"
-            count={kpis.pendencia.count}
-            valor={kpis.pendencia.valor}
-            color="text-warning"
-            border="border-warning/40"
-            active={kpiFilter === "pendencia"}
-            onClick={() => setKpiFilter(kpiFilter === "pendencia" ? null : "pendencia")}
+            icon={CalendarDays}
+            label="Esta semana"
+            count={kpis.esta_semana.count}
+            valor={kpis.esta_semana.valor}
+            color="text-success"
+            border="border-success/40"
+            active={kpiFilter === "esta_semana"}
+            onClick={() => setKpiFilter(kpiFilter === "esta_semana" ? null : "esta_semana")}
           />
+          <KpiCard
+            icon={AlertTriangle}
+            label="Vencido"
+            count={kpis.vencido.count}
+            valor={kpis.vencido.valor}
+            color="text-destructive"
+            border="border-destructive/40"
+            active={kpiFilter === "vencido"}
+            onClick={() => setKpiFilter(kpiFilter === "vencido" ? null : "vencido")}
+          />
+
         </div>
       </div>
 
@@ -561,6 +625,9 @@ export default function ContasPagar() {
                   <SortableTableHead column="vencimento" sort={sort} onSort={setSort}>
                     Vencimento
                   </SortableTableHead>
+                  <SortableTableHead column="pretendida" sort={sort} onSort={setSort}>
+                    Pretendida
+                  </SortableTableHead>
                   <SortableTableHead column="meio_pagamento" sort={sort} onSort={setSort}>
                     Meio de pagamento
                   </SortableTableHead>
@@ -616,6 +683,13 @@ export default function ContasPagar() {
                       >
                         {formatDateBR(c.data_vencimento)}
                       </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {c.data_pretendida ? (
+                          formatDateBR(c.data_pretendida)
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                       <TableCell className="whitespace-nowrap text-xs">
                         {meio ? (
                           <div className="flex flex-col gap-0.5">
@@ -664,8 +738,23 @@ export default function ContasPagar() {
                       <TableCell>
                         <div className="flex flex-col gap-1 items-start">
                           {(() => {
+                            // ESTADO × PROVAS: o RÓTULO vem do banco (estado_rotulo);
+                            // o ESTILO continua sendo o design system (status-cpr).
+                            // Slug desconhecido pelo TS cai em fail-soft com estado_cor.
                             const meta = getStatusCprMeta(c.status);
-                            return <Badge className={meta.className}>{meta.label}</Badge>;
+                            const rotulo = c.estado_rotulo || meta.label;
+                            const desconhecido = !STATUS_CPR_META[c.status];
+                            if (desconhecido && c.estado_cor) {
+                              return (
+                                <Badge
+                                  className="border-transparent text-white"
+                                  style={{ backgroundColor: c.estado_cor }}
+                                >
+                                  {rotulo}
+                                </Badge>
+                              );
+                            }
+                            return <Badge className={meta.className}>{rotulo}</Badge>;
                           })()}
                           {c.situacao_pagamento === "parcial" && (
                             <Badge
@@ -678,16 +767,54 @@ export default function ContasPagar() {
                         </div>
                       </TableCell>
                       <TableCell
-                        className="min-w-[140px]"
+                        className="min-w-[170px]"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <AcoesInlineConta
-                          conta={{
-                            ...c,
-                            email_pagamento_enviado: emailMap.get(c.id) || false,
-                          }}
-                          onAbrirEditandoBanco={(id) => setContaIdSelecionada(id)}
-                        />
+                        <div className="flex items-center gap-1">
+                          {(() => {
+                            const acoes = acoesMap?.get(c.id) ?? [];
+                            return (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild disabled={acoes.length === 0}>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    disabled={acoes.length === 0}
+                                    title={
+                                      acoes.length === 0
+                                        ? "Sem transição legal a partir deste estado"
+                                        : "Mudar estado"
+                                    }
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start">
+                                  {acoes.map((a) => (
+                                    <DropdownMenuItem
+                                      key={`${a.de}-${a.para}`}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        abrirAcao(c, a);
+                                      }}
+                                    >
+                                      {a.rotulo_acao}
+                                    </DropdownMenuItem>
+                                  ))}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            );
+                          })()}
+                          <AcoesInlineConta
+                            conta={{
+                              ...c,
+                              email_pagamento_enviado: emailMap.get(c.id) || false,
+                            }}
+                            onAbrirEditandoBanco={(id) => setContaIdSelecionada(id)}
+                          />
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -727,6 +854,56 @@ export default function ContasPagar() {
         }}
         initialData={initialDataNovaConta}
       />
+
+      {/* UM só Dialog para toda a tabela — controlado por `acaoPendente`. */}
+      <Dialog open={!!acaoPendente} onOpenChange={(v) => !v && setAcaoPendente(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{acaoPendente?.acao.rotulo_acao}</DialogTitle>
+            <DialogDescription>
+              {acaoPendente?.conta.descricao} · {formatBRL(acaoPendente?.conta.valor || 0)}
+            </DialogDescription>
+          </DialogHeader>
+
+          {acaoPendente?.acao.exige_motivo ? (
+            <div className="space-y-2">
+              <Label htmlFor="motivo-transicao">Motivo</Label>
+              <Textarea
+                id="motivo-transicao"
+                value={motivo}
+                onChange={(e) => setMotivo(e.target.value)}
+                placeholder="Fornecedor pediu para adiar o pagamento"
+                rows={3}
+              />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="data-pretendida-transicao">Data pretendida de pagamento</Label>
+              <Input
+                id="data-pretendida-transicao"
+                type="date"
+                value={dataPretendida}
+                onChange={(e) => setDataPretendida(e.target.value)}
+              />
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAcaoPendente(null)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={confirmarAcaoPendente}
+              disabled={
+                transicionar.isPending ||
+                (acaoPendente?.acao.exige_motivo ? !motivo.trim() : !dataPretendida)
+              }
+            >
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 }
