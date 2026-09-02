@@ -84,6 +84,10 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
   const { data: statusOpcoes = [] } = useStatusComercialOpcoes();
   const { data: pagamentoOpcoes = [] } = usePagamentoEstadoOpcoes();
   const { podeVerTodos, carregando: carregandoPerms } = usePermissoesMesa();
+  /** Fase & entrega só interessa em "Em andamento" — em Oportunidades o eixo é comercial. */
+  const mostrarFaseEntrega = grupo === "em_andamento";
+  const { data: entrega } = useMesaEntrega();
+
 
   /**
 
