@@ -91,6 +91,21 @@ interface PendenciaFase {
   total: number;
 }
 
+/** §9: mensagem de erro abaixo do campo, em destructive, dizendo o que fazer. */
+function ErroCampo({ mostrar, mensagem }: { mostrar: boolean; mensagem: string | null }) {
+  if (!mostrar || !mensagem) return null;
+  return <p className="text-[11px] text-destructive">{mensagem}</p>;
+}
+
+/** §15/6: origem vazia diz o que fazer, não "erro ao carregar". */
+function ListaOuVazio({ vazio, aviso, children }: { vazio: boolean; aviso: string; children: React.ReactNode }) {
+  if (vazio) {
+    return <p className="px-2 py-3 text-xs text-muted-foreground">{aviso}</p>;
+  }
+  return <>{children}</>;
+}
+
+
 export default function PessoaEntradaRapida() {
   const navigate = useNavigate();
 
@@ -127,6 +142,14 @@ export default function PessoaEntradaRapida() {
   const [salvando, setSalvando] = useState(false);
   const [pessoaExistente, setPessoaExistente] = useState<{ id: string; nome_completo: string } | null>(null);
   const [sucesso, setSucesso] = useState<{ pessoaId: string; fases: PendenciaFase[] } | null>(null);
+
+  // §9: erro nasce abaixo do campo, e só depois que o campo foi tocado ou o
+  // usuário tentou salvar — formulário recém-aberto nunca abre vermelho.
+  const [tocado, setTocado] = useState<Record<string, boolean>>({});
+  const [tentouSalvar, setTentouSalvar] = useState(false);
+  const marcar = (chave: string) => setTocado((s) => ({ ...s, [chave]: true }));
+  const mostrarErro = (chave: string) => tentouSalvar || !!tocado[chave];
+
 
   const ehCLT = tipoVinculo === "CLT";
   const ehDiretoria = tipoVinculo === "DIRETORIA";
@@ -266,6 +289,7 @@ export default function PessoaEntradaRapida() {
   }
 
   async function salvar() {
+    setTentouSalvar(true);
     if (faltando.length > 0) {
       toast.error("Faltam campos obrigatórios: " + faltando.join(", "));
       return;
@@ -363,7 +387,7 @@ export default function PessoaEntradaRapida() {
               </ul>
             )}
             <div className="flex flex-wrap gap-2 pt-2">
-              <Button variant="outline" onClick={() => navigate("/pessoas")}>Voltar para pessoas</Button>
+              <Button variant="ghost" onClick={() => navigate("/pessoas")}>Voltar para pessoas</Button>
               <Button onClick={() => navigate(`/pessoas/${sucesso.pessoaId}/editar`)}>Completar cadastro</Button>
             </div>
           </CardContent>
@@ -389,15 +413,19 @@ export default function PessoaEntradaRapida() {
       {/* QUEM É */}
       <Card>
         <CardHeader><CardTitle>Quem é</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="space-y-1.5 md:col-span-2">
+        <CardContent className="space-y-4">
+          <div className="space-y-1.5">
             <Label htmlFor="nome">Nome completo *</Label>
             <Input
               id="nome"
               value={nomeCompleto}
               onChange={(e) => setNomeCompleto(e.target.value)}
-              onBlur={sugerirEmail}
+              onBlur={() => { marcar("nome"); void sugerirEmail(); }}
               placeholder="Maria Aparecida da Silva"
+            />
+            <ErroCampo
+              mostrar={mostrarErro("nome")}
+              mensagem={nomeCompleto.trim().length < 3 ? "Informe o nome completo" : null}
             />
           </div>
           <div className="space-y-1.5">
@@ -406,12 +434,14 @@ export default function PessoaEntradaRapida() {
               id="cpf"
               value={cpf}
               onChange={(e) => setCpf(mascaraCpf(e.target.value))}
+              onBlur={() => marcar("cpf")}
               placeholder="000.000.000-00"
               inputMode="numeric"
             />
-            {cpf && !cpfValido(cpf) && (
-              <p className="text-xs text-destructive">CPF inválido</p>
-            )}
+            <ErroCampo
+              mostrar={mostrarErro("cpf")}
+              mensagem={!cpf.trim() ? "Informe o CPF" : !cpfValido(cpf) ? "Informe um CPF válido" : null}
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="telefone">Telefone *</Label>
@@ -419,101 +449,164 @@ export default function PessoaEntradaRapida() {
               id="telefone"
               value={telefone}
               onChange={(e) => setTelefone(mascaraTelefone(e.target.value))}
+              onBlur={() => marcar("telefone")}
               placeholder="(00) 00000-0000"
               inputMode="numeric"
             />
+            <ErroCampo
+              mostrar={mostrarErro("telefone")}
+              mensagem={onlyDigits(telefone).length < 10 ? "Informe o telefone" : null}
+            />
           </div>
-          <div className="space-y-1.5 md:col-span-2">
+          <div className="space-y-1.5">
             <Label htmlFor="email-pessoal">E-mail pessoal *</Label>
             <Input
               id="email-pessoal"
               value={emailPessoal}
               onChange={(e) => setEmailPessoal(e.target.value)}
+              onBlur={() => marcar("email_pessoal")}
               placeholder="maria@gmail.com"
               type="email"
             />
-            {emailPessoal && !emailValido(emailPessoal) && (
-              <p className="text-xs text-destructive">E-mail inválido</p>
-            )}
+            <ErroCampo
+              mostrar={mostrarErro("email_pessoal")}
+              mensagem={!emailValido(emailPessoal) ? "Informe um e-mail válido" : null}
+            />
           </div>
         </CardContent>
+
       </Card>
 
       {/* ONDE ENTRA */}
       <Card>
         <CardHeader><CardTitle>Onde entra</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <CardContent className="space-y-4">
           <div className="space-y-1.5">
             <Label>Tipo de vínculo *</Label>
-            <Select value={tipoVinculo} onValueChange={setTipoVinculo} disabled={carregandoDims}>
+            <Select
+              value={tipoVinculo}
+              onValueChange={(v) => { marcar("tipo_vinculo"); setTipoVinculo(v); }}
+              disabled={carregandoDims}
+            >
               <SelectTrigger>
-                <SelectValue placeholder={carregandoDims ? "Carregando..." : "Selecione"} />
+                <SelectValue placeholder={carregandoDims ? "Carregando..." : "PJ"} />
               </SelectTrigger>
               <SelectContent>
-                {tipos.map((t) => (
-                  <SelectItem key={t.codigo} value={t.codigo}>{t.nome}</SelectItem>
-                ))}
+                <ListaOuVazio vazio={tipos.length === 0} aviso="Nenhum tipo de vínculo cadastrado. Cadastre em Parâmetros">
+                  {tipos.map((t) => (
+                    <SelectItem key={t.codigo} value={t.codigo}>{t.nome}</SelectItem>
+                  ))}
+                </ListaOuVazio>
               </SelectContent>
             </Select>
+            <ErroCampo
+              mostrar={mostrarErro("tipo_vinculo")}
+              mensagem={!tipoVinculo ? "Escolha o tipo de vínculo" : null}
+            />
           </div>
           <div className="space-y-1.5">
             <Label>Data de início *</Label>
-            <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
+            <Input
+              type="date"
+              value={dataInicio}
+              onChange={(e) => setDataInicio(e.target.value)}
+              onBlur={() => marcar("data_inicio")}
+            />
+            <ErroCampo
+              mostrar={mostrarErro("data_inicio")}
+              mensagem={!dataInicio ? "Informe a data de início" : null}
+            />
           </div>
-          <div className="space-y-1.5">
-            <Label>Cargo *</Label>
-            <Select value={cargoId} onValueChange={setCargoId} disabled={carregandoDims}>
-              <SelectTrigger>
-                <SelectValue placeholder={carregandoDims ? "Carregando..." : "Selecione"} />
-              </SelectTrigger>
-              <SelectContent>
-                {cargos.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Departamento *</Label>
-            <Select value={departamentoId} onValueChange={setDepartamentoId} disabled={carregandoDims}>
-              <SelectTrigger>
-                <SelectValue placeholder={carregandoDims ? "Carregando..." : "Selecione"} />
-              </SelectTrigger>
-              <SelectContent>
-                {departamentos.map((d) => <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>)}
-              </SelectContent>
-            </Select>
+          {/* Par curto e correlato — única exceção à coluna única (§9). */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>Cargo *</Label>
+              <Select
+                value={cargoId}
+                onValueChange={(v) => { marcar("cargo"); setCargoId(v); }}
+                disabled={carregandoDims}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={carregandoDims ? "Carregando..." : "Analista Financeiro Sr"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <ListaOuVazio vazio={cargos.length === 0} aviso="Nenhum cargo cadastrado. Cadastre em Parâmetros">
+                    {cargos.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                  </ListaOuVazio>
+                </SelectContent>
+              </Select>
+              <ErroCampo mostrar={mostrarErro("cargo")} mensagem={!cargoId ? "Escolha o cargo" : null} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Departamento *</Label>
+              <Select
+                value={departamentoId}
+                onValueChange={(v) => { marcar("departamento"); setDepartamentoId(v); }}
+                disabled={carregandoDims}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={carregandoDims ? "Carregando..." : "Administrativo"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <ListaOuVazio vazio={departamentos.length === 0} aviso="Nenhum departamento cadastrado. Cadastre em Parâmetros">
+                    {departamentos.map((d) => <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>)}
+                  </ListaOuVazio>
+                </SelectContent>
+              </Select>
+              <ErroCampo
+                mostrar={mostrarErro("departamento")}
+                mensagem={!departamentoId ? "Escolha o departamento" : null}
+              />
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label>Unidade *</Label>
-            <Select value={unidadeId} onValueChange={setUnidadeId} disabled={carregandoDims}>
+            <Select
+              value={unidadeId}
+              onValueChange={(v) => { marcar("unidade"); setUnidadeId(v); }}
+              disabled={carregandoDims}
+            >
               <SelectTrigger>
-                <SelectValue placeholder={carregandoDims ? "Carregando..." : "Selecione"} />
+                <SelectValue placeholder={carregandoDims ? "Carregando..." : "Fetely Matriz SP"} />
               </SelectTrigger>
               <SelectContent>
-                {unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+                <ListaOuVazio vazio={unidades.length === 0} aviso="Nenhuma unidade cadastrada. Cadastre em Parâmetros">
+                  {unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+                </ListaOuVazio>
               </SelectContent>
             </Select>
+            <ErroCampo mostrar={mostrarErro("unidade")} mensagem={!unidadeId ? "Escolha a unidade" : null} />
           </div>
           {!ehDiretoria && (
             <div className="space-y-1.5">
               <Label>Gestor *</Label>
-              <Select value={gestorPessoaId} onValueChange={setGestorPessoaId} disabled={carregandoDims}>
+              <Select
+                value={gestorPessoaId}
+                onValueChange={(v) => { marcar("gestor"); setGestorPessoaId(v); }}
+                disabled={carregandoDims}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder={carregandoDims ? "Carregando..." : "Selecione"} />
+                  <SelectValue placeholder={carregandoDims ? "Carregando..." : "Nathalie Elkrief Ejzenberg"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {pessoasAtivas.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
+                  <ListaOuVazio vazio={pessoasAtivas.length === 0} aviso="Nenhuma pessoa ativa para ser gestor. Cadastre em Pessoas">
+                    {pessoasAtivas.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
+                  </ListaOuVazio>
                 </SelectContent>
               </Select>
+              <ErroCampo mostrar={mostrarErro("gestor")} mensagem={!gestorPessoaId ? "Escolha o gestor" : null} />
             </div>
           )}
         </CardContent>
+
       </Card>
 
       {/* ACESSO */}
       <Card>
         <CardHeader><CardTitle>Acesso</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="space-y-1.5 md:col-span-2">
+        <CardContent className="space-y-4">
+          <div className="space-y-1.5">
+
             <Label htmlFor="email-corp">E-mail corporativo</Label>
             <div className="flex items-center gap-2">
               <Input
@@ -541,7 +634,7 @@ export default function PessoaEntradaRapida() {
           </Alert>
           <Card>
             <CardHeader><CardTitle>Dados legais obrigatórios (CLT)</CardTitle></CardHeader>
-            <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <CardContent className="space-y-4">
               {CAMPOS_CLT.map(([campo, rotulo]) => (
                 <div className="space-y-1.5" key={campo}>
                   <Label htmlFor={`clt-${campo}`}>{rotulo} *</Label>
@@ -550,6 +643,11 @@ export default function PessoaEntradaRapida() {
                     type={campo === "data_admissao" ? "date" : "text"}
                     value={clt[campo]}
                     onChange={(e) => setClt((s) => ({ ...s, [campo]: e.target.value }))}
+                    onBlur={() => marcar(`clt_${campo}`)}
+                  />
+                  <ErroCampo
+                    mostrar={mostrarErro(`clt_${campo}`)}
+                    mensagem={!clt[campo].trim() ? `Informe ${rotulo.toLowerCase()}` : null}
                   />
                 </div>
               ))}
@@ -558,14 +656,9 @@ export default function PessoaEntradaRapida() {
         </>
       )}
 
-      {faltando.length > 0 && (
-        <p className="text-xs text-muted-foreground">
-          Falta preencher: {faltando.join(" · ")}
-        </p>
-      )}
-
       <div className="flex flex-wrap items-center gap-2">
-        <Button variant="outline" onClick={() => navigate("/pessoas")} disabled={salvando}>Cancelar</Button>
+        <Button variant="ghost" onClick={() => navigate("/pessoas")} disabled={salvando}>Cancelar</Button>
+
         <Button onClick={salvar} disabled={salvando || faltando.length > 0} className="gap-2">
           {salvando && <Loader2 className="h-4 w-4 animate-spin" />}
           {salvando ? "Criando..." : "Criar pessoa"}
