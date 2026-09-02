@@ -626,7 +626,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                       {seloEntrega(g.urgente)}
                                       {seloInstrumento(g.urgente)}
                                       {seloEnvio(g.urgente)}
-                                      <BadgeProva classe={g.urgente.prova_classe} />
+                                      
                                     </span>
                                     {g.ressalvas && (
                                       <span className="min-w-0 text-[10px] text-warning">{g.ressalvas}</span>
