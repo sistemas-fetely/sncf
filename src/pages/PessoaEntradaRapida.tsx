@@ -128,6 +128,14 @@ export default function PessoaEntradaRapida() {
   const [pessoaExistente, setPessoaExistente] = useState<{ id: string; nome_completo: string } | null>(null);
   const [sucesso, setSucesso] = useState<{ pessoaId: string; fases: PendenciaFase[] } | null>(null);
 
+  // §9: erro nasce abaixo do campo, e só depois que o campo foi tocado ou o
+  // usuário tentou salvar — formulário recém-aberto nunca abre vermelho.
+  const [tocado, setTocado] = useState<Record<string, boolean>>({});
+  const [tentouSalvar, setTentouSalvar] = useState(false);
+  const marcar = (chave: string) => setTocado((s) => ({ ...s, [chave]: true }));
+  const mostrarErro = (chave: string) => tentouSalvar || !!tocado[chave];
+
+
   const ehCLT = tipoVinculo === "CLT";
   const ehDiretoria = tipoVinculo === "DIRETORIA";
 
