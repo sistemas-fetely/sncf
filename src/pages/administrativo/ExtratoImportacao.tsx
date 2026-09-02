@@ -978,7 +978,7 @@ export default function ExtratoImportacao() {
               valor_liquido: p.valor_recebido,
               bandeira: p.produto || null,
               modalidade: p.modalidade || null,
-              ec: p.ec || null,
+              ec: parsed.ec || null,
               anomes: parsed.anomes || null,
             },
             { conta, impId, origem: "safrapay_tipo2", loteDoDia }
