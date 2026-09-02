@@ -305,8 +305,11 @@ Deno.serve(async (req) => {
           .eq("id", cur.id);
 
         let cursor: string | null = cur.ultimo_bling_id ?? null;
+        // SOBREPOSICAO-DE-1H: documentos capturados no exato instante do corte
+        // podem cair fora dos dois intervalos. Reprocessar é inofensivo (RPC devolve
+        // ja_existia), mas perder documento não é.
         const de = cur.ultima_data_corte
-          ? new Date(cur.ultima_data_corte)
+          ? new Date(new Date(cur.ultima_data_corte).getTime() - 3600 * 1000)
           : new Date(Date.now() - 30 * 24 * 3600 * 1000);
         const ate = new Date();
 
