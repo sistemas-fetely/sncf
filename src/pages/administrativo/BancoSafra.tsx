@@ -1,4 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell";
+import { BotaoBaixarBoletoPdf } from "@/components/credito/BotaoBaixarBoletoPdf";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -200,61 +201,10 @@ function agruparPorPedido(boletos: TitulosBoleto[], hojeIso: string) {
   return subs;
 }
 
-function BotaoBaixarBoletoPdf({ boleto }: { boleto: any }) {
-  const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-
+/** No Banco Safra o botão SOME quando o título não está registrado/em remessa. */
+function BotaoBaixarBoletoPdfSeRegistrado({ boleto }: { boleto: any }) {
   if (!["registrado", "remessa_gerada"].includes(boleto.boleto_status)) return null;
-
-  async function baixar() {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("gerar-boleto-pdf", {
-        body: { titulo_id: boleto.id },
-      });
-      if (error || !data?.ok) {
-        throw new Error(data?.erro ?? error?.message ?? "Falha ao gerar PDF");
-      }
-      const bin = atob(data.pdf_base64);
-      const bytes = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      const blob = new Blob([bytes], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = data.nome_arquivo ?? `boleto_${boleto.id}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch (e: any) {
-      toast({ title: "Erro ao gerar PDF", description: e.message, variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            disabled={loading}
-            onClick={baixar}
-          >
-            {loading
-              ? <Loader2 className="h-4 w-4 animate-spin" />
-              : <FileText className="h-4 w-4 text-muted-foreground" />
-            }
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>Baixar espelho do boleto (PDF)</TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
+  return <BotaoBaixarBoletoPdf tituloId={boleto.id} />;
 }
 
 function BotaoEmailBoleto({ boleto }: { boleto: any }) {
@@ -1225,7 +1175,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                       <span className="ml-1">Salvar</span>
                     </Button>
                   )}
-                  <BotaoBaixarBoletoPdf boleto={b} />
+                  <BotaoBaixarBoletoPdfSeRegistrado boleto={b} />
                   <BotaoEmailBoleto boleto={b} />
                 </div>
               </TableCell>
