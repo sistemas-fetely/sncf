@@ -20,6 +20,9 @@ import VinculoExtrasSection from "@/components/pessoas/VinculoExtrasSection";
 import VinculoFinanceiroPJSection from "@/components/pessoas/VinculoFinanceiroPJSection";
 import VinculoPagamentosPJSection from "@/components/pessoas/VinculoPagamentosPJSection";
 import CriarAcessoCard from "@/components/pessoas/CriarAcessoCard";
+import PessoaAutodeclaracaoSection from "@/components/pessoas/PessoaAutodeclaracaoSection";
+import VinculoPJCadastroSection from "@/components/pessoas/VinculoPJCadastroSection";
+import CadastroPendenciasCard from "@/components/pessoas/CadastroPendenciasCard";
 import { useIsDiretoria } from "@/hooks/useIsDiretoria";
 
 import { PageShell } from "@/components/layout/PageShell";
@@ -45,6 +48,11 @@ interface PessoaForm {
   email_pessoal: string;
   contato_emergencia_nome: string;
   contato_emergencia_telefone: string;
+  contato_emergencia_parentesco: string;
+  nome_mae: string;
+  etnia: string;
+  pcd_tipo: string;
+  tamanho_camiseta: string;
   foto_url: string;
 }
 
@@ -80,12 +88,20 @@ interface VinculoForm {
   data_admissao: string;
   jornada_semanal: string;
   gestor_pessoa_id: string;
+  modalidade: string;
+  conta_titular: string;
+  pj_regime_tributario: string;
+  pj_municipio_nfse: string;
+  pj_emite_nfse: boolean;
+  pj_representante_nome: string;
+  pj_representante_cpf: string;
 }
 
 const emptyPessoa: PessoaForm = {
   nome_completo: "", cpf: "", rg: "", data_nascimento: "", genero: "", estado_civil: "",
   cep: "", logradouro: "", numero: "", complemento: "", bairro: "", cidade: "", uf: "",
-  telefone: "", email_pessoal: "", contato_emergencia_nome: "", contato_emergencia_telefone: "", foto_url: "",
+  telefone: "", email_pessoal: "", contato_emergencia_nome: "", contato_emergencia_telefone: "",
+  contato_emergencia_parentesco: "", nome_mae: "", etnia: "", pcd_tipo: "", tamanho_camiseta: "", foto_url: "",
 };
 
 const emptyVinculo: VinculoForm = {
@@ -204,6 +220,11 @@ export default function PessoaForm() {
           telefone: p.telefone || "", email_pessoal: p.email_pessoal || "",
           contato_emergencia_nome: p.contato_emergencia_nome || "",
           contato_emergencia_telefone: p.contato_emergencia_telefone || "",
+          contato_emergencia_parentesco: p.contato_emergencia_parentesco || "",
+          nome_mae: p.nome_mae || "",
+          etnia: p.etnia || "",
+          pcd_tipo: p.pcd_tipo || "",
+          tamanho_camiseta: p.tamanho_camiseta || "",
           foto_url: p.foto_url || "",
         });
 
@@ -211,7 +232,7 @@ export default function PessoaForm() {
         const { data: vs } = await supabase
           .from("vinculos")
           .select(
-            "id, status, tipo_vinculo, cargo_id, departamento_id, centro_custo_id, unidade_id, data_inicio, valor_base, valor_transporte, forma_pagamento_id, dia_vencimento, banco_nome, agencia, conta, tipo_conta, chave_pix, email_corporativo, observacoes, cnpj, razao_social, nome_fantasia, categoria_pj, objeto, pis_pasep, ctps_numero, matricula, data_admissao, jornada_semanal, gestor_pessoa_id"
+            "id, status, tipo_vinculo, cargo_id, departamento_id, centro_custo_id, unidade_id, data_inicio, valor_base, valor_transporte, forma_pagamento_id, dia_vencimento, banco_nome, agencia, conta, tipo_conta, chave_pix, email_corporativo, observacoes, cnpj, razao_social, nome_fantasia, categoria_pj, objeto, pis_pasep, ctps_numero, matricula, data_admissao, jornada_semanal, gestor_pessoa_id, modalidade, conta_titular, pj_regime_tributario, pj_municipio_nfse, pj_emite_nfse, pj_representante_nome, pj_representante_cpf"
           )
           .eq("pessoa_id", id)
           .order("data_inicio", { ascending: false });
@@ -237,6 +258,13 @@ export default function PessoaForm() {
             matricula: v.matricula || "", data_admissao: v.data_admissao || "",
             jornada_semanal: v.jornada_semanal?.toString() || "44",
             gestor_pessoa_id: v.gestor_pessoa_id || "",
+            modalidade: v.modalidade || "",
+            conta_titular: v.conta_titular || "",
+            pj_regime_tributario: v.pj_regime_tributario || "",
+            pj_municipio_nfse: v.pj_municipio_nfse || "",
+            pj_emite_nfse: v.pj_emite_nfse === true,
+            pj_representante_nome: v.pj_representante_nome || "",
+            pj_representante_cpf: v.pj_representante_cpf || "",
           });
         }
       } catch (err: any) {
@@ -284,6 +312,11 @@ export default function PessoaForm() {
       email_pessoal: pessoa.email_pessoal || null,
       contato_emergencia_nome: pessoa.contato_emergencia_nome || null,
       contato_emergencia_telefone: pessoa.contato_emergencia_telefone || null,
+      contato_emergencia_parentesco: pessoa.contato_emergencia_parentesco || null,
+      nome_mae: pessoa.nome_mae || null,
+      etnia: pessoa.etnia || null,
+      pcd_tipo: pessoa.pcd_tipo || null,
+      tamanho_camiseta: pessoa.tamanho_camiseta || null,
       foto_url: pessoa.foto_url || null,
     };
   }
@@ -316,6 +349,8 @@ export default function PessoaForm() {
       chave_pix: vinculo.chave_pix || null,
       email_corporativo: vinculo.email_corporativo || null,
       observacoes: vinculo.observacoes || null,
+      modalidade: vinculo.modalidade || null,
+      conta_titular: vinculo.conta_titular || null,
     };
     if (vinculo.tipo_vinculo === "PJ") {
       Object.assign(base, {
@@ -324,6 +359,11 @@ export default function PessoaForm() {
         nome_fantasia: vinculo.nome_fantasia || null,
         categoria_pj: vinculo.categoria_pj || null,
         objeto: vinculo.objeto || null,
+        pj_regime_tributario: vinculo.pj_regime_tributario || null,
+        pj_municipio_nfse: vinculo.pj_municipio_nfse || null,
+        pj_emite_nfse: vinculo.pj_emite_nfse,
+        pj_representante_nome: vinculo.pj_representante_nome || null,
+        pj_representante_cpf: onlyDigits(vinculo.pj_representante_cpf) || null,
       });
     } else {
       Object.assign(base, {
@@ -423,6 +463,8 @@ export default function PessoaForm() {
         />
       </div>
 
+      {isEdit && vinculoId && <CadastroPendenciasCard vinculoId={vinculoId} />}
+
       {/* BLOCO PESSOA */}
       <Card>
         <CardHeader><CardTitle>Pessoa</CardTitle></CardHeader>
@@ -469,9 +511,18 @@ export default function PessoaForm() {
 
           <div><Label>Contato de emergência — nome</Label><Input value={pessoa.contato_emergencia_nome} onChange={(e) => setPessoa({ ...pessoa, contato_emergencia_nome: e.target.value })} /></div>
           <div><Label>Contato de emergência — telefone</Label><Input value={pessoa.contato_emergencia_telefone} onChange={(e) => setPessoa({ ...pessoa, contato_emergencia_telefone: e.target.value })} /></div>
+          <div><Label>Parentesco / relação</Label><Input value={pessoa.contato_emergencia_parentesco} onChange={(e) => setPessoa({ ...pessoa, contato_emergencia_parentesco: e.target.value })} /></div>
+          <div><Label>Nome da mãe</Label><Input value={pessoa.nome_mae} onChange={(e) => setPessoa({ ...pessoa, nome_mae: e.target.value })} /></div>
           <div><Label>URL da foto</Label><Input value={pessoa.foto_url} onChange={(e) => setPessoa({ ...pessoa, foto_url: e.target.value })} /></div>
         </CardContent>
       </Card>
+
+      <PessoaAutodeclaracaoSection
+        etnia={pessoa.etnia}
+        pcdTipo={pessoa.pcd_tipo}
+        tamanhoCamiseta={pessoa.tamanho_camiseta}
+        onChange={(patch) => setPessoa({ ...pessoa, ...patch })}
+      />
 
       {/* BLOCO VÍNCULO */}
       <Card>
@@ -537,7 +588,17 @@ export default function PessoaForm() {
             </div>
             <div><Label>Data de início *</Label><Input type="date" value={vinculo.data_inicio} onChange={(e) => setVinculo({ ...vinculo, data_inicio: e.target.value })} /></div>
             <div><Label>E-mail corporativo</Label><Input type="email" value={vinculo.email_corporativo} onChange={(e) => setVinculo({ ...vinculo, email_corporativo: e.target.value })} /></div>
-            <div />
+            <div>
+              <Label>Modalidade de trabalho</Label>
+              <Select value={vinculo.modalidade} onValueChange={(v) => setVinculo({ ...vinculo, modalidade: v })}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Presencial">Presencial</SelectItem>
+                  <SelectItem value="Híbrido">Híbrido</SelectItem>
+                  <SelectItem value="Remoto">Remoto</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
             <div>
               <Label>Valor base (R$)</Label>
@@ -587,6 +648,11 @@ export default function PessoaForm() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="md:col-span-2">
+              <Label>Titular da conta</Label>
+              <Input value={vinculo.conta_titular} onChange={(e) => setVinculo({ ...vinculo, conta_titular: e.target.value })} />
+              <p className="text-xs text-muted-foreground mt-1">CNPJ da empresa ou CPF do titular.</p>
+            </div>
             <div className="md:col-span-2"><Label>Chave PIX</Label><Input value={vinculo.chave_pix} onChange={(e) => setVinculo({ ...vinculo, chave_pix: e.target.value })} /></div>
           </div>
 
@@ -600,6 +666,14 @@ export default function PessoaForm() {
                 <div><Label>Categoria PJ</Label><Input value={vinculo.categoria_pj} onChange={(e) => setVinculo({ ...vinculo, categoria_pj: e.target.value })} /></div>
                 <div className="md:col-span-3"><Label>Objeto do contrato</Label><Textarea value={vinculo.objeto} onChange={(e) => setVinculo({ ...vinculo, objeto: e.target.value })} /></div>
               </div>
+              <VinculoPJCadastroSection
+                regimeTributario={vinculo.pj_regime_tributario}
+                municipioNfse={vinculo.pj_municipio_nfse}
+                emiteNfse={vinculo.pj_emite_nfse}
+                representanteNome={vinculo.pj_representante_nome}
+                representanteCpf={vinculo.pj_representante_cpf}
+                onChange={(patch) => setVinculo({ ...vinculo, ...patch })}
+              />
             </div>
           )}
 
