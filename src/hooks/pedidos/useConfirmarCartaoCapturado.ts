@@ -10,6 +10,8 @@ interface Args {
   data_captura: string; // ISO (date ou timestamptz)
   valor_capturado?: number | null;
   observacao?: string | null;
+  /** Adquirente da captura (`adquirente.id`) — quem está com o dinheiro até o repasse. */
+  adquirente_id?: string | null;
 }
 
 export interface ConfirmarCartaoResult {
@@ -44,6 +46,7 @@ export function useConfirmarCartaoCapturado() {
             ? null
             : args.valor_capturado,
         p_observacao: args.observacao?.trim() || null,
+        p_adquirente_id: args.adquirente_id || null,
       });
       if (error) throw error;
       return (data ?? {}) as ConfirmarCartaoResult;
