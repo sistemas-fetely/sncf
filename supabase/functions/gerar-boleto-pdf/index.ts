@@ -376,7 +376,7 @@ serve(async (req) => {
     if (multaNum > 0) {
       const multaInt = Math.floor(multaNum / 100);
       const multaDec = String(multaNum % 100).padStart(2, "0");
-      const dataMultaObj = new Date(t.data_vencimento_atual + "T00:00:00");
+      const dataMultaObj = new Date(bv.data_vencimento + "T00:00:00");
       dataMultaObj.setDate(dataMultaObj.getDate() + 1);
       const dataMultaStr = dataMultaObj.toLocaleDateString("pt-BR");
       instrucoes.push(`MULTA DE ${multaInt},${multaDec}% A PARTIR DE ${dataMultaStr}`);
