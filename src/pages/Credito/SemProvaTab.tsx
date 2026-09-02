@@ -61,6 +61,19 @@ const BLOCO_CARTAO = "AGUARDANDO LIQUIDAÇÃO DA ADQUIRENTE";
 const BLOCO_INSTRUMENTO = "INSTRUMENTO DE COBRANÇA QUEBRADO";
 const BLOCO_NAO_COBRAVEL = "REGIME PRÓPRIO — NÃO ENTRA NA RÉGUA";
 
+/**
+ * CARD-E-PORTA (02/09/2026): cada card de resumo e a porta do seu bloco.
+ * Card sem bloco correspondente vira numero decorativo; bloco sem card vira
+ * secao inalcancavel. Por isso a chave e a MESMA lista para os dois.
+ */
+type ChaveFiltro = ProvaClasse | "instrumento" | "cartao" | "nao_cobravel";
+
+const ROTULO_CARD_EXTRA: Record<"instrumento" | "cartao" | "nao_cobravel", string> = {
+  instrumento: "Instrumento quebrado",
+  cartao: "Aguardando adquirente",
+  nao_cobravel: "Regime próprio",
+};
+
 function soma(rows: LinhaMesa[]) {
   return rows.reduce((acc, l) => acc + Number(l.valor_atual ?? 0), 0);
 }
