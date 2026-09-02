@@ -479,71 +479,125 @@ export default function PessoaEntradaRapida() {
       {/* ONDE ENTRA */}
       <Card>
         <CardHeader><CardTitle>Onde entra</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <CardContent className="space-y-4">
           <div className="space-y-1.5">
             <Label>Tipo de vínculo *</Label>
-            <Select value={tipoVinculo} onValueChange={setTipoVinculo} disabled={carregandoDims}>
+            <Select
+              value={tipoVinculo}
+              onValueChange={(v) => { marcar("tipo_vinculo"); setTipoVinculo(v); }}
+              disabled={carregandoDims}
+            >
               <SelectTrigger>
-                <SelectValue placeholder={carregandoDims ? "Carregando..." : "Selecione"} />
+                <SelectValue placeholder={carregandoDims ? "Carregando..." : "PJ"} />
               </SelectTrigger>
               <SelectContent>
-                {tipos.map((t) => (
-                  <SelectItem key={t.codigo} value={t.codigo}>{t.nome}</SelectItem>
-                ))}
+                <ListaOuVazio vazio={tipos.length === 0} aviso="Nenhum tipo de vínculo cadastrado. Cadastre em Parâmetros">
+                  {tipos.map((t) => (
+                    <SelectItem key={t.codigo} value={t.codigo}>{t.nome}</SelectItem>
+                  ))}
+                </ListaOuVazio>
               </SelectContent>
             </Select>
+            <ErroCampo
+              mostrar={mostrarErro("tipo_vinculo")}
+              mensagem={!tipoVinculo ? "Escolha o tipo de vínculo" : null}
+            />
           </div>
           <div className="space-y-1.5">
             <Label>Data de início *</Label>
-            <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
+            <Input
+              type="date"
+              value={dataInicio}
+              onChange={(e) => setDataInicio(e.target.value)}
+              onBlur={() => marcar("data_inicio")}
+            />
+            <ErroCampo
+              mostrar={mostrarErro("data_inicio")}
+              mensagem={!dataInicio ? "Informe a data de início" : null}
+            />
           </div>
-          <div className="space-y-1.5">
-            <Label>Cargo *</Label>
-            <Select value={cargoId} onValueChange={setCargoId} disabled={carregandoDims}>
-              <SelectTrigger>
-                <SelectValue placeholder={carregandoDims ? "Carregando..." : "Selecione"} />
-              </SelectTrigger>
-              <SelectContent>
-                {cargos.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Departamento *</Label>
-            <Select value={departamentoId} onValueChange={setDepartamentoId} disabled={carregandoDims}>
-              <SelectTrigger>
-                <SelectValue placeholder={carregandoDims ? "Carregando..." : "Selecione"} />
-              </SelectTrigger>
-              <SelectContent>
-                {departamentos.map((d) => <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>)}
-              </SelectContent>
-            </Select>
+          {/* Par curto e correlato — única exceção à coluna única (§9). */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>Cargo *</Label>
+              <Select
+                value={cargoId}
+                onValueChange={(v) => { marcar("cargo"); setCargoId(v); }}
+                disabled={carregandoDims}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={carregandoDims ? "Carregando..." : "Analista Financeiro Sr"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <ListaOuVazio vazio={cargos.length === 0} aviso="Nenhum cargo cadastrado. Cadastre em Parâmetros">
+                    {cargos.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                  </ListaOuVazio>
+                </SelectContent>
+              </Select>
+              <ErroCampo mostrar={mostrarErro("cargo")} mensagem={!cargoId ? "Escolha o cargo" : null} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Departamento *</Label>
+              <Select
+                value={departamentoId}
+                onValueChange={(v) => { marcar("departamento"); setDepartamentoId(v); }}
+                disabled={carregandoDims}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={carregandoDims ? "Carregando..." : "Administrativo"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <ListaOuVazio vazio={departamentos.length === 0} aviso="Nenhum departamento cadastrado. Cadastre em Parâmetros">
+                    {departamentos.map((d) => <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>)}
+                  </ListaOuVazio>
+                </SelectContent>
+              </Select>
+              <ErroCampo
+                mostrar={mostrarErro("departamento")}
+                mensagem={!departamentoId ? "Escolha o departamento" : null}
+              />
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label>Unidade *</Label>
-            <Select value={unidadeId} onValueChange={setUnidadeId} disabled={carregandoDims}>
+            <Select
+              value={unidadeId}
+              onValueChange={(v) => { marcar("unidade"); setUnidadeId(v); }}
+              disabled={carregandoDims}
+            >
               <SelectTrigger>
-                <SelectValue placeholder={carregandoDims ? "Carregando..." : "Selecione"} />
+                <SelectValue placeholder={carregandoDims ? "Carregando..." : "Fetely Matriz SP"} />
               </SelectTrigger>
               <SelectContent>
-                {unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+                <ListaOuVazio vazio={unidades.length === 0} aviso="Nenhuma unidade cadastrada. Cadastre em Parâmetros">
+                  {unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+                </ListaOuVazio>
               </SelectContent>
             </Select>
+            <ErroCampo mostrar={mostrarErro("unidade")} mensagem={!unidadeId ? "Escolha a unidade" : null} />
           </div>
           {!ehDiretoria && (
             <div className="space-y-1.5">
               <Label>Gestor *</Label>
-              <Select value={gestorPessoaId} onValueChange={setGestorPessoaId} disabled={carregandoDims}>
+              <Select
+                value={gestorPessoaId}
+                onValueChange={(v) => { marcar("gestor"); setGestorPessoaId(v); }}
+                disabled={carregandoDims}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder={carregandoDims ? "Carregando..." : "Selecione"} />
+                  <SelectValue placeholder={carregandoDims ? "Carregando..." : "Nathalie Elkrief Ejzenberg"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {pessoasAtivas.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
+                  <ListaOuVazio vazio={pessoasAtivas.length === 0} aviso="Nenhuma pessoa ativa para ser gestor. Cadastre em Pessoas">
+                    {pessoasAtivas.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
+                  </ListaOuVazio>
                 </SelectContent>
               </Select>
+              <ErroCampo mostrar={mostrarErro("gestor")} mensagem={!gestorPessoaId ? "Escolha o gestor" : null} />
             </div>
           )}
         </CardContent>
+
       </Card>
 
       {/* ACESSO */}
