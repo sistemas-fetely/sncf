@@ -230,11 +230,11 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
   /**
    * A Mesa é a PRIMEIRA ENTREGA do pacote: só vive aqui o título que ainda não
    * é elegível à régua (sem mercadoria entregue, sem instrumento ou sem prova
-   * de envio). Assim que `regua_elegivel` vira true, o título passa a ser da
-   * aba Régua e sai da Mesa — nunca aparece nos dois lugares.
+   * de envio) e que não pertence à aba Sem prova. Um título nunca aparece em
+   * duas abas — ver `ehLinhaDaMesa`.
    */
   const linhas = useMemo(
-    () => (q.data ?? []).filter((l) => l.regua_elegivel !== true),
+    () => (q.data ?? []).filter(ehLinhaDaMesa),
     [q.data],
   );
 
