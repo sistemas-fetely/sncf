@@ -33,6 +33,8 @@ import { parseXlsxSafraFrancesinha } from "@/lib/financeiro/xlsx-safra-francesin
 import { temTitulo, textoPrimeirasLinhas } from "@/lib/financeiro/xlsx-titulo";
 import { detectarAssinaturaSafraXlsx } from "@/lib/financeiro/xlsx-safra-assinatura";
 import { parseXlsxSafraPixLancamentos } from "@/lib/financeiro/xlsx-safra-pix-lancamentos-parser";
+import { parseXlsxSafraPayRecebiveis } from "@/lib/financeiro/xlsx-safrapay-recebiveis-parser";
+
 
 import { ehRetornoSafra } from "@/lib/financeiro/cnab-retorno-safra-parser";
 
