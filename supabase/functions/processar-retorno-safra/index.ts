@@ -839,6 +839,39 @@ serve(async (req) => {
           }
 
           if (tinhaReemissao) {
+            // O trigger acabou de aplicar a reemissão e deixou o título em 'pendente'
+            // com nosso número zerado. Se o boleto NOVO já foi emitido antes da baixa
+            // voltar (REEMISSAO-NAO-ESPERA-BAIXA), adota-lo aqui — senão o título
+            // pediria uma segunda remessa de entrada para um boleto que já existe.
+            const { data: novo, error: errNovo } = await sb
+              .from("titulo_boleto")
+              .select("nosso_numero, situacao, linha_digitavel, codigo_barras, data_vencimento")
+              .eq("titulo_id", t.id)
+              .in("situacao", ["emitido", "registrado"])
+              .neq("nosso_numero", linha.nossoNumero)
+              .order("emitido_em", { ascending: false })
+              .limit(1);
+            if (errNovo) {
+              erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `busca de boleto novo: ${errNovo.message}` });
+            } else if (novo && novo.length > 0) {
+              const nb = novo[0] as any;
+              const { error: errAdota } = await sb.from("titulo_a_receber")
+                .update({
+                  boleto_status:        nb.situacao === "registrado" ? "registrado" : "remessa_gerada",
+                  nosso_numero_seq:     nb.nosso_numero,
+                  linha_digitavel:      nb.linha_digitavel,
+                  codigo_barras_boleto: nb.codigo_barras,
+                })
+                .eq("id", t.id);
+              if (errAdota) {
+                erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `adoção do boleto novo ${nb.nosso_numero}: ${errAdota.message}` });
+              } else {
+                alertas.push(
+                  `✓ Baixa de ${linha.nossoNumero} confirmada — título ${t.numero_titulo} adotou o boleto novo ${nb.nosso_numero} (venc ${nb.data_vencimento}, ${nb.situacao}). Não precisa de nova remessa de entrada.`
+                );
+              }
+            }
+
             // Após a baixa, o trigger aplica a reemissão. Registra no log.
             const { data: tAtual } = await sb
               .from("titulo_a_receber")
