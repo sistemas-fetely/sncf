@@ -310,6 +310,62 @@ export default function NFsStage() {
     }
   }
 
+  type QiveEntidadeResumo = {
+    encontrados: number;
+    gravados: number;
+    ja_existiam: number;
+    com_referencia: number;
+    erros: number;
+    paginas: number;
+    cursor_final: string | null;
+    interrompido_por: string | null;
+    erro: string | null;
+  };
+
+  async function buscarNaQive() {
+    setBuscandoQive(true);
+    try {
+      const resp = await supabase.functions.invoke("sync-qive-dfe", { body: {} });
+      if (resp.error) throw new Error(resp.error.message);
+      const data = resp.data as {
+        ok: boolean;
+        ambiente: string;
+        por_entidade: Record<string, QiveEntidadeResumo>;
+        duracao_ms: number;
+      };
+      if (!data.ok) {
+        toast.error(data.por_entidade
+          ? `Qive (${data.ambiente}): falha ao buscar documentos`
+          : `Qive (${data.ambiente}): falha na integração`);
+        return;
+      }
+      const entidades = Object.entries(data.por_entidade || {});
+      const totalGravados = entidades.reduce((s, [, r]) => s + (r.gravados || 0), 0);
+      const totalJaExistiam = entidades.reduce((s, [, r]) => s + (r.ja_existiam || 0), 0);
+      const entidadesComErro = entidades
+        .filter(([, r]) => (r.erro || "").length > 0 || (r.erros || 0) > 0)
+        .map(([nome]) => nome.toUpperCase());
+      if (entidadesComErro.length > 0) {
+        toast.warning(
+          `Qive (${data.ambiente}): ${totalGravados} gravadas, ${totalJaExistiam} já existiam. Atenção em ${entidadesComErro.join(", ")}.`,
+          { duration: 6000 }
+        );
+      } else if (totalGravados === 0) {
+        toast.info(`Qive (${data.ambiente}): nenhum documento novo encontrado.`);
+      } else {
+        toast.success(
+          `Qive (${data.ambiente}): ${totalGravados} gravada${totalGravados === 1 ? "" : "s"}, ${totalJaExistiam} já existia${totalJaExistiam === 1 ? "" : "m"}`
+        );
+      }
+      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      qc.invalidateQueries({ queryKey: ["integracoes-sync-cursor", "qive"] });
+    } catch (e) {
+      toast.error("Erro ao buscar na Qive: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setBuscandoQive(false);
+    }
+  }
+
   const handleGerarResumo = async (nf: NFStage, regerar: boolean) => {
     if (regerar) {
       const ok = window.confirm(
