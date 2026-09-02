@@ -508,12 +508,18 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                             </div>
                           )}
                         </TableCell>
+                        {mostrarFaseEntrega && (
+                          <TableCell className="align-top">
+                            <FaseEntregaCelula linha={entrega?.porPedido.get(r.pedido_id)} />
+                          </TableCell>
+                        )}
                         <TableCell className="text-right align-top">
                           <div className="text-sm">{r.dias_desde_pedido ?? 0}d do pedido</div>
                           <div className="text-xs text-muted-foreground">
                             {formatDateBR(r.data_pedido)}
                           </div>
                         </TableCell>
+
                         <TableCell className="text-xs align-top">
                           {r.vendedor_nome || "—"}
                         </TableCell>
