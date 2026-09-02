@@ -24,7 +24,8 @@ export function useMesaComercialContagem() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("vw_oportunidades_comercial")
-        .select("estagio, valor_em_jogo");
+        .select("estagio, valor_em_jogo")
+        .limit(2000);
       if (error) throw error;
       const rows = (data ?? []) as Array<{ estagio: string | null; valor_em_jogo: number | null }>;
 

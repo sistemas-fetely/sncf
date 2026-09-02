@@ -65,9 +65,12 @@ export const PIPELINE_PRINCIPAL: readonly EstagioPedido[] = [
   "em_analise_credito",
   "aguardando_estoque",
   "cobranca",
-  // MESA-COMERCIAL (20/08/2026, reafirmado 01/09/2026): aguardando_pagamento nao tem
-  // card no funil — mora na aba Mesa Comercial. E, desde 01/09, tambem NAO conta na
-  // FILA ATIVA: total sem card era total que nao fechava. Quem conta aqui tem card.
+  // MESA-COMERCIAL (20/08/2026): aguardando_pagamento nao tem card no funil — quem
+  // trabalha e o Comercial, na aba Mesa Comercial.
+  // FILA-MOSTRA-O-QUE-EXISTE (02/09/2026, revoga a exclusao de 01/09): ele VOLTA a
+  // contar na FILA ATIVA e a aparecer na tabela. Sem card + fora do total = pedido
+  // invisivel, que foi o que aconteceu. O tooltip da FILA ATIVA declara a parcela
+  // sem card; a divergencia explicada e melhor que o pedido desaparecido.
   "pre_separacao",
   "em_separacao",
   "pre_faturamento",
