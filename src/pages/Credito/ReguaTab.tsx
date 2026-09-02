@@ -328,6 +328,14 @@ function CardTitulo({
         </div>
       )}
 
+      {/* CONTEXTO-MORA-ONDE-SE-DECIDE (02/09/2026): o card decidia sem o contexto que
+          o banco ja tinha. Dois furos: (1) a espera do Safra e a renegociacao pendente
+          nao apareciam — o card dizia "vencido, precisa reemissao" sem contar que a
+          reemissao JA estava agendada; (2) a observacao de "Registrar acao" vivia so
+          no drawer de Titulos, longe de quem decide se liga de novo. */}
+      <EsperaRetornoSafra tituloId={titulo.id} />
+      <UltimoContatoRegua tituloId={titulo.id} />
+
       {!etapa && ultima && (
         <div className="text-[11px] text-muted-foreground">
           Régua em dia — último contato em {fmtDataMesa(ultima)}
