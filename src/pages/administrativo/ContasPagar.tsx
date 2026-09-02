@@ -326,51 +326,30 @@ export default function ContasPagar() {
     return !!s && s.nf_aplicavel && !s.vinculo_nf_completo;
   };
 
-  type SortColumn = "parceiro" | "descricao" | "vencimento" | "meio_pagamento" | "categoria" | "valor" | "status";
+  type SortColumn = "parceiro" | "descricao" | "vencimento" | "pretendida" | "meio_pagamento" | "categoria" | "valor" | "status";
   const [sort, setSort] = useState<SortState<SortColumn> | null>({ column: "vencimento", direction: "asc" });
+
+  const limite = limiteSemana();
 
   const kpis = useMemo(() => {
     const lista = data || [];
-    const para_agir = lista.filter(
-      (c) => ["aberto", "aprovado"].includes(c.status) && diasAteVencer(c.data_vencimento) <= 7,
-    );
-    const atrasadas = lista.filter(
-      (c) => c.atrasada && !["enviado_para_pagamento", "realizada", "cancelado"].includes(c.status),
-    );
-    const aguardando = lista.filter((c) => c.status === "enviado_para_pagamento");
-    const pendencia = lista.filter(
-      (c) =>
-        !["cancelado", "realizada"].includes(c.status) &&
-        (pendenciaMap.has(c.id) || temPendenciaNF(c.id)),
-    );
     const sumValor = (arr: Conta[]) => arr.reduce((s, c) => s + Number(c.valor || 0), 0);
-    return {
-      para_agir: { count: para_agir.length, valor: sumValor(para_agir) },
-      atrasadas: { count: atrasadas.length, valor: sumValor(atrasadas) },
-      aguardando: { count: aguardando.length, valor: sumValor(aguardando) },
-      pendencia: { count: pendencia.length, valor: sumValor(pendencia) },
+    const bloco = (k: Exclude<KpiFilter, null>) => {
+      const arr = lista.filter((c) => REGRA_KPI[k](c, limite));
+      return { count: arr.length, valor: sumValor(arr) };
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, pendenciaMap, nfStatusMap]);
+    return {
+      a_aprovar: bloco("a_aprovar"),
+      a_programar: bloco("a_programar"),
+      esta_semana: bloco("esta_semana"),
+      vencido: bloco("vencido"),
+    };
+  }, [data, limite]);
 
   const filtrados = useMemo(() => {
     let lista = data || [];
-    if (kpiFilter === "para_agir") {
-      lista = lista.filter(
-        (c) => ["aberto", "aprovado"].includes(c.status) && diasAteVencer(c.data_vencimento) <= 7,
-      );
-    } else if (kpiFilter === "atrasadas") {
-      lista = lista.filter(
-        (c) => c.atrasada && !["enviado_para_pagamento", "realizada", "cancelado"].includes(c.status),
-      );
-    } else if (kpiFilter === "aguardando") {
-      lista = lista.filter((c) => c.status === "enviado_para_pagamento");
-    } else if (kpiFilter === "pendencia") {
-      lista = lista.filter(
-        (c) =>
-          !["cancelado", "realizada"].includes(c.status) &&
-          (pendenciaMap.has(c.id) || temPendenciaNF(c.id)),
-      );
+    if (kpiFilter) {
+      lista = lista.filter((c) => REGRA_KPI[kpiFilter](c, limite));
     }
     if (busca.trim()) {
       const b = busca.toLowerCase();
