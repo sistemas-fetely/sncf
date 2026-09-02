@@ -91,6 +91,21 @@ interface PendenciaFase {
   total: number;
 }
 
+/** §9: mensagem de erro abaixo do campo, em destructive, dizendo o que fazer. */
+function ErroCampo({ mostrar, mensagem }: { mostrar: boolean; mensagem: string | null }) {
+  if (!mostrar || !mensagem) return null;
+  return <p className="text-[11px] text-destructive">{mensagem}</p>;
+}
+
+/** §15/6: origem vazia diz o que fazer, não "erro ao carregar". */
+function ListaOuVazio({ vazio, aviso, children }: { vazio: boolean; aviso: string; children: React.ReactNode }) {
+  if (vazio) {
+    return <p className="px-2 py-3 text-xs text-muted-foreground">{aviso}</p>;
+  }
+  return <>{children}</>;
+}
+
+
 export default function PessoaEntradaRapida() {
   const navigate = useNavigate();
 
