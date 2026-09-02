@@ -175,7 +175,7 @@ type NFStage = {
   destino_origem?: string | null;
   destino_motivo?: string | null;
   nf_referenciada_chave?: string | null;
-  fin_nfe?: string | null;
+  fin_nfe?: number | null;
   destino_rotulo?: string | null;
   destino_cor?: string | null;
   destino_gera_cpr?: boolean | null;
@@ -1488,12 +1488,12 @@ export default function NFsStage() {
             )}
           </div>
 
-          <Select value={destinoFiltro || ""} onValueChange={(v) => setDestinoFiltro(v || null)}>
+          <Select value={destinoFiltro || "__todos__"} onValueChange={(v) => setDestinoFiltro(v === "__todos__" ? null : v)}>
             <SelectTrigger className="w-[180px] text-xs h-9">
               <SelectValue placeholder="Todos os destinos" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos os destinos</SelectItem>
+              <SelectItem value="__todos__">Todos os destinos</SelectItem>
               <SelectItem value="__sem_destino__">Sem destino</SelectItem>
               {Array.from(
                 new Map(
