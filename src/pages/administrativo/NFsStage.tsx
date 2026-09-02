@@ -78,6 +78,7 @@ import {
   Wand2,
   Send,
   CalendarClock,
+  CloudDownload,
 
 } from "lucide-react";
 import PlanoPagamentoDialog from "@/components/financeiro/PlanoPagamentoDialog";
