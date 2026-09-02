@@ -777,64 +777,20 @@ export default function ExtratoImportacao() {
 
         // Lote do OFX por dia: só vincula quando o dia tem UM lote. Vários lotes
         // no mesmo dia é casamento por subconjunto — decisão humana, não do parser.
-        const loteDoDia = new Map<string, string | null>();
-        for (const dia of Array.from(new Set(datasPag))) {
-          const { data: lotes, error: errLote } = await sb
-            .from("movimentacoes_bancarias")
-            .select("id")
-            .eq("conta_bancaria_id", conta)
-            .eq("data_transacao", dia)
-            .eq("tipo", "credito")
-            .ilike("descricao", "RESUMO VENDAS CARTAO%")
-            .limit(3);
-          if (errLote) throw errLote;
-          loteDoDia.set(dia, (lotes || []).length === 1 ? lotes[0].id : null);
-        }
+        const loteDoDia = await resolverLotesDoDia(sb, conta, datasPag);
 
         for (const l of parsed.linhas) {
-          if (!l.nsu) {
-            cont.ignorar("sem_identificador");
-            continue;
-          }
-          if (!l.data_pagamento) {
-            cont.ignorar("sem_data");
-            continue;
-          }
-          const taxa =
-            l.valor_bruto_parcela != null && l.valor_liquido != null
-              ? Number((l.valor_bruto_parcela - l.valor_liquido).toFixed(2))
-              : null;
-
-          const { data: inseridas, error: errIns } = await sb
-            .from("safrapay_liquidacao")
-            .upsert(
-              [
-                {
-                  nsu: l.nsu,
-                  parcela: l.parcela,
-                  total_parcelas: l.total_parcelas,
-                  data_pagamento: l.data_pagamento,
-                  valor_bruto_parcela: l.valor_bruto_parcela,
-                  valor_liquido: l.valor_liquido,
-                  taxa_mdr: taxa,
-                  bandeira: l.bandeira,
-                  modalidade: l.modalidade,
-                  terminal: l.terminal,
-                  ec: l.ec,
-                  cartao_mascarado: l.cartao_mascarado,
-                  autorizacao: l.autorizacao,
-                  movimentacao_id: loteDoDia.get(l.data_pagamento) ?? null,
-                  fonte_importacao_id: impId,
-                  origem: "safrapay_recebiveis",
-                },
-              ],
-              { onConflict: "nsu,parcela,data_pagamento", ignoreDuplicates: true }
-            )
-            .select("id");
-          if (errIns) throw errIns;
-          if ((inseridas || []).length > 0) cont.nova();
-          else cont.duplicada();
+          const r = await gravarLiquidacaoSafraPay(sb, l, {
+            conta,
+            impId,
+            origem: "safrapay_recebiveis",
+            loteDoDia,
+          });
+          if (r === "nova") cont.nova();
+          else if (r === "duplicada") cont.duplicada();
+          else cont.ignorar(r);
         }
+
       } else if (fonte === "mp_withdraw") {
 
 
