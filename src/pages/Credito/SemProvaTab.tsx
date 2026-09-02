@@ -263,6 +263,11 @@ export default function SemProvaTab() {
   const { data: instrumento = [], isLoading: loadingInstr } = useInstrumentoQuebradoFila();
   const { data: naoCobravel = [], isLoading: loadingNC } = useNaoCobravelFila();
 
+  const [filtro, setFiltro] = useState<ChaveFiltro | null>(null);
+  /** Clicar no card ativo desliga o filtro — nao precisa de botao "limpar". */
+  const alternar = (k: ChaveFiltro) => setFiltro((atual) => (atual === k ? null : k));
+  const mostra = (k: ChaveFiltro) => filtro === null || filtro === k;
+
   const blocos = useMemo(() => {
     return ORDEM_CLASSE.map((classe) => ({
       classe,
