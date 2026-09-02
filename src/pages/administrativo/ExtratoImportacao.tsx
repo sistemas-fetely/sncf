@@ -514,34 +514,54 @@ export default function ExtratoImportacao() {
         periodoInicio = datas[0] || null;
         periodoFim = datas[datas.length - 1] || null;
 
+        // Identidade OFX: EndToEnd manda; sem ele, conteúdo. O sequencial do
+        // dia (08313 → 08312) nunca entra no hash. Ver hash-mov.ts.
         const comHash = await Promise.all(
           movs.map(async (m) => ({
             ...m,
-            hash_unico: await gerarHashMov(
-              conta,
-              m.data_transacao!,
-              m.valor,
-              m.descricao,
-              m.id_transacao_banco || undefined
-            ),
+            identidade: await identidadeMovOfx({
+              contaId: conta,
+              data: m.data_transacao!,
+              valor: m.valor,
+              tipo: m.tipo,
+              descricao: m.descricao,
+              idTransacaoBanco: m.id_transacao_banco,
+            }),
           }))
         );
 
-        const hashes = comHash.map((m) => m.hash_unico);
-        const { data: existentes } = await sb
+        const hashes = Array.from(
+          new Set(
+            comHash.flatMap((m) =>
+              [m.identidade.hash, m.identidade.hashLegado].filter(Boolean) as string[]
+            )
+          )
+        );
+        const { data: existentes, error: errExist } = await sb
           .from("movimentacoes_bancarias")
-          .select("id, hash_unico, contraparte_documento")
+          .select("id, hash_unico, contraparte_documento, duplicada_de")
           .in("hash_unico", hashes);
-        const mapExist = new Map<string, { id: string; contraparte_documento: string | null }>();
+        if (errExist) throw errExist;
+        const mapExist = new Map<
+          string,
+          { id: string; contraparte_documento: string | null; duplicada_de: string | null }
+        >();
         for (const e of existentes || []) mapExist.set(e.hash_unico, e);
 
         const novasRows: Record<string, unknown>[] = [];
         for (const m of comHash) {
-          const jaExiste = mapExist.get(m.hash_unico);
+          // Uma linha já resolvida como cópia (duplicada_de) não pode ressuscitar.
+          const jaExiste =
+            mapExist.get(m.identidade.hash) ||
+            (m.identidade.hashLegado ? mapExist.get(m.identidade.hashLegado) : undefined);
           if (jaExiste) {
             cont.duplicada();
-            // Enriquecer se antes estava null
-            if (!jaExiste.contraparte_documento && m.contraparte_documento) {
+            // Enriquecer se antes estava null (não mexe em linha marcada como cópia)
+            if (
+              !jaExiste.duplicada_de &&
+              !jaExiste.contraparte_documento &&
+              m.contraparte_documento
+            ) {
               const { error: errUp } = await sb
                 .from("movimentacoes_bancarias")
                 .update({
@@ -555,6 +575,7 @@ export default function ExtratoImportacao() {
             }
             continue;
           }
+
           novasRows.push({
             conta_bancaria_id: conta,
             data_transacao: m.data_transacao,
