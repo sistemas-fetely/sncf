@@ -67,24 +67,6 @@ const FILAS: { chave: string; label: string }[] = [
   { chave: "NAO_COBRAVEL", label: "Não cobrável" },
 ];
 
-const ROTULO_PROVA_CLASSE: Record<string, string> = {
-  divergente: "movimentação não bate",
-  declarado_humano: "sem lastro",
-  sem_prova: "sem prova",
-  credito_atrasado: "crédito atrasado",
-};
-
-function BadgeProva({ classe }: { classe: string | null | undefined }) {
-  if (!classe) return null;
-  const cls = classe === "divergente"
-    ? "bg-destructive/10 text-destructive hover:bg-destructive/10"
-    : "bg-warning/10 text-warning hover:bg-warning/10";
-  return (
-    <Badge className={`shrink-0 text-[10px] ${cls}`}>
-      {ROTULO_PROVA_CLASSE[classe] ?? classe}
-    </Badge>
-  );
-}
 
 
 const GRUPOS: Record<"agir" | "vigiar" | "nao", string[]> = {
