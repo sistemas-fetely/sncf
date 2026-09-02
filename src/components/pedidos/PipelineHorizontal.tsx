@@ -191,14 +191,19 @@ export function PipelineHorizontal({
   // aguardando_pagamento, que aparece na tabela mesmo sem card no funil.
   // Desvio (recuperação) NUNCA entra: é outra sala.
   const { totalQtd, totalSla, riscoVermelhoQtd, riscoVermelhoValor, semCardQtd } = useMemo(() => {
-    // aguardando_pagamento nao tem card no funil, entao nao entra no total —
-    // FILA ATIVA e exatamente a soma dos cards visiveis.
-    const excluidosSempre = new Set<string>(["entregue", "aguardando_pagamento"]);
+    // FILA-MOSTRA-O-QUE-EXISTE (02/09/2026): aguardando_pagamento CONTA na FILA ATIVA
+    // e aparece na tabela, mas segue sem card proprio (mora na Mesa Comercial).
+    // Consequencia assumida: o total pode passar da soma dos cards. `semCardQtd`
+    // existe para o tooltip declarar a diferenca — total que nao fecha, sem explicar,
+    // e o que gerou a decisao anterior.
+    const excluidosSempre = new Set<string>(["entregue"]);
+    const semCard = new Set<string>(["aguardando_pagamento"]);
     const naoAtivos = new Set<string>(["cancelado"]);
     let qtd = 0;
     let sla = 0;
     let rQtd = 0;
     let rValor = 0;
+    let semCardQtd = 0;
     (data || []).forEach((row) => {
       const e = row.estagio as string;
       const ehDesvio =
@@ -212,8 +217,9 @@ export function PipelineHorizontal({
       sla += Number(row.qtd_sla_estourado || 0);
       rQtd += Number(row.qtd_risco_vermelho || 0);
       rValor += Number(row.valor_risco_vermelho || 0);
+      if (semCard.has(e)) semCardQtd += Number(row.qtd || 0);
     });
-    return { totalQtd: qtd, totalSla: sla, riscoVermelhoQtd: rQtd, riscoVermelhoValor: rValor };
+    return { totalQtd: qtd, totalSla: sla, riscoVermelhoQtd: rQtd, riscoVermelhoValor: rValor, semCardQtd };
   }, [data, incluirCancelados]);
 
 
