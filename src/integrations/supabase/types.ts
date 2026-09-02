@@ -46249,6 +46249,7 @@ export type Database = {
       }
       vinculos: {
         Row: {
+          acesso_revogado_em: string | null
           agencia: string | null
           banco_codigo: string | null
           banco_nome: string | null
@@ -46312,6 +46313,7 @@ export type Database = {
           vigencia_inicio: string | null
         }
         Insert: {
+          acesso_revogado_em?: string | null
           agencia?: string | null
           banco_codigo?: string | null
           banco_nome?: string | null
@@ -46375,6 +46377,7 @@ export type Database = {
           vigencia_inicio?: string | null
         }
         Update: {
+          acesso_revogado_em?: string | null
           agencia?: string | null
           banco_codigo?: string | null
           banco_nome?: string | null
@@ -78317,6 +78320,7 @@ export type Database = {
         Args: { p_ref: string }
         Returns: string
       }
+      fn_revogar_acesso_pos_desligamento: { Args: never; Returns: number }
       fn_safra_casar_liquidacoes: {
         Args: {
           p_data: string
