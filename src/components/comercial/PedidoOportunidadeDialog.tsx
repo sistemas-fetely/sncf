@@ -421,9 +421,8 @@ export function PedidoOportunidadeDialog({
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
             ) : !temPortao ? (
-              <p className="text-sm text-muted-foreground py-6 text-center">
-                Este pedido não tem portão de pagamento pendente.
-              </p>
+              <DiagnosticoAbaPagamento pedidoId={pedidoId} idExterno={idExterno} aberto={open} />
+
             ) : (
               <>
                 <div className="rounded-md border px-3 py-2 space-y-1">
