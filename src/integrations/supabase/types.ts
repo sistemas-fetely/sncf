@@ -43752,6 +43752,108 @@ export type Database = {
           },
         ]
       }
+      titulo_pagar_estado_dim: {
+        Row: {
+          aposentado: boolean
+          ativo: boolean
+          cor: string | null
+          descricao: string | null
+          exige_motivo: boolean
+          legado_status: string | null
+          observacao: string | null
+          ordem: number
+          papeis: string[]
+          rotulo: string
+          sla_dias: number | null
+          slug: string
+          terminal: boolean
+          updated_at: string
+        }
+        Insert: {
+          aposentado?: boolean
+          ativo?: boolean
+          cor?: string | null
+          descricao?: string | null
+          exige_motivo?: boolean
+          legado_status?: string | null
+          observacao?: string | null
+          ordem: number
+          papeis?: string[]
+          rotulo: string
+          sla_dias?: number | null
+          slug: string
+          terminal?: boolean
+          updated_at?: string
+        }
+        Update: {
+          aposentado?: boolean
+          ativo?: boolean
+          cor?: string | null
+          descricao?: string | null
+          exige_motivo?: boolean
+          legado_status?: string | null
+          observacao?: string | null
+          ordem?: number
+          papeis?: string[]
+          rotulo?: string
+          sla_dias?: number | null
+          slug?: string
+          terminal?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      titulo_pagar_transicao_dim: {
+        Row: {
+          ativo: boolean
+          de: string
+          exige_motivo: boolean
+          observacao: string | null
+          papeis: string[]
+          para: string
+          reversivel: boolean
+          rotulo_acao: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          de: string
+          exige_motivo?: boolean
+          observacao?: string | null
+          papeis?: string[]
+          para: string
+          reversivel?: boolean
+          rotulo_acao: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          de?: string
+          exige_motivo?: boolean
+          observacao?: string | null
+          papeis?: string[]
+          para?: string
+          reversivel?: boolean
+          rotulo_acao?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "titulo_pagar_transicao_dim_de_fkey"
+            columns: ["de"]
+            isOneToOne: false
+            referencedRelation: "titulo_pagar_estado_dim"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "titulo_pagar_transicao_dim_para_fkey"
+            columns: ["para"]
+            isOneToOne: false
+            referencedRelation: "titulo_pagar_estado_dim"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       tmp_ajuste_jul: {
         Row: {
           delta: number | null
