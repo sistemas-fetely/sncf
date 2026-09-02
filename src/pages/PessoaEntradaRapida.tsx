@@ -412,15 +412,19 @@ export default function PessoaEntradaRapida() {
       {/* QUEM É */}
       <Card>
         <CardHeader><CardTitle>Quem é</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="space-y-1.5 md:col-span-2">
+        <CardContent className="space-y-4">
+          <div className="space-y-1.5">
             <Label htmlFor="nome">Nome completo *</Label>
             <Input
               id="nome"
               value={nomeCompleto}
               onChange={(e) => setNomeCompleto(e.target.value)}
-              onBlur={sugerirEmail}
+              onBlur={() => { marcar("nome"); void sugerirEmail(); }}
               placeholder="Maria Aparecida da Silva"
+            />
+            <ErroCampo
+              mostrar={mostrarErro("nome")}
+              mensagem={nomeCompleto.trim().length < 3 ? "Informe o nome completo" : null}
             />
           </div>
           <div className="space-y-1.5">
@@ -429,12 +433,14 @@ export default function PessoaEntradaRapida() {
               id="cpf"
               value={cpf}
               onChange={(e) => setCpf(mascaraCpf(e.target.value))}
+              onBlur={() => marcar("cpf")}
               placeholder="000.000.000-00"
               inputMode="numeric"
             />
-            {cpf && !cpfValido(cpf) && (
-              <p className="text-xs text-destructive">CPF inválido</p>
-            )}
+            <ErroCampo
+              mostrar={mostrarErro("cpf")}
+              mensagem={!cpf.trim() ? "Informe o CPF" : !cpfValido(cpf) ? "Informe um CPF válido" : null}
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="telefone">Telefone *</Label>
@@ -442,24 +448,32 @@ export default function PessoaEntradaRapida() {
               id="telefone"
               value={telefone}
               onChange={(e) => setTelefone(mascaraTelefone(e.target.value))}
+              onBlur={() => marcar("telefone")}
               placeholder="(00) 00000-0000"
               inputMode="numeric"
             />
+            <ErroCampo
+              mostrar={mostrarErro("telefone")}
+              mensagem={onlyDigits(telefone).length < 10 ? "Informe o telefone" : null}
+            />
           </div>
-          <div className="space-y-1.5 md:col-span-2">
+          <div className="space-y-1.5">
             <Label htmlFor="email-pessoal">E-mail pessoal *</Label>
             <Input
               id="email-pessoal"
               value={emailPessoal}
               onChange={(e) => setEmailPessoal(e.target.value)}
+              onBlur={() => marcar("email_pessoal")}
               placeholder="maria@gmail.com"
               type="email"
             />
-            {emailPessoal && !emailValido(emailPessoal) && (
-              <p className="text-xs text-destructive">E-mail inválido</p>
-            )}
+            <ErroCampo
+              mostrar={mostrarErro("email_pessoal")}
+              mensagem={!emailValido(emailPessoal) ? "Informe um e-mail válido" : null}
+            />
           </div>
         </CardContent>
+
       </Card>
 
       {/* ONDE ENTRA */}
