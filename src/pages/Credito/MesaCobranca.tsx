@@ -81,6 +81,23 @@ const NAO_COBRAR = new Set<string>(GRUPOS.nao);
 /** Filas do bloco AGIR AGORA — usado também pelo badge da aba no hub. */
 export const FILAS_AGIR_AGORA = GRUPOS.agir;
 
+/**
+ * FONTE-ÚNICA-DO-DOMÍNIO-DA-MESA: quem é da Mesa e quem não é. A Mesa e o badge
+ * da aba no hub usam ESTE predicado — nunca uma cópia. Antes o badge contava a
+ * view crua e dizia "Mesa · 9" com 2 títulos na tela.
+ *
+ * Fora da Mesa:
+ *  - `regua_elegivel = true`  → é da aba Régua;
+ *  - `PAGO_SEM_PROVA`         → é da aba Sem prova (conciliação, não cobrança);
+ *  - `CONCILIAR` + cartão     → bloco da adquirente na aba Sem prova.
+ */
+export function ehLinhaDaMesa(l: { regua_elegivel?: boolean | null; fila?: string | null; instrumento?: string | null }): boolean {
+  if (l.regua_elegivel === true) return false;
+  if (l.fila === "PAGO_SEM_PROVA") return false;
+  if (l.fila === "CONCILIAR" && l.instrumento === "cartao") return false;
+  return true;
+}
+
 const FILAS_BOLETO = new Set<string>(["A_EMITIR_BOLETO", "A_REEMITIR_BOLETO"]);
 
 const fmtData = fmtDataMesa;
