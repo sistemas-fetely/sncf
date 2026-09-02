@@ -83,13 +83,11 @@ export const FILAS_AGIR_AGORA = GRUPOS.agir;
 
 /**
  * FONTE-ÚNICA-DO-DOMÍNIO-DA-MESA: quem é da Mesa e quem não é. A Mesa e o badge
- * da aba no hub usam ESTE predicado — nunca uma cópia. Antes o badge contava a
- * view crua e dizia "Mesa · 9" com 2 títulos na tela.
+ * da aba no hub usam ESTE predicado — nunca uma cópia.
  *
- * Fora da Mesa:
- *  - `regua_elegivel = true`  → é da aba Régua;
- *  - `PAGO_SEM_PROVA`         → é da aba Sem prova (conciliação, não cobrança);
- *  - `CONCILIAR` + cartão     → bloco da adquirente na aba Sem prova.
+ * Fora da Mesa: regua_elegivel=true (aba Régua); PAGO_SEM_PROVA (aba Sem prova);
+ * CONCILIAR+cartão (bloco da adquirente na aba Sem prova). A fila CONCILIAR
+ * continua na Mesa porque a view também joga pix-sem-prazo nela.
  */
 export function ehLinhaDaMesa(l: { regua_elegivel?: boolean | null; fila?: string | null; instrumento?: string | null }): boolean {
   if (l.regua_elegivel === true) return false;
