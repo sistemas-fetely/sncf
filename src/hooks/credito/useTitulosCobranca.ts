@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { BoletoVigente } from "@/components/credito/AvisoBoletosVivos";
 import type {
   EixoProva,
   EixoStatus,
@@ -38,6 +39,12 @@ export type SubestadoAtraso =
   | null;
 
 export interface TituloCobranca {
+  /**
+   * FONTE-UNICA-DO-BOLETO (02/09/2026): boleto VIGENTE, vindo de
+   * `vw_titulo_boleto_vigente`. Vence `boleto_status`/`linha_digitavel` para
+   * qualquer decisao sobre enviar algo ao cliente.
+   */
+  boleto_vigente?: BoletoVigente | null;
   id: string;
   numero_titulo: string;
   numero_parcela: number;
@@ -187,6 +194,19 @@ export function useTitulosCobranca() {
         .limit(LIMITE_TITULOS);
       if (error) throw error;
       const linhas = (data ?? []) as TituloCobranca[];
+
+      // Um SELECT so, filtrado a quem TEM boleto vivo (~120 linhas hoje) — nao um
+      // `.in()` com os 5.000 ids da lista. FAIL-LOUD: sem o vigente a tela decidiria
+      // sobre envio pelo estado do titulo, que e o defeito que isto conserta.
+      const { data: vig, error: errV } = await (supabase as any)
+        .from("vw_titulo_boleto_vigente")
+        .select("titulo_id, enviavel, nosso_numero, linha_digitavel, data_vencimento, valor, situacao, vigente_em_baixa, boletos_vivos, nosso_numero_em_baixa")
+        .not("nosso_numero", "is", null);
+      if (errV) throw new Error(`Falha ao resolver o boleto vigente: ${errV.message}`);
+      const porTitulo = new Map<string, BoletoVigente>(
+        (vig ?? []).map((v: any) => [v.titulo_id, v as BoletoVigente]),
+      );
+      for (const l of linhas) l.boleto_vigente = porTitulo.get(l.id) ?? null;
       if (linhas.length >= LIMITE_TITULOS) {
         throw new Error(
           `Teto de ${LIMITE_TITULOS} títulos atingido — a tela mostraria um recorte silencioso. Pagine antes de usar.`,
