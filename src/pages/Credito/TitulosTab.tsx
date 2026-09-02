@@ -695,8 +695,11 @@ export default function TitulosTab() {
     }
   }
 
+  // FONTE-UNICA-DO-BOLETO (02/09/2026): reenviar depende do boleto VIGENTE, nao do
+  // `boleto_status` do titulo — que fica em `baixa_remessa_gerada` durante a
+  // reemissao mesmo havendo boleto novo registrado e pagavel.
   const podeReenviarBoleto = (t: TituloCobranca) =>
-    t.tipo_pagamento === "boleto" && t.boleto_status === "registrado" && !!t.linha_digitavel;
+    t.tipo_pagamento === "boleto" && t.boleto_vigente?.enviavel === true;
 
   return (
     <div className="space-y-4">

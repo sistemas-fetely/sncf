@@ -73249,6 +73249,7 @@ export type Database = {
           titulo_id: string | null
           valor: number | null
           vigente_em_baixa: boolean | null
+          vigente_vencido: boolean | null
         }
         Relationships: [
           {
