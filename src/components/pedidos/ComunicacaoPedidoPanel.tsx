@@ -125,7 +125,20 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
         .eq("pedido_id", pedido_id)
         .eq("eh_entrada", false)
         .order("numero_parcela", { ascending: true });
-      return (data ?? []) as TituloPacote[];
+
+      // FONTE-UNICA-DO-BOLETO: junta o boleto vigente para o montador decidir
+      // sobre o boleto que existe, nao sobre as colunas do titulo.
+      const { data: vig } = await (supabase as any)
+        .from("vw_titulo_boleto_vigente")
+        .select(
+          "titulo_id, enviavel, nosso_numero, linha_digitavel, data_vencimento, valor, situacao, vigente_em_baixa, boletos_vivos, nosso_numero_em_baixa",
+        )
+        .in("titulo_id", (data ?? []).map((t: any) => t.id));
+      const porTitulo = new Map<string, any>((vig ?? []).map((v: any) => [v.titulo_id, v]));
+      return ((data ?? []) as any[]).map((t) => ({
+        ...t,
+        boleto_vigente: porTitulo.get(t.id) ?? null,
+      })) as TituloPacote[];
     },
     enabled: !!pedido_id,
   });
