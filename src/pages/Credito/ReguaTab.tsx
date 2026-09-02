@@ -26,6 +26,8 @@ import { apelidoParceiro, nomeCanonico } from "@/lib/parceiros/nome";
 import { AcaoReguaDialog } from "@/components/credito/AcaoReguaDialog";
 import { PausarReguaDialog } from "@/components/credito/PausarReguaDialog";
 import { RenegociarTituloDialog } from "@/components/credito/RenegociarTituloDialog";
+import { EsperaRetornoSafra } from "@/components/credito/EsperaRetornoSafra";
+import { UltimoContatoRegua } from "@/components/credito/UltimoContatoRegua";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { LinhaMesa } from "@/lib/financeiro/adaptar-titulo-mesa";
 import { seloInstrumento, seloEntrega, seloEnvio, EntregaResumoInline, Selo, fmtDataMesa } from "@/lib/financeiro/mesa-lastros";
