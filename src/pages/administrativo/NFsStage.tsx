@@ -1488,7 +1488,7 @@ export default function NFsStage() {
             )}
           </div>
 
-          <Select value={destinoFiltro || "__todos__"} onValueChange={(v) => setDestinoFiltro(v === "__todos__" ? null : v)}>
+          <Select value={destinoFiltro ?? "__todos__"} onValueChange={(v) => setDestinoFiltro(v === "__todos__" ? null : v)}>
             <SelectTrigger className="w-[180px] text-xs h-9">
               <SelectValue placeholder="Todos os destinos" />
             </SelectTrigger>
