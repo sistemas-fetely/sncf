@@ -219,9 +219,22 @@ serve(async (req) => {
       .maybeSingle();
     if (pedErr || !pedido) return err("Pedido não encontrado", 404);
 
-    // pre_separacao: envio inicial
-    // em_separacao: envio de remessa adicional (/02+) em split
-    const estagiosPermitidos = ["pre_separacao", "em_separacao"];
+    // Guard de estágio. Os estágios permitidos refletem a evolução do desenho de envio:
+    //   pre_separacao   — envio inicial (comportamento atual, será aposentado).
+    //   em_separacao    — envio de remessa adicional (/02+) em split.
+    //   pre_faturamento — destino do desenho novo: frente FATURAMENTO-NASCE-NO-SNCF, o pedido
+    //                     desce ao Bling tarde e completo, depois que a XPM devolve peso e volume reais.
+    //
+    // Contexto da mudança (02/09/2026): hoje o envio acontece em pre_separacao, minutos depois de
+    // a XPM criar a expedição. No PED-2164 foram 6 minutos (expedição 11:23, envio 11:29, próximo
+    // tick do sync 11:33). Medido: em 100 pedidos com expedição na XPM, o SNCF sabia peso e volume
+    // antes do envio ao Bling em ZERO deles, mesmo com sync a cada 15 minutos. Não é falta de dado
+    // nem lentidão de sync — é o envio ser cedo demais.
+    //
+    // Sem pre_faturamento nesta lista, a trava 4a-ter (portão via fn_pedido_portao_liberado) é
+    // inalcançável do único lugar onde deveria valer: o envio é recusado por estágio antes de
+    // qualquer checagem de portão.
+    const estagiosPermitidos = ["pre_separacao", "em_separacao", "pre_faturamento"];
     if (!estagiosPermitidos.includes(pedido.estagio)) {
       return err(`Pedido em estágio "${pedido.estagio}" — envio não permitido neste estágio`);
     }
