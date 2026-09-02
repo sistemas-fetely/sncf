@@ -44181,8 +44181,10 @@ export type Database = {
           ativo: boolean
           cor: string | null
           descricao: string | null
+          exige_data_pretendida: boolean
           exige_motivo: boolean
           legado_status: string | null
+          limpa_data_pretendida: boolean
           observacao: string | null
           ordem: number
           papeis: string[]
@@ -44197,8 +44199,10 @@ export type Database = {
           ativo?: boolean
           cor?: string | null
           descricao?: string | null
+          exige_data_pretendida?: boolean
           exige_motivo?: boolean
           legado_status?: string | null
+          limpa_data_pretendida?: boolean
           observacao?: string | null
           ordem: number
           papeis?: string[]
@@ -44213,8 +44217,10 @@ export type Database = {
           ativo?: boolean
           cor?: string | null
           descricao?: string | null
+          exige_data_pretendida?: boolean
           exige_motivo?: boolean
           legado_status?: string | null
+          limpa_data_pretendida?: boolean
           observacao?: string | null
           ordem?: number
           papeis?: string[]
