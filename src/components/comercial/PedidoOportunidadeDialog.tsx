@@ -737,7 +737,7 @@ export function PedidoOportunidadeDialog({
                           {formatBRL(b.valor_bruto ?? 0)}
                         </TableCell>
                         <TableCell className="font-mono text-xs">
-                          {b.boleto_vigente?.nosso_numero || "—"}
+                          {b.boleto_vigente?.nosso_numero ?? b.boleto_ultimo?.nosso_numero ?? "—"}
                         </TableCell>
                         <TableCell className={`text-xs ${sit.classe}`} title={sit.tooltip}>
                           {sit.rotulo}
