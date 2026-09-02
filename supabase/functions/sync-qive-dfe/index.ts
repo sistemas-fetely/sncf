@@ -135,7 +135,7 @@ function dataEmissaoLocal(bruto: string | null): string | null {
 interface XmlParsed {
   chave: string | null;
   numero: string | null;
-  serie: string | null
+  serie: string | null;
   data_emissao: string | null;
   natureza_operacao: string | null;
   fin_nfe: number | null;
