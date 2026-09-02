@@ -86,6 +86,7 @@ import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip as RTooltip, XAxis } 
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { fmtDataHora } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { descartarStage } from "@/lib/financeiro/stage-handler";
 import { useCategoriasPlano } from "@/hooks/useCategoriasPlano";
