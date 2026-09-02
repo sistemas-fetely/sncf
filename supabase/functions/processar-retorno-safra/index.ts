@@ -1069,15 +1069,37 @@ serve(async (req) => {
               continue;
             }
             const novoDesconto = Number((base - novoValor).toFixed(2));
+
+            // O VALOR MORA DENTRO DO CODIGO DE BARRAS. A ocorrencia 14 recalcula por
+            // causa do fator de vencimento; a 51 tem de recalcular pelo mesmo motivo,
+            // com o valor. Sem isso o boleto na mao do cliente cobra o valor ANTIGO.
+            const { linha: linha51, barras: barras51 } = montarLinhaDigitavel(
+              String(t.nosso_numero_seq),
+              t.data_vencimento_atual,
+              Math.round(novoValor * 100),
+              params,
+            );
+
             const { error: upErr51 } = await sb.from("titulo_a_receber")
               // deno-lint-ignore no-explicit-any
-              .update({ valor_desconto: novoDesconto } as any)
+              .update({
+                valor_desconto:       novoDesconto,
+                linha_digitavel:      linha51,
+                codigo_barras_boleto: barras51,
+              } as any)
               .eq("id", t.id);
             if (upErr51) {
               erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `alteração 51 update: ${upErr51.message}` });
               marcarDesfecho(linha.numeroLinha, false, "erro no update de valor");
               continue;
             }
+
+            // FONTE-UNICA-DO-BOLETO: sincroniza o que o cliente imprime.
+            await marcarBoleto(linha.nossoNumero, null, null, {
+              valor:           novoValor,
+              linha_digitavel: linha51,
+              codigo_barras:   barras51,
+            });
             alertas.push(`Valor alterado para ${novoValor.toFixed(2)} — título ${linha.nossoNumero}.`);
             if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
             contadores.alteracoes++;
