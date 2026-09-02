@@ -23,6 +23,10 @@ import { parseOFX } from "@/lib/financeiro/ofx-parser";
 import { parseXlsxSafraLancamentos } from "@/lib/financeiro/xlsx-safra-lancamentos-parser";
 import { parseXlsxMpWithdraw } from "@/lib/financeiro/xlsx-mp-withdraw-parser";
 import { parseCsvSafraPayTipo2 } from "@/lib/financeiro/csv-safrapay-tipo2-parser";
+import {
+  gravarLiquidacaoSafraPay,
+  resolverLotesDoDia,
+} from "@/lib/financeiro/gravar-liquidacao-safrapay";
 import { parseCsvSafraPayTipo1 } from "@/lib/financeiro/csv-safrapay-tipo1-parser";
 import { parseCsvSafraPayTipo3 } from "@/lib/financeiro/csv-safrapay-tipo3-parser";
 import { detectarCsvSafraPay } from "@/lib/financeiro/csv-safrapay-detect";
@@ -229,7 +233,8 @@ const PARSER_EFEITO: Record<Fonte, string> = {
 
   mp_withdraw: "Retiradas Mercado Pago — cria a transferência quando não há par no extrato.",
   safrapay_vendas: "Vendas SafraPay — agenda de recebíveis; o dinheiro entra pelo OFX.",
-  safrapay_liquidacao: "Liquidação SafraPay — enriquece a linha do extrato que já existe.",
+  safrapay_liquidacao:
+    "Liquidação SafraPay — grava a composição do lote (NSU, parcela, taxa) e enriquece a linha do extrato. Não cria movimentação.",
   safrapay_ajustes:
     "Ajuste sempre acompanha um crédito que já está no OFX — não cria dinheiro novo.",
   super_agenda: "SUPER AGENDA não é importável — é projeção, não movimento.",
@@ -945,6 +950,9 @@ export default function ExtratoImportacao() {
         periodoInicio = datas[0] || null;
         periodoFim = datas[datas.length - 1] || null;
 
+        // COMPOSICAO-DO-LOTE: mesma gravação do XLSX "Recebíveis de Vendas".
+        const loteDoDia = await resolverLotesDoDia(sb, conta, datas);
+
         for (const p of parsed.parcelas) {
           if (!p.dt_efetiva) {
             cont.ignorar("sem_data");
@@ -954,6 +962,28 @@ export default function ExtratoImportacao() {
             cont.ignorar("sem_identificador");
             continue;
           }
+
+          // A conta é sobre LINHAS DO ARQUIVO, não sobre efeitos: a gravação da
+          // composição é adicional e não conta — quem conta é o extrato abaixo.
+          await gravarLiquidacaoSafraPay(
+            sb,
+            {
+              nsu: p.nsu,
+              parcela: p.parcela_num,
+              total_parcelas: p.ncar,
+              data_pagamento: p.dt_efetiva,
+              data_prevista: p.dt_prevista || null,
+              data_venda: p.dt_venda || null,
+              valor_bruto_parcela: p.valor_liquido,
+              valor_liquido: p.valor_recebido,
+              bandeira: p.produto || null,
+              modalidade: p.modalidade || null,
+              ec: p.ec || null,
+              anomes: parsed.anomes || null,
+            },
+            { conta, impId, origem: "safrapay_tipo2", loteDoDia }
+          );
+
           const hashKey = `safrapay2|${p.nsu}|${p.dt_efetiva}|${p.parcela_num}`;
           const hash = await gerarHashMov(conta, p.dt_efetiva, p.valor_recebido, hashKey);
 
