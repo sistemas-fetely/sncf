@@ -11,10 +11,21 @@ import { formatCNPJ } from "@/lib/cnpj";
 import { apelidoParceiro, nomeCanonico } from "@/lib/parceiros/nome";
 import { fmtDataMesa, seloEntrega, seloInstrumento, Selo } from "@/lib/financeiro/mesa-lastros";
 import type { LinhaMesa } from "@/lib/financeiro/adaptar-titulo-mesa";
-import { useSemProvaFila, useCartaoConciliarFila } from "@/hooks/credito/useSemProvaFila";
+import {
+  useSemProvaFila,
+  useCartaoConciliarFila,
+  useInstrumentoQuebradoFila,
+  useNaoCobravelFila,
+} from "@/hooks/credito/useSemProvaFila";
 
 /**
- * Aba "Sem prova" — CARTÃO-NÃO-VENCE-PROVA-VENCE.
+ * Aba "Problemas Cobrança" — CARTÃO-NÃO-VENCE-PROVA-VENCE +
+ * COBRANCA-SEPARA-CLIENTE-DE-DEFEITO.
+ *
+ * A Régua cobra PESSOA (EM_CURSO, A_VENCER, A_COBRAR). Aqui mora tudo que
+ * impede receber e NÃO é dívida do cliente: prova faltando, instrumento
+ * quebrado, liquidação da adquirente pendente. Mais um bloco informativo para
+ * o que tem regime próprio e antes não aparecia em nenhuma tela.
  *
  * Esta aba NÃO cobra cliente: não existe "Registrar ação" nem "Renegociar".
  * É visão e navegação. Classificação, gravidade e frase de orientação vêm da
@@ -47,6 +58,8 @@ const TOM_BLOCO: Record<ProvaClasse, "destructive" | "warning"> = {
 };
 
 const BLOCO_CARTAO = "AGUARDANDO LIQUIDAÇÃO DA ADQUIRENTE";
+const BLOCO_INSTRUMENTO = "INSTRUMENTO DE COBRANÇA QUEBRADO";
+const BLOCO_NAO_COBRAVEL = "REGIME PRÓPRIO — NÃO ENTRA NA RÉGUA";
 
 function soma(rows: LinhaMesa[]) {
   return rows.reduce((acc, l) => acc + Number(l.valor_atual ?? 0), 0);
@@ -214,6 +227,8 @@ function CardSemProva({
 export default function SemProvaTab() {
   const { data: linhas = [], isLoading } = useSemProvaFila();
   const { data: cartao = [], isLoading: loadingCartao } = useCartaoConciliarFila();
+  const { data: instrumento = [], isLoading: loadingInstr } = useInstrumentoQuebradoFila();
+  const { data: naoCobravel = [], isLoading: loadingNC } = useNaoCobravelFila();
 
   const blocos = useMemo(() => {
     return ORDEM_CLASSE.map((classe) => ({
@@ -224,7 +239,7 @@ export default function SemProvaTab() {
     }));
   }, [linhas]);
 
-  if (isLoading || loadingCartao) {
+  if (isLoading || loadingCartao || loadingInstr || loadingNC) {
     return (
       <div className="space-y-2">
         <Skeleton className="h-16 w-full" />
@@ -245,6 +260,12 @@ export default function SemProvaTab() {
             tom={TOM_BLOCO[classe]}
           />
         ))}
+        <CardResumo
+          label="Instrumento quebrado"
+          qtd={instrumento.length}
+          total={soma(instrumento)}
+          tom="destructive"
+        />
       </div>
 
       {blocos.map(({ classe, rows }) => (
@@ -271,6 +292,34 @@ export default function SemProvaTab() {
 
       <section className="space-y-2">
         <BlocoHeader
+          titulo={BLOCO_INSTRUMENTO}
+          qtd={instrumento.length}
+          total={soma(instrumento)}
+          tom="destructive"
+        />
+        <p className="text-xs text-muted-foreground">
+          O título é legítimo e o cliente pode estar em dia — o meio de cobrança é que não
+          funciona. Não se cobra pessoa por isso: conserta-se o instrumento. Estes títulos saíram
+          da Régua.
+        </p>
+        {instrumento.length === 0 ? (
+          <div className="rounded-md border border-dashed px-3 py-3 text-xs text-muted-foreground">
+            Nenhum instrumento de cobrança quebrado.
+          </div>
+        ) : (
+          <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+            {instrumento
+              .slice()
+              .sort((a, b) => Number(b.valor_atual ?? 0) - Number(a.valor_atual ?? 0))
+              .map((l) => (
+                <CardSemProva key={l.titulo_id} l={l} />
+              ))}
+          </div>
+        )}
+      </section>
+
+      <section className="space-y-2">
+        <BlocoHeader
           titulo={BLOCO_CARTAO}
           qtd={cartao.length}
           total={soma(cartao)}
@@ -287,6 +336,34 @@ export default function SemProvaTab() {
               .sort((a, b) => Number(b.valor_atual ?? 0) - Number(a.valor_atual ?? 0))
               .map((l) => (
                 <CardSemProva key={l.titulo_id} l={l} cartao />
+              ))}
+          </div>
+        )}
+      </section>
+
+      <section className="space-y-2">
+        <BlocoHeader
+          titulo={BLOCO_NAO_COBRAVEL}
+          qtd={naoCobravel.length}
+          total={soma(naoCobravel)}
+          tom="muted"
+        />
+        <p className="text-xs text-muted-foreground">
+          Informativo, não é problema: consignado, haver e permuta têm ciclo próprio e por isso
+          ficam fora da régua. Aparecem aqui porque antes não apareciam em nenhuma tela — e
+          invisível não é o mesmo que resolvido.
+        </p>
+        {naoCobravel.length === 0 ? (
+          <div className="rounded-md border border-dashed px-3 py-3 text-xs text-muted-foreground">
+            Nenhum título em regime próprio.
+          </div>
+        ) : (
+          <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+            {naoCobravel
+              .slice()
+              .sort((a, b) => Number(b.valor_atual ?? 0) - Number(a.valor_atual ?? 0))
+              .map((l) => (
+                <CardSemProva key={l.titulo_id} l={l} />
               ))}
           </div>
         )}

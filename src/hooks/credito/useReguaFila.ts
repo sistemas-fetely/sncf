@@ -63,7 +63,20 @@ export function useReguaEtapas() {
 /**
  * Fonte da régua = vw_cobranca_mesa. O gate de elegibilidade vive no banco
  * (`regua_elegivel`); a tela não recalcula nada.
+ *
+ * COBRANCA-SEPARA-CLIENTE-DE-DEFEITO (02/09/2026): a Régua cobra PESSOA.
+ * Defeito de instrumento (boleto a reemitir/emitir, e-mail bloqueado, NF não
+ * enviada) saiu daqui e vive em Problemas Cobrança. Antes, A_REEMITIR_BOLETO
+ * vinha com `regua_elegivel = true` e a operação cobrava o cliente de um boleto
+ * que não funciona.
  */
+const FILAS_DEFEITO_INSTRUMENTO = [
+  "A_REEMITIR_BOLETO",
+  "A_EMITIR_BOLETO",
+  "EMAIL_BLOQUEADO",
+  "A_ENVIAR",
+] as const;
+
 export function useReguaFilaHoje() {
   return useQuery({
     queryKey: ["titulos-cobranca", "cobranca-mesa", "regua-fila-hoje"],
@@ -73,6 +86,7 @@ export function useReguaFilaHoje() {
         .select("*")
         .eq("regua_elegivel", true)
         .eq("pausa_regua_automatica", false)
+        .not("fila", "in", `(${FILAS_DEFEITO_INSTRUMENTO.join(",")})`)
         .order("data_proxima_acao_regua", { ascending: true, nullsFirst: false })
         .limit(500);
       if (error) throw error;
@@ -89,6 +103,10 @@ export function useReguaFilaHoje() {
  *
  * PAGO_SEM_PROVA fica na aba Mesa (conciliação, não cobrança) e por isso
  * é excluído daqui junto com NAO_COBRAVEL.
+ *
+ * CONCILIAR cartão também sai: aparecia AQUI e em Problemas Cobrança ao mesmo
+ * tempo (duplicação real, verificada em 02/09/2026). Dono único agora é
+ * Problemas Cobrança.
  */
 export function useReguaVencidoForaDaFila() {
   return useQuery({
@@ -99,7 +117,11 @@ export function useReguaVencidoForaDaFila() {
         .select("*")
         .gt("dias_atraso", 0)
         .eq("regua_elegivel", false)
-        .not("fila", "in", "(NAO_COBRAVEL,PAGO_SEM_PROVA)")
+        .not(
+          "fila",
+          "in",
+          `(NAO_COBRAVEL,PAGO_SEM_PROVA,CONCILIAR,${FILAS_DEFEITO_INSTRUMENTO.join(",")})`,
+        )
         .order("dias_atraso", { ascending: false })
         .limit(500);
       if (error) throw error;
