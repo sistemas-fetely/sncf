@@ -164,6 +164,18 @@ type NFStage = {
     valor_unitario?: number;
     valor_total?: number;
   }> | null;
+  // Destino de roteamento (vw_nfs_stage_completude)
+  destino_codigo?: string | null;
+  destino_origem?: string | null;
+  destino_motivo?: string | null;
+  nf_referenciada_chave?: string | null;
+  fin_nfe?: string | null;
+  destino_rotulo?: string | null;
+  destino_cor?: string | null;
+  destino_gera_cpr?: boolean | null;
+  destino_entra_estoque?: boolean | null;
+  destino_exige_humano?: boolean | null;
+  destino_rota_mesa?: string | null;
 };
 
 const STATUS_LABELS: Record<string, string> = {
