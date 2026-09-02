@@ -93,9 +93,7 @@ type Fonte =
 /** Fontes reconhecidas que não importam nada — redundantes com outra porta. */
 const FONTE_REDUNDANTE: Partial<Record<Fonte, string>> = {
   safrapay_agenda_vendas:
-    "Redundante com o CSV de vendas SafraPay — os mesmos NSUs chegam por lá. Nada importado.",
-  safrapay_recebiveis_vendas:
-    "Redundante com o CSV de vendas SafraPay — os mesmos NSUs chegam por lá. Nada importado.",
+    "Agenda de Vendas é a AUTORIZAÇÃO — os 55 NSUs já vivem em safrapay_venda. Nada importado.",
 };
 
 function detectarFonteBase(file: File): "ofx" | "xlsx" | "csv" | "txt" | null {
@@ -157,7 +155,8 @@ const FONTE_TIPO_DB: Record<Fonte, string> = {
   safra_pix_lancamentos: "safra_lancamentos",
   // Fontes reconhecidas e fora do escopo: a dimensão as trata como agenda (papel `fora`).
   safrapay_agenda_vendas: "agenda_vendas",
-  safrapay_recebiveis_vendas: "agenda_vendas",
+  // "Recebiveis de Vendas" é o repasse: a dimensão já tem o código da liquidação.
+  safrapay_recebiveis: "safrapay_liquidacao",
 
   mp_withdraw: "mp_withdraw",
   safrapay_vendas: "safrapay_vendas",
@@ -179,7 +178,7 @@ const BLOCO_DA_FONTE: Record<Fonte, Bloco> = {
   safra_lancamentos: "extrato",
   safra_pix_lancamentos: "auxiliar",
   safrapay_agenda_vendas: "auxiliar",
-  safrapay_recebiveis_vendas: "auxiliar",
+  safrapay_recebiveis: "auxiliar",
 
   mp_withdraw: "auxiliar",
   safrapay_vendas: "auxiliar",
@@ -208,7 +207,7 @@ const PARSER_ROTULO: Partial<Record<Fonte, string>> = {
   retorno_safra: "Retorno CNAB 400 Safra (cobrança)",
   safra_pix_lancamentos: "Safra Lançamentos e Devoluções (PIX)",
   safrapay_agenda_vendas: "SafraPay Agenda de Vendas (não importável)",
-  safrapay_recebiveis_vendas: "SafraPay Recebíveis de Vendas (não importável)",
+  safrapay_recebiveis: "SafraPay Recebíveis de Vendas (composição do lote)",
 };
 
 /**
@@ -225,7 +224,8 @@ const PARSER_EFEITO: Record<Fonte, string> = {
   safra_pix_lancamentos:
     "PIX enviados e recebidos — enriquece a linha do extrato com pedido e pagador. Nunca cria movimentação.",
   safrapay_agenda_vendas: FONTE_REDUNDANTE.safrapay_agenda_vendas!,
-  safrapay_recebiveis_vendas: FONTE_REDUNDANTE.safrapay_recebiveis_vendas!,
+  safrapay_recebiveis:
+    "Composição do lote de cartão — grava NSU, parcela e taxa por repasse. Não cria movimentação bancária.",
 
   mp_withdraw: "Retiradas Mercado Pago — cria a transferência quando não há par no extrato.",
   safrapay_vendas: "Vendas SafraPay — agenda de recebíveis; o dinheiro entra pelo OFX.",
