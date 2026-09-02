@@ -123,10 +123,19 @@ export function montarPacoteCobranca(titulos: TituloPacote[]): PacoteCobranca {
     .sort((a, b) => (a.numero_parcela ?? 0) - (b.numero_parcela ?? 0));
 
   // Guard de linha digitável: SÓ para título aberto de boleto.
-  const pendentes = titulosBoleto.filter(
-    (t) => !ENVIAVEIS.has(t.boleto_status ?? "") || !t.linha_digitavel,
+  const pendentes = titulosBoleto.filter((t) =>
+    t.boleto_vigente
+      ? !t.boleto_vigente.enviavel
+      : !ENVIAVEIS.has(t.boleto_status ?? "") || !t.linha_digitavel,
   );
   if (pendentes.length > 0) {
+    // Unico boleto vivo esta em baixa: nao e "sem remessa", e "nao entregar este".
+    const emBaixa = pendentes.find((t) => t.boleto_vigente?.vigente_em_baixa);
+    if (emBaixa) {
+      throw new Error(
+        `Parcela ${emBaixa.numero_parcela}: o único boleto (${emBaixa.boleto_vigente?.nosso_numero}) está em baixa no banco e não deve ir ao cliente. Gere a remessa de entrada da reemissão antes de enviar.`,
+      );
+    }
     const vencido = pendentes.find((t) => t.boleto_status === "vencido");
     const rejeitado = pendentes.find((t) => t.boleto_status === "rejeitado");
     if (vencido) {
