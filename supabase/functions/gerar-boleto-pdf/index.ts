@@ -408,7 +408,7 @@ serve(async (req) => {
       beneficiario_cnpj: "63.591.078/0001-48",
       agencia_cedente:   agenciaCedente,
       carteira:          params.tipo_carteira ?? "60",
-      nosso_numero_seq:  t.nosso_numero_seq,
+      nosso_numero_seq:  bv.nosso_numero,
       pagador_nome:      parceiro?.razao_social ?? "—",
       pagador_doc:       parceiro?.cnpj ?? parceiro?.cpf ?? "—",
       pagador_endereco:  enderecoPagador,
