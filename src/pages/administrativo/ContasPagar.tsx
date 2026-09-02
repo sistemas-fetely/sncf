@@ -1,7 +1,7 @@
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useMemo, useState, type ComponentProps } from "react";
-import { getStatusCprMeta, STATUS_CPR_FILTRAVEIS } from "@/lib/financeiro/status-cpr";
+import { getStatusCprMeta, STATUS_CPR_FILTRAVEIS, STATUS_CPR_META } from "@/lib/financeiro/status-cpr";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
