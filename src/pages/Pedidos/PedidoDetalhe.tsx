@@ -853,11 +853,11 @@ function AcaoPrimaria({ pedido, parceiro, estagio, geraTituloReceber }: { pedido
       </div>
     );
   }
+  // Estação de PRÉ-FATURAMENTO (o aviso do WNS morreu aqui): o pedido é
+  // conferido pela RPC e desce ao Bling tarde e completo, depois que a XPM
+  // devolve peso e volume reais.
   if (estagio === "pre_faturamento") return (
-    <div className="rounded-md bg-warning/10 border border-warning/40 p-3 text-sm text-warning flex gap-2">
-      <Clock className="h-4 w-4 mt-0.5 shrink-0" />
-      <span>WNS em Nota Fiscal — aguardando emissão da NF no Bling para avançar automaticamente.</span>
-    </div>
+    <PreFaturamentoCard pedidoId={pedido.id} />
   );
   if (estagio === "faturado") return (
     <AcoesPedidoFaturado pedido={pedido} />
