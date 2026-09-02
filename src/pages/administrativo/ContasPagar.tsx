@@ -117,10 +117,6 @@ type Conta = {
 
 // Status de CPR: mapa canônico em `@/lib/financeiro/status-cpr`.
 
-const diasAteVencer = (d: string | null) => {
-  if (!d) return 999;
-  return Math.ceil((new Date(d + "T00:00:00").getTime() - Date.now()) / 86400000);
-};
 
 /** hoje + 7 dias, em Brasília, como "YYYY-MM-DD". */
 function limiteSemana(): string {
