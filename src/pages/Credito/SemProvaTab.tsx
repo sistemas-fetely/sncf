@@ -447,6 +447,7 @@ export default function SemProvaTab() {
           </div>
         )}
       </section>
+      )}
     </div>
   );
 }
