@@ -859,6 +859,56 @@ export default function ContasPagar() {
         }}
         initialData={initialDataNovaConta}
       />
+
+      {/* UM só Dialog para toda a tabela — controlado por `acaoPendente`. */}
+      <Dialog open={!!acaoPendente} onOpenChange={(v) => !v && setAcaoPendente(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{acaoPendente?.acao.rotulo_acao}</DialogTitle>
+            <DialogDescription>
+              {acaoPendente?.conta.descricao} · {formatBRL(acaoPendente?.conta.valor || 0)}
+            </DialogDescription>
+          </DialogHeader>
+
+          {acaoPendente?.acao.exige_motivo ? (
+            <div className="space-y-2">
+              <Label htmlFor="motivo-transicao">Motivo</Label>
+              <Textarea
+                id="motivo-transicao"
+                value={motivo}
+                onChange={(e) => setMotivo(e.target.value)}
+                placeholder="Fornecedor pediu para adiar o pagamento"
+                rows={3}
+              />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="data-pretendida-transicao">Data pretendida de pagamento</Label>
+              <Input
+                id="data-pretendida-transicao"
+                type="date"
+                value={dataPretendida}
+                onChange={(e) => setDataPretendida(e.target.value)}
+              />
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAcaoPendente(null)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={confirmarAcaoPendente}
+              disabled={
+                transicionar.isPending ||
+                (acaoPendente?.acao.exige_motivo ? !motivo.trim() : !dataPretendida)
+              }
+            >
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 }
