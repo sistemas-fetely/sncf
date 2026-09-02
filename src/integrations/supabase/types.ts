@@ -52208,6 +52208,34 @@ export type Database = {
           },
         ]
       }
+      vw_cartao_lote_dia: {
+        Row: {
+          comp_total: number | null
+          conta_bancaria_id: string | null
+          data_transacao: string | null
+          ja_amarrados: number | null
+          lote_ids: string[] | null
+          lote_menos_composicao: number | null
+          lote_total: number | null
+          lotes_qtd: number | null
+          nsus: string[] | null
+          parcelas_qtd: number | null
+          situacao: string | null
+          taxa_implicita: number | null
+          titulo_ids_livres: string[] | null
+          titulos_qtd: number | null
+          titulos_total: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vw_cartao_taxa_reconciliacao: {
         Row: {
           data_venda: string | null
@@ -63063,14 +63091,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -65270,14 +65298,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
