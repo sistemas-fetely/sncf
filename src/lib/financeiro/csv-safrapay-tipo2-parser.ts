@@ -51,11 +51,64 @@ function parseSafraData(dd_mm_aaaa: string): string {
   return `${a}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`;
 }
 
+/**
+ * Índices padrão (posição fixa) das colunas do tipo 2 — 35 colunas.
+ * Usados só como fallback quando o cabeçalho (linha `T;EC;...`) não vier.
+ */
+const IDX_PADRAO = {
+  "DT VENDA": 4,
+  "DT PREVISTA": 6,
+  "DT EFETIVA": 7,
+  "NSU": 8,
+  "PRODUTO": 9,
+  "MODALIDADE": 10,
+  "PL": 11,
+  "NCAR": 12,
+  "VALOR BRUTO PARC.": 20,
+  "TAXA ADM": 14,
+  "DESC MDR": 31,
+  "DESC ANTFRD": 32,
+  "DESC ANTC": 33,
+  "VALOR RECEBIDO": 34,
+  "BANCO": 26,
+  "AGENCIA": 28,
+  "CONTA": 29,
+} as const;
+
+type ChaveColuna = keyof typeof IDX_PADRAO;
+
+function normalizarNome(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * ASSINATURA-MANDA-NO-NOME: os índices saem do cabeçalho do próprio arquivo
+ * (linha que começa com `T;EC`); posição fixa é apenas o padrão.
+ */
+function resolverIndices(lines: string[]): Record<ChaveColuna, number> {
+  const idx = { ...IDX_PADRAO } as Record<ChaveColuna, number>;
+  const header = lines.find((l) => /^T;EC/i.test(l.trim()));
+  if (!header) return idx;
+  const nomes = header.split(";").map(normalizarNome);
+  for (const chave of Object.keys(IDX_PADRAO) as ChaveColuna[]) {
+    const alvo = normalizarNome(chave);
+    const achado = nomes.findIndex((n) => n === alvo);
+    if (achado >= 0) idx[chave] = achado;
+  }
+  return idx;
+}
+
 export function parseCsvSafraPayTipo2(text: string): SafraPayTipo2Parsed {
   const lines = text.split(/\r\n|\r|\n/).filter(l => l.trim());
   const parcelas: SafraPayParcela[] = [];
   let ec = "";
   let anomes = "";
+  const IDX = resolverIndices(lines);
 
   for (const line of lines) {
     const cols = line.split(";");
@@ -65,17 +118,21 @@ export function parseCsvSafraPayTipo2(text: string): SafraPayTipo2Parsed {
     ec = (cols[1] || "").trim();
     anomes = (cols[2] || "").trim();
 
-    // BRUTO-E-RECEBIDO-SAO-COLUNAS-DIFERENTES: `VALOR BRUTO PARC.` é o valor da
-    // parcela antes dos descontos; `VALOR RECEBIDO` é o que caiu na conta. Ler o
-    // mesmo campo nos dois zera o MDR e a conciliação perde a taxa.
-    const recebido = parseSafraValor(cols[34] || "0");
-    const descMdr = parseSafraValor(cols[31] || "0");
-    const descAntifraude = parseSafraValor(cols[32] || "0");
-    const descAntecipacao = parseSafraValor(cols[33] || "0");
-    let brutoParcela = parseSafraValor(cols[13] || "0");
-    // Rede de segurança: quando a coluna de bruto vem vazia ou repetindo o
-    // recebido, reconstrói pelos descontos decompostos. Sem inventar taxa:
-    // se não há desconto algum, bruto = recebido é a verdade.
+    // BRUTO-E-RECEBIDO-SAO-COLUNAS-DIFERENTES. Índices reais no layout de 35
+    // colunas (conferidos em 1467477_2_202609_20260901073238.csv):
+    //   13 = VALOR LIQUIDO      (igual ao recebido — NÃO é o bruto)
+    //   19 = VALOR TOTAL VENDA  (a venda inteira, todas as parcelas)
+    //   20 = VALOR BRUTO PARC.  ← o bruto desta parcela
+    //   34 = VALOR RECEBIDO     (o que caiu na conta)
+    // Ler 13 como bruto zera o MDR em todas as linhas.
+    const recebido = parseSafraValor(cols[IDX["VALOR RECEBIDO"]] || "0");
+    const descMdr = parseSafraValor(cols[IDX["DESC MDR"]] || "0");
+    const descAntifraude = parseSafraValor(cols[IDX["DESC ANTFRD"]] || "0");
+    const descAntecipacao = parseSafraValor(cols[IDX["DESC ANTC"]] || "0");
+    let brutoParcela = parseSafraValor(cols[IDX["VALOR BRUTO PARC."]] || "0");
+    // Rede de segurança (plano B): quando a coluna de bruto vem vazia ou
+    // repetindo o recebido, reconstrói pelos descontos decompostos. Sem
+    // inventar taxa: se não há desconto algum, bruto = recebido é a verdade.
     if (brutoParcela <= 0 || brutoParcela === recebido) {
       const somaDescontos = Number(
         (descMdr + descAntifraude + descAntecipacao).toFixed(2)
@@ -85,24 +142,25 @@ export function parseCsvSafraPayTipo2(text: string): SafraPayTipo2Parsed {
       else if (brutoParcela <= 0) brutoParcela = recebido;
     }
 
+
     parcelas.push({
-      dt_venda: parseSafraData(cols[4] || ""),
-      dt_prevista: parseSafraData(cols[6] || ""),
-      dt_efetiva: parseSafraData(cols[7] || ""),
-      nsu: (cols[8] || "").replace(/^'/, "").trim(),
-      produto: (cols[9] || "").trim(),
-      modalidade: (cols[10] || "").trim(),
-      parcela_num: parseInt(cols[11] || "1", 10) || 1,
-      ncar: parseInt(cols[12] || "1", 10) || 1,
+      dt_venda: parseSafraData(cols[IDX["DT VENDA"]] || ""),
+      dt_prevista: parseSafraData(cols[IDX["DT PREVISTA"]] || ""),
+      dt_efetiva: parseSafraData(cols[IDX["DT EFETIVA"]] || ""),
+      nsu: (cols[IDX["NSU"]] || "").replace(/^'/, "").trim(),
+      produto: (cols[IDX["PRODUTO"]] || "").trim(),
+      modalidade: (cols[IDX["MODALIDADE"]] || "").trim(),
+      parcela_num: parseInt(cols[IDX["PL"]] || "1", 10) || 1,
+      ncar: parseInt(cols[IDX["NCAR"]] || "1", 10) || 1,
       valor_bruto_parcela: brutoParcela,
-      taxa_adm_pct: parseSafraTaxa(cols[14] || "0"),
+      taxa_adm_pct: parseSafraTaxa(cols[IDX["TAXA ADM"]] || "0"),
       desc_mdr: descMdr,
       desc_antifraude: descAntifraude,
       desc_antecipacao: descAntecipacao,
       valor_recebido: recebido,
-      banco: (cols[26] || "").trim(),
-      agencia: (cols[28] || "").trim(),
-      conta: (cols[29] || "").trim(),
+      banco: (cols[IDX["BANCO"]] || "").trim(),
+      agencia: (cols[IDX["AGENCIA"]] || "").trim(),
+      conta: (cols[IDX["CONTA"]] || "").trim(),
       origem: "safrapay_tipo2",
     });
   }

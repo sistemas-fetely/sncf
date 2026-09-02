@@ -77417,6 +77417,10 @@ export type Database = {
         Args: { p_pedido_id: string }
         Returns: Json
       }
+      fn_pedido_pre_faturamento_checklist: {
+        Args: { p_pedido_id: string }
+        Returns: Json
+      }
       fn_pedido_tem_lastro: { Args: { p_pedido_id: string }; Returns: Json }
       fn_pix_brcode: {
         Args: {
