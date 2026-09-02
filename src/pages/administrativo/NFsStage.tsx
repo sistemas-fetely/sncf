@@ -1482,6 +1482,32 @@ export default function NFsStage() {
             )}
           </div>
 
+          <Select value={destinoFiltro || ""} onValueChange={(v) => setDestinoFiltro(v || null)}>
+            <SelectTrigger className="w-[180px] text-xs h-9">
+              <SelectValue placeholder="Filtrar destino" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Todos os destinos</SelectItem>
+              <SelectItem value="__sem_destino__">Sem destino</SelectItem>
+              {Array.from(
+                new Map(
+                  (nfs || [])
+                    .filter((n) => n.destino_codigo)
+                    .map((n) => [
+                      n.destino_codigo,
+                      { codigo: n.destino_codigo, rotulo: n.destino_rotulo || n.destino_codigo },
+                    ])
+                ).values()
+              )
+                .sort((a, b) => a.rotulo.localeCompare(b.rotulo))
+                .map((d) => (
+                  <SelectItem key={d.codigo} value={d.codigo!}>
+                    {d.rotulo}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+
           {mesFiltro && (() => {
             const info = chartData.find((d) => d.mesKey === mesFiltro);
             return (
