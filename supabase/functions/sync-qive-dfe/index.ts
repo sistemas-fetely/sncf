@@ -570,7 +570,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return json({ ok: true, ambiente, por_entidade, duracao_ms: Date.now() - t0 });
+    return json({ ok: true, ambiente, simulado: simular, por_entidade, duracao_ms: Date.now() - t0 });
   } catch (e) {
     console.error("[sync-qive-dfe] erro geral:", e);
     return json(
