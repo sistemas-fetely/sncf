@@ -6,6 +6,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PixQrCode } from "@/components/pedidos/PixQrCode";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -55,6 +57,8 @@ function EstadoLinha({ p }: { p: Provisao }) {
 }
 
 export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
+  // REFERENCIA-SEMPRE: uma só tela de confirmação para todas as linhas do portão.
+  const [confirmarLinha, setConfirmarLinha] = useState<{ id: string | null } | null>(null);
   const provisoesQ = useQuery({
     queryKey: ["provisoes-pedido", pedidoId],
     enabled: !!pedidoId,
@@ -201,6 +205,15 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
             </div>
           );
         })}
+      {confirmarLinha && (
+        <ConfirmarPagamentoDialog
+          pedidoId={pedidoId}
+          provisaoId={confirmarLinha.id ?? undefined}
+          aberto
+          aoFechar={() => setConfirmarLinha(null)}
+          modo="sops"
+        />
+      )}
     </div>
   );
 }
