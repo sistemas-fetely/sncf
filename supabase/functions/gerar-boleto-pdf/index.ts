@@ -425,7 +425,7 @@ serve(async (req) => {
     const pdfBase64 = bytesToBase64(pdfBytes);
 
     return new Response(
-      JSON.stringify({ ok: true, pdf_base64: pdfBase64, nome_arquivo: `boleto_${t.nosso_numero_seq}.pdf` }),
+      JSON.stringify({ ok: true, pdf_base64: pdfBase64, nome_arquivo: `boleto_${bv.nosso_numero}.pdf` }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
 
