@@ -337,9 +337,20 @@ serve(async (req) => {
     };
 
     // ── histórico do boleto (titulo_boleto): situação sempre em dia ─────────
-    async function marcarBoleto(nossoNumero: string, situacao: string, campoData: string | null) {
-      const patch: Record<string, unknown> = { situacao };
+    // FONTE-UNICA-DO-BOLETO (02/09/2026): esta tabela e a fonte que os consumidores
+    // voltados ao CLIENTE leem (PDF, pacote de cobranca). Toda alteracao que muda o
+    // que esta impresso no boleto — vencimento, valor, linha digitavel — tem de
+    // chegar aqui, senao o cliente recebe papel velho. `extra` existe para isso.
+    async function marcarBoleto(
+      nossoNumero: string,
+      situacao: string | null,
+      campoData: string | null,
+      extra?: Record<string, unknown>,
+    ) {
+      const patch: Record<string, unknown> = { ...(extra ?? {}) };
+      if (situacao) patch.situacao = situacao;
       if (campoData) patch[campoData] = new Date().toISOString();
+      if (Object.keys(patch).length === 0) return;
       const { error } = await sb.from("titulo_boleto").update(patch).eq("nosso_numero", nossoNumero);
       if (error) console.error(`[retorno-safra] titulo_boleto ${nossoNumero}:`, error);
     }
