@@ -603,17 +603,23 @@ serve(async (req) => {
     let nroReg    = 2;
     let valorTotal = 0;
 
-    const titulosComNN: Array<{ id: string; nossoNumero: string; linhaDigitavel: string; codigoBarras: string }> = [];
+    const titulosComNN: Array<{ id: string; nossoNumero: string; linhaDigitavel: string; codigoBarras: string; venc: string; valor: number; antecipado: boolean }> = [];
 
     // deno-lint-ignore no-explicit-any
     for (const t of titulos as any[]) {
       const nossoNumero = await alocarNossoNumero(sb);
-      const valorCents  = Math.round(Number(t.valor_bruto) * 100);
-      const { linha, barras } = montarLinhaDigitavel(nossoNumero, t.data_vencimento_atual, valorCents, params);
+      const venc        = vencEfetivo(t);
+      const valor       = valorEfetivo(t);
+      const valorCents  = Math.round(valor * 100);
+      const { linha, barras } = montarLinhaDigitavel(nossoNumero, venc, valorCents, params);
+      const antecipado  = t.boleto_status !== "pendente";
 
-      titulosComNN.push({ id: t.id, nossoNumero, linhaDigitavel: linha, codigoBarras: barras });
-      linhas.push(gerarDetalhe({ ...t, parceiro: t.conta?.parceiro }, nossoNumero, params, nroSeq, nroReg));
-      valorTotal += Number(t.valor_bruto);
+      titulosComNN.push({ id: t.id, nossoNumero, linhaDigitavel: linha, codigoBarras: barras, venc, valor, antecipado });
+      linhas.push(gerarDetalhe(
+        { ...t, parceiro: t.conta?.parceiro, data_vencimento_atual: venc, valor_bruto: valor },
+        nossoNumero, params, nroSeq, nroReg
+      ));
+      valorTotal += valor;
       nroReg++;
     }
 
