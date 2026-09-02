@@ -31,6 +31,8 @@ const CNPJ_FETELY_PREFIXO = "63591078";
 interface ResumoEntidade {
   encontrados: number;
   gravados: number;
+  /** SIMULACAO-NAO-ESCREVE: quantos seriam gravados se não fosse simulação. */
+  seriam_gravados: number;
   ja_existiam: number;
   com_referencia: number;
   erros: number;
@@ -40,6 +42,9 @@ interface ResumoEntidade {
   cursor_final: string | null;
   /** CURSOR-SO-AVANCA-SOBRE-SUCESSO: diz explicitamente se a fila andou. */
   cursor_avancou: boolean;
+  simulado: boolean;
+  /** 5 primeiros documentos parseados — confere o parse sem gravar nada. */
+  amostra: unknown[];
   interrompido_por?: string;
   erro?: string;
 }
@@ -49,9 +54,10 @@ interface DocQive {
   xmlBase64: string | null;
 }
 
-const novoResumo = (): ResumoEntidade => ({
+const novoResumo = (simulado: boolean): ResumoEntidade => ({
   encontrados: 0,
   gravados: 0,
+  seriam_gravados: 0,
   ja_existiam: 0,
   com_referencia: 0,
   erros: 0,
@@ -59,7 +65,10 @@ const novoResumo = (): ResumoEntidade => ({
   paginas: 0,
   cursor_final: null,
   cursor_avancou: false,
+  simulado,
+  amostra: [],
 });
+
 
 function anotarErro(resumo: ResumoEntidade, msg: string) {
   resumo.erros++;
@@ -228,12 +237,25 @@ Deno.serve(async (req) => {
     );
 
     let ambiente: "sandbox" | "producao" = "sandbox";
+    let simularExplicito: boolean | null = null;
     try {
       const body = await req.json();
       if (body?.ambiente === "producao") ambiente = "producao";
+      if (typeof body?.simular === "boolean") simularExplicito = body.simular;
     } catch {
       // sem body → sandbox
     }
+
+    // SANDBOX-NAO-ESCREVE-EM-PRODUCAO: `ambiente` decide de onde busca; sem esta
+    // regra, dados fictícios do sandbox caíam em `nfs_stage` (tabela de produção)
+    // e o trigger de despesas os transformava em lançamentos contábeis.
+    const simular = simularExplicito ?? (ambiente === "sandbox");
+    if (ambiente === "sandbox" && !simular) {
+      console.warn(
+        "[sync-qive-dfe] ATENÇÃO: ambiente=sandbox com simular=false — DADOS FICTÍCIOS SERÃO GRAVADOS EM nfs_stage (TABELA DE PRODUÇÃO).",
+      );
+    }
+
 
     const base =
       ambiente === "producao"
@@ -273,9 +295,10 @@ Deno.serve(async (req) => {
     };
 
     const por_entidade: Record<Entidade, ResumoEntidade> = {
-      nfe: novoResumo(),
-      cte: novoResumo(),
-      nfse: novoResumo(),
+      nfe: novoResumo(simular),
+      cte: novoResumo(simular),
+      nfse: novoResumo(simular),
+
     };
 
     for (const entidade of ENTIDADES) {
@@ -376,6 +399,53 @@ Deno.serve(async (req) => {
 
                 const numero = p?.numero ?? null;
 
+                if (resumo.amostra.length < 5) {
+                  const cfops = Array.from(
+                    new Set(
+                      (p?.itens ?? [])
+                        .map((it) => it.cfop)
+                        .filter((c): c is string => typeof c === "string" && c !== ""),
+                    ),
+                  );
+                  resumo.amostra.push({
+                    chave,
+                    numero,
+                    data_emissao: p?.data_emissao ?? null,
+                    cnpj: p?.cnpj ?? null,
+                    razao_social: p?.razao_social ?? null,
+                    valor: p?.valor ?? null,
+                    natureza_operacao: p?.natureza_operacao ?? null,
+                    fin_nfe: p?.fin_nfe ?? null,
+                    referenciada: p?.referenciada ?? null,
+                    qtd_itens: p?.itens?.length ?? 0,
+                    cfops,
+                  });
+                }
+
+                // SIMULACAO-NAO-ESCREVE: nada de RPC, só leitura para saber se já existe.
+                if (simular) {
+                  const { data: existente, error: existeErr } = await supabase
+                    .from("nfs_stage")
+                    .select("id")
+                    .eq("nf_chave_acesso", chave)
+                    .not("status", "in", '("descartada","duplicata")')
+                    .maybeSingle();
+                  if (existeErr) {
+                    anotarErro(resumo, `consulta de existência falhou (${chave}): ${existeErr.message}`);
+                    console.error(`[${entidade}] consulta de existência falhou (${chave}):`, existeErr.message);
+                    continue;
+                  }
+                  if (existente) {
+                    resumo.ja_existiam++;
+                  } else {
+                    resumo.seriam_gravados++;
+                    if (p?.referenciada) resumo.com_referencia++;
+                  }
+                  continue;
+                }
+
+
+
                 // ÍNDICE-PARCIAL-VAI-POR-RPC: `uniq_nfs_stage_chave_ativa` é
                 // parcial (WHERE status <> descartada/duplicata) e o PostgREST
                 // não infere índice parcial em ON CONFLICT — o upsert falhava
@@ -455,42 +525,52 @@ Deno.serve(async (req) => {
             if (!proximoCursor) break;
           }
         } finally {
-          // CURSOR-SO-AVANCA-SOBRE-SUCESSO: uma execução com erro não pode marcar
-          // como lido o que não foi absorvido. Notas fiscais perdidas sem alarme
-          // são inaceitáveis em integração fiscal.
-          const houveErroDocumento = resumo.erros > 0;
-          const houveErroEntidade = !!resumo.erro;
-          const podeAvancar = !houveErroDocumento && !houveErroEntidade;
-
-          const updatePayload: Record<string, unknown> = {
-            em_execucao: false,
-            ultima_pagina: resumo.paginas,
-            total_processado: (cur.total_processado ?? 0) + resumo.gravados,
-          };
-
-          if (podeAvancar) {
-            updatePayload.ultimo_bling_id = cursor;
-            updatePayload.ultima_data_corte = ate.toISOString();
-            resumo.cursor_avancou = true;
-          } else {
-            // Preserva os valores que já estavam no banco — a fila não andou.
-            updatePayload.ultimo_bling_id = cur.ultimo_bling_id;
-            updatePayload.ultima_data_corte = cur.ultima_data_corte;
+          // SIMULACAO-NAO-MOVE-A-FILA: em simulação só a trava é liberada.
+          if (simular) {
             resumo.cursor_avancou = false;
-          }
+            await supabase
+              .from("integracoes_sync_cursor")
+              .update({ em_execucao: false })
+              .eq("id", cur.id);
+          } else {
+            // CURSOR-SO-AVANCA-SOBRE-SUCESSO: uma execução com erro não pode marcar
+            // como lido o que não foi absorvido. Notas fiscais perdidas sem alarme
+            // são inaceitáveis em integração fiscal.
+            const houveErroDocumento = resumo.erros > 0;
+            const houveErroEntidade = !!resumo.erro;
+            const podeAvancar = !houveErroDocumento && !houveErroEntidade;
 
-          await supabase
-            .from("integracoes_sync_cursor")
-            .update(updatePayload)
-            .eq("id", cur.id);
+            const updatePayload: Record<string, unknown> = {
+              em_execucao: false,
+              ultima_pagina: resumo.paginas,
+              total_processado: (cur.total_processado ?? 0) + resumo.gravados,
+            };
+
+            if (podeAvancar) {
+              updatePayload.ultimo_bling_id = cursor;
+              updatePayload.ultima_data_corte = ate.toISOString();
+              resumo.cursor_avancou = true;
+            } else {
+              // Preserva os valores que já estavam no banco — a fila não andou.
+              updatePayload.ultimo_bling_id = cur.ultimo_bling_id;
+              updatePayload.ultima_data_corte = cur.ultima_data_corte;
+              resumo.cursor_avancou = false;
+            }
+
+            await supabase
+              .from("integracoes_sync_cursor")
+              .update(updatePayload)
+              .eq("id", cur.id);
+          }
         }
+
       } catch (e) {
         resumo.erro = e instanceof Error ? e.message : String(e);
         console.error(`[sync-qive-dfe] entidade ${entidade} falhou:`, e);
       }
     }
 
-    return json({ ok: true, ambiente, por_entidade, duracao_ms: Date.now() - t0 });
+    return json({ ok: true, ambiente, simulado: simular, por_entidade, duracao_ms: Date.now() - t0 });
   } catch (e) {
     console.error("[sync-qive-dfe] erro geral:", e);
     return json(
