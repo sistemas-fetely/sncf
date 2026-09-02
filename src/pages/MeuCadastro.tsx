@@ -325,7 +325,7 @@ export default function MeuCadastro() {
               <div>
                 <Label>Cor / raça</Label>
                 <Select value={valores.etnia} onValueChange={(v) => set({ etnia: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Parda" /></SelectTrigger>
                   <SelectContent>
                     {ETNIAS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                   </SelectContent>
@@ -336,7 +336,7 @@ export default function MeuCadastro() {
               <div>
                 <Label>Pessoa com deficiência</Label>
                 <Select value={valores.pcd_tipo} onValueChange={(v) => set({ pcd_tipo: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Não" /></SelectTrigger>
                   <SelectContent>
                     {PCD_TIPOS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                   </SelectContent>
@@ -362,7 +362,7 @@ export default function MeuCadastro() {
               <div>
                 <Label>Tamanho de camiseta</Label>
                 <Select value={valores.tamanho_camiseta} onValueChange={(v) => set({ tamanho_camiseta: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="M" /></SelectTrigger>
                   <SelectContent>
                     {TAMANHOS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                   </SelectContent>
