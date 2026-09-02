@@ -288,7 +288,7 @@ export default function SemProvaTab() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl">
+      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-2">
         {blocos.map(({ classe, rows }) => (
           <CardResumo
             key={classe}
@@ -296,15 +296,51 @@ export default function SemProvaTab() {
             qtd={rows.length}
             total={soma(rows)}
             tom={TOM_BLOCO[classe]}
+            ativo={filtro === classe}
+            onClick={() => alternar(classe)}
           />
         ))}
         <CardResumo
-          label="Instrumento quebrado"
+          label={ROTULO_CARD_EXTRA.instrumento}
           qtd={instrumento.length}
           total={soma(instrumento)}
           tom="destructive"
+          ativo={filtro === "instrumento"}
+          onClick={() => alternar("instrumento")}
+        />
+        <CardResumo
+          label={ROTULO_CARD_EXTRA.cartao}
+          qtd={cartao.length}
+          total={soma(cartao)}
+          tom="muted"
+          ativo={filtro === "cartao"}
+          onClick={() => alternar("cartao")}
+        />
+        <CardResumo
+          label={ROTULO_CARD_EXTRA.nao_cobravel}
+          qtd={naoCobravel.length}
+          total={soma(naoCobravel)}
+          tom="muted"
+          ativo={filtro === "nao_cobravel"}
+          onClick={() => alternar("nao_cobravel")}
         />
       </div>
+
+      {filtro && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>
+            Filtrado por{" "}
+            <span className="font-medium text-foreground">
+              {filtro in ROTULO_CARD_EXTRA
+                ? ROTULO_CARD_EXTRA[filtro as keyof typeof ROTULO_CARD_EXTRA]
+                : ROTULO_CARD[filtro as ProvaClasse]}
+            </span>
+          </span>
+          <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => setFiltro(null)}>
+            Mostrar todos
+          </Button>
+        </div>
+      )}
 
       {blocos.map(({ classe, rows }) => (
         <section key={classe} className="space-y-2">
