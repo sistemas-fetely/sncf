@@ -171,7 +171,16 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose, reenvio = 
 
       let attachments: Array<{ filename: string; content: string }> | undefined;
 
-      if ((titulo as any).boleto_status === "registrado") {
+      // FONTE-UNICA-DO-BOLETO (02/09/2026): quem decide se ha boleto para anexar e
+      // o boleto VIGENTE, nao o `boleto_status` do titulo. Na janela de reemissao o
+      // titulo fica em `baixa_remessa_gerada` e a regua mandava e-mail SEM boleto.
+      const { data: bvRegua } = await (supabase as any)
+        .from("vw_titulo_boleto_vigente")
+        .select("enviavel")
+        .eq("titulo_id", titulo.id)
+        .maybeSingle();
+
+      if (bvRegua?.enviavel) {
         const { data: pdfResp, error: errPdf } = await supabase.functions.invoke(
           "gerar-boleto-pdf",
           { body: { titulo_id: titulo.id } },
