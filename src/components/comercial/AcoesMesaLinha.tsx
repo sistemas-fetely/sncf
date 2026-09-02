@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { SolicitarSopsAcao } from "@/components/comercial/SolicitarSopsAcao";
 import { usePermissoesMesa } from "@/hooks/comercial/usePermissoesMesa";
 import { useDownloadNfPdf } from "@/hooks/nf/useDownloadNfPdf";
+import { nomeArquivoNf } from "@/lib/nf/nome-arquivo";
 import type { MesaComercialRow } from "@/hooks/comercial/useMesaComercial";
 
 /**
@@ -36,15 +37,6 @@ async function copiarLink(link: string) {
   }
 }
 
-/** Nome do arquivo baixado. O hook concatena a extensão. */
-function nomeArquivoNf(linha: MesaComercialRow, formato: "pdf" | "xml"): string {
-  if (formato === "xml" && linha.nf_chave) return `NFe-${linha.nf_chave}`;
-  if (linha.nf_numero) {
-    return `NF-${linha.nf_numero}${linha.nf_serie ? `-${linha.nf_serie}` : ""}`;
-  }
-  return `NF-${linha.nf_id}`;
-}
-
 interface AcaoItem {
   chave: string;
   rotulo: string;
@@ -65,6 +57,14 @@ export function AcoesMesaLinha({
 
   // FAIL-LOUD já mora no hook: erro do servidor sobe como toast com o corpo real.
   const baixandoEstaNf = baixando && nfEmDownload === linha.nf_id;
+
+  // NOME-DE-ARQUIVO-FALA-O-PEDIDO: `PED-2108_NF-000346-1.pdf`.
+  const nomeDoArquivo = nomeArquivoNf({
+    pedidoRef: linha.id_externo,
+    numero: linha.nf_numero,
+    serie: linha.nf_serie,
+    fallbackId: linha.nf_id,
+  });
 
   const acoes: AcaoItem[] = [];
 
@@ -87,7 +87,7 @@ export function AcoesMesaLinha({
         baixar({
           nf_id: linha.nf_id!,
           formato: "pdf",
-          nome: nomeArquivoNf(linha, "pdf"),
+          nome: nomeDoArquivo,
         }),
     });
   }
@@ -102,7 +102,7 @@ export function AcoesMesaLinha({
         baixar({
           nf_id: linha.nf_id!,
           formato: "xml",
-          nome: nomeArquivoNf(linha, "xml"),
+          nome: nomeDoArquivo,
         }),
     });
   }
