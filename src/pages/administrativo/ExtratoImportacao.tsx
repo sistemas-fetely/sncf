@@ -38,7 +38,7 @@ import { ehRetornoSafra } from "@/lib/financeiro/cnab-retorno-safra-parser";
 
 import { ResumoSafraCarteira } from "@/components/financeiro/ResumoSafraCarteira";
 import * as XLSX from "xlsx";
-import { gerarHashMov } from "@/lib/financeiro/hash-mov";
+import { gerarHashMov, identidadeMovOfx } from "@/lib/financeiro/hash-mov";
 import { ContagemImportacao } from "@/lib/financeiro/contagem-importacao";
 import { inserirMovimentacao, inserirMovimentacoes } from "@/lib/financeiro/inserir-mov";
 import { VereditoImportacao, type VereditoArquivo } from "@/components/financeiro/VereditoImportacao";
