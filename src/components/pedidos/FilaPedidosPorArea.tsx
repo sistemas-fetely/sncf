@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageCircle, MoreHorizontal, FileSpreadsheet, Tag, Download, Flame, Loader2, FileText, AlertTriangle } from "lucide-react";
+import { Search, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageCircle, MoreHorizontal, FileSpreadsheet, Tag, Download, Flame, Loader2, FileText, AlertTriangle, BadgeCheck } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import {
@@ -1502,6 +1502,7 @@ function AcoesLinha({ p, temMsg, risco, nfInfo }: { p: PedidoFilaItem; temMsg: b
   const [splitOpen, setSplitOpen] = useState(false);
   const [marcacaoOpen, setMarcacaoOpen] = useState(false);
   const [urgenciaOpen, setUrgenciaOpen] = useState(false);
+  const [confirmarPagamentoAberto, setConfirmarPagamentoAberto] = useState(false);
 
   const motivos = risco?.risco_motivos ?? [];
   const urgenciaInicial: UrgenciaDeclarada = motivos.some((m) => m.codigo === "urgencia_critica_declarada")
