@@ -24,6 +24,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -78,6 +84,7 @@ import {
   Wand2,
   Send,
   CalendarClock,
+  CloudDownload,
 
 } from "lucide-react";
 import PlanoPagamentoDialog from "@/components/financeiro/PlanoPagamentoDialog";
@@ -85,6 +92,7 @@ import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip as RTooltip, XAxis } 
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { fmtDataHora } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { descartarStage } from "@/lib/financeiro/stage-handler";
 import { useCategoriasPlano } from "@/hooks/useCategoriasPlano";
@@ -162,6 +170,18 @@ type NFStage = {
     valor_unitario?: number;
     valor_total?: number;
   }> | null;
+  // Destino de roteamento (vw_nfs_stage_completude)
+  destino_codigo?: string | null;
+  destino_origem?: string | null;
+  destino_motivo?: string | null;
+  nf_referenciada_chave?: string | null;
+  fin_nfe?: string | null;
+  destino_rotulo?: string | null;
+  destino_cor?: string | null;
+  destino_gera_cpr?: boolean | null;
+  destino_entra_estoque?: boolean | null;
+  destino_exige_humano?: boolean | null;
+  destino_rota_mesa?: string | null;
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -243,6 +263,8 @@ export default function NFsStage() {
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
   const [gerandoResumo, setGerandoResumo] = useState<Set<string>>(new Set());
   const [classificandoIA, setClassificandoIA] = useState(false);
+  const [buscandoQive, setBuscandoQive] = useState(false);
+  const [destinoFiltro, setDestinoFiltro] = useState<string | null>(null);
   const [uniformizarOpen, setUniformizarOpen] = useState(false);
   const [uniformizarEscolha, setUniformizarEscolha] = useState<string | null>(null);
   const [uniformizando, setUniformizando] = useState(false);
@@ -291,6 +313,62 @@ export default function NFsStage() {
       toast.error("Erro na classificação: " + (e instanceof Error ? e.message : String(e)));
     } finally {
       setClassificandoIA(false);
+    }
+  }
+
+  type QiveEntidadeResumo = {
+    encontrados: number;
+    gravados: number;
+    ja_existiam: number;
+    com_referencia: number;
+    erros: number;
+    paginas: number;
+    cursor_final: string | null;
+    interrompido_por: string | null;
+    erro: string | null;
+  };
+
+  async function buscarNaQive() {
+    setBuscandoQive(true);
+    try {
+      const resp = await supabase.functions.invoke("sync-qive-dfe", { body: {} });
+      if (resp.error) throw new Error(resp.error.message);
+      const data = resp.data as {
+        ok: boolean;
+        ambiente: string;
+        por_entidade: Record<string, QiveEntidadeResumo>;
+        duracao_ms: number;
+      };
+      if (!data.ok) {
+        toast.error(data.por_entidade
+          ? `Qive (${data.ambiente}): falha ao buscar documentos`
+          : `Qive (${data.ambiente}): falha na integração`);
+        return;
+      }
+      const entidades = Object.entries(data.por_entidade || {});
+      const totalGravados = entidades.reduce((s, [, r]) => s + (r.gravados || 0), 0);
+      const totalJaExistiam = entidades.reduce((s, [, r]) => s + (r.ja_existiam || 0), 0);
+      const entidadesComErro = entidades
+        .filter(([, r]) => (r.erro || "").length > 0 || (r.erros || 0) > 0)
+        .map(([nome]) => nome.toUpperCase());
+      if (entidadesComErro.length > 0) {
+        toast.warning(
+          `Qive (${data.ambiente}): ${totalGravados} gravadas, ${totalJaExistiam} já existiam. Atenção em ${entidadesComErro.join(", ")}.`,
+          { duration: 6000 }
+        );
+      } else if (totalGravados === 0) {
+        toast.info(`Qive (${data.ambiente}): nenhum documento novo encontrado.`);
+      } else {
+        toast.success(
+          `Qive (${data.ambiente}): ${totalGravados} gravada${totalGravados === 1 ? "" : "s"}, ${totalJaExistiam} já existia${totalJaExistiam === 1 ? "" : "m"}`
+        );
+      }
+      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      qc.invalidateQueries({ queryKey: ["integracoes-sync-cursor", "qive"] });
+    } catch (e) {
+      toast.error("Erro ao buscar na Qive: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setBuscandoQive(false);
     }
   }
 
@@ -391,6 +469,36 @@ export default function NFsStage() {
     },
   });
 
+  // Última execução da integração Qive
+  const { data: qiveCursor } = useQuery({
+    queryKey: ["integracoes-sync-cursor", "qive"],
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("integracoes_sync_cursor")
+        .select("entidade, ultima_data_corte, total_processado")
+        .eq("sistema", "qive");
+      if (error) throw error;
+      return (data || []) as Array<{
+        entidade: string;
+        ultima_data_corte: string | null;
+        total_processado: number;
+      }>;
+    },
+  });
+
+  const qiveResumo = useMemo(() => {
+    if (!qiveCursor || qiveCursor.length === 0) return null;
+    const datas = qiveCursor
+      .map((c) => c.ultima_data_corte)
+      .filter((d): d is string => !!d);
+    const ultima = datas.length > 0
+      ? new Date(Math.max(...datas.map((d) => new Date(d).getTime()))).toISOString()
+      : null;
+    const total = qiveCursor.reduce((s, c) => s + (c.total_processado || 0), 0);
+    return { ultima, total };
+  }, [qiveCursor]);
+
   // Filtro + Ordenação
   const filtered = useMemo(() => {
     let list = nfs || [];
@@ -439,6 +547,13 @@ export default function NFsStage() {
           n.nf_numero?.toLowerCase().includes(t),
       );
     }
+    if (destinoFiltro) {
+      if (destinoFiltro === "__sem_destino__") {
+        list = list.filter((n) => !n.destino_codigo);
+      } else {
+        list = list.filter((n) => n.destino_codigo === destinoFiltro);
+      }
+    }
 
     // Ordenação
     list = ordenarPor(list, sort, {
@@ -451,7 +566,7 @@ export default function NFsStage() {
     });
 
     return list;
-  }, [nfs, filtroPill, mesFiltro, busca, sort, resolvidasNaSessao]);
+  }, [nfs, filtroPill, mesFiltro, busca, destinoFiltro, sort, resolvidasNaSessao]);
 
   // KPIs — refletem filtro de mês ativo (mas ignoram a pill, senão eram sempre iguais)
   const totals = useMemo(() => {
@@ -1136,6 +1251,20 @@ export default function NFsStage() {
               </Button>
               <Button
                 variant="outline"
+                onClick={buscarNaQive}
+                disabled={buscandoQive}
+                className="gap-2"
+                title="Buscar documentos fiscais na Qive (sandbox — dados fictícios para validação)"
+              >
+                {buscandoQive ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CloudDownload className="h-4 w-4" />
+                )}
+                {buscandoQive ? "Buscando..." : "Buscar na Qive"}
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() => navigate("/administrativo/motor-classificacao")}
                 className="gap-2"
               >
@@ -1359,6 +1488,32 @@ export default function NFsStage() {
             )}
           </div>
 
+          <Select value={destinoFiltro || ""} onValueChange={(v) => setDestinoFiltro(v || null)}>
+            <SelectTrigger className="w-[180px] text-xs h-9">
+              <SelectValue placeholder="Filtrar destino" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Todos os destinos</SelectItem>
+              <SelectItem value="__sem_destino__">Sem destino</SelectItem>
+              {Array.from(
+                new Map(
+                  (nfs || [])
+                    .filter((n) => n.destino_codigo)
+                    .map((n) => [
+                      n.destino_codigo,
+                      { codigo: n.destino_codigo, rotulo: n.destino_rotulo || n.destino_codigo },
+                    ])
+                ).values()
+              )
+                .sort((a, b) => a.rotulo.localeCompare(b.rotulo))
+                .map((d) => (
+                  <SelectItem key={d.codigo} value={d.codigo!}>
+                    {d.rotulo}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+
           {mesFiltro && (() => {
             const info = chartData.find((d) => d.mesKey === mesFiltro);
             return (
@@ -1386,6 +1541,17 @@ export default function NFsStage() {
               <strong className="text-foreground font-mono">{formatBRL(totalFiltradas)}</strong>
             </span>
           </div>
+
+          {qiveResumo && (
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <CloudDownload className="h-3 w-3" />
+              <span>
+                Qive: {fmtDataHora(qiveResumo.ultima, "nunca")} ·{" "}
+                <strong className="text-foreground">{qiveResumo.total}</strong> processado
+                {qiveResumo.total === 1 ? "" : "s"}
+              </span>
+            </div>
+          )}
 
           {selecionadas.size > 0 && (
             <div className="ml-auto flex items-center gap-2 flex-wrap">
@@ -1499,6 +1665,7 @@ export default function NFsStage() {
                   <SortableTableHead column="valor" sort={sort} onSort={setSort} className="w-28" align="right">
                     Valor
                   </SortableTableHead>
+                  <TableHead className="w-32">Destino</TableHead>
                   <SortableTableHead column="categoria" sort={sort} onSort={setSort} className="min-w-[220px]">
                     Categoria
                   </SortableTableHead>
@@ -1577,6 +1744,44 @@ export default function NFsStage() {
                       </TableCell>
                       <TableCell className="text-right font-mono whitespace-nowrap text-sm">
                         {formatBRL(nf.valor)}
+                      </TableCell>
+                      <TableCell>
+                        {nf.destino_rotulo ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="inline-flex items-center gap-1.5">
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[10px] py-0 h-5 px-1.5 border-current/30"
+                                    style={{
+                                      color: nf.destino_cor || undefined,
+                                      borderColor: nf.destino_cor ? `${nf.destino_cor}4d` : undefined,
+                                      backgroundColor: nf.destino_cor ? `${nf.destino_cor}14` : undefined,
+                                    }}
+                                  >
+                                    {nf.destino_rotulo}
+                                  </Badge>
+                                  {nf.destino_exige_humano && (
+                                    <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+                                  )}
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="text-xs font-medium">{nf.destino_rotulo}</p>
+                                {nf.destino_motivo && (
+                                  <p className="text-[11px] text-muted-foreground mt-0.5">{nf.destino_motivo}</p>
+                                )}
+                                <p className="text-[10px] text-muted-foreground mt-1">
+                                  {nf.destino_gera_cpr ? "Gera CPR" : "Não gera CPR"}
+                                  {nf.destino_entra_estoque ? " · entra no estoque" : ""}
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="mb-1">
