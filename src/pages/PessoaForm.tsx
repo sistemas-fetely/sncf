@@ -115,6 +115,9 @@ const emptyVinculo: VinculoForm = {
   cnpj: "", razao_social: "", nome_fantasia: "", categoria_pj: "", objeto: "",
   pis_pasep: "", ctps_numero: "", matricula: "", data_admissao: "", jornada_semanal: "44",
   gestor_pessoa_id: "",
+  modalidade: "", conta_titular: "",
+  pj_regime_tributario: "", pj_municipio_nfse: "", pj_emite_nfse: false,
+  pj_representante_nome: "", pj_representante_cpf: "",
 };
 
 function onlyDigits(s: string) { return (s || "").replace(/\D/g, ""); }
