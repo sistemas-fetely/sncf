@@ -349,7 +349,7 @@ export default function NFsStage() {
       const totalGravados = entidades.reduce((s, [, r]) => s + (r.gravados || 0), 0);
       const totalJaExistiam = entidades.reduce((s, [, r]) => s + (r.ja_existiam || 0), 0);
       const entidadesComErro = entidades
-        .filter(([, r]) => (r.erro || "").length > 0 || (r.erros || 0) > 0)
+        .filter(([, r]) => (r.erro || "").length > 0)
         .map(([nome]) => nome.toUpperCase());
       if (entidadesComErro.length > 0) {
         toast.warning(
@@ -1490,7 +1490,7 @@ export default function NFsStage() {
 
           <Select value={destinoFiltro || ""} onValueChange={(v) => setDestinoFiltro(v || null)}>
             <SelectTrigger className="w-[180px] text-xs h-9">
-              <SelectValue placeholder="Filtrar destino" />
+              <SelectValue placeholder="Todos os destinos" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">Todos os destinos</SelectItem>
@@ -1542,14 +1542,19 @@ export default function NFsStage() {
             </span>
           </div>
 
-          {qiveResumo && (
+          {qiveResumo ? (
             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <CloudDownload className="h-3 w-3" />
               <span>
-                Qive: {fmtDataHora(qiveResumo.ultima, "nunca")} ·{" "}
-                <strong className="text-foreground">{qiveResumo.total}</strong> processado
-                {qiveResumo.total === 1 ? "" : "s"}
+                {qiveResumo.ultima
+                  ? `Qive · última busca: ${fmtDataHora(qiveResumo.ultima)} · ${qiveResumo.total} documento${qiveResumo.total === 1 ? "" : "s"} no total`
+                  : "Qive · nunca executada"}
               </span>
+            </div>
+          ) : qiveCursor === undefined ? null : (
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <CloudDownload className="h-3 w-3" />
+              <span>Qive · nunca executada</span>
             </div>
           )}
 
@@ -1665,7 +1670,7 @@ export default function NFsStage() {
                   <SortableTableHead column="valor" sort={sort} onSort={setSort} className="w-28" align="right">
                     Valor
                   </SortableTableHead>
-                  <TableHead className="w-32">Destino</TableHead>
+                  <TableHead className="w-[150px]">Destino</TableHead>
                   <SortableTableHead column="categoria" sort={sort} onSort={setSort} className="min-w-[220px]">
                     Categoria
                   </SortableTableHead>
@@ -1753,17 +1758,19 @@ export default function NFsStage() {
                                 <div className="inline-flex items-center gap-1.5">
                                   <Badge
                                     variant="outline"
-                                    className="text-[10px] py-0 h-5 px-1.5 border-current/30"
+                                    className="text-[10px] py-0 h-5 px-1.5 bg-transparent"
                                     style={{
                                       color: nf.destino_cor || undefined,
-                                      borderColor: nf.destino_cor ? `${nf.destino_cor}4d` : undefined,
-                                      backgroundColor: nf.destino_cor ? `${nf.destino_cor}14` : undefined,
+                                      borderColor: nf.destino_cor || undefined,
                                     }}
                                   >
                                     {nf.destino_rotulo}
                                   </Badge>
                                   {nf.destino_exige_humano && (
-                                    <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+                                    <AlertCircle
+                                      className="h-3.5 w-3.5 text-destructive"
+                                      title="Este destino pede decisão humana"
+                                    />
                                   )}
                                 </div>
                               </TooltipTrigger>
@@ -1773,8 +1780,7 @@ export default function NFsStage() {
                                   <p className="text-[11px] text-muted-foreground mt-0.5">{nf.destino_motivo}</p>
                                 )}
                                 <p className="text-[10px] text-muted-foreground mt-1">
-                                  {nf.destino_gera_cpr ? "Gera CPR" : "Não gera CPR"}
-                                  {nf.destino_entra_estoque ? " · entra no estoque" : ""}
+                                  {nf.destino_gera_cpr ? "gera conta a pagar" : "não gera conta a pagar"}
                                 </p>
                               </TooltipContent>
                             </Tooltip>
