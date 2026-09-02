@@ -38,6 +38,7 @@ import { usePermissoesMesa } from "@/hooks/comercial/usePermissoesMesa";
 import { useStatusComercialLog } from "@/hooks/comercial/useMesaComercial";
 import { useBoletosDoPedido } from "@/hooks/pedidos/useBoletosDoPedido";
 import type { BoletoVigente } from "@/components/credito/AvisoBoletosVivos";
+import { BotaoBaixarBoletoPdf, baixarBoletoPdf } from "@/components/credito/BotaoBaixarBoletoPdf";
 import { usePedidoPortaoAtual } from "@/hooks/pedidos/usePedidoPortaoAtual";
 import { useDiagnosticoPagamento } from "@/hooks/comercial/usePedidoOportunidadeDetalhe";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -237,7 +238,7 @@ export function PedidoOportunidadeDialog({
   const boletos = useBoletosDoPedido(open ? pedidoId : undefined);
   const statusLog = useStatusComercialLog(pedidoId, open);
   // PERMISSAO-NOMINAL-POR-ACAO: mesmos gates da linha da mesa, mesma fonte.
-  const { podeCopiarLink, podeBaixarNf, podeVerBoletos } = usePermissoesMesa();
+  const { podeCopiarLink, podeBaixarNf, podeVerBoletos, podeBaixarBoleto } = usePermissoesMesa();
 
 
   const comprovantes = useComprovantesPedido(pedidoId, open);
@@ -609,6 +610,7 @@ export function PedidoOportunidadeDialog({
                       <TableHead className="text-right">Valor</TableHead>
                       <TableHead>Nosso número</TableHead>
                       <TableHead>Situação</TableHead>
+                      {podeBaixarBoleto && <TableHead className="w-10">Ações</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -637,6 +639,24 @@ export function PedidoOportunidadeDialog({
                         <TableCell className={`text-xs ${sit.classe}`} title={sit.tooltip}>
                           {sit.rotulo}
                         </TableCell>
+                        {podeBaixarBoleto && (
+                          <TableCell className="text-right">
+                            {/* Estado do dado manda: em reemissão aparece desabilitado com o motivo. */}
+                            {b.boleto_vigente?.nosso_numero ? (
+                              <BotaoBaixarBoletoPdf
+                                tituloId={b.id}
+                                desabilitado={!!b.boleto_vigente.vigente_em_baixa}
+                                motivoDesabilitado={
+                                  b.boleto_vigente.vigente_em_baixa
+                                    ? "Boleto em reemissão no banco — não entregue este ao cliente."
+                                    : sit.rotulo === "Vencido"
+                                      ? "Boleto vencido — o cliente paga com juros e multa."
+                                      : undefined
+                                }
+                              />
+                            ) : null}
+                          </TableCell>
+                        )}
                       </TableRow>
                       );
                     })}

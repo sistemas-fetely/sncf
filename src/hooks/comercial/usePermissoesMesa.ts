@@ -14,6 +14,7 @@ export function usePermissoesMesa() {
   const boletos = usePermissaoAcaoOuSuperAdmin("acao.mesa_ver_boletos");
   const sops = usePermissaoAcaoOuSuperAdmin("acao.mesa_solicitar_sops");
   const verTodos = usePermissaoAcaoOuSuperAdmin("acao.mesa_ver_todos");
+  const baixarBoleto = usePermissaoAcaoOuSuperAdmin("acao.mesa_baixar_boleto");
 
   return {
     podeDefinirStatus: status.permitido,
@@ -24,12 +25,15 @@ export function usePermissoesMesa() {
     podeSolicitarSops: sops.permitido,
     /** Sem esta permissão a pessoa vê SOMENTE a própria carteira. */
     podeVerTodos: verTodos.permitido,
+    /** Baixar o espelho PDF do boleto vigente direto da Mesa. */
+    podeBaixarBoleto: baixarBoleto.permitido,
     carregando:
       status.carregando ||
       link.carregando ||
       nf.carregando ||
       boletos.carregando ||
       sops.carregando ||
-      verTodos.carregando,
+      verTodos.carregando ||
+      baixarBoleto.carregando,
   };
 }
