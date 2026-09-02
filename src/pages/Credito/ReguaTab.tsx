@@ -26,6 +26,8 @@ import { apelidoParceiro, nomeCanonico } from "@/lib/parceiros/nome";
 import { AcaoReguaDialog } from "@/components/credito/AcaoReguaDialog";
 import { PausarReguaDialog } from "@/components/credito/PausarReguaDialog";
 import { RenegociarTituloDialog } from "@/components/credito/RenegociarTituloDialog";
+import { EsperaRetornoSafra } from "@/components/credito/EsperaRetornoSafra";
+import { UltimoContatoRegua } from "@/components/credito/UltimoContatoRegua";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { LinhaMesa } from "@/lib/financeiro/adaptar-titulo-mesa";
 import { seloInstrumento, seloEntrega, seloEnvio, EntregaResumoInline, Selo, fmtDataMesa } from "@/lib/financeiro/mesa-lastros";
@@ -325,6 +327,14 @@ function CardTitulo({
           Cobrar a dívida, mas NÃO reenviar este boleto — vencido, precisa reemissão
         </div>
       )}
+
+      {/* CONTEXTO-MORA-ONDE-SE-DECIDE (02/09/2026): o card decidia sem o contexto que
+          o banco ja tinha. Dois furos: (1) a espera do Safra e a renegociacao pendente
+          nao apareciam — o card dizia "vencido, precisa reemissao" sem contar que a
+          reemissao JA estava agendada; (2) a observacao de "Registrar acao" vivia so
+          no drawer de Titulos, longe de quem decide se liga de novo. */}
+      <EsperaRetornoSafra tituloId={titulo.id} />
+      <UltimoContatoRegua tituloId={titulo.id} />
 
       {!etapa && ultima && (
         <div className="text-[11px] text-muted-foreground">
