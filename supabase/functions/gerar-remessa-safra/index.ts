@@ -572,7 +572,7 @@ serve(async (req) => {
           ok: false,
           erro: "Títulos com vencimento no passado não podem ser enviados",
           // deno-lint-ignore no-explicit-any
-          titulos: passados.map((t: any) => ({ titulo_id: t.id, numero_titulo: t.numero_titulo, data_vencimento_atual: t.data_vencimento_atual })),
+          titulos: passados.map((t: any) => ({ titulo_id: t.id, numero_titulo: t.numero_titulo, data_vencimento_atual: vencEfetivo(t) })),
         }),
         { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
