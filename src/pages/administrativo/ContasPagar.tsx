@@ -30,6 +30,22 @@ import {
   type SortState,
 } from "@/components/shared/SortableTableHead";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
   ArrowUpFromLine,
   Plus,
   Upload,
@@ -37,18 +53,25 @@ import {
   AlertTriangle,
   Clock,
   AlertCircle,
-  
+  CalendarDays,
+  MoreVertical,
   FileWarning,
   PackageOpen,
   X,
 } from "lucide-react";
 import AcoesInlineConta from "@/components/financeiro/AcoesInlineConta";
+import {
+  useTituloPagarAcoes,
+  useTituloPagarTransicionar,
+  type TituloPagarAcao,
+} from "@/hooks/financeiro/useTituloPagarEstado";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import ContaPagarDetalheDrawer from "@/components/financeiro/ContaPagarDetalheDrawer";
 import { NovaContaPagarSheet } from "@/components/financeiro/NovaContaPagarSheet";
 import { ImportarNFDespesaDialog } from "@/components/financeiro/ImportarNFDespesaDialog";
 import { getMeioPagamentoIcon } from "@/lib/financeiro/meio-pagamento-icon";
 import { cn } from "@/lib/utils";
+import { hojeISO } from "@/lib/data";
 
 type Conta = {
   id: string;
