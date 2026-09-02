@@ -234,7 +234,7 @@ const PARSER_EFEITO: Record<Fonte, string> = {
   mp_withdraw: "Retiradas Mercado Pago — cria a transferência quando não há par no extrato.",
   safrapay_vendas: "Vendas SafraPay — agenda de recebíveis; o dinheiro entra pelo OFX.",
   safrapay_liquidacao:
-    "Liquidação SafraPay — grava a composição do lote (NSU, parcela, taxa) e enriquece a linha do extrato. Não cria movimentação.",
+    "Liquidação SafraPay — grava a composição do lote (NSU, parcela, MDR = bruto − recebido). A conta é sobre a composição; enriquecer o extrato é efeito secundário.",
   safrapay_ajustes:
     "Ajuste sempre acompanha um crédito que já está no OFX — não cria dinheiro novo.",
   super_agenda: "SUPER AGENDA não é importável — é projeção, não movimento.",
@@ -952,6 +952,9 @@ export default function ExtratoImportacao() {
 
         // COMPOSICAO-DO-LOTE: mesma gravação do XLSX "Recebíveis de Vendas".
         const loteDoDia = await resolverLotesDoDia(sb, conta, datas);
+        // Contagem sombra: o efeito no extrato é secundário e não entra no
+        // veredito deste parser, mas o helper de inserção exige um contador.
+        const contExtrato = new ContagemImportacao();
 
         for (const p of parsed.parcelas) {
           if (!p.dt_efetiva) {
@@ -963,9 +966,11 @@ export default function ExtratoImportacao() {
             continue;
           }
 
-          // A conta é sobre LINHAS DO ARQUIVO, não sobre efeitos: a gravação da
-          // composição é adicional e não conta — quem conta é o extrato abaixo.
-          await gravarLiquidacaoSafraPay(
+          // CONTA-SEGUE-O-EFEITO-PRINCIPAL: o que este parser faz é gravar a
+          // composição do lote. Então a linha é NOVA quando entrou composição
+          // inédita e DUPLICADA quando já existia. O enriquecimento do extrato
+          // é efeito secundário e não manda na contagem.
+          const rLiq = await gravarLiquidacaoSafraPay(
             sb,
             {
               nsu: p.nsu,
@@ -974,7 +979,7 @@ export default function ExtratoImportacao() {
               data_pagamento: p.dt_efetiva,
               data_prevista: p.dt_prevista || null,
               data_venda: p.dt_venda || null,
-              valor_bruto_parcela: p.valor_liquido,
+              valor_bruto_parcela: p.valor_bruto_parcela,
               valor_liquido: p.valor_recebido,
               bandeira: p.produto || null,
               modalidade: p.modalidade || null,
@@ -983,6 +988,12 @@ export default function ExtratoImportacao() {
             },
             { conta, impId, origem: "safrapay_tipo2", loteDoDia }
           );
+          if (rLiq === "nova") cont.nova();
+          else if (rLiq === "duplicada") cont.duplicada();
+          else {
+            cont.ignorar(rLiq);
+            continue;
+          }
 
           const hashKey = `safrapay2|${p.nsu}|${p.dt_efetiva}|${p.parcela_num}`;
           const hash = await gerarHashMov(conta, p.dt_efetiva, p.valor_recebido, hashKey);
@@ -992,7 +1003,7 @@ export default function ExtratoImportacao() {
             .select("id")
             .eq("hash_unico", hash)
             .maybeSingle();
-          if (exist) { cont.duplicada(); continue; }
+          if (exist) continue;
 
           // Antes de inserir: tentar enriquecer a linha do extrato que já
           // representa esse dinheiro. Sem isso, o mesmo valor é contado duas vezes.
@@ -1007,7 +1018,7 @@ export default function ExtratoImportacao() {
             p_classe: null,
           });
           if (errEnr) throw errEnr;
-          if (alvoId) { cont.enriquecer(); continue; }
+          if (alvoId) continue;
 
           await inserirMovimentacao(
             sb,
@@ -1023,7 +1034,7 @@ export default function ExtratoImportacao() {
               tipo_meio: "cartao",
               fonte_importacao_id: impId,
             },
-            cont
+            contExtrato
           );
         }
 

@@ -95,36 +95,56 @@ export async function gravarLiquidacaoSafraPay(
       ? Number((l.valor_bruto_parcela - l.valor_liquido).toFixed(2))
       : null;
 
-  const { data: inseridas, error } = await sb
-    .from("safrapay_liquidacao")
-    .upsert(
-      [
-        {
-          nsu,
-          parcela: l.parcela,
-          total_parcelas: l.total_parcelas ?? null,
-          data_pagamento: l.data_pagamento,
-          data_prevista: l.data_prevista ?? null,
-          data_venda: l.data_venda ?? null,
-          valor_bruto_parcela: l.valor_bruto_parcela,
-          valor_liquido: l.valor_liquido,
-          taxa_mdr: taxa,
-          bandeira: l.bandeira ?? null,
-          modalidade: l.modalidade ?? null,
-          terminal: l.terminal ?? null,
-          ec: l.ec ?? null,
-          anomes: l.anomes ?? null,
-          cartao_mascarado: l.cartao_mascarado ?? null,
-          autorizacao: l.autorizacao ?? null,
-          movimentacao_id: ctx.loteDoDia.get(l.data_pagamento) ?? null,
-          fonte_importacao_id: ctx.impId,
-          origem: ctx.origem,
-        },
-      ],
-      { onConflict: "nsu,parcela,data_pagamento", ignoreDuplicates: true }
-    )
-    .select("id");
+  const agora = new Date().toISOString();
+  const linha = {
+    nsu,
+    parcela: l.parcela,
+    total_parcelas: l.total_parcelas ?? null,
+    data_pagamento: l.data_pagamento,
+    data_prevista: l.data_prevista ?? null,
+    data_venda: l.data_venda ?? null,
+    valor_bruto_parcela: l.valor_bruto_parcela,
+    valor_liquido: l.valor_liquido,
+    taxa_mdr: taxa,
+    bandeira: l.bandeira ?? null,
+    modalidade: l.modalidade ?? null,
+    terminal: l.terminal ?? null,
+    ec: l.ec ?? null,
+    anomes: l.anomes ?? null,
+    cartao_mascarado: l.cartao_mascarado ?? null,
+    autorizacao: l.autorizacao ?? null,
+    movimentacao_id: ctx.loteDoDia.get(l.data_pagamento) ?? null,
+    fonte_importacao_id: ctx.impId,
+    origem: ctx.origem,
+  };
 
+  // REIMPORTAR-CONSERTA-VALOR: a linha já existente NÃO é ignorada — bruto e
+  // MDR são recalculados. Foi assim que o histórico com MDR zerado se conserta
+  // sozinho, sem ninguém mexer no dado à mão. O resto da linha fica como está:
+  // reimportação corrige valor, não reescreve vínculo.
+  let busca = sb
+    .from("safrapay_liquidacao")
+    .select("id")
+    .eq("nsu", nsu)
+    .eq("data_pagamento", l.data_pagamento);
+  busca = l.parcela == null ? busca.is("parcela", null) : busca.eq("parcela", l.parcela);
+  const { data: existente, error: errBusca } = await busca.maybeSingle();
+  if (errBusca) throw errBusca;
+
+  if (existente) {
+    const { error: errUp } = await sb
+      .from("safrapay_liquidacao")
+      .update({
+        valor_bruto_parcela: l.valor_bruto_parcela,
+        taxa_mdr: taxa,
+        updated_at: agora,
+      })
+      .eq("id", existente.id);
+    if (errUp) throw errUp;
+    return "duplicada";
+  }
+
+  const { error } = await sb.from("safrapay_liquidacao").insert([linha]);
   if (error) throw error;
-  return (inseridas || []).length > 0 ? "nova" : "duplicada";
+  return "nova";
 }
