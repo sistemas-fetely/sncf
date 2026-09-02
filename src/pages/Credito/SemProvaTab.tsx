@@ -342,7 +342,7 @@ export default function SemProvaTab() {
         </div>
       )}
 
-      {blocos.map(({ classe, rows }) => (
+      {blocos.filter(({ classe }) => mostra(classe)).map(({ classe, rows }) => (
         <section key={classe} className="space-y-2">
           <BlocoHeader
             titulo={ROTULO_BLOCO[classe]}
