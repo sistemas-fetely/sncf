@@ -1536,6 +1536,17 @@ export default function NFsStage() {
             </span>
           </div>
 
+          {qiveResumo && (
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <CloudDownload className="h-3 w-3" />
+              <span>
+                Qive: {fmtDataHora(qiveResumo.ultima, "nunca")} ·{" "}
+                <strong className="text-foreground">{qiveResumo.total}</strong> processado
+                {qiveResumo.total === 1 ? "" : "s"}
+              </span>
+            </div>
+          )}
+
           {selecionadas.size > 0 && (
             <div className="ml-auto flex items-center gap-2 flex-wrap">
               <Badge variant="outline" className="gap-1 text-xs">
