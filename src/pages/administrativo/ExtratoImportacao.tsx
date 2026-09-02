@@ -963,9 +963,11 @@ export default function ExtratoImportacao() {
             continue;
           }
 
-          // A conta é sobre LINHAS DO ARQUIVO, não sobre efeitos: a gravação da
-          // composição é adicional e não conta — quem conta é o extrato abaixo.
-          await gravarLiquidacaoSafraPay(
+          // CONTA-SEGUE-O-EFEITO-PRINCIPAL: o que este parser faz é gravar a
+          // composição do lote. Então a linha é NOVA quando entrou composição
+          // inédita e DUPLICADA quando já existia. O enriquecimento do extrato
+          // é efeito secundário e não manda na contagem.
+          const rLiq = await gravarLiquidacaoSafraPay(
             sb,
             {
               nsu: p.nsu,
@@ -974,7 +976,7 @@ export default function ExtratoImportacao() {
               data_pagamento: p.dt_efetiva,
               data_prevista: p.dt_prevista || null,
               data_venda: p.dt_venda || null,
-              valor_bruto_parcela: p.valor_liquido,
+              valor_bruto_parcela: p.valor_bruto_parcela,
               valor_liquido: p.valor_recebido,
               bandeira: p.produto || null,
               modalidade: p.modalidade || null,
@@ -983,6 +985,12 @@ export default function ExtratoImportacao() {
             },
             { conta, impId, origem: "safrapay_tipo2", loteDoDia }
           );
+          if (rLiq === "nova") cont.nova();
+          else if (rLiq === "duplicada") cont.duplicada();
+          else {
+            cont.ignorar(rLiq);
+            continue;
+          }
 
           const hashKey = `safrapay2|${p.nsu}|${p.dt_efetiva}|${p.parcela_num}`;
           const hash = await gerarHashMov(conta, p.dt_efetiva, p.valor_recebido, hashKey);
@@ -992,7 +1000,7 @@ export default function ExtratoImportacao() {
             .select("id")
             .eq("hash_unico", hash)
             .maybeSingle();
-          if (exist) { cont.duplicada(); continue; }
+          if (exist) continue;
 
           // Antes de inserir: tentar enriquecer a linha do extrato que já
           // representa esse dinheiro. Sem isso, o mesmo valor é contado duas vezes.
@@ -1007,9 +1015,9 @@ export default function ExtratoImportacao() {
             p_classe: null,
           });
           if (errEnr) throw errEnr;
-          if (alvoId) { cont.enriquecer(); continue; }
+          if (alvoId) continue;
 
-          await inserirMovimentacao(
+          await inserirMovimentacaoSemContar(
             sb,
             {
               conta_bancaria_id: conta,

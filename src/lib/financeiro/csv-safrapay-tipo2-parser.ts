@@ -14,9 +14,12 @@ export interface SafraPayParcela {
   modalidade: string;
   parcela_num: number;   // PL
   ncar: number;          // número de parcelas
-  valor_liquido: number;
+  /** VALOR BRUTO PARC. — o que a venda valia antes de qualquer desconto. */
+  valor_bruto_parcela: number;
   taxa_adm_pct: number;
   desc_mdr: number;
+  desc_antifraude: number;
+  desc_antecipacao: number;
   valor_recebido: number; // líquido real creditado
   banco: string;
   agencia: string;
@@ -62,6 +65,26 @@ export function parseCsvSafraPayTipo2(text: string): SafraPayTipo2Parsed {
     ec = (cols[1] || "").trim();
     anomes = (cols[2] || "").trim();
 
+    // BRUTO-E-RECEBIDO-SAO-COLUNAS-DIFERENTES: `VALOR BRUTO PARC.` é o valor da
+    // parcela antes dos descontos; `VALOR RECEBIDO` é o que caiu na conta. Ler o
+    // mesmo campo nos dois zera o MDR e a conciliação perde a taxa.
+    const recebido = parseSafraValor(cols[34] || "0");
+    const descMdr = parseSafraValor(cols[31] || "0");
+    const descAntifraude = parseSafraValor(cols[32] || "0");
+    const descAntecipacao = parseSafraValor(cols[33] || "0");
+    let brutoParcela = parseSafraValor(cols[13] || "0");
+    // Rede de segurança: quando a coluna de bruto vem vazia ou repetindo o
+    // recebido, reconstrói pelos descontos decompostos. Sem inventar taxa:
+    // se não há desconto algum, bruto = recebido é a verdade.
+    if (brutoParcela <= 0 || brutoParcela === recebido) {
+      const somaDescontos = Number(
+        (descMdr + descAntifraude + descAntecipacao).toFixed(2)
+      );
+      if (somaDescontos > 0)
+        brutoParcela = Number((recebido + somaDescontos).toFixed(2));
+      else if (brutoParcela <= 0) brutoParcela = recebido;
+    }
+
     parcelas.push({
       dt_venda: parseSafraData(cols[4] || ""),
       dt_prevista: parseSafraData(cols[6] || ""),
@@ -71,10 +94,12 @@ export function parseCsvSafraPayTipo2(text: string): SafraPayTipo2Parsed {
       modalidade: (cols[10] || "").trim(),
       parcela_num: parseInt(cols[11] || "1", 10) || 1,
       ncar: parseInt(cols[12] || "1", 10) || 1,
-      valor_liquido: parseSafraValor(cols[13] || "0"),
+      valor_bruto_parcela: brutoParcela,
       taxa_adm_pct: parseSafraTaxa(cols[14] || "0"),
-      desc_mdr: parseSafraValor(cols[31] || "0"),
-      valor_recebido: parseSafraValor(cols[34] || "0"),
+      desc_mdr: descMdr,
+      desc_antifraude: descAntifraude,
+      desc_antecipacao: descAntecipacao,
+      valor_recebido: recebido,
       banco: (cols[26] || "").trim(),
       agencia: (cols[28] || "").trim(),
       conta: (cols[29] || "").trim(),
