@@ -661,6 +661,13 @@ export type Database = {
             foreignKeyName: "adiantamento_aplicacao_titulo_id_fkey"
             columns: ["titulo_id"]
             isOneToOne: false
+            referencedRelation: "vw_titulo_espera_retorno"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "adiantamento_aplicacao_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
             referencedRelation: "vw_titulo_vivo"
             referencedColumns: ["id"]
           },
@@ -8675,6 +8682,13 @@ export type Database = {
             foreignKeyName: "consignado_acerto_titulo_id_fkey"
             columns: ["titulo_id"]
             isOneToOne: false
+            referencedRelation: "vw_titulo_espera_retorno"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "consignado_acerto_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
             referencedRelation: "vw_titulo_vivo"
             referencedColumns: ["id"]
           },
@@ -13264,6 +13278,13 @@ export type Database = {
             columns: ["titulo_id"]
             isOneToOne: false
             referencedRelation: "vw_titulo_boleto_vigente"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "evento_titulo_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_espera_retorno"
             referencedColumns: ["titulo_id"]
           },
           {
@@ -18197,6 +18218,13 @@ export type Database = {
             columns: ["origem_titulo_id"]
             isOneToOne: false
             referencedRelation: "vw_titulo_boleto_vigente"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "haver_cliente_origem_titulo_id_fkey"
+            columns: ["origem_titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_espera_retorno"
             referencedColumns: ["titulo_id"]
           },
           {
@@ -27190,6 +27218,13 @@ export type Database = {
             columns: ["titulo_id"]
             isOneToOne: false
             referencedRelation: "vw_titulo_boleto_vigente"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "pedido_email_log_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_espera_retorno"
             referencedColumns: ["titulo_id"]
           },
           {
@@ -36224,6 +36259,13 @@ export type Database = {
             foreignKeyName: "regua_cobranca_acoes_log_titulo_id_fkey"
             columns: ["titulo_id"]
             isOneToOne: false
+            referencedRelation: "vw_titulo_espera_retorno"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "regua_cobranca_acoes_log_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
             referencedRelation: "vw_titulo_vivo"
             referencedColumns: ["id"]
           },
@@ -36963,6 +37005,13 @@ export type Database = {
             columns: ["titulo_id"]
             isOneToOne: false
             referencedRelation: "vw_titulo_boleto_vigente"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "safra_retorno_ocorrencia_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_espera_retorno"
             referencedColumns: ["titulo_id"]
           },
           {
@@ -43062,6 +43111,13 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_titulo_pai_id_fkey"
             columns: ["titulo_pai_id"]
             isOneToOne: false
+            referencedRelation: "vw_titulo_espera_retorno"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_titulo_pai_id_fkey"
+            columns: ["titulo_pai_id"]
+            isOneToOne: false
             referencedRelation: "vw_titulo_vivo"
             referencedColumns: ["id"]
           },
@@ -43154,6 +43210,13 @@ export type Database = {
             columns: ["titulo_renegociado_origem_id"]
             isOneToOne: false
             referencedRelation: "vw_titulo_boleto_vigente"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_titulo_renegociado_origem_id_fkey"
+            columns: ["titulo_renegociado_origem_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_espera_retorno"
             referencedColumns: ["titulo_id"]
           },
           {
@@ -43399,6 +43462,13 @@ export type Database = {
             columns: ["titulo_id"]
             isOneToOne: false
             referencedRelation: "vw_titulo_boleto_vigente"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_boleto_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_espera_retorno"
             referencedColumns: ["titulo_id"]
           },
           {
@@ -43728,6 +43798,13 @@ export type Database = {
             foreignKeyName: "titulo_instrumento_titulo_id_fkey"
             columns: ["titulo_id"]
             isOneToOne: false
+            referencedRelation: "vw_titulo_espera_retorno"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_instrumento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
             referencedRelation: "vw_titulo_vivo"
             referencedColumns: ["id"]
           },
@@ -43863,6 +43940,13 @@ export type Database = {
             columns: ["titulo_id"]
             isOneToOne: false
             referencedRelation: "vw_titulo_boleto_vigente"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_instrumento_log_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_espera_retorno"
             referencedColumns: ["titulo_id"]
           },
           {
@@ -66061,14 +66145,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -72409,6 +72493,13 @@ export type Database = {
             foreignKeyName: "safra_retorno_ocorrencia_titulo_id_fkey"
             columns: ["titulo_id"]
             isOneToOne: false
+            referencedRelation: "vw_titulo_espera_retorno"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "safra_retorno_ocorrencia_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
             referencedRelation: "vw_titulo_vivo"
             referencedColumns: ["id"]
           },
@@ -73363,6 +73454,26 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      vw_titulo_espera_retorno: {
+        Row: {
+          arquivo_nome: string | null
+          boleto_status: string | null
+          diagnostico: string | null
+          dias_desde_envio: number | null
+          enviada_em: string | null
+          numero_titulo: string | null
+          o_que_destrava: string | null
+          ocorrencia_esperada: string | null
+          prorrogacao_nova_data: string | null
+          reemissao_nova_data: string | null
+          reemissao_novo_valor: number | null
+          remessa_status: string | null
+          remessa_tipo: string | null
+          titulo_id: string | null
+          trava_e_nossa: boolean | null
+        }
+        Relationships: []
       }
       vw_titulo_vivo: {
         Row: {
@@ -74374,6 +74485,13 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_titulo_pai_id_fkey"
             columns: ["titulo_pai_id"]
             isOneToOne: false
+            referencedRelation: "vw_titulo_espera_retorno"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_titulo_pai_id_fkey"
+            columns: ["titulo_pai_id"]
+            isOneToOne: false
             referencedRelation: "vw_titulo_vivo"
             referencedColumns: ["id"]
           },
@@ -74466,6 +74584,13 @@ export type Database = {
             columns: ["titulo_renegociado_origem_id"]
             isOneToOne: false
             referencedRelation: "vw_titulo_boleto_vigente"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_titulo_renegociado_origem_id_fkey"
+            columns: ["titulo_renegociado_origem_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_espera_retorno"
             referencedColumns: ["titulo_id"]
           },
           {
@@ -75234,6 +75359,13 @@ export type Database = {
             columns: ["titulo_renegociado_origem_id"]
             isOneToOne: false
             referencedRelation: "vw_titulo_boleto_vigente"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_titulo_renegociado_origem_id_fkey"
+            columns: ["titulo_renegociado_origem_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_espera_retorno"
             referencedColumns: ["titulo_id"]
           },
           {

@@ -17,6 +17,7 @@ import {
 import { usePedidosFila } from "@/hooks/pedidos/usePedidosFila";
 import { useNfsDosPedidosParceiro } from "@/hooks/parceiros/useNfsDosPedidosParceiro";
 import { useDownloadNfPdf } from "@/hooks/nf/useDownloadNfPdf";
+import { nomeArquivoNf } from "@/lib/nf/nome-arquivo";
 import { cn } from "@/lib/utils";
 import { classeSituacao, rotuloSituacao } from "@/lib/pedidos/situacao-financeira";
 import { EstagioBadge } from "@/components/pedidos/BadgesPedido";
@@ -191,7 +192,12 @@ export function PedidosDoParceiroSection({ parceiroId }: { parceiroId: string })
                                     e.stopPropagation();
                                     baixar({
                                       nf_id: nf.nf_id!,
-                                      nome: `NF-${nf.numero ?? nf.nf_id}`,
+                                      nome: nomeArquivoNf({
+                                        pedidoRef: p.id_externo,
+                                        numero: nf.numero,
+                                        serie: nf.serie,
+                                        fallbackId: nf.nf_id,
+                                      }),
                                       formato: "pdf",
                                     });
                                   }}
@@ -208,7 +214,12 @@ export function PedidosDoParceiroSection({ parceiroId }: { parceiroId: string })
                                     e.stopPropagation();
                                     baixar({
                                       nf_id: nf.nf_id!,
-                                      nome: `NF-${nf.numero ?? nf.nf_id}`,
+                                      nome: nomeArquivoNf({
+                                        pedidoRef: p.id_externo,
+                                        numero: nf.numero,
+                                        serie: nf.serie,
+                                        fallbackId: nf.nf_id,
+                                      }),
                                       formato: "xml",
                                     });
                                   }}

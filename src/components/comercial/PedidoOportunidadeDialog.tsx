@@ -29,6 +29,7 @@ import {
 import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { ComprovantePagamentoBloco } from "@/components/comercial/ComprovantePagamentoBloco";
 import { useDownloadNfPdf } from "@/hooks/nf/useDownloadNfPdf";
+import { nomeArquivoNf } from "@/lib/nf/nome-arquivo";
 
 import { useComprovantesPedido } from "@/hooks/comercial/useComprovantePagamento";
 import { SolicitarSopsAcao } from "@/components/comercial/SolicitarSopsAcao";
@@ -168,11 +169,13 @@ export function PedidoOportunidadeDialog({
    * FAIL-LOUD ja mora no hook: o corpo real do erro do servidor vira o toast.
    */
   const { baixar: baixarNf, baixando: baixandoNf } = useDownloadNfPdf();
-  const nomeArquivoNf = (formato: "pdf" | "xml") => {
-    if (formato === "xml" && nfChave) return `NFe-${nfChave}`;
-    if (nfNumero) return `NF-${nfNumero}${nfSerie ? `-${nfSerie}` : ""}`;
-    return `NF-${nfId}`;
-  };
+  // NOME-DE-ARQUIVO-FALA-O-PEDIDO: `PED-2108_NF-000346-1.pdf`.
+  const nomeDoArquivo = nomeArquivoNf({
+    pedidoRef: idExterno,
+    numero: nfNumero,
+    serie: nfSerie,
+    fallbackId: nfId,
+  });
 
 
   const total = (itens.data ?? []).reduce((s, i) => s + Number(i.subtotal || 0), 0);
@@ -520,7 +523,7 @@ export function PedidoOportunidadeDialog({
                             baixarNf({
                               nf_id: nfId,
                               formato: "pdf",
-                              nome: nomeArquivoNf("pdf"),
+                              nome: nomeDoArquivo,
                             })
                           }
                         >
@@ -537,7 +540,7 @@ export function PedidoOportunidadeDialog({
                             baixarNf({
                               nf_id: nfId,
                               formato: "xml",
-                              nome: nomeArquivoNf("xml"),
+                              nome: nomeDoArquivo,
                             })
                           }
                         >
