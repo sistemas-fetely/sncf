@@ -1046,6 +1046,19 @@ if (itensSemProdutoBling.length > 0) {
     });
 
     if (sucesso) {
+      // Log de sucesso: registra a fonte do peso (xpm | teorico) e o fallback do
+      // fretePorConta pra que nenhum dos dois vire silêncio. `teorico` depois da
+      // migração pro pré-faturamento é sinal de pedido que chegou cedo demais.
+      console.log("[enviar-pedido-bling] envio OK", {
+        pedido_id,
+        remessa_codigo: remessaCodigo,
+        bling_id: blingId,
+        fonte_peso: fontePeso,
+        frete_por_conta_fallback: fretePorContaFallback,
+        frete_tipo: pedido.frete_tipo ?? null,
+        duracao_ms: duracaoMs,
+      });
+
       // 12a. Atualiza remessa
       await supabase.from("pedido_remessa").update({
         bling_pedido_id: String(blingId),
