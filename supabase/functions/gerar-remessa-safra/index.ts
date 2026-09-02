@@ -638,33 +638,44 @@ serve(async (req) => {
     if (remessaErr || !remessa) throw new Error(`Erro ao gravar remessa: ${remessaErr?.message}`);
 
     for (const item of titulosComNN) {
+      // Caso antecipado (reemissao pendente): o titulo continua descrevendo o boleto
+      // que esta morrendo — nosso_numero_seq, linha e boleto_status ficam INTACTOS,
+      // senao o retorno da baixa perde a chave e o rastro da instrucao.
+      // Só o ponteiro da remessa de entrada avança, para o retorno saber qual promover.
+      const patch = item.antecipado
+        // deno-lint-ignore no-explicit-any
+        ? { remessa_safra_id: (remessa as any).id }
+        : {
+            // deno-lint-ignore no-explicit-any
+            remessa_safra_id:     (remessa as any).id,
+            boleto_status:        "remessa_gerada",
+            nosso_numero_seq:     item.nossoNumero,
+            linha_digitavel:      item.linhaDigitavel,
+            codigo_barras_boleto: item.codigoBarras,
+          };
+
       const { error: updErr } = await sb
         .from("titulo_a_receber")
-        .update({
-          // deno-lint-ignore no-explicit-any
-          remessa_safra_id:     (remessa as any).id,
-          boleto_status:        "remessa_gerada",
-          nosso_numero_seq:     item.nossoNumero,
-          linha_digitavel:      item.linhaDigitavel,
-          codigo_barras_boleto: item.codigoBarras,
-        })
+        .update(patch)
         .eq("id", item.id);
       if (updErr) throw new Error(`Erro ao atualizar título ${item.id}: ${updErr.message}`);
 
       // Histórico do boleto: FAIL-LOUD — boleto emitido sem registro é buraco.
-      // deno-lint-ignore no-explicit-any
-      const tOrig = (titulos as any[]).find((x: any) => x.id === item.id);
+      // No caso antecipado, esta linha é o ÚNICO lugar onde o boleto novo existe.
       const { error: bolErr } = await sb.from("titulo_boleto").insert({
         titulo_id: item.id,
         nosso_numero: item.nossoNumero,
         // deno-lint-ignore no-explicit-any
         remessa_entrada_id: (remessa as any).id,
-        data_vencimento: tOrig?.data_vencimento_atual ?? null,
-        valor: tOrig?.valor_bruto ?? null,
+        data_vencimento: item.venc,
+        valor: item.valor,
         linha_digitavel: item.linhaDigitavel,
         codigo_barras: item.codigoBarras,
         situacao: "emitido",
-        origem: "gerar_remessa",
+        origem: item.antecipado ? "gerar_remessa_reemissao" : "gerar_remessa",
+        observacao: item.antecipado
+          ? `Boleto novo emitido antes do retorno da baixa. Boleto anterior em baixa: ${(titulos as any[]).find((x: any) => x.id === item.id)?.nosso_numero_seq ?? "?"}`
+          : null,
       });
       if (bolErr) {
         console.error(`[gerar-remessa] titulo_boleto ${item.nossoNumero}:`, bolErr);
