@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -61,6 +61,19 @@ const BLOCO_CARTAO = "AGUARDANDO LIQUIDAÇÃO DA ADQUIRENTE";
 const BLOCO_INSTRUMENTO = "INSTRUMENTO DE COBRANÇA QUEBRADO";
 const BLOCO_NAO_COBRAVEL = "REGIME PRÓPRIO — NÃO ENTRA NA RÉGUA";
 
+/**
+ * CARD-E-PORTA (02/09/2026): cada card de resumo e a porta do seu bloco.
+ * Card sem bloco correspondente vira numero decorativo; bloco sem card vira
+ * secao inalcancavel. Por isso a chave e a MESMA lista para os dois.
+ */
+type ChaveFiltro = ProvaClasse | "instrumento" | "cartao" | "nao_cobravel";
+
+const ROTULO_CARD_EXTRA: Record<"instrumento" | "cartao" | "nao_cobravel", string> = {
+  instrumento: "Instrumento quebrado",
+  cartao: "Aguardando adquirente",
+  nao_cobravel: "Regime próprio",
+};
+
 function soma(rows: LinhaMesa[]) {
   return rows.reduce((acc, l) => acc + Number(l.valor_atual ?? 0), 0);
 }
@@ -91,26 +104,46 @@ function BlocoHeader({
 }
 
 function CardResumo({
-  label, qtd, total, tom,
+  label, qtd, total, tom, ativo, onClick,
 }: {
   label: string;
   qtd: number;
   total: number;
   tom: "destructive" | "warning" | "muted";
+  /** Filtro selecionado: o card fica em destaque e o clique volta a "todos". */
+  ativo?: boolean;
+  onClick?: () => void;
 }) {
+  // Card de contagem zero nao filtra: clique sem resultado ensina o operador
+  // que o card nao funciona.
+  const clicavel = !!onClick && qtd > 0;
   return (
-    <div
+    <button
+      type="button"
+      onClick={clicavel ? onClick : undefined}
+      disabled={!clicavel}
+      aria-pressed={ativo}
+      title={
+        clicavel
+          ? ativo
+            ? "Clique para ver todos os blocos"
+            : `Ver só: ${label}`
+          : `${label} — nada nesta classe`
+      }
       className={cn(
-        "text-left p-3 rounded-lg border bg-card",
+        "text-left p-3 rounded-lg border bg-card transition-colors",
+        clicavel && "hover:bg-muted/50 cursor-pointer",
+        !clicavel && "opacity-60 cursor-default",
         tom === "destructive" && "border-destructive/40 text-destructive",
         tom === "warning" && "border-warning/40 text-warning",
         tom === "muted" && "border-border",
+        ativo && "ring-2 ring-offset-1 ring-current bg-muted/60",
       )}
     >
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className="text-2xl font-medium mt-1">{qtd}</div>
       <div className="text-xs text-muted-foreground tabular-nums">{formatBRL(total)}</div>
-    </div>
+    </button>
   );
 }
 
@@ -230,6 +263,11 @@ export default function SemProvaTab() {
   const { data: instrumento = [], isLoading: loadingInstr } = useInstrumentoQuebradoFila();
   const { data: naoCobravel = [], isLoading: loadingNC } = useNaoCobravelFila();
 
+  const [filtro, setFiltro] = useState<ChaveFiltro | null>(null);
+  /** Clicar no card ativo desliga o filtro — nao precisa de botao "limpar". */
+  const alternar = (k: ChaveFiltro) => setFiltro((atual) => (atual === k ? null : k));
+  const mostra = (k: ChaveFiltro) => filtro === null || filtro === k;
+
   const blocos = useMemo(() => {
     return ORDEM_CLASSE.map((classe) => ({
       classe,
@@ -250,7 +288,7 @@ export default function SemProvaTab() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl">
+      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-2">
         {blocos.map(({ classe, rows }) => (
           <CardResumo
             key={classe}
@@ -258,17 +296,53 @@ export default function SemProvaTab() {
             qtd={rows.length}
             total={soma(rows)}
             tom={TOM_BLOCO[classe]}
+            ativo={filtro === classe}
+            onClick={() => alternar(classe)}
           />
         ))}
         <CardResumo
-          label="Instrumento quebrado"
+          label={ROTULO_CARD_EXTRA.instrumento}
           qtd={instrumento.length}
           total={soma(instrumento)}
           tom="destructive"
+          ativo={filtro === "instrumento"}
+          onClick={() => alternar("instrumento")}
+        />
+        <CardResumo
+          label={ROTULO_CARD_EXTRA.cartao}
+          qtd={cartao.length}
+          total={soma(cartao)}
+          tom="muted"
+          ativo={filtro === "cartao"}
+          onClick={() => alternar("cartao")}
+        />
+        <CardResumo
+          label={ROTULO_CARD_EXTRA.nao_cobravel}
+          qtd={naoCobravel.length}
+          total={soma(naoCobravel)}
+          tom="muted"
+          ativo={filtro === "nao_cobravel"}
+          onClick={() => alternar("nao_cobravel")}
         />
       </div>
 
-      {blocos.map(({ classe, rows }) => (
+      {filtro && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>
+            Filtrado por{" "}
+            <span className="font-medium text-foreground">
+              {filtro in ROTULO_CARD_EXTRA
+                ? ROTULO_CARD_EXTRA[filtro as keyof typeof ROTULO_CARD_EXTRA]
+                : ROTULO_CARD[filtro as ProvaClasse]}
+            </span>
+          </span>
+          <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => setFiltro(null)}>
+            Mostrar todos
+          </Button>
+        </div>
+      )}
+
+      {blocos.filter(({ classe }) => mostra(classe)).map(({ classe, rows }) => (
         <section key={classe} className="space-y-2">
           <BlocoHeader
             titulo={ROTULO_BLOCO[classe]}
@@ -290,6 +364,7 @@ export default function SemProvaTab() {
         </section>
       ))}
 
+      {mostra("instrumento") && (
       <section className="space-y-2">
         <BlocoHeader
           titulo={BLOCO_INSTRUMENTO}
@@ -317,7 +392,9 @@ export default function SemProvaTab() {
           </div>
         )}
       </section>
+      )}
 
+      {mostra("cartao") && (
       <section className="space-y-2">
         <BlocoHeader
           titulo={BLOCO_CARTAO}
@@ -340,7 +417,9 @@ export default function SemProvaTab() {
           </div>
         )}
       </section>
+      )}
 
+      {mostra("nao_cobravel") && (
       <section className="space-y-2">
         <BlocoHeader
           titulo={BLOCO_NAO_COBRAVEL}
@@ -368,6 +447,7 @@ export default function SemProvaTab() {
           </div>
         )}
       </section>
+      )}
     </div>
   );
 }
