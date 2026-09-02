@@ -393,9 +393,9 @@ export default function ExtratoImportacao() {
         );
       }
 
-      // FONTE-RECONHECIDA-NAO-E-ERRO: Agenda de Vendas e Recebíveis de Vendas
-      // trazem os mesmos NSUs que já entram pelos CSVs tipo 1 e 2. Reconhecer e
-      // recusar com dignidade: registra, tom neutro, invariante 0 = 0 + 0 + 0.
+      // FONTE-RECONHECIDA-NAO-E-ERRO: a Agenda de Vendas é a AUTORIZAÇÃO e os
+      // NSUs dela já vivem em `safrapay_venda`. Reconhecer e recusar com
+      // dignidade: registra, tom neutro, invariante 0 = 0 + 0 + 0.
       const redundante = FONTE_REDUNDANTE[fonte];
       if (redundante) {
         await sb
@@ -413,7 +413,7 @@ export default function ExtratoImportacao() {
           .eq("id", impId);
         trilha.neutro = {
           resultado: `${PARSER_ROTULO[fonte]} — nada importado`,
-          contagem: "arquivo não lido — redundante com o CSV de vendas SafraPay",
+          contagem: "arquivo não lido — a autorização já existe em safrapay_venda",
           detalhe: { arquivo_redundante: 1 },
         };
         toast.info(`${file.name}: ${redundante}`);
