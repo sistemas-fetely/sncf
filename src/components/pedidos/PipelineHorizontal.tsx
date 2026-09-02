@@ -182,13 +182,15 @@ export function PipelineHorizontal({
     data: mesaComercial,
     isError: mesaErro,
     error: mesaErroObj,
+    isPending: mesaCarregando,
   } = useMesaComercialContagem();
   const mesaErroMsg = (mesaErroObj as Error)?.message ?? "erro desconhecido";
 
   // Universo do card "Fila ativa" = exatamente o que a tabela mostra por padrão:
-  // ativos (sem entregue) + cancelados apenas com o toggle ligado.
+  // ativos (sem entregue) + cancelados apenas com o toggle ligado. Inclui
+  // aguardando_pagamento, que aparece na tabela mesmo sem card no funil.
   // Desvio (recuperação) NUNCA entra: é outra sala.
-  const { totalQtd, totalSla, riscoVermelhoQtd, riscoVermelhoValor } = useMemo(() => {
+  const { totalQtd, totalSla, riscoVermelhoQtd, riscoVermelhoValor, semCardQtd } = useMemo(() => {
     // aguardando_pagamento nao tem card no funil, entao nao entra no total —
     // FILA ATIVA e exatamente a soma dos cards visiveis.
     const excluidosSempre = new Set<string>(["entregue", "aguardando_pagamento"]);
