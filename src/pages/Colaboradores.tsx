@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Users, Plus, Search, MoreHorizontal, Eye, Edit, Trash2,
+  Users, Search, MoreHorizontal, Eye, Edit, Trash2,
   UserCheck, Briefcase, DollarSign,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
