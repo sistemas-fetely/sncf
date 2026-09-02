@@ -26,6 +26,24 @@ export interface TituloPacote {
   tipo_pagamento: string | null;
   boleto_status: string | null;
   linha_digitavel: string | null;
+  /**
+   * FONTE-UNICA-DO-BOLETO (02/09/2026): quando presentes, estes campos vem de
+   * `vw_titulo_boleto_vigente` e VENCEM as colunas do titulo. Durante a janela de
+   * reemissao as colunas do titulo descrevem o boleto que esta MORRENDO; enviar
+   * dali entregaria ao cliente um boleto que o banco vai baixar.
+   * Opcionais so para nao quebrar chamador que ainda nao faz o join.
+   */
+  boleto_vigente?: {
+    enviavel: boolean;
+    nosso_numero: string | null;
+    linha_digitavel: string | null;
+    data_vencimento: string | null;
+    valor: number | null;
+    situacao: string | null;
+    vigente_em_baixa: boolean;
+    boletos_vivos: number;
+    nosso_numero_em_baixa: string | null;
+  } | null;
   pix_txid?: string | null;
   pix_qr_url?: string | null;
   pix_token?: string | null;
