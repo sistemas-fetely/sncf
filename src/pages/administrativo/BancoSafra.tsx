@@ -67,6 +67,7 @@ import { useBaixasPendentes } from "@/hooks/credito/useBaixasPendentes";
 import { useRemessasSafra } from "@/hooks/credito/useRemessasSafra";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { RetornoSafraPainel } from "@/components/financeiro/RetornoSafraPainel";
+import { EsperaRetornoSafra } from "@/components/credito/EsperaRetornoSafra";
 import { hojeISO } from "@/lib/data";
 import { OPCOES_QUERY_RECEBIVEL, useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 
@@ -1183,7 +1184,13 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                 </TableCell>
               )}
               <TableCell>
-                <Badge className={`${cfg.cls} hover:${cfg.cls}`}>{cfg.label}</Badge>
+                <div className="space-y-1">
+                  <Badge className={`${cfg.cls} hover:${cfg.cls}`}>{cfg.label}</Badge>
+                  {/* ESPERA-TEM-DE-SER-VISIVEL (02/09/2026): o selo dizia so o nome do
+                      estado. Nao dizia o que esperava, de quem, desde quando, nem o que
+                      destrava. Isto liga `vw_titulo_espera_retorno` ao selo. */}
+                  <EsperaRetornoSafra tituloId={b.id} compacto />
+                </div>
               </TableCell>
               <TableCell className="text-right font-mono">
                 {editavel ? (
