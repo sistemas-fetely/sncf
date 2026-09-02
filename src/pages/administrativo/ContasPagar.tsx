@@ -693,8 +693,23 @@ export default function ContasPagar() {
                       <TableCell>
                         <div className="flex flex-col gap-1 items-start">
                           {(() => {
+                            // ESTADO × PROVAS: o RÓTULO vem do banco (estado_rotulo);
+                            // o ESTILO continua sendo o design system (status-cpr).
+                            // Slug desconhecido pelo TS cai em fail-soft com estado_cor.
                             const meta = getStatusCprMeta(c.status);
-                            return <Badge className={meta.className}>{meta.label}</Badge>;
+                            const rotulo = c.estado_rotulo || meta.label;
+                            const desconhecido = !STATUS_CPR_META[c.status];
+                            if (desconhecido && c.estado_cor) {
+                              return (
+                                <Badge
+                                  className="border-transparent text-white"
+                                  style={{ backgroundColor: c.estado_cor }}
+                                >
+                                  {rotulo}
+                                </Badge>
+                              );
+                            }
+                            return <Badge className={meta.className}>{rotulo}</Badge>;
                           })()}
                           {c.situacao_pagamento === "parcial" && (
                             <Badge
@@ -707,16 +722,54 @@ export default function ContasPagar() {
                         </div>
                       </TableCell>
                       <TableCell
-                        className="min-w-[140px]"
+                        className="min-w-[170px]"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <AcoesInlineConta
-                          conta={{
-                            ...c,
-                            email_pagamento_enviado: emailMap.get(c.id) || false,
-                          }}
-                          onAbrirEditandoBanco={(id) => setContaIdSelecionada(id)}
-                        />
+                        <div className="flex items-center gap-1">
+                          {(() => {
+                            const acoes = acoesMap?.get(c.id) ?? [];
+                            return (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild disabled={acoes.length === 0}>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    disabled={acoes.length === 0}
+                                    title={
+                                      acoes.length === 0
+                                        ? "Sem transição legal a partir deste estado"
+                                        : "Mudar estado"
+                                    }
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start">
+                                  {acoes.map((a) => (
+                                    <DropdownMenuItem
+                                      key={`${a.de}-${a.para}`}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        abrirAcao(c, a);
+                                      }}
+                                    >
+                                      {a.rotulo_acao}
+                                    </DropdownMenuItem>
+                                  ))}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            );
+                          })()}
+                          <AcoesInlineConta
+                            conta={{
+                              ...c,
+                              email_pagamento_enviado: emailMap.get(c.id) || false,
+                            }}
+                            onAbrirEditandoBanco={(id) => setContaIdSelecionada(id)}
+                          />
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
