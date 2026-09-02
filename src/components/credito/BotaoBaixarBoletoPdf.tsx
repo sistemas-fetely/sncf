@@ -72,12 +72,12 @@ export function BotaoBaixarBoletoPdf({
 
   const botao = (
     <Button
-            variant={variant}
-            size={rotulo ? "sm" : "icon"}
-            className={rotulo ? undefined : "h-7 w-7"}
-            disabled={loading || desabilitado}
-            onClick={baixar}
-          >
+      variant={variant}
+      size={rotulo ? "sm" : "icon"}
+      className={rotulo ? undefined : "h-7 w-7"}
+      disabled={loading || desabilitado}
+      onClick={baixar}
+    >
       {rotulo ? (
         <>
           {icone}
