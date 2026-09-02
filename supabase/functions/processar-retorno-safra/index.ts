@@ -1006,6 +1006,15 @@ serve(async (req) => {
               .update(updatePayload as any)
               .eq("id", t.id);
 
+            // FONTE-UNICA-DO-BOLETO: o que o cliente vai imprimir mudou. Sem esta
+            // sincronia o `titulo_boleto` guarda a data de ANTES da prorrogacao e
+            // qualquer consumidor que o leia manda a linha digitavel errada.
+            await marcarBoleto(linha.nossoNumero, reativarBoleto ? "registrado" : null, null, {
+              data_vencimento: novaData,
+              linha_digitavel: novaLinhaDigitavel,
+              codigo_barras:   novoCodigoBarras,
+            });
+
             const eventoLog = tinhaProrrogPendente ? "prorrogacao_confirmada" : "vencimento_alterado";
             await sb.from("titulo_instrumento_log").insert({
               titulo_id: t.id,
