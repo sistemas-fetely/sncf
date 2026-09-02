@@ -523,11 +523,6 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                             {f.qtdVencido} vencido{f.qtdVencido > 1 ? "s" : ""} · {formatBRL(f.totalVencido)}
                           </Badge>
                         )}
-                        {f.chave === "PAGO_SEM_PROVA" && (
-                          <Badge className="shrink-0 bg-warning/10 text-warning hover:bg-warning/10 text-[10px]">
-                            conciliação
-                          </Badge>
-                        )}
                       </div>
 
 
