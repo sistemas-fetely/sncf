@@ -683,7 +683,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                               {l.numero_parcela && l.total_parcelas ? (
                                                 <span className="text-muted-foreground"> {l.numero_parcela}/{l.total_parcelas}</span>
                                               ) : null}
-                                              <BadgeProva classe={l.prova_classe} />
+                                              
                                             </div>
                                           </TableCell>
 
