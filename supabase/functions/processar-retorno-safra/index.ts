@@ -513,15 +513,29 @@ serve(async (req) => {
         // REGISTRO (02)  — banco é a autoridade para o nosso número confirmado
         // ═══════════════════════════════════════════════════════════════════
         if (categoria === "registro") {
-          const { error: errRegistro } = await sb
-            .from("titulo_a_receber")
-            .update({ boleto_status: "registrado", nosso_numero_safra: linha.nossoNumero })
-            .eq("id", t.id);
-          if (errRegistro) {
-            erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `update registro: ${errRegistro.message}` });
-            marcarDesfecho(linha.numeroLinha, false, "erro no update de registro");
-            continue;
+          // REEMISSAO-NAO-ESPERA-BAIXA (02/09/2026): quando o boleto NOVO confirma
+          // registro enquanto o VELHO ainda espera a baixa, o titulo nao pode ser
+          // sobrescrito — ele e a chave do retorno da baixa. O boleto novo fica
+          // vivo apenas em `titulo_boleto` ate a baixa voltar e adota-lo.
+          const emBaixa = t.boleto_status === "baixa_solicitada" || t.boleto_status === "baixa_remessa_gerada";
+          const boletoNovo = emBaixa && String(t.nosso_numero_seq ?? "") !== linha.nossoNumero;
+
+          if (!boletoNovo) {
+            const { error: errRegistro } = await sb
+              .from("titulo_a_receber")
+              .update({ boleto_status: "registrado", nosso_numero_safra: linha.nossoNumero })
+              .eq("id", t.id);
+            if (errRegistro) {
+              erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `update registro: ${errRegistro.message}` });
+              marcarDesfecho(linha.numeroLinha, false, "erro no update de registro");
+              continue;
+            }
+          } else {
+            alertas.push(
+              `ℹ Boleto NOVO ${linha.nossoNumero} registrado no título ${t.numero_titulo} — o anterior (${t.nosso_numero_seq}) segue aguardando baixa. DOIS boletos vivos: enviar ao cliente apenas o novo.`
+            );
           }
+
           await marcarBoleto(linha.nossoNumero, "registrado", "registrado_em");
           if (t.remessa_safra_id) remessasTocadas.add(t.remessa_safra_id);
           contadores.registros++;
@@ -839,6 +853,39 @@ serve(async (req) => {
           }
 
           if (tinhaReemissao) {
+            // O trigger acabou de aplicar a reemissão e deixou o título em 'pendente'
+            // com nosso número zerado. Se o boleto NOVO já foi emitido antes da baixa
+            // voltar (REEMISSAO-NAO-ESPERA-BAIXA), adota-lo aqui — senão o título
+            // pediria uma segunda remessa de entrada para um boleto que já existe.
+            const { data: novo, error: errNovo } = await sb
+              .from("titulo_boleto")
+              .select("nosso_numero, situacao, linha_digitavel, codigo_barras, data_vencimento")
+              .eq("titulo_id", t.id)
+              .in("situacao", ["emitido", "registrado"])
+              .neq("nosso_numero", linha.nossoNumero)
+              .order("emitido_em", { ascending: false })
+              .limit(1);
+            if (errNovo) {
+              erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `busca de boleto novo: ${errNovo.message}` });
+            } else if (novo && novo.length > 0) {
+              const nb = novo[0] as any;
+              const { error: errAdota } = await sb.from("titulo_a_receber")
+                .update({
+                  boleto_status:        nb.situacao === "registrado" ? "registrado" : "remessa_gerada",
+                  nosso_numero_seq:     nb.nosso_numero,
+                  linha_digitavel:      nb.linha_digitavel,
+                  codigo_barras_boleto: nb.codigo_barras,
+                })
+                .eq("id", t.id);
+              if (errAdota) {
+                erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `adoção do boleto novo ${nb.nosso_numero}: ${errAdota.message}` });
+              } else {
+                alertas.push(
+                  `✓ Baixa de ${linha.nossoNumero} confirmada — título ${t.numero_titulo} adotou o boleto novo ${nb.nosso_numero} (venc ${nb.data_vencimento}, ${nb.situacao}). Não precisa de nova remessa de entrada.`
+                );
+              }
+            }
+
             // Após a baixa, o trigger aplica a reemissão. Registra no log.
             const { data: tAtual } = await sb
               .from("titulo_a_receber")

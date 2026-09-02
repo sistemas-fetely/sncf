@@ -547,32 +547,55 @@ serve(async (req) => {
 
     const tituloIds: string[] = Array.isArray(body.titulo_ids) ? body.titulo_ids : [];
 
+    // REEMISSAO-NAO-ESPERA-BAIXA (02/09/2026): titulo com reemissao pendente entra
+    // na MESMA remessa de entrada em que a baixa do boleto velho e enviada. O boleto
+    // novo nasce SO em `titulo_boleto`; `titulo_a_receber` continua carregando o
+    // boleto que esta morrendo ate o retorno (ocorrencia 09/10/40) adota-lo.
+    // Por isso NAO se escreve nosso_numero_seq / linha / boleto_status nesse caso.
     let query = sb
       .from("titulo_a_receber")
       .select(`id, numero_titulo, numero_parcela, total_parcelas, valor_bruto, data_vencimento_atual, boleto_status, tipo_pagamento,
+        reemissao_nova_data, reemissao_novo_valor, nosso_numero_seq,
         conta:contas_pagar_receber(parceiro:parceiros_comerciais(id, razao_social, cnpj, cpf, email, cadastro_incompleto, logradouro, numero, bairro, cep, cidade, uf))`)
-      .eq("boleto_status", "pendente")
+      .in("boleto_status", ["pendente", "baixa_solicitada", "baixa_remessa_gerada"])
       .eq("tipo_pagamento", "boleto")
       .not("status", "in", "(pago,pago_com_atraso,pago_judicial,cancelado,cancelado_recuperacao)");
     if (tituloIds.length > 0) query = query.in("id", tituloIds);
 
-    const { data: titulos, error: titulosErr } = await query;
+    const { data: titulosBrutos, error: titulosErr } = await query;
     if (titulosErr) throw new Error(`Erro ao buscar títulos: ${titulosErr.message}`);
+
+    // Titulo em baixa SEM reemissao pendente nao tem boleto novo a emitir — e o estado
+    // normal de quem passou por `renegociar_titulo` (a divida foi para um titulo -R1).
+    // Nao estava no escopo antes desta mudanca: sai do lote em SILENCIO. Só vira erro
+    // se o operador pediu esse titulo nominalmente, porque aí a intencao foi explicita.
+    // deno-lint-ignore no-explicit-any
+    const titulos = (titulosBrutos as any[] | null)?.filter((t: any) =>
+      t.boleto_status === "pendente" || t.reemissao_nova_data || tituloIds.includes(t.id)
+    ) ?? null;
+
     if (!titulos || titulos.length === 0) {
       return new Response(JSON.stringify({ ok: false, erro: "Nenhum título encontrado" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Data e valor EFETIVOS: quando ha reemissao pendente, o boleto novo nasce com a
+    // data/valor da reemissao, nao com os do titulo (que ainda descrevem o boleto velho).
+    // deno-lint-ignore no-explicit-any
+    const vencEfetivo = (t: any): string => t.reemissao_nova_data ?? t.data_vencimento_atual;
+    // deno-lint-ignore no-explicit-any
+    const valorEfetivo = (t: any): number => Number(t.reemissao_novo_valor ?? t.valor_bruto);
+
     // Defesa em profundidade: rejeitar vencimentos no passado
     const hojeGuard = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
     // deno-lint-ignore no-explicit-any
-    const passados = (titulos as any[]).filter((t: any) => t.data_vencimento_atual < hojeGuard);
+    const passados = (titulos as any[]).filter((t: any) => vencEfetivo(t) < hojeGuard);
     if (passados.length > 0) {
       return new Response(
         JSON.stringify({
           ok: false,
           erro: "Títulos com vencimento no passado não podem ser enviados",
           // deno-lint-ignore no-explicit-any
-          titulos: passados.map((t: any) => ({ titulo_id: t.id, numero_titulo: t.numero_titulo, data_vencimento_atual: t.data_vencimento_atual })),
+          titulos: passados.map((t: any) => ({ titulo_id: t.id, numero_titulo: t.numero_titulo, data_vencimento_atual: vencEfetivo(t) })),
         }),
         { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -585,11 +608,35 @@ serve(async (req) => {
       if (!p) { erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "Parceiro não encontrado" }); continue; }
       if (p.cadastro_incompleto) erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "Cadastro incompleto" });
       if (!p.email) erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "E-mail não cadastrado" });
-      if (Number(t.valor_bruto) <= 0) erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "Valor inválido" });
+      if (valorEfetivo(t) <= 0) erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "Valor inválido" });
       const hojeISO = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
-      if (t.data_vencimento_atual < hojeISO) erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "Vencimento no passado" });
+      if (vencEfetivo(t) < hojeISO) erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "Vencimento no passado" });
       if (t.tipo_pagamento !== "boleto") erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "Não é boleto" });
-      if (t.boleto_status !== "pendente") erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: `Status inválido: ${t.boleto_status}` });
+
+      // Status: 'pendente' entra sempre. Os dois estados de baixa entram SO com
+      // reemissao pendente — sem ela, um titulo em baixa nao tem boleto novo a emitir.
+      if (t.boleto_status !== "pendente") {
+        if (!t.reemissao_nova_data) {
+          erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: `Status ${t.boleto_status} sem reemissão pendente — nada a emitir` });
+          continue;
+        }
+        // GUARD (caso NEW FESTA, 01/09): se ja existe boleto novo emitido/registrado
+        // para este titulo, nao emitir outro. Sem isso o cliente acumula boletos vivos.
+        const { data: jaEmitido, error: errJa } = await sb
+          .from("titulo_boleto")
+          .select("nosso_numero, situacao")
+          .eq("titulo_id", t.id)
+          .in("situacao", ["emitido", "registrado"])
+          .neq("nosso_numero", String(t.nosso_numero_seq ?? ""));
+        if (errJa) throw new Error(`Erro ao conferir boletos vivos do título ${t.numero_titulo}: ${errJa.message}`);
+        if (jaEmitido && jaEmitido.length > 0) {
+          erros.push({
+            titulo_id: t.id,
+            numero_titulo: t.numero_titulo,
+            motivo: `Já existe boleto novo ${jaEmitido[0].nosso_numero} (${jaEmitido[0].situacao}) aguardando retorno — emitir outro deixaria o cliente com múltiplos boletos vivos`,
+          });
+        }
+      }
     }
     if (erros.length > 0) {
       return new Response(JSON.stringify({ ok: false, erro: "Títulos com bloqueios", erros }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -603,17 +650,23 @@ serve(async (req) => {
     let nroReg    = 2;
     let valorTotal = 0;
 
-    const titulosComNN: Array<{ id: string; nossoNumero: string; linhaDigitavel: string; codigoBarras: string }> = [];
+    const titulosComNN: Array<{ id: string; nossoNumero: string; linhaDigitavel: string; codigoBarras: string; venc: string; valor: number; antecipado: boolean }> = [];
 
     // deno-lint-ignore no-explicit-any
     for (const t of titulos as any[]) {
       const nossoNumero = await alocarNossoNumero(sb);
-      const valorCents  = Math.round(Number(t.valor_bruto) * 100);
-      const { linha, barras } = montarLinhaDigitavel(nossoNumero, t.data_vencimento_atual, valorCents, params);
+      const venc        = vencEfetivo(t);
+      const valor       = valorEfetivo(t);
+      const valorCents  = Math.round(valor * 100);
+      const { linha, barras } = montarLinhaDigitavel(nossoNumero, venc, valorCents, params);
+      const antecipado  = t.boleto_status !== "pendente";
 
-      titulosComNN.push({ id: t.id, nossoNumero, linhaDigitavel: linha, codigoBarras: barras });
-      linhas.push(gerarDetalhe({ ...t, parceiro: t.conta?.parceiro }, nossoNumero, params, nroSeq, nroReg));
-      valorTotal += Number(t.valor_bruto);
+      titulosComNN.push({ id: t.id, nossoNumero, linhaDigitavel: linha, codigoBarras: barras, venc, valor, antecipado });
+      linhas.push(gerarDetalhe(
+        { ...t, parceiro: t.conta?.parceiro, data_vencimento_atual: venc, valor_bruto: valor },
+        nossoNumero, params, nroSeq, nroReg
+      ));
+      valorTotal += valor;
       nroReg++;
     }
 
@@ -638,33 +691,44 @@ serve(async (req) => {
     if (remessaErr || !remessa) throw new Error(`Erro ao gravar remessa: ${remessaErr?.message}`);
 
     for (const item of titulosComNN) {
+      // Caso antecipado (reemissao pendente): o titulo continua descrevendo o boleto
+      // que esta morrendo — nosso_numero_seq, linha e boleto_status ficam INTACTOS,
+      // senao o retorno da baixa perde a chave e o rastro da instrucao.
+      // Só o ponteiro da remessa de entrada avança, para o retorno saber qual promover.
+      const patch = item.antecipado
+        // deno-lint-ignore no-explicit-any
+        ? { remessa_safra_id: (remessa as any).id }
+        : {
+            // deno-lint-ignore no-explicit-any
+            remessa_safra_id:     (remessa as any).id,
+            boleto_status:        "remessa_gerada",
+            nosso_numero_seq:     item.nossoNumero,
+            linha_digitavel:      item.linhaDigitavel,
+            codigo_barras_boleto: item.codigoBarras,
+          };
+
       const { error: updErr } = await sb
         .from("titulo_a_receber")
-        .update({
-          // deno-lint-ignore no-explicit-any
-          remessa_safra_id:     (remessa as any).id,
-          boleto_status:        "remessa_gerada",
-          nosso_numero_seq:     item.nossoNumero,
-          linha_digitavel:      item.linhaDigitavel,
-          codigo_barras_boleto: item.codigoBarras,
-        })
+        .update(patch)
         .eq("id", item.id);
       if (updErr) throw new Error(`Erro ao atualizar título ${item.id}: ${updErr.message}`);
 
       // Histórico do boleto: FAIL-LOUD — boleto emitido sem registro é buraco.
-      // deno-lint-ignore no-explicit-any
-      const tOrig = (titulos as any[]).find((x: any) => x.id === item.id);
+      // No caso antecipado, esta linha é o ÚNICO lugar onde o boleto novo existe.
       const { error: bolErr } = await sb.from("titulo_boleto").insert({
         titulo_id: item.id,
         nosso_numero: item.nossoNumero,
         // deno-lint-ignore no-explicit-any
         remessa_entrada_id: (remessa as any).id,
-        data_vencimento: tOrig?.data_vencimento_atual ?? null,
-        valor: tOrig?.valor_bruto ?? null,
+        data_vencimento: item.venc,
+        valor: item.valor,
         linha_digitavel: item.linhaDigitavel,
         codigo_barras: item.codigoBarras,
         situacao: "emitido",
-        origem: "gerar_remessa",
+        origem: item.antecipado ? "gerar_remessa_reemissao" : "gerar_remessa",
+        observacao: item.antecipado
+          ? `Boleto novo emitido antes do retorno da baixa. Boleto anterior em baixa: ${(titulos as any[]).find((x: any) => x.id === item.id)?.nosso_numero_seq ?? "?"}`
+          : null,
       });
       if (bolErr) {
         console.error(`[gerar-remessa] titulo_boleto ${item.nossoNumero}:`, bolErr);
