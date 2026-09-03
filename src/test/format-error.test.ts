@@ -21,12 +21,15 @@ describe("formatError", () => {
     expect(antigo).toBe("[object Object]");
   });
 
-  it("formatError entrega a causa real", () => {
+  it("formatError entrega a causa real (humanizada) e rawMessage o tecnico", () => {
     const novo = formatError(erroFkReal);
     expect(novo).not.toBe("[object Object]");
-    expect(novo).toContain("foreign key");
-    expect(novo).toContain("boleto_com _entrada");
+    expect(novo).toContain("não existe mais");
+    const bruto = rawMessage(erroFkReal);
+    expect(bruto).toContain("foreign key");
+    expect(bruto).toContain("boleto_com _entrada");
   });
+
 
   it("erro 42501 do guard de permissao", () => {
     const out = formatError({
