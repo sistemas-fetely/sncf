@@ -482,9 +482,19 @@ export default function PessoaForm() {
             {vinculoStatus === "desligado" && (
               <span className="text-xs bg-destructive/10 text-destructive px-2 py-1 rounded">Vínculo desligado</span>
             )}
-            <Button onClick={salvar} disabled={saving} className="gap-2">
+            {isEdit && (!vinculoCarregado || !vinculoId) && (
+              <span className="text-xs text-destructive max-w-xs">
+                Não foi possível carregar o vínculo desta pessoa. Recarregue a tela antes de salvar.
+              </span>
+            )}
+            <Button
+              onClick={salvar}
+              disabled={saving || (isEdit && (!vinculoCarregado || !vinculoId))}
+              className="gap-2"
+            >
               <Save className="h-4 w-4" /> {saving ? "Salvando..." : "Salvar"}
             </Button>
+
           </>}
         />
       </div>
