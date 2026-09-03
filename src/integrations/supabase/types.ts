@@ -5033,11 +5033,298 @@ export type Database = {
           },
         ]
       }
+      cadastro_documento_tipo: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          descricao: string | null
+          no_upload_do_colaborador: boolean
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          descricao?: string | null
+          no_upload_do_colaborador?: boolean
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          descricao?: string | null
+          no_upload_do_colaborador?: boolean
+          nome?: string
+          ordem?: number
+        }
+        Relationships: []
+      }
+      cadastro_extracao: {
+        Row: {
+          bruto: Json | null
+          created_at: string
+          criado_por: string | null
+          decidido_em: string | null
+          decidido_por: string | null
+          documento_tipo: string
+          erro: string | null
+          id: string
+          modelo: string | null
+          pessoa_id: string
+          processado_em: string | null
+          status: string
+          storage_path: string
+          vinculo_id: string | null
+        }
+        Insert: {
+          bruto?: Json | null
+          created_at?: string
+          criado_por?: string | null
+          decidido_em?: string | null
+          decidido_por?: string | null
+          documento_tipo: string
+          erro?: string | null
+          id?: string
+          modelo?: string | null
+          pessoa_id: string
+          processado_em?: string | null
+          status?: string
+          storage_path: string
+          vinculo_id?: string | null
+        }
+        Update: {
+          bruto?: Json | null
+          created_at?: string
+          criado_por?: string | null
+          decidido_em?: string | null
+          decidido_por?: string | null
+          documento_tipo?: string
+          erro?: string | null
+          id?: string
+          modelo?: string | null
+          pessoa_id?: string
+          processado_em?: string | null
+          status?: string
+          storage_path?: string
+          vinculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cadastro_extracao_documento_tipo_fkey"
+            columns: ["documento_tipo"]
+            isOneToOne: false
+            referencedRelation: "cadastro_documento_tipo"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "cadastro_extracao_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cadastro_extracao_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cadastro_pendencia"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "cadastro_extracao_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "cadastro_extracao_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_pessoa"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "cadastro_extracao_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_meu_cadastro_pendencia"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "cadastro_extracao_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_vinculo_pessoa"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "cadastro_extracao_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organograma"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "cadastro_extracao_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "cadastro_extracao_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "cadastro_extracao_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_reembolso_saneamento"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "cadastro_extracao_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "v_organograma_ocupantes"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "cadastro_extracao_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vinculos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cadastro_extracao_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cadastro_pendencia"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "cadastro_extracao_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "cadastro_extracao_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_meu_cadastro_pendencia"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "cadastro_extracao_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_vinculo_pessoa"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "cadastro_extracao_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organograma"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "cadastro_extracao_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "cadastro_extracao_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "cadastro_extracao_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_reembolso_saneamento"
+            referencedColumns: ["vinculo_id"]
+          },
+          {
+            foreignKeyName: "cadastro_extracao_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_vinculo_custo_total"
+            referencedColumns: ["vinculo_id"]
+          },
+        ]
+      }
+      cadastro_extracao_campo: {
+        Row: {
+          aplicado_em: string | null
+          campo: string
+          confianca: number | null
+          created_at: string
+          decisao: string
+          entidade: string
+          extracao_id: string
+          id: string
+          rotulo: string
+          valor_atual: string | null
+          valor_sugerido: string | null
+        }
+        Insert: {
+          aplicado_em?: string | null
+          campo: string
+          confianca?: number | null
+          created_at?: string
+          decisao?: string
+          entidade: string
+          extracao_id: string
+          id?: string
+          rotulo: string
+          valor_atual?: string | null
+          valor_sugerido?: string | null
+        }
+        Update: {
+          aplicado_em?: string | null
+          campo?: string
+          confianca?: number | null
+          created_at?: string
+          decisao?: string
+          entidade?: string
+          extracao_id?: string
+          id?: string
+          rotulo?: string
+          valor_atual?: string | null
+          valor_sugerido?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cadastro_extracao_campo_extracao_id_fkey"
+            columns: ["extracao_id"]
+            isOneToOne: false
+            referencedRelation: "cadastro_extracao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cadastro_requisito: {
         Row: {
           ativo: boolean
           campo: string
           created_at: string
+          documento_tipo: string | null
           entidade: string
           extraivel_de: string | null
           fase: string
@@ -5057,6 +5344,7 @@ export type Database = {
           ativo?: boolean
           campo: string
           created_at?: string
+          documento_tipo?: string | null
           entidade: string
           extraivel_de?: string | null
           fase: string
@@ -5076,6 +5364,7 @@ export type Database = {
           ativo?: boolean
           campo?: string
           created_at?: string
+          documento_tipo?: string | null
           entidade?: string
           extraivel_de?: string | null
           fase?: string
@@ -5501,6 +5790,67 @@ export type Database = {
             columns: ["banco_recebimento_id"]
             isOneToOne: false
             referencedRelation: "banco_recebimento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      carteira_forma: {
+        Row: {
+          ativo: boolean
+          banco_recebimento_id: string | null
+          carteira_id: string
+          created_at: string
+          exige_pix_a_prazo: boolean | null
+          forma_pagamento_id: string
+          id: string
+          observacao: string | null
+          prioridade: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          banco_recebimento_id?: string | null
+          carteira_id: string
+          created_at?: string
+          exige_pix_a_prazo?: boolean | null
+          forma_pagamento_id: string
+          id?: string
+          observacao?: string | null
+          prioridade?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          banco_recebimento_id?: string | null
+          carteira_id?: string
+          created_at?: string
+          exige_pix_a_prazo?: boolean | null
+          forma_pagamento_id?: string
+          id?: string
+          observacao?: string | null
+          prioridade?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "carteira_forma_banco_recebimento_id_fkey"
+            columns: ["banco_recebimento_id"]
+            isOneToOne: false
+            referencedRelation: "banco_recebimento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "carteira_forma_carteira_id_fkey"
+            columns: ["carteira_id"]
+            isOneToOne: false
+            referencedRelation: "carteira"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "carteira_forma_forma_pagamento_id_fkey"
+            columns: ["forma_pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "formas_pagamento"
             referencedColumns: ["id"]
           },
         ]
@@ -64805,14 +65155,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -65668,14 +66018,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -78198,14 +78548,6 @@ export type Database = {
         Args: { p_credito_id: string; p_debito_id: string }
         Returns: Json
       }
-      confirmar_portao_pago: {
-        Args: {
-          p_data_pagamento?: string
-          p_observacao?: string
-          p_pedido_id: string
-        }
-        Returns: Json
-      }
       confirmar_pre_aprovacao: { Args: { p_analise_id: string }; Returns: Json }
       confirmar_recebimento_pedido: {
         Args: { p_observacao?: string; p_pedido_id: string }
@@ -79139,6 +79481,7 @@ export type Database = {
         Args: { p_motivo?: string; p_pedido_id: string }
         Returns: boolean
       }
+      fn_extracao_aplicar: { Args: { p_extracao_id: string }; Returns: Json }
       fn_extrair_dimensoes: { Args: { p_texto: string }; Returns: number[] }
       fn_extrato_classificar: {
         Args: { p_conta: string; p_descricao: string }
