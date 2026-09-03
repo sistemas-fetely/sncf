@@ -14,13 +14,16 @@ interface Props {
   pedido_id: string;
   id_externo: string;
   xpm_envio_erro?: string | null;
+  /** "resgate" (default) = pedido já está no Bling e ficou sem expedição.
+   *  "normal" = fluxo padrão: XPM primeiro, Bling depois do pré-faturamento. */
+  modo?: "resgate" | "normal";
 }
 
 /**
  * Resgate da fila (21/08/2026): pedido que já foi pro Bling e ficou sem
  * expedição na XPM. Só empurra pra XPM — o Bling já tem o pedido.
  */
-export function EmpurrarXpmLinhaDialog({ pedido_id, id_externo, xpm_envio_erro }: Props) {
+export function EmpurrarXpmLinhaDialog({ pedido_id, id_externo, xpm_envio_erro, modo = "resgate" }: Props) {
   const [open, setOpen] = useState(false);
   const empurrarXpm = useEmpurrarXpm();
   const { data: previa, isLoading: checkingPrevia } = usePreviaEmpurrarXpm(pedido_id, open);
@@ -62,7 +65,9 @@ export function EmpurrarXpmLinhaDialog({ pedido_id, id_externo, xpm_envio_erro }
         <DialogHeader>
           <DialogTitle>Empurrar pra XPM</DialogTitle>
           <DialogDescription>
-            Pedido <strong>#{id_externo}</strong> · Este pedido já está no Bling, mas não tem expedição na XPM.
+            Pedido <strong>#{id_externo}</strong> · {modo === "normal"
+              ? "Empurrar pra XPM. O Bling recebe depois que a expedição for conferida — no pré-faturamento."
+              : "Este pedido já está no Bling, mas não tem expedição na XPM."}
           </DialogDescription>
         </DialogHeader>
 

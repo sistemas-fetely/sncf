@@ -41,7 +41,6 @@ import {
 } from "@/lib/pedidos/situacao-financeira";
 import { formatDateBR } from "@/lib/format-currency";
 import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialog";
-import { EnviarBlingDialog } from "@/components/pedidos/dialogs/EnviarBlingDialog";
 import { EmpurrarXpmLinhaDialog } from "@/components/pedidos/dialogs/EmpurrarXpmLinhaDialog";
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 import { TabelaCadastroDialog } from "@/components/pedidos/dialogs/TabelaCadastroDialog";
