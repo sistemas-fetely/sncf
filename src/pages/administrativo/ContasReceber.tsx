@@ -729,6 +729,18 @@ function AbaB2B() {
     return c;
   }, [baseCarteiraSemKpi]);
 
+  /** Contagens do controle segmentado de prazo: sem o próprio filtro de prazo
+   *  aplicado, para o botão ativo não zerar a si mesmo. */
+  const contagensPrazo = useMemo(() => {
+    let aVencer = 0;
+    let vencidos = 0;
+    for (const t of baseCarteiraSemPrazo) {
+      if (t.eh_inadimplente === true) vencidos += 1;
+      else if (t.estado_em_aberto === true) aVencer += 1;
+    }
+    return { aVencer, vencidos };
+  }, [baseCarteiraSemPrazo]);
+
   const rotuloFiltroKpi =
     filtroInstrumento === "garantido"
       ? "Garantido em banco"
