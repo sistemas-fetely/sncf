@@ -664,6 +664,12 @@ export function PedidoOportunidadeDialog({
                 <div className="flex justify-center py-4">
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 </div>
+              ) : boletos.isError ? (
+                /* SILENCIO-E-DECISAO: erro de leitura nao pode virar "nao tem boleto". */
+                <p className="text-sm text-destructive">
+                  Nao foi possivel carregar os boletos:{" "}
+                  {boletos.error instanceof Error ? boletos.error.message : "erro desconhecido"}
+                </p>
               ) : (boletos.data?.boletoTitulos ?? []).length === 0 ? (
                 <p className="text-sm text-muted-foreground">Nenhum boleto neste pedido.</p>
               ) : (
