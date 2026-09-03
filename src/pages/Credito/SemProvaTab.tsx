@@ -63,10 +63,13 @@ const ROTULO_CARD: Record<ProvaClasse, string> = {
   credito_atrasado: "Crédito atrasado",
 };
 
-const TOM_BLOCO: Record<ProvaClasse, "destructive" | "warning"> = {
+const TOM_BLOCO: Record<ProvaClasse, "destructive" | "warning" | "muted"> = {
   divergente: "destructive",
   sem_prova: "destructive",
   declarado_humano: "warning",
+  // Neutro de proposito: o dinheiro entrou, so falta a ponte. Nao e problema
+  // de cobranca, e trabalho de conciliacao.
+  adquirente_pagou_falta_conciliar: "muted",
   credito_atrasado: "warning",
 };
 
