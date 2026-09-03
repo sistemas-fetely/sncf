@@ -15,6 +15,7 @@ export function usePermissoesMesa() {
   const sops = usePermissaoAcaoOuSuperAdmin("acao.mesa_solicitar_sops");
   const verTodos = usePermissaoAcaoOuSuperAdmin("acao.mesa_ver_todos");
   const baixarBoleto = usePermissaoAcaoOuSuperAdmin("acao.mesa_baixar_boleto");
+  const comProva = usePermissaoAcaoOuSuperAdmin("acao.mesa_confirmar_com_prova");
 
   return {
     podeDefinirStatus: status.permitido,
@@ -27,6 +28,8 @@ export function usePermissoesMesa() {
     podeVerTodos: verTodos.permitido,
     /** Baixar o espelho PDF do boleto vigente direto da Mesa. */
     podeBaixarBoleto: baixarBoleto.permitido,
+    /** ANEXO-CONFORME-QUEM-E: na Mesa o pagamento só fecha COM comprovante lido. */
+    podeConfirmarComProva: comProva.permitido,
     carregando:
       status.carregando ||
       link.carregando ||
@@ -34,6 +37,7 @@ export function usePermissoesMesa() {
       boletos.carregando ||
       sops.carregando ||
       verTodos.carregando ||
-      baixarBoleto.carregando,
+      baixarBoleto.carregando ||
+      comProva.carregando,
   };
 }

@@ -133,6 +133,8 @@ interface ConfirmarArgs {
   valor: number;
   data: string;
   justificativa?: string | null;
+  /** Conta onde o dinheiro entrou (`banco_recebimento.id`). */
+  banco_recebimento_id?: string | null;
 }
 
 export function useConfirmarComprovante(pedidoId: string) {
@@ -148,6 +150,7 @@ export function useConfirmarComprovante(pedidoId: string) {
         p_valor: args.valor,
         p_data: args.data,
         p_justificativa: args.justificativa?.trim() || null,
+        p_banco_recebimento_id: args.banco_recebimento_id || null,
       });
       if (error) throw error;
       return data;

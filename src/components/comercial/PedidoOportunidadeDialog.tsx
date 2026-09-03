@@ -2,10 +2,6 @@ import { useState } from "react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow,
@@ -16,8 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, Copy, Loader2 } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { apelidoParceiro } from "@/lib/parceiros/nome";
@@ -34,6 +29,7 @@ import { nomeArquivoNf } from "@/lib/nf/nome-arquivo";
 import { useComprovantesPedido } from "@/hooks/comercial/useComprovantePagamento";
 import { SolicitarSopsAcao } from "@/components/comercial/SolicitarSopsAcao";
 import { ClienteHistoricoBloco } from "@/components/comercial/ClienteHistorico";
+import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 import { usePermissoesMesa } from "@/hooks/comercial/usePermissoesMesa";
 import { useStatusComercialLog } from "@/hooks/comercial/useMesaComercial";
 import { useBoletosDoPedido } from "@/hooks/pedidos/useBoletosDoPedido";
@@ -42,7 +38,6 @@ import { BotaoBaixarBoletoPdf, baixarBoletoPdf } from "@/components/credito/Bota
 import { usePedidoPortaoAtual } from "@/hooks/pedidos/usePedidoPortaoAtual";
 import { useDiagnosticoPagamento } from "@/hooks/comercial/usePedidoOportunidadeDetalhe";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { hojeISO } from "@/lib/data";
 
 
 
@@ -268,10 +263,6 @@ export function PedidoOportunidadeDialog({
 }: Props) {
   const [texto, setTexto] = useState("");
   const [confirmarAberto, setConfirmarAberto] = useState(false);
-  const [dataPagamento, setDataPagamento] = useState(() =>
-    hojeISO(),
-  );
-  const [obsPagamento, setObsPagamento] = useState("");
   const itens = useItensPedidoOportunidade(pedidoId, open);
   const obs = useObsComerciaisPedido(pedidoId, open);
   const adicionar = useAdicionarObsComercial(pedidoId);
@@ -323,38 +314,16 @@ export function PedidoOportunidadeDialog({
   const boletos = useBoletosDoPedido(open ? pedidoId : undefined);
   const statusLog = useStatusComercialLog(pedidoId, open);
   // PERMISSAO-NOMINAL-POR-ACAO: mesmos gates da linha da mesa, mesma fonte.
-  const { podeCopiarLink, podeBaixarNf, podeVerBoletos, podeBaixarBoleto } = usePermissoesMesa();
+  const {
+    podeCopiarLink, podeBaixarNf, podeVerBoletos, podeBaixarBoleto,
+    podeConfirmarComProva, carregando: carregandoMesa,
+  } = usePermissoesMesa();
 
 
   const comprovantes = useComprovantesPedido(pedidoId, open);
   const temComprovanteConfirmado = (comprovantes.data ?? []).some(
     (c) => c.status === "confirmado",
   );
-
-  const confirmarPagamento = useMutation({
-    mutationFn: async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any).rpc("confirmar_portao_pago", {
-        p_pedido_id: pedidoId,
-        p_data_pagamento: dataPagamento,
-        p_observacao: obsPagamento.trim(),
-      });
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      toast.success("Pagamento do portão confirmado");
-      qc.invalidateQueries({ queryKey: ["oportunidades-comercial"] });
-      qc.invalidateQueries({ queryKey: ["oportunidade-obs-comerciais", pedidoId] });
-      setConfirmarAberto(false);
-      setObsPagamento("");
-      onOpenChange(false);
-    },
-    onError: (e: Error) => {
-      // FAIL-LOUD: a mensagem do banco é explicativa — não substituir.
-      toast.error(e.message);
-    },
-  });
 
   const enviar = async () => {
     if (!podeEnviar) return;
@@ -554,26 +523,19 @@ export function PedidoOportunidadeDialog({
                       Copiar link de pagamento
                     </Button>
                   )}
-                  {!temComprovanteConfirmado && (
+                  {/* ANEXO-CONFORME-QUEM-E: na Mesa o vendedor prova com papel. */}
+                  {!temComprovanteConfirmado && (podeConfirmarComProva || carregandoMesa) && (
                     <Button
-                      disabled={
-                        cartaoBloqueia ||
-                        confirmarPagamento.isPending ||
-                        carregandoConfirmarPagamento ||
-                        !podeConfirmarPagamento
-                      }
+                      disabled={cartaoBloqueia || carregandoMesa || !podeConfirmarComProva}
                       title={
                         cartaoBloqueia
                           ? "Cartão não fecha por confirmação manual — a prova é o NSU da captura."
-                          : !carregandoConfirmarPagamento && !podeConfirmarPagamento
-                            ? "Você não tem permissão para confirmar pagamento declarado."
+                          : !carregandoMesa && !podeConfirmarComProva
+                            ? "Você não tem permissão para confirmar pagamento com prova."
                             : undefined
                       }
                       onClick={() => setConfirmarAberto(true)}
                     >
-                      {confirmarPagamento.isPending && (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      )}
                       Confirmar pagamento
                     </Button>
                   )}
@@ -821,58 +783,12 @@ export function PedidoOportunidadeDialog({
 
 
         {!temComprovanteConfirmado && (
-        <AlertDialog open={confirmarAberto} onOpenChange={setConfirmarAberto}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirmar pagamento do portão</AlertDialogTitle>
-              <AlertDialogDescription>
-                Registre a data e como o pagamento foi comprovado. Esta observação fica na
-                timeline do pedido.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="data-pgto-oportunidade">Data do pagamento</Label>
-                <Input
-                  id="data-pgto-oportunidade"
-                  type="date"
-                  value={dataPagamento}
-                  onChange={(e) => setDataPagamento(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="obs-pgto-oportunidade">Como foi comprovado</Label>
-                <Textarea
-                  id="obs-pgto-oportunidade"
-                  value={obsPagamento}
-                  onChange={(e) => setObsPagamento(e.target.value)}
-                  placeholder="Ex.: comprovante PIX recebido por WhatsApp, conferido no extrato Safra"
-                  rows={3}
-                />
-              </div>
-            </div>
-
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={confirmarPagamento.isPending}>
-                Cancelar
-              </AlertDialogCancel>
-              <AlertDialogAction
-                disabled={
-                  confirmarPagamento.isPending ||
-                  !dataPagamento ||
-                  obsPagamento.trim().length < 5
-                }
-                onClick={(e) => {
-                  e.preventDefault();
-                  confirmarPagamento.mutate();
-                }}
-              >
-                Confirmar pagamento
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          <ConfirmarPagamentoDialog
+            pedidoId={pedidoId}
+            aberto={confirmarAberto}
+            aoFechar={() => setConfirmarAberto(false)}
+            modo="mesa"
+          />
         )}
       </SheetContent>
     </Sheet>

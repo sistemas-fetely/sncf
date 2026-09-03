@@ -6,8 +6,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PixQrCode } from "@/components/pedidos/PixQrCode";
-import { ConfirmarPortaoPagoDialog } from "@/components/pedidos/dialogs/ConfirmarPortaoPagoDialog";
-import { ConfirmarCartaoCapturadoDialog } from "@/components/pedidos/dialogs/ConfirmarCartaoCapturadoDialog";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (s?: string | null) =>
@@ -56,6 +57,8 @@ function EstadoLinha({ p }: { p: Provisao }) {
 }
 
 export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
+  // REFERENCIA-SEMPRE: uma só tela de confirmação para todas as linhas do portão.
+  const [confirmarLinha, setConfirmarLinha] = useState<{ id: string | null } | null>(null);
   const provisoesQ = useQuery({
     queryKey: ["provisoes-pedido", pedidoId],
     enabled: !!pedidoId,
@@ -117,11 +120,9 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
             {cartaoAbertas.length} parcela(s) de cartão em aberto · {fmtBRL.format(cartaoAbertoValor)} —
             uma captura fecha todas de uma vez.
           </p>
-          <ConfirmarCartaoCapturadoDialog
-            pedidoId={pedidoId}
-            parcelasAbertas={cartaoAbertas.length}
-            valorAberto={cartaoAbertoValor}
-          />
+          <Button size="sm" onClick={() => setConfirmarLinha({ id: null })}>
+            Confirmar captura
+          </Button>
         </div>
       )}
 
@@ -180,14 +181,13 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
                         Fecha pela captura (NSU)
                       </span>
                     ) : (
-                      <ConfirmarPortaoPagoDialog
-                        pedido_id={p.pedido_id}
-                        provisao_id={p.id}
-                        valor={Number(p.valor ?? 0)}
-                        forma={p.tipo_pagamento}
-                        numero_parcela={p.numero_parcela}
-                        variante="discreta"
-                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setConfirmarLinha({ id: p.id })}
+                      >
+                        Confirmar pagamento
+                      </Button>
                     ))}
                 </div>
               </div>
@@ -205,6 +205,15 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
             </div>
           );
         })}
+      {confirmarLinha && (
+        <ConfirmarPagamentoDialog
+          pedidoId={pedidoId}
+          provisaoId={confirmarLinha.id ?? undefined}
+          aberto
+          aoFechar={() => setConfirmarLinha(null)}
+          modo="sops"
+        />
+      )}
     </div>
   );
 }
