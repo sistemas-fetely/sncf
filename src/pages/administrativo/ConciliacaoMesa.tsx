@@ -142,6 +142,12 @@ export default function ConciliacaoMesa() {
   const [ajuste, setAjuste] = useState("0");
   const [tituloAjuste, setTituloAjuste] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [aba, setAba] = useAbaUrl("extrato");
+  const [filtroCartao, setFiltroCartao] = useState<
+    "fecha_no_centavo" | "quase_fecha" | null
+  >(null);
+  // Quando preenchido, a conciliação em curso é de cartão (RPC diferente).
+  const [nsuSelecionado, setNsuSelecionado] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["conciliacao-mesa"],
