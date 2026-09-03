@@ -1536,6 +1536,33 @@ function AbaB2B() {
                 );
               })}
 
+              <div className="ml-auto flex items-center gap-2 border-l border-border pl-3">
+                <span className="text-xs text-muted-foreground">Prazo</span>
+                <Button
+                  size="sm"
+                  variant={filtroPrazo === "todos" ? "default" : "outline"}
+                  onClick={() => {
+                    setFiltroPrazo("todos");
+                    setPage(1);
+                  }}
+                >
+                  Todos
+                </Button>
+                <Button
+                  size="sm"
+                  variant={filtroPrazo === "a_vencer" ? "default" : "outline"}
+                  onClick={() => clicarPrazo("a_vencer")}
+                >
+                  A vencer ({contagensPrazo.aVencer})
+                </Button>
+                <Button
+                  size="sm"
+                  variant={filtroPrazo === "vencidos" ? "default" : "outline"}
+                  onClick={() => clicarPrazo("vencidos")}
+                >
+                  Vencidos ({contagensPrazo.vencidos})
+                </Button>
+              </div>
             </div>
           </div>
 
