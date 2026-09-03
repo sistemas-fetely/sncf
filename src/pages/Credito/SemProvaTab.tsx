@@ -59,6 +59,7 @@ const ROTULO_CARD: Record<ProvaClasse, string> = {
   divergente: "Divergente",
   sem_prova: "Sem nenhuma prova",
   declarado_humano: "Declarado por pessoa",
+  adquirente_pagou_falta_conciliar: "Adquirente pagou",
   credito_atrasado: "Crédito atrasado",
 };
 
