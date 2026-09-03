@@ -449,8 +449,37 @@ function AbaB2B() {
     return t.eh_inadimplente === true;
   };
 
+  /**
+   * Camada nova entre `baseFiltros` e `baseCarteira`: filtros da faixa de KPI.
+   * Os totais das colunas continuam vindo de `baseFiltros` — senão a coluna
+   * ativa zeraria a si mesma e as irmãs sumiriam.
+   */
+  const baseKpi = useMemo(() => {
+    if (!filtroInstrumento && !filtroVencido) return baseFiltros;
+    return baseFiltros.filter((t) => {
+      if (filtroInstrumento) {
+        if (t.estado_em_aberto !== true) return false;
+        const inst = t.eixo_instrumento ?? "";
+        if (filtroInstrumento === "garantido" && !INSTRUMENTO_GARANTIDO.includes(inst))
+          return false;
+        if (filtroInstrumento === "sem_instrumento" && inst !== "sem_instrumento") return false;
+      }
+      if (filtroVencido && t.eh_inadimplente !== true) return false;
+      return true;
+    });
+  }, [baseFiltros, filtroInstrumento, filtroVencido]);
+
   /** Base dos chips de recebimento: já com carteira e achado aplicados. */
   const baseCarteira = useMemo(() => {
+    return baseKpi.filter((t) => {
+      if (carteiraAtiva && t.carteira_codigo !== carteiraAtiva) return false;
+      if (achado && !casaAchado(t, achado)) return false;
+      return true;
+    });
+  }, [baseKpi, carteiraAtiva, achado]);
+
+  /** Mesma base, ignorando os filtros de KPI — usada para apagar chips impossíveis. */
+  const baseCarteiraSemKpi = useMemo(() => {
     return baseFiltros.filter((t) => {
       if (carteiraAtiva && t.carteira_codigo !== carteiraAtiva) return false;
       if (achado && !casaAchado(t, achado)) return false;
@@ -472,14 +501,24 @@ function AbaB2B() {
     let vencido = 0;
     let vencidoQtd = 0;
     const faixas = { f1_7: 0, f8_30: 0, f31_60: 0, f60: 0 };
-    let inadimplencia = 0;
-    let inadimplenciaQtd = 0;
 
     for (const t of baseFiltros) {
       const v = efetivoDe(t);
+      /* VENCIDO-VEM-DO-BANCO: `eh_inadimplente` é a fonte única. O front não
+         recalcula mais vencimento — eram dois números para a mesma pergunta. */
       if (t.eh_inadimplente === true) {
-        inadimplencia += v;
-        inadimplenciaQtd += 1;
+        vencido += v;
+        vencidoQtd += 1;
+        const venc = t.data_vencimento_vigente;
+        if (venc) {
+          const dias = Math.floor(
+            (hoje.getTime() - new Date(venc + "T12:00:00").getTime()) / 86400000
+          );
+          if (dias <= 7) faixas.f1_7 += v;
+          else if (dias <= 30) faixas.f8_30 += v;
+          else if (dias <= 60) faixas.f31_60 += v;
+          else faixas.f60 += v;
+        }
       }
       if (t.estado_em_aberto !== true) continue;
       aReceber += v;
@@ -497,19 +536,6 @@ function AbaB2B() {
         outros += v;
         outrosQtd += 1;
       }
-
-      const venc = t.data_vencimento_vigente;
-      if (venc && venc < hojeIso) {
-        vencido += v;
-        vencidoQtd += 1;
-        const dias = Math.floor(
-          (hoje.getTime() - new Date(venc + "T12:00:00").getTime()) / 86400000
-        );
-        if (dias <= 7) faixas.f1_7 += v;
-        else if (dias <= 30) faixas.f8_30 += v;
-        else if (dias <= 60) faixas.f31_60 += v;
-        else faixas.f60 += v;
-      }
     }
     return {
       aReceber,
@@ -524,10 +550,22 @@ function AbaB2B() {
       vencido,
       vencidoQtd,
       faixas,
-      inadimplencia,
-      inadimplenciaQtd,
     };
-  }, [baseFiltros, hoje, hojeIso]);
+  }, [baseFiltros, hoje]);
+
+  const semFiltroKpi = !filtroInstrumento && !filtroVencido;
+
+  const limparFiltrosKpi = () => {
+    setFiltroInstrumento(null);
+    setFiltroVencido(false);
+    setPage(1);
+  };
+
+  const clicarInstrumento = (k: "garantido" | "sem_instrumento") => {
+    setFiltroInstrumento((prev) => (prev === k ? null : k));
+    setPage(1);
+  };
+
 
   /* ---------- Linha 2 — Carteiras ---------- */
   const carteiras = useMemo(() => {
