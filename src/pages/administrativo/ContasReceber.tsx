@@ -1741,20 +1741,50 @@ function AbaB2B() {
               ))}
             </div>
           ) : totalItens === 0 ? (
-            <div className="flex flex-col items-center gap-2 p-10 text-muted-foreground">
-              <Inbox className="h-8 w-8" />
+            <div className="flex flex-col items-center gap-2 p-10 text-center text-muted-foreground">
               {semChip ? (
                 <>
+                  <Inbox className="h-8 w-8" />
                   <p>Nenhum chip de Recebimento selecionado.</p>
                   <p className="text-xs">
                     {baseCarteira.length} título{baseCarteira.length !== 1 ? "s" : ""} escondido
                     {baseCarteira.length !== 1 ? "s" : ""} — clique num chip acima.
                   </p>
                 </>
+              ) : buscaForaDoRecorte ? (
+                <>
+                  <SearchX className="h-8 w-8" />
+                  <p>
+                    Nenhum título aqui, mas "{busca.trim()}" aparece em{" "}
+                    {buscaForaDoRecorte.n} título{buscaForaDoRecorte.n !== 1 ? "s" : ""}
+                    {buscaForaDoRecorte.carteira
+                      ? ` em ${buscaForaDoRecorte.carteira}.`
+                      : " em outras carteiras."}
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setCarteiraAtiva(null);
+                      setFiltroInstrumento(null);
+                      setFiltroVencido(false);
+                      setPage(1);
+                    }}
+                  >
+                    Ver todos
+                  </Button>
+                </>
               ) : (
-                <p>Nenhum recebível encontrado.</p>
+                <>
+                  <Inbox className="h-8 w-8" />
+                  <p>Nenhum título encontrado para os filtros atuais.</p>
+                  <Button size="sm" variant="outline" onClick={limparTudo}>
+                    Limpar tudo
+                  </Button>
+                </>
               )}
             </div>
+
           ) : (
             <Table>
               <TableHeader>
