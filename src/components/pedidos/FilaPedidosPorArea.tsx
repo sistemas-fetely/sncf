@@ -1580,16 +1580,30 @@ function AcoesLinha({ p, temMsg, risco, nfInfo }: { p: PedidoFilaItem; temMsg: b
           />
         </>
       )}
-      {p.estagio === "pre_separacao" && !p.bling_id_destino && (
-        <EnviarBlingDialog
+      {p.estagio === "pre_faturamento" && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+          title="Abrir pré-faturamento"
+          aria-label="Abrir pré-faturamento"
+          onClick={() =>
+            navigate(`/pedidos/${p.id}`, {
+              state: { from: "/pedidos", fromLabel: "Fila de Pedidos" },
+            })
+          }
+        >
+          <ExternalLink className="h-4 w-4" />
+        </Button>
+      )}
+      {/* FATURAMENTO-NASCE-NO-SNCF: em pré-separação a única porta é a XPM.
+          O Bling só recebe depois da conferência, no pré-faturamento. */}
+      {p.estagio === "pre_separacao" && !p.xpm_expedicao_codigo && (
+        <EmpurrarXpmLinhaDialog
           pedido_id={p.id}
-          parceiro_id={p.parceiro_id}
           id_externo={p.id_externo}
-          valor_liquido={p.valor_liquido}
-          forma_solicitada={p.forma_solicitada}
-          variante="discreta"
-          estagio={p.estagio}
-          xpm_expedicao_codigo={p.xpm_expedicao_codigo}
+          xpm_envio_erro={p.xpm_envio_erro}
+          modo="normal"
         />
       )}
       {/* XPM-SEM-VAZAMENTO (21/08/2026): resgate do pedido que já foi pro Bling
@@ -1602,6 +1616,7 @@ function AcoesLinha({ p, temMsg, risco, nfInfo }: { p: PedidoFilaItem; temMsg: b
           xpm_envio_erro={p.xpm_envio_erro}
         />
       )}
+
 
       {/* Secundárias */}
       {/* CONTRATO DE NÍVEL: 1 vê · 2 edita · 3 aprova · 4 apaga · 5 lê sensível · 6 tudo. Item que ESCREVE ou EXPORTA dado exige nível 2. */}
