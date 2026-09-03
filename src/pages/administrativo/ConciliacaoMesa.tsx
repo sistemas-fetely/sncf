@@ -79,6 +79,8 @@ type ConciliacaoItem = {
   diff_efetiva: number | null;
   fecha_com_haver: boolean | null;
   cliente_fantasia: string | null;
+  haver_filhos_quais: string | null;
+  nota_sugerida: string | null;
   score: number | null;
   nivel: number | null;
   confianca: Confianca;
@@ -168,7 +170,10 @@ export default function ConciliacaoMesa() {
 
   function abrirDialog(item: ConciliacaoItem) {
     setSelecionado(item);
-    setNota("");
+    // NOTA-PRE-ESCRITA-PELA-PROVA: em fechamento exato com identidade forte a
+    // view devolve a nota com os fatos. O operador confirma ou edita — nao
+    // precisa transcrever a mao o que o sistema ja sabe.
+    setNota(item.nota_sugerida ?? "");
     const diff = Number(item.diff_efetiva ?? item.diff_familia ?? 0);
     setAjuste(Math.abs(diff) > 0.05 ? String(diff) : "0");
     setTituloAjuste(item.titulo_ids?.[0] ?? null);
@@ -449,7 +454,7 @@ export default function ConciliacaoMesa() {
                           className="gap-1.5"
                         >
                           <Link2 className="h-3.5 w-3.5" />
-                          Conciliar
+                          {item.nota_sugerida ? "Conciliar" : "Analisar"}
                         </Button>
                       </div>
                     </div>
@@ -536,14 +541,21 @@ export default function ConciliacaoMesa() {
 
               <div className="space-y-1.5">
                 <label className="text-xs text-muted-foreground">
-                  Nota (mínimo 5 caracteres)
+                  {selecionado.nota_sugerida
+                    ? "Nota (escrita pelo sistema — confira e edite se quiser)"
+                    : "Nota (obrigatória, mínimo 5 caracteres)"}
                 </label>
                 <Textarea
                   value={nota}
                   onChange={(e) => setNota(e.target.value)}
                   placeholder="Explique o que prova este vínculo"
-                  rows={3}
+                  rows={selecionado.nota_sugerida ? 4 : 3}
                 />
+                {selecionado.nota_sugerida && (
+                  <p className="text-[11px] text-muted-foreground">
+                    O sistema tem prova suficiente neste caso. Basta confirmar.
+                  </p>
+                )}
               </div>
             </div>
           )}

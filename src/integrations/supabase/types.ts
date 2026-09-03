@@ -55245,9 +55245,11 @@ export type Database = {
           diff_familia: number | null
           fecha_com_haver: boolean | null
           haver_do_filho: number | null
+          haver_filhos_quais: string | null
           id_transacao_banco: string | null
           movimentacao_id: string | null
           nivel: string | null
+          nota_sugerida: string | null
           origem: string | null
           pagador: string | null
           pagador_doc: string | null
