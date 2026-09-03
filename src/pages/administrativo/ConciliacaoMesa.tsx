@@ -162,6 +162,55 @@ export default function ConciliacaoMesa() {
     },
   });
 
+  const cartaoQuery = useQuery({
+    queryKey: ["conciliacao-mesa-cartao"],
+    staleTime: 30_000,
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("vw_conciliacao_mesa_cartao")
+        .select("*");
+      if (error) throw error;
+      return (data || []) as CartaoItem[];
+    },
+  });
+
+  const resumoCartao = useMemo(() => {
+    const base = {
+      fecha_no_centavo: { qtd: 0, soma: 0 },
+      quase_fecha: { qtd: 0, soma: 0 },
+      pago_parcial: { qtd: 0, soma: 0 },
+    };
+    for (const item of cartaoQuery.data || []) {
+      const bucket = base[item.confianca];
+      if (bucket) {
+        bucket.qtd += 1;
+        bucket.soma += Number(item.bruto_pago || 0);
+      }
+    }
+    return base;
+  }, [cartaoQuery.data]);
+
+  const listaCartao = useMemo(() => {
+    const prontos = (cartaoQuery.data || []).filter(
+      (i) => i.confianca === "fecha_no_centavo" || i.confianca === "quase_fecha",
+    );
+    const filtrada = filtroCartao
+      ? prontos.filter((i) => i.confianca === filtroCartao)
+      : prontos;
+    return [...filtrada].sort(
+      (a, b) => Number(b.bruto_pago || 0) - Number(a.bruto_pago || 0),
+    );
+  }, [cartaoQuery.data, filtroCartao]);
+
+  const totalExtrato = (data || []).filter(
+    (i) => i.confianca !== "sem_candidato",
+  ).length;
+  const totalCartao = (cartaoQuery.data || []).filter(
+    (i) => i.confianca !== "pago_parcial",
+  ).length;
+
+
   const resumo = useMemo(() => {
     const vazio = {
       fecha_no_centavo: { qtd: 0, soma: 0 },
