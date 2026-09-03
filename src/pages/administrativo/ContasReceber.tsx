@@ -681,6 +681,172 @@ function AbaB2B() {
     return c;
   }, [baseCarteira]);
 
+  /** Contagem ignorando os filtros de KPI: revela chip impossível vs. chip vazio. */
+  const contagensSemKpi = useMemo(() => {
+    const c = {} as Record<EixoRecebimento, number>;
+    for (const r of RECEBIMENTO_ORDEM) c[r] = 0;
+    for (const t of baseCarteiraSemKpi) {
+      const r = t.eixo_recebimento;
+      if (r && r in c) c[r] += 1;
+    }
+    return c;
+  }, [baseCarteiraSemKpi]);
+
+  const rotuloFiltroKpi =
+    filtroInstrumento === "garantido"
+      ? "Garantido em banco"
+      : filtroInstrumento === "sem_instrumento"
+      ? "Sem instrumento"
+      : filtroVencido
+      ? "Vencido"
+      : null;
+
+  const totalAtraso =
+    estadoCarteira.faixas.f1_7 +
+    estadoCarteira.faixas.f8_30 +
+    estadoCarteira.faixas.f31_60 +
+    estadoCarteira.faixas.f60;
+
+  const pctGarantido =
+    estadoCarteira.aReceber > 0
+      ? Math.round((estadoCarteira.garantido / estadoCarteira.aReceber) * 100)
+      : 0;
+
+  /** Uma frase honesta sobre o topo do aging, sem tabelinha. */
+  const resumoAtraso = useMemo(() => {
+    const f = estadoCarteira.faixas;
+    if (totalAtraso === 0) return "sem atraso";
+    if (f.f60 > 0) return `+60d: ${formatBRLCurto(f.f60)}`;
+    if (f.f31_60 > 0) return `31–60d: ${formatBRLCurto(f.f31_60)}`;
+    if (f.f8_30 > 0) return `8–30d: ${formatBRLCurto(f.f8_30)}`;
+    return "nada acima de 7d";
+  }, [estadoCarteira.faixas, totalAtraso]);
+
+  const ACHADO_LABEL: Record<Achado, string> = {
+    sobreposicao: "Sobreposição do instrumento",
+    renegociacao: "Renegociação humana",
+    sem_prova: "Sem prova bancária",
+    data_divergente: "Data divergente",
+    meio_divergente: "Meio ≠ pedido",
+    inadimplente: "Inadimplentes",
+  };
+
+  const ddMM = (v: string) => {
+    const [, m, d] = v.split("-");
+    return `${d}/${m}`;
+  };
+
+  const limparTudo = () => {
+    setCarteiraAtiva(null);
+    setFiltroInstrumento(null);
+    setFiltroVencido(false);
+    setBusca("");
+    setFiltroBanco("todos");
+    setDataDe("");
+    setDataAte("");
+    setAchado(null);
+    setRecebimentosAtivos(new Set<EixoRecebimento>(["em_aberto"]));
+    setPage(1);
+  };
+
+  /** Barra de estado: cada filtro ligado aparece e sai por conta própria. */
+  const filtrosAtivos = useMemo(() => {
+    const lista: { chave: string; rotulo: string; limpar: () => void }[] = [];
+    if (carteiraAtiva) {
+      const nome = carteiras.find((c) => c.codigo === carteiraAtiva)?.nome ?? carteiraAtiva;
+      lista.push({
+        chave: "carteira",
+        rotulo: `Carteira: ${nome}`,
+        limpar: () => {
+          setCarteiraAtiva(null);
+          setPage(1);
+        },
+      });
+    }
+    if (filtroInstrumento) {
+      lista.push({
+        chave: "instrumento",
+        rotulo: filtroInstrumento === "garantido" ? "Garantido em banco" : "Sem instrumento",
+        limpar: () => {
+          setFiltroInstrumento(null);
+          setPage(1);
+        },
+      });
+    }
+    if (filtroVencido) {
+      lista.push({
+        chave: "vencido",
+        rotulo: "Vencido",
+        limpar: () => {
+          setFiltroVencido(false);
+          setPage(1);
+        },
+      });
+    }
+    if (busca.trim()) {
+      lista.push({
+        chave: "busca",
+        rotulo: `Busca: "${busca.trim()}"`,
+        limpar: () => {
+          setBusca("");
+          setPage(1);
+        },
+      });
+    }
+    if (filtroBanco !== "todos") {
+      lista.push({
+        chave: "banco",
+        rotulo: `Banco: ${filtroBanco}`,
+        limpar: () => {
+          setFiltroBanco("todos");
+          setPage(1);
+        },
+      });
+    }
+    if (dataDe || dataAte) {
+      lista.push({
+        chave: "periodo",
+        rotulo: `Período: ${dataDe ? ddMM(dataDe) : "…"}–${dataAte ? ddMM(dataAte) : "…"}`,
+        limpar: () => {
+          setDataDe("");
+          setDataAte("");
+          setPage(1);
+        },
+      });
+    }
+    for (const r of RECEBIMENTO_ORDEM) {
+      if (!recebimentosAtivos.has(r)) continue;
+      lista.push({
+        chave: `receb:${r}`,
+        rotulo: `Recebimento: ${RECEBIMENTO_LABEL[r]}`,
+        limpar: () => toggleRecebimento(r),
+      });
+    }
+    if (achado) {
+      lista.push({
+        chave: "achado",
+        rotulo: `Achado: ${ACHADO_LABEL[achado]}`,
+        limpar: () => {
+          setAchado(null);
+          setPage(1);
+        },
+      });
+    }
+    return lista;
+  }, [
+    carteiraAtiva,
+    carteiras,
+    filtroInstrumento,
+    filtroVencido,
+    busca,
+    filtroBanco,
+    dataDe,
+    dataAte,
+    recebimentosAtivos,
+    achado,
+  ]);
+
+
   const toggleRecebimento = (k: EixoRecebimento) => {
     setRecebimentosAtivos((prev) => {
       const next = new Set(prev);
