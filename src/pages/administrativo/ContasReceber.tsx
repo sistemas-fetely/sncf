@@ -734,8 +734,10 @@ function AbaB2B() {
       ? "Garantido em banco"
       : filtroInstrumento === "sem_instrumento"
       ? "Sem instrumento"
-      : filtroVencido
-      ? "Vencido"
+      : filtroPrazo === "vencidos"
+      ? "Prazo: Vencidos"
+      : filtroPrazo === "a_vencer"
+      ? "Prazo: A vencer"
       : null;
 
   const totalAtraso =
