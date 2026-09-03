@@ -345,6 +345,30 @@ serve(async (req) => {
     }
     // ── fim branch reenviar ──────────────────────────────────────────────
 
+    // ── Gate por TIPO de envio (03/09/2026) — FATURAMENTO-NASCE-NO-SNCF, Fatia A ──
+    // O guard acima aceita os tres estagios porque o REENVIO precisa deles
+    // (REENVIO-SEGUE-O-ENVIO). Aqui, fora do reenvio, a porta fecha por tipo:
+    //   envio INICIAL (lazy /01, sem remessa_id) -> so pre_faturamento.
+    //     Medido em 03/09: 100% dos pedidos B2B dos ultimos 30 dias desceram ao Bling em
+    //     pre_separacao, 3-12s depois da XPM, sem peso/volume reais. O comentario "sera
+    //     aposentado" acima ficou 2 semanas sem aposentar. CONCESSAO-QUE-NAO-TRANCA-E-MENTIRA:
+    //     a trava real e esta, nao o botao que some da tela.
+    //   remessa EXPLICITA (split /02+, remessa_id informado) -> em_separacao ou pre_faturamento.
+    if (body?.acao !== "reenviar") {
+      if (!remessa_id_input && pedido.estagio !== "pre_faturamento") {
+        return err(
+          `Envio inicial ao Bling so em pre_faturamento (pedido em "${pedido.estagio}"). ` +
+          `Empurre pra XPM primeiro; o Bling recebe depois que a expedicao for conferida.`,
+          409,
+        );
+      }
+      if (remessa_id_input && pedido.estagio === "pre_separacao") {
+        return err(
+          `Remessa dividida so em em_separacao ou pre_faturamento (pedido em "pre_separacao").`,
+          409,
+        );
+      }
+    }
 
     // 1b. Remessa: usa a fornecida ou cria lazy /01
     let remessa: any = null;
@@ -669,39 +693,65 @@ serve(async (req) => {
     }
 
     // 8. Parcelas — rateadas proporcional ao valor da remessa.
-    // Remessa única: fator = 1 (remessaValor = soma dos títulos) → parcelas intactas (comportamento original).
+    // Remessa única: fator = 1 (remessaValor = soma do plano) → parcelas intactas.
     // Remessa dividida: fator < 1 → cada parcela escala na mesma proporção, mantendo datas e nº de parcelas.
-    const somaTitulos = parseFloat(
+    //
+    // PORTAO-SAI-DO-ARRAY (03/09/2026, decisao Flavio). Linha de portao e dinheiro que JA ENTROU
+    // (PIX antecipado, cartao capturado). Nao e divida do cliente: duplicata no Bling em nome dele
+    // nunca seria baixada la (ruido de conciliacao) e, no cartao parcelado, cobraria o cliente por
+    // um recebivel que e contra a ADQUIRENTE (PED-2191: 3 parcelas 0/30/60 todas capturadas em
+    // 02/09; o plano dizia 01/10 e 31/10). O recibo fica no SNCF; a perna da adquirente vive em
+    // safrapay_liquidacao. `parcelas: []` com total>0 ja provado contra o Bling (PED-2114, PED-2066).
+    //
+    // O FATOR e calculado contra o PLANO COMPLETO (portao incluido): se fosse contra o que sobra,
+    // as parcelas a prazo seriam INFLADAS para cobrir o que o cliente ja pagou. Medido: entrada de
+    // cartao e 25-33% do plano nos pedidos mistos.
+    const somaPlano = parseFloat(
       titulos.reduce((s: number, t: any) => s + Number(t.valor_bruto), 0).toFixed(2),
     );
-    const fatorRemessa = somaTitulos > 0
-      ? parseFloat((remessaValor / somaTitulos).toFixed(6))
+    const fatorRemessa = somaPlano > 0
+      ? parseFloat((remessaValor / somaPlano).toFixed(6))
       : 1;
 
-    const blingParcelas = titulos.map((t: any) => ({
-      dataVencimento: t.data_vencimento_original,
+    const titulosAPrazo = titulos.filter((t: any) => !t.eh_portao);
+    const valorPortaoPlano = parseFloat(
+      titulos.filter((t: any) => t.eh_portao)
+        .reduce((s: number, t: any) => s + Number(t.valor_bruto), 0).toFixed(2),
+    );
+
+    // Data: `data_vencimento_efetiva` = ANCORA declarada no pre-faturamento (fn_declarar_ancora_
+    // faturamento) ou, no titulo, o recalculo com ancora na NF. Fallback na planejada so para
+    // contrato antigo. ANCORA-E-DECLARADA-NO-PRE-FATURAMENTO: a data que desce e a que o humano
+    // decidiu, nao a que a Cobranca chutou dias antes (medido: 27 de 39 planejadas ja vencidas).
+    const blingParcelas = titulosAPrazo.map((t: any) => ({
+      dataVencimento: t.data_vencimento_efetiva ?? t.data_vencimento_original,
       valor: parseFloat((Number(t.valor_bruto) * fatorRemessa).toFixed(2)),
       formaPagamento: { id: Number(blingFormaId) },
     }));
 
-    // Ajuste de centavo de arredondamento: soma exata = remessaValor
+    // Ajuste de centavo: soma exata = fracao A PRAZO da remessa (nao remessaValor inteiro —
+    // o portao nao esta no array e nao pode ser "compensado" na ultima duplicata).
+    const alvoAPrazo = parseFloat(
+      (titulosAPrazo.reduce((s: number, t: any) => s + Number(t.valor_bruto), 0) * fatorRemessa).toFixed(2),
+    );
     const somaParcelas = blingParcelas.reduce((s, p) => s + p.valor, 0);
-    const diff = parseFloat((remessaValor - somaParcelas).toFixed(2));
+    const diff = parseFloat((alvoAPrazo - somaParcelas).toFixed(2));
     if (Math.abs(diff) >= 0.01 && blingParcelas.length > 0) {
       blingParcelas[blingParcelas.length - 1].valor = parseFloat(
         (blingParcelas[blingParcelas.length - 1].valor + diff).toFixed(2),
       );
     }
 
-    // TOTAL — a condição é "há parcelas a enviar", NÃO "a natureza gera título".
-    // Com geraTitulo=true e zero linhas de cobrança (pedido pré-pago por haver
-    // aplicado, ou lastro na família), o cálculo antigo somava um array vazio e
-    // mandava total: 0 ao Bling. O caminho de zero parcelas já existia e funcionava
-    // — era o da bonificação. Agora os três casos entram pelo mesmo caminho.
+    // TOTAL — SEMPRE o valor da remessa. Antes derivava da soma das parcelas quando havia
+    // parcelas; com o portao fora do array isso faria a NF sair por valor MENOR que a venda
+    // (erro fiscal, nao ruido). O total e fato da venda; as parcelas sao so a parte a receber.
     const temParcelas = blingParcelas.length > 0;
-    const totalExato = temParcelas
-      ? parseFloat(blingParcelas.reduce((s, p) => s + p.valor, 0).toFixed(2))
-      : remessaValor;
+    const totalExato = remessaValor;
+    console.log("[parcelas] plano", {
+      linhas_plano: titulos.length, linhas_a_prazo: titulosAPrazo.length,
+      valor_portao_plano: valorPortaoPlano, fator: fatorRemessa,
+      total: totalExato, soma_parcelas_enviadas: alvoAPrazo, tem_parcelas: temParcelas,
+    });
 
     // 9. Sync de produtos: cache → Bling GET → Bling POST (auto-cadastro)
     const stripQtdSuffix = (d: string) =>

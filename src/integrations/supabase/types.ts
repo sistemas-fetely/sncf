@@ -45230,6 +45230,254 @@ export type Database = {
           },
         ]
       }
+      titulo_movimentacao_rateio: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          id: string
+          movimentacao_id: string
+          nota: string
+          titulo_id: string
+          valor_aplicado: number
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          movimentacao_id: string
+          nota: string
+          titulo_id: string
+          valor_aplicado: number
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          movimentacao_id?: string
+          nota?: string
+          titulo_id?: string
+          valor_aplicado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "movimentacoes_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cartao_credito_par"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ciclo_titulo"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_cartao_sugestoes"
+            referencedColumns: ["ofx_id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_furos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_mesa"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_match_nf_sugestoes"
+            referencedColumns: ["mov_id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_match_sugestoes"
+            referencedColumns: ["mov_id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_extrato_conta"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_creditos_nao_conciliados"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_movimentacao_destino"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pagamento_alocacao_detalhe"
+            referencedColumns: ["mov_id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pares_transferencia_sugeridos"
+            referencedColumns: ["credito_id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pares_transferencia_sugeridos"
+            referencedColumns: ["debito_id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pix_candidato_conciliacao"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_b2c_pedido"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "titulo_a_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_boleto_vencimento_conferencia"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ciclo_titulo"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cobranca_mesa"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_baixas_manuais_sem_batimento"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_baixas_pendentes"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebimento_pedido_nivel"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_b2b"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_gestao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_remessa_safra_titulos"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_safra_carteira_divergencia"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_boleto_vigente"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_espera_retorno"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_vivo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_movimentacao_rateio_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulos_cobranca"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       titulo_pagar_estado_dim: {
         Row: {
           aposentado: boolean
@@ -78835,6 +79083,16 @@ export type Database = {
         Args: { p_movimentacao_id: string; p_titulo_id: string }
         Returns: Json
       }
+      conciliar_creditos_familia: {
+        Args: {
+          p_ajuste_desconto?: number
+          p_movimentacao_ids: string[]
+          p_nota: string
+          p_titulo_ajuste?: string
+          p_titulo_ids: string[]
+        }
+        Returns: Json
+      }
       conciliar_debito_com_nf: {
         Args: { p_mov_id: string; p_stage_id: string; p_user_id?: string }
         Returns: Json
@@ -79918,6 +80176,16 @@ export type Database = {
         Args: { p_acao_id: string; p_nome?: string; p_slug: string }
         Returns: Json
       }
+      fn_declarar_ancora_faturamento: {
+        Args: {
+          p_data_faturamento?: string
+          p_gordura_dias?: number
+          p_observacao?: string
+          p_pedido_id: string
+          p_venc_parcela1?: string
+        }
+        Returns: Json
+      }
       fn_depreciacao_calcular: {
         Args: { p_competencia: string; p_gravar?: boolean }
         Returns: {
@@ -80597,6 +80865,15 @@ export type Database = {
       }
       fn_snapshot_coerente: { Args: { p_snap: Json }; Returns: Json }
       fn_split_all_delete: { Args: { p_limite?: number }; Returns: number }
+      fn_sugerir_ancora_faturamento: {
+        Args: {
+          p_data_faturamento?: string
+          p_gordura_dias?: number
+          p_pedido_id: string
+          p_venc_parcela1?: string
+        }
+        Returns: Json
+      }
       fn_sugerir_cobranca_molde_pai: {
         Args: { p_ancora?: string; p_pedido_id: string }
         Returns: Json
