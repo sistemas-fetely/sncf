@@ -652,16 +652,21 @@ function AbaB2B() {
     };
   }, [baseFiltros, hoje]);
 
-  const semFiltroKpi = !filtroInstrumento && !filtroVencido;
+  const semFiltroKpi = !filtroInstrumento && filtroPrazo === "todos";
 
   const limparFiltrosKpi = () => {
     setFiltroInstrumento(null);
-    setFiltroVencido(false);
+    setFiltroPrazo("todos");
     setPage(1);
   };
 
   const clicarInstrumento = (k: "garantido" | "sem_instrumento") => {
     setFiltroInstrumento((prev) => (prev === k ? null : k));
+    setPage(1);
+  };
+
+  const clicarPrazo = (k: "a_vencer" | "vencidos") => {
+    setFiltroPrazo((prev) => (prev === k ? "todos" : k));
     setPage(1);
   };
 
