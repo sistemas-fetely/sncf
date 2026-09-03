@@ -11,6 +11,7 @@ import {
   validarXmlNf,
   NfAnexoError,
 } from "../_shared/bling/nf-anexo.ts";
+import { exigirPorta, NaoAutorizado } from "../_shared/autorizacao.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -42,6 +43,21 @@ serve(async (req) => {
     const { data: userData, error: userErr } = await supabase.auth.getUser(auth.replace("Bearer ", ""));
     if (userErr || !userData?.user) {
       return err(401, "Não autorizado: sessão inválida.", { detalhe_auth: userErr?.message ?? null });
+    }
+
+    // CONCESSAO-QUE-NAO-TRANCA-E-MENTIRA: token valido nao e permissao. O Comercial entra
+    // por `acao.mesa_baixar_nf`; Fiscal/Financas entram pela porta de leitura de
+    // `nfs_emitidas` no mapa `leitura_tabela_tela`.
+    try {
+      await exigirPorta(
+        supabase,
+        userData.user.id,
+        { slugs: ["acao.mesa_baixar_nf"], tabelas: ["nfs_emitidas"] },
+        "baixar a NF",
+      );
+    } catch (e) {
+      if (e instanceof NaoAutorizado) return err(e.status, e.message);
+      throw e;
     }
 
     const body = await req.json().catch(() => ({}));
