@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Send, AlertTriangle, RefreshCw, Warehouse, Truck } from "lucide-react";
+import { Loader2, Send, AlertTriangle, RefreshCw, Warehouse } from "lucide-react";
 import { DividirRemessaDialog } from "@/components/pedidos/dialogs/DividirRemessaDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useRemessas } from "@/hooks/pedidos/useRemessas";
@@ -79,7 +79,7 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
   if (isLoading || estagio === "cancelado") return null;
 
   const semRemessa = !remessas || remessas.length === 0;
-  const podeEnviarInicial = estagio === "pre_separacao" && !bling_id_destino;
+  const podeEnviarInicial = estagio === "pre_faturamento" && !bling_id_destino;
   const estagioDeEnvio = estagio === "pre_separacao" || estagio === "em_separacao";
   const temBlingId = !!parceiroBling?.bling_id;
   const precisaSincronizar = estagioDeEnvio && !bling_id_destino && !temBlingId;
@@ -204,38 +204,6 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
             <><Loader2 className="h-4 w-4 animate-spin" />Empurrando…</>
           ) : (
             <><Warehouse className="h-4 w-4 shrink-0" />Empurrar pra XPM</>
-          )}
-        </Button>
-      )}
-
-      {mostrarInicial && podeEmpurrarXpm && (
-        <Button
-          size="sm"
-          variant="secondary"
-          className="w-full gap-1.5 whitespace-normal h-auto text-xs leading-tight py-2"
-          title={
-            podeEnviarBling && podeEmpurrarXpmAcao
-              ? `Empurrar ${id_externo} pra XPM e enviar pro Bling`
-              : MOTIVO_SEM_ACAO
-          }
-          disabled={ocupado || !podeEnviarBling || !podeEmpurrarXpmAcao}
-          onClick={async () => {
-            // XPM-PRIMEIRO (21/08/2026): a XPM é quem decide se o pedido avança de
-            // fase. Sequencial e com await: se a XPM falhar, o Bling nem roda — evita
-            // pedido "no Bling" sem lastro real na expedição do armazém.
-            // FAIL-LOUD — o toast de erro já sai de dentro de cada hook.
-            try {
-              await empurrarXpm.mutateAsync({ pedido_id });
-            } catch {
-              return;
-            }
-            await enviar.mutateAsync({ pedido_id }).catch(() => {});
-          }}
-        >
-          {ocupado ? (
-            <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</>
-          ) : (
-            <><Truck className="h-4 w-4 shrink-0" />Enviar pros dois</>
           )}
         </Button>
       )}

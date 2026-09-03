@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/tooltip";
 import { CheckCircle2, AlertTriangle, XCircle, Loader2, Send } from "lucide-react";
 import { useEnviarBling } from "@/hooks/pedidos/useEnviarBling";
+import { AncoraFaturamentoCard } from "@/components/pedidos/AncoraFaturamentoCard";
 import { useNivel } from "@/hooks/useNivel";
 
 /**
@@ -26,6 +27,9 @@ import { useNivel } from "@/hooks/useNivel";
  *  - !bloqueia && !ok → aviso; a RPC devolve exige_motivo e o envio pede motivo
  * `pode_enviar` e `exige_motivo` vêm prontos — não recalcular no cliente.
  */
+
+export const PRE_FATURAMENTO_CHECKLIST_KEY = (pedidoId: string) =>
+  ["pre-faturamento-checklist", pedidoId] as const;
 
 const MIN_MOTIVO = 15; // mesmo padrão do `forcar` em empurrar-pedido-xpm
 
@@ -60,8 +64,8 @@ export function PreFaturamentoCard({ pedidoId }: { pedidoId: string }) {
   const [motivo, setMotivo] = useState("");
   const enviar = useEnviarBling();
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["pre-faturamento-checklist", pedidoId],
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: PRE_FATURAMENTO_CHECKLIST_KEY(pedidoId),
     queryFn: async (): Promise<Checklist> => {
       const { data, error } = await supabase.rpc(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -132,6 +136,12 @@ export function PreFaturamentoCard({ pedidoId }: { pedidoId: string }) {
   return (
     <div className="w-full rounded-md border p-3 space-y-3">
       <div className="text-sm font-medium">Conferência de pré-faturamento</div>
+
+      <AncoraFaturamentoCard
+        pedidoId={pedidoId}
+        idExterno={data.id_externo}
+        onDeclarada={() => { void refetch(); }}
+      />
 
       <ul className="space-y-2">
         {itens.map((item) => (
