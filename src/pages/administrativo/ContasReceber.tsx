@@ -2724,41 +2724,6 @@ function AbaB2C() {
 
 
 
-      <Card>
-        <CardContent className="space-y-4 p-4">
-          <AtalhosPeriodo
-            onPick={(de, ate) => {
-              setDataDe(de);
-              setDataAte(ate);
-              setPage(1);
-            }}
-          />
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-            <div className="space-y-1">
-              <Label className="text-xs">De (recebimento)</Label>
-              <Input
-                type="date"
-                value={dataDe}
-                onChange={(e) => {
-                  setDataDe(e.target.value);
-                  setPage(1);
-                }}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Até (recebimento)</Label>
-              <Input
-                type="date"
-                value={dataAte}
-                onChange={(e) => {
-                  setDataAte(e.target.value);
-                  setPage(1);
-                }}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       <Card>
         <CardContent className="p-0">
@@ -2769,9 +2734,33 @@ function AbaB2C() {
               ))}
             </div>
           ) : paginados.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 p-10 text-muted-foreground">
-              <Inbox className="h-8 w-8" />
-              <p>Nenhum recebível B2C no período.</p>
+            <div className="flex flex-col items-center gap-2 p-10 text-center text-muted-foreground">
+              {busca.trim() ? (
+                <>
+                  <SearchX className="h-8 w-8" />
+                  <p>Nenhuma movimentação para "{busca.trim()}".</p>
+                  <p className="text-xs">
+                    {achadosFvr > 0
+                      ? `Mas aparece em ${achadosFvr} pedido${achadosFvr !== 1 ? "s" : ""} em Faturado × Recebido, acima.`
+                      : "Esta tabela não guarda nome de cliente — busque por nº do pedido (#1101), ID Shopify, pagamento MP ou cidade."}
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setBusca("");
+                      setPage(1);
+                    }}
+                  >
+                    Limpar busca
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Inbox className="h-8 w-8" />
+                  <p>Nenhum recebível B2C no período.</p>
+                </>
+              )}
             </div>
           ) : (
             <Table>
