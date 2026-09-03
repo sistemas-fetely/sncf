@@ -39,7 +39,6 @@ import { BotaoBaixarBoletoPdf, baixarBoletoPdf } from "@/components/credito/Bota
 import { usePedidoPortaoAtual } from "@/hooks/pedidos/usePedidoPortaoAtual";
 import { useDiagnosticoPagamento } from "@/hooks/comercial/usePedidoOportunidadeDetalhe";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { hojeISO } from "@/lib/data";
 
 
 
