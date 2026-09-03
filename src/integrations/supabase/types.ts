@@ -55234,12 +55234,17 @@ export type Database = {
         Row: {
           banco: string | null
           cliente: string | null
+          cliente_fantasia: string | null
           confianca: string | null
           conta: string | null
           data_transacao: string | null
           descricao: string | null
           dias_parado: number | null
+          diff_com_haver: number | null
+          diff_efetiva: number | null
           diff_familia: number | null
+          fecha_com_haver: boolean | null
+          haver_do_filho: number | null
           id_transacao_banco: string | null
           movimentacao_id: string | null
           nivel: string | null
@@ -67599,14 +67604,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
