@@ -12,6 +12,7 @@ export type SafraPayTipoArquivo =
   | "safrapay_vendas"
   | "safrapay_liquidacao"
   | "safrapay_ajustes"
+  | "safrapay_link"
   | "super_agenda";
 
 function norm(s: string): string {
@@ -37,9 +38,19 @@ export function detectarCsvSafraPay(text: string): DeteccaoCsvSafraPay {
   const header = lines[0].split(";").map(norm);
   const headerTexto = header.join(";");
 
-  // SUPER AGENDA: não tem coluna T e tem VALOR CONSTITUIDO
+  // Fontes SEM coluna T: declaram o tipo pelo cabeçalho.
   if (header[0] !== "T") {
     if (/VALOR CONSTITUIDO/.test(headerTexto)) return { tipo: "super_agenda", amostra };
+    // LINK DE PAGAMENTO: tres colunas que so existem neste relatorio. E a fonte
+    // mais forte de amarre do fluxo — a coluna Identificacao traz o numero do
+    // pedido. Ficou rejeitada desde 02/09/2026 porque o detector so conhecia os
+    // layouts com coluna T.
+    if (
+      /IDENTIFICACAO/.test(headerTexto) &&
+      /ID DO LINK DE PAGAMENTO/.test(headerTexto) &&
+      /NSU DA TRANSACAO/.test(headerTexto)
+    )
+      return { tipo: "safrapay_link", amostra };
     return { tipo: null, amostra };
   }
 

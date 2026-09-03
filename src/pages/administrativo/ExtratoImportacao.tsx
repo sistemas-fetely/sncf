@@ -30,6 +30,7 @@ import {
 import { parseCsvSafraPayTipo1 } from "@/lib/financeiro/csv-safrapay-tipo1-parser";
 import { parseCsvSafraPayTipo3 } from "@/lib/financeiro/csv-safrapay-tipo3-parser";
 import { detectarCsvSafraPay } from "@/lib/financeiro/csv-safrapay-detect";
+import { parseCsvSafraPayLink } from "@/lib/financeiro/csv-safrapay-link-parser";
 import { parseXlsxMpSettlement } from "@/lib/financeiro/xlsx-mp-settlement-parser";
 import { parseXlsxMpReserveRelease } from "@/lib/financeiro/xlsx-mp-reserve-release-parser";
 import { parseXlsxSafraInstrucoes2Via } from "@/lib/financeiro/xlsx-safra-instrucoes-parser";
@@ -87,6 +88,7 @@ type Fonte =
   | "safrapay_vendas"
   | "safrapay_liquidacao"
   | "safrapay_ajustes"
+  | "safrapay_link"
   | "super_agenda"
   | "mp_settlement"
   | "mp_release"
@@ -166,6 +168,7 @@ const FONTE_TIPO_DB: Record<Fonte, string> = {
   safrapay_vendas: "safrapay_vendas",
   safrapay_liquidacao: "safrapay_liquidacao",
   safrapay_ajustes: "safrapay_ajustes",
+  safrapay_link: "safrapay_link",
   super_agenda: "super_agenda",
   mp_settlement: "mp_settlement",
   mp_release: "mp_release",
@@ -188,6 +191,7 @@ const BLOCO_DA_FONTE: Record<Fonte, Bloco> = {
   safrapay_vendas: "auxiliar",
   safrapay_liquidacao: "auxiliar",
   safrapay_ajustes: "auxiliar",
+  safrapay_link: "auxiliar",
   super_agenda: "auxiliar",
   mp_settlement: "auxiliar",
   mp_release: "auxiliar",
@@ -207,6 +211,7 @@ const PARSER_ROTULO: Partial<Record<Fonte, string>> = {
   safrapay_vendas: "SafraPay Tipo 1 - Vendas",
   safrapay_liquidacao: "SafraPay Tipo 2 - Realizado",
   safrapay_ajustes: "SafraPay Tipo 3 - Ajustes",
+  safrapay_link: "SafraPay Link de Pagamento",
   super_agenda: "SafraPay SUPER AGENDA (não importável)",
   retorno_safra: "Retorno CNAB 400 Safra (cobrança)",
   safra_pix_lancamentos: "Safra Lançamentos e Devoluções (PIX)",
@@ -237,6 +242,8 @@ const PARSER_EFEITO: Record<Fonte, string> = {
     "Liquidação SafraPay — grava a composição do lote (NSU, parcela, MDR = bruto − recebido). A conta é sobre a composição; enriquecer o extrato é efeito secundário.",
   safrapay_ajustes:
     "Ajuste sempre acompanha um crédito que já está no OFX — não cria dinheiro novo.",
+  safrapay_link:
+    "Link de Pagamento SafraPay — grava a cobrança e amarra ao pedido pela identificação. O dinheiro entra pelo OFX; este arquivo é a prova de origem.",
   super_agenda: "SUPER AGENDA não é importável — é projeção, não movimento.",
   mp_settlement: "O Settlement não cria movimentação — é só enriquecimento da linha do extrato.",
   mp_release: "Liberações Mercado Pago — enriquece a linha do extrato.",
@@ -1037,7 +1044,63 @@ export default function ExtratoImportacao() {
             contExtrato
           );
         }
+      } else if (fonte === "safrapay_link") {
+        // A fonte mais forte de amarre: a coluna Identificacao traz o numero do
+        // pedido. Grava tudo (pago, expirado, cancelado, pendente) porque o
+        // historico de tentativas tambem e prova, e liga pedido_id pelo codigo.
+        const parsed = parseCsvSafraPayLink(textoCsv);
+        cont.ler(parsed.linhas.length + parsed.malformadas);
+        if (parsed.malformadas > 0) {
+          for (let i = 0; i < parsed.malformadas; i++) cont.ignorar("nao_parseavel");
+        }
+        if (parsed.linhas.length === 0)
+          throw new Error("Nenhuma linha valida no relatorio de Link de Pagamento");
 
+        for (const l of parsed.linhas) {
+          if (!l.id_cobranca) {
+            cont.ignorar("sem_identificador");
+            continue;
+          }
+          const { error: errUp } = await sb
+            .from("safrapay_link_pagamento")
+            .upsert(
+              {
+                id_cobranca: l.id_cobranca,
+                id_link: l.id_link,
+                identificacao: l.identificacao,
+                pedido_codigo: l.pedido_codigo,
+                descricao: l.descricao,
+                tipo_cobranca: l.tipo_cobranca,
+                status_link: l.status_link,
+                status_cobranca: l.status_cobranca,
+                valor: l.valor,
+                data_criacao: l.data_criacao,
+                data_expiracao: l.data_expiracao,
+                data_pagamento: l.data_pagamento,
+                nsu_transacao: l.nsu_transacao,
+                portador_nome: l.portador_nome,
+                portador_documento: l.portador_documento,
+                cartao_mascarado: l.cartao_mascarado,
+                cnpj_loja: l.cnpj_loja,
+                codigo_loja: l.codigo_loja,
+                mensagem_retorno: l.mensagem_retorno,
+                fonte_importacao_id: impId,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "id_cobranca" },
+            );
+          // FAIL-LOUD: erro de gravacao nao entra em silencio.
+          if (errUp) throw errUp;
+          cont.nova();
+        }
+
+        // Liga ao pedido pelo codigo. Sem isso o amarre existe no arquivo e nao no banco.
+        const { error: errLig } = await sb.rpc("fn_safrapay_link_ligar_pedidos");
+        if (errLig) throw errLig;
+
+        toast.info(
+          `${parsed.pagas} pagamento(s) confirmado(s) no relatorio de Link. A coluna Identificacao amarra o pagamento ao pedido — e a prova mais forte para carimbar NSU em titulo de cartao.`,
+        );
       } else if (fonte === "mp_settlement") {
         const buf = await file.arrayBuffer();
         const parsed = parseXlsxMpSettlement(buf);
