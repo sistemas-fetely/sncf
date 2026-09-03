@@ -1443,16 +1443,35 @@ function AbaB2B() {
           <div className="space-y-1">
             <Label className="text-xs">Recebimento — o dinheiro chegou?</Label>
             <div className="flex flex-wrap gap-2">
-              {RECEBIMENTO_ORDEM.map((r) => (
-                <Button
-                  key={r}
-                  size="sm"
-                  variant={recebimentosAtivos.has(r) ? "default" : "outline"}
-                  onClick={() => toggleRecebimento(r)}
-                >
-                  {RECEBIMENTO_LABEL[r]} ({contagensRecebimento[r] ?? 0})
-                </Button>
-              ))}
+              {RECEBIMENTO_ORDEM.map((r) => {
+                const n = contagensRecebimento[r] ?? 0;
+                /* Chip zerado POR CAUSA do filtro de KPI é impossível, não vazio. */
+                const impossivel =
+                  n === 0 && !!rotuloFiltroKpi && (contagensSemKpi[r] ?? 0) > 0;
+                const botao = (
+                  <Button
+                    key={r}
+                    size="sm"
+                    variant={recebimentosAtivos.has(r) ? "default" : "outline"}
+                    onClick={() => toggleRecebimento(r)}
+                    className={impossivel ? "opacity-50 pointer-events-none" : undefined}
+                  >
+                    {RECEBIMENTO_LABEL[r]} ({n})
+                  </Button>
+                );
+                if (!impossivel) return botao;
+                return (
+                  <Tooltip key={r}>
+                    <TooltipTrigger asChild>
+                      <span>{botao}</span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Incompatível com o filtro "{rotuloFiltroKpi}"
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })}
+
             </div>
           </div>
 
