@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatError } from "@/lib/format-error";
+import { formatError, rawMessage } from "@/lib/format-error";
 
 // Regressao do Mapa_Erro_Cego (31/07/2026): objeto EXATO do PostgREST
 // na violacao de FK vista em producao.
