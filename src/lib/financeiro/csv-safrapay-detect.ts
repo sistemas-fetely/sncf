@@ -12,6 +12,7 @@ export type SafraPayTipoArquivo =
   | "safrapay_vendas"
   | "safrapay_liquidacao"
   | "safrapay_ajustes"
+  | "safrapay_link"
   | "super_agenda";
 
 function norm(s: string): string {
