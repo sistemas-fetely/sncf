@@ -21,6 +21,7 @@ export type EixoPrazo = "a_vencer" | "vence_hoje" | "vencido";
 /** Qual a prova? */
 export type EixoInstrumento =
   | "sem_instrumento"
+  | "venda_autorizada"
   | "registrado"
   | "remessa_gerada"
   | "baixa_solicitada"
@@ -92,33 +93,43 @@ export const INSTRUMENTO_META: Record<EixoInstrumento, EixoMeta> = {
     classe: "bg-muted text-muted-foreground border-0",
     tooltip: "Nenhum instrumento de cobrança emitido.",
   },
+  venda_autorizada: {
+    // CARTAO-TEM-ESTADO-INTERMEDIARIO (02/09/2026): antes o eixo so tinha
+    // "conciliado" (dinheiro da adquirente ja chegou) ou "sem_instrumento".
+    // Cartao com NSU carimbado e venda PROVADA aguardando liquidacao — 89
+    // titulos apareciam como "sem instrumento", o que era falso.
+    label: "Venda autorizada",
+    ordem: 2,
+    classe: "bg-info/10 text-info border-0",
+    tooltip: "Venda no cartão autorizada (NSU capturado). Aguarda o crédito da adquirente.",
+  },
   registrado: {
     label: "Registrado",
-    ordem: 2,
+    ordem: 3,
     classe: null,
     tooltip: "Instrumento registrado no banco.",
   },
   remessa_gerada: {
     label: "Remessa gerada",
-    ordem: 3,
+    ordem: 4,
     classe: "bg-info/10 text-info border-0",
     tooltip: "Remessa enviada ao banco.",
   },
   baixa_solicitada: {
     label: "Baixa solicitada",
-    ordem: 4,
+    ordem: 5,
     classe: "bg-warning/10 text-warning border-0",
     tooltip: "Baixa pedida ao banco, ainda sem retorno.",
   },
   liquidado_banco: {
     label: "Liquidado no banco",
-    ordem: 5,
+    ordem: 6,
     classe: "bg-success/10 text-success border-0",
     tooltip: "O banco confirmou a liquidação do instrumento.",
   },
   conciliado: {
     label: "Conciliado",
-    ordem: 6,
+    ordem: 7,
     classe: "bg-success text-white border-0",
     tooltip: "Instrumento conferido contra o extrato.",
   },
