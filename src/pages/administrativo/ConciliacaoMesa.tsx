@@ -88,6 +88,33 @@ type ConciliacaoItem = {
   confianca: Confianca;
 };
 
+// PROVA-DE-CARTAO-NAO-VIVE-NO-EXTRATO: a adquirente credita em lote agregado,
+// entao a segunda fonte da Mesa e `safrapay_liquidacao` via vw_conciliacao_mesa_cartao.
+type ConfiancaCartao = "fecha_no_centavo" | "quase_fecha" | "pago_parcial";
+
+type CartaoItem = {
+  nsu: string;
+  data_venda: string | null;
+  bandeira: string | null;
+  parcelas_venda: number | null;
+  parcelas_pagas: number | null;
+  bruto_pago: number | null;
+  liquido_pago: number | null;
+  mdr: number | null;
+  ultimo_pgto: string | null;
+  cliente: string | null;
+  pedidos: string | null;
+  titulos_nomes: string | null;
+  titulo_ids: string[] | null;
+  titulos: number | null;
+  soma_titulos: number | null;
+  adiantamentos: number | null;
+  diff: number | null;
+  dias_parado: number | null;
+  confianca: ConfiancaCartao;
+};
+
+
 const ORDEM_CONFIANCA: Exclude<Confianca, "sem_candidato">[] = [
   "fecha_no_centavo",
   "identidade_direta",
