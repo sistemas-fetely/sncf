@@ -1819,7 +1819,7 @@ function AbaB2B() {
                     onClick={() => {
                       setCarteiraAtiva(null);
                       setFiltroInstrumento(null);
-                      setFiltroVencido(false);
+                      setFiltroPrazo("todos");
                       setPage(1);
                     }}
                   >
