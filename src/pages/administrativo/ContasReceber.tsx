@@ -1003,7 +1003,7 @@ function AbaB2B() {
     const [y, m] = mesKey.split("-").map(Number);
     const de = new Date(y, m - 1, 1);
     const ate = new Date(y, m, 0);
-    setDataBase(baseMensal === "competencia" ? "emissao" : "liquidacao");
+    setDataBase(baseMensal === "competencia" ? "emissao" : "recebimento");
     setDataDe(iso(de));
     setDataAte(iso(ate));
     setPage(1);
