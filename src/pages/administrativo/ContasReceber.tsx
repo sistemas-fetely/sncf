@@ -2397,6 +2397,54 @@ function AbaB2C() {
         </Card>
       </div>
 
+      <Card>
+        <CardContent className="space-y-4 p-4">
+          <AtalhosPeriodo
+            de={dataDe}
+            ate={dataAte}
+            onPick={(de, ate) => {
+              setDataDe(de);
+              setDataAte(ate);
+              setPage(1);
+            }}
+          />
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+            <div className="space-y-1 md:col-span-2">
+              <Label className="text-xs">Busca</Label>
+              <Input
+                placeholder="Pedido (#1101), NF, cliente, cidade, ID MP/Shopify"
+                value={busca}
+                onChange={(e) => {
+                  setBusca(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">De (recebimento)</Label>
+              <Input
+                type="date"
+                value={dataDe}
+                onChange={(e) => {
+                  setDataDe(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Até (recebimento)</Label>
+              <Input
+                type="date"
+                value={dataAte}
+                onChange={(e) => {
+                  setDataAte(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="pb-2">
