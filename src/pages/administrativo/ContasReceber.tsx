@@ -812,12 +812,12 @@ function AbaB2B() {
         },
       });
     }
-    if (filtroVencido) {
+    if (filtroPrazo !== "todos") {
       lista.push({
-        chave: "vencido",
-        rotulo: "Vencido",
+        chave: "prazo",
+        rotulo: filtroPrazo === "vencidos" ? "Prazo: Vencidos" : "Prazo: A vencer",
         limpar: () => {
-          setFiltroVencido(false);
+          setFiltroPrazo("todos");
           setPage(1);
         },
       });
