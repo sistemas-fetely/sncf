@@ -379,6 +379,15 @@ export default function ConciliacaoMesa() {
         estado="O dinheiro de um lado, o título do outro — o sistema propõe, você decide."
       />
 
+      <Tabs value={aba} onValueChange={setAba}>
+        <TabsList>
+          <TabsTrigger value="extrato">Extrato · {totalExtrato}</TabsTrigger>
+          <TabsTrigger value="cartao">Cartão · {totalCartao}</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="extrato" className="mt-4 space-y-4">
+
+
       {/* Resumo por grau de certeza */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         {ORDEM_CONFIANCA.map((c) => {
