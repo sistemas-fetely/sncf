@@ -31,8 +31,10 @@ export default function PedidosIndex() {
   const [incluirCancelados, setIncluirCancelados] = useState(false);
   const [riscoAltoAtivo, setRiscoAltoAtivo] = useState(false);
 
-  // Guarda nominal por aba (Fila agora tem slug próprio).
-  const permFila = usePodeVerAba("tela.pedidos");
+  // SLUG-DE-ABA-NAO-E-PORTA-DE-LEITURA (03/09/2026): a aba Fila tem slug proprio.
+  // `tela.pedidos` segue sendo a porta de leitura de 15 tabelas do dominio e o gate
+  // da rota /pedidos — nao serve para esconder aba, porque revogar apagaria a Mesa.
+  const permFila = usePodeVerAba("tela.pedidos_fila");
   const permDash = usePodeVerAba("tela.dash_pedidos");
   const permMesa = usePodeVerAba("tela.comercial");
   const permConsignados = usePodeVerAba("tela.consignado");
@@ -124,7 +126,7 @@ export default function PedidosIndex() {
       ) : (
         <Tabs value={abaEfetiva ?? abaSolicitada} onValueChange={setAba} className="space-y-4">
           <TabsList>
-            <AbaPermitida slug="tela.pedidos">
+            <AbaPermitida slug="tela.pedidos_fila">
               <TabsTrigger value="fila">Fila</TabsTrigger>
             </AbaPermitida>
             <AbaPermitida slug="tela.dash_pedidos">
@@ -156,7 +158,7 @@ export default function PedidosIndex() {
           </TabsList>
 
           <TabsContent value="fila" className="space-y-4">
-            <ConteudoAba slug="tela.pedidos">
+            <ConteudoAba slug="tela.pedidos_fila">
               {/* Pipeline sticky */}
               <div className="sticky top-16 z-20 bg-background border-b border-border px-4 md:px-6 py-2">
                 <PipelineHorizontal
