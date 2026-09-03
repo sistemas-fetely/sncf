@@ -1350,11 +1350,8 @@ function AbaB2B() {
           rotulo="Vencido"
           valor={formatBRLCurto(estadoCarteira.vencido)}
           corValor="text-destructive"
-          ativo={filtroVencido}
-          onClick={() => {
-            setFiltroVencido((v) => !v);
-            setPage(1);
-          }}
+          ativo={filtroPrazo === "vencidos"}
+          onClick={() => clicarPrazo("vencidos")}
           extraRotulo={
             <Popover>
               <PopoverTrigger asChild>
