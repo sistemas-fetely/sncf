@@ -55254,6 +55254,7 @@ export type Database = {
           pagador: string | null
           pagador_doc: string | null
           pedido: string | null
+          pedidos_na_familia: number | null
           referencia_pedido: string | null
           score: number | null
           soma_familia: number | null
@@ -55261,6 +55262,31 @@ export type Database = {
           titulos: string | null
           titulos_na_familia: number | null
           valor: number | null
+        }
+        Relationships: []
+      }
+      vw_conciliacao_mesa_cartao: {
+        Row: {
+          adiantamentos: number | null
+          bandeira: string | null
+          bruto_pago: number | null
+          cliente: string | null
+          confianca: string | null
+          data_venda: string | null
+          dias_parado: number | null
+          diff: number | null
+          liquidacao_ids: string[] | null
+          liquido_pago: number | null
+          mdr: number | null
+          nsu: string | null
+          parcelas_pagas: number | null
+          parcelas_venda: number | null
+          pedidos: string | null
+          soma_titulos: number | null
+          titulo_ids: string[] | null
+          titulos: number | null
+          titulos_nomes: string | null
+          ultimo_pgto: string | null
         }
         Relationships: []
       }
@@ -66206,14 +66232,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -80024,6 +80050,7 @@ export type Database = {
         Args: { p_pedido_id: string }
         Returns: Json
       }
+      fn_pedido_raiz_split: { Args: { p_pedido_id: string }; Returns: string }
       fn_pedido_tem_lastro: { Args: { p_pedido_id: string }; Returns: Json }
       fn_pix_brcode: {
         Args: {
