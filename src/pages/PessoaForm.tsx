@@ -131,6 +131,8 @@ export default function PessoaForm() {
   const [vinculo, setVinculo] = useState<VinculoForm>(emptyVinculo);
   const [vinculoId, setVinculoId] = useState<string | null>(null);
   const [vinculoStatus, setVinculoStatus] = useState<"ativo" | "desligado" | null>(null);
+  const [vinculoCarregado, setVinculoCarregado] = useState(true);
+
 
   const [cargos, setCargos] = useState<Dim[]>([]);
   const [departamentos, setDepartamentos] = useState<Dim[]>([]);
