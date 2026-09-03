@@ -413,14 +413,14 @@ export default function PessoaForm() {
         const { error: e1 } = await (supabase as any).from("pessoas").update(payloadPessoa()).eq("id", id);
         if (e1) throw e1;
 
-        // UPDATE ou INSERT vinculo
-        if (vinculoId) {
-          const { error: e2 } = await (supabase as any).from("vinculos").update(payloadVinculo(id)).eq("id", vinculoId);
-          if (e2) throw e2;
-        } else {
-          const { error: e2 } = await (supabase as any).from("vinculos").insert({ ...payloadVinculo(id), status: "ativo" });
-          if (e2) throw e2;
+        // UPDATE do vínculo. Tela de edição NUNCA cria vínculo.
+        if (!vinculoId) {
+          toast.error("Não foi possível carregar o vínculo desta pessoa. Recarregue a tela antes de salvar.");
+          return;
         }
+        const { error: e2 } = await (supabase as any).from("vinculos").update(payloadVinculo(id)).eq("id", vinculoId);
+        if (e2) throw e2;
+
         toast.success("Pessoa atualizada");
         navigate("/pessoas");
       } else {
