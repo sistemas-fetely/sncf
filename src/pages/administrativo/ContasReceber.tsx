@@ -352,6 +352,13 @@ function AbaB2B() {
   const [filtroBanco, setFiltroBanco] = useState<string>("todos");
   const [carteiraAtiva, setCarteiraAtiva] = useState<string | null>(null);
   const [achado, setAchado] = useState<Achado | null>(null);
+  /** Par mutuamente exclusivo da faixa de KPI. Ambos forçam "em aberto". */
+  const [filtroInstrumento, setFiltroInstrumento] = useState<
+    "garantido" | "sem_instrumento" | null
+  >(null);
+  /** Transversal: combina com qualquer instrumento e qualquer carteira. */
+  const [filtroVencido, setFiltroVencido] = useState(false);
+
   const [qualidadeAberta, setQualidadeAberta] = useState(false);
   const [baseMensal, setBaseMensal] = useState<BaseMensal>("competencia");
   const [recebimentosAtivos, setRecebimentosAtivos] = useState<Set<EixoRecebimento>>(
