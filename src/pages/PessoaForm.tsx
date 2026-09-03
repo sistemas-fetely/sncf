@@ -178,7 +178,7 @@ export default function PessoaForm() {
   useEffect(() => {
     (async () => {
       try {
-        const [{ data: c }, { data: d }, { data: cc }, { data: u }, { data: fp }, { data: vgestor }] = await Promise.all([
+        const [rc, rd, rcc, ru, rfp, rvg] = await Promise.all([
           (supabase as any).from("cargos").select("id, nome").eq("ativo", true).order("nome"),
           (supabase as any).from("departamentos").select("id, nome").eq("ativo", true).order("nome"),
           (supabase as any).from("centros_custo").select("id, nome, codigo").eq("ativo", true).order("nome"),
@@ -190,11 +190,17 @@ export default function PessoaForm() {
             .eq("status", "ativo")
             .order("pessoas(nome_completo)"),
         ]);
+        // FAIL-LOUD: nenhuma dessas consultas pode falhar em silêncio.
+        const primeiroErro = [rc, rd, rcc, ru, rfp, rvg].map((r: any) => r?.error).find(Boolean);
+        if (primeiroErro) throw primeiroErro;
+        const { data: c } = rc, { data: d } = rd, { data: cc } = rcc;
+        const { data: u } = ru, { data: fp } = rfp, { data: vgestor } = rvg;
         setCargos((c || []) as Dim[]);
         setDepartamentos((d || []) as Dim[]);
         setCentrosCusto((cc || []) as Dim[]);
         setUnidades((u || []) as Dim[]);
         setFormasPagamento((fp || []) as Dim[]);
+
         const mapa = new Map<string, string>();
         for (const vg of (vgestor || []) as any[]) {
           if (vg?.pessoas?.id) mapa.set(vg.pessoas.id, vg.pessoas.nome_completo);
