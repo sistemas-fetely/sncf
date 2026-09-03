@@ -131,6 +131,8 @@ export default function PessoaForm() {
   const [vinculo, setVinculo] = useState<VinculoForm>(emptyVinculo);
   const [vinculoId, setVinculoId] = useState<string | null>(null);
   const [vinculoStatus, setVinculoStatus] = useState<"ativo" | "desligado" | null>(null);
+  const [vinculoCarregado, setVinculoCarregado] = useState(true);
+
 
   const [cargos, setCargos] = useState<Dim[]>([]);
   const [departamentos, setDepartamentos] = useState<Dim[]>([]);
@@ -178,7 +180,7 @@ export default function PessoaForm() {
   useEffect(() => {
     (async () => {
       try {
-        const [{ data: c }, { data: d }, { data: cc }, { data: u }, { data: fp }, { data: vgestor }] = await Promise.all([
+        const [rc, rd, rcc, ru, rfp, rvg] = await Promise.all([
           (supabase as any).from("cargos").select("id, nome").eq("ativo", true).order("nome"),
           (supabase as any).from("departamentos").select("id, nome").eq("ativo", true).order("nome"),
           (supabase as any).from("centros_custo").select("id, nome, codigo").eq("ativo", true).order("nome"),
@@ -190,11 +192,17 @@ export default function PessoaForm() {
             .eq("status", "ativo")
             .order("pessoas(nome_completo)"),
         ]);
+        // FAIL-LOUD: nenhuma dessas consultas pode falhar em silêncio.
+        const primeiroErro = [rc, rd, rcc, ru, rfp, rvg].map((r: any) => r?.error).find(Boolean);
+        if (primeiroErro) throw primeiroErro;
+        const { data: c } = rc, { data: d } = rd, { data: cc } = rcc;
+        const { data: u } = ru, { data: fp } = rfp, { data: vgestor } = rvg;
         setCargos((c || []) as Dim[]);
         setDepartamentos((d || []) as Dim[]);
         setCentrosCusto((cc || []) as Dim[]);
         setUnidades((u || []) as Dim[]);
         setFormasPagamento((fp || []) as Dim[]);
+
         const mapa = new Map<string, string>();
         for (const vg of (vgestor || []) as any[]) {
           if (vg?.pessoas?.id) mapa.set(vg.pessoas.id, vg.pessoas.nome_completo);
@@ -232,14 +240,22 @@ export default function PessoaForm() {
         });
 
         // vinculo mais recente (preferindo ativo)
-        const { data: vs } = await supabase
+        const { data: vs, error: ve } = await supabase
           .from("vinculos")
           .select(
             "id, status, tipo_vinculo, cargo_id, departamento_id, centro_custo_id, unidade_id, data_inicio, valor_base, valor_transporte, forma_pagamento_id, dia_vencimento, banco_nome, agencia, conta, tipo_conta, chave_pix, email_corporativo, observacoes, cnpj, razao_social, nome_fantasia, categoria_pj, objeto, pis_pasep, ctps_numero, matricula, data_admissao, jornada_semanal, gestor_pessoa_id, modalidade, conta_titular, pj_regime_tributario, pj_municipio_nfse, pj_emite_nfse, pj_representante_nome, pj_representante_cpf"
           )
           .eq("pessoa_id", id)
           .order("data_inicio", { ascending: false });
+        // FAIL-LOUD: sem o vínculo carregado a tela de edição não pode gravar.
+        if (ve) {
+          setVinculoCarregado(false);
+          toast.error(humanizeError(ve.message));
+          throw ve;
+        }
+        setVinculoCarregado(true);
         const v: any = ((vs || []) as any[]).find((x: any) => x.status === "ativo") || (vs || [])[0];
+
         if (v) {
           setVinculoId(v.id);
           setVinculoStatus(v.status);
@@ -282,7 +298,13 @@ export default function PessoaForm() {
   async function checarCpfDuplicado(): Promise<string | "ok" | null> {
     const cpf = onlyDigits(pessoa.cpf);
     if (!cpf || cpf.length < 11 || isEdit) return "ok";
-    const { data } = await (supabase as any).from("pessoas").select("id, nome_completo").eq("cpf", cpf).maybeSingle();
+    // FAIL-LOUD: silêncio aqui vira pessoa duplicada.
+    const { data, error } = await (supabase as any).from("pessoas").select("id, nome_completo").eq("cpf", cpf).maybeSingle();
+    if (error) {
+      toast.error("Não foi possível verificar se o CPF já existe. Tente novamente.");
+      return null;
+    }
+
     if (data) {
       setPessoaExistente({ id: data.id, nome_completo: data.nome_completo });
       return data.id;
@@ -391,23 +413,24 @@ export default function PessoaForm() {
         const { error: e1 } = await (supabase as any).from("pessoas").update(payloadPessoa()).eq("id", id);
         if (e1) throw e1;
 
-        // UPDATE ou INSERT vinculo
-        if (vinculoId) {
-          const { error: e2 } = await (supabase as any).from("vinculos").update(payloadVinculo(id)).eq("id", vinculoId);
-          if (e2) throw e2;
-        } else {
-          const { error: e2 } = await (supabase as any).from("vinculos").insert({ ...payloadVinculo(id), status: "ativo" });
-          if (e2) throw e2;
+        // UPDATE do vínculo. Tela de edição NUNCA cria vínculo.
+        if (!vinculoId) {
+          toast.error("Não foi possível carregar o vínculo desta pessoa. Recarregue a tela antes de salvar.");
+          return;
         }
+        const { error: e2 } = await (supabase as any).from("vinculos").update(payloadVinculo(id)).eq("id", vinculoId);
+        if (e2) throw e2;
+
         toast.success("Pessoa atualizada");
         navigate("/pessoas");
       } else {
         // CREATE: checa CPF duplicado
         const dup = await checarCpfDuplicado();
-        if (dup && dup !== "ok") {
+        if (dup !== "ok") {
           setSaving(false);
-          return; // dialog cuidará
+          return; // dialog cuidará, ou a checagem falhou e já avisou
         }
+
         const { data: p, error: e1 } = await (supabase as any).from("pessoas").insert(payloadPessoa()).select("id").single();
         if (e1) throw e1;
         const novoId = p.id as string;
@@ -459,9 +482,19 @@ export default function PessoaForm() {
             {vinculoStatus === "desligado" && (
               <span className="text-xs bg-destructive/10 text-destructive px-2 py-1 rounded">Vínculo desligado</span>
             )}
-            <Button onClick={salvar} disabled={saving} className="gap-2">
+            {isEdit && (!vinculoCarregado || !vinculoId) && (
+              <span className="text-xs text-destructive max-w-xs">
+                Não foi possível carregar o vínculo desta pessoa. Recarregue a tela antes de salvar.
+              </span>
+            )}
+            <Button
+              onClick={salvar}
+              disabled={saving || (isEdit && (!vinculoCarregado || !vinculoId))}
+              className="gap-2"
+            >
               <Save className="h-4 w-4" /> {saving ? "Salvando..." : "Salvar"}
             </Button>
+
           </>}
         />
       </div>
