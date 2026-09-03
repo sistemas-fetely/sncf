@@ -551,16 +551,26 @@ export default function ExtratoImportacao() {
             )
           )
         );
-        const { data: existentes, error: errExist } = await sb
-          .from("movimentacoes_bancarias")
-          .select("id, hash_unico, contraparte_documento, duplicada_de")
-          .in("hash_unico", hashes);
-        if (errExist) throw errExist;
+        // IN-GRANDE-VIRA-URL-GRANDE (03/09/2026): o hash tem 64 caracteres e cada
+        // transacao gera dois (atual + legado). Um `.in()` com todos monta uma
+        // querystring de dezenas de milhares de caracteres e o PostgREST responde
+        // 400 Bad Request — sem dizer o motivo. Foi o que barrou o extrato do
+        // Itau de 03/09 com 473 linhas: "Bad Request", 0 novas, e o dinheiro do
+        // cliente ficou fora do sistema. Arquivos menores passavam, entao o
+        // defeito so aparece quando o volume cresce.
         const mapExist = new Map<
           string,
           { id: string; contraparte_documento: string | null; duplicada_de: string | null }
         >();
-        for (const e of existentes || []) mapExist.set(e.hash_unico, e);
+        for (let i = 0; i < hashes.length; i += 150) {
+          const lote = hashes.slice(i, i + 150);
+          const { data: existentes, error: errExist } = await sb
+            .from("movimentacoes_bancarias")
+            .select("id, hash_unico, contraparte_documento, duplicada_de")
+            .in("hash_unico", lote);
+          if (errExist) throw errExist;
+          for (const e of existentes || []) mapExist.set(e.hash_unico, e);
+        }
 
         const novasRows: Record<string, unknown>[] = [];
         for (const m of comHash) {
