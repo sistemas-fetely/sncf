@@ -218,6 +218,15 @@ const formatMeio = (m: string | null) => (m ? capitalize(m.replace(/_/g, " ")) :
 
 const efetivoDe = (t: RecebivelB2B) => Number(t.valor_efetivo ?? t.valor ?? 0);
 
+/** Faixa de KPI é densa: valor sem centavos. Centavos só na tabela. */
+const formatBRLCurto = (v: number | null | undefined) =>
+  new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    maximumFractionDigits: 0,
+  }).format(Number(v || 0));
+
+
 const fmtDesvio = (d: number | null | undefined) => {
   if (d == null || d === 0) return "";
   return `${d > 0 ? "+" : "−"}${Math.abs(d)}d`;
