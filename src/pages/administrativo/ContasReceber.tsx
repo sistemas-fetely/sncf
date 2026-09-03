@@ -876,7 +876,7 @@ function AbaB2B() {
     carteiraAtiva,
     carteiras,
     filtroInstrumento,
-    filtroVencido,
+    filtroPrazo,
     busca,
     filtroBanco,
     dataDe,
