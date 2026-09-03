@@ -33,7 +33,18 @@ import {
  */
 
 /** Gravidade decrescente — ordem exata do bloco. */
-const ORDEM_CLASSE = ["divergente", "sem_prova", "declarado_humano", "credito_atrasado"] as const;
+// ADQUIRENTE-PAGOU-NAO-E-ATRASO (02/09/2026): 18 titulos apareciam como
+// "credito da adquirente atrasado" mandando cobrar a SafraPay. Ela ja tinha
+// pago as 18, em media 2 dias ANTES do previsto — a liquidacao esta em
+// safrapay_liquidacao e nunca foi amarrada ao credito do extrato. Cobrar a
+// adquirente por dinheiro que ja entrou seria constrangedor e inutil.
+const ORDEM_CLASSE = [
+  "divergente",
+  "sem_prova",
+  "declarado_humano",
+  "adquirente_pagou_falta_conciliar",
+  "credito_atrasado",
+] as const;
 type ProvaClasse = (typeof ORDEM_CLASSE)[number];
 
 const ROTULO_BLOCO: Record<ProvaClasse, string> = {
