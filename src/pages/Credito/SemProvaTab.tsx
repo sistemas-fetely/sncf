@@ -33,13 +33,25 @@ import {
  */
 
 /** Gravidade decrescente — ordem exata do bloco. */
-const ORDEM_CLASSE = ["divergente", "sem_prova", "declarado_humano", "credito_atrasado"] as const;
+// ADQUIRENTE-PAGOU-NAO-E-ATRASO (02/09/2026): 18 titulos apareciam como
+// "credito da adquirente atrasado" mandando cobrar a SafraPay. Ela ja tinha
+// pago as 18, em media 2 dias ANTES do previsto — a liquidacao esta em
+// safrapay_liquidacao e nunca foi amarrada ao credito do extrato. Cobrar a
+// adquirente por dinheiro que ja entrou seria constrangedor e inutil.
+const ORDEM_CLASSE = [
+  "divergente",
+  "sem_prova",
+  "declarado_humano",
+  "adquirente_pagou_falta_conciliar",
+  "credito_atrasado",
+] as const;
 type ProvaClasse = (typeof ORDEM_CLASSE)[number];
 
 const ROTULO_BLOCO: Record<ProvaClasse, string> = {
   divergente: "DIVERGENTE — o valor da movimentação não fecha",
   sem_prova: "PAGO SEM NENHUMA PROVA",
   declarado_humano: "DECLARADO POR PESSOA, SEM LASTRO",
+  adquirente_pagou_falta_conciliar: "ADQUIRENTE JÁ PAGOU — FALTA CONCILIAR",
   credito_atrasado: "CRÉDITO DA ADQUIRENTE ATRASADO",
 };
 
@@ -47,13 +59,17 @@ const ROTULO_CARD: Record<ProvaClasse, string> = {
   divergente: "Divergente",
   sem_prova: "Sem nenhuma prova",
   declarado_humano: "Declarado por pessoa",
+  adquirente_pagou_falta_conciliar: "Adquirente pagou",
   credito_atrasado: "Crédito atrasado",
 };
 
-const TOM_BLOCO: Record<ProvaClasse, "destructive" | "warning"> = {
+const TOM_BLOCO: Record<ProvaClasse, "destructive" | "warning" | "muted"> = {
   divergente: "destructive",
   sem_prova: "destructive",
   declarado_humano: "warning",
+  // Neutro de proposito: o dinheiro entrou, so falta a ponte. Nao e problema
+  // de cobranca, e trabalho de conciliacao.
+  adquirente_pagou_falta_conciliar: "muted",
   credito_atrasado: "warning",
 };
 
