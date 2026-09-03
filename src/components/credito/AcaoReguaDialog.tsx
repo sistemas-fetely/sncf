@@ -44,6 +44,19 @@ interface Props {
   onClose: () => void;
 }
 
+/**
+ * REGUA-NAO-ASSUME-BOLETO (02/09/2026): os templates diziam "o boleto de {valor}"
+ * mesmo para titulo PIX ou cartao. Um titulo PIX vencido gerava mensagem pedindo
+ * ao cliente que respondesse para receber "o boleto atualizado" — de um boleto
+ * que nunca existiu. {instrumento} resolve sem precisar de template por tipo.
+ */
+const NOME_INSTRUMENTO_REGUA: Record<string, string> = {
+  boleto: "boleto",
+  pix: "PIX",
+  cartao: "pagamento no cartão",
+  conta_corrente: "pagamento em conta corrente",
+};
+
 function interpolar(tpl: string, titulo: TituloCobranca): string {
   const cliente = nomeTratamento(titulo.parceiro_razao_social, titulo.parceiro_nome_fantasia);
 
@@ -54,8 +67,12 @@ function interpolar(tpl: string, titulo: TituloCobranca): string {
     "{vencimento}": formatDateBR(titulo.data_vencimento_atual),
     "{titulo}": titulo.numero_titulo ?? "",
     "{cnpj}": titulo.parceiro_cnpj ?? "",
+    "{instrumento}": NOME_INSTRUMENTO_REGUA[titulo.tipo_pagamento ?? ""] ?? "pagamento",
   };
-  return (tpl ?? "").replace(/\{cliente\}|\{apelido\}|\{valor\}|\{vencimento\}|\{titulo\}|\{cnpj\}/g, (m) => map[m] ?? m);
+  return (tpl ?? "").replace(
+    /\{cliente\}|\{apelido\}|\{valor\}|\{vencimento\}|\{titulo\}|\{cnpj\}|\{instrumento\}/g,
+    (m) => map[m] ?? m,
+  );
 }
 
 
@@ -391,7 +408,7 @@ export function AcaoReguaDialog({ titulo, etapa, modo, open, onClose, reenvio = 
                       placeholder="Texto que foi enviado ao cliente."
                     />
                     <p className="text-[11px] text-muted-foreground truncate">
-                      Os campos {"{cliente} {valor} {vencimento}"} são preenchidos automaticamente
+                      Os campos {"{cliente} {valor} {vencimento} {instrumento}"} são preenchidos automaticamente
                     </p>
                   </div>
                 </>
