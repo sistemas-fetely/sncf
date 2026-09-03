@@ -72396,6 +72396,7 @@ export type Database = {
           data_liquidacao_prevista: string | null
           data_pagamento: string | null
           data_pagamento_banco: string | null
+          data_recebimento: string | null
           data_recebimento_efetiva: string | null
           data_vencimento: string | null
           data_vencimento_original: string | null
@@ -73234,6 +73235,7 @@ export type Database = {
           data_liquidacao_prevista: string | null
           data_pagamento: string | null
           data_pagamento_banco: string | null
+          data_recebimento: string | null
           data_recebimento_efetiva: string | null
           data_vencimento: string | null
           data_vencimento_instrumento: string | null
@@ -80377,10 +80379,13 @@ export type Database = {
       fn_plano_recebimento_pedido: {
         Args: { p_pedido_id: string }
         Returns: {
+          data_vencimento_efetiva: string
           data_vencimento_original: string
           eh_entrada: boolean
+          eh_portao: boolean
           id: string
           numero_parcela: number
+          pago_em: string
           tipo_pagamento: string
           valor_bruto: number
         }[]

@@ -54,6 +54,7 @@ type TituloB2B = {
   valor: number | null;
   status_gestao: "pago" | "em_aberto" | "atrasado" | string;
   data_liquidacao: string | null;
+  data_recebimento: string | null;
   nf_numero: string | null;
 };
 
@@ -96,7 +97,7 @@ function TitulosAbertosCliente({ parceiroId, incluirPagos }: { parceiroId: strin
       let q = (supabase as any)
         .from("vw_recebivel_b2b")
         .select(
-          "numero_titulo, numero_parcela, total_parcelas, meio_pagamento, data_vencimento, valor, status_gestao, data_liquidacao, nf_numero",
+          "numero_titulo, numero_parcela, total_parcelas, meio_pagamento, data_vencimento, valor, status_gestao, data_liquidacao, data_recebimento, nf_numero",
         )
         .eq("parceiro_id", parceiroId)
         .order("data_vencimento", { ascending: true });
@@ -145,7 +146,7 @@ function TitulosAbertosCliente({ parceiroId, incluirPagos }: { parceiroId: strin
             <TableHead>Vencimento</TableHead>
             <TableHead className="text-right">Valor</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Liquidação</TableHead>
+            <TableHead>Recebimento</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -168,7 +169,7 @@ function TitulosAbertosCliente({ parceiroId, incluirPagos }: { parceiroId: strin
                     {STATUS_LABEL[status] ?? status}
                   </Badge>
                 </TableCell>
-                <TableCell>{t.data_liquidacao ? formatDateBR(t.data_liquidacao) : "—"}</TableCell>
+                <TableCell>{t.data_recebimento ? formatDateBR(t.data_recebimento) : "—"}</TableCell>
               </TableRow>
             );
           })}
