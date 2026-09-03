@@ -51,6 +51,7 @@ const ROTULO_BLOCO: Record<ProvaClasse, string> = {
   divergente: "DIVERGENTE — o valor da movimentação não fecha",
   sem_prova: "PAGO SEM NENHUMA PROVA",
   declarado_humano: "DECLARADO POR PESSOA, SEM LASTRO",
+  adquirente_pagou_falta_conciliar: "ADQUIRENTE JÁ PAGOU — FALTA CONCILIAR",
   credito_atrasado: "CRÉDITO DA ADQUIRENTE ATRASADO",
 };
 
