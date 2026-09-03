@@ -77,6 +77,7 @@ type RecebivelB2B = {
   gera_caixa: boolean | null;
   tem_prova_bancaria: boolean | null;
   /* hierarquia da verdade da data de recebimento */
+  data_recebimento: string | null;
   data_recebimento_efetiva: string | null;
   fonte_data_recebimento: "banco" | "marcado_humano" | "sem_recebimento" | null;
   data_pagamento_banco: string | null;
@@ -199,7 +200,7 @@ const PAGE_SIZE = 25;
  *  Toda a lógica continua ativa — trocar para true devolve a renderização. */
 const MOSTRAR_MES_A_MES = false;
 
-type DataBase = "vencimento" | "emissao" | "liquidacao";
+type DataBase = "vencimento" | "emissao" | "recebimento";
 type BaseMensal = "competencia" | "caixa_projetado" | "caixa_confirmado";
 
 
@@ -510,7 +511,7 @@ function AbaB2B() {
             ? t.data_vencimento_vigente ?? t.data_vencimento
             : dataBase === "emissao"
             ? t.data_compra
-            : t.data_liquidacao;
+            : t.data_recebimento;
         if (!ref) return false;
         const d = new Date(ref + "T12:00:00");
         if (dDe && d < dDe) return false;
@@ -1203,11 +1204,18 @@ function AbaB2B() {
           {(() => {
             const rec = t.eixo_recebimento;
             if (rec === "quitado" || rec === "compensado") {
-              if (t.data_liquidacao) {
+              if (t.data_recebimento) {
+                const porBanco = t.fonte_data_recebimento === "banco";
                 return (
                   <>
-                    {formatDateBR(t.data_liquidacao)}
-                    <div className="text-[10px] text-muted-foreground">Recebido em</div>
+                    {formatDateBR(t.data_recebimento)}
+                    <div
+                      className={
+                        "text-[10px] " + (porBanco ? "text-muted-foreground" : "text-warning")
+                      }
+                    >
+                      {porBanco ? "Recebido em (banco)" : "Recebido em (informado)"}
+                    </div>
                   </>
                 );
               }
@@ -1622,7 +1630,7 @@ function AbaB2B() {
                 <SelectContent>
                   <SelectItem value="vencimento">Vencimento</SelectItem>
                   <SelectItem value="emissao">Emissão (NF)</SelectItem>
-                  <SelectItem value="liquidacao">Liquidação</SelectItem>
+                  <SelectItem value="recebimento">Recebimento</SelectItem>
                 </SelectContent>
               </Select>
             </div>
