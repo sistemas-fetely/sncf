@@ -65305,14 +65305,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -66168,14 +66168,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -80004,6 +80004,10 @@ export type Database = {
         Returns: Json
       }
       fn_pedido_raiz_split: { Args: { p_pedido_id: string }; Returns: string }
+      fn_pedido_tem_adiantamento_vivo: {
+        Args: { p_pedido_id: string }
+        Returns: boolean
+      }
       fn_pedido_tem_lastro: { Args: { p_pedido_id: string }; Returns: Json }
       fn_pix_brcode: {
         Args: {
