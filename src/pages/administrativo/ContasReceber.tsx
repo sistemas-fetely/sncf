@@ -528,7 +528,7 @@ function AbaB2B() {
    * ativa zeraria a si mesma e as irmãs sumiriam.
    */
   const baseKpi = useMemo(() => {
-    if (!filtroInstrumento && !filtroVencido) return baseFiltros;
+    if (!filtroInstrumento && filtroPrazo === "todos") return baseFiltros;
     return baseFiltros.filter((t) => {
       if (filtroInstrumento) {
         if (t.estado_em_aberto !== true) return false;
@@ -537,10 +537,36 @@ function AbaB2B() {
           return false;
         if (filtroInstrumento === "sem_instrumento" && inst !== "sem_instrumento") return false;
       }
-      if (filtroVencido && t.eh_inadimplente !== true) return false;
+      if (filtroPrazo === "vencidos" && t.eh_inadimplente !== true) return false;
+      if (filtroPrazo === "a_vencer" && (t.estado_em_aberto !== true || t.eh_inadimplente === true))
+        return false;
       return true;
     });
-  }, [baseFiltros, filtroInstrumento, filtroVencido]);
+  }, [baseFiltros, filtroInstrumento, filtroPrazo]);
+
+  /**
+   * Base dos chips de recebimento: já com carteira, achado e instrumento
+   * aplicados, mas SEM o filtro de prazo — senão o botão ativo zeraria a si
+   * mesmo. Segue o mesmo padrão de `contagensSemKpi`.
+   */
+  const baseCarteiraSemPrazo = useMemo(() => {
+    let arr = baseFiltros;
+    if (filtroInstrumento) {
+      arr = arr.filter((t) => {
+        if (t.estado_em_aberto !== true) return false;
+        const inst = t.eixo_instrumento ?? "";
+        if (filtroInstrumento === "garantido" && !INSTRUMENTO_GARANTIDO.includes(inst))
+          return false;
+        if (filtroInstrumento === "sem_instrumento" && inst !== "sem_instrumento") return false;
+        return true;
+      });
+    }
+    return arr.filter((t) => {
+      if (carteiraAtiva && t.carteira_codigo !== carteiraAtiva) return false;
+      if (achado && !casaAchado(t, achado)) return false;
+      return true;
+    });
+  }, [baseFiltros, filtroInstrumento, carteiraAtiva, achado]);
 
   /** Base dos chips de recebimento: já com carteira e achado aplicados. */
   const baseCarteira = useMemo(() => {
