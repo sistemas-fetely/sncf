@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { PDFDocument, StandardFonts, rgb } from "npm:pdf-lib@1.17.1";
+import { exigirPorta, NaoAutorizado } from "../_shared/autorizacao.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -298,6 +299,27 @@ serve(async (req) => {
     }
 
     const sb   = createClient(supabaseUrl, serviceKey);
+
+    // LINHA-DIGITAVEL-E-INSTRUMENTO-NAO-INFORMACAO: o PDF do boleto e o que o cliente paga.
+    // Comercial entra por `acao.mesa_baixar_boleto`; Cobranca/Contas a Receber entram pela
+    // porta de leitura de `titulo_boleto` no mapa.
+    try {
+      await exigirPorta(
+        sb,
+        userData.user.id,
+        { slugs: ["acao.mesa_baixar_boleto"], tabelas: ["titulo_boleto"] },
+        "gerar o PDF do boleto",
+      );
+    } catch (e) {
+      if (e instanceof NaoAutorizado) {
+        return new Response(JSON.stringify({ ok: false, erro: e.message }), {
+          status: e.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      throw e;
+    }
+
     const body = await req.json();
     const tituloId: string = body.titulo_id;
     if (!tituloId) {
