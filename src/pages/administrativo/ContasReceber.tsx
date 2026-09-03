@@ -423,8 +423,14 @@ function AbaB2B() {
   const [filtroInstrumento, setFiltroInstrumento] = useState<
     "garantido" | "sem_instrumento" | null
   >(null);
-  /** Transversal: combina com qualquer instrumento e qualquer carteira. */
-  const [filtroVencido, setFiltroVencido] = useState(false);
+  /**
+   * PRAZO-TRI-STATE (03/09/2026): "vencido" não é um valor do eixo
+   * `eixo_recebimento` — é um subconjunto de "Em aberto". Um sexto chip
+   * faria os totais deixarem de somar. O controle de prazo fica fora da fila.
+   */
+  const [filtroPrazo, setFiltroPrazo] = useState<"todos" | "a_vencer" | "vencidos">(
+    "todos"
+  );
 
   const [qualidadeAberta, setQualidadeAberta] = useState(false);
   const [baseMensal, setBaseMensal] = useState<BaseMensal>("competencia");
@@ -522,7 +528,7 @@ function AbaB2B() {
    * ativa zeraria a si mesma e as irmãs sumiriam.
    */
   const baseKpi = useMemo(() => {
-    if (!filtroInstrumento && !filtroVencido) return baseFiltros;
+    if (!filtroInstrumento && filtroPrazo === "todos") return baseFiltros;
     return baseFiltros.filter((t) => {
       if (filtroInstrumento) {
         if (t.estado_em_aberto !== true) return false;
@@ -531,10 +537,36 @@ function AbaB2B() {
           return false;
         if (filtroInstrumento === "sem_instrumento" && inst !== "sem_instrumento") return false;
       }
-      if (filtroVencido && t.eh_inadimplente !== true) return false;
+      if (filtroPrazo === "vencidos" && t.eh_inadimplente !== true) return false;
+      if (filtroPrazo === "a_vencer" && (t.estado_em_aberto !== true || t.eh_inadimplente === true))
+        return false;
       return true;
     });
-  }, [baseFiltros, filtroInstrumento, filtroVencido]);
+  }, [baseFiltros, filtroInstrumento, filtroPrazo]);
+
+  /**
+   * Base dos chips de recebimento: já com carteira, achado e instrumento
+   * aplicados, mas SEM o filtro de prazo — senão o botão ativo zeraria a si
+   * mesmo. Segue o mesmo padrão de `contagensSemKpi`.
+   */
+  const baseCarteiraSemPrazo = useMemo(() => {
+    let arr = baseFiltros;
+    if (filtroInstrumento) {
+      arr = arr.filter((t) => {
+        if (t.estado_em_aberto !== true) return false;
+        const inst = t.eixo_instrumento ?? "";
+        if (filtroInstrumento === "garantido" && !INSTRUMENTO_GARANTIDO.includes(inst))
+          return false;
+        if (filtroInstrumento === "sem_instrumento" && inst !== "sem_instrumento") return false;
+        return true;
+      });
+    }
+    return arr.filter((t) => {
+      if (carteiraAtiva && t.carteira_codigo !== carteiraAtiva) return false;
+      if (achado && !casaAchado(t, achado)) return false;
+      return true;
+    });
+  }, [baseFiltros, filtroInstrumento, carteiraAtiva, achado]);
 
   /** Base dos chips de recebimento: já com carteira e achado aplicados. */
   const baseCarteira = useMemo(() => {
@@ -620,16 +652,21 @@ function AbaB2B() {
     };
   }, [baseFiltros, hoje]);
 
-  const semFiltroKpi = !filtroInstrumento && !filtroVencido;
+  const semFiltroKpi = !filtroInstrumento && filtroPrazo === "todos";
 
   const limparFiltrosKpi = () => {
     setFiltroInstrumento(null);
-    setFiltroVencido(false);
+    setFiltroPrazo("todos");
     setPage(1);
   };
 
   const clicarInstrumento = (k: "garantido" | "sem_instrumento") => {
     setFiltroInstrumento((prev) => (prev === k ? null : k));
+    setPage(1);
+  };
+
+  const clicarPrazo = (k: "a_vencer" | "vencidos") => {
+    setFiltroPrazo((prev) => (prev === k ? "todos" : k));
     setPage(1);
   };
 
@@ -692,13 +729,27 @@ function AbaB2B() {
     return c;
   }, [baseCarteiraSemKpi]);
 
+  /** Contagens do controle segmentado de prazo: sem o próprio filtro de prazo
+   *  aplicado, para o botão ativo não zerar a si mesmo. */
+  const contagensPrazo = useMemo(() => {
+    let aVencer = 0;
+    let vencidos = 0;
+    for (const t of baseCarteiraSemPrazo) {
+      if (t.eh_inadimplente === true) vencidos += 1;
+      else if (t.estado_em_aberto === true) aVencer += 1;
+    }
+    return { aVencer, vencidos };
+  }, [baseCarteiraSemPrazo]);
+
   const rotuloFiltroKpi =
     filtroInstrumento === "garantido"
       ? "Garantido em banco"
       : filtroInstrumento === "sem_instrumento"
       ? "Sem instrumento"
-      : filtroVencido
-      ? "Vencido"
+      : filtroPrazo === "vencidos"
+      ? "Prazo: Vencidos"
+      : filtroPrazo === "a_vencer"
+      ? "Prazo: A vencer"
       : null;
 
   const totalAtraso =
@@ -739,7 +790,7 @@ function AbaB2B() {
   const limparTudo = () => {
     setCarteiraAtiva(null);
     setFiltroInstrumento(null);
-    setFiltroVencido(false);
+    setFiltroPrazo("todos");
     setBusca("");
     setFiltroBanco("todos");
     setDataDe("");
@@ -773,12 +824,12 @@ function AbaB2B() {
         },
       });
     }
-    if (filtroVencido) {
+    if (filtroPrazo !== "todos") {
       lista.push({
-        chave: "vencido",
-        rotulo: "Vencido",
+        chave: "prazo",
+        rotulo: filtroPrazo === "vencidos" ? "Prazo: Vencidos" : "Prazo: A vencer",
         limpar: () => {
-          setFiltroVencido(false);
+          setFiltroPrazo("todos");
           setPage(1);
         },
       });
@@ -837,7 +888,7 @@ function AbaB2B() {
     carteiraAtiva,
     carteiras,
     filtroInstrumento,
-    filtroVencido,
+    filtroPrazo,
     busca,
     filtroBanco,
     dataDe,
@@ -1311,11 +1362,8 @@ function AbaB2B() {
           rotulo="Vencido"
           valor={formatBRLCurto(estadoCarteira.vencido)}
           corValor="text-destructive"
-          ativo={filtroVencido}
-          onClick={() => {
-            setFiltroVencido((v) => !v);
-            setPage(1);
-          }}
+          ativo={filtroPrazo === "vencidos"}
+          onClick={() => clicarPrazo("vencidos")}
           extraRotulo={
             <Popover>
               <PopoverTrigger asChild>
@@ -1488,6 +1536,33 @@ function AbaB2B() {
                 );
               })}
 
+              <div className="ml-auto flex items-center gap-2 border-l border-border pl-3">
+                <span className="text-xs text-muted-foreground">Prazo</span>
+                <Button
+                  size="sm"
+                  variant={filtroPrazo === "todos" ? "default" : "outline"}
+                  onClick={() => {
+                    setFiltroPrazo("todos");
+                    setPage(1);
+                  }}
+                >
+                  Todos
+                </Button>
+                <Button
+                  size="sm"
+                  variant={filtroPrazo === "a_vencer" ? "default" : "outline"}
+                  onClick={() => clicarPrazo("a_vencer")}
+                >
+                  A vencer ({contagensPrazo.aVencer})
+                </Button>
+                <Button
+                  size="sm"
+                  variant={filtroPrazo === "vencidos" ? "default" : "outline"}
+                  onClick={() => clicarPrazo("vencidos")}
+                >
+                  Vencidos ({contagensPrazo.vencidos})
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -1783,7 +1858,7 @@ function AbaB2B() {
                     onClick={() => {
                       setCarteiraAtiva(null);
                       setFiltroInstrumento(null);
-                      setFiltroVencido(false);
+                      setFiltroPrazo("todos");
                       setPage(1);
                     }}
                   >
