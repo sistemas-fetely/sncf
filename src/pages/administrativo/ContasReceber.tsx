@@ -494,7 +494,14 @@ function AbaB2B() {
         const num = (t.numero_titulo ?? "").toLowerCase();
         const cli = (t.cliente ?? "").toLowerCase();
         const nf = (t.nf_numero ?? "").toLowerCase();
-        if (!num.includes(buscaLc) && !cli.includes(buscaLc) && !nf.includes(buscaLc)) return false;
+        const ped = (t.pedido_ref ?? "").toLowerCase();
+        if (
+          !num.includes(buscaLc) &&
+          !cli.includes(buscaLc) &&
+          !nf.includes(buscaLc) &&
+          !ped.includes(buscaLc)
+        )
+          return false;
       }
 
       if (dDe || dAte) {
@@ -1570,7 +1577,7 @@ function AbaB2B() {
             <div className="space-y-1">
               <Label className="text-xs">Busca</Label>
               <Input
-                placeholder="Título, NF ou cliente"
+                placeholder="Título, pedido, NF ou cliente"
                 value={busca}
                 onChange={(e) => {
                   setBusca(e.target.value);
