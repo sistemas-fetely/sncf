@@ -423,8 +423,14 @@ function AbaB2B() {
   const [filtroInstrumento, setFiltroInstrumento] = useState<
     "garantido" | "sem_instrumento" | null
   >(null);
-  /** Transversal: combina com qualquer instrumento e qualquer carteira. */
-  const [filtroVencido, setFiltroVencido] = useState(false);
+  /**
+   * PRAZO-TRI-STATE (03/09/2026): "vencido" não é um valor do eixo
+   * `eixo_recebimento` — é um subconjunto de "Em aberto". Um sexto chip
+   * faria os totais deixarem de somar. O controle de prazo fica fora da fila.
+   */
+  const [filtroPrazo, setFiltroPrazo] = useState<"todos" | "a_vencer" | "vencidos">(
+    "todos"
+  );
 
   const [qualidadeAberta, setQualidadeAberta] = useState(false);
   const [baseMensal, setBaseMensal] = useState<BaseMensal>("competencia");
