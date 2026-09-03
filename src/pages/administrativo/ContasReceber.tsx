@@ -1027,109 +1027,125 @@ function AbaB2B() {
         )}
       </div>
 
-      {/* Linha 1 — Estado da carteira. Recorte fixo: período, busca e banco. */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-info">A receber — no período</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-medium tabular-nums text-info">
-              {formatBRL(estadoCarteira.aReceber)}
-            </div>
-            <p className="text-xs text-muted-foreground tabular-nums">
-              {estadoCarteira.aReceberQtd} títulos em aberto
-            </p>
-            {estadoCarteira.aReceberSemData > 0 && (
-              <p className="text-xs text-muted-foreground tabular-nums">
-                dos quais {formatBRL(estadoCarteira.aReceberSemData)} sem data de vencimento
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Garantido em banco</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-medium tabular-nums">
-              {formatBRL(estadoCarteira.garantido)}
-            </div>
-            <p className="text-xs text-muted-foreground tabular-nums">
-              {estadoCarteira.garantidoQtd} títulos · com instrumento registrado
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-warning">Sem instrumento</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-medium tabular-nums text-warning">
-              {formatBRL(estadoCarteira.semInstrumento)}
-            </div>
-            <p className="text-xs text-muted-foreground tabular-nums">
-              {estadoCarteira.semInstrumentoQtd} títulos · faturado, ainda não depositado em carteira
-            </p>
-            {estadoCarteira.outros > 0 && (
-              <p className="text-xs text-muted-foreground tabular-nums pt-1">
-                Em trânsito de instrumento: {formatBRL(estadoCarteira.outros)} ·{" "}
-                {estadoCarteira.outrosQtd} títulos
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="border-destructive/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-destructive">
-              Vencido e não recebido (bruto)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-medium tabular-nums text-destructive">
-              {formatBRL(estadoCarteira.vencido)}
-            </div>
-            <p className="text-xs text-muted-foreground tabular-nums">
-              {estadoCarteira.vencidoQtd} títulos · valor bruto, pelo vencimento vigente
-            </p>
-            <div className="mt-2 space-y-0.5">
-              {(
-                [
-                  ["1–7 dias de atraso", estadoCarteira.faixas.f1_7],
-                  ["8–30 dias de atraso", estadoCarteira.faixas.f8_30],
-                  ["31–60 dias de atraso", estadoCarteira.faixas.f31_60],
-                  ["+60 dias de atraso", estadoCarteira.faixas.f60],
-                ] as const
-              ).map(([rotulo, valor]) => (
-                <div
-                  key={rotulo}
-                  className="flex justify-between gap-2 text-xs text-muted-foreground"
+      {/* Faixa 1 — Estado da carteira. Recorte fixo: período, busca e banco.
+          Colunas são filtro: "A receber" é o universo (limpa), garantido ×
+          sem instrumento são par exclusivo, vencido é transversal. */}
+      <div className="grid grid-cols-2 divide-x divide-border rounded-xl border border-border bg-card md:grid-cols-4">
+        <ColunaKpi
+          rotulo="A receber"
+          valor={formatBRLCurto(estadoCarteira.aReceber)}
+          corValor="text-info"
+          sublinha={`${estadoCarteira.aReceberQtd} títulos`}
+          ativo={semFiltroKpi}
+          onClick={limparFiltrosKpi}
+        />
+        <ColunaKpi
+          rotulo="Garantido em banco"
+          valor={formatBRLCurto(estadoCarteira.garantido)}
+          sublinha={`${estadoCarteira.garantidoQtd} · ${pctGarantido}% da carteira`}
+          ativo={filtroInstrumento === "garantido"}
+          onClick={() => clicarInstrumento("garantido")}
+        />
+        <ColunaKpi
+          rotulo="Sem instrumento"
+          valor={formatBRLCurto(estadoCarteira.semInstrumento)}
+          corValor="text-warning"
+          sublinha={
+            estadoCarteira.outrosQtd > 0
+              ? `${estadoCarteira.semInstrumentoQtd} · +${estadoCarteira.outrosQtd} em trânsito`
+              : `${estadoCarteira.semInstrumentoQtd} títulos`
+          }
+          ativo={filtroInstrumento === "sem_instrumento"}
+          onClick={() => clicarInstrumento("sem_instrumento")}
+        />
+        <ColunaKpi
+          rotulo="Vencido"
+          valor={formatBRLCurto(estadoCarteira.vencido)}
+          corValor="text-destructive"
+          ativo={filtroVencido}
+          onClick={() => {
+            setFiltroVencido((v) => !v);
+            setPage(1);
+          }}
+          extraRotulo={
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Detalhar faixas de atraso"
+                  className="text-muted-foreground hover:text-foreground"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <span>{rotulo}</span>
-                  <span className="tabular-nums">{formatBRL(valor)}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-destructive/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-destructive">Inadimplência</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-medium tabular-nums text-destructive">
-              {formatBRL(estadoCarteira.inadimplencia)}
-            </div>
-            <p className="text-xs text-muted-foreground tabular-nums">
-              {estadoCarteira.inadimplenciaQtd} títulos
-            </p>
-          </CardContent>
-        </Card>
+                  <Info className="h-[13px] w-[13px]" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-64 space-y-0.5 p-3">
+                {FAIXAS_ATRASO.map(([chave, rotulo]) => (
+                  <div
+                    key={chave}
+                    className="flex justify-between gap-2 text-xs text-muted-foreground"
+                  >
+                    <span>{rotulo}</span>
+                    <span className="tabular-nums">
+                      {formatBRL(estadoCarteira.faixas[chave])}
+                    </span>
+                  </div>
+                ))}
+              </PopoverContent>
+            </Popover>
+          }
+          corpo={
+            <>
+              <div className="mt-1 flex h-1 w-full overflow-hidden rounded-full bg-muted">
+                {FAIXAS_ATRASO.map(([chave], i) => {
+                  const valor = estadoCarteira.faixas[chave];
+                  const pct = totalAtraso > 0 ? (valor / totalAtraso) * 100 : 0;
+                  if (pct <= 0) return null;
+                  return (
+                    <div
+                      key={chave}
+                      style={{ width: `${pct}%` }}
+                      className={
+                        ["bg-destructive/30", "bg-destructive/50", "bg-destructive/70", "bg-destructive"][i]
+                      }
+                    />
+                  );
+                })}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+                {estadoCarteira.vencidoQtd} títulos · {resumoAtraso}
+              </p>
+            </>
+          }
+        />
       </div>
+
+      {/* Barra de filtros ativos — a tela não pode filtrar em silêncio. */}
+      {filtrosAtivos.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {filtrosAtivos.map((f) => (
+            <Badge key={f.chave} variant="secondary" className="gap-1 py-1 pl-2 pr-1 font-normal">
+              {f.rotulo}
+              <button
+                type="button"
+                aria-label={`Remover filtro ${f.rotulo}`}
+                className="rounded-sm p-0.5 hover:bg-background/60"
+                onClick={f.limpar}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+          <button
+            type="button"
+            className="text-xs text-muted-foreground underline hover:text-foreground"
+            onClick={limparTudo}
+          >
+            Limpar tudo
+          </button>
+        </div>
+      )}
+
 
       {/* Linha 2 — Carteiras */}
       {carteiras.length > 0 && (
