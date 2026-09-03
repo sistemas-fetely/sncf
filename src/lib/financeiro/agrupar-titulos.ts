@@ -56,6 +56,10 @@ const RECEBIMENTO_PARA_STATUS: Record<EixoRecebimento, EixoStatus> = {
 
 const INSTRUMENTO_PARA_PROVA: Record<EixoInstrumento, EixoProva> = {
   sem_instrumento: "registrado",
+  // CARTAO-TEM-ESTADO-INTERMEDIARIO (02/09/2026): venda autorizada e o cartao
+  // com NSU capturado aguardando o credito da adquirente. Mapeia para
+  // "registrado" e nao "conciliado": a VENDA esta provada, o CAIXA nao.
+  venda_autorizada: "registrado",
   registrado: "registrado",
   remessa_gerada: "registrado",
   baixa_solicitada: "registrado",
