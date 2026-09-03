@@ -73,7 +73,12 @@ type ConciliacaoItem = {
   titulo_ids: string[] | null;
   titulos_na_familia: number | null;
   soma_familia: number | null;
+  haver_do_filho: number | null;
   diff_familia: number | null;
+  diff_com_haver: number | null;
+  diff_efetiva: number | null;
+  fecha_com_haver: boolean | null;
+  cliente_fantasia: string | null;
   score: number | null;
   nivel: number | null;
   confianca: Confianca;
@@ -164,7 +169,7 @@ export default function ConciliacaoMesa() {
   function abrirDialog(item: ConciliacaoItem) {
     setSelecionado(item);
     setNota("");
-    const diff = Number(item.diff_familia || 0);
+    const diff = Number(item.diff_efetiva ?? item.diff_familia ?? 0);
     setAjuste(Math.abs(diff) > 0.05 ? String(diff) : "0");
     setTituloAjuste(item.titulo_ids?.[0] ?? null);
   }
@@ -181,7 +186,9 @@ export default function ConciliacaoMesa() {
     if (nota.trim().length < 5) return;
     setEnviando(true);
     try {
-      const diff = Number(selecionado.diff_familia || 0);
+      const diff = Number(
+        selecionado.diff_efetiva ?? selecionado.diff_familia ?? 0,
+      );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: r, error } = await (supabase as any).rpc(
         "conciliar_credito_familia",
@@ -210,7 +217,9 @@ export default function ConciliacaoMesa() {
     }
   }
 
-  const diffSelecionado = Number(selecionado?.diff_familia || 0);
+  const diffSelecionado = Number(
+    selecionado?.diff_efetiva ?? selecionado?.diff_familia ?? 0,
+  );
   const titulosOpcoes = useMemo(() => {
     if (!selecionado?.titulo_ids) return [];
     const nomes = (selecionado.titulos || "").split(" + ");
@@ -321,8 +330,11 @@ export default function ConciliacaoMesa() {
             const meta = META_CONFIANCA[
               item.confianca as Exclude<Confianca, "sem_candidato">
             ];
-            const diff = Number(item.diff_familia || 0);
+            // HAVER-ABATE-ANTES-DE-COMPARAR: diff_efetiva ja e a menor entre
+            // comparar so o titulo e comparar titulo + haver do filho.
+            const diff = Number(item.diff_efetiva ?? item.diff_familia ?? 0);
             const fechaExato = Math.abs(diff) <= 0.05;
+            const viaHaver = item.fecha_com_haver === true;
             const diasParado = Number(item.dias_parado || 0);
             return (
               <Card key={item.movimentacao_id} className="border">
@@ -343,9 +355,18 @@ export default function ConciliacaoMesa() {
                           </Badge>
                         )}
                       </div>
+                      {/* RAZAO-SOCIAL-SEMPRE: o nome do banco costuma ser
+                          fantasia ("LOLLIPOP"). Mostramos a razao social do
+                          cliente identificado e o nome do extrato abaixo, como
+                          referencia de quem apareceu no banco. */}
                       <p className="text-sm font-medium truncate">
-                        {item.pagador || "Pagador não identificado"}
+                        {item.cliente || item.pagador || "Pagador não identificado"}
                       </p>
+                      {item.cliente && item.pagador && (
+                        <p className="text-xs text-muted-foreground truncate">
+                          no extrato: {item.pagador}
+                        </p>
+                      )}
                       <p className="text-xs text-muted-foreground line-clamp-2">
                         {item.descricao}
                       </p>
@@ -384,6 +405,12 @@ export default function ConciliacaoMesa() {
                           {formatBRL(Math.abs(diff))}
                         </span>
                       )}
+                      {viaHaver && (
+                        <span className="text-[10px] text-muted-foreground text-center">
+                          inclui {formatBRL(Number(item.haver_do_filho ?? 0))} de
+                          haver da remessa filha
+                        </span>
+                      )}
                     </div>
 
                     {/* O TÍTULO */}
@@ -403,6 +430,16 @@ export default function ConciliacaoMesa() {
                       {(item.titulos_na_familia ?? 0) > 1 && (
                         <p className="text-[11px] text-muted-foreground">
                           {item.titulos_na_familia} parcelas somadas
+                        </p>
+                      )}
+                      {viaHaver && (
+                        <p className="text-[11px] text-muted-foreground">
+                          + {formatBRL(Number(item.haver_do_filho ?? 0))} de haver
+                          ={" "}
+                          {formatBRL(
+                            Number(item.soma_familia ?? 0) +
+                              Number(item.haver_do_filho ?? 0),
+                          )}
                         </p>
                       )}
                       <div className="md:justify-end flex pt-1">
@@ -445,7 +482,9 @@ export default function ConciliacaoMesa() {
               <div className="rounded-md border bg-muted/30 p-3 space-y-1">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-sm font-medium truncate">
-                    {selecionado.pagador || "Pagador não identificado"}
+                    {selecionado.cliente ||
+                      selecionado.pagador ||
+                      "Pagador não identificado"}
                   </span>
                   <span className="font-mono text-sm font-medium">
                     {formatBRL(selecionado.valor)}
