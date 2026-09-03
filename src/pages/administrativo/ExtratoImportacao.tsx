@@ -1098,7 +1098,7 @@ export default function ExtratoImportacao() {
         const { error: errLig } = await sb.rpc("fn_safrapay_link_ligar_pedidos");
         if (errLig) throw errLig;
 
-        alertas.push(
+        toast.info(
           `${parsed.pagas} pagamento(s) confirmado(s) no relatorio de Link. A coluna Identificacao amarra o pagamento ao pedido — e a prova mais forte para carimbar NSU em titulo de cartao.`,
         );
       } else if (fonte === "mp_settlement") {
