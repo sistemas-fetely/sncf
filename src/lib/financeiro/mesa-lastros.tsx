@@ -98,14 +98,32 @@ export function seloEntrega(l: LinhaMesa) {
   }
 }
 
+/**
+ * SELO-NAO-ASSUME-BOLETO (02/09/2026): os rótulos diziam "boleto" em todos os
+ * ramos, independente do instrumento real. Um título PIX vencido aparecia como
+ * "Boleto pagável" e a régua mandava "reenviar boleto" para um boleto que nunca
+ * existiu. O nome do instrumento passa a vir de `l.instrumento`.
+ */
+const NOME_INSTRUMENTO: Record<string, string> = {
+  boleto: "Boleto",
+  pix: "PIX",
+  cartao: "Cartão",
+  conta_corrente: "Conta corrente",
+};
+
+function nomeInstrumento(l: LinhaMesa) {
+  return NOME_INSTRUMENTO[l.instrumento ?? ""] ?? "Instrumento";
+}
+
 export function seloInstrumento(l: LinhaMesa) {
+  const nome = nomeInstrumento(l);
   switch (l.lastro_instrumento) {
     case "pagavel":
-      return <Selo texto="Boleto pagável" tom="verde" tooltip={`Boleto pagável${l.boleto_status ? ` (${l.boleto_status})` : ""}`} />;
+      return <Selo texto={`${nome} pagável`} tom="verde" tooltip={`${nome} pagável${l.boleto_status ? ` (${l.boleto_status})` : ""}`} />;
     case "inexistente":
-      return <Selo texto="Sem boleto" tom="vermelho" tooltip="Cliente não tem instrumento de pagamento — nada a pagar" />;
+      return <Selo texto={`Sem ${nome.toLowerCase()}`} tom="vermelho" tooltip="Cliente não tem instrumento de pagamento — nada a pagar" />;
     case "exige_reemissao":
-      return <Selo texto="Reemitir" tom="ambar" tooltip="Boleto exige reemissão antes de cobrar" />;
+      return <Selo texto="Reemitir" tom="ambar" tooltip={`${nome} exige reemissão antes de cobrar`} />;
     case "em_processo":
       return <Selo texto="No banco" tom="neutro" tooltip="Instrumento em processamento no banco" />;
     case "nao_aplicavel":
