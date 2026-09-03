@@ -2,6 +2,22 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { BoletoVigente } from "@/components/credito/AvisoBoletosVivos";
 
+/**
+ * PERMISSAO-DE-ACAO-NAO-DA-LEITURA (03/09/2026): este hook lia `titulo_a_receber`,
+ * `vw_titulo_boleto_vigente` e `titulo_boleto` direto do cliente. As tres sao trancadas
+ * por `pode_ler_tabela`, mapeadas so para telas de Financas/Cobranca. Quem tem
+ * `tela.comercial` + `acao.mesa_ver_boletos` recebia ZERO linha e a Mesa dizia
+ * "Nenhum boleto neste pedido" — mentira silenciosa.
+ *
+ * Agora tudo vem de `fn_mesa_boletos_pedido`, SECURITY DEFINER, que decide a porta
+ * (`acao.mesa_ver_boletos` OU porta de leitura ja no mapa) e ESTOURA quando nao ha
+ * permissao, em vez de devolver lista vazia. A linha digitavel so vem para quem tem
+ * `acao.mesa_baixar_boleto` — consultar nao e entregar o instrumento ao cliente.
+ *
+ * Forma publica preservada de proposito: `BoletoTitulo` e o retorno sao identicos ao
+ * que PedidoOportunidadeDialog e PedidoDetalhe ja consomem.
+ */
+
 export interface BoletoTitulo {
   id: string;
   numero_parcela: number;
@@ -20,50 +36,46 @@ export function useBoletosDoPedido(pedido_id: string | undefined) {
     queryKey: ["boletos-do-pedido", pedido_id],
     enabled: !!pedido_id,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("titulo_a_receber")
-        .select("id, numero_parcela, total_parcelas, data_vencimento_atual, valor_bruto, status, boleto_status, linha_digitavel")
-        .eq("pedido_id", pedido_id)
-        .eq("tipo_pagamento", "boleto")
-        .order("numero_parcela", { ascending: true });
-      if (error) throw error;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc("fn_mesa_boletos_pedido", {
+        p_pedido_id: pedido_id,
+      });
+      // FAIL-LOUD: erro de permissao ou de banco sobe com o corpo real.
+      if (error) throw new Error(`Falha ao carregar os boletos do pedido: ${error.message}`);
 
-      // FONTE-UNICA-DO-BOLETO (02/09/2026): "registrado" e um estado do TITULO, e o
-      // titulo fica em `baixa_remessa_gerada` durante a reemissao mesmo tendo boleto
-      // novo vivo. Quem responde "da para enviar?" e o boleto vigente.
-      const ids = (data ?? []).map((t: any) => t.id);
-      const { data: vig, error: errV } = await (supabase as any)
-        .from("vw_titulo_boleto_vigente")
-        .select("titulo_id, enviavel, nosso_numero, linha_digitavel, data_vencimento, valor, situacao, vigente_em_baixa, boletos_vivos, nosso_numero_em_baixa")
-        .in("titulo_id", ids);
-      if (errV) throw new Error(`Falha ao resolver o boleto vigente: ${errV.message}`);
-      const porTitulo = new Map<string, BoletoVigente>(
-        (vig ?? []).map((v: any) => [v.titulo_id, v as BoletoVigente]),
-      );
-
-      // NOSSO-NUMERO-NAO-MORRE: boleto liquidado sai do vigente mas o nosso numero
-      // segue sendo a chave de conferencia com o banco. Pega o mais recente por titulo.
-      const { data: ultimos, error: errU } = await (supabase as any)
-        .from("titulo_boleto")
-        .select("titulo_id, nosso_numero, situacao, emitido_em")
-        .in("titulo_id", ids)
-        .order("emitido_em", { ascending: false });
-      if (errU) throw new Error(`Falha ao resolver o último boleto: ${errU.message}`);
-      const ultimoPorTitulo = new Map<string, { nosso_numero: string | null; situacao: string | null }>();
-      for (const u of (ultimos ?? []) as any[]) {
-        if (!ultimoPorTitulo.has(u.titulo_id)) {
-          ultimoPorTitulo.set(u.titulo_id, {
-            nosso_numero: u.nosso_numero ?? null,
-            situacao: u.situacao ?? null,
-          });
-        }
-      }
-
-      const boletoTitulos: BoletoTitulo[] = ((data ?? []) as any[]).map((t) => ({
-        ...t,
-        boleto_vigente: porTitulo.get(t.id) ?? null,
-        boleto_ultimo: ultimoPorTitulo.get(t.id) ?? null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const boletoTitulos: BoletoTitulo[] = ((data ?? []) as any[]).map((r) => ({
+        id: r.titulo_id,
+        numero_parcela: r.numero_parcela,
+        total_parcelas: r.total_parcelas,
+        data_vencimento_atual: r.data_vencimento_atual ?? null,
+        valor_bruto:
+          r.valor_bruto === null || r.valor_bruto === undefined ? null : Number(r.valor_bruto),
+        status: r.status ?? null,
+        boleto_status: r.boleto_status ?? null,
+        linha_digitavel: r.linha_digitavel ?? null,
+        // A RPC devolve uma linha por titulo mesmo sem boleto vivo (enviavel=false,
+        // boletos_vivos=0), igual `vw_titulo_boleto_vigente` fazia. Mantido assim.
+        boleto_vigente: {
+          titulo_id: r.titulo_id,
+          enviavel: r.vig_enviavel === true,
+          nosso_numero: r.vig_nosso_numero ?? null,
+          linha_digitavel: r.vig_linha_digitavel ?? null,
+          data_vencimento: r.vig_data_vencimento ?? null,
+          valor: r.vig_valor === null || r.vig_valor === undefined ? null : Number(r.vig_valor),
+          situacao: r.vig_situacao ?? null,
+          vigente_em_baixa: r.vig_vigente_em_baixa === true,
+          boletos_vivos: Number(r.vig_boletos_vivos ?? 0),
+          nosso_numero_em_baixa: r.vig_nosso_numero_em_baixa ?? null,
+        },
+        // NOSSO-NUMERO-NAO-MORRE: boleto liquidado sai do vigente mas segue sendo a
+        // chave de conferencia com o banco.
+        boleto_ultimo:
+          r.ult_nosso_numero || r.ult_situacao
+            ? { nosso_numero: r.ult_nosso_numero ?? null, situacao: r.ult_situacao ?? null }
+            : null,
       }));
+
       const qtdTotal = boletoTitulos.length;
       const qtdRegistrados = boletoTitulos.filter((t) => t.boleto_vigente?.enviavel).length;
       return {
