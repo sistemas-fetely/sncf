@@ -156,6 +156,7 @@ const BlingCallback = lazy(() => import("@/pages/administrativo/BlingCallback"))
 const Produtos = lazy(() => import("@/pages/administrativo/Produtos"));
 const CaixaBanco = lazy(() => import("@/pages/administrativo/CaixaBanco"));
 const BancoSafra = lazy(() => import("@/pages/administrativo/BancoSafra"));
+const ConciliacaoMesa = lazy(() => import("@/pages/administrativo/ConciliacaoMesa"));
 const ContasBancarias = lazy(() => import("@/pages/administrativo/ContasBancarias"));
 const ExtratoConta = lazy(() => import("@/pages/administrativo/ExtratoConta"));
 const Conciliacao = lazy(() => import("@/pages/administrativo/Conciliacao"));
@@ -699,6 +700,7 @@ const App = () => (
                 <Route path="contas-pagar" element={<ContasPagar />} />
                 <Route path="caixa-banco" element={<CaixaBanco />} />
                 <Route path="banco-safra" element={<BancoSafra />} />
+                <Route path="conciliacao-mesa" element={<ConciliacaoMesa />} />
                 <Route path="caixa-banco/contas" element={<ContasBancarias />} />
                 <Route path="caixa-banco/contas/:contaId" element={<ExtratoConta />} />
                 <Route path="conciliacao" element={<Conciliacao />} />
