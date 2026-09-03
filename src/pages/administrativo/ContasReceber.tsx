@@ -778,7 +778,7 @@ function AbaB2B() {
   const limparTudo = () => {
     setCarteiraAtiva(null);
     setFiltroInstrumento(null);
-    setFiltroVencido(false);
+    setFiltroPrazo("todos");
     setBusca("");
     setFiltroBanco("todos");
     setDataDe("");
