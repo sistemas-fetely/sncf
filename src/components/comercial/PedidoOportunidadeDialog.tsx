@@ -2,10 +2,6 @@ import { useState } from "react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow,
@@ -269,10 +265,6 @@ export function PedidoOportunidadeDialog({
 }: Props) {
   const [texto, setTexto] = useState("");
   const [confirmarAberto, setConfirmarAberto] = useState(false);
-  const [dataPagamento, setDataPagamento] = useState(() =>
-    hojeISO(),
-  );
-  const [obsPagamento, setObsPagamento] = useState("");
   const itens = useItensPedidoOportunidade(pedidoId, open);
   const obs = useObsComerciaisPedido(pedidoId, open);
   const adicionar = useAdicionarObsComercial(pedidoId);
