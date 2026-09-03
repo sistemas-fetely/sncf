@@ -298,7 +298,13 @@ export default function PessoaForm() {
   async function checarCpfDuplicado(): Promise<string | "ok" | null> {
     const cpf = onlyDigits(pessoa.cpf);
     if (!cpf || cpf.length < 11 || isEdit) return "ok";
-    const { data } = await (supabase as any).from("pessoas").select("id, nome_completo").eq("cpf", cpf).maybeSingle();
+    // FAIL-LOUD: silêncio aqui vira pessoa duplicada.
+    const { data, error } = await (supabase as any).from("pessoas").select("id, nome_completo").eq("cpf", cpf).maybeSingle();
+    if (error) {
+      toast.error("Não foi possível verificar se o CPF já existe. Tente novamente.");
+      return null;
+    }
+
     if (data) {
       setPessoaExistente({ id: data.id, nome_completo: data.nome_completo });
       return data.id;
