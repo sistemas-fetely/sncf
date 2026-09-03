@@ -2092,6 +2092,7 @@ function diasDesde(iso: string | null | undefined): number | null {
 
 function AbaB2C() {
   const { temNivel } = useNivel();
+  const [busca, setBusca] = useState("");
   const [dataDe, setDataDe] = useState("");
   const [dataAte, setDataAte] = useState("");
   const [page, setPage] = useState(1);
@@ -2127,9 +2128,14 @@ function AbaB2C() {
   });
 
   const base = useMemo(() => {
+    const buscaLc = busca.trim().toLowerCase();
     const dDe = dataDe ? new Date(dataDe + "T00:00:00") : null;
     const dAte = dataAte ? new Date(dataAte + "T23:59:59") : null;
     return (data ?? []).filter((r) => {
+      if (buscaLc) {
+        const alvo = `${r.order_name ?? ""} ${r.shopify_id ?? ""} ${r.mp_payment_id ?? ""} ${r.shipping_city ?? ""}`.toLowerCase();
+        if (!alvo.includes(buscaLc)) return false;
+      }
       if (!dDe && !dAte) return true;
       if (!r.data_transacao) return false;
       const d = new Date(String(r.data_transacao).slice(0, 10) + "T12:00:00");
@@ -2137,12 +2143,17 @@ function AbaB2C() {
       if (dAte && d > dAte) return false;
       return true;
     });
-  }, [data, dataDe, dataAte]);
+  }, [data, busca, dataDe, dataAte]);
 
   const fvrBase = useMemo(() => {
+    const buscaLc = busca.trim().toLowerCase();
     const dDe = dataDe ? new Date(dataDe + "T00:00:00") : null;
     const dAte = dataAte ? new Date(dataAte + "T23:59:59") : null;
     return (fvrData ?? []).filter((r) => {
+      if (buscaLc) {
+        const alvo = `${r.pedido_ref ?? ""} ${r.cliente ?? ""} ${r.nf_refs ?? ""} ${r.cidade ?? ""}`.toLowerCase();
+        if (!alvo.includes(buscaLc)) return false;
+      }
       if (!dDe && !dAte) return true;
       if (!r.data_emissao) return false;
       const d = new Date(String(r.data_emissao).slice(0, 10) + "T12:00:00");
@@ -2150,7 +2161,7 @@ function AbaB2C() {
       if (dAte && d > dAte) return false;
       return true;
     });
-  }, [fvrData, dataDe, dataAte]);
+  }, [fvrData, busca, dataDe, dataAte]);
 
   const semRecebimento = useMemo(
     () =>
@@ -2159,10 +2170,15 @@ function AbaB2C() {
         .sort((a, b) => (diasDesde(b.data_emissao) ?? 0) - (diasDesde(a.data_emissao) ?? 0)),
     [fvrBase]
   );
-  const recebidoSemNf = useMemo(
-    () => (fvrData ?? []).filter((r) => r.situacao === "recebido_sem_nf"),
-    [fvrData]
-  );
+  const recebidoSemNf = useMemo(() => {
+    const buscaLc = busca.trim().toLowerCase();
+    return (fvrData ?? []).filter((r) => {
+      if (r.situacao !== "recebido_sem_nf") return false;
+      if (!buscaLc) return true;
+      const alvo = `${r.pedido_ref ?? ""} ${r.cliente ?? ""} ${r.nf_refs ?? ""} ${r.cidade ?? ""}`.toLowerCase();
+      return alvo.includes(buscaLc);
+    });
+  }, [fvrData, busca]);
   const conciliados = useMemo(
     () =>
       fvrBase
@@ -2174,6 +2190,16 @@ function AbaB2C() {
         ),
     [fvrBase]
   );
+
+  /**
+   * `vw_recebivel_b2c_pedido` não tem nome de cliente. Busca por cliente acha
+   * em Faturado x Recebido e volta vazia aqui. Sem este contador a tela
+   * mentiria por omissao, como a aba B2B ja mentiu uma vez.
+   */
+  const achadosFvr = useMemo(() => {
+    if (!busca.trim()) return 0;
+    return fvrBase.length + recebidoSemNf.length;
+  }, [busca, fvrBase, recebidoSemNf]);
 
   const kpiFuro = useMemo(() => {
     const total = semRecebimento.reduce((s, r) => s + Number(r.faturado ?? 0), 0);
@@ -2371,6 +2397,54 @@ function AbaB2C() {
         </Card>
       </div>
 
+      <Card>
+        <CardContent className="space-y-4 p-4">
+          <AtalhosPeriodo
+            de={dataDe}
+            ate={dataAte}
+            onPick={(de, ate) => {
+              setDataDe(de);
+              setDataAte(ate);
+              setPage(1);
+            }}
+          />
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+            <div className="space-y-1 md:col-span-2">
+              <Label className="text-xs">Busca</Label>
+              <Input
+                placeholder="Pedido (#1101), NF, cliente, cidade, ID MP/Shopify"
+                value={busca}
+                onChange={(e) => {
+                  setBusca(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">De (recebimento)</Label>
+              <Input
+                type="date"
+                value={dataDe}
+                onChange={(e) => {
+                  setDataDe(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Até (recebimento)</Label>
+              <Input
+                type="date"
+                value={dataAte}
+                onChange={(e) => {
+                  setDataAte(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="pb-2">
@@ -2650,41 +2724,6 @@ function AbaB2C() {
 
 
 
-      <Card>
-        <CardContent className="space-y-4 p-4">
-          <AtalhosPeriodo
-            onPick={(de, ate) => {
-              setDataDe(de);
-              setDataAte(ate);
-              setPage(1);
-            }}
-          />
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-            <div className="space-y-1">
-              <Label className="text-xs">De (recebimento)</Label>
-              <Input
-                type="date"
-                value={dataDe}
-                onChange={(e) => {
-                  setDataDe(e.target.value);
-                  setPage(1);
-                }}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Até (recebimento)</Label>
-              <Input
-                type="date"
-                value={dataAte}
-                onChange={(e) => {
-                  setDataAte(e.target.value);
-                  setPage(1);
-                }}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       <Card>
         <CardContent className="p-0">
@@ -2695,9 +2734,33 @@ function AbaB2C() {
               ))}
             </div>
           ) : paginados.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 p-10 text-muted-foreground">
-              <Inbox className="h-8 w-8" />
-              <p>Nenhum recebível B2C no período.</p>
+            <div className="flex flex-col items-center gap-2 p-10 text-center text-muted-foreground">
+              {busca.trim() ? (
+                <>
+                  <SearchX className="h-8 w-8" />
+                  <p>Nenhuma movimentação para "{busca.trim()}".</p>
+                  <p className="text-xs">
+                    {achadosFvr > 0
+                      ? `Mas aparece em ${achadosFvr} pedido${achadosFvr !== 1 ? "s" : ""} em Faturado × Recebido, acima.`
+                      : "Esta tabela não guarda nome de cliente — busque por nº do pedido (#1101), ID Shopify, pagamento MP ou cidade."}
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setBusca("");
+                      setPage(1);
+                    }}
+                  >
+                    Limpar busca
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Inbox className="h-8 w-8" />
+                  <p>Nenhum recebível B2C no período.</p>
+                </>
+              )}
             </div>
           ) : (
             <Table>
