@@ -846,6 +846,22 @@ function AbaB2B() {
     achado,
   ]);
 
+  /**
+   * A tela mentiu por omissão uma vez: busca com resultado fora da carteira
+   * selecionada voltava vazia. Aqui ela conta onde o registro está.
+   */
+  const buscaForaDoRecorte = useMemo(() => {
+    if (!busca.trim()) return null;
+    if (baseFiltros.length === 0) return null;
+    const nomes = new Set(
+      baseFiltros.map((t) => t.carteira_nome ?? t.carteira_codigo ?? "—")
+    );
+    return {
+      n: baseFiltros.length,
+      carteira: nomes.size === 1 ? Array.from(nomes)[0] : null,
+    };
+  }, [busca, baseFiltros]);
+
 
   const toggleRecebimento = (k: EixoRecebimento) => {
     setRecebimentosAtivos((prev) => {
