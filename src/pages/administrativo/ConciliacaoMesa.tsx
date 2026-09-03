@@ -253,6 +253,7 @@ export default function ConciliacaoMesa() {
   }, [data, filtroConfianca]);
 
   function abrirDialog(item: ConciliacaoItem) {
+    setNsuSelecionado(null);
     setSelecionado(item);
     // NOTA-PRE-ESCRITA-PELA-PROVA: em fechamento exato com identidade forte a
     // view devolve a nota com os fatos. O operador confirma ou edita — nao
@@ -263,11 +264,57 @@ export default function ConciliacaoMesa() {
     setTituloAjuste(item.titulo_ids?.[0] ?? null);
   }
 
+  function abrirDialogCartao(item: CartaoItem) {
+    const notaSugerida =
+      `Liquidacao SafraPay: venda NSU ${item.nsu} de ${formatDateBR(item.data_venda)} ` +
+      `(${item.bandeira ?? "—"}, ${item.parcelas_venda ?? 0}x) com todas as parcelas pagas, ` +
+      `bruto ${formatBRL(item.bruto_pago)}, contra ${item.titulos_nomes ?? "—"} do ${item.pedidos ?? "—"} ` +
+      `(${formatBRL(item.soma_titulos)}).`;
+    const compat: ConciliacaoItem = {
+      movimentacao_id: null as unknown as string,
+      conta: null,
+      banco: null,
+      data_transacao: item.ultimo_pgto,
+      valor: Number(item.bruto_pago || 0),
+      descricao: null,
+      pagador: null,
+      pagador_doc: null,
+      referencia_pedido: null,
+      origem: "safrapay",
+      id_transacao_banco: item.nsu,
+      dias_parado: item.dias_parado,
+      pedido: item.pedidos,
+      cliente: item.cliente,
+      titulos: item.titulos_nomes,
+      titulo_ids: item.titulo_ids,
+      titulos_na_familia: item.titulos,
+      soma_familia: item.soma_titulos,
+      haver_do_filho: null,
+      diff_familia: item.diff,
+      diff_com_haver: null,
+      diff_efetiva: item.diff,
+      fecha_com_haver: null,
+      cliente_fantasia: null,
+      haver_filhos_quais: null,
+      nota_sugerida: notaSugerida,
+      score: null,
+      nivel: null,
+      confianca: item.confianca as Confianca,
+    };
+    setNsuSelecionado(item.nsu);
+    setSelecionado(compat);
+    setNota(notaSugerida);
+    const diff = Number(item.diff ?? 0);
+    setAjuste(Math.abs(diff) > 0.05 ? String(diff) : "0");
+    setTituloAjuste(item.titulo_ids?.[0] ?? null);
+  }
+
   function fecharDialog() {
     setSelecionado(null);
     setNota("");
     setAjuste("0");
     setTituloAjuste(null);
+    setNsuSelecionado(null);
   }
 
   async function confirmarConciliacao() {
@@ -278,17 +325,21 @@ export default function ConciliacaoMesa() {
       const diff = Number(
         selecionado.diff_efetiva ?? selecionado.diff_familia ?? 0,
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: r, error } = await (supabase as any).rpc(
-        "conciliar_credito_familia",
-        {
-          p_movimentacao_id: selecionado.movimentacao_id,
-          p_titulo_ids: selecionado.titulo_ids ?? [],
-          p_nota: nota.trim(),
-          p_ajuste_desconto: Math.abs(diff) > 0.05 ? Number(ajuste) || 0 : 0,
-          p_titulo_ajuste: Math.abs(diff) > 0.05 ? tituloAjuste : null,
-        },
-      );
+      const { data: r, error } = nsuSelecionado
+        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (supabase as any).rpc("conciliar_cartao_liquidacao_familia", {
+            p_nsu: nsuSelecionado,
+            p_titulo_ids: selecionado.titulo_ids ?? [],
+            p_nota: nota.trim(),
+          })
+        : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (supabase as any).rpc("conciliar_credito_familia", {
+            p_movimentacao_id: selecionado.movimentacao_id,
+            p_titulo_ids: selecionado.titulo_ids ?? [],
+            p_nota: nota.trim(),
+            p_ajuste_desconto: Math.abs(diff) > 0.05 ? Number(ajuste) || 0 : 0,
+            p_titulo_ajuste: Math.abs(diff) > 0.05 ? tituloAjuste : null,
+          });
       if (error) throw error;
       const resultado = Array.isArray(r) ? r[0] : r;
       if (!resultado?.ok) {
@@ -296,6 +347,7 @@ export default function ConciliacaoMesa() {
       }
       toast.success("Crédito conciliado com sucesso");
       qc.invalidateQueries({ queryKey: ["conciliacao-mesa"] });
+      qc.invalidateQueries({ queryKey: ["conciliacao-mesa-cartao"] });
       fecharDialog();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -305,6 +357,7 @@ export default function ConciliacaoMesa() {
       setEnviando(false);
     }
   }
+
 
   const diffSelecionado = Number(
     selecionado?.diff_efetiva ?? selecionado?.diff_familia ?? 0,
