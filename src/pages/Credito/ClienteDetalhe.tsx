@@ -276,7 +276,7 @@ export default function ClienteDetalhe() {
                     <div>
                       <p className="text-xs text-muted-foreground">
                         {tomTitulo(t) === "pago"
-                          ? `Pago em ${t.data_liquidacao ? fmtDate(t.data_liquidacao) : "—"}`
+                          ? `Pago em ${t.data_recebimento ? fmtDate(t.data_recebimento) : "—"}`
                           : tomTitulo(t) === "encerrado"
                           ? "—"
                           : `Vence ${fmtDate(t.data_vencimento)}`}
