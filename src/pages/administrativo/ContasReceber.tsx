@@ -32,7 +32,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowDownToLine, Inbox, ArrowUpDown, ArrowUp, ArrowDown, Download, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowDownToLine, Inbox, ArrowUpDown, ArrowUp, ArrowDown, Download, ChevronDown, ChevronRight, Info, X, SearchX } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import * as XLSX from "xlsx";
 import { useNivel } from "@/hooks/useNivel";
