@@ -426,10 +426,11 @@ export default function PessoaForm() {
       } else {
         // CREATE: checa CPF duplicado
         const dup = await checarCpfDuplicado();
-        if (dup && dup !== "ok") {
+        if (dup !== "ok") {
           setSaving(false);
-          return; // dialog cuidará
+          return; // dialog cuidará, ou a checagem falhou e já avisou
         }
+
         const { data: p, error: e1 } = await (supabase as any).from("pessoas").insert(payloadPessoa()).select("id").single();
         if (e1) throw e1;
         const novoId = p.id as string;
