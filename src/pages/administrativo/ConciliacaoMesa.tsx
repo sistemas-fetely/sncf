@@ -602,6 +602,212 @@ export default function ConciliacaoMesa() {
           })}
         </div>
       )}
+        </TabsContent>
+
+        <TabsContent value="cartao" className="mt-4 space-y-4">
+          {/* Resumo do cartão */}
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            {(["fecha_no_centavo", "quase_fecha"] as const).map((c) => {
+              const r = resumoCartao[c];
+              const ativo = filtroCartao === c;
+              const desabilitado = r.qtd === 0;
+              const sucesso = c === "fecha_no_centavo";
+              return (
+                <Card
+                  key={c}
+                  role="button"
+                  tabIndex={desabilitado ? -1 : 0}
+                  aria-disabled={desabilitado}
+                  onClick={() => {
+                    if (desabilitado) return;
+                    setFiltroCartao((prev) => (prev === c ? null : c));
+                  }}
+                  onKeyDown={(e) => {
+                    if (desabilitado) return;
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setFiltroCartao((prev) => (prev === c ? null : c));
+                    }
+                  }}
+                  className={cn(
+                    "border transition-colors",
+                    desabilitado
+                      ? "opacity-50 cursor-default"
+                      : "cursor-pointer hover:bg-muted/40",
+                    ativo &&
+                      (sucesso
+                        ? "border-success/60 bg-success/10"
+                        : "border-warning/60 bg-warning/10"),
+                  )}
+                >
+                  <CardContent className="p-4 space-y-1">
+                    <p
+                      className={cn(
+                        "text-xs",
+                        sucesso ? "text-success" : "text-warning",
+                      )}
+                    >
+                      {sucesso ? "Fecha no centavo" : "Quase fecha"}
+                    </p>
+                    <p className="text-xl font-medium tracking-tight">
+                      {r.qtd}
+                    </p>
+                    <p className="text-xs text-muted-foreground font-mono">
+                      {formatBRL(r.soma)}
+                    </p>
+                  </CardContent>
+                </Card>
+              );
+            })}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Card className="border opacity-90 cursor-default">
+                  <CardContent className="p-4 space-y-1">
+                    <p className="text-xs text-muted-foreground">
+                      Aguardando parcelas
+                    </p>
+                    <p className="text-xl font-medium tracking-tight">
+                      {resumoCartao.pago_parcial.qtd}
+                    </p>
+                    <p className="text-xs text-muted-foreground font-mono">
+                      {formatBRL(resumoCartao.pago_parcial.soma)}
+                    </p>
+                  </CardContent>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent>
+                A adquirente ainda não pagou todas as parcelas da venda — é
+                calendário, não conciliação
+              </TooltipContent>
+            </Tooltip>
+          </div>
+
+          {cartaoQuery.isLoading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-28 w-full" />
+              <Skeleton className="h-28 w-full" />
+              <Skeleton className="h-28 w-full" />
+            </div>
+          ) : listaCartao.length === 0 ? (
+            <Card className="border">
+              <CardContent className="p-10 text-center text-sm text-muted-foreground">
+                Nenhuma venda de cartão pronta para conciliar.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {listaCartao.map((item) => {
+                const diff = Number(item.diff ?? 0);
+                const fechaExato = Math.abs(diff) <= 0.05;
+                const sucesso = item.confianca === "fecha_no_centavo";
+                const diasParado = Number(item.dias_parado || 0);
+                return (
+                  <Card key={item.nsu} className="border">
+                    <CardContent className="p-4">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto_1fr] md:items-center">
+                        {/* O DINHEIRO */}
+                        <div className="min-w-0 space-y-1">
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-lg font-medium font-mono tracking-tight">
+                              {formatBRL(item.bruto_pago)}
+                            </span>
+                            {diasParado > 30 && (
+                              <Badge variant="outline" className="text-[10px]">
+                                {diasParado} dias parado
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm">
+                            {item.parcelas_pagas ?? 0} de{" "}
+                            {item.parcelas_venda ?? 0} parcelas pagas
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {item.bandeira} · NSU {item.nsu}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            venda em {formatDateBR(item.data_venda)} · último
+                            pagamento {formatDateBR(item.ultimo_pgto)}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            MDR {formatBRL(item.mdr)}
+                          </p>
+                        </div>
+
+                        {/* CERTEZA AO CENTRO */}
+                        <div className="flex md:flex-col items-center justify-center gap-2">
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-[10px]",
+                              sucesso
+                                ? "border-success/40 text-success"
+                                : "border-warning/40 text-warning",
+                            )}
+                          >
+                            {sucesso ? (
+                              <CheckCircle2 className="mr-1 h-3 w-3" />
+                            ) : (
+                              <CircleHelp className="mr-1 h-3 w-3" />
+                            )}
+                            {sucesso ? "Fecha no centavo" : "Quase fecha"}
+                          </Badge>
+                          {fechaExato ? (
+                            <span className="text-[11px] font-medium text-success">
+                              fecha exato
+                            </span>
+                          ) : (
+                            <span className="text-[11px] font-medium text-warning">
+                              {diff > 0 ? "faltam" : "sobram"}{" "}
+                              {formatBRL(Math.abs(diff))}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* O TÍTULO */}
+                        <div className="min-w-0 space-y-1 md:text-right">
+                          <p className="text-sm font-medium truncate">
+                            {item.cliente || "Cliente não identificado"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {item.pedidos}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {item.titulos_nomes}
+                          </p>
+                          <p className="text-sm font-mono">
+                            {formatBRL(item.soma_titulos ?? 0)}
+                          </p>
+                          {Number(item.adiantamentos ?? 0) > 0 && (
+                            <p className="text-[11px] text-muted-foreground">
+                              + {formatBRL(item.adiantamentos)} de adiantamento
+                            </p>
+                          )}
+                          {(item.titulos ?? 0) > 1 && (
+                            <p className="text-[11px] text-muted-foreground">
+                              {item.titulos} títulos somados
+                            </p>
+                          )}
+                          <div className="md:justify-end flex pt-1">
+                            <Button
+                              size="sm"
+                              onClick={() => abrirDialogCartao(item)}
+                              className="gap-1.5"
+                            >
+                              <Link2 className="h-3.5 w-3.5" />
+                              Conciliar
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+
 
       {/* Diálogo de confirmação */}
       <Dialog
