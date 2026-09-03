@@ -48645,20 +48645,6 @@ export type Database = {
             foreignKeyName: "xpm_arquivo_fase_evento_expedicao_codigo_resolvido_fkey"
             columns: ["expedicao_codigo_resolvido"]
             isOneToOne: false
-            referencedRelation: "vw_gestao_b2c"
-            referencedColumns: ["xpm_codigo"]
-          },
-          {
-            foreignKeyName: "xpm_arquivo_fase_evento_expedicao_codigo_resolvido_fkey"
-            columns: ["expedicao_codigo_resolvido"]
-            isOneToOne: false
-            referencedRelation: "vw_gestao_b2c_pedido"
-            referencedColumns: ["xpm_codigo"]
-          },
-          {
-            foreignKeyName: "xpm_arquivo_fase_evento_expedicao_codigo_resolvido_fkey"
-            columns: ["expedicao_codigo_resolvido"]
-            isOneToOne: false
             referencedRelation: "vw_xpm_ciclo"
             referencedColumns: ["codigo"]
           },
@@ -49291,20 +49277,6 @@ export type Database = {
             foreignKeyName: "xpm_expedicao_evento_expedicao_codigo_fkey"
             columns: ["expedicao_codigo"]
             isOneToOne: false
-            referencedRelation: "vw_gestao_b2c"
-            referencedColumns: ["xpm_codigo"]
-          },
-          {
-            foreignKeyName: "xpm_expedicao_evento_expedicao_codigo_fkey"
-            columns: ["expedicao_codigo"]
-            isOneToOne: false
-            referencedRelation: "vw_gestao_b2c_pedido"
-            referencedColumns: ["xpm_codigo"]
-          },
-          {
-            foreignKeyName: "xpm_expedicao_evento_expedicao_codigo_fkey"
-            columns: ["expedicao_codigo"]
-            isOneToOne: false
             referencedRelation: "vw_xpm_ciclo"
             referencedColumns: ["codigo"]
           },
@@ -49395,20 +49367,6 @@ export type Database = {
             foreignKeyName: "xpm_expedicao_item_expedicao_codigo_fkey"
             columns: ["expedicao_codigo"]
             isOneToOne: false
-            referencedRelation: "vw_gestao_b2c"
-            referencedColumns: ["xpm_codigo"]
-          },
-          {
-            foreignKeyName: "xpm_expedicao_item_expedicao_codigo_fkey"
-            columns: ["expedicao_codigo"]
-            isOneToOne: false
-            referencedRelation: "vw_gestao_b2c_pedido"
-            referencedColumns: ["xpm_codigo"]
-          },
-          {
-            foreignKeyName: "xpm_expedicao_item_expedicao_codigo_fkey"
-            columns: ["expedicao_codigo"]
-            isOneToOne: false
             referencedRelation: "vw_xpm_ciclo"
             referencedColumns: ["codigo"]
           },
@@ -49494,20 +49452,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_embalagem_calibracao"
             referencedColumns: ["expedicao_codigo"]
-          },
-          {
-            foreignKeyName: "xpm_expedicao_pausa_expedicao_codigo_fkey"
-            columns: ["expedicao_codigo"]
-            isOneToOne: false
-            referencedRelation: "vw_gestao_b2c"
-            referencedColumns: ["xpm_codigo"]
-          },
-          {
-            foreignKeyName: "xpm_expedicao_pausa_expedicao_codigo_fkey"
-            columns: ["expedicao_codigo"]
-            isOneToOne: false
-            referencedRelation: "vw_gestao_b2c_pedido"
-            referencedColumns: ["xpm_codigo"]
           },
           {
             foreignKeyName: "xpm_expedicao_pausa_expedicao_codigo_fkey"
@@ -65681,14 +65625,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -66544,14 +66488,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -77824,20 +77768,6 @@ export type Database = {
             foreignKeyName: "xpm_arquivo_fase_evento_expedicao_codigo_resolvido_fkey"
             columns: ["expedicao_codigo_resolvido"]
             isOneToOne: false
-            referencedRelation: "vw_gestao_b2c"
-            referencedColumns: ["xpm_codigo"]
-          },
-          {
-            foreignKeyName: "xpm_arquivo_fase_evento_expedicao_codigo_resolvido_fkey"
-            columns: ["expedicao_codigo_resolvido"]
-            isOneToOne: false
-            referencedRelation: "vw_gestao_b2c_pedido"
-            referencedColumns: ["xpm_codigo"]
-          },
-          {
-            foreignKeyName: "xpm_arquivo_fase_evento_expedicao_codigo_resolvido_fkey"
-            columns: ["expedicao_codigo_resolvido"]
-            isOneToOne: false
             referencedRelation: "vw_xpm_ciclo"
             referencedColumns: ["codigo"]
           },
@@ -79699,6 +79629,52 @@ export type Database = {
         Args: { p_linhas: Json; p_pedido_id: string }
         Returns: Json
       }
+      fn_b2c_faturado_vs_recebido: {
+        Args: never
+        Returns: {
+          data_emissao: string
+          delta_bruto_vs_faturado: number
+          liquido_mp: number
+          nf_refs: string
+          pedido_ref: string
+          situacao: string
+          taxa_mp: number
+          tem_nf: boolean
+          tem_recebimento: boolean
+        }[]
+      }
+      fn_b2c_pedido_venda: {
+        Args: never
+        Returns: {
+          numero: string
+          numero_loja: string
+        }[]
+      }
+      fn_b2c_rastreamento: {
+        Args: never
+        Returns: {
+          codigo_rastreio: string
+          data_ultima_atualizacao: string
+          entregue: boolean
+          previsao_entrega: string
+          status_atual: string
+        }[]
+      }
+      fn_b2c_xpm_ciclo: {
+        Args: never
+        Returns: {
+          canal: string
+          codigo: string
+          concluida: boolean
+          data_expedicao: string
+          estagio_descricao: string
+          estagio_seq: number
+          farol_sla: string
+          horas_ciclo_liquido: number
+          horas_xpm: number
+          pedido_loja: string
+        }[]
+      }
       fn_badges: {
         Args: never
         Returns: {
@@ -80593,6 +80569,7 @@ export type Database = {
           prova_em: string
         }[]
       }
+      fn_safrapay_link_ligar_pedidos: { Args: never; Returns: Json }
       fn_saldo_diario_registrar: {
         Args: {
           p_conta: string
