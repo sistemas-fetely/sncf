@@ -32,7 +32,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowDownToLine, Inbox, ArrowUpDown, ArrowUp, ArrowDown, Download, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowDownToLine, Inbox, ArrowUpDown, ArrowUp, ArrowDown, Download, ChevronDown, ChevronRight, Info, X, SearchX } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import * as XLSX from "xlsx";
 import { useNivel } from "@/hooks/useNivel";
@@ -216,6 +218,82 @@ const formatMeio = (m: string | null) => (m ? capitalize(m.replace(/_/g, " ")) :
 
 const efetivoDe = (t: RecebivelB2B) => Number(t.valor_efetivo ?? t.valor ?? 0);
 
+/** Faixa de KPI é densa: valor sem centavos. Centavos só na tabela. */
+const formatBRLCurto = (v: number | null | undefined) =>
+  new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    maximumFractionDigits: 0,
+  }).format(Number(v || 0));
+
+type ChaveFaixa = "f1_7" | "f8_30" | "f31_60" | "f60";
+
+const FAIXAS_ATRASO: readonly [ChaveFaixa, string][] = [
+  ["f1_7", "1–7 dias de atraso"],
+  ["f8_30", "8–30 dias de atraso"],
+  ["f31_60", "31–60 dias de atraso"],
+  ["f60", "+60 dias de atraso"],
+];
+
+/** Coluna da faixa de KPI: densa, clicável, ~90px de altura. */
+function ColunaKpi({
+  rotulo,
+  valor,
+  sublinha,
+  corValor,
+  ativo,
+  onClick,
+  extraRotulo,
+  corpo,
+}: {
+  rotulo: string;
+  valor: string;
+  sublinha?: string;
+  corValor?: string;
+  ativo: boolean;
+  onClick: () => void;
+  extraRotulo?: React.ReactNode;
+  corpo?: React.ReactNode;
+}) {
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className={
+        "cursor-pointer px-4 py-3.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring " +
+        (ativo ? "bg-muted" : "hover:bg-muted/40")
+      }
+    >
+      <div className="flex items-center gap-1.5">
+        <span
+          className={
+            "text-xs text-muted-foreground " + (ativo ? "font-medium" : "")
+          }
+        >
+          {rotulo}
+        </span>
+        {extraRotulo}
+      </div>
+      <div className={"text-[22px] font-medium leading-tight tabular-nums " + (corValor ?? "")}>
+        {valor}
+      </div>
+      {sublinha && (
+        <p className="text-xs text-muted-foreground tabular-nums">{sublinha}</p>
+      )}
+      {corpo}
+    </div>
+  );
+}
+
+
+
 const fmtDesvio = (d: number | null | undefined) => {
   if (d == null || d === 0) return "";
   return `${d > 0 ? "+" : "−"}${Math.abs(d)}d`;
@@ -341,6 +419,13 @@ function AbaB2B() {
   const [filtroBanco, setFiltroBanco] = useState<string>("todos");
   const [carteiraAtiva, setCarteiraAtiva] = useState<string | null>(null);
   const [achado, setAchado] = useState<Achado | null>(null);
+  /** Par mutuamente exclusivo da faixa de KPI. Ambos forçam "em aberto". */
+  const [filtroInstrumento, setFiltroInstrumento] = useState<
+    "garantido" | "sem_instrumento" | null
+  >(null);
+  /** Transversal: combina com qualquer instrumento e qualquer carteira. */
+  const [filtroVencido, setFiltroVencido] = useState(false);
+
   const [qualidadeAberta, setQualidadeAberta] = useState(false);
   const [baseMensal, setBaseMensal] = useState<BaseMensal>("competencia");
   const [recebimentosAtivos, setRecebimentosAtivos] = useState<Set<EixoRecebimento>>(
@@ -431,8 +516,37 @@ function AbaB2B() {
     return t.eh_inadimplente === true;
   };
 
+  /**
+   * Camada nova entre `baseFiltros` e `baseCarteira`: filtros da faixa de KPI.
+   * Os totais das colunas continuam vindo de `baseFiltros` — senão a coluna
+   * ativa zeraria a si mesma e as irmãs sumiriam.
+   */
+  const baseKpi = useMemo(() => {
+    if (!filtroInstrumento && !filtroVencido) return baseFiltros;
+    return baseFiltros.filter((t) => {
+      if (filtroInstrumento) {
+        if (t.estado_em_aberto !== true) return false;
+        const inst = t.eixo_instrumento ?? "";
+        if (filtroInstrumento === "garantido" && !INSTRUMENTO_GARANTIDO.includes(inst))
+          return false;
+        if (filtroInstrumento === "sem_instrumento" && inst !== "sem_instrumento") return false;
+      }
+      if (filtroVencido && t.eh_inadimplente !== true) return false;
+      return true;
+    });
+  }, [baseFiltros, filtroInstrumento, filtroVencido]);
+
   /** Base dos chips de recebimento: já com carteira e achado aplicados. */
   const baseCarteira = useMemo(() => {
+    return baseKpi.filter((t) => {
+      if (carteiraAtiva && t.carteira_codigo !== carteiraAtiva) return false;
+      if (achado && !casaAchado(t, achado)) return false;
+      return true;
+    });
+  }, [baseKpi, carteiraAtiva, achado]);
+
+  /** Mesma base, ignorando os filtros de KPI — usada para apagar chips impossíveis. */
+  const baseCarteiraSemKpi = useMemo(() => {
     return baseFiltros.filter((t) => {
       if (carteiraAtiva && t.carteira_codigo !== carteiraAtiva) return false;
       if (achado && !casaAchado(t, achado)) return false;
@@ -454,14 +568,24 @@ function AbaB2B() {
     let vencido = 0;
     let vencidoQtd = 0;
     const faixas = { f1_7: 0, f8_30: 0, f31_60: 0, f60: 0 };
-    let inadimplencia = 0;
-    let inadimplenciaQtd = 0;
 
     for (const t of baseFiltros) {
       const v = efetivoDe(t);
+      /* VENCIDO-VEM-DO-BANCO: `eh_inadimplente` é a fonte única. O front não
+         recalcula mais vencimento — eram dois números para a mesma pergunta. */
       if (t.eh_inadimplente === true) {
-        inadimplencia += v;
-        inadimplenciaQtd += 1;
+        vencido += v;
+        vencidoQtd += 1;
+        const venc = t.data_vencimento_vigente;
+        if (venc) {
+          const dias = Math.floor(
+            (hoje.getTime() - new Date(venc + "T12:00:00").getTime()) / 86400000
+          );
+          if (dias <= 7) faixas.f1_7 += v;
+          else if (dias <= 30) faixas.f8_30 += v;
+          else if (dias <= 60) faixas.f31_60 += v;
+          else faixas.f60 += v;
+        }
       }
       if (t.estado_em_aberto !== true) continue;
       aReceber += v;
@@ -479,19 +603,6 @@ function AbaB2B() {
         outros += v;
         outrosQtd += 1;
       }
-
-      const venc = t.data_vencimento_vigente;
-      if (venc && venc < hojeIso) {
-        vencido += v;
-        vencidoQtd += 1;
-        const dias = Math.floor(
-          (hoje.getTime() - new Date(venc + "T12:00:00").getTime()) / 86400000
-        );
-        if (dias <= 7) faixas.f1_7 += v;
-        else if (dias <= 30) faixas.f8_30 += v;
-        else if (dias <= 60) faixas.f31_60 += v;
-        else faixas.f60 += v;
-      }
     }
     return {
       aReceber,
@@ -506,10 +617,22 @@ function AbaB2B() {
       vencido,
       vencidoQtd,
       faixas,
-      inadimplencia,
-      inadimplenciaQtd,
     };
-  }, [baseFiltros, hoje, hojeIso]);
+  }, [baseFiltros, hoje]);
+
+  const semFiltroKpi = !filtroInstrumento && !filtroVencido;
+
+  const limparFiltrosKpi = () => {
+    setFiltroInstrumento(null);
+    setFiltroVencido(false);
+    setPage(1);
+  };
+
+  const clicarInstrumento = (k: "garantido" | "sem_instrumento") => {
+    setFiltroInstrumento((prev) => (prev === k ? null : k));
+    setPage(1);
+  };
+
 
   /* ---------- Linha 2 — Carteiras ---------- */
   const carteiras = useMemo(() => {
@@ -557,6 +680,188 @@ function AbaB2B() {
     }
     return c;
   }, [baseCarteira]);
+
+  /** Contagem ignorando os filtros de KPI: revela chip impossível vs. chip vazio. */
+  const contagensSemKpi = useMemo(() => {
+    const c = {} as Record<EixoRecebimento, number>;
+    for (const r of RECEBIMENTO_ORDEM) c[r] = 0;
+    for (const t of baseCarteiraSemKpi) {
+      const r = t.eixo_recebimento;
+      if (r && r in c) c[r] += 1;
+    }
+    return c;
+  }, [baseCarteiraSemKpi]);
+
+  const rotuloFiltroKpi =
+    filtroInstrumento === "garantido"
+      ? "Garantido em banco"
+      : filtroInstrumento === "sem_instrumento"
+      ? "Sem instrumento"
+      : filtroVencido
+      ? "Vencido"
+      : null;
+
+  const totalAtraso =
+    estadoCarteira.faixas.f1_7 +
+    estadoCarteira.faixas.f8_30 +
+    estadoCarteira.faixas.f31_60 +
+    estadoCarteira.faixas.f60;
+
+  const pctGarantido =
+    estadoCarteira.aReceber > 0
+      ? Math.round((estadoCarteira.garantido / estadoCarteira.aReceber) * 100)
+      : 0;
+
+  /** Uma frase honesta sobre o topo do aging, sem tabelinha. */
+  const resumoAtraso = useMemo(() => {
+    const f = estadoCarteira.faixas;
+    if (totalAtraso === 0) return "sem atraso";
+    if (f.f60 > 0) return `+60d: ${formatBRLCurto(f.f60)}`;
+    if (f.f31_60 > 0) return `31–60d: ${formatBRLCurto(f.f31_60)}`;
+    if (f.f8_30 > 0) return `8–30d: ${formatBRLCurto(f.f8_30)}`;
+    return "nada acima de 7d";
+  }, [estadoCarteira.faixas, totalAtraso]);
+
+  const ACHADO_LABEL: Record<Achado, string> = {
+    sobreposicao: "Sobreposição do instrumento",
+    renegociacao: "Renegociação humana",
+    sem_prova: "Sem prova bancária",
+    data_divergente: "Data divergente",
+    meio_divergente: "Meio ≠ pedido",
+    inadimplente: "Inadimplentes",
+  };
+
+  const ddMM = (v: string) => {
+    const [, m, d] = v.split("-");
+    return `${d}/${m}`;
+  };
+
+  const limparTudo = () => {
+    setCarteiraAtiva(null);
+    setFiltroInstrumento(null);
+    setFiltroVencido(false);
+    setBusca("");
+    setFiltroBanco("todos");
+    setDataDe("");
+    setDataAte("");
+    setAchado(null);
+    setRecebimentosAtivos(new Set<EixoRecebimento>(["em_aberto"]));
+    setPage(1);
+  };
+
+  /** Barra de estado: cada filtro ligado aparece e sai por conta própria. */
+  const filtrosAtivos = useMemo(() => {
+    const lista: { chave: string; rotulo: string; limpar: () => void }[] = [];
+    if (carteiraAtiva) {
+      const nome = carteiras.find((c) => c.codigo === carteiraAtiva)?.nome ?? carteiraAtiva;
+      lista.push({
+        chave: "carteira",
+        rotulo: `Carteira: ${nome}`,
+        limpar: () => {
+          setCarteiraAtiva(null);
+          setPage(1);
+        },
+      });
+    }
+    if (filtroInstrumento) {
+      lista.push({
+        chave: "instrumento",
+        rotulo: filtroInstrumento === "garantido" ? "Garantido em banco" : "Sem instrumento",
+        limpar: () => {
+          setFiltroInstrumento(null);
+          setPage(1);
+        },
+      });
+    }
+    if (filtroVencido) {
+      lista.push({
+        chave: "vencido",
+        rotulo: "Vencido",
+        limpar: () => {
+          setFiltroVencido(false);
+          setPage(1);
+        },
+      });
+    }
+    if (busca.trim()) {
+      lista.push({
+        chave: "busca",
+        rotulo: `Busca: "${busca.trim()}"`,
+        limpar: () => {
+          setBusca("");
+          setPage(1);
+        },
+      });
+    }
+    if (filtroBanco !== "todos") {
+      lista.push({
+        chave: "banco",
+        rotulo: `Banco: ${filtroBanco}`,
+        limpar: () => {
+          setFiltroBanco("todos");
+          setPage(1);
+        },
+      });
+    }
+    if (dataDe || dataAte) {
+      lista.push({
+        chave: "periodo",
+        rotulo: `Período: ${dataDe ? ddMM(dataDe) : "…"}–${dataAte ? ddMM(dataAte) : "…"}`,
+        limpar: () => {
+          setDataDe("");
+          setDataAte("");
+          setPage(1);
+        },
+      });
+    }
+    for (const r of RECEBIMENTO_ORDEM) {
+      if (!recebimentosAtivos.has(r)) continue;
+      lista.push({
+        chave: `receb:${r}`,
+        rotulo: `Recebimento: ${RECEBIMENTO_LABEL[r]}`,
+        limpar: () => toggleRecebimento(r),
+      });
+    }
+    if (achado) {
+      lista.push({
+        chave: "achado",
+        rotulo: `Achado: ${ACHADO_LABEL[achado]}`,
+        limpar: () => {
+          setAchado(null);
+          setPage(1);
+        },
+      });
+    }
+    return lista;
+  }, [
+    carteiraAtiva,
+    carteiras,
+    filtroInstrumento,
+    filtroVencido,
+    busca,
+    filtroBanco,
+    dataDe,
+    dataAte,
+    recebimentosAtivos,
+    achado,
+  ]);
+
+  /**
+   * A tela mentiu por omissão uma vez: busca com resultado fora da carteira
+   * selecionada voltava vazia. Aqui ela conta onde o registro está.
+   */
+  const buscaForaDoRecorte = useMemo(() => {
+    if (!busca.trim()) return null;
+    if (baseFiltros.length === 0) return null;
+    const nomes = new Set(
+      baseFiltros.map((t) => t.carteira_nome ?? t.carteira_codigo ?? "—")
+    );
+    return {
+      n: baseFiltros.length,
+      carteira: nomes.size === 1 ? Array.from(nomes)[0] : null,
+    };
+  }, [busca, baseFiltros]);
+
 
   const toggleRecebimento = (k: EixoRecebimento) => {
     setRecebimentosAtivos((prev) => {
@@ -971,109 +1276,125 @@ function AbaB2B() {
         )}
       </div>
 
-      {/* Linha 1 — Estado da carteira. Recorte fixo: período, busca e banco. */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-info">A receber — no período</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-medium tabular-nums text-info">
-              {formatBRL(estadoCarteira.aReceber)}
-            </div>
-            <p className="text-xs text-muted-foreground tabular-nums">
-              {estadoCarteira.aReceberQtd} títulos em aberto
-            </p>
-            {estadoCarteira.aReceberSemData > 0 && (
-              <p className="text-xs text-muted-foreground tabular-nums">
-                dos quais {formatBRL(estadoCarteira.aReceberSemData)} sem data de vencimento
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Garantido em banco</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-medium tabular-nums">
-              {formatBRL(estadoCarteira.garantido)}
-            </div>
-            <p className="text-xs text-muted-foreground tabular-nums">
-              {estadoCarteira.garantidoQtd} títulos · com instrumento registrado
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-warning">Sem instrumento</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-medium tabular-nums text-warning">
-              {formatBRL(estadoCarteira.semInstrumento)}
-            </div>
-            <p className="text-xs text-muted-foreground tabular-nums">
-              {estadoCarteira.semInstrumentoQtd} títulos · faturado, ainda não depositado em carteira
-            </p>
-            {estadoCarteira.outros > 0 && (
-              <p className="text-xs text-muted-foreground tabular-nums pt-1">
-                Em trânsito de instrumento: {formatBRL(estadoCarteira.outros)} ·{" "}
-                {estadoCarteira.outrosQtd} títulos
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="border-destructive/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-destructive">
-              Vencido e não recebido (bruto)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-medium tabular-nums text-destructive">
-              {formatBRL(estadoCarteira.vencido)}
-            </div>
-            <p className="text-xs text-muted-foreground tabular-nums">
-              {estadoCarteira.vencidoQtd} títulos · valor bruto, pelo vencimento vigente
-            </p>
-            <div className="mt-2 space-y-0.5">
-              {(
-                [
-                  ["1–7 dias de atraso", estadoCarteira.faixas.f1_7],
-                  ["8–30 dias de atraso", estadoCarteira.faixas.f8_30],
-                  ["31–60 dias de atraso", estadoCarteira.faixas.f31_60],
-                  ["+60 dias de atraso", estadoCarteira.faixas.f60],
-                ] as const
-              ).map(([rotulo, valor]) => (
-                <div
-                  key={rotulo}
-                  className="flex justify-between gap-2 text-xs text-muted-foreground"
+      {/* Faixa 1 — Estado da carteira. Recorte fixo: período, busca e banco.
+          Colunas são filtro: "A receber" é o universo (limpa), garantido ×
+          sem instrumento são par exclusivo, vencido é transversal. */}
+      <div className="grid grid-cols-2 divide-x divide-border rounded-xl border border-border bg-card md:grid-cols-4">
+        <ColunaKpi
+          rotulo="A receber"
+          valor={formatBRLCurto(estadoCarteira.aReceber)}
+          corValor="text-info"
+          sublinha={`${estadoCarteira.aReceberQtd} títulos`}
+          ativo={semFiltroKpi}
+          onClick={limparFiltrosKpi}
+        />
+        <ColunaKpi
+          rotulo="Garantido em banco"
+          valor={formatBRLCurto(estadoCarteira.garantido)}
+          sublinha={`${estadoCarteira.garantidoQtd} · ${pctGarantido}% da carteira`}
+          ativo={filtroInstrumento === "garantido"}
+          onClick={() => clicarInstrumento("garantido")}
+        />
+        <ColunaKpi
+          rotulo="Sem instrumento"
+          valor={formatBRLCurto(estadoCarteira.semInstrumento)}
+          corValor="text-warning"
+          sublinha={
+            estadoCarteira.outrosQtd > 0
+              ? `${estadoCarteira.semInstrumentoQtd} · +${estadoCarteira.outrosQtd} em trânsito`
+              : `${estadoCarteira.semInstrumentoQtd} títulos`
+          }
+          ativo={filtroInstrumento === "sem_instrumento"}
+          onClick={() => clicarInstrumento("sem_instrumento")}
+        />
+        <ColunaKpi
+          rotulo="Vencido"
+          valor={formatBRLCurto(estadoCarteira.vencido)}
+          corValor="text-destructive"
+          ativo={filtroVencido}
+          onClick={() => {
+            setFiltroVencido((v) => !v);
+            setPage(1);
+          }}
+          extraRotulo={
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Detalhar faixas de atraso"
+                  className="text-muted-foreground hover:text-foreground"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <span>{rotulo}</span>
-                  <span className="tabular-nums">{formatBRL(valor)}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-destructive/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-destructive">Inadimplência</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-medium tabular-nums text-destructive">
-              {formatBRL(estadoCarteira.inadimplencia)}
-            </div>
-            <p className="text-xs text-muted-foreground tabular-nums">
-              {estadoCarteira.inadimplenciaQtd} títulos
-            </p>
-          </CardContent>
-        </Card>
+                  <Info className="h-[13px] w-[13px]" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-64 space-y-0.5 p-3">
+                {FAIXAS_ATRASO.map(([chave, rotulo]) => (
+                  <div
+                    key={chave}
+                    className="flex justify-between gap-2 text-xs text-muted-foreground"
+                  >
+                    <span>{rotulo}</span>
+                    <span className="tabular-nums">
+                      {formatBRL(estadoCarteira.faixas[chave])}
+                    </span>
+                  </div>
+                ))}
+              </PopoverContent>
+            </Popover>
+          }
+          corpo={
+            <>
+              <div className="mt-1 flex h-1 w-full overflow-hidden rounded-full bg-muted">
+                {FAIXAS_ATRASO.map(([chave], i) => {
+                  const valor = estadoCarteira.faixas[chave];
+                  const pct = totalAtraso > 0 ? (valor / totalAtraso) * 100 : 0;
+                  if (pct <= 0) return null;
+                  return (
+                    <div
+                      key={chave}
+                      style={{ width: `${pct}%` }}
+                      className={
+                        ["bg-destructive/30", "bg-destructive/50", "bg-destructive/70", "bg-destructive"][i]
+                      }
+                    />
+                  );
+                })}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+                {estadoCarteira.vencidoQtd} títulos · {resumoAtraso}
+              </p>
+            </>
+          }
+        />
       </div>
+
+      {/* Barra de filtros ativos — a tela não pode filtrar em silêncio. */}
+      {filtrosAtivos.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {filtrosAtivos.map((f) => (
+            <Badge key={f.chave} variant="secondary" className="gap-1 py-1 pl-2 pr-1 font-normal">
+              {f.rotulo}
+              <button
+                type="button"
+                aria-label={`Remover filtro ${f.rotulo}`}
+                className="rounded-sm p-0.5 hover:bg-background/60"
+                onClick={f.limpar}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+          <button
+            type="button"
+            className="text-xs text-muted-foreground underline hover:text-foreground"
+            onClick={limparTudo}
+          >
+            Limpar tudo
+          </button>
+        </div>
+      )}
+
 
       {/* Linha 2 — Carteiras */}
       {carteiras.length > 0 && (
@@ -1138,16 +1459,35 @@ function AbaB2B() {
           <div className="space-y-1">
             <Label className="text-xs">Recebimento — o dinheiro chegou?</Label>
             <div className="flex flex-wrap gap-2">
-              {RECEBIMENTO_ORDEM.map((r) => (
-                <Button
-                  key={r}
-                  size="sm"
-                  variant={recebimentosAtivos.has(r) ? "default" : "outline"}
-                  onClick={() => toggleRecebimento(r)}
-                >
-                  {RECEBIMENTO_LABEL[r]} ({contagensRecebimento[r] ?? 0})
-                </Button>
-              ))}
+              {RECEBIMENTO_ORDEM.map((r) => {
+                const n = contagensRecebimento[r] ?? 0;
+                /* Chip zerado POR CAUSA do filtro de KPI é impossível, não vazio. */
+                const impossivel =
+                  n === 0 && !!rotuloFiltroKpi && (contagensSemKpi[r] ?? 0) > 0;
+                const botao = (
+                  <Button
+                    key={r}
+                    size="sm"
+                    variant={recebimentosAtivos.has(r) ? "default" : "outline"}
+                    onClick={() => toggleRecebimento(r)}
+                    className={impossivel ? "opacity-50 pointer-events-none" : undefined}
+                  >
+                    {RECEBIMENTO_LABEL[r]} ({n})
+                  </Button>
+                );
+                if (!impossivel) return botao;
+                return (
+                  <Tooltip key={r}>
+                    <TooltipTrigger asChild>
+                      <span>{botao}</span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Incompatível com o filtro "{rotuloFiltroKpi}"
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })}
+
             </div>
           </div>
 
@@ -1417,20 +1757,50 @@ function AbaB2B() {
               ))}
             </div>
           ) : totalItens === 0 ? (
-            <div className="flex flex-col items-center gap-2 p-10 text-muted-foreground">
-              <Inbox className="h-8 w-8" />
+            <div className="flex flex-col items-center gap-2 p-10 text-center text-muted-foreground">
               {semChip ? (
                 <>
+                  <Inbox className="h-8 w-8" />
                   <p>Nenhum chip de Recebimento selecionado.</p>
                   <p className="text-xs">
                     {baseCarteira.length} título{baseCarteira.length !== 1 ? "s" : ""} escondido
                     {baseCarteira.length !== 1 ? "s" : ""} — clique num chip acima.
                   </p>
                 </>
+              ) : buscaForaDoRecorte ? (
+                <>
+                  <SearchX className="h-8 w-8" />
+                  <p>
+                    Nenhum título aqui, mas "{busca.trim()}" aparece em{" "}
+                    {buscaForaDoRecorte.n} título{buscaForaDoRecorte.n !== 1 ? "s" : ""}
+                    {buscaForaDoRecorte.carteira
+                      ? ` em ${buscaForaDoRecorte.carteira}.`
+                      : " em outras carteiras."}
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setCarteiraAtiva(null);
+                      setFiltroInstrumento(null);
+                      setFiltroVencido(false);
+                      setPage(1);
+                    }}
+                  >
+                    Ver todos
+                  </Button>
+                </>
               ) : (
-                <p>Nenhum recebível encontrado.</p>
+                <>
+                  <Inbox className="h-8 w-8" />
+                  <p>Nenhum título encontrado para os filtros atuais.</p>
+                  <Button size="sm" variant="outline" onClick={limparTudo}>
+                    Limpar tudo
+                  </Button>
+                </>
               )}
             </div>
+
           ) : (
             <Table>
               <TableHeader>
