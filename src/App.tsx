@@ -700,6 +700,7 @@ const App = () => (
                 <Route path="contas-pagar" element={<ContasPagar />} />
                 <Route path="caixa-banco" element={<CaixaBanco />} />
                 <Route path="banco-safra" element={<BancoSafra />} />
+                <Route path="conciliacao-mesa" element={<ConciliacaoMesa />} />
                 <Route path="caixa-banco/contas" element={<ContasBancarias />} />
                 <Route path="caixa-banco/contas/:contaId" element={<ExtratoConta />} />
                 <Route path="conciliacao" element={<Conciliacao />} />
