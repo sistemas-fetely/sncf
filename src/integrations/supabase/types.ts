@@ -8668,13 +8668,6 @@ export type Database = {
             foreignKeyName: "consignado_acerto_nf_id_fkey"
             columns: ["nf_id"]
             isOneToOne: false
-            referencedRelation: "vw_mesa_comercial"
-            referencedColumns: ["nf_id"]
-          },
-          {
-            foreignKeyName: "consignado_acerto_nf_id_fkey"
-            columns: ["nf_id"]
-            isOneToOne: false
             referencedRelation: "vw_nf_duplicata_cobertura"
             referencedColumns: ["nf_id"]
           },
@@ -22093,13 +22086,6 @@ export type Database = {
             foreignKeyName: "movimentacao_estoque_nf_saida_id_fkey"
             columns: ["nf_saida_id"]
             isOneToOne: false
-            referencedRelation: "vw_mesa_comercial"
-            referencedColumns: ["nf_id"]
-          },
-          {
-            foreignKeyName: "movimentacao_estoque_nf_saida_id_fkey"
-            columns: ["nf_saida_id"]
-            isOneToOne: false
             referencedRelation: "vw_nf_duplicata_cobertura"
             referencedColumns: ["nf_id"]
           },
@@ -23468,13 +23454,6 @@ export type Database = {
             foreignKeyName: "nf_devolucao_vinculo_nf_saida_id_fkey"
             columns: ["nf_saida_id"]
             isOneToOne: false
-            referencedRelation: "vw_mesa_comercial"
-            referencedColumns: ["nf_id"]
-          },
-          {
-            foreignKeyName: "nf_devolucao_vinculo_nf_saida_id_fkey"
-            columns: ["nf_saida_id"]
-            isOneToOne: false
             referencedRelation: "vw_nf_duplicata_cobertura"
             referencedColumns: ["nf_id"]
           },
@@ -24417,13 +24396,6 @@ export type Database = {
             foreignKeyName: "nfs_emitidas_substituida_por_nf_id_fkey"
             columns: ["substituida_por_nf_id"]
             isOneToOne: false
-            referencedRelation: "vw_mesa_comercial"
-            referencedColumns: ["nf_id"]
-          },
-          {
-            foreignKeyName: "nfs_emitidas_substituida_por_nf_id_fkey"
-            columns: ["substituida_por_nf_id"]
-            isOneToOne: false
             referencedRelation: "vw_nf_duplicata_cobertura"
             referencedColumns: ["nf_id"]
           },
@@ -25074,13 +25046,6 @@ export type Database = {
             columns: ["nf_id"]
             isOneToOne: false
             referencedRelation: "vw_frete_pedido_link"
-            referencedColumns: ["nf_id"]
-          },
-          {
-            foreignKeyName: "nfs_stage_venda_nf_id_fkey"
-            columns: ["nf_id"]
-            isOneToOne: false
-            referencedRelation: "vw_mesa_comercial"
             referencedColumns: ["nf_id"]
           },
           {
@@ -43538,13 +43503,6 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_nf_id_fkey"
             columns: ["nf_id"]
             isOneToOne: false
-            referencedRelation: "vw_mesa_comercial"
-            referencedColumns: ["nf_id"]
-          },
-          {
-            foreignKeyName: "titulo_a_receber_nf_id_fkey"
-            columns: ["nf_id"]
-            isOneToOne: false
             referencedRelation: "vw_nf_duplicata_cobertura"
             referencedColumns: ["nf_id"]
           },
@@ -49685,13 +49643,6 @@ export type Database = {
             foreignKeyName: "xpm_nf_fila_nf_id_fkey"
             columns: ["nf_id"]
             isOneToOne: false
-            referencedRelation: "vw_mesa_comercial"
-            referencedColumns: ["nf_id"]
-          },
-          {
-            foreignKeyName: "xpm_nf_fila_nf_id_fkey"
-            columns: ["nf_id"]
-            isOneToOne: false
             referencedRelation: "vw_nf_duplicata_cobertura"
             referencedColumns: ["nf_id"]
           },
@@ -50139,13 +50090,6 @@ export type Database = {
             columns: ["nf_id"]
             isOneToOne: true
             referencedRelation: "vw_frete_pedido_link"
-            referencedColumns: ["nf_id"]
-          },
-          {
-            foreignKeyName: "xpm_pedido_fila_b2c_nf_id_fkey"
-            columns: ["nf_id"]
-            isOneToOne: true
-            referencedRelation: "vw_mesa_comercial"
             referencedColumns: ["nf_id"]
           },
           {
@@ -55275,7 +55219,6 @@ export type Database = {
           data_venda: string | null
           dias_parado: number | null
           diff: number | null
-          liquidacao_ids: string[] | null
           liquido_pago: number | null
           mdr: number | null
           nsu: string | null
@@ -64866,13 +64809,6 @@ export type Database = {
             foreignKeyName: "nfs_emitidas_substituida_por_nf_id_fkey"
             columns: ["substituida_por_nf_id"]
             isOneToOne: false
-            referencedRelation: "vw_mesa_comercial"
-            referencedColumns: ["nf_id"]
-          },
-          {
-            foreignKeyName: "nfs_emitidas_substituida_por_nf_id_fkey"
-            columns: ["substituida_por_nf_id"]
-            isOneToOne: false
             referencedRelation: "vw_nf_duplicata_cobertura"
             referencedColumns: ["nf_id"]
           },
@@ -66232,14 +66168,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -67632,14 +67568,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -72406,13 +72342,6 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_nf_id_fkey"
             columns: ["nf_id"]
             isOneToOne: false
-            referencedRelation: "vw_mesa_comercial"
-            referencedColumns: ["nf_id"]
-          },
-          {
-            foreignKeyName: "titulo_a_receber_nf_id_fkey"
-            columns: ["nf_id"]
-            isOneToOne: false
             referencedRelation: "vw_nf_duplicata_cobertura"
             referencedColumns: ["nf_id"]
           },
@@ -73252,13 +73181,6 @@ export type Database = {
             columns: ["nf_id"]
             isOneToOne: false
             referencedRelation: "vw_frete_pedido_link"
-            referencedColumns: ["nf_id"]
-          },
-          {
-            foreignKeyName: "titulo_a_receber_nf_id_fkey"
-            columns: ["nf_id"]
-            isOneToOne: false
-            referencedRelation: "vw_mesa_comercial"
             referencedColumns: ["nf_id"]
           },
           {
@@ -75633,13 +75555,6 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_nf_id_fkey"
             columns: ["nf_id"]
             isOneToOne: false
-            referencedRelation: "vw_mesa_comercial"
-            referencedColumns: ["nf_id"]
-          },
-          {
-            foreignKeyName: "titulo_a_receber_nf_id_fkey"
-            columns: ["nf_id"]
-            isOneToOne: false
             referencedRelation: "vw_nf_duplicata_cobertura"
             referencedColumns: ["nf_id"]
           },
@@ -76549,13 +76464,6 @@ export type Database = {
             columns: ["nf_id"]
             isOneToOne: false
             referencedRelation: "vw_frete_pedido_link"
-            referencedColumns: ["nf_id"]
-          },
-          {
-            foreignKeyName: "titulo_a_receber_nf_id_fkey"
-            columns: ["nf_id"]
-            isOneToOne: false
-            referencedRelation: "vw_mesa_comercial"
             referencedColumns: ["nf_id"]
           },
           {
@@ -78549,6 +78457,10 @@ export type Database = {
         Args: { p_movimentacao_id: string; p_nota?: string }
         Returns: Json
       }
+      conciliar_cartao_liquidacao_familia: {
+        Args: { p_nota: string; p_nsu: string; p_titulo_ids: string[] }
+        Returns: Json
+      }
       conciliar_cartao_liquido: {
         Args: {
           p_movimentacao_id: string
@@ -79902,6 +79814,47 @@ export type Database = {
       fn_materializar_itens_pedido: {
         Args: { p_pedido_id: string }
         Returns: undefined
+      }
+      fn_mesa_boletos_pedido: {
+        Args: { p_pedido_id: string }
+        Returns: {
+          boleto_status: string
+          data_vencimento_atual: string
+          linha_digitavel: string
+          numero_parcela: number
+          status: string
+          titulo_id: string
+          total_parcelas: number
+          ult_nosso_numero: string
+          ult_situacao: string
+          valor_bruto: number
+          vig_boleto_id: string
+          vig_boletos_vivos: number
+          vig_data_vencimento: string
+          vig_enviavel: boolean
+          vig_linha_digitavel: string
+          vig_nosso_numero: string
+          vig_nosso_numero_em_baixa: string
+          vig_situacao: string
+          vig_valor: number
+          vig_vigente_em_baixa: boolean
+        }[]
+      }
+      fn_mesa_pedido_documentos: {
+        Args: never
+        Returns: {
+          boletos_qtd: number
+          boletos_valor_aberto: number
+          nf_chave: string
+          nf_id: string
+          nf_numero: string
+          nf_pdf_url: string
+          nf_serie: string
+          nf_xml_url: string
+          pedido_id: string
+          tem_pdf: boolean
+          tem_xml: boolean
+        }[]
       }
       fn_meu_cadastro_autodeclarar: { Args: { p_dados: Json }; Returns: Json }
       fn_meu_vinculo: { Args: never; Returns: string }
