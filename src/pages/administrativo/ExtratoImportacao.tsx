@@ -30,6 +30,7 @@ import {
 import { parseCsvSafraPayTipo1 } from "@/lib/financeiro/csv-safrapay-tipo1-parser";
 import { parseCsvSafraPayTipo3 } from "@/lib/financeiro/csv-safrapay-tipo3-parser";
 import { detectarCsvSafraPay } from "@/lib/financeiro/csv-safrapay-detect";
+import { parseCsvSafraPayLink } from "@/lib/financeiro/csv-safrapay-link-parser";
 import { parseXlsxMpSettlement } from "@/lib/financeiro/xlsx-mp-settlement-parser";
 import { parseXlsxMpReserveRelease } from "@/lib/financeiro/xlsx-mp-reserve-release-parser";
 import { parseXlsxSafraInstrucoes2Via } from "@/lib/financeiro/xlsx-safra-instrucoes-parser";
@@ -87,6 +88,7 @@ type Fonte =
   | "safrapay_vendas"
   | "safrapay_liquidacao"
   | "safrapay_ajustes"
+  | "safrapay_link"
   | "super_agenda"
   | "mp_settlement"
   | "mp_release"
