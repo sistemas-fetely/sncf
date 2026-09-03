@@ -226,6 +226,73 @@ const formatBRLCurto = (v: number | null | undefined) =>
     maximumFractionDigits: 0,
   }).format(Number(v || 0));
 
+type ChaveFaixa = "f1_7" | "f8_30" | "f31_60" | "f60";
+
+const FAIXAS_ATRASO: readonly [ChaveFaixa, string][] = [
+  ["f1_7", "1–7 dias de atraso"],
+  ["f8_30", "8–30 dias de atraso"],
+  ["f31_60", "31–60 dias de atraso"],
+  ["f60", "+60 dias de atraso"],
+];
+
+/** Coluna da faixa de KPI: densa, clicável, ~90px de altura. */
+function ColunaKpi({
+  rotulo,
+  valor,
+  sublinha,
+  corValor,
+  ativo,
+  onClick,
+  extraRotulo,
+  corpo,
+}: {
+  rotulo: string;
+  valor: string;
+  sublinha?: string;
+  corValor?: string;
+  ativo: boolean;
+  onClick: () => void;
+  extraRotulo?: React.ReactNode;
+  corpo?: React.ReactNode;
+}) {
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className={
+        "cursor-pointer px-4 py-3.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring " +
+        (ativo ? "bg-muted" : "hover:bg-muted/40")
+      }
+    >
+      <div className="flex items-center gap-1.5">
+        <span
+          className={
+            "text-xs text-muted-foreground " + (ativo ? "font-medium" : "")
+          }
+        >
+          {rotulo}
+        </span>
+        {extraRotulo}
+      </div>
+      <div className={"text-[22px] font-medium leading-tight tabular-nums " + (corValor ?? "")}>
+        {valor}
+      </div>
+      {sublinha && (
+        <p className="text-xs text-muted-foreground tabular-nums">{sublinha}</p>
+      )}
+      {corpo}
+    </div>
+  );
+}
+
+
 
 const fmtDesvio = (d: number | null | undefined) => {
   if (d == null || d === 0) return "";
