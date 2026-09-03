@@ -43,6 +43,8 @@ import {
   UserSearch,
   Loader2,
 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
