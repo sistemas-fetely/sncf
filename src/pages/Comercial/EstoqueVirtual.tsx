@@ -28,6 +28,7 @@ import { PageShell } from "@/components/layout/PageShell";
 interface EstoqueRede {
   sku: string;
   nome_comercial: string | null;
+  cor_nome: string | null;
   ativo: boolean;
   fiscal_vendavel: number | null;
   bloqueado: number | null;
@@ -54,11 +55,12 @@ interface EstoqueRede {
 }
 
 const COLS =
-  "sku,nome_comercial,ativo,fiscal_vendavel,bloqueado,fisico,furo,reservado,reservado_aguardando_produto,disponivel,descoberto,em_showroom,nao_contabil,tem_razao,estoque_minimo,referencia_bling,delta_bling,status_venda,contagem_em,dias_desde_contagem,pedido_suprimento,origem_suprimento,eta_prevista,eta_precisao,status_suprimento";
+  "sku,nome_comercial,cor_nome,ativo,fiscal_vendavel,bloqueado,fisico,furo,reservado,reservado_aguardando_produto,disponivel,descoberto,em_showroom,nao_contabil,tem_razao,estoque_minimo,referencia_bling,delta_bling,status_venda,contagem_em,dias_desde_contagem,pedido_suprimento,origem_suprimento,eta_prevista,eta_precisao,status_suprimento";
 
 type Col =
   | "sku"
   | "nome"
+  | "cor"
   | "vendavel"
   | "bloqueado"
   | "reservado"
@@ -244,12 +246,14 @@ export default function EstoqueVirtual() {
       if (!q) return true;
       return (
         p.sku?.toLowerCase().includes(q) ||
-        p.nome_comercial?.toLowerCase().includes(q)
+        p.nome_comercial?.toLowerCase().includes(q) ||
+        p.cor_nome?.toLowerCase().includes(q)
       );
     });
     return ordenarPor<EstoqueRede, Col>(base, sort, {
       sku: (p) => p.sku,
       nome: (p) => p.nome_comercial ?? "",
+      cor: (p) => p.cor_nome ?? "",
       vendavel: (p) => Number(p.fiscal_vendavel ?? 0),
       bloqueado: (p) => Number(p.bloqueado ?? 0),
       reservado: (p) => Number(p.reservado ?? 0),
@@ -414,6 +418,7 @@ export default function EstoqueVirtual() {
               <TableRow>
                 <SortableTableHead column="sku" sort={sort} onSort={setSort} className="w-[110px]">SKU</SortableTableHead>
                 <SortableTableHead column="nome" sort={sort} onSort={setSort} className="min-w-[180px]">Produto</SortableTableHead>
+                <SortableTableHead column="cor" sort={sort} onSort={setSort} className="w-[150px]">Cor</SortableTableHead>
                 <SortableTableHead column="vendavel" sort={sort} onSort={setSort} align="right" className="w-[90px]">Vendável</SortableTableHead>
                 <SortableTableHead column="bloqueado" sort={sort} onSort={setSort} align="right" className="w-[100px]">Não vendável</SortableTableHead>
                 <SortableTableHead column="reservado" sort={sort} onSort={setSort} align="right" className="w-[95px]">Reservado</SortableTableHead>
@@ -430,11 +435,11 @@ export default function EstoqueVirtual() {
             <TableBody>
               {produtosQuery.isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">Carregando…</TableCell>
+                  <TableCell colSpan={12} className="text-center py-12 text-muted-foreground">Carregando…</TableCell>
                 </TableRow>
               ) : pageItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">Nenhum produto encontrado.</TableCell>
+                  <TableCell colSpan={12} className="text-center py-12 text-muted-foreground">Nenhum produto encontrado.</TableCell>
                 </TableRow>
               ) : (
                 pageItems.map((p) => {
@@ -463,10 +468,13 @@ export default function EstoqueVirtual() {
                       <TableCell className="font-medium">
                         <span className="flex items-center gap-2">
                           {alarme && <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />}
-                          <span className="block max-w-[220px] truncate" title={p.nome_comercial ?? ""}>
+                          <span className="block w-[300px] truncate" title={p.nome_comercial ?? ""}>
                             {p.nome_comercial ?? "—"}
                           </span>
                         </span>
+                      </TableCell>
+                      <TableCell className="text-[13px] whitespace-nowrap">
+                        {p.cor_nome ? p.cor_nome : <span className="text-muted-foreground">—</span>}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{formatNum(p.fiscal_vendavel)}</TableCell>
                       <TableCell className="text-right tabular-nums">
