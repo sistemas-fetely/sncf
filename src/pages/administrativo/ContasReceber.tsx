@@ -2190,9 +2190,9 @@ function diasDesde(iso: string | null | undefined): number | null {
   return Math.floor((Date.now() - d.getTime()) / 86400000);
 }
 
-function AbaB2C() {
-  const { temNivel } = useNivel();
+function AbaB2C({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void; ativo: boolean }) => void }) {
   const [busca, setBusca] = useState("");
+
   const [dataDe, setDataDe] = useState("");
   const [dataAte, setDataAte] = useState("");
   const [page, setPage] = useState(1);
