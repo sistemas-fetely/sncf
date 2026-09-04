@@ -576,8 +576,8 @@ function AbaB2B() {
           return false;
         if (filtroInstrumento === "sem_instrumento" && inst !== "sem_instrumento") return false;
       }
-      if (filtroPrazo === "vencidos" && !venceuNoCaixa(t)) return false;
-      if (filtroPrazo === "a_vencer" && (!naoRecebido(t) || venceuNoCaixa(t)))
+      if (filtroPrazo === "vencidos" && !estaVencido(t)) return false;
+      if (filtroPrazo === "a_vencer" && (!naoRecebido(t) || estaVencido(t)))
         return false;
 
       return true;
@@ -646,7 +646,7 @@ function AbaB2B() {
       /* VENCIDO-MEDE-CAIXA: a régua é `data_caixa_projetada` — o dia em que o
          dinheiro deveria estar disponível. `eh_inadimplente` continua
          separando atraso do cliente de atraso da adquirente. */
-      if (venceuNoCaixa(t)) {
+      if (estaVencido(t)) {
         vencido += v;
         vencidoQtd += 1;
         const venc = t.data_caixa_projetada;
@@ -797,7 +797,7 @@ function AbaB2B() {
     let aVencer = 0;
     let vencidos = 0;
     for (const t of baseCarteiraSemPrazo) {
-      if (venceuNoCaixa(t)) vencidos += 1;
+      if (estaVencido(t)) vencidos += 1;
       else if (naoRecebido(t)) aVencer += 1;
 
     }
@@ -1127,7 +1127,7 @@ function AbaB2B() {
       const estadosDistintos = new Set(titulos.map((t) => t.estado_rotulo));
       const misto = estadosDistintos.size > 1;
       const inadimplente = titulos.find((t) => t.eh_inadimplente === true);
-      const vencido = titulos.find((t) => venceuNoCaixa(t));
+      const vencido = titulos.find((t) => estaVencido(t));
       const aberto = titulos.find((t) => naoRecebido(t));
       const fechados = titulos.filter((t) => !naoRecebido(t));
 
@@ -1306,7 +1306,7 @@ function AbaB2B() {
               </>
             );
           })()}
-          {venceuNoCaixa(t) && t.eh_inadimplente === false && (
+          {estaVencido(t) && t.eh_inadimplente === false && (
             <div className="mt-0.5">
               <SeloPontualidade
                 relogio={t.relogio_pontualidade}
