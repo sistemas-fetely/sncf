@@ -33,6 +33,7 @@ export const ROTAS: RegraRota[] = [
   { prefixo: "/fala-fetely",   status: "pronta",        tela_slug: "tela.fala_fetely" },
   { prefixo: "/documentacao",  status: "pronta",        tela_slug: "tela.documentacao"},
   { prefixo: "/compras",       status: "pronta",        tela_slug: "tela.compras"     },
+  { prefixo: "/logistica/chegada-mercadoria", status: "pronta", tela_slug: "tela.chegada_mercadoria" },
   { prefixo: "/ti",            status: "pronta",        tela_slug: "tela.ti"          },
   // Financeiro
   // Contratos era do pilar Patrimônio (DESMONTE-PATRIMONIO, 23/08/2026): preserva o
