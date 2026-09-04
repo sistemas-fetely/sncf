@@ -463,6 +463,16 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                   Use o alerta acima para tentar novamente.
                 </p>
               </div>
+            ) : isErroVendedor && !podeVerTodos ? (
+              <div className="text-center py-16 px-6">
+                <Sparkles className="h-8 w-8 text-muted-foreground/60 mx-auto mb-3" />
+                <p className="text-sm font-medium">
+                  Não foi possível carregar seu vínculo de vendedor.
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Sem esse dado a Mesa não pode filtrar sua carteira. O erro está no alerta acima.
+                </p>
+              </div>
             ) : semVendedorVinculado ? (
               <div className="text-center py-16 px-6">
                 <Sparkles className="h-8 w-8 text-muted-foreground/60 mx-auto mb-3" />
