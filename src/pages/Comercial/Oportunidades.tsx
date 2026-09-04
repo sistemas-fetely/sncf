@@ -352,7 +352,8 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
           {/* EIXO 1 — julgamento comercial. DIMENSAO-VIA-TABELA. */}
           <div className="inline-flex rounded-md border overflow-hidden">
             <FiltroBtn ativo={statusFiltro === "todos"} onClick={() => setStatusFiltro("todos")}>
-              Todas ({baseFase.length})
+              Todas
+              {!isErroMesa && ` (${baseFase.length})`}
             </FiltroBtn>
             {statusOpcoes.map((o) => (
               <FiltroBtn
@@ -360,14 +361,16 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                 ativo={statusFiltro === o.slug}
                 onClick={() => setStatusFiltro(o.slug)}
               >
-                {o.rotulo} ({contagensStatus.get(o.slug) ?? 0})
+                {o.rotulo}
+                {!isErroMesa && ` (${contagensStatus.get(o.slug) ?? 0})`}
               </FiltroBtn>
             ))}
             <FiltroBtn
               ativo={statusFiltro === "__sem__"}
               onClick={() => setStatusFiltro("__sem__")}
             >
-              Sem status ({contagensStatus.get("__sem__") ?? 0})
+              Sem status
+              {!isErroMesa && ` (${contagensStatus.get("__sem__") ?? 0})`}
             </FiltroBtn>
           </div>
 
