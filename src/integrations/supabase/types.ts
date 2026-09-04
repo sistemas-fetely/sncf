@@ -13720,6 +13720,42 @@ export type Database = {
         }
         Relationships: []
       }
+      estoque_veredito_dim: {
+        Row: {
+          ativo: boolean
+          barra: boolean
+          codigo: string
+          descricao: string | null
+          nivel_ref: number | null
+          ordem: number
+          permissao_slug: string | null
+          rotulo: string
+          severidade: number
+        }
+        Insert: {
+          ativo?: boolean
+          barra: boolean
+          codigo: string
+          descricao?: string | null
+          nivel_ref?: number | null
+          ordem?: number
+          permissao_slug?: string | null
+          rotulo: string
+          severidade: number
+        }
+        Update: {
+          ativo?: boolean
+          barra?: boolean
+          codigo?: string
+          descricao?: string | null
+          nivel_ref?: number | null
+          ordem?: number
+          permissao_slug?: string | null
+          rotulo?: string
+          severidade?: number
+        }
+        Relationships: []
+      }
       evento_titulo: {
         Row: {
           ator: string
@@ -80400,6 +80436,11 @@ export type Database = {
         Args: { p_eventos: Json; p_status_atual: string }
         Returns: string
       }
+      fn_estoque_registrar_disputa: {
+        Args: { p_ator: string; p_motivo: string; p_pedido_id: string }
+        Returns: number
+      }
+      fn_estoque_veredito_frase: { Args: { p_ver: Json }; Returns: string }
       fn_exigir_edicao_permitida: {
         Args: { p_campo: string; p_motivo?: string; p_pedido_id: string }
         Returns: undefined
@@ -80771,6 +80812,10 @@ export type Database = {
         Returns: boolean
       }
       fn_pedido_dinheiro_antes_da_nf: {
+        Args: { p_pedido_id: string }
+        Returns: Json
+      }
+      fn_pedido_estoque_veredito: {
         Args: { p_pedido_id: string }
         Returns: Json
       }
@@ -81202,7 +81247,6 @@ export type Database = {
         }
         Returns: Json
       }
-      fn_xpm_bloqueio_estoque: { Args: { p_itens: Json }; Returns: string }
       fn_xpm_conciliar_fase_do_arquivo: {
         Args: { p_dry_run?: boolean }
         Returns: Json
