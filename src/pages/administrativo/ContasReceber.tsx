@@ -1120,11 +1120,8 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
     return arr;
   }, [baseCarteira, recebimentosAtivos, sort]);
 
-  useEffect(() => {
-    onRegistrarExport({ fn: handleExportXLSX, ativo: filtrados.length > 0 });
-  }, [filtrados, periodoLabel]);
-
   const semChip = recebimentosAtivos.size === 0;
+
 
 
   /* Agrupamento por pedido. */
