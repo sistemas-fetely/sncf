@@ -591,7 +591,7 @@ function AbaB2B() {
     let arr = baseFiltros;
     if (filtroInstrumento) {
       arr = arr.filter((t) => {
-        if (t.estado_em_aberto !== true) return false;
+        if (!naoRecebido(t)) return false;
         const inst = t.eixo_instrumento ?? "";
         if (filtroInstrumento === "garantido" && !INSTRUMENTO_GARANTIDO.includes(inst))
           return false;
