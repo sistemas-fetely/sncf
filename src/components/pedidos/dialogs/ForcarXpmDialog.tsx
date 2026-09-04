@@ -89,7 +89,7 @@ export function ForcarXpmDialog({ pedidoId }: Props) {
               try {
                 await empurrar.mutateAsync({
                   pedido_id: pedidoId,
-                  forcar: true,
+                  forcar: ["expedicao_existente"],
                   motivo: motivo.trim(),
                 });
                 setOpen(false);
