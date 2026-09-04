@@ -318,6 +318,32 @@ export default function PessoaForm() {
     })();
   }, [id]);
 
+  // Cobre a corrida: se a permissão de salário chegar depois do vínculo,
+  // busca os valores pela view antes de permitir qualquer gravação.
+  useEffect(() => {
+    if (!vinculoId || !podeVerSalario || salarioCarregado) return;
+    (async () => {
+      const { data: custo, error: ce } = await supabase
+        .from("vw_vinculo_custo_total")
+        .select("valor_base, valor_transporte")
+        .eq("vinculo_id", vinculoId)
+        .maybeSingle();
+      if (ce) {
+        toast.error(humanizeError(ce.message));
+        setSalarioCarregado(false);
+        return;
+      }
+      setSalarioCarregado(true);
+      if (custo) {
+        setVinculo((prev) => ({
+          ...prev,
+          valor_base: custo.valor_base?.toString() || "",
+          valor_transporte: custo.valor_transporte?.toString() || "",
+        }));
+      }
+    })();
+  }, [vinculoId, podeVerSalario, salarioCarregado]);
+
   // Checar CPF duplicado (só no create)
   async function checarCpfDuplicado(): Promise<string | "ok" | null> {
     const cpf = onlyDigits(pessoa.cpf);
