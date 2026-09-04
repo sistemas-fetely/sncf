@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/tooltip";
 import { CheckCircle2, AlertTriangle, XCircle, Loader2, Send } from "lucide-react";
 import { useEnviarBling } from "@/hooks/pedidos/useEnviarBling";
-import { AncoraFaturamentoCard } from "@/components/pedidos/AncoraFaturamentoCard";
 import { useNivel } from "@/hooks/useNivel";
 
 /**
@@ -64,7 +63,7 @@ export function PreFaturamentoCard({ pedidoId }: { pedidoId: string }) {
   const [motivo, setMotivo] = useState("");
   const enviar = useEnviarBling();
 
-  const { data, isLoading, error, refetch } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: PRE_FATURAMENTO_CHECKLIST_KEY(pedidoId),
     queryFn: async (): Promise<Checklist> => {
       const { data, error } = await supabase.rpc(
@@ -136,12 +135,6 @@ export function PreFaturamentoCard({ pedidoId }: { pedidoId: string }) {
   return (
     <div className="w-full rounded-md border p-3 space-y-3">
       <div className="text-sm font-medium">Conferência de pré-faturamento</div>
-
-      <AncoraFaturamentoCard
-        pedidoId={pedidoId}
-        idExterno={data.id_externo}
-        onDeclarada={() => { void refetch(); }}
-      />
 
       <ul className="space-y-2">
         {itens.map((item) => (
