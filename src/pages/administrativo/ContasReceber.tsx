@@ -738,7 +738,7 @@ function AbaB2B() {
           aberto: 0,
           qtd: 0,
         };
-      if (t.estado_em_aberto === true) {
+      if (naoRecebido(t)) {
         atual.aberto += efetivoDe(t);
         atual.qtd += 1;
       }
