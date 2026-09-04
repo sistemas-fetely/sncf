@@ -65990,14 +65990,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -70936,6 +70936,7 @@ export type Database = {
           prova_frase: string | null
           prova_rotulo: string | null
           prova_tom: string | null
+          valor_credito: number | null
           valor_liquido: number | null
           valor_recebido: number | null
           valor_sem_prova: number | null
