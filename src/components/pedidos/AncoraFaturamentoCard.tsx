@@ -361,16 +361,95 @@ export function AncoraFaturamentoCard({
               </Alert>
             ))}
 
-            <Button
-              className="gap-1.5"
-              disabled={!sugestao.pode_declarar || declarar.isPending}
-              onClick={() => declarar.mutate()}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                className="gap-1.5"
+                disabled={!sugestao.pode_declarar || declarar.isPending}
+                onClick={() => declarar.mutate()}
+              >
+                {declarar.isPending
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <CalendarCheck className="h-4 w-4" />}
+                Declarar data de faturamento
+              </Button>
+
+              {!sugestao.pode_declarar && sugestao.pode_forcar && podeForcar && (
+                <Button
+                  variant="outline"
+                  className="gap-1.5"
+                  onClick={() => setForcaAberta(true)}
+                >
+                  <AlertTriangle className="h-4 w-4" />
+                  Declarar mesmo assim
+                </Button>
+              )}
+            </div>
+
+            <Dialog
+              open={forcaAberta}
+              onOpenChange={(v) => {
+                if (declarar.isPending) return;
+                setForcaAberta(v);
+                if (!v) setMotivoForca("");
+              }}
             >
-              {declarar.isPending
-                ? <Loader2 className="h-4 w-4 animate-spin" />
-                : <CalendarCheck className="h-4 w-4" />}
-              Declarar data de faturamento
-            </Button>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-warning" />
+                    Declarar fora do envelope de crédito
+                  </DialogTitle>
+                  <DialogDescription className="space-y-2">
+                    <p>
+                      O pedido está bloqueado para faturamento e declarar assim assume o risco sobre
+                      os alertas abaixo. O motivo fica registrado e assinado no histórico do pedido.
+                    </p>
+                    {(sugestao.alertas ?? []).filter((a) => a.bloqueia).length > 0 && (
+                      <ul className="list-disc pl-4 space-y-1 text-sm text-foreground">
+                        {(sugestao.alertas ?? [])
+                          .filter((a) => a.bloqueia)
+                          .map((a) => (
+                            <li key={a.codigo}>{a.detalhe}</li>
+                          ))}
+                      </ul>
+                    )}
+                  </DialogDescription>
+                </DialogHeader>
+
+                <Textarea
+                  value={motivoForca}
+                  onChange={(e) => setMotivoForca(e.target.value)}
+                  placeholder="Ex.: cliente estratégico, risco assumido pela diretoria nesta entrega"
+                  rows={3}
+                />
+                <div className="text-xs text-muted-foreground">
+                  {motivoForca.trim().length}/{MIN_MOTIVO_FORCA} caracteres
+                </div>
+
+                <DialogFooter>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setForcaAberta(false);
+                      setMotivoForca("");
+                    }}
+                    disabled={declarar.isPending}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    disabled={motivoForca.trim().length < MIN_MOTIVO_FORCA || declarar.isPending}
+                    onClick={() => declarar.mutate({ forcar: true, motivo: motivoForca.trim() })}
+                    className="gap-1.5"
+                  >
+                    {declarar.isPending
+                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                      : <AlertTriangle className="h-4 w-4" />}
+                    Declarar assumindo o risco
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </>
         )}
       </div>
