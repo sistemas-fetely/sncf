@@ -1105,8 +1105,6 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
 
   const semChip = recebimentosAtivos.size === 0;
 
-
-
   /* Agrupamento por pedido. */
   const grupos = useMemo(() => {
     const universo = new Map<string, { n: number; total: number }>();
