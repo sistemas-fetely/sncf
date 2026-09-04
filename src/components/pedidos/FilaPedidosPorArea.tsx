@@ -687,6 +687,8 @@ export function FilaPedidosPorArea({
   const { data: liberacaoMap } = useLiberacaoExpedicaoLote(pedidoIdsSaida);
 
   const { data: coberturaMap } = useCoberturaPedidos(pedidoIdsSaida);
+  const { data: politicaMap } = usePoliticaCobertura();
+
 
   // Coluna Cobrança: instrumento de cobrança do dinheiro em aberto (view pronta, poucas linhas).
   const { data: cobrancaMap } = useQuery({
@@ -1024,7 +1026,7 @@ export function FilaPedidosPorArea({
                     <CelulaPagamento p={p} liberacao={liberacaoMap?.get(p.id)} />
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
-                    <CelulaEstoque cob={coberturaMap?.get(p.id)} />
+                    <CelulaEstoque cob={coberturaMap?.get(p.id)} estagio={p.estagio} politica={politicaMap?.get(p.estagio ?? "")} />
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <CelulaCobranca cobranca={cobrancaMap?.get(p.id)} />
