@@ -190,21 +190,12 @@ function RastreioLeitura({ pedidoId }: { pedidoId: string }) {
 }
 
 /**
- * COBERTURA-SO-SOME-DEPOIS-DA-NF (28/08/2026): a tag de lastro nos itens só vira
- * ruído DEPOIS da emissão da NF, quando a baixa de estoque já aconteceu. Antes
- * disso ela é o aviso mais importante da tela.
- *
- * Corrige a premissa anterior (RESERVA-NASCE-DA-PRE-SEPARACAO aplicada à UI):
- * `reserva_ativa = true` significa apenas que o item entra na fila FIFO, não que
- * existe peça. Item em pré-separação pode estar reservado E descoberto ao mesmo
- * tempo — era exatamente o que a ficha escondia enquanto a Fila mostrava.
- * Mesma fonte da coluna Estoque da Fila: vw_pedido_item_cobertura.
+ * COBERTURA-SO-SOME-DEPOIS-DA-NF (28/08) + PROVA-FISICA-SAI-DA-FILA (04/09).
+ * Quem decide se a marca de cobertura aparece nao e mais uma lista de estagios aqui:
+ * e a dimensao `politica_cobertura_estagio` (campo `mostra_no_pedido`).
+ * Fonte do dado continua sendo vw_pedido_item_cobertura, igual a coluna Estoque da Fila.
  */
-const ESTAGIOS_JA_RESERVADO = [
-  "faturado",
-  "em_transporte",
-  "entregue",
-];
+
 
 function ListaItensComEstoque({ itens, pedidoId, estagio }: { itens: any[]; pedidoId: string; estagio?: string | null }) {
   const coberturaQ = useCoberturaItens([pedidoId]);
