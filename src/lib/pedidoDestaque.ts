@@ -20,7 +20,7 @@ import { useQuery } from "@tanstack/react-query";
  * (Produtos, DestinosCadastro), onde o agregado é justamente o que se quer ver.
  */
 
-export type Cobertura = "coberto" | "parcial" | "descoberto" | "sem_lastro" | "faturado";
+export type Cobertura = "coberto" | "parcial" | "descoberto" | "sem_lastro" | "faturado" | "separado";
 
 export interface CoberturaItem {
   id: string;
@@ -39,12 +39,14 @@ export interface CoberturaPedido {
   itens_cobertos: number;
   itens_parciais: number;
   itens_descobertos: number;
+  itens_separados: number;
   un_descobertas: number;
   un_total: number;
   un_cobertas: number;
   pct_coberto: number;
-  cobertura_pedido: "coberto" | "parcial" | "descoberto" | "faturado";
+  cobertura_pedido: "coberto" | "parcial" | "descoberto" | "faturado" | "separado";
 }
+
 
 function idsUnicos(pedidoIds: (string | null | undefined)[]): string[] {
   return Array.from(new Set(pedidoIds.filter((i): i is string => !!i)));
@@ -101,8 +103,9 @@ export async function buscarCoberturaPedidos(
   const { data, error } = await (supabase as any)
     .from("vw_pedido_cobertura")
     .select(
-      "pedido_id, id_externo, na_fila, itens_total, itens_cobertos, itens_parciais, itens_descobertos, un_descobertas, un_total, un_cobertas, pct_coberto, cobertura_pedido",
+      "pedido_id, id_externo, na_fila, itens_total, itens_cobertos, itens_parciais, itens_descobertos, itens_separados, un_descobertas, un_total, un_cobertas, pct_coberto, cobertura_pedido",
     )
+
     .in("pedido_id", ids);
 
   if (error) throw new Error(`[cobertura] falha ao ler vw_pedido_cobertura: ${error.message}`);
@@ -116,6 +119,7 @@ export async function buscarCoberturaPedidos(
       itens_cobertos: Number(row.itens_cobertos ?? 0),
       itens_parciais: Number(row.itens_parciais ?? 0),
       itens_descobertos: Number(row.itens_descobertos ?? 0),
+      itens_separados: Number(row.itens_separados ?? 0),
       un_descobertas: Number(row.un_descobertas ?? 0),
       un_total: Number(row.un_total ?? 0),
       un_cobertas: Number(row.un_cobertas ?? 0),
@@ -123,6 +127,7 @@ export async function buscarCoberturaPedidos(
       cobertura_pedido: row.cobertura_pedido,
     });
   }
+
   return mapa;
 }
 
@@ -148,8 +153,53 @@ export function rotuloCobertura(
   quantidade: number,
 ): string | null {
   if (!cobertura) return null;
-  if (cobertura === "coberto" || cobertura === "faturado") return null;
+  if (cobertura === "coberto" || cobertura === "faturado" || cobertura === "separado") return null;
   if (cobertura === "parcial") return `Parcial · ${qtdCoberta} de ${quantidade}`;
   return "Sem lastro";
 }
+
+/**
+ * DIMENSAO-VIA-TABELA (04/09/2026): a pergunta que a coluna Estoque faz muda por fase.
+ * Antes da separacao a fonte e a fila; depois dela, a prova fisica da XPM. Nenhuma tela
+ * decide isso por lista de estagios hardcoded — quem decide e `politica_cobertura_estagio`.
+ */
+export type FonteCobertura = "lastro_livre" | "fila" | "prova_separacao" | "foto_xpm" | "nenhuma";
+
+export interface PoliticaCobertura {
+  estagio: string;
+  fonte: FonteCobertura;
+  rotulo: string | null;
+  mostra_na_fila: boolean;
+  mostra_no_pedido: boolean;
+  alerta_divergencia: boolean;
+}
+
+/** Politica de cobertura por estagio. Chave do mapa: estagio. */
+export function usePoliticaCobertura() {
+  return useQuery({
+    queryKey: ["politica-cobertura-estagio"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("politica_cobertura_estagio")
+        .select("estagio, fonte, rotulo, mostra_na_fila, mostra_no_pedido, alerta_divergencia");
+      if (error)
+        throw new Error(`[cobertura] falha ao ler politica_cobertura_estagio: ${error.message}`);
+      const mapa = new Map<string, PoliticaCobertura>();
+      for (const row of data ?? []) {
+        mapa.set(row.estagio, {
+          estagio: row.estagio,
+          fonte: row.fonte,
+          rotulo: row.rotulo ?? null,
+          mostra_na_fila: !!row.mostra_na_fila,
+          mostra_no_pedido: !!row.mostra_no_pedido,
+          alerta_divergencia: !!row.alerta_divergencia,
+        });
+      }
+      return mapa;
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+}
+
+
 

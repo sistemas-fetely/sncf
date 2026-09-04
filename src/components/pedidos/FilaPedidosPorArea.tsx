@@ -13,7 +13,7 @@ import { usePedidosEntregaLote, type EntregaLinhaInfo } from "@/hooks/pedidos/us
 import { useDownloadNfPdf } from "@/hooks/nf/useDownloadNfPdf";
 import { nomeArquivoNf } from "@/lib/nf/nome-arquivo";
 import { useLiberacaoExpedicaoLote, type LiberacaoExpedicao } from "@/hooks/pedidos/useLiberacaoExpedicao";
-import { useCoberturaPedidos, type CoberturaPedido } from "@/lib/pedidoDestaque";
+import { useCoberturaPedidos, usePoliticaCobertura, type CoberturaPedido, type PoliticaCobertura } from "@/lib/pedidoDestaque";
 import { CelulaEntregaFila, LinhaNfFila } from "@/components/pedidos/CelulasFilaPedidos";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -295,7 +295,10 @@ function CelulaCobranca({ cobranca }: { cobranca: LastroCobranca | undefined }) 
   );
 }
 
-function CelulaEstoque({ cob }: { cob: CoberturaPedido | undefined }) {
+function CelulaEstoque({ cob, estagio, politica }: { cob: CoberturaPedido | undefined; estagio?: string | null; politica?: PoliticaCobertura }) {
+  if (politica && !politica.mostra_na_fila) {
+    return <span className="text-muted-foreground">—</span>;
+  }
   if (!cob) {
     return <span className="text-muted-foreground">—</span>;
   }
@@ -305,28 +308,39 @@ function CelulaEstoque({ cob }: { cob: CoberturaPedido | undefined }) {
   const itensCobertos = Math.round(cob.itens_cobertos);
   const itensParciais = Math.round(cob.itens_parciais);
   const itensDescobertos = Math.round(cob.itens_descobertos);
+  const itensSeparados = Math.round(cob.itens_separados);
   const itensProblematicos = itensParciais + itensDescobertos;
   const unTotal = Math.round(cob.un_total);
   const unCobertas = Math.round(cob.un_cobertas);
   const unDescobertas = Math.round(cob.un_descobertas);
 
   const tooltip = [
+    politica?.rotulo ? politica.rotulo : null,
     `Itens: ${itensCobertos} cobertos · ${itensParciais} parciais · ${itensDescobertos} descobertos`,
     `Unidades: ${unCobertas} de ${unTotal} com lastro`,
-    cob.na_fila === false ? "Pedido fora da fila de reserva — estágio não reserva estoque." : null,
+    politica?.fonte === "lastro_livre"
+      ? "Estagio nao reserva estoque — medido contra a sobra livre, sem posicao de fila."
+      : null,
   ]
     .filter(Boolean)
     .join("\n");
 
-  if (cob.cobertura_pedido === "faturado") {
+  if (cob.cobertura_pedido === "separado") {
     return (
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className="text-muted-foreground tabular-nums">Faturado</span>
+            <Badge
+              variant="outline"
+              className="rounded px-1.5 py-0 text-[10px] border-border text-muted-foreground gap-1"
+            >
+              Separado
+            </Badge>
           </TooltipTrigger>
           <TooltipContent>
-            <p className="text-xs max-w-[220px] whitespace-pre-line">{tooltip}</p>
+            <p className="text-xs max-w-[220px] whitespace-pre-line">
+              {`Separacao fechada pela XPM · ${itensSeparados} de ${itensTotal} itens\nA peca ja saiu da prateleira, mesmo antes da NF.`}
+            </p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -385,6 +399,7 @@ function CelulaEstoque({ cob }: { cob: CoberturaPedido | undefined }) {
     </TooltipProvider>
   );
 }
+
 
 
 export function FilaPedidosPorArea({
@@ -672,6 +687,8 @@ export function FilaPedidosPorArea({
   const { data: liberacaoMap } = useLiberacaoExpedicaoLote(pedidoIdsSaida);
 
   const { data: coberturaMap } = useCoberturaPedidos(pedidoIdsSaida);
+  const { data: politicaMap } = usePoliticaCobertura();
+
 
   // Coluna Cobrança: instrumento de cobrança do dinheiro em aberto (view pronta, poucas linhas).
   const { data: cobrancaMap } = useQuery({
@@ -1009,7 +1026,7 @@ export function FilaPedidosPorArea({
                     <CelulaPagamento p={p} liberacao={liberacaoMap?.get(p.id)} />
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
-                    <CelulaEstoque cob={coberturaMap?.get(p.id)} />
+                    <CelulaEstoque cob={coberturaMap?.get(p.id)} estagio={p.estagio} politica={politicaMap?.get(p.estagio ?? "")} />
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <CelulaCobranca cobranca={cobrancaMap?.get(p.id)} />
