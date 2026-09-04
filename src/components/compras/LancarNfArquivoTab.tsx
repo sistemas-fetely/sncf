@@ -494,7 +494,7 @@ export default function LancarNfArquivoTab({ pedidoId, fornecedorId, onGravado }
                 gravar a NF — só deixa a alocação em SKU pendente.
               </div>
               <Link
-                to="/compras/mercadoria?aba=de-para"
+                to="/logistica/chegada-mercadoria?aba=de-para"
                 className="inline-flex items-center gap-1 text-xs underline"
               >
                 Abrir de-para de fornecedor <ExternalLink className="h-3 w-3" />

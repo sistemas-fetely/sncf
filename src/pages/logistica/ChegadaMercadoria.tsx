@@ -2,8 +2,8 @@ import { useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PackageCheck } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import CadastroPedidoCompra from "@/pages/compras/CadastroPedidoCompra";
-import DeParaFornecedor from "@/pages/compras/DeParaFornecedor";
+import CadastroPedidoCompra from "@/pages/logistica/CadastroPedidoCompra";
+import DeParaFornecedor from "@/pages/logistica/DeParaFornecedor";
 import RateioNfTab from "@/components/compras/RateioNfTab";
 import PendenciasTab from "@/components/compras/PendenciasTab";
 
@@ -30,7 +30,7 @@ const ABAS: AbaMercadoria[] = [
 ];
 
 
-export default function ComprasMercadoria() {
+export default function ChegadaMercadoria() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const abaAtual = useMemo(() => {

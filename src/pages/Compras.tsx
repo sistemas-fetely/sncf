@@ -186,7 +186,7 @@ export default function Compras() {
               </Link>
             )}
             <Link
-              to="/compras/mercadoria"
+              to="/logistica/chegada-mercadoria"
               className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <Boxes className="h-4 w-4" />
@@ -198,7 +198,7 @@ export default function Compras() {
 
       <p className="-mt-3 text-xs text-muted-foreground">
         Comprando mercadoria para revenda? Use{" "}
-        <Link to="/compras/mercadoria" className="underline underline-offset-2">
+        <Link to="/logistica/chegada-mercadoria" className="underline underline-offset-2">
           Compras de Mercadoria
         </Link>
         .
