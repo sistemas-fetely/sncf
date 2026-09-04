@@ -406,9 +406,9 @@ export default function PessoaForm() {
       unidade_id: vinculo.unidade_id || null,
       gestor_pessoa_id: vinculo.gestor_pessoa_id || null,
       data_inicio: vinculo.data_inicio,
-      // Sigilo salarial: sem permissão, as chaves são OMITIDAS do payload
-      // (enviar null apagaria o valor existente no banco).
-      ...(podeVerSalario
+      // Sigilo salarial: sem permissão ou sem o salário carregado,
+      // as chaves são OMITIDAS do payload (enviar null apagaria o valor no banco).
+      ...(podeVerSalario && salarioCarregado
         ? {
             valor_base: toNum(vinculo.valor_base),
             valor_transporte: toNum(vinculo.valor_transporte),
