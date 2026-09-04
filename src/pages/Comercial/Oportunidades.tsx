@@ -81,14 +81,38 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
     useState<"itens" | "obs" | "pagamento" | "entrega">("itens");
   const navigate = useNavigate();
 
-  const { data = [], isLoading, isFetching } = useMesaComercial();
-  const { data: vendedorAtual, isLoading: carregandoVendedor } = useVendedorAtual();
-  const { data: statusOpcoes = [] } = useStatusComercialOpcoes();
-  const { data: pagamentoOpcoes = [] } = usePagamentoEstadoOpcoes();
+  const {
+    data = [],
+    isLoading,
+    isFetching,
+    isError: isErroMesa,
+    error: erroMesa,
+    refetch: refetchMesa,
+  } = useMesaComercial();
+  const {
+    data: vendedorAtual,
+    isLoading: carregandoVendedor,
+    isError: isErroVendedor,
+    error: erroVendedor,
+  } = useVendedorAtual();
+  const {
+    data: statusOpcoes = [],
+    isError: isErroStatusOpcoes,
+    error: erroStatusOpcoes,
+  } = useStatusComercialOpcoes();
+  const {
+    data: pagamentoOpcoes = [],
+    isError: isErroPagamentoOpcoes,
+    error: erroPagamentoOpcoes,
+  } = usePagamentoEstadoOpcoes();
   const { podeVerTodos, carregando: carregandoPerms } = usePermissoesMesa();
   /** Fase & entrega só interessa em "Em andamento" — em Oportunidades o eixo é comercial. */
   const mostrarFaseEntrega = grupo === "em_andamento";
-  const { data: entrega } = useMesaEntrega();
+  const {
+    data: entrega,
+    isError: isErroEntrega,
+    error: erroEntrega,
+  } = useMesaEntrega();
 
 
   /**
