@@ -190,16 +190,16 @@ export default function Compras() {
               className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <Boxes className="h-4 w-4" />
-              Compras de Mercadoria
+              Chegada de Mercadoria
             </Link>
           </>
         }
       />
 
       <p className="-mt-3 text-xs text-muted-foreground">
-        Comprando mercadoria para revenda? Use{" "}
+        Mercadoria para revenda? O acompanhamento da chegada fica em{" "}
         <Link to="/logistica/chegada-mercadoria" className="underline underline-offset-2">
-          Compras de Mercadoria
+          Chegada de Mercadoria
         </Link>
         .
       </p>
