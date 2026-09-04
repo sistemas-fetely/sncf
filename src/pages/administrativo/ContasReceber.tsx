@@ -543,8 +543,13 @@ function AbaB2B() {
     });
   }, [data, busca, dataBase, dataDe, dataAte, filtroBanco]);
 
-  /* DINHEIRO-NO-BANCO: "ainda não recebi" é o que o banco declara, não o estado. */
-  const naoRecebido = (t: RecebivelB2B) => t.dinheiro_no_banco === false;
+  /* NAO-CAIXA-NAO-E-RECEBIVEL: carteira com `gera_caixa = false` (haver, troca de
+     mercadoria) nunca produz movimentação bancária — contar como "a receber" cria
+     saldo que nunca zera. O título continua existindo porque é ele que fecha o
+     lastro do pedido; só não soma em Gestão. */
+  const naoRecebido = (t: RecebivelB2B) =>
+    t.dinheiro_no_banco === false && t.carteira_gera_caixa !== false;
+
 
   /* UM-VENCIDO-SO: "vencido" tem uma fonte só no sistema inteiro — `eh_inadimplente`
      na view, que já respeita carteira.tem_vencimento. A tela de Cobrança lê a mesma
@@ -726,6 +731,9 @@ function AbaB2B() {
       }
     >();
     for (const t of baseFiltros) {
+      /* NAO-CAIXA-NAO-E-RECEBIVEL: carteiras que não geram caixa não entram nos
+         totais de Gestão, embora o título continue existindo no lastro. */
+      if (t.carteira_gera_caixa === false) continue;
       const codigo = t.carteira_codigo ?? "—";
       const atual =
         mapa.get(codigo) ??
@@ -746,6 +754,7 @@ function AbaB2B() {
     }
     return Array.from(mapa.values()).sort((a, b) => a.ordem - b.ordem);
   }, [baseFiltros]);
+
 
   /* ---------- Chips de recebimento ---------- */
   const contagensRecebimento = useMemo(() => {
