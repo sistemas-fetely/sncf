@@ -271,10 +271,16 @@ export default function PessoaForm() {
               .maybeSingle();
             if (ce) {
               toast.error(humanizeError(ce.message));
-            } else if (custo) {
-              salarioBase = custo.valor_base?.toString() || "";
-              salarioTransporte = custo.valor_transporte?.toString() || "";
+              setSalarioCarregado(false);
+            } else {
+              setSalarioCarregado(true);
+              if (custo) {
+                salarioBase = custo.valor_base?.toString() || "";
+                salarioTransporte = custo.valor_transporte?.toString() || "";
+              }
             }
+          } else {
+            setSalarioCarregado(true);
           }
 
           setVinculo({
