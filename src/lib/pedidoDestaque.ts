@@ -158,4 +158,48 @@ export function rotuloCobertura(
   return "Sem lastro";
 }
 
+/**
+ * DIMENSAO-VIA-TABELA (04/09/2026): a pergunta que a coluna Estoque faz muda por fase.
+ * Antes da separacao a fonte e a fila; depois dela, a prova fisica da XPM. Nenhuma tela
+ * decide isso por lista de estagios hardcoded — quem decide e `politica_cobertura_estagio`.
+ */
+export type FonteCobertura = "lastro_livre" | "fila" | "prova_separacao" | "foto_xpm" | "nenhuma";
+
+export interface PoliticaCobertura {
+  estagio: string;
+  fonte: FonteCobertura;
+  rotulo: string | null;
+  mostra_na_fila: boolean;
+  mostra_no_pedido: boolean;
+  alerta_divergencia: boolean;
+}
+
+/** Politica de cobertura por estagio. Chave do mapa: estagio. */
+export function usePoliticaCobertura() {
+  return useQuery({
+    queryKey: ["politica-cobertura-estagio"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("politica_cobertura_estagio")
+        .select("estagio, fonte, rotulo, mostra_na_fila, mostra_no_pedido, alerta_divergencia");
+      if (error)
+        throw new Error(`[cobertura] falha ao ler politica_cobertura_estagio: ${error.message}`);
+      const mapa = new Map<string, PoliticaCobertura>();
+      for (const row of data ?? []) {
+        mapa.set(row.estagio, {
+          estagio: row.estagio,
+          fonte: row.fonte,
+          rotulo: row.rotulo ?? null,
+          mostra_na_fila: !!row.mostra_na_fila,
+          mostra_no_pedido: !!row.mostra_no_pedido,
+          alerta_divergencia: !!row.alerta_divergencia,
+        });
+      }
+      return mapa;
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+}
+
+
 
