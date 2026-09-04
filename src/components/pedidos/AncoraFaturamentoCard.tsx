@@ -111,11 +111,14 @@ export function AncoraFaturamentoCard({
 }: { pedidoId: string; idExterno: string; onDeclarada?: () => void }) {
   const qc = useQueryClient();
   const hoje = hojeISO();
+  const { permitido: podeForcar } = usePermissaoAcaoOuSuperAdmin("acao.pedido_forcar_prazo_credito");
 
   const [dataFaturamento, setDataFaturamento] = useState(hoje);
   const [gorduraDias, setGorduraDias] = useState<number | "">("");
   const [vencParcela1, setVencParcela1] = useState("");
   const [redeclarando, setRedeclarando] = useState(false);
+  const [forcaAberta, setForcaAberta] = useState(false);
+  const [motivoForca, setMotivoForca] = useState("");
 
   const sugestaoQ = useQuery({
     queryKey: ["ancora-sugestao", pedidoId, dataFaturamento, gorduraDias, vencParcela1],
