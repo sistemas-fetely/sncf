@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ShoppingBag } from "lucide-react";
+import { PackageCheck } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CadastroPedidoCompra from "@/pages/compras/CadastroPedidoCompra";
 import DeParaFornecedor from "@/pages/compras/DeParaFornecedor";
@@ -47,9 +47,9 @@ export default function ComprasMercadoria() {
   return (
     <PageShell variant="dados">
       <PageHeader
-        icone={ShoppingBag}
-        titulo="Compras de Mercadoria"
-        estado="Importação e compra nacional de produtos para revenda."
+        icone={PackageCheck}
+        titulo="Chegada de Mercadoria"
+        estado="Acompanhamento da chegada de mercadoria no operador logístico: projeção de entrada, NF, ficha XPM e custo."
       />
 
 
