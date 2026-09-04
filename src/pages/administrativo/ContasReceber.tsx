@@ -189,9 +189,6 @@ function BadgeEstado({ rotulo, cor }: { rotulo: string | null; cor: string | nul
   return <Badge className={`text-xs ${classe}`}>{rotulo}</Badge>;
 }
 
-
-
-
 type RecebivelB2C = {
   movimentacao_id: string;
   data_transacao: string | null;
