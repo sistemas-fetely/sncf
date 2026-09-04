@@ -775,8 +775,9 @@ function AbaB2B() {
     let aVencer = 0;
     let vencidos = 0;
     for (const t of baseCarteiraSemPrazo) {
-      if (t.eh_inadimplente === true) vencidos += 1;
-      else if (t.estado_em_aberto === true) aVencer += 1;
+      if (venceuNoCaixa(t)) vencidos += 1;
+      else if (naoRecebido(t)) aVencer += 1;
+
     }
     return { aVencer, vencidos };
   }, [baseCarteiraSemPrazo]);
