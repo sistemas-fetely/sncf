@@ -575,7 +575,6 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
     return t.eh_inadimplente === true;
   };
 
-
   /**
    * Camada nova entre `baseFiltros` e `baseCarteira`: filtros da faixa de KPI.
    * Os totais das colunas continuam vindo de `baseFiltros` — senão a coluna
