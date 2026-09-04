@@ -32,7 +32,7 @@ import { useAtualizarUrgencia } from "@/hooks/pedidos/useAtualizarUrgencia";
 import { useRegistrarEventoPedido } from "@/hooks/pedidos/useRegistrarEventoPedido";
 
 import { isEstagioFinal } from "@/lib/pedidoTransicoes";
-import { useCoberturaItens, rotuloCobertura, type CoberturaItem } from "@/lib/pedidoDestaque";
+import { useCoberturaItens, rotuloCobertura, usePoliticaCobertura, type CoberturaItem } from "@/lib/pedidoDestaque";
 import { toast as toastSonner } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatDateBR } from "@/lib/format-currency";
@@ -213,7 +213,13 @@ function ListaItensComEstoque({ itens, pedidoId, estagio }: { itens: any[]; pedi
     if (coberturaQ.error) toastSonner.error((coberturaQ.error as Error).message);
   }, [coberturaQ.error]);
 
-  const jaReservado = ESTAGIOS_JA_RESERVADO.includes(estagio ?? "");
+  const politicaQ = usePoliticaCobertura();
+  useEffect(() => {
+    if (politicaQ.error) toastSonner.error((politicaQ.error as Error).message);
+  }, [politicaQ.error]);
+  const politica = politicaQ.data?.get(estagio ?? "");
+  const jaReservado = politica ? !politica.mostra_no_pedido : false;
+
   const problemas = jaReservado
     ? []
     : itens
