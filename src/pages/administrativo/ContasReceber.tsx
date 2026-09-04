@@ -174,7 +174,7 @@ type Achado =
   | "inadimplente";
 
 /** Instrumento que prova a cobrança registrada no banco. */
-const INSTRUMENTO_GARANTIDO = ["registrado", "conciliado", "liquidado_banco"];
+const INSTRUMENTO_GARANTIDO = ["registrado", "conciliado", "liquidado_banco", "venda_autorizada"];
 
 /** Cor semântica do estado, como a view a declara. */
 const CLASSE_ESTADO: Record<string, string> = {
