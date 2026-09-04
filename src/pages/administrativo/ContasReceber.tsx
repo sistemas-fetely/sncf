@@ -568,15 +568,16 @@ function AbaB2B() {
     if (!filtroInstrumento && filtroPrazo === "todos") return baseFiltros;
     return baseFiltros.filter((t) => {
       if (filtroInstrumento) {
-        if (t.estado_em_aberto !== true) return false;
+        if (!naoRecebido(t)) return false;
         const inst = t.eixo_instrumento ?? "";
         if (filtroInstrumento === "garantido" && !INSTRUMENTO_GARANTIDO.includes(inst))
           return false;
         if (filtroInstrumento === "sem_instrumento" && inst !== "sem_instrumento") return false;
       }
-      if (filtroPrazo === "vencidos" && t.eh_inadimplente !== true) return false;
-      if (filtroPrazo === "a_vencer" && (t.estado_em_aberto !== true || t.eh_inadimplente === true))
+      if (filtroPrazo === "vencidos" && !venceuNoCaixa(t)) return false;
+      if (filtroPrazo === "a_vencer" && (!naoRecebido(t) || venceuNoCaixa(t)))
         return false;
+
       return true;
     });
   }, [baseFiltros, filtroInstrumento, filtroPrazo]);
