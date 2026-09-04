@@ -163,23 +163,29 @@ export function AncoraFaturamentoCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sugestao?.gordura_dias]);
 
-  const declarar = useMutation({
-    mutationFn: async () => {
+  const declarar = useMutation<void, unknown, { forcar?: boolean; motivo?: string } | void>({
+    mutationFn: async (opts) => {
       const args: Record<string, unknown> = {
         p_pedido_id: pedidoId,
         p_data_faturamento: dataFaturamento,
         p_gordura_dias: gorduraDias === "" ? 0 : Number(gorduraDias),
       };
       if (vencParcela1) args.p_venc_parcela1 = vencParcela1;
+      if (opts && opts.forcar) {
+        args.p_forcar = true;
+        args.p_motivo_forca = opts.motivo;
+      }
       const { error } = await supabase.rpc(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         "fn_declarar_ancora_faturamento" as any, args as any,
       );
       if (error) throw error;
     },
-    onSuccess: async () => {
-      toast.success("Âncora declarada");
+    onSuccess: async (_data, opts) => {
+      toast.success(opts && (opts as { forcar?: boolean }).forcar ? "Âncora declarada (forçada)" : "Âncora declarada");
       setRedeclarando(false);
+      setForcaAberta(false);
+      setMotivoForca("");
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["ancora-vigente", pedidoId] }),
         qc.invalidateQueries({ queryKey: ["ancora-sugestao", pedidoId] }),
