@@ -39,13 +39,6 @@ import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import * as XLSX from "xlsx";
 import { useNivel } from "@/hooks/useNivel";
 
-
-
-
-
-
-
-
 type RecebivelB2B = {
   id: string;
   numero_titulo: string | null;
@@ -196,9 +189,6 @@ function BadgeEstado({ rotulo, cor }: { rotulo: string | null; cor: string | nul
   return <Badge className={`text-xs ${classe}`}>{rotulo}</Badge>;
 }
 
-
-
-
 type RecebivelB2C = {
   movimentacao_id: string;
   data_transacao: string | null;
@@ -224,9 +214,6 @@ const MOSTRAR_MES_A_MES = false;
 
 type DataBase = "vencimento" | "emissao" | "recebimento";
 type BaseMensal = "competencia" | "caixa_projetado" | "caixa_confirmado";
-
-
-
 
 const SEM_CAIXA = ["haver", "bonificacao", "devolucao", "sem_pagamento"];
 
@@ -314,8 +301,6 @@ function ColunaKpi({
     </div>
   );
 }
-
-
 
 const fmtDesvio = (d: number | null | undefined) => {
   if (d == null || d === 0) return "";
@@ -422,6 +407,7 @@ export default function ContasReceber() {
             <TabsTrigger value="b2b">B2B</TabsTrigger>
             <TabsTrigger value="b2c">B2C</TabsTrigger>
           </TabsList>
+          {/* Exportação leva a base para fora: nível 3 (Coordenador) para cima. */}
           {temNivel(3) && (
             <Button
               variant="outline"
@@ -566,7 +552,6 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
   const naoRecebido = (t: RecebivelB2B) =>
     t.dinheiro_no_banco === false && t.carteira_gera_caixa !== false;
 
-
   /* UM-VENCIDO-SO: "vencido" tem uma fonte só no sistema inteiro — `eh_inadimplente`
      na view, que já respeita carteira.tem_vencimento. A tela de Cobrança lê a mesma
      coisa. Régua de caixa (data_caixa_projetada) mede conciliação, não atraso, e
@@ -581,7 +566,6 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
     if (a === "meio_divergente") return t.meio_divergente === true;
     return t.eh_inadimplente === true;
   };
-
 
   /**
    * Camada nova entre `baseFiltros` e `baseCarteira`: filtros da faixa de KPI.
@@ -812,8 +796,6 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
     })).sort((a, b) => a.ordem - b.ordem);
   }, [data]);
 
-
-
   /** Contagens do controle segmentado de prazo: sem o próprio filtro de prazo
    *  aplicado, para o botão ativo não zerar a si mesmo. */
   const contagensPrazo = useMemo(() => {
@@ -953,6 +935,8 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
     }
     for (const r of RECEBIMENTO_ORDEM) {
       if (!recebimentosAtivos.has(r)) continue;
+      /* Chip padrão não aparece: o estado inicial já é "Em aberto". */
+      if (recebimentosAtivos.size === 1 && r === "em_aberto") continue;
       lista.push({
         chave: `receb:${r}`,
         rotulo: `Recebimento: ${RECEBIMENTO_LABEL[r]}`,
@@ -998,7 +982,6 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
       carteira: nomes.size === 1 ? Array.from(nomes)[0] : null,
     };
   }, [busca, baseFiltros]);
-
 
   const toggleRecebimento = (k: EixoRecebimento) => {
     setRecebimentosAtivos((prev) => {
@@ -1121,8 +1104,6 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
   }, [baseCarteira, recebimentosAtivos, sort]);
 
   const semChip = recebimentosAtivos.size === 0;
-
-
 
   /* Agrupamento por pedido. */
   const grupos = useMemo(() => {
@@ -1421,10 +1402,8 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
   }, [filtrados]);
 
   return (
-    <div className="space-y-6">
-
+    <div className="space-y-4">
       {/* Faixa 1 — Estado da carteira. Recorte fixo: período, busca e banco.
-
           Colunas são filtro: "A receber" é o universo (limpa), garantido ×
           sem instrumento são par exclusivo, vencido é transversal. */}
       <div className="grid grid-cols-2 divide-x divide-border rounded-xl border border-border bg-card md:grid-cols-4">
@@ -1544,45 +1523,47 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
       {/* Linha 2 — Carteiras */}
       {carteiras.length > 0 && (
         <div className="space-y-2">
-          <div className="flex flex-wrap gap-3">
-            {carteiras.map((c) => {
-              const ativa = carteiraAtiva === c.codigo;
-              const vazia = c.aberto === 0;
-              return (
-                <button
-                  key={c.codigo}
-                  type="button"
-                  onClick={() => {
-                    setCarteiraAtiva(ativa ? null : c.codigo);
-                    setPage(1);
-                  }}
-                  className={
-                    "min-w-[170px] flex-1 rounded-lg border p-3 text-left transition-colors " +
-                    (ativa
-                      ? "border-foreground bg-muted"
-                      : "border-border hover:border-foreground/40") +
-                    (vazia && !ativa ? " opacity-50" : "")
-                  }
-                >
-                  <div className="text-xs text-muted-foreground">{c.nome}</div>
-                  <div className="text-lg font-medium tabular-nums">{formatBRL(c.aberto)}</div>
-                  <div className="text-xs text-muted-foreground tabular-nums">
-                    {c.qtd} título{c.qtd === 1 ? "" : "s"} em aberto
-                  </div>
-                  {!c.previsaoConfiavel && (
-                    <div className="text-xs text-warning">sem previsão de caixa</div>
-                  )}
-                </button>
-              );
-            })}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-wrap gap-3">
+              {carteiras.map((c) => {
+                const ativa = carteiraAtiva === c.codigo;
+                const vazia = c.aberto === 0;
+                return (
+                  <button
+                    key={c.codigo}
+                    type="button"
+                    onClick={() => {
+                      setCarteiraAtiva(ativa ? null : c.codigo);
+                      setPage(1);
+                    }}
+                    className={
+                      "min-w-[170px] flex-1 rounded-lg border p-2.5 text-left transition-colors " +
+                      (ativa
+                        ? "border-foreground bg-muted"
+                        : "border-border hover:border-foreground/40") +
+                      (vazia && !ativa ? " opacity-50" : "")
+                    }
+                  >
+                    <div className="text-xs text-muted-foreground">{c.nome}</div>
+                    <div className="text-lg font-medium tabular-nums">{formatBRL(c.aberto)}</div>
+                    <div className="text-xs text-muted-foreground tabular-nums">
+                      {c.qtd} título{c.qtd === 1 ? "" : "s"} em aberto
+                    </div>
+                    {!c.previsaoConfiavel && (
+                      <div className="text-xs text-warning">sem previsão de caixa</div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              className="shrink-0 text-xs text-muted-foreground hover:text-foreground underline"
+              onClick={() => navigate("/administrativo/previsao-recebimentos")}
+            >
+              Para ver quando o dinheiro cai, dia a dia e por conta: Fluxo de Recebimentos
+            </button>
           </div>
-          <button
-            type="button"
-            className="text-xs text-muted-foreground hover:text-foreground underline"
-            onClick={() => navigate("/administrativo/previsao-recebimentos")}
-          >
-            Para ver quando o dinheiro cai, dia a dia e por conta: Fluxo de Recebimentos
-          </button>
         </div>
       )}
 
@@ -1856,70 +1837,71 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
         </div>
       )}
 
-      {/* Painel recolhido — Qualidade de dado */}
-      <Card>
-        <CardHeader className="pb-2">
-          <button
-            type="button"
-            className="flex w-full items-center justify-between gap-2 text-left"
-            onClick={() => setQualidadeAberta((v) => !v)}
-          >
-            <CardTitle className="text-sm">Qualidade de dado</CardTitle>
-            {qualidadeAberta ? (
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            )}
-          </button>
-        </CardHeader>
-        {qualidadeAberta && (
-          <CardContent className="space-y-1 pt-0">
-            {achados.map((a) => {
-              const ativo = achado === a.chave;
-              return (
-                <button
-                  key={a.chave}
-                  type="button"
-                  onClick={() => {
-                    setAchado(ativo ? null : a.chave);
-                    setPage(1);
-                  }}
-                  className={
-                    "flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm transition-colors " +
-                    (ativo ? "bg-muted text-foreground" : "hover:bg-muted/50")
-                  }
-                >
-                  <span>{a.rotulo}</span>
-                  <span className="tabular-nums text-muted-foreground">
-                    {a.n} de {totalCarregado}
-                  </span>
-                </button>
-              );
-            })}
-          </CardContent>
-        )}
-      </Card>
+      {/* Painel recolhido — Qualidade de dado + modo de visualização */}
+      <div className="flex items-start gap-4">
+        <Card className="flex-1">
+          <CardHeader className="pb-2">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between gap-2 text-left"
+              onClick={() => setQualidadeAberta((v) => !v)}
+            >
+              <CardTitle className="text-sm">Qualidade de dado</CardTitle>
+              {qualidadeAberta ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
+            </button>
+          </CardHeader>
+          {qualidadeAberta && (
+            <CardContent className="space-y-1 pt-0">
+              {achados.map((a) => {
+                const ativo = achado === a.chave;
+                return (
+                  <button
+                    key={a.chave}
+                    type="button"
+                    onClick={() => {
+                      setAchado(ativo ? null : a.chave);
+                      setPage(1);
+                    }}
+                    className={
+                      "flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm transition-colors " +
+                      (ativo ? "bg-muted text-foreground" : "hover:bg-muted/50")
+                    }
+                  >
+                    <span>{a.rotulo}</span>
+                    <span className="tabular-nums text-muted-foreground">
+                      {a.n} de {totalCarregado}
+                    </span>
+                  </button>
+                );
+              })}
+            </CardContent>
+          )}
+        </Card>
 
-      {/* Tabela */}
-      <div className="flex items-center justify-end gap-1">
-        {([true, false] as const).map((modo) => (
-          <button
-            key={String(modo)}
-            type="button"
-            onClick={() => {
-              setAgrupado(modo);
-              setPage(1);
-            }}
-            className={
-              "text-xs px-3 py-1.5 rounded-full border transition-colors " +
-              (agrupado === modo
-                ? "bg-foreground text-background border-foreground"
-                : "bg-background text-muted-foreground border-border hover:border-foreground/40")
-            }
-          >
-            {modo ? "Agrupado por pedido" : "Lista plana"}
-          </button>
-        ))}
+        <div className="flex items-center gap-1 pt-2">
+          {([true, false] as const).map((modo) => (
+            <button
+              key={String(modo)}
+              type="button"
+              onClick={() => {
+                setAgrupado(modo);
+                setPage(1);
+              }}
+              className={
+                "text-xs px-3 py-1.5 rounded-full border transition-colors " +
+                (agrupado === modo
+                  ? "bg-foreground text-background border-foreground"
+                  : "bg-background text-muted-foreground border-border hover:border-foreground/40")
+              }
+            >
+              {modo ? "Agrupado por pedido" : "Lista plana"}
+            </button>
+          ))}
+        </div>
       </div>
       <Card>
         <CardContent className="p-0">
@@ -1975,9 +1957,10 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
             </div>
 
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
+            <div className="max-h-[65vh] overflow-auto">
+              <table className="w-full caption-bottom text-sm">
+                <TableHeader className="sticky top-0 z-20 bg-card">
+                  <TableRow>
                   <SortTh label="Título" sortKey="numero_titulo" sort={sort} setSort={setSort} />
                   <SortTh label="Cliente" sortKey="cliente" sort={sort} setSort={setSort} />
                   <SortTh label="Pedido" sortKey="pedido_ref" sort={sort} setSort={setSort} />
@@ -2120,7 +2103,8 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
                       .slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE)
                       .map((t) => linhaTitulo(t, false))}
               </TableBody>
-            </Table>
+              </table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -2812,9 +2796,6 @@ function AbaB2C({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
           menos o faturado na NF: a diferença costuma ser frete cobrado e não destacado.
         </p>
       </div>
-
-
-
 
       <Card>
         <CardContent className="p-0">
