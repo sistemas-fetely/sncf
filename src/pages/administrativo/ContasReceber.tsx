@@ -2807,9 +2807,6 @@ function AbaB2C({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
         </p>
       </div>
 
-
-
-
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
