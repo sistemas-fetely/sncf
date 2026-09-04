@@ -211,7 +211,11 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
     });
   }, [baseFase, busca, pagamentoFiltro, statusFiltro]);
 
-  const { data: linksFila } = useLinksPagamentoFila(filtradas.map((r) => r.pedido_id));
+  const {
+    data: linksFila,
+    isError: isErroLinks,
+    error: erroLinks,
+  } = useLinksPagamentoFila(filtradas.map((r) => r.pedido_id));
 
   /** KPIs fixos em Oportunidades: os cards são o painel de estado da mesa,
    *  não um resumo do filtro atual. Continuam respeitando o escopo do vendedor. */
