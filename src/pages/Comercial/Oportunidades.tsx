@@ -279,16 +279,22 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
         )}
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <KpiCard label="Oportunidades" value={String(kpis.qtd)} />
-          <KpiCard label="Valor em oportunidades" value={formatBRL(kpis.valor)} />
+          <KpiCard label="Oportunidades" value={isErroMesa ? "—" : String(kpis.qtd)} />
+          <KpiCard label="Valor em oportunidades" value={isErroMesa ? "—" : formatBRL(kpis.valor)} />
           <KpiCard
             label="Precisam de ação"
-            value={String(kpis.precisamAcaoQtd)}
-            subtitle={kpis.precisamAcaoQtd > 0 ? formatBRL(kpis.precisamAcaoValor) : undefined}
+            value={isErroMesa ? "—" : String(kpis.precisamAcaoQtd)}
+            subtitle={
+              isErroMesa
+                ? undefined
+                : kpis.precisamAcaoQtd > 0
+                  ? formatBRL(kpis.precisamAcaoValor)
+                  : undefined
+            }
           />
           <KpiCard
             label="Média de dias parados"
-            value={kpis.qtd > 0 ? `${kpis.media.toFixed(0)} dias` : "—"}
+            value={isErroMesa ? "—" : kpis.qtd > 0 ? `${kpis.media.toFixed(0)} dias` : "—"}
           />
         </div>
 
