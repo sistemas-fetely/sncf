@@ -1973,11 +1973,18 @@ function AbaB2B() {
                   <SortTh label="NF" sortKey="nf_numero" sort={sort} setSort={setSort} />
                   <SortTh label="Carteira" sortKey="carteira_ordem" sort={sort} setSort={setSort} />
                   <SortTh
-                    label="Data"
+                    label="Cliente pagou"
                     sortKey="data_vencimento_vigente"
                     sort={sort}
                     setSort={setSort}
                   />
+                  <SortTh
+                    label="Caixa"
+                    sortKey="data_liquidacao_real"
+                    sort={sort}
+                    setSort={setSort}
+                  />
+
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <SortTh label="Banco moveu" sortKey="desvio_registro_dias" sort={sort} setSort={setSort} />
