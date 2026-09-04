@@ -237,13 +237,14 @@ Deno.serve(async (req) => {
       if (eUp) throw new Error(`gravar pedido: ${eUp.message}`);
 
       // OVERRIDE deixa rastro no histórico do pedido. FAIL-LOUD.
-      if (forcar) {
+      if (overrides.length > 0) {
         const { error: eEv } = await sb.from("pedido_eventos").insert({
           pedido_id,
           tipo_evento: "xpm_push_forcado",
-          descricao: `Empurrão para a XPM forçado sobre expedição já existente: ${motivo.trim()}`,
+          descricao: `Empurrão forçado para a XPM (${rotulosOverride.join(" + ")}): ${motivo.trim()}`,
           metadata: {
             expedicao_codigo: codigo,
+            overrides,
             motivo: motivo.trim(),
             forcado_por: userId,
           },
