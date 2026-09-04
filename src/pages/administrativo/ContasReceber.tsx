@@ -2425,9 +2425,13 @@ function AbaB2C({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
     XLSX.writeFile(wb, `recebiveis-b2c-${periodoLabel}.xlsx`);
   };
 
+  useEffect(() => {
+    onRegistrarExport({ fn: handleExportXLSX, ativo: ordenados.length > 0 });
+  }, [ordenados]);
 
   return (
     <div className="space-y-6">
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="max-w-3xl text-xs text-muted-foreground">
           B2C não usa título — o recebível nasce liquidado, por pedido. Não existe aberto nem futuro
