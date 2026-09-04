@@ -1416,8 +1416,13 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
     XLSX.writeFile(wb, `recebiveis-b2b-${periodoLabel}.xlsx`);
   };
 
+  useEffect(() => {
+    onRegistrarExport({ fn: handleExportXLSX, ativo: filtrados.length > 0 });
+  }, [filtrados]);
+
   return (
     <div className="space-y-6">
+
       <div className="flex justify-end">
         {/* Exportação leva a base para fora: nível 3 (Coordenador) para cima. */}
         {temNivel(3) && (
