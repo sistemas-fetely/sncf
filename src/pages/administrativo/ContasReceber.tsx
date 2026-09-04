@@ -39,13 +39,6 @@ import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import * as XLSX from "xlsx";
 import { useNivel } from "@/hooks/useNivel";
 
-
-
-
-
-
-
-
 type RecebivelB2B = {
   id: string;
   numero_titulo: string | null;
