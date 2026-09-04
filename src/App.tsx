@@ -80,8 +80,8 @@ const CargosEnriquecimento = lazy(() => import("@/pages/CargosEnriquecimento"));
 
 const Compras = lazy(() => import("@/pages/Compras"));
 const ComprasAComprar = lazy(() => import("@/pages/ComprasAComprar"));
-const ComprasMercadoria = lazy(() => import("@/pages/compras/ComprasMercadoria"));
-const PedidoMercadoriaDetalhe = lazy(() => import("@/pages/compras/PedidoMercadoriaDetalhe"));
+const ChegadaMercadoria = lazy(() => import("@/pages/logistica/ChegadaMercadoria"));
+const ChegadaMercadoriaDetalhe = lazy(() => import("@/pages/logistica/ChegadaMercadoriaDetalhe"));
 const TIDashboard = lazy(() => import("@/pages/ti/TIDashboard"));
 const TIAtivos = lazy(() => import("@/pages/ti/TIAtivos"));
 const TesteEmailTemplate = lazy(() => import("@/pages/ti/TesteEmailTemplate"));
@@ -271,6 +271,16 @@ function RedirectToPessoasNovo() {
   return <Navigate to="/pessoas/novo" replace />;
 }
 
+// CHEGADA-MERCADORIA-MORA-EM-SOPS (04/09/2026): /compras/mercadoria → /logistica/chegada-mercadoria
+function ChegadaMercadoriaRedirect() {
+  const location = useLocation();
+  return <Navigate to={"/logistica/chegada-mercadoria" + location.search} replace />;
+}
+function ChegadaMercadoriaIdRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/logistica/chegada-mercadoria/${id}`} replace />;
+}
+
 // Redirects para rotas legadas migradas para /admin
 function CargosIdRedirect() {
   const { id } = useParams();
@@ -379,6 +389,8 @@ const App = () => (
                 <Route path="/vendas/shopify/fulfillments" element={<ShopifyFulfillments />} />
                 <Route path="/vendas/shopify/estoque" element={<ShopifyEstoque />} />
                 <Route path="/logistica" element={<Logistica />} />
+                <Route path="/logistica/chegada-mercadoria" element={<ChegadaMercadoria />} />
+                <Route path="/logistica/chegada-mercadoria/:id" element={<ChegadaMercadoriaDetalhe />} />
                 
                 <Route path="/administrativo-fetely/parceiros" element={<Parceiros />} />
 
@@ -451,8 +463,6 @@ const App = () => (
               <Route element={<FinancasLayout />}>
                 <Route path="/compras" element={<Compras />} />
                 <Route path="/compras/a-comprar" element={<ComprasAComprar />} />
-                <Route path="/compras/mercadoria" element={<ComprasMercadoria />} />
-                <Route path="/compras/mercadoria/:id" element={<PedidoMercadoriaDetalhe />} />
               </Route>
 
 
@@ -806,8 +816,10 @@ const App = () => (
             <Route path="/templates/*" element={<Navigate to="/processos" replace />} />
             <Route path="/gerenciar-usuarios" element={<Navigate to="/admin/usuarios" replace />} />
             <Route path="/gerenciar-usuarios/perfis" element={<Navigate to="/admin/usuarios/perfis" replace />} />
-            <Route path="/compras/de-para-fornecedor" element={<Navigate to="/compras/mercadoria?aba=de-para" replace />} />
-            <Route path="/compras/cadastro-pedido" element={<Navigate to="/compras/mercadoria?aba=pedidos" replace />} />
+            <Route path="/compras/de-para-fornecedor" element={<Navigate to="/logistica/chegada-mercadoria?aba=de-para" replace />} />
+            <Route path="/compras/cadastro-pedido" element={<Navigate to="/logistica/chegada-mercadoria?aba=pedidos" replace />} />
+            <Route path="/compras/mercadoria" element={<ChegadaMercadoriaRedirect />} />
+            <Route path="/compras/mercadoria/:id" element={<ChegadaMercadoriaIdRedirect />} />
             <Route path="/ti/documentacao" element={<Navigate to="/documentacao" replace />} />
             <Route path="/ti/documentacao/novo" element={<Navigate to="/documentacao/novo" replace />} />
             <Route path="/ti/documentacao/:slug" element={<TiDocSlugRedirect />} />
