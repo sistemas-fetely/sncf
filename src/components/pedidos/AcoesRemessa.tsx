@@ -258,10 +258,8 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
         <ForcarXpmEstoqueDialog
           pedidoId={pedido_id}
           idExterno={id_externo}
-          itens={previaEstoque!.itens}
-          fotoEm={previaEstoque!.foto_em}
+          previa={previaEstoque!}
           split={remessaSplit}
-          podeForcar={podeForcarEstoque}
         />
       )}
 
