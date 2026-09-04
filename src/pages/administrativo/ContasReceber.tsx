@@ -690,7 +690,7 @@ function AbaB2B() {
       vencidoQtd,
       faixas,
     };
-  }, [baseFiltros, hoje]);
+  }, [baseFiltros, hojeIso]);
 
   const semFiltroKpi = !filtroInstrumento && filtroPrazo === "todos";
 
