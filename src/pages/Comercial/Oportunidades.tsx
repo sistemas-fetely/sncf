@@ -5,11 +5,13 @@ import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Search, Sparkles, Loader2 } from "lucide-react";
+import { Search, Sparkles, Loader2, RefreshCw } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import { apelidoParceiro } from "@/lib/parceiros/nome";
@@ -65,6 +67,21 @@ const GRUPOS: { valor: FiltroGrupo; rotulo: string }[] = [
   { valor: "todas", rotulo: "Todas" },
 ];
 
+function mensagemErro(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (typeof e === "string") return e;
+  return String(e ?? "erro desconhecido");
+}
+
+function pareceTimeout(m: string): boolean {
+  const lower = m.toLowerCase();
+  return (
+    lower.includes("timeout") ||
+    lower.includes("canceling statement") ||
+    lower.includes("57014")
+  );
+}
+
 export default function Oportunidades({ embutido = false }: { embutido?: boolean } = {}) {
   const [busca, setBusca] = useState("");
   const [statusFiltro, setStatusFiltro] = useState<string>("todos");
@@ -79,14 +96,38 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
     useState<"itens" | "obs" | "pagamento" | "entrega">("itens");
   const navigate = useNavigate();
 
-  const { data = [], isLoading, isFetching } = useMesaComercial();
-  const { data: vendedorAtual, isLoading: carregandoVendedor } = useVendedorAtual();
-  const { data: statusOpcoes = [] } = useStatusComercialOpcoes();
-  const { data: pagamentoOpcoes = [] } = usePagamentoEstadoOpcoes();
+  const {
+    data = [],
+    isLoading,
+    isFetching,
+    isError: isErroMesa,
+    error: erroMesa,
+    refetch: refetchMesa,
+  } = useMesaComercial();
+  const {
+    data: vendedorAtual,
+    isLoading: carregandoVendedor,
+    isError: isErroVendedor,
+    error: erroVendedor,
+  } = useVendedorAtual();
+  const {
+    data: statusOpcoes = [],
+    isError: isErroStatusOpcoes,
+    error: erroStatusOpcoes,
+  } = useStatusComercialOpcoes();
+  const {
+    data: pagamentoOpcoes = [],
+    isError: isErroPagamentoOpcoes,
+    error: erroPagamentoOpcoes,
+  } = usePagamentoEstadoOpcoes();
   const { podeVerTodos, carregando: carregandoPerms } = usePermissoesMesa();
   /** Fase & entrega só interessa em "Em andamento" — em Oportunidades o eixo é comercial. */
   const mostrarFaseEntrega = grupo === "em_andamento";
-  const { data: entrega } = useMesaEntrega();
+  const {
+    data: entrega,
+    isError: isErroEntrega,
+    error: erroEntrega,
+  } = useMesaEntrega();
 
 
   /**
@@ -98,7 +139,11 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
    */
   const filtrarMeus = podeVerTodos ? meus && !!vendedorAtual : true;
   const semVendedorVinculado =
-    !podeVerTodos && !carregandoPerms && !carregandoVendedor && !vendedorAtual;
+    !isErroVendedor &&
+    !podeVerTodos &&
+    !carregandoPerms &&
+    !carregandoVendedor &&
+    !vendedorAtual;
 
   /** Escopo do vendedor aplicado antes de tudo — KPIs e contadores herdam dele. */
   const escopoCarteira = useMemo(() => {
@@ -185,7 +230,11 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
     });
   }, [baseFase, busca, pagamentoFiltro, statusFiltro]);
 
-  const { data: linksFila } = useLinksPagamentoFila(filtradas.map((r) => r.pedido_id));
+  const {
+    data: linksFila,
+    isError: isErroLinks,
+    error: erroLinks,
+  } = useLinksPagamentoFila(filtradas.map((r) => r.pedido_id));
 
   /** KPIs fixos em Oportunidades: os cards são o painel de estado da mesa,
    *  não um resumo do filtro atual. Continuam respeitando o escopo do vendedor. */
@@ -234,16 +283,22 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
         )}
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <KpiCard label="Oportunidades" value={String(kpis.qtd)} />
-          <KpiCard label="Valor em oportunidades" value={formatBRL(kpis.valor)} />
+          <KpiCard label="Oportunidades" value={isErroMesa ? "—" : String(kpis.qtd)} />
+          <KpiCard label="Valor em oportunidades" value={isErroMesa ? "—" : formatBRL(kpis.valor)} />
           <KpiCard
             label="Precisam de ação"
-            value={String(kpis.precisamAcaoQtd)}
-            subtitle={kpis.precisamAcaoQtd > 0 ? formatBRL(kpis.precisamAcaoValor) : undefined}
+            value={isErroMesa ? "—" : String(kpis.precisamAcaoQtd)}
+            subtitle={
+              isErroMesa
+                ? undefined
+                : kpis.precisamAcaoQtd > 0
+                  ? formatBRL(kpis.precisamAcaoValor)
+                  : undefined
+            }
           />
           <KpiCard
             label="Média de dias parados"
-            value={kpis.qtd > 0 ? `${kpis.media.toFixed(0)} dias` : "—"}
+            value={isErroMesa ? "—" : kpis.qtd > 0 ? `${kpis.media.toFixed(0)} dias` : "—"}
           />
         </div>
 
@@ -255,7 +310,8 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                 ativo={grupo === g.valor}
                 onClick={() => mudarGrupo(g.valor)}
               >
-                {g.rotulo} ({contagensGrupo[g.valor]})
+                {g.rotulo}
+                {!isErroMesa && ` (${contagensGrupo[g.valor]})`}
               </FiltroBtn>
             ))}
           </div>
@@ -300,7 +356,8 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
           {/* EIXO 1 — julgamento comercial. DIMENSAO-VIA-TABELA. */}
           <div className="inline-flex rounded-md border overflow-hidden">
             <FiltroBtn ativo={statusFiltro === "todos"} onClick={() => setStatusFiltro("todos")}>
-              Todas ({baseFase.length})
+              Todas
+              {!isErroMesa && ` (${baseFase.length})`}
             </FiltroBtn>
             {statusOpcoes.map((o) => (
               <FiltroBtn
@@ -308,14 +365,16 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                 ativo={statusFiltro === o.slug}
                 onClick={() => setStatusFiltro(o.slug)}
               >
-                {o.rotulo} ({contagensStatus.get(o.slug) ?? 0})
+                {o.rotulo}
+                {!isErroMesa && ` (${contagensStatus.get(o.slug) ?? 0})`}
               </FiltroBtn>
             ))}
             <FiltroBtn
               ativo={statusFiltro === "__sem__"}
               onClick={() => setStatusFiltro("__sem__")}
             >
-              Sem status ({contagensStatus.get("__sem__") ?? 0})
+              Sem status
+              {!isErroMesa && ` (${contagensStatus.get("__sem__") ?? 0})`}
             </FiltroBtn>
           </div>
 
@@ -328,7 +387,8 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                 onClick={() => setPagamentoFiltro("todos")}
                 title="Estado do pagamento — calculado pelo sistema"
               >
-                Todos ({baseFase.length})
+                Todos
+                {!isErroMesa && ` (${baseFase.length})`}
               </FiltroBtn>
               {pagamentoOpcoes.map((o) => (
                 <FiltroBtn
@@ -336,13 +396,53 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                   ativo={pagamentoFiltro === o.slug}
                   onClick={() => setPagamentoFiltro(o.slug)}
                 >
-                  {o.rotulo} ({contagensPagamento.get(o.slug) ?? 0})
+                  {o.rotulo}
+                  {!isErroMesa && ` (${contagensPagamento.get(o.slug) ?? 0})`}
                 </FiltroBtn>
               ))}
             </div>
           )}
         </div>
 
+
+        {isErroMesa && (
+          <Alert variant="destructive">
+            <AlertTitle>Não foi possível carregar a Mesa Comercial</AlertTitle>
+            <AlertDescription className="space-y-2">
+              <p>
+                A consulta demorou mais que o limite e foi interrompida. Os pedidos continuam
+                no sistema — o que falhou foi a leitura desta tela.
+              </p>
+              {pareceTimeout(mensagemErro(erroMesa)) && (
+                <p className="font-medium">Causa provável: tempo de resposta da consulta.</p>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetchMesa()}
+                className="mt-1"
+              >
+                <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                Tentar de novo
+              </Button>
+              <p className="text-xs text-muted-foreground pt-1">
+                {mensagemErro(erroMesa)}
+              </p>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {!isErroMesa && (
+          <AlertasSecundarios
+            erros={[
+              isErroVendedor && { origem: "Vínculo de vendedor", msg: mensagemErro(erroVendedor) },
+              isErroStatusOpcoes && { origem: "Status comercial", msg: mensagemErro(erroStatusOpcoes) },
+              isErroPagamentoOpcoes && { origem: "Estado do pagamento", msg: mensagemErro(erroPagamentoOpcoes) },
+              isErroEntrega && { origem: "Fase e entrega", msg: mensagemErro(erroEntrega) },
+              isErroLinks && { origem: "Links de pagamento", msg: mensagemErro(erroLinks) },
+            ].filter(Boolean) as { origem: string; msg: string }[]}
+          />
+        )}
 
         <Card>
           <CardContent className="p-0">
@@ -351,6 +451,26 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 <p className="text-xs text-muted-foreground">
                   Montando a carteira completa — leva alguns segundos.
+                </p>
+              </div>
+            ) : isErroMesa ? (
+              <div className="text-center py-16 px-6">
+                <Sparkles className="h-8 w-8 text-muted-foreground/60 mx-auto mb-3" />
+                <p className="text-sm font-medium">
+                  A Mesa não pôde ser lida.
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Use o alerta acima para tentar novamente.
+                </p>
+              </div>
+            ) : isErroVendedor && !podeVerTodos ? (
+              <div className="text-center py-16 px-6">
+                <Sparkles className="h-8 w-8 text-muted-foreground/60 mx-auto mb-3" />
+                <p className="text-sm font-medium">
+                  Não foi possível carregar seu vínculo de vendedor.
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Sem esse dado a Mesa não pode filtrar sua carteira. O erro está no alerta acima.
                 </p>
               </div>
             ) : semVendedorVinculado ? (
@@ -584,6 +704,28 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
         )}
       </div>
     </TooltipProvider>
+  );
+}
+
+function AlertasSecundarios({
+  erros,
+}: {
+  erros: { origem: string; msg: string }[];
+}) {
+  if (erros.length === 0) return null;
+  return (
+    <Alert variant="destructive">
+      <AlertTitle>Alguns dados auxiliares não carregaram</AlertTitle>
+      <AlertDescription>
+        <ul className="list-disc pl-4 mt-1 space-y-0.5 text-xs">
+          {erros.map((e, i) => (
+            <li key={i}>
+              <span className="font-medium">{e.origem}:</span> {e.msg}
+            </li>
+          ))}
+        </ul>
+      </AlertDescription>
+    </Alert>
   );
 }
 
