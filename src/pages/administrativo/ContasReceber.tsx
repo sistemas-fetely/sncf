@@ -448,9 +448,9 @@ export default function ContasReceber() {
 
 /* ============================ B2B ============================ */
 
-function AbaB2B() {
+function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void; ativo: boolean }) => void }) {
   const navigate = useNavigate();
-  const { temNivel } = useNivel();
+
   const [busca, setBusca] = useState("");
   const [dataBase, setDataBase] = useState<DataBase>("emissao");
   const [dataDe, setDataDe] = useState("");
