@@ -536,7 +536,7 @@ export default function PedidoMercadoriaDetalhe() {
   return (
     <div className="p-6 space-y-6">
       <Link
-        to="/compras/mercadoria?aba=pedidos"
+        to="/logistica/chegada-mercadoria?aba=pedidos"
         className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" /> Voltar para Compras de Mercadoria
@@ -1037,7 +1037,7 @@ export default function PedidoMercadoriaDetalhe() {
                             {diagAloc.sem_depara} linha(s) sem de-para do fornecedor.
                           </span>
                           <Button variant="outline" size="sm" asChild>
-                            <Link to="/compras/mercadoria?aba=de-para">
+                            <Link to="/logistica/chegada-mercadoria?aba=de-para">
                               Preencher de-para <ExternalLink className="h-3 w-3" aria-hidden="true" />
                             </Link>
                           </Button>

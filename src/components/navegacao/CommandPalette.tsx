@@ -37,7 +37,7 @@ const ALL_PAGES: PageItem[] = [
   { rota: "/fala-fetely/conhecimento", titulo: "Base de Conhecimento", pilar: "sncf", icon: BookOpen, tags: ["conhecimento", "base"] },
   
   { rota: "/compras", titulo: "Compras", pilar: "sncf", icon: Receipt, tags: ["compras", "pedidos"] },
-  { rota: "/compras/mercadoria", titulo: "Chegada de Mercadoria", pilar: "sops", icon: Truck, tags: ["chegada", "mercadoria", "recebimento", "importação", "importacao", "entrada", "xpm", "de-para", "fornecedor", "compras"] },
+  { rota: "/logistica/chegada-mercadoria", titulo: "Chegada de Mercadoria", pilar: "sops", icon: Truck, tags: ["chegada", "mercadoria", "recebimento", "importação", "importacao", "entrada", "xpm", "de-para", "fornecedor", "compras"] },
   { rota: "/credito", titulo: "Análise de Crédito", pilar: "credito", icon: CreditCard, tags: ["crédito", "análise", "limite"] },
   { rota: "/vendas/produto", titulo: "Produto", pilar: "sops", icon: LayoutGrid, tags: ["produto", "cockpit", "sku", "catálogo"] },
   { rota: "/vendas/produto/estoque/virtual", titulo: "Estoque Virtual", pilar: "sops", icon: LayoutGrid, tags: ["estoque", "virtual", "comercial", "produtos", "bling"] },

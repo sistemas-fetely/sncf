@@ -858,7 +858,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                     <TableRow
                       key={p.id}
                       className="cursor-pointer"
-                      onClick={() => navigate(`/compras/mercadoria/${p.id}`)}
+                      onClick={() => navigate(`/logistica/chegada-mercadoria/${p.id}`)}
                     >
                       <TableCell className="font-medium">{p.numero_pedido}</TableCell>
                       <TableCell>{p.rocabella_ref ?? "—"}</TableCell>
