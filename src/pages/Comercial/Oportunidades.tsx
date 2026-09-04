@@ -693,6 +693,28 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
   );
 }
 
+function AlertasSecundarios({
+  erros,
+}: {
+  erros: { origem: string; msg: string }[];
+}) {
+  if (erros.length === 0) return null;
+  return (
+    <Alert variant="destructive">
+      <AlertTitle>Alguns dados auxiliares não carregaram</AlertTitle>
+      <AlertDescription>
+        <ul className="list-disc pl-4 mt-1 space-y-0.5 text-xs">
+          {erros.map((e, i) => (
+            <li key={i}>
+              <span className="font-medium">{e.origem}:</span> {e.msg}
+            </li>
+          ))}
+        </ul>
+      </AlertDescription>
+    </Alert>
+  );
+}
+
 function KpiCard({
   label,
   value,
