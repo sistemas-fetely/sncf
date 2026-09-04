@@ -258,7 +258,7 @@ export function AncoraFaturamentoCard({
 
         {mostrarForm && (
           <>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-1">
                 <Label htmlFor="ancora-data">Data de faturamento</Label>
                 <Input
@@ -280,7 +280,7 @@ export function AncoraFaturamentoCard({
                     setGorduraDias(e.target.value === "" ? "" : Number(e.target.value))
                   }
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground leading-snug">
                   Sugerido: {sugestao.gordura_parametro} quando a 1ª parcela a prazo é à
                   vista; 0 quando já tem prazo
                 </p>
@@ -293,13 +293,14 @@ export function AncoraFaturamentoCard({
                   value={vencParcela1}
                   onChange={(e) => setVencParcela1(e.target.value)}
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground leading-snug">
                   Só se quiser sobrescrever o cálculo
                 </p>
               </div>
             </div>
 
-            <Table>
+            <div className="overflow-x-auto">
+              <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Parcela</TableHead>
