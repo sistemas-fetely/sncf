@@ -75,7 +75,7 @@ export function useEmpurrarXpm() {
         });
       } else {
         toast({
-          title: vars.forcar ? "Empurrado pra XPM (forçado)" : "Empurrado pra XPM",
+          title: (vars.forcar?.length ?? 0) > 0 ? "Empurrado pra XPM (forçado)" : "Empurrado pra XPM",
           description: `Expedição ${data.codigo_expedicao}${amb}${data.duracao_ms ? ` · ${data.duracao_ms}ms` : ""}`,
         });
       }
