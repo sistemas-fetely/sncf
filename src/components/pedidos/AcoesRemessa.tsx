@@ -81,6 +81,11 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
     estagio === "pre_separacao" || estagio === "em_separacao",
   );
 
+  const { data: previaEstoque } = usePreviaEstoqueXpm(
+    pedido_id,
+    estagio === "pre_separacao" || estagio === "em_separacao",
+  );
+
   if (isLoading || estagio === "cancelado") return null;
 
   const semRemessa = !remessas || remessas.length === 0;
