@@ -1976,9 +1976,10 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
             </div>
 
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
+            <div className="max-h-[65vh] overflow-auto">
+              <table className="w-full caption-bottom text-sm">
+                <TableHeader className="sticky top-0 z-20 bg-card">
+                  <TableRow>
                   <SortTh label="Título" sortKey="numero_titulo" sort={sort} setSort={setSort} />
                   <SortTh label="Cliente" sortKey="cliente" sort={sort} setSort={setSort} />
                   <SortTh label="Pedido" sortKey="pedido_ref" sort={sort} setSort={setSort} />
