@@ -656,7 +656,12 @@ export default function PessoaForm() {
             <div>
               <Label>Valor base (R$)</Label>
               {podeVerSalario ? (
-                <Input value={vinculo.valor_base} onChange={(e) => setVinculo({ ...vinculo, valor_base: e.target.value })} />
+                <>
+                  <Input value={vinculo.valor_base} onChange={(e) => setVinculo({ ...vinculo, valor_base: e.target.value })} />
+                  {vinculoStatus !== "ativo" && (
+                    <p className="text-xs text-muted-foreground mt-1">Salário não disponível para vínculo encerrado.</p>
+                  )}
+                </>
               ) : (
                 <>
                   <Input value="••••" disabled readOnly />
@@ -667,7 +672,12 @@ export default function PessoaForm() {
             <div>
               <Label>Vale-transporte (R$)</Label>
               {podeVerSalario ? (
-                <Input value={vinculo.valor_transporte} onChange={(e) => setVinculo({ ...vinculo, valor_transporte: e.target.value })} />
+                <>
+                  <Input value={vinculo.valor_transporte} onChange={(e) => setVinculo({ ...vinculo, valor_transporte: e.target.value })} />
+                  {vinculoStatus !== "ativo" && (
+                    <p className="text-xs text-muted-foreground mt-1">Salário não disponível para vínculo encerrado.</p>
+                  )}
+                </>
               ) : (
                 <>
                   <Input value="••••" disabled readOnly />
