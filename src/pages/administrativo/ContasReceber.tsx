@@ -2075,6 +2075,8 @@ function AbaB2B() {
                                   </div>
                                 )}
                               </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">—</TableCell>
+
                               <TableCell
                                 className={
                                   g.desvioAlerta
