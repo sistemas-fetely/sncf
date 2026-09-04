@@ -539,7 +539,7 @@ export default function ChegadaMercadoriaDetalhe() {
         to="/logistica/chegada-mercadoria?aba=pedidos"
         className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="h-4 w-4" /> Voltar para Compras de Mercadoria
+        <ArrowLeft className="h-4 w-4" /> Voltar para Chegada de Mercadoria
       </Link>
 
       {pedidoQ.isLoading ? (
