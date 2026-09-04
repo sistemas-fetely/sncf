@@ -2432,27 +2432,14 @@ function AbaB2C({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
   return (
     <div className="space-y-6">
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="max-w-3xl text-xs text-muted-foreground">
-          B2C não usa título — o recebível nasce liquidado, por pedido. Não existe aberto nem futuro
-          aqui, e estes valores não somam com os do B2B. Mercado Pago liquida em D+14: venda recente
-          ainda não caiu.
-        </p>
-        {/* Exportação leva a base para fora: nível 3 (Coordenador) para cima. */}
-        {temNivel(3) && (
-          <Button
-            variant="outline"
-            onClick={handleExportXLSX}
-            disabled={ordenados.length === 0}
-            className="gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Exportar XLSX
-          </Button>
-        )}
-      </div>
+      <p className="max-w-3xl text-xs text-muted-foreground">
+        B2C não usa título — o recebível nasce liquidado, por pedido. Não existe aberto nem futuro
+        aqui, e estes valores não somam com os do B2B. Mercado Pago liquida em D+14: venda recente
+        ainda não caiu.
+      </p>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Bruto Shopify</CardTitle>
