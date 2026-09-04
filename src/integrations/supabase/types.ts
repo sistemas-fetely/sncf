@@ -66823,14 +66823,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -73566,6 +73566,7 @@ export type Database = {
       }
       vw_recebivel_gestao: {
         Row: {
+          aguardando_credito: boolean | null
           banco_nome: string | null
           banco_recebimento_id: string | null
           carteira_ancora: string | null
@@ -73585,6 +73586,7 @@ export type Database = {
           data_divergente: boolean | null
           data_liquidacao: string | null
           data_liquidacao_prevista: string | null
+          data_liquidacao_real: string | null
           data_pagamento: string | null
           data_pagamento_banco: string | null
           data_recebimento: string | null
@@ -73596,7 +73598,9 @@ export type Database = {
           data_vencimento_vigente: string | null
           desvio_previsao_dias: number | null
           desvio_registro_dias: number | null
+          dias_atraso_adquirente: number | null
           dias_prorrogado: number | null
+          dinheiro_no_banco: boolean | null
           eh_inadimplencia: boolean | null
           eh_inadimplente: boolean | null
           eixo_instrumento: string | null
@@ -73615,6 +73619,10 @@ export type Database = {
           fonte_data_recebimento: string | null
           gera_caixa: boolean | null
           id: string | null
+          instrumento_classe: string | null
+          instrumento_ordem: number | null
+          instrumento_rotulo: string | null
+          instrumento_tooltip: string | null
           liquidacao_confirmada_banco: boolean | null
           liquidacao_realizada: boolean | null
           liquidado: boolean | null
@@ -73633,7 +73641,16 @@ export type Database = {
           parceiro_id: string | null
           pedido_id: string | null
           pedido_ref: string | null
+          prazo_classe: string | null
+          prazo_classe_texto: string | null
+          prazo_ordem: number | null
+          prazo_rotulo: string | null
           qualidade: string | null
+          recebimento_classe: string | null
+          recebimento_ordem: number | null
+          recebimento_rotulo: string | null
+          recebimento_tooltip: string | null
+          relogio_pontualidade: string | null
           renegociacao_humana: boolean | null
           sobreposicao_instrumento: boolean | null
           status_gestao: string | null
