@@ -47,6 +47,8 @@ function hojeISO() {
   return new Date(agora.getTime() - off).toISOString().slice(0, 10);
 }
 
+const MIN_MOTIVO_FORCA = 15;
+
 interface LinhaAncora {
   provisao_id: string;
   parcela: number;
