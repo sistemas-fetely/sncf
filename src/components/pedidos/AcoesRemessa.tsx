@@ -14,7 +14,12 @@ import { useNivel } from "@/hooks/useNivel";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { ReenviarBlingDialog } from "@/components/pedidos/dialogs/ReenviarBlingDialog";
 import { ForcarXpmDialog } from "@/components/pedidos/dialogs/ForcarXpmDialog";
+import { ForcarXpmEstoqueDialog } from "@/components/pedidos/dialogs/ForcarXpmEstoqueDialog";
+import { usePreviaEstoqueXpm } from "@/hooks/pedidos/usePreviaEstoqueXpm";
 import { DeclararCancelamentoXpmDialog } from "@/components/pedidos/dialogs/DeclararCancelamentoXpmDialog";
+
+/** Prefixo gravado pela edge quando o bloqueio é NOSSO (a XPM nem foi chamada). */
+const PREFIXO_PRE_VOO = "Bloqueado antes do envio · ";
 
 interface Props {
   pedido_id: string;
@@ -41,6 +46,7 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
   // DESABILITADO com o motivo — nunca escondido.
   const { permitido: podeEnviarBling } = usePermissaoAcaoOuSuperAdmin("acao.enviar_bling");
   const { permitido: podeEmpurrarXpmAcao } = usePermissaoAcaoOuSuperAdmin("acao.empurrar_xpm");
+  const { permitido: podeForcarEstoque } = usePermissaoAcaoOuSuperAdmin("acao.forcar_xpm_estoque");
   const MOTIVO_SEM_ACAO = "Ação do time de Operações";
 
   const { data: parceiroBling, refetch: recheckBling } = useQuery({
@@ -76,6 +82,11 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
     estagio === "pre_separacao" || estagio === "em_separacao",
   );
 
+  const { data: previaEstoque } = usePreviaEstoqueXpm(
+    pedido_id,
+    estagio === "pre_separacao" || estagio === "em_separacao",
+  );
+
   if (isLoading || estagio === "cancelado") return null;
 
   const semRemessa = !remessas || remessas.length === 0;
@@ -99,6 +110,26 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
   const jaEmpurrado = !!pedidoXpm?.xpm_expedicao_codigo;
   const podeEmpurrarXpm = estagioDeEnvio && !jaEmpurrado;
   const ocupado = enviar.isPending || empurrarXpm.isPending;
+
+  // ESTOQUE-BLOQUEIA (01/09/2026): falta de estoque é bloqueio; forçar tem nome
+  // e permissão próprios, e só faz sentido quando é o ÚNICO bloqueio.
+  const temBloqueio = !!previa && !previa.ok;
+  const temFaltaEstoque = (previaEstoque?.itens?.length ?? 0) > 0;
+  const soEstoqueBloqueia = (previa?.bloqueios?.length ?? 0) === 1;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const remSplit = (remessas ?? []).find((rem: any) => {
+    const itens: any[] = Array.isArray(rem.itens_json) ? rem.itens_json : [];
+    const totalUnidades = itens.reduce((s: number, it: any) => s + (Number(it.quantidade) || 0), 0);
+    return !rem.bling_pedido_id && totalUnidades >= 2;
+  });
+  const remessaSplit = remSplit
+    ? {
+        remessaId: String(remSplit.id),
+        codigo: `${id_externo} · tentativa ${Number(remSplit.sequencia)}`,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        itens: (Array.isArray(remSplit.itens_json) ? remSplit.itens_json : []) as any[],
+      }
+    : undefined;
 
   const mostrarAlerta = precisaSincronizar;
   const mostrarInicial = !precisaSincronizar && semRemessa && podeEnviarInicial;
@@ -174,7 +205,6 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
         </Button>
       )}
 
-      {/* FOTO-NAO-BARRA (18/08/2026): saldo insuficiente na XPM avisa, nao barra. */}
       {!precisaSincronizar && podeEmpurrarXpm && (previa?.avisos?.length ?? 0) > 0 && (
         <Alert variant="default" className="bg-warning/10 border-warning/40">
           <AlertTriangle className="h-4 w-4 text-warning" />
@@ -182,11 +212,24 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
             {previa!.avisos.map((a) => (
               <p key={a} className="tabular-nums">{a}</p>
             ))}
-            <p className="text-muted-foreground">
-              A posição da XPM é uma foto do fim do dia anterior: entrada recente
-              pode ainda não aparecer. Pode enviar — se realmente faltar, o
-              armazém corta o item.
-            </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Bloqueios aparecem ANTES do clique — o operador não descobre por toast. */}
+      {!precisaSincronizar && podeEmpurrarXpm && temBloqueio && (
+        <Alert variant="default" className="bg-destructive/10 border-destructive/40">
+          <AlertTriangle className="h-4 w-4 text-destructive" />
+          <AlertDescription className="text-destructive text-xs space-y-1">
+            <p className="font-medium">Bloqueado antes do envio</p>
+            {previa!.bloqueios.map((b) => (
+              <p key={b} className="tabular-nums">{b}</p>
+            ))}
+            {temFaltaEstoque && !soEstoqueBloqueia && (
+              <p className="text-muted-foreground">
+                Resolva os outros bloqueios primeiro — forçar só o estoque falharia de novo.
+              </p>
+            )}
           </AlertDescription>
         </Alert>
       )}
@@ -196,8 +239,12 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
           size="sm"
           variant="outline"
           className="w-full gap-1.5 whitespace-normal h-auto text-xs leading-tight py-2"
-          title={podeEmpurrarXpmAcao ? `Empurrar ${id_externo} pra XPM` : MOTIVO_SEM_ACAO}
-          disabled={ocupado || !podeEmpurrarXpmAcao}
+          title={
+            temBloqueio
+              ? "Existem bloqueios antes do envio — resolva ou use o caminho de exceção"
+              : podeEmpurrarXpmAcao ? `Empurrar ${id_externo} pra XPM` : MOTIVO_SEM_ACAO
+          }
+          disabled={ocupado || !podeEmpurrarXpmAcao || temBloqueio}
           onClick={() => empurrarXpm.mutate({ pedido_id })}
         >
           {empurrarXpm.isPending ? (
@@ -208,12 +255,26 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
         </Button>
       )}
 
+      {!precisaSincronizar && podeEmpurrarXpm && temFaltaEstoque && soEstoqueBloqueia && (
+        <ForcarXpmEstoqueDialog
+          pedidoId={pedido_id}
+          idExterno={id_externo}
+          itens={previaEstoque!.itens}
+          fotoEm={previaEstoque!.foto_em}
+          split={remessaSplit}
+          podeForcar={podeForcarEstoque}
+        />
+      )}
+
       {pedidoXpm?.xpm_envio_erro && !jaEmpurrado && (
         <>
           <Alert variant="default" className="bg-destructive/10 border-destructive/40">
             <AlertTriangle className="h-4 w-4 text-destructive" />
             <AlertDescription className="text-destructive text-xs">
-              XPM recusou: {pedidoXpm.xpm_envio_erro}
+              {/* Recusa NOSSA (pré-voo) não é recusa da XPM: ela nem foi chamada. */}
+              {String(pedidoXpm.xpm_envio_erro).startsWith(PREFIXO_PRE_VOO)
+                ? <>Bloqueado antes do envio: {String(pedidoXpm.xpm_envio_erro).slice(PREFIXO_PRE_VOO.length)}</>
+                : <>XPM recusou: {pedidoXpm.xpm_envio_erro}</>}
             </AlertDescription>
           </Alert>
           {String(pedidoXpm.xpm_envio_erro).includes("Expedicao ja existe na XPM") && (

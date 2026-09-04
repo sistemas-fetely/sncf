@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Selo } from "@/components/ui/selo";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { useEmpurrarXpm } from "@/hooks/pedidos/useEmpurrarXpm";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 
 const MIN_MOTIVO = 15;
 
@@ -24,6 +25,8 @@ export function ForcarXpmDialog({ pedidoId }: Props) {
   const [open, setOpen] = useState(false);
   const [motivo, setMotivo] = useState("");
   const empurrar = useEmpurrarXpm();
+  // OVERRIDE-TEM-NOME: permissão própria do override de expedição existente.
+  const { permitido: podeForcar } = usePermissaoAcaoOuSuperAdmin("acao.forcar_expedicao_xpm");
 
   const valido = motivo.trim().length >= MIN_MOTIVO;
 
@@ -33,10 +36,12 @@ export function ForcarXpmDialog({ pedidoId }: Props) {
         <Button
           size="sm"
           variant="ghost"
+          disabled={!podeForcar}
+          title={podeForcar ? undefined : "Ação de gerente"}
           className="w-full gap-1.5 whitespace-normal h-auto text-xs leading-tight py-2 text-muted-foreground"
         >
           <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
-          Forçar envio mesmo assim
+          {podeForcar ? "Forçar envio mesmo assim" : "Forçar envio mesmo assim — Ação de gerente"}
         </Button>
       </DialogTrigger>
 
@@ -84,7 +89,7 @@ export function ForcarXpmDialog({ pedidoId }: Props) {
               try {
                 await empurrar.mutateAsync({
                   pedido_id: pedidoId,
-                  forcar: true,
+                  forcar: ["expedicao_existente"],
                   motivo: motivo.trim(),
                 });
                 setOpen(false);

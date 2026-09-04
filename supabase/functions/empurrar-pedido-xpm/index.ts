@@ -34,7 +34,8 @@ Deno.serve(async (req) => {
   let pedido_id: string | null = null;
   let payload: Record<string, unknown> | null = null;
   let userId: string | null = null;
-  let forcar = false;
+  let overrides: string[] = [];
+  let rotulosOverride: string[] = [];
   let motivo = "";
 
   try {
@@ -42,13 +43,19 @@ Deno.serve(async (req) => {
     pedido_id = body?.pedido_id ?? null;
     if (!pedido_id) return json({ sucesso: false, erro: "pedido_id obrigatório" }, 400);
 
-    forcar = body?.forcar === true;
-    motivo = typeof body?.motivo === "string" ? body.motivo : "";
-    // Sem motivo não força: o override precisa deixar rastro legível.
-    if (forcar && motivo.trim().length < 15) {
-      return json({ sucesso: false, erro: "Forçar exige motivo com pelo menos 15 caracteres" }, 400);
+    // OVERRIDE-TEM-NOME (01/09/2026): `forcar` virou lista de códigos. Boolean
+    // ainda chega de frontend em cache — mapeia pro único caminho da UI antiga.
+    const rawForcar = body?.forcar;
+    if (rawForcar === true) {
+      console.warn("[empurrar-pedido-xpm] chamada legada: forcar=true → ['expedicao_existente']");
+      overrides = ["expedicao_existente"];
+    } else if (Array.isArray(rawForcar)) {
+      overrides = rawForcar.filter((c: unknown) => typeof c === "string" && c.trim().length > 0);
+    } else {
+      overrides = [];
     }
 
+    motivo = typeof body?.motivo === "string" ? body.motivo : "";
 
     // Permissão nominal de ação (server-side) + autoria da trilha.
     const guarda = await exigirAcao(
@@ -60,22 +67,64 @@ Deno.serve(async (req) => {
     if (!guarda.ok) return json({ sucesso: false, erro: guarda.erro }, guarda.status);
     userId = guarda.userId;
 
+    // DIMENSAO-VIA-TABELA: quem pode furar cada bloqueio mora em xpm_override_dim.
+    if (overrides.length > 0) {
+      const { data: dims, error: eDim } = await sb
+        .from("xpm_override_dim")
+        .select("codigo, rotulo, permissao_slug, motivo_min")
+        .in("codigo", overrides)
+        .eq("ativo", true);
+      if (eDim) throw new Error(`xpm_override_dim: ${eDim.message}`);
+
+      const encontrados = (dims ?? []).map((d: { codigo: string }) => d.codigo);
+      const faltando = overrides.filter((c) => !encontrados.includes(c));
+      if (faltando.length > 0) {
+        return json(
+          { sucesso: false, erro: `Override inválido ou inativo: ${faltando.join(", ")}` },
+          400,
+        );
+      }
+
+      const motivoMin = Math.max(
+        ...(dims ?? []).map((d: { motivo_min: number | null }) => Number(d.motivo_min) || 15),
+      );
+      // Sem motivo não força: o override precisa deixar rastro legível.
+      if (motivo.trim().length < motivoMin) {
+        return json(
+          { sucesso: false, erro: `Forçar exige motivo com pelo menos ${motivoMin} caracteres` },
+          400,
+        );
+      }
+
+      for (const d of dims ?? []) {
+        const g = await exigirAcao(
+          sb,
+          req.headers.get("Authorization"),
+          d.permissao_slug,
+          `forçar empurrão: ${d.rotulo}`,
+        );
+        if (!g.ok) return json({ sucesso: false, erro: g.erro }, g.status);
+      }
+      rotulosOverride = (dims ?? []).map((d: { rotulo: string }) => d.rotulo);
+    }
+
     // 1. Montador de payload mora no banco (FONTE-ÚNICA). A edge só transporta.
     const { data: montado, error: eMontar } = await sb.rpc("fn_xpm_payload_expedicao", {
       p_pedido_id: pedido_id,
-      p_forcar: forcar,
+      p_forcar: overrides,
     });
     if (eMontar) throw new Error(`montar payload: ${eMontar.message}`);
 
-    // FOTO-NAO-BARRA (18/08/2026): saldo insuficiente na XPM é AVISO, não
-    // bloqueio — a posição da ZenLOG é foto do fim do dia anterior.
     const avisos: string[] = Array.isArray(montado?.avisos) ? montado.avisos : [];
 
     // 2. Bloqueio pré-voo: não sai pela metade, e o motivo vai pra tela.
+    // O prefixo diz de quem é a recusa: aqui a XPM nunca foi chamada.
     if (!montado?.ok) {
       const motivos: string[] = montado?.bloqueios ?? ["Falha desconhecida ao montar payload"];
       const msg = motivos.join(" · ");
-      await sb.from("pedidos").update({ xpm_envio_erro: msg }).eq("id", pedido_id);
+      await sb.from("pedidos")
+        .update({ xpm_envio_erro: `Bloqueado antes do envio · ${msg}` })
+        .eq("id", pedido_id);
       return json({ sucesso: false, erro: msg, bloqueios: motivos, avisos }, 422);
     }
 
@@ -167,7 +216,7 @@ Deno.serve(async (req) => {
       pedido_id,
       operacao: "create",
       enviado_por: userId,
-      payload_enviado: { ...(payload ?? {}), forcar, motivo, avisos },
+      payload_enviado: { ...(payload ?? {}), overrides, motivo, avisos },
       resposta_status: respStatus,
       resposta_body: respBody as Record<string, unknown> | null,
       expedicao_codigo_retornado: sucesso ? codigo : null,
@@ -188,13 +237,14 @@ Deno.serve(async (req) => {
       if (eUp) throw new Error(`gravar pedido: ${eUp.message}`);
 
       // OVERRIDE deixa rastro no histórico do pedido. FAIL-LOUD.
-      if (forcar) {
+      if (overrides.length > 0) {
         const { error: eEv } = await sb.from("pedido_eventos").insert({
           pedido_id,
           tipo_evento: "xpm_push_forcado",
-          descricao: `Empurrão para a XPM forçado sobre expedição já existente: ${motivo.trim()}`,
+          descricao: `Empurrão forçado para a XPM (${rotulosOverride.join(" + ")}): ${motivo.trim()}`,
           metadata: {
             expedicao_codigo: codigo,
+            overrides,
             motivo: motivo.trim(),
             forcado_por: userId,
           },

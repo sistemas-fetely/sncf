@@ -9,8 +9,8 @@ interface PreviaXpm {
 
 /**
  * Prévia (somente leitura) do empurrão pra XPM.
- * FOTO-NAO-BARRA (18/08/2026): saldo insuficiente vem em `avisos`, não em
- * `bloqueios` — a posição da XPM é foto do fim do dia anterior.
+ * FOTO-NAO-BARRA foi REVERTIDO em 01/09/2026: estoque insuficiente é BLOQUEIO
+ * e vem em `bloqueios`, não em `avisos`.
  */
 export function usePreviaEmpurrarXpm(pedido_id: string, enabled = true) {
   return useQuery<PreviaXpm>({
