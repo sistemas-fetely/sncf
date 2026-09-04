@@ -105,6 +105,26 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
   const podeEmpurrarXpm = estagioDeEnvio && !jaEmpurrado;
   const ocupado = enviar.isPending || empurrarXpm.isPending;
 
+  // ESTOQUE-BLOQUEIA (01/09/2026): falta de estoque é bloqueio; forçar tem nome
+  // e permissão próprios, e só faz sentido quando é o ÚNICO bloqueio.
+  const temBloqueio = !!previa && !previa.ok;
+  const temFaltaEstoque = (previaEstoque?.itens?.length ?? 0) > 0;
+  const soEstoqueBloqueia = (previa?.bloqueios?.length ?? 0) === 1;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const remSplit = (remessas ?? []).find((rem: any) => {
+    const itens: any[] = Array.isArray(rem.itens_json) ? rem.itens_json : [];
+    const totalUnidades = itens.reduce((s: number, it: any) => s + (Number(it.quantidade) || 0), 0);
+    return !rem.bling_pedido_id && totalUnidades >= 2;
+  });
+  const remessaSplit = remSplit
+    ? {
+        remessaId: String(remSplit.id),
+        codigo: `${id_externo} · tentativa ${Number(remSplit.sequencia)}`,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        itens: (Array.isArray(remSplit.itens_json) ? remSplit.itens_json : []) as any[],
+      }
+    : undefined;
+
   const mostrarAlerta = precisaSincronizar;
   const mostrarInicial = !precisaSincronizar && semRemessa && podeEnviarInicial;
 
