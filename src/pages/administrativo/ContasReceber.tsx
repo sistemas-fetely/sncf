@@ -38,7 +38,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import * as XLSX from "xlsx";
 import { useNivel } from "@/hooks/useNivel";
-import { SeloPontualidade } from "@/lib/financeiro/pontualidade";
+
 
 
 
@@ -546,10 +546,11 @@ function AbaB2B() {
   /* DINHEIRO-NO-BANCO: "ainda não recebi" é o que o banco declara, não o estado. */
   const naoRecebido = (t: RecebivelB2B) => t.dinheiro_no_banco === false;
 
-  /* Vencido mede contra a data de caixa projetada — é ela que diz quando o
-     dinheiro deveria estar disponível. */
-  const venceuNoCaixa = (t: RecebivelB2B) =>
-    naoRecebido(t) && !!t.data_caixa_projetada && t.data_caixa_projetada < hojeIso;
+  /* UM-VENCIDO-SO: "vencido" tem uma fonte só no sistema inteiro — `eh_inadimplente`
+     na view, que já respeita carteira.tem_vencimento. A tela de Cobrança lê a mesma
+     coisa. Régua de caixa (data_caixa_projetada) mede conciliação, não atraso, e
+     pertence à Controladoria. */
+  const estaVencido = (t: RecebivelB2B) => t.eh_inadimplente === true;
 
   const casaAchado = (t: RecebivelB2B, a: Achado) => {
     if (a === "sobreposicao") return t.sobreposicao_instrumento === true;
