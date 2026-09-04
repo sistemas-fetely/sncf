@@ -243,7 +243,7 @@ export default function PessoaForm() {
         const { data: vs, error: ve } = await supabase
           .from("vinculos")
           .select(
-            "id, status, tipo_vinculo, cargo_id, departamento_id, centro_custo_id, unidade_id, data_inicio, valor_base, valor_transporte, forma_pagamento_id, dia_vencimento, banco_nome, agencia, conta, tipo_conta, chave_pix, email_corporativo, observacoes, cnpj, razao_social, nome_fantasia, categoria_pj, objeto, pis_pasep, ctps_numero, matricula, data_admissao, jornada_semanal, gestor_pessoa_id, modalidade, conta_titular, pj_regime_tributario, pj_municipio_nfse, pj_emite_nfse, pj_representante_nome, pj_representante_cpf"
+            "id, status, tipo_vinculo, cargo_id, departamento_id, centro_custo_id, unidade_id, data_inicio, forma_pagamento_id, dia_vencimento, banco_nome, agencia, conta, tipo_conta, chave_pix, email_corporativo, observacoes, cnpj, razao_social, nome_fantasia, categoria_pj, objeto, pis_pasep, ctps_numero, matricula, data_admissao, jornada_semanal, gestor_pessoa_id, modalidade, conta_titular, pj_regime_tributario, pj_municipio_nfse, pj_emite_nfse, pj_representante_nome, pj_representante_cpf"
           )
           .eq("pessoa_id", id)
           .order("data_inicio", { ascending: false });
@@ -259,12 +259,29 @@ export default function PessoaForm() {
         if (v) {
           setVinculoId(v.id);
           setVinculoStatus(v.status);
+
+          let salarioBase = "";
+          let salarioTransporte = "";
+          if (podeVerSalario) {
+            const { data: custo, error: ce } = await supabase
+              .from("vw_vinculo_custo_total")
+              .select("valor_base, valor_transporte")
+              .eq("vinculo_id", v.id)
+              .maybeSingle();
+            if (ce) {
+              toast.error(humanizeError(ce.message));
+            } else if (custo) {
+              salarioBase = custo.valor_base?.toString() || "";
+              salarioTransporte = custo.valor_transporte?.toString() || "";
+            }
+          }
+
           setVinculo({
             tipo_vinculo: v.tipo_vinculo,
             cargo_id: v.cargo_id || "", departamento_id: v.departamento_id || "", centro_custo_id: v.centro_custo_id || "", unidade_id: v.unidade_id || "",
             data_inicio: v.data_inicio || "",
-            valor_base: v.valor_base?.toString() || "",
-            valor_transporte: v.valor_transporte?.toString() || "",
+            valor_base: salarioBase,
+            valor_transporte: salarioTransporte,
 
             forma_pagamento_id: v.forma_pagamento_id || "",
             dia_vencimento: v.dia_vencimento?.toString() || "5",
@@ -639,7 +656,12 @@ export default function PessoaForm() {
             <div>
               <Label>Valor base (R$)</Label>
               {podeVerSalario ? (
-                <Input value={vinculo.valor_base} onChange={(e) => setVinculo({ ...vinculo, valor_base: e.target.value })} />
+                <>
+                  <Input value={vinculo.valor_base} onChange={(e) => setVinculo({ ...vinculo, valor_base: e.target.value })} />
+                  {vinculoStatus !== "ativo" && (
+                    <p className="text-xs text-muted-foreground mt-1">Salário não disponível para vínculo encerrado.</p>
+                  )}
+                </>
               ) : (
                 <>
                   <Input value="••••" disabled readOnly />
@@ -650,7 +672,12 @@ export default function PessoaForm() {
             <div>
               <Label>Vale-transporte (R$)</Label>
               {podeVerSalario ? (
-                <Input value={vinculo.valor_transporte} onChange={(e) => setVinculo({ ...vinculo, valor_transporte: e.target.value })} />
+                <>
+                  <Input value={vinculo.valor_transporte} onChange={(e) => setVinculo({ ...vinculo, valor_transporte: e.target.value })} />
+                  {vinculoStatus !== "ativo" && (
+                    <p className="text-xs text-muted-foreground mt-1">Salário não disponível para vínculo encerrado.</p>
+                  )}
+                </>
               ) : (
                 <>
                   <Input value="••••" disabled readOnly />

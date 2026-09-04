@@ -78981,6 +78981,10 @@ export type Database = {
         Args: { p_motivo: string; p_tarefa_id: string }
         Returns: undefined
       }
+      cancelar_titulo_indevido: {
+        Args: { p_motivo: string; p_titulo_id: string }
+        Returns: Json
+      }
       capturar_custo_mensal: { Args: never; Returns: number }
       classificar_debito_direto: {
         Args: {
