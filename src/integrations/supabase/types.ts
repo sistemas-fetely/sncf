@@ -33526,6 +33526,42 @@ export type Database = {
           },
         ]
       }
+      politica_cobertura_estagio: {
+        Row: {
+          alerta_divergencia: boolean
+          atualizado_em: string
+          descricao: string | null
+          estagio: string
+          fonte: string
+          mostra_na_fila: boolean
+          mostra_no_pedido: boolean
+          ordem: number
+          rotulo: string | null
+        }
+        Insert: {
+          alerta_divergencia?: boolean
+          atualizado_em?: string
+          descricao?: string | null
+          estagio: string
+          fonte: string
+          mostra_na_fila?: boolean
+          mostra_no_pedido?: boolean
+          ordem?: number
+          rotulo?: string | null
+        }
+        Update: {
+          alerta_divergencia?: boolean
+          atualizado_em?: string
+          descricao?: string | null
+          estagio?: string
+          fonte?: string
+          mostra_na_fila?: boolean
+          mostra_no_pedido?: boolean
+          ordem?: number
+          rotulo?: string | null
+        }
+        Relationships: []
+      }
       politica_reserva_estoque: {
         Row: {
           aguarda_produto: boolean
@@ -68143,6 +68179,7 @@ export type Database = {
           itens_cobertos: number | null
           itens_descobertos: number | null
           itens_parciais: number | null
+          itens_separados: number | null
           itens_total: number | null
           na_fila: boolean | null
           pct_coberto: number | null
@@ -68291,14 +68328,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]

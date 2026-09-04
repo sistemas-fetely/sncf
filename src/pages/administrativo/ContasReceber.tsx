@@ -38,7 +38,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import * as XLSX from "xlsx";
 import { useNivel } from "@/hooks/useNivel";
-import { SeloPontualidade } from "@/lib/financeiro/pontualidade";
+
 
 
 
@@ -546,10 +546,11 @@ function AbaB2B() {
   /* DINHEIRO-NO-BANCO: "ainda não recebi" é o que o banco declara, não o estado. */
   const naoRecebido = (t: RecebivelB2B) => t.dinheiro_no_banco === false;
 
-  /* Vencido mede contra a data de caixa projetada — é ela que diz quando o
-     dinheiro deveria estar disponível. */
-  const venceuNoCaixa = (t: RecebivelB2B) =>
-    naoRecebido(t) && !!t.data_caixa_projetada && t.data_caixa_projetada < hojeIso;
+  /* UM-VENCIDO-SO: "vencido" tem uma fonte só no sistema inteiro — `eh_inadimplente`
+     na view, que já respeita carteira.tem_vencimento. A tela de Cobrança lê a mesma
+     coisa. Régua de caixa (data_caixa_projetada) mede conciliação, não atraso, e
+     pertence à Controladoria. */
+  const estaVencido = (t: RecebivelB2B) => t.eh_inadimplente === true;
 
   const casaAchado = (t: RecebivelB2B, a: Achado) => {
     if (a === "sobreposicao") return t.sobreposicao_instrumento === true;
@@ -576,8 +577,8 @@ function AbaB2B() {
           return false;
         if (filtroInstrumento === "sem_instrumento" && inst !== "sem_instrumento") return false;
       }
-      if (filtroPrazo === "vencidos" && !venceuNoCaixa(t)) return false;
-      if (filtroPrazo === "a_vencer" && (!naoRecebido(t) || venceuNoCaixa(t)))
+      if (filtroPrazo === "vencidos" && !estaVencido(t)) return false;
+      if (filtroPrazo === "a_vencer" && (!naoRecebido(t) || estaVencido(t)))
         return false;
 
       return true;
@@ -643,16 +644,13 @@ function AbaB2B() {
 
     for (const t of baseFiltros) {
       const v = efetivoDe(t);
-      /* VENCIDO-MEDE-CAIXA: a régua é `data_caixa_projetada` — o dia em que o
-         dinheiro deveria estar disponível. `eh_inadimplente` continua
-         separando atraso do cliente de atraso da adquirente. */
-      if (venceuNoCaixa(t)) {
+      if (estaVencido(t)) {
         vencido += v;
         vencidoQtd += 1;
-        const venc = t.data_caixa_projetada;
+        const venc = t.data_vencimento_vigente;
         if (venc) {
           const dias = Math.floor(
-            (hoje.getTime() - new Date(venc + "T12:00:00").getTime()) / 86400000
+            (new Date(hojeIso + "T12:00:00").getTime() - new Date(venc + "T12:00:00").getTime()) / 86400000
           );
           if (dias <= 7) faixas.f1_7 += v;
           else if (dias <= 30) faixas.f8_30 += v;
@@ -692,7 +690,7 @@ function AbaB2B() {
       vencidoQtd,
       faixas,
     };
-  }, [baseFiltros, hoje]);
+  }, [baseFiltros, hojeIso]);
 
   const semFiltroKpi = !filtroInstrumento && filtroPrazo === "todos";
 
@@ -797,7 +795,7 @@ function AbaB2B() {
     let aVencer = 0;
     let vencidos = 0;
     for (const t of baseCarteiraSemPrazo) {
-      if (venceuNoCaixa(t)) vencidos += 1;
+      if (estaVencido(t)) vencidos += 1;
       else if (naoRecebido(t)) aVencer += 1;
 
     }
@@ -1127,7 +1125,6 @@ function AbaB2B() {
       const estadosDistintos = new Set(titulos.map((t) => t.estado_rotulo));
       const misto = estadosDistintos.size > 1;
       const inadimplente = titulos.find((t) => t.eh_inadimplente === true);
-      const vencido = titulos.find((t) => venceuNoCaixa(t));
       const aberto = titulos.find((t) => naoRecebido(t));
       const fechados = titulos.filter((t) => !naoRecebido(t));
 
@@ -1149,7 +1146,7 @@ function AbaB2B() {
               return db.localeCompare(da);
             })[0]
           : null;
-      const escolhido = inadimplente || vencido || aberto || recenteFechado || primeiro;
+      const escolhido = inadimplente || aberto || recenteFechado || primeiro;
       const estadoRotulo = escolhido.estado_rotulo ?? null;
       const estadoCor = escolhido.estado_cor ?? null;
 
@@ -1306,15 +1303,6 @@ function AbaB2B() {
               </>
             );
           })()}
-          {venceuNoCaixa(t) && t.eh_inadimplente === false && (
-            <div className="mt-0.5">
-              <SeloPontualidade
-                relogio={t.relogio_pontualidade}
-                dias={t.dias_atraso_adquirente}
-                aguardandoCredito={t.aguardando_credito}
-              />
-            </div>
-          )}
         </TableCell>
         <TableCell className="text-sm">
           {t.data_liquidacao_real ? (
