@@ -2122,7 +2122,8 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
                       .slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE)
                       .map((t) => linhaTitulo(t, false))}
               </TableBody>
-            </Table>
+              </table>
+            </div>
           )}
         </CardContent>
       </Card>
