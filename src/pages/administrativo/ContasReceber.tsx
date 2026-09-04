@@ -1304,7 +1304,28 @@ function AbaB2B() {
               </>
             );
           })()}
+          {venceuNoCaixa(t) && t.eh_inadimplente === false && (
+            <div className="mt-0.5">
+              <SeloPontualidade
+                relogio={t.relogio_pontualidade}
+                dias={t.dias_atraso_adquirente}
+                aguardandoCredito={t.aguardando_credito}
+              />
+            </div>
+          )}
         </TableCell>
+        <TableCell className="text-sm">
+          {t.data_liquidacao_real ? (
+            formatDateBR(t.data_liquidacao_real)
+          ) : t.data_liquidacao_prevista ? (
+            <span className="text-[10px] text-muted-foreground">
+              prev. {formatDateBR(t.data_liquidacao_prevista)}
+            </span>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          )}
+        </TableCell>
+
         <TableCell
           className={
             desvio != null && Math.abs(desvio) > 15
