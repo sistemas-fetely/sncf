@@ -1594,7 +1594,7 @@ function AbaB2B() {
           <div className="space-y-1">
             <Label className="text-xs">Recebimento — o dinheiro chegou?</Label>
             <div className="flex flex-wrap gap-2">
-              {RECEBIMENTO_ORDEM.map((r) => {
+              {metaRecebimento.map(({ chave: r, rotulo }) => {
                 const n = contagensRecebimento[r] ?? 0;
                 /* Chip zerado POR CAUSA do filtro de KPI é impossível, não vazio. */
                 const impossivel =
@@ -1607,9 +1607,10 @@ function AbaB2B() {
                     onClick={() => toggleRecebimento(r)}
                     className={impossivel ? "opacity-50 pointer-events-none" : undefined}
                   >
-                    {RECEBIMENTO_LABEL[r]} ({n})
+                    {rotulo} ({n})
                   </Button>
                 );
+
                 if (!impossivel) return botao;
                 return (
                   <Tooltip key={r}>
