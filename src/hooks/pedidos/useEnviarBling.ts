@@ -9,7 +9,7 @@ interface EnviarBlingResponse {
   remessa_id?: string;
   remessa_codigo?: string;
   mensagem?: string;
-  aviso_transicao?: string;
+  proximo_passo?: string;
   erro?: string;
   duracao_ms?: number;
 }
@@ -55,15 +55,10 @@ export function useEnviarBling() {
         ? `Tentativa ${Number(seqTentativa)} · id Bling: ${data.bling_id}${data.duracao_ms ? ` · ${data.duracao_ms}ms` : ""}`
         : `id Bling: ${data.bling_id}${data.duracao_ms ? ` · ${data.duracao_ms}ms` : ""}`;
 
-      toast({ title: "Enviado pro Bling", description: desc });
-
-      if (data.aviso_transicao) {
-        toast({
-          title: "Atenção — estágio não avançou",
-          description: data.aviso_transicao,
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Enviado pro Bling",
+        description: data.proximo_passo ? `${desc} · ${data.proximo_passo}` : desc,
+      });
 
       invalidarPedido(qc, vars.pedido_id);
     },
