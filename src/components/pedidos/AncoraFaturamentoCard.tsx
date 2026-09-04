@@ -11,8 +11,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, CalendarCheck, Info, Loader2 } from "lucide-react";
 import { PRE_FATURAMENTO_CHECKLIST_KEY } from "@/components/pedidos/PreFaturamentoCard";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 
 /**
  * ÂNCORA DE FATURAMENTO — SISTEMA SUGERE / HUMANO DECIDE.
@@ -41,6 +46,8 @@ function hojeISO() {
   const off = agora.getTimezoneOffset() * 60000;
   return new Date(agora.getTime() - off).toISOString().slice(0, 10);
 }
+
+const MIN_MOTIVO_FORCA = 15;
 
 interface LinhaAncora {
   provisao_id: string;
@@ -78,6 +85,8 @@ interface Sugestao {
   venc_max: string | null;
   alertas: AlertaAncora[];
   pode_declarar: boolean;
+  pode_forcar: boolean;
+  bloqueios: string[];
 }
 
 interface Vigente {
@@ -102,11 +111,14 @@ export function AncoraFaturamentoCard({
 }: { pedidoId: string; idExterno: string; onDeclarada?: () => void }) {
   const qc = useQueryClient();
   const hoje = hojeISO();
+  const { permitido: podeForcar } = usePermissaoAcaoOuSuperAdmin("acao.pedido_forcar_prazo_credito");
 
   const [dataFaturamento, setDataFaturamento] = useState(hoje);
   const [gorduraDias, setGorduraDias] = useState<number | "">("");
   const [vencParcela1, setVencParcela1] = useState("");
   const [redeclarando, setRedeclarando] = useState(false);
+  const [forcaAberta, setForcaAberta] = useState(false);
+  const [motivoForca, setMotivoForca] = useState("");
 
   const sugestaoQ = useQuery({
     queryKey: ["ancora-sugestao", pedidoId, dataFaturamento, gorduraDias, vencParcela1],
@@ -151,23 +163,29 @@ export function AncoraFaturamentoCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sugestao?.gordura_dias]);
 
-  const declarar = useMutation({
-    mutationFn: async () => {
+  const declarar = useMutation<void, unknown, { forcar?: boolean; motivo?: string } | void>({
+    mutationFn: async (opts) => {
       const args: Record<string, unknown> = {
         p_pedido_id: pedidoId,
         p_data_faturamento: dataFaturamento,
         p_gordura_dias: gorduraDias === "" ? 0 : Number(gorduraDias),
       };
       if (vencParcela1) args.p_venc_parcela1 = vencParcela1;
+      if (opts && opts.forcar) {
+        args.p_forcar = true;
+        args.p_motivo_forca = opts.motivo;
+      }
       const { error } = await supabase.rpc(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         "fn_declarar_ancora_faturamento" as any, args as any,
       );
       if (error) throw error;
     },
-    onSuccess: async () => {
-      toast.success("Âncora declarada");
+    onSuccess: async (_data, opts) => {
+      toast.success(opts && (opts as { forcar?: boolean }).forcar ? "Âncora declarada (forçada)" : "Âncora declarada");
       setRedeclarando(false);
+      setForcaAberta(false);
+      setMotivoForca("");
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["ancora-vigente", pedidoId] }),
         qc.invalidateQueries({ queryKey: ["ancora-sugestao", pedidoId] }),
@@ -343,16 +361,95 @@ export function AncoraFaturamentoCard({
               </Alert>
             ))}
 
-            <Button
-              className="gap-1.5"
-              disabled={!sugestao.pode_declarar || declarar.isPending}
-              onClick={() => declarar.mutate()}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                className="gap-1.5"
+                disabled={!sugestao.pode_declarar || declarar.isPending}
+                onClick={() => declarar.mutate()}
+              >
+                {declarar.isPending
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <CalendarCheck className="h-4 w-4" />}
+                Declarar data de faturamento
+              </Button>
+
+              {!sugestao.pode_declarar && sugestao.pode_forcar && podeForcar && (
+                <Button
+                  variant="outline"
+                  className="gap-1.5"
+                  onClick={() => setForcaAberta(true)}
+                >
+                  <AlertTriangle className="h-4 w-4" />
+                  Declarar mesmo assim
+                </Button>
+              )}
+            </div>
+
+            <Dialog
+              open={forcaAberta}
+              onOpenChange={(v) => {
+                if (declarar.isPending) return;
+                setForcaAberta(v);
+                if (!v) setMotivoForca("");
+              }}
             >
-              {declarar.isPending
-                ? <Loader2 className="h-4 w-4 animate-spin" />
-                : <CalendarCheck className="h-4 w-4" />}
-              Declarar data de faturamento
-            </Button>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-warning" />
+                    Declarar fora do envelope de crédito
+                  </DialogTitle>
+                  <DialogDescription className="space-y-2">
+                    <p>
+                      O pedido está bloqueado para faturamento e declarar assim assume o risco sobre
+                      os alertas abaixo. O motivo fica registrado e assinado no histórico do pedido.
+                    </p>
+                    {(sugestao.alertas ?? []).filter((a) => a.bloqueia).length > 0 && (
+                      <ul className="list-disc pl-4 space-y-1 text-sm text-foreground">
+                        {(sugestao.alertas ?? [])
+                          .filter((a) => a.bloqueia)
+                          .map((a) => (
+                            <li key={a.codigo}>{a.detalhe}</li>
+                          ))}
+                      </ul>
+                    )}
+                  </DialogDescription>
+                </DialogHeader>
+
+                <Textarea
+                  value={motivoForca}
+                  onChange={(e) => setMotivoForca(e.target.value)}
+                  placeholder="Ex.: cliente estratégico, risco assumido pela diretoria nesta entrega"
+                  rows={3}
+                />
+                <div className="text-xs text-muted-foreground">
+                  {motivoForca.trim().length}/{MIN_MOTIVO_FORCA} caracteres
+                </div>
+
+                <DialogFooter>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setForcaAberta(false);
+                      setMotivoForca("");
+                    }}
+                    disabled={declarar.isPending}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    disabled={motivoForca.trim().length < MIN_MOTIVO_FORCA || declarar.isPending}
+                    onClick={() => declarar.mutate({ forcar: true, motivo: motivoForca.trim() })}
+                    className="gap-1.5"
+                  >
+                    {declarar.isPending
+                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                      : <AlertTriangle className="h-4 w-4" />}
+                    Declarar assumindo o risco
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </>
         )}
       </div>

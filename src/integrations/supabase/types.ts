@@ -80339,7 +80339,9 @@ export type Database = {
       fn_declarar_ancora_faturamento: {
         Args: {
           p_data_faturamento?: string
+          p_forcar?: boolean
           p_gordura_dias?: number
+          p_motivo_forca?: string
           p_observacao?: string
           p_pedido_id: string
           p_venc_parcela1?: string
