@@ -259,12 +259,29 @@ export default function PessoaForm() {
         if (v) {
           setVinculoId(v.id);
           setVinculoStatus(v.status);
+
+          let salarioBase = "";
+          let salarioTransporte = "";
+          if (podeVerSalario) {
+            const { data: custo, error: ce } = await supabase
+              .from("vw_vinculo_custo_total")
+              .select("valor_base, valor_transporte")
+              .eq("vinculo_id", v.id)
+              .maybeSingle();
+            if (ce) {
+              toast.error(humanizeError(ce.message));
+            } else if (custo) {
+              salarioBase = custo.valor_base?.toString() || "";
+              salarioTransporte = custo.valor_transporte?.toString() || "";
+            }
+          }
+
           setVinculo({
             tipo_vinculo: v.tipo_vinculo,
             cargo_id: v.cargo_id || "", departamento_id: v.departamento_id || "", centro_custo_id: v.centro_custo_id || "", unidade_id: v.unidade_id || "",
             data_inicio: v.data_inicio || "",
-            valor_base: v.valor_base?.toString() || "",
-            valor_transporte: v.valor_transporte?.toString() || "",
+            valor_base: salarioBase,
+            valor_transporte: salarioTransporte,
 
             forma_pagamento_id: v.forma_pagamento_id || "",
             dia_vencimento: v.dia_vencimento?.toString() || "5",
