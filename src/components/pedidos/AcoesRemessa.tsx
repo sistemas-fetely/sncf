@@ -46,6 +46,7 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
   // DESABILITADO com o motivo — nunca escondido.
   const { permitido: podeEnviarBling } = usePermissaoAcaoOuSuperAdmin("acao.enviar_bling");
   const { permitido: podeEmpurrarXpmAcao } = usePermissaoAcaoOuSuperAdmin("acao.empurrar_xpm");
+  const { permitido: podeForcarEstoque } = usePermissaoAcaoOuSuperAdmin("acao.forcar_xpm_estoque");
   const MOTIVO_SEM_ACAO = "Ação do time de Operações";
 
   const { data: parceiroBling, refetch: recheckBling } = useQuery({
