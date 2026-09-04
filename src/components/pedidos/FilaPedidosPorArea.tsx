@@ -13,7 +13,7 @@ import { usePedidosEntregaLote, type EntregaLinhaInfo } from "@/hooks/pedidos/us
 import { useDownloadNfPdf } from "@/hooks/nf/useDownloadNfPdf";
 import { nomeArquivoNf } from "@/lib/nf/nome-arquivo";
 import { useLiberacaoExpedicaoLote, type LiberacaoExpedicao } from "@/hooks/pedidos/useLiberacaoExpedicao";
-import { useCoberturaPedidos, type CoberturaPedido } from "@/lib/pedidoDestaque";
+import { useCoberturaPedidos, usePoliticaCobertura, type CoberturaPedido, type PoliticaCobertura } from "@/lib/pedidoDestaque";
 import { CelulaEntregaFila, LinhaNfFila } from "@/components/pedidos/CelulasFilaPedidos";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
