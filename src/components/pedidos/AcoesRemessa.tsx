@@ -14,7 +14,12 @@ import { useNivel } from "@/hooks/useNivel";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { ReenviarBlingDialog } from "@/components/pedidos/dialogs/ReenviarBlingDialog";
 import { ForcarXpmDialog } from "@/components/pedidos/dialogs/ForcarXpmDialog";
+import { ForcarXpmEstoqueDialog } from "@/components/pedidos/dialogs/ForcarXpmEstoqueDialog";
+import { usePreviaEstoqueXpm } from "@/hooks/pedidos/usePreviaEstoqueXpm";
 import { DeclararCancelamentoXpmDialog } from "@/components/pedidos/dialogs/DeclararCancelamentoXpmDialog";
+
+/** Prefixo gravado pela edge quando o bloqueio é NOSSO (a XPM nem foi chamada). */
+const PREFIXO_PRE_VOO = "Bloqueado antes do envio · ";
 
 interface Props {
   pedido_id: string;
