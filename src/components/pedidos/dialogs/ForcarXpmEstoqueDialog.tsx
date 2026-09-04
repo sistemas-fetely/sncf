@@ -10,6 +10,7 @@ import { Selo } from "@/components/ui/selo";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { useEmpurrarXpm } from "@/hooks/pedidos/useEmpurrarXpm";
 import { DividirRemessaDialog } from "@/components/pedidos/dialogs/DividirRemessaDialog";
+import { BlocoFaltaEstoqueXpm } from "@/components/pedidos/BlocoFaltaEstoqueXpm";
 import type { ItemPreviaEstoqueXpm } from "@/hooks/pedidos/usePreviaEstoqueXpm";
 
 const MIN_MOTIVO = 15;
@@ -32,15 +33,6 @@ interface Props {
   podeForcar?: boolean;
 }
 
-function fmtFoto(iso: string | null): string | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleString("pt-BR", {
-    day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
-  }).replace(", ", " ");
-}
-
 /**
  * OVERRIDE-TEM-NOME: furar SÓ o bloqueio de estoque (`acao.forcar_xpm_estoque`).
  * Dividir o pedido vem primeiro; forçar é a saída de exceção.
@@ -53,7 +45,7 @@ export function ForcarXpmEstoqueDialog({
   const empurrar = useEmpurrarXpm();
 
   const valido = motivo.trim().length >= MIN_MOTIVO;
-  const foto = fmtFoto(fotoEm ?? itens[0]?.foto_em ?? null);
+
 
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setMotivo(""); }}>
