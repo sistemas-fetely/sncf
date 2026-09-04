@@ -991,7 +991,6 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
     };
   }, [busca, baseFiltros]);
 
-
   const toggleRecebimento = (k: EixoRecebimento) => {
     setRecebimentosAtivos((prev) => {
       const next = new Set(prev);
