@@ -401,6 +401,45 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
         </div>
 
 
+        {isErroMesa && (
+          <Alert variant="destructive">
+            <AlertTitle>Não foi possível carregar a Mesa Comercial</AlertTitle>
+            <AlertDescription className="space-y-2">
+              <p>
+                A consulta demorou mais que o limite e foi interrompida. Os pedidos continuam
+                no sistema — o que falhou foi a leitura desta tela.
+              </p>
+              {pareceTimeout(mensagemErro(erroMesa)) && (
+                <p className="font-medium">Causa provável: tempo de resposta da consulta.</p>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetchMesa()}
+                className="mt-1"
+              >
+                <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                Tentar de novo
+              </Button>
+              <p className="text-xs text-muted-foreground pt-1">
+                {mensagemErro(erroMesa)}
+              </p>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {!isErroMesa && (
+          <AlertasSecundarios
+            erros={[
+              isErroVendedor && { origem: "Vínculo de vendedor", msg: mensagemErro(erroVendedor) },
+              isErroStatusOpcoes && { origem: "Status comercial", msg: mensagemErro(erroStatusOpcoes) },
+              isErroPagamentoOpcoes && { origem: "Estado do pagamento", msg: mensagemErro(erroPagamentoOpcoes) },
+              isErroEntrega && { origem: "Fase e entrega", msg: mensagemErro(erroEntrega) },
+              isErroLinks && { origem: "Links de pagamento", msg: mensagemErro(erroLinks) },
+            ].filter(Boolean) as { origem: string; msg: string }[]}
+          />
+        )}
+
         <Card>
           <CardContent className="p-0">
             {isLoading ? (
@@ -408,6 +447,16 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 <p className="text-xs text-muted-foreground">
                   Montando a carteira completa — leva alguns segundos.
+                </p>
+              </div>
+            ) : isErroMesa ? (
+              <div className="text-center py-16 px-6">
+                <Sparkles className="h-8 w-8 text-muted-foreground/60 mx-auto mb-3" />
+                <p className="text-sm font-medium">
+                  A Mesa não pôde ser lida.
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Use o alerta acima para tentar novamente.
                 </p>
               </div>
             ) : semVendedorVinculado ? (
