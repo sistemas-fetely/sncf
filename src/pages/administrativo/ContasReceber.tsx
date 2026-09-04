@@ -1376,6 +1376,7 @@ function AbaB2B() {
       "Recebido em": t.data_recebimento_efetiva ? formatDateBR(t.data_recebimento_efetiva) : "",
       Fonte: t.fonte_data_recebimento ?? "",
       "Caixa projetado": t.data_caixa_projetada ? formatDateBR(t.data_caixa_projetada) : "",
+      Caixa: t.data_liquidacao_real ? formatDateBR(t.data_liquidacao_real) : "",
       "Data banco": formatDateBR(t.data_pagamento_banco),
       "Data humano": formatDateBR(t.data_pagamento),
       Divergente: t.data_divergente ? "Sim" : "Não",
@@ -1385,8 +1386,11 @@ function AbaB2B() {
       Desconto: t.valor_desconto ?? 0,
       "Gera caixa": t.gera_caixa ? "Sim" : "Não",
       "Prova bancária": t.tem_prova_bancaria ? "Sim" : "Não",
-      Recebimento: t.eixo_recebimento ? RECEBIMENTO_LABEL[t.eixo_recebimento] : "",
-      Instrumento: t.eixo_instrumento ?? "",
+      Recebimento:
+        t.recebimento_rotulo ??
+        (t.eixo_recebimento ? RECEBIMENTO_LABEL[t.eixo_recebimento] : ""),
+      Instrumento: t.instrumento_rotulo ?? t.eixo_instrumento ?? "",
+
       Qualidade: t.qualidade ?? "",
       Estado: t.estado_rotulo ?? "",
       Inadimplente: t.eh_inadimplente ? "Sim" : "Não",
