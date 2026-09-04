@@ -139,7 +139,11 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
    */
   const filtrarMeus = podeVerTodos ? meus && !!vendedorAtual : true;
   const semVendedorVinculado =
-    !podeVerTodos && !carregandoPerms && !carregandoVendedor && !vendedorAtual;
+    !isErroVendedor &&
+    !podeVerTodos &&
+    !carregandoPerms &&
+    !carregandoVendedor &&
+    !vendedorAtual;
 
   /** Escopo do vendedor aplicado antes de tudo — KPIs e contadores herdam dele. */
   const escopoCarteira = useMemo(() => {
