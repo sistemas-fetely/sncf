@@ -68223,14 +68223,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -77816,6 +77816,7 @@ export type Database = {
           g3_banco_ok: boolean | null
           g3_motivo: string | null
           no_prazo_aguardando: number | null
+          pago_sem_rastro: number | null
           pai_ref: string | null
           parcelas: number | null
           pedido_id: string | null
@@ -77824,6 +77825,7 @@ export type Database = {
           validado: boolean | null
           valor_atrasado: number | null
           valor_pedido: number | null
+          valor_sem_rastro: number | null
           valor_titulos: number | null
         }
         Relationships: [
