@@ -769,6 +769,26 @@ function AbaB2B() {
     return c;
   }, [baseCarteiraSemKpi]);
 
+  /** ROTULO-VEM-DO-BANCO: rótulo, ordem e classe do eixo recebimento vêm da view. */
+  const metaRecebimento = useMemo(() => {
+    const m = new Map<EixoRecebimento, { rotulo: string; ordem: number }>();
+    for (const t of data ?? []) {
+      const r = t.eixo_recebimento;
+      if (!r || m.has(r)) continue;
+      m.set(r, {
+        rotulo: t.recebimento_rotulo ?? RECEBIMENTO_LABEL[r],
+        ordem: t.recebimento_ordem ?? RECEBIMENTO_ORDEM.indexOf(r) + 1,
+      });
+    }
+    return RECEBIMENTO_ORDEM.map((r) => ({
+      chave: r,
+      rotulo: m.get(r)?.rotulo ?? RECEBIMENTO_LABEL[r],
+      ordem: m.get(r)?.ordem ?? RECEBIMENTO_ORDEM.indexOf(r) + 1,
+    })).sort((a, b) => a.ordem - b.ordem);
+  }, [data]);
+
+
+
   /** Contagens do controle segmentado de prazo: sem o próprio filtro de prazo
    *  aplicado, para o botão ativo não zerar a si mesmo. */
   const contagensPrazo = useMemo(() => {
