@@ -132,6 +132,7 @@ export default function PessoaForm() {
   const [vinculoId, setVinculoId] = useState<string | null>(null);
   const [vinculoStatus, setVinculoStatus] = useState<"ativo" | "desligado" | null>(null);
   const [vinculoCarregado, setVinculoCarregado] = useState(true);
+  const [salarioCarregado, setSalarioCarregado] = useState(false);
 
 
   const [cargos, setCargos] = useState<Dim[]>([]);
@@ -270,10 +271,16 @@ export default function PessoaForm() {
               .maybeSingle();
             if (ce) {
               toast.error(humanizeError(ce.message));
-            } else if (custo) {
-              salarioBase = custo.valor_base?.toString() || "";
-              salarioTransporte = custo.valor_transporte?.toString() || "";
+              setSalarioCarregado(false);
+            } else {
+              setSalarioCarregado(true);
+              if (custo) {
+                salarioBase = custo.valor_base?.toString() || "";
+                salarioTransporte = custo.valor_transporte?.toString() || "";
+              }
             }
+          } else {
+            setSalarioCarregado(true);
           }
 
           setVinculo({
@@ -310,6 +317,32 @@ export default function PessoaForm() {
       }
     })();
   }, [id]);
+
+  // Cobre a corrida: se a permissão de salário chegar depois do vínculo,
+  // busca os valores pela view antes de permitir qualquer gravação.
+  useEffect(() => {
+    if (!vinculoId || !podeVerSalario || salarioCarregado) return;
+    (async () => {
+      const { data: custo, error: ce } = await supabase
+        .from("vw_vinculo_custo_total")
+        .select("valor_base, valor_transporte")
+        .eq("vinculo_id", vinculoId)
+        .maybeSingle();
+      if (ce) {
+        toast.error(humanizeError(ce.message));
+        setSalarioCarregado(false);
+        return;
+      }
+      setSalarioCarregado(true);
+      if (custo) {
+        setVinculo((prev) => ({
+          ...prev,
+          valor_base: custo.valor_base?.toString() || "",
+          valor_transporte: custo.valor_transporte?.toString() || "",
+        }));
+      }
+    })();
+  }, [vinculoId, podeVerSalario, salarioCarregado]);
 
   // Checar CPF duplicado (só no create)
   async function checarCpfDuplicado(): Promise<string | "ok" | null> {
@@ -373,9 +406,9 @@ export default function PessoaForm() {
       unidade_id: vinculo.unidade_id || null,
       gestor_pessoa_id: vinculo.gestor_pessoa_id || null,
       data_inicio: vinculo.data_inicio,
-      // Sigilo salarial: sem permissão, as chaves são OMITIDAS do payload
-      // (enviar null apagaria o valor existente no banco).
-      ...(podeVerSalario
+      // Sigilo salarial: sem permissão ou sem o salário carregado,
+      // as chaves são OMITIDAS do payload (enviar null apagaria o valor no banco).
+      ...(podeVerSalario && salarioCarregado
         ? {
             valor_base: toNum(vinculo.valor_base),
             valor_transporte: toNum(vinculo.valor_transporte),
@@ -661,6 +694,9 @@ export default function PessoaForm() {
                   {vinculoStatus !== "ativo" && (
                     <p className="text-xs text-muted-foreground mt-1">Salário não disponível para vínculo encerrado.</p>
                   )}
+                  {!salarioCarregado && (
+                    <p className="text-[11px] text-destructive mt-1">Salário não carregado — este campo não será gravado.</p>
+                  )}
                 </>
               ) : (
                 <>
@@ -676,6 +712,9 @@ export default function PessoaForm() {
                   <Input value={vinculo.valor_transporte} onChange={(e) => setVinculo({ ...vinculo, valor_transporte: e.target.value })} />
                   {vinculoStatus !== "ativo" && (
                     <p className="text-xs text-muted-foreground mt-1">Salário não disponível para vínculo encerrado.</p>
+                  )}
+                  {!salarioCarregado && (
+                    <p className="text-[11px] text-destructive mt-1">Salário não carregado — este campo não será gravado.</p>
                   )}
                 </>
               ) : (
