@@ -21,9 +21,12 @@ interface EmpurrarXpmResponse {
 // Ver sncf_documentacao `decisao-remessa-e-tentativa-envio`.
 interface EmpurrarXpmParams {
   pedido_id: string;
-  /** OVERRIDE: ignora só o bloqueio de expedição já existente na XPM. */
-  forcar?: boolean;
-  /** Obrigatório quando forcar=true (mín. 15 caracteres). */
+  /**
+   * OVERRIDE-TEM-NOME: lista de códigos de `xpm_override_dim` a furar
+   * (`estoque`, `expedicao_existente`, `lastro`). Cada um tem permissão própria.
+   */
+  forcar?: string[];
+  /** Obrigatório quando há override (mín. 15 caracteres). */
   motivo?: string;
 }
 
@@ -33,9 +36,16 @@ export function useEmpurrarXpm() {
 
   return useMutation({
     mutationFn: async ({ pedido_id, forcar, motivo }: EmpurrarXpmParams): Promise<EmpurrarXpmResponse> => {
+      const overrides = forcar ?? [];
       const { data, error } = await supabase.functions.invoke<EmpurrarXpmResponse>(
         "empurrar-pedido-xpm",
-        { body: { pedido_id, forcar: !!forcar, motivo } },
+        {
+          body: {
+            pedido_id,
+            ...(overrides.length > 0 ? { forcar: overrides } : {}),
+            ...(motivo ? { motivo } : {}),
+          },
+        },
       );
       if (error) {
         // A edge devolve 422 com a lista de bloqueios no corpo; sem isso o
