@@ -67,6 +67,21 @@ const GRUPOS: { valor: FiltroGrupo; rotulo: string }[] = [
   { valor: "todas", rotulo: "Todas" },
 ];
 
+function mensagemErro(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (typeof e === "string") return e;
+  return String(e ?? "erro desconhecido");
+}
+
+function pareceTimeout(m: string): boolean {
+  const lower = m.toLowerCase();
+  return (
+    lower.includes("timeout") ||
+    lower.includes("canceling statement") ||
+    lower.includes("57014")
+  );
+}
+
 export default function Oportunidades({ embutido = false }: { embutido?: boolean } = {}) {
   const [busca, setBusca] = useState("");
   const [statusFiltro, setStatusFiltro] = useState<string>("todos");
