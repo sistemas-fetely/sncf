@@ -954,6 +954,8 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
     }
     for (const r of RECEBIMENTO_ORDEM) {
       if (!recebimentosAtivos.has(r)) continue;
+      /* Chip padrão não aparece: o estado inicial já é "Em aberto". */
+      if (recebimentosAtivos.size === 1 && r === "em_aberto") continue;
       lista.push({
         chave: `receb:${r}`,
         rotulo: `Recebimento: ${RECEBIMENTO_LABEL[r]}`,
