@@ -1773,7 +1773,54 @@ export default function PedidoDetalhe() {
 
           {/* ============ FAIXA 0: estação de PRÉ-FATURAMENTO ============ */}
           {estagio === "pre_faturamento" && (
-            <AncoraFaturamentoCard pedidoId={pedido.id} idExterno={pedido.id_externo} />
+            <div className="space-y-4">
+              {pedido.bling_envio_erro ? (
+                <Alert className="border-destructive/40 bg-destructive/10">
+                  <XCircle className="h-4 w-4 text-destructive" />
+                  <AlertDescription className="text-destructive">
+                    <p className="font-medium">Envio ao Bling falhou</p>
+                    <p className="text-sm">{pedido.bling_envio_erro}</p>
+                    <p className="text-sm mt-1">
+                      Corrija o problema e tente enviar novamente. O pedido permanece em pré-faturamento.
+                    </p>
+                  </AlertDescription>
+                </Alert>
+              ) : pedido.bling_id_destino ? (
+                <Alert className="border-success/40 bg-success/10">
+                  <CheckCircle2 className="h-4 w-4 text-success" />
+                  <AlertDescription>
+                    <p className="font-medium text-success">Enviado ao Bling — aguardando emissão da NF</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <code className="text-sm bg-background/60 px-1.5 py-0.5 rounded font-mono">
+                        {pedido.bling_id_destino}
+                      </code>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 gap-1 text-xs"
+                        onClick={() => {
+                          navigator.clipboard.writeText(String(pedido.bling_id_destino));
+                          toast({ title: "Copiado", description: "ID do Bling copiado para a área de transferência." });
+                        }}
+                      >
+                        <Copy className="h-3 w-3" />
+                        Copiar
+                      </Button>
+                    </div>
+                    {pedido.bling_enviado_em && (
+                      <p className="text-sm mt-1">
+                        Enviado em {fmtDateTime(pedido.bling_enviado_em)}
+                      </p>
+                    )}
+                    <p className="text-sm mt-2 text-muted-foreground">
+                      A NF é emitida dentro do Bling. Quando ela for ingerida, o pedido avança para Faturado automaticamente.
+                    </p>
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+              <AncoraFaturamentoCard pedidoId={pedido.id} idExterno={pedido.id_externo} />
+            </div>
           )}
 
           {/* ============ FAIXA 1: Pedido · Resumo financeiro · Dados de envio ============ */}

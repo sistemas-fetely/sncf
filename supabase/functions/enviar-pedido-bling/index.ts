@@ -1141,6 +1141,25 @@ if (itensSemProdutoBling.length > 0) {
         }).eq("id", pedido_id);
       }
 
+      // ENVIO-DEIXA-RASTRO (04/09/2026): o envio gravava bling_id_destino,
+      // bling_enviado_em e bling_enviado_por na tabela pedidos, mas nao inseria
+      // em pedido_eventos — o historico do pedido pulava da ancora direto pro nada
+      // e ninguem conseguia ver quem enviou nem quando. FAIL-LOUD.
+      const { error: eEvBling } = await supabase.from("pedido_eventos").insert({
+        pedido_id,
+        tipo_evento: "bling_enviado",
+        descricao: `Enviado ao Bling (id ${blingId}) · remessa ${remessaCodigo} — proximo passo e emitir a NF no Bling`,
+        metadata: {
+          bling_id: String(blingId),
+          remessa_id: remessa.id,
+          remessa_codigo: remessaCodigo,
+          duracao_ms: duracaoMs,
+          carimbou_destino: carimbarDestino,
+          enviado_por: userId,
+        },
+        automatico: false,
+      });
+      if (eEvBling) throw new Error(`registrar evento de envio ao Bling: ${eEvBling.message}`);
 
       return ok({
         sucesso: true,
@@ -1149,6 +1168,7 @@ if (itensSemProdutoBling.length > 0) {
         remessa_codigo: remessaCodigo,
         mensagem: `Remessa ${remessaCodigo} enviada pro Bling (id ${blingId})`,
         duracao_ms: duracaoMs,
+        proximo_passo: "Emitir a NF no Bling. O pedido avanca para Faturado sozinho quando a NF for ingerida.",
       });
     } else {
       await supabase.from("pedidos").update({
