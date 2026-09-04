@@ -302,8 +302,6 @@ function ColunaKpi({
   );
 }
 
-
-
 const fmtDesvio = (d: number | null | undefined) => {
   if (d == null || d === 0) return "";
   return `${d > 0 ? "+" : "−"}${Math.abs(d)}d`;
