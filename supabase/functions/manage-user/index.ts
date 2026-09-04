@@ -728,13 +728,52 @@ Deno.serve(async (req) => {
       }
 
       // 9. Papel base
-      const { error: errRole } = await adminClient.from("user_roles").upsert(
-        { user_id: novoUserId, role: "colaborador" },
-        { onConflict: "user_id,role" },
-      );
-      if (errRole) {
-        console.error("[create_user_from_vinculo] Erro ao inserir papel base:", errRole);
-        avisos.push("Papel base 'colaborador' não pôde ser atribuído: " + errRole.message);
+      // Índice de unicidade em user_roles é parcial (WHERE revogado_em IS NULL),
+      // então ON CONFLICT não casa. Consultamos primeiro, inserimos só se faltar
+      // e confirmamos depois.
+      let papelBaseConfirmado = false;
+      try {
+        const { data: papelExistente, error: errBusca } = await adminClient
+          .from("user_roles")
+          .select("id")
+          .eq("user_id", novoUserId)
+          .eq("role", "colaborador")
+          .is("revogado_em", null)
+          .maybeSingle();
+        if (errBusca) {
+          console.error("[create_user_from_vinculo] Erro ao verificar papel base:", errBusca);
+          avisos.push("Papel base 'colaborador' não pôde ser atribuído: " + errBusca.message);
+        } else if (papelExistente) {
+          papelBaseConfirmado = true;
+        } else {
+          const { error: errInsert } = await adminClient.from("user_roles").insert({
+            user_id: novoUserId,
+            role: "colaborador",
+          });
+          if (errInsert) {
+            console.error("[create_user_from_vinculo] Erro ao inserir papel base:", errInsert);
+            avisos.push("Papel base 'colaborador' não pôde ser atribuído: " + errInsert.message);
+          } else {
+            const { data: papelConfirmado, error: errConfirma } = await adminClient
+              .from("user_roles")
+              .select("id")
+              .eq("user_id", novoUserId)
+              .eq("role", "colaborador")
+              .is("revogado_em", null)
+              .maybeSingle();
+            if (errConfirma) {
+              console.error("[create_user_from_vinculo] Erro ao confirmar papel base:", errConfirma);
+              avisos.push("Papel base 'colaborador' não pôde ser atribuído: " + errConfirma.message);
+            } else if (papelConfirmado) {
+              papelBaseConfirmado = true;
+            } else {
+              avisos.push("Papel base 'colaborador' não pôde ser atribuído: inserção não confirmada.");
+            }
+          }
+        }
+      } catch (e) {
+        console.error("[create_user_from_vinculo] Exception ao atribuir papel base:", e);
+        avisos.push("Papel base 'colaborador' não pôde ser atribuído: " + ((e as Error)?.message || "erro desconhecido"));
       }
 
       // 10. Perfis via template do cargo — degradação suave
@@ -1168,7 +1207,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    return new Response(JSON.stringify({ error: (err as Error)?.message || "Erro interno" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

@@ -80969,6 +80969,10 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_titulo_rotativo_rolar_vencimento: {
+        Args: { p_data_ref?: string; p_titulo_id: string }
+        Returns: Json
+      }
       fn_transicionar_pedido: {
         Args: {
           p_acao: string
