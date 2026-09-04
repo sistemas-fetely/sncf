@@ -804,8 +804,6 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
     })).sort((a, b) => a.ordem - b.ordem);
   }, [data]);
 
-
-
   /** Contagens do controle segmentado de prazo: sem o próprio filtro de prazo
    *  aplicado, para o botão ativo não zerar a si mesmo. */
   const contagensPrazo = useMemo(() => {
