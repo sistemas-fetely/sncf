@@ -405,6 +405,8 @@ function AtalhosPeriodo({
 
 export default function ContasReceber() {
   const [aba, setAba] = useAbaUrl("b2b");
+  const [exportador, setExportador] = useState<{ fn: () => void; ativo: boolean } | null>(null);
+  const { temNivel } = useNivel();
 
   return (
     <PageShell>
@@ -415,20 +417,34 @@ export default function ContasReceber() {
       />
 
       <Tabs value={aba} onValueChange={setAba}>
-        <TabsList>
-          <TabsTrigger value="b2b">B2B</TabsTrigger>
-          <TabsTrigger value="b2c">B2C</TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between gap-4">
+          <TabsList>
+            <TabsTrigger value="b2b">B2B</TabsTrigger>
+            <TabsTrigger value="b2c">B2C</TabsTrigger>
+          </TabsList>
+          {temNivel(3) && (
+            <Button
+              variant="outline"
+              onClick={() => exportador?.fn()}
+              disabled={!exportador?.ativo}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Exportar XLSX
+            </Button>
+          )}
+        </div>
         <TabsContent value="b2b" className="mt-4">
-          <AbaB2B />
+          <AbaB2B onRegistrarExport={setExportador} />
         </TabsContent>
         <TabsContent value="b2c" className="mt-4">
-          <AbaB2C />
+          <AbaB2C onRegistrarExport={setExportador} />
         </TabsContent>
       </Tabs>
     </PageShell>
   );
 }
+
 
 /* ============================ B2B ============================ */
 
