@@ -21,6 +21,25 @@ export function SeloPontualidade({
 }: SeloPontualidadeProps) {
   if (relogio === "adquirente") {
     if (aguardandoCredito) {
+      if (dias !== null && dias > 0) {
+        return (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Badge className="bg-warning/10 text-warning border-0 text-[10px] cursor-help">
+                    Adquirente atrasou {dias}d
+                  </Badge>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                Cartão: o cliente pagou na autorização. Esta data mede quando a
+                adquirente creditou o valor, não a pontualidade do cliente.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        );
+      }
       return (
         <TooltipProvider>
           <Tooltip>
@@ -39,6 +58,7 @@ export function SeloPontualidade({
         </TooltipProvider>
       );
     }
+
     if (dias === null) return null;
     if (dias <= 0) {
       return (

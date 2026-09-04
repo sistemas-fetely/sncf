@@ -38,6 +38,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import * as XLSX from "xlsx";
 import { useNivel } from "@/hooks/useNivel";
+import { SeloPontualidade } from "@/lib/financeiro/pontualidade";
+
 
 
 
@@ -121,7 +123,27 @@ type RecebivelB2B = {
   sobreposicao_instrumento: boolean | null;
   renegociacao_humana: boolean | null;
   qualidade: "firme" | "em_registro" | "promessa" | "sem_prova" | null;
+  /* ESTADO x PROVAS — envelope de eixos vindo do banco */
+  dinheiro_no_banco: boolean | null;
+  recebimento_rotulo: string | null;
+  recebimento_ordem: number | null;
+  recebimento_classe: string | null;
+  recebimento_tooltip: string | null;
+  prazo_rotulo: string | null;
+  prazo_ordem: number | null;
+  prazo_classe: string | null;
+  prazo_classe_texto: string | null;
+  instrumento_rotulo: string | null;
+  instrumento_ordem: number | null;
+  instrumento_classe: string | null;
+  instrumento_tooltip: string | null;
+  data_liquidacao_real: string | null;
+  aguardando_credito: boolean | null;
+  relogio_pontualidade: "cliente" | "adquirente" | null;
+  dias_atraso_adquirente: number | null;
+  eixo_prazo: string | null;
 };
+
 
 /** O dinheiro chegou? Eixo único de recebimento da view de gestão. */
 type EixoRecebimento = "em_aberto" | "quitado" | "compensado" | "devolvido" | "cancelado";
@@ -521,6 +543,14 @@ function AbaB2B() {
     });
   }, [data, busca, dataBase, dataDe, dataAte, filtroBanco]);
 
+  /* DINHEIRO-NO-BANCO: "ainda não recebi" é o que o banco declara, não o estado. */
+  const naoRecebido = (t: RecebivelB2B) => t.dinheiro_no_banco === false;
+
+  /* Vencido mede contra a data de caixa projetada — é ela que diz quando o
+     dinheiro deveria estar disponível. */
+  const venceuNoCaixa = (t: RecebivelB2B) =>
+    naoRecebido(t) && !!t.data_caixa_projetada && t.data_caixa_projetada < hojeIso;
+
   const casaAchado = (t: RecebivelB2B, a: Achado) => {
     if (a === "sobreposicao") return t.sobreposicao_instrumento === true;
     if (a === "renegociacao") return t.renegociacao_humana === true;
@@ -529,6 +559,7 @@ function AbaB2B() {
     if (a === "meio_divergente") return t.meio_divergente === true;
     return t.eh_inadimplente === true;
   };
+
 
   /**
    * Camada nova entre `baseFiltros` e `baseCarteira`: filtros da faixa de KPI.
@@ -539,15 +570,16 @@ function AbaB2B() {
     if (!filtroInstrumento && filtroPrazo === "todos") return baseFiltros;
     return baseFiltros.filter((t) => {
       if (filtroInstrumento) {
-        if (t.estado_em_aberto !== true) return false;
+        if (!naoRecebido(t)) return false;
         const inst = t.eixo_instrumento ?? "";
         if (filtroInstrumento === "garantido" && !INSTRUMENTO_GARANTIDO.includes(inst))
           return false;
         if (filtroInstrumento === "sem_instrumento" && inst !== "sem_instrumento") return false;
       }
-      if (filtroPrazo === "vencidos" && t.eh_inadimplente !== true) return false;
-      if (filtroPrazo === "a_vencer" && (t.estado_em_aberto !== true || t.eh_inadimplente === true))
+      if (filtroPrazo === "vencidos" && !venceuNoCaixa(t)) return false;
+      if (filtroPrazo === "a_vencer" && (!naoRecebido(t) || venceuNoCaixa(t)))
         return false;
+
       return true;
     });
   }, [baseFiltros, filtroInstrumento, filtroPrazo]);
@@ -561,7 +593,7 @@ function AbaB2B() {
     let arr = baseFiltros;
     if (filtroInstrumento) {
       arr = arr.filter((t) => {
-        if (t.estado_em_aberto !== true) return false;
+        if (!naoRecebido(t)) return false;
         const inst = t.eixo_instrumento ?? "";
         if (filtroInstrumento === "garantido" && !INSTRUMENTO_GARANTIDO.includes(inst))
           return false;
@@ -611,12 +643,13 @@ function AbaB2B() {
 
     for (const t of baseFiltros) {
       const v = efetivoDe(t);
-      /* VENCIDO-VEM-DO-BANCO: `eh_inadimplente` é a fonte única. O front não
-         recalcula mais vencimento — eram dois números para a mesma pergunta. */
-      if (t.eh_inadimplente === true) {
+      /* VENCIDO-MEDE-CAIXA: a régua é `data_caixa_projetada` — o dia em que o
+         dinheiro deveria estar disponível. `eh_inadimplente` continua
+         separando atraso do cliente de atraso da adquirente. */
+      if (venceuNoCaixa(t)) {
         vencido += v;
         vencidoQtd += 1;
-        const venc = t.data_vencimento_vigente;
+        const venc = t.data_caixa_projetada;
         if (venc) {
           const dias = Math.floor(
             (hoje.getTime() - new Date(venc + "T12:00:00").getTime()) / 86400000
@@ -627,7 +660,8 @@ function AbaB2B() {
           else faixas.f60 += v;
         }
       }
-      if (t.estado_em_aberto !== true) continue;
+      if (!naoRecebido(t)) continue;
+
       aReceber += v;
       aReceberQtd += 1;
       if (t.data_vencimento_vigente == null) aReceberSemData += v;
@@ -706,7 +740,7 @@ function AbaB2B() {
           aberto: 0,
           qtd: 0,
         };
-      if (t.estado_em_aberto === true) {
+      if (naoRecebido(t)) {
         atual.aberto += efetivoDe(t);
         atual.qtd += 1;
       }
@@ -737,14 +771,35 @@ function AbaB2B() {
     return c;
   }, [baseCarteiraSemKpi]);
 
+  /** ROTULO-VEM-DO-BANCO: rótulo, ordem e classe do eixo recebimento vêm da view. */
+  const metaRecebimento = useMemo(() => {
+    const m = new Map<EixoRecebimento, { rotulo: string; ordem: number }>();
+    for (const t of data ?? []) {
+      const r = t.eixo_recebimento;
+      if (!r || m.has(r)) continue;
+      m.set(r, {
+        rotulo: t.recebimento_rotulo ?? RECEBIMENTO_LABEL[r],
+        ordem: t.recebimento_ordem ?? RECEBIMENTO_ORDEM.indexOf(r) + 1,
+      });
+    }
+    return RECEBIMENTO_ORDEM.map((r) => ({
+      chave: r,
+      rotulo: m.get(r)?.rotulo ?? RECEBIMENTO_LABEL[r],
+      ordem: m.get(r)?.ordem ?? RECEBIMENTO_ORDEM.indexOf(r) + 1,
+    })).sort((a, b) => a.ordem - b.ordem);
+  }, [data]);
+
+
+
   /** Contagens do controle segmentado de prazo: sem o próprio filtro de prazo
    *  aplicado, para o botão ativo não zerar a si mesmo. */
   const contagensPrazo = useMemo(() => {
     let aVencer = 0;
     let vencidos = 0;
     for (const t of baseCarteiraSemPrazo) {
-      if (t.eh_inadimplente === true) vencidos += 1;
-      else if (t.estado_em_aberto === true) aVencer += 1;
+      if (venceuNoCaixa(t)) vencidos += 1;
+      else if (naoRecebido(t)) aVencer += 1;
+
     }
     return { aVencer, vencidos };
   }, [baseCarteiraSemPrazo]);
@@ -1064,7 +1119,7 @@ function AbaB2B() {
     return Array.from(mapa.entries()).map(([chave, titulos]) => {
       const primeiro = titulos[0];
       const vencimentos = titulos
-        .filter((t) => t.estado_em_aberto === true && t.data_vencimento_vigente)
+        .filter((t) => naoRecebido(t) && t.data_vencimento_vigente)
         .map((t) => t.data_vencimento_vigente as string)
         .sort();
 
@@ -1072,14 +1127,10 @@ function AbaB2B() {
       const estadosDistintos = new Set(titulos.map((t) => t.estado_rotulo));
       const misto = estadosDistintos.size > 1;
       const inadimplente = titulos.find((t) => t.eh_inadimplente === true);
-      const vencido = titulos.find(
-        (t) =>
-          t.estado_em_aberto === true &&
-          t.data_vencimento_vigente != null &&
-          t.data_vencimento_vigente < hojeIso
-      );
-      const aberto = titulos.find((t) => t.estado_em_aberto === true);
-      const fechados = titulos.filter((t) => t.estado_em_aberto !== true);
+      const vencido = titulos.find((t) => venceuNoCaixa(t));
+      const aberto = titulos.find((t) => naoRecebido(t));
+      const fechados = titulos.filter((t) => !naoRecebido(t));
+
       const recenteFechado =
         fechados.length > 0
           ? [...fechados].sort((a, b) => {
@@ -1255,7 +1306,28 @@ function AbaB2B() {
               </>
             );
           })()}
+          {venceuNoCaixa(t) && t.eh_inadimplente === false && (
+            <div className="mt-0.5">
+              <SeloPontualidade
+                relogio={t.relogio_pontualidade}
+                dias={t.dias_atraso_adquirente}
+                aguardandoCredito={t.aguardando_credito}
+              />
+            </div>
+          )}
         </TableCell>
+        <TableCell className="text-sm">
+          {t.data_liquidacao_real ? (
+            formatDateBR(t.data_liquidacao_real)
+          ) : t.data_liquidacao_prevista ? (
+            <span className="text-[10px] text-muted-foreground">
+              prev. {formatDateBR(t.data_liquidacao_prevista)}
+            </span>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          )}
+        </TableCell>
+
         <TableCell
           className={
             desvio != null && Math.abs(desvio) > 15
@@ -1304,6 +1376,7 @@ function AbaB2B() {
       "Recebido em": t.data_recebimento_efetiva ? formatDateBR(t.data_recebimento_efetiva) : "",
       Fonte: t.fonte_data_recebimento ?? "",
       "Caixa projetado": t.data_caixa_projetada ? formatDateBR(t.data_caixa_projetada) : "",
+      Caixa: t.data_liquidacao_real ? formatDateBR(t.data_liquidacao_real) : "",
       "Data banco": formatDateBR(t.data_pagamento_banco),
       "Data humano": formatDateBR(t.data_pagamento),
       Divergente: t.data_divergente ? "Sim" : "Não",
@@ -1313,8 +1386,11 @@ function AbaB2B() {
       Desconto: t.valor_desconto ?? 0,
       "Gera caixa": t.gera_caixa ? "Sim" : "Não",
       "Prova bancária": t.tem_prova_bancaria ? "Sim" : "Não",
-      Recebimento: t.eixo_recebimento ? RECEBIMENTO_LABEL[t.eixo_recebimento] : "",
-      Instrumento: t.eixo_instrumento ?? "",
+      Recebimento:
+        t.recebimento_rotulo ??
+        (t.eixo_recebimento ? RECEBIMENTO_LABEL[t.eixo_recebimento] : ""),
+      Instrumento: t.instrumento_rotulo ?? t.eixo_instrumento ?? "",
+
       Qualidade: t.qualidade ?? "",
       Estado: t.estado_rotulo ?? "",
       Inadimplente: t.eh_inadimplente ? "Sim" : "Não",
@@ -1522,7 +1598,7 @@ function AbaB2B() {
           <div className="space-y-1">
             <Label className="text-xs">Recebimento — o dinheiro chegou?</Label>
             <div className="flex flex-wrap gap-2">
-              {RECEBIMENTO_ORDEM.map((r) => {
+              {metaRecebimento.map(({ chave: r, rotulo }) => {
                 const n = contagensRecebimento[r] ?? 0;
                 /* Chip zerado POR CAUSA do filtro de KPI é impossível, não vazio. */
                 const impossivel =
@@ -1535,9 +1611,10 @@ function AbaB2B() {
                     onClick={() => toggleRecebimento(r)}
                     className={impossivel ? "opacity-50 pointer-events-none" : undefined}
                   >
-                    {RECEBIMENTO_LABEL[r]} ({n})
+                    {rotulo} ({n})
                   </Button>
                 );
+
                 if (!impossivel) return botao;
                 return (
                   <Tooltip key={r}>
@@ -1901,11 +1978,18 @@ function AbaB2B() {
                   <SortTh label="NF" sortKey="nf_numero" sort={sort} setSort={setSort} />
                   <SortTh label="Carteira" sortKey="carteira_ordem" sort={sort} setSort={setSort} />
                   <SortTh
-                    label="Data"
+                    label="Cliente pagou"
                     sortKey="data_vencimento_vigente"
                     sort={sort}
                     setSort={setSort}
                   />
+                  <SortTh
+                    label="Caixa"
+                    sortKey="data_liquidacao_real"
+                    sort={sort}
+                    setSort={setSort}
+                  />
+
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <SortTh label="Banco moveu" sortKey="desvio_registro_dias" sort={sort} setSort={setSort} />
@@ -1996,6 +2080,8 @@ function AbaB2B() {
                                   </div>
                                 )}
                               </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">—</TableCell>
+
                               <TableCell
                                 className={
                                   g.desvioAlerta
