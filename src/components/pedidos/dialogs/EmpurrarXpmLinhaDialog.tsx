@@ -16,7 +16,10 @@ import { usePreviaEstoqueXpm } from "@/hooks/pedidos/usePreviaEstoqueXpm";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { ForcarXpmDialog } from "@/components/pedidos/dialogs/ForcarXpmDialog";
 import { BlocoFaltaEstoqueXpm } from "@/components/pedidos/BlocoFaltaEstoqueXpm";
-import { PREFIXO_PRE_VOO } from "@/lib/pedidos/xpm";
+import {
+  PREFIXO_PRE_VOO, placeholderMotivoEstoque, rotuloAlcadaNivel,
+  rotuloBotaoOverrideEstoque,
+} from "@/lib/pedidos/xpm";
 
 const MIN_MOTIVO = 15;
 
@@ -42,8 +45,11 @@ export function EmpurrarXpmLinhaDialog({ pedido_id, id_externo, xpm_envio_erro, 
   const empurrarXpm = useEmpurrarXpm();
   const { data: previa, isLoading: checkingPrevia } = usePreviaEmpurrarXpm(pedido_id, open);
   const { data: previaEstoque } = usePreviaEstoqueXpm(pedido_id, open);
-  // OVERRIDE-TEM-NOME: furar só o bloqueio de estoque tem permissão própria.
-  const { permitido: podeForcarEstoque } = usePermissaoAcaoOuSuperAdmin("acao.forcar_xpm_estoque");
+  // OVERRIDE-TEM-NOME + VEREDITO-CRUZADO: o código e a alçada do override vêm
+  // do veredito devolvido pelo banco, nunca de mapa hardcoded aqui.
+  const { permitido: podeForcarEstoque } = usePermissaoAcaoOuSuperAdmin(
+    previaEstoque?.permissao_slug ?? "",
+  );
 
   const bloqueios = previa?.bloqueios ?? [];
   const avisos = previa?.avisos ?? [];
@@ -52,7 +58,10 @@ export function EmpurrarXpmLinhaDialog({ pedido_id, id_externo, xpm_envio_erro, 
   const itensFalta = previaEstoque?.itens ?? [];
   const temFaltaEstoque = itensFalta.length > 0;
   const soEstoqueBloqueia = bloqueios.length === 1;
-  const overrideEstoque = temFaltaEstoque && soEstoqueBloqueia;
+  const vereditoEstoque = previaEstoque?.veredito ?? null;
+  const overrideCodigo = previaEstoque?.override_codigo ?? null;
+  const motivoAlcada = rotuloAlcadaNivel(previaEstoque?.nivel_ref);
+  const overrideEstoque = temFaltaEstoque && soEstoqueBloqueia && !!overrideCodigo;
   const outrosBloqueios = temFaltaEstoque && bloqueios.length > 1;
   const motivoValido = motivo.trim().length >= MIN_MOTIVO;
 
@@ -69,7 +78,7 @@ export function EmpurrarXpmLinhaDialog({ pedido_id, id_externo, xpm_envio_erro, 
     try {
       await empurrarXpm.mutateAsync({
         pedido_id,
-        forcar: ["estoque"],
+        forcar: [overrideCodigo!],
         motivo: motivo.trim(),
       });
       setOpen(false);
@@ -181,27 +190,30 @@ export function EmpurrarXpmLinhaDialog({ pedido_id, id_externo, xpm_envio_erro, 
                 </Button>
 
                 <p className="text-xs text-muted-foreground">
-                  Divida quando o item realmente falta; force quando a foto está
-                  velha ou a mercadoria chega antes do separador.
+                  {vereditoEstoque === "falta_real"
+                    ? "Divida quando o item realmente falta; force quando a foto está velha ou a mercadoria chega antes do separador."
+                    : "A peça existe — a decisão aqui é de prioridade, não de saldo."}
                 </p>
 
                 {!podeForcarEstoque && (
                   <p className="text-xs text-muted-foreground flex items-start gap-1.5">
                     <ShieldAlert className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                    Liberar envio sem estoque é ação de gerente.
+                    {motivoAlcada}.
                   </p>
                 )}
 
                 <Selo estado="warning">Ação de exceção</Selo>
                 <Label htmlFor="motivo-forcar-estoque-fila" className="text-xs">
-                  Motivo (fica registrado no histórico do pedido)
+                  {vereditoEstoque === "fila_disputada"
+                    ? "Motivo da prioridade (fica registrado no histórico dos pedidos)"
+                    : "Motivo (fica registrado no histórico do pedido)"}
                 </Label>
                 <Textarea
                   id="motivo-forcar-estoque-fila"
                   value={motivo}
                   onChange={(e) => setMotivo(e.target.value)}
                   rows={3}
-                  placeholder="Ex.: item chega esta semana pela MIRA-2026-001, adiantando a separação dos outros itens"
+                  placeholder={placeholderMotivoEstoque(vereditoEstoque)}
                 />
                 <p className="text-xs text-muted-foreground">
                   {motivo.trim().length}/{MIN_MOTIVO} caracteres mínimos
@@ -226,13 +238,13 @@ export function EmpurrarXpmLinhaDialog({ pedido_id, id_externo, xpm_envio_erro, 
               variant="secondary"
               onClick={handleForcarEstoque}
               disabled={!podeForcarEstoque || !motivoValido || empurrarXpm.isPending}
-              title={podeForcarEstoque ? undefined : "Ação de gerente"}
+              title={podeForcarEstoque ? undefined : motivoAlcada}
               className="gap-1.5"
             >
               {empurrarXpm.isPending ? (
-                <><Loader2 className="h-4 w-4 animate-spin" />Forçando…</>
+                <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</>
               ) : (
-                <><ShieldAlert className="h-4 w-4" />Forçar envio mesmo assim</>
+                <><ShieldAlert className="h-4 w-4" />{rotuloBotaoOverrideEstoque(vereditoEstoque)}</>
               )}
             </Button>
           ) : (
