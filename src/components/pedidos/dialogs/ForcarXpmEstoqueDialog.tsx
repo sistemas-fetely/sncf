@@ -9,9 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Selo } from "@/components/ui/selo";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { useEmpurrarXpm } from "@/hooks/pedidos/useEmpurrarXpm";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { DividirRemessaDialog } from "@/components/pedidos/dialogs/DividirRemessaDialog";
 import { BlocoFaltaEstoqueXpm } from "@/components/pedidos/BlocoFaltaEstoqueXpm";
-import type { ItemPreviaEstoqueXpm } from "@/hooks/pedidos/usePreviaEstoqueXpm";
+import type { PreviaEstoqueXpm } from "@/hooks/pedidos/usePreviaEstoqueXpm";
+import {
+  placeholderMotivoEstoque, rotuloAlcadaNivel, rotuloBotaoOverrideEstoque,
+} from "@/lib/pedidos/xpm";
 
 const MIN_MOTIVO = 15;
 
@@ -25,27 +29,32 @@ interface ItemRemessaSplit {
 interface Props {
   pedidoId: string;
   idExterno: string;
-  itens: ItemPreviaEstoqueXpm[];
-  fotoEm: string | null;
+  /** Veredito cruzado das duas leituras — quem manda no override e na alçada. */
+  previa: PreviaEstoqueXpm;
   /** Split existente desta página — caminho PADRÃO, não construímos outro. */
   split?: { remessaId: string; codigo: string; itens: ItemRemessaSplit[] };
-  /** Sem permissão o gatilho aparece DESABILITADO com o motivo. */
-  podeForcar?: boolean;
 }
 
 /**
- * OVERRIDE-TEM-NOME: furar SÓ o bloqueio de estoque (`acao.forcar_xpm_estoque`).
- * Dividir o pedido vem primeiro; forçar é a saída de exceção.
+ * OVERRIDE-TEM-NOME: o código e a permissão do override vêm do veredito
+ * (`estoque` = falta real, nível 4 · `estoque_divergente` = divergência, nível 3).
+ * Em falta real, dividir o pedido vem primeiro; em fila disputada a peça existe,
+ * então o split perde o destaque.
  */
-export function ForcarXpmEstoqueDialog({
-  pedidoId, idExterno, itens, fotoEm, split, podeForcar = true,
-}: Props) {
+export function ForcarXpmEstoqueDialog({ pedidoId, idExterno, previa, split }: Props) {
   const [open, setOpen] = useState(false);
   const [motivo, setMotivo] = useState("");
   const empurrar = useEmpurrarXpm();
+  const { permitido: podeForcar } = usePermissaoAcaoOuSuperAdmin(previa.permissao_slug ?? "");
 
+  const veredito = previa.veredito;
+  const overrideCodigo = previa.override_codigo;
+  const motivoAlcada = rotuloAlcadaNivel(previa.nivel_ref);
+  const faltaReal = veredito === "falta_real";
   const valido = motivo.trim().length >= MIN_MOTIVO;
 
+  // Sem código de override o banco não aceita furar: não oferecemos o caminho.
+  if (!overrideCodigo) return null;
 
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setMotivo(""); }}>
@@ -53,34 +62,36 @@ export function ForcarXpmEstoqueDialog({
         <Button
           size="sm"
           variant="ghost"
-          disabled={!podeForcar}
-          title={podeForcar ? undefined : "Ação de gerente"}
           className="w-full gap-1.5 whitespace-normal h-auto text-xs leading-tight py-2 text-muted-foreground"
         >
           <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
-          {podeForcar
-            ? "Falta estoque — ver opções"
-            : "Falta estoque — ver opções (Ação de gerente)"}
+          {previa.veredito_rotulo
+            ? `${previa.veredito_rotulo} — ver opções`
+            : "Falta estoque — ver opções"}
         </Button>
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Falta estoque na XPM para {idExterno}</DialogTitle>
+          <DialogTitle>Estoque não cobre {idExterno}</DialogTitle>
           <DialogDescription>
-            O que a XPM tem hoje não cobre o pedido. Escolha entre mandar agora
-            só o que existe ou forçar o envio inteiro.
+            {previa.veredito_rotulo ?? "As duas leituras de estoque não cobrem o pedido."}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
-          <BlocoFaltaEstoqueXpm itens={itens} fotoEm={fotoEm} />
+          <BlocoFaltaEstoqueXpm itens={previa.itens} fotoEm={previa.foto_em} />
 
-
-          <p className="text-xs text-muted-foreground">
-            Divida quando o item realmente falta; force quando a foto está velha
-            ou a mercadoria chega antes do separador.
-          </p>
+          {faltaReal ? (
+            <p className="text-xs text-muted-foreground">
+              Divida quando o item realmente falta; force quando a foto está velha
+              ou a mercadoria chega antes do separador.
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              A peça existe — a decisão aqui é de prioridade, não de saldo.
+            </p>
+          )}
 
           {split && (
             <DividirRemessaDialog
@@ -96,15 +107,23 @@ export function ForcarXpmEstoqueDialog({
 
           <div className="space-y-2 pt-1">
             <Selo estado="warning">Ação de exceção</Selo>
+            {!podeForcar && (
+              <p className="text-xs text-muted-foreground flex items-start gap-1.5">
+                <ShieldAlert className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                {motivoAlcada}.
+              </p>
+            )}
             <Label htmlFor="motivo-forcar-estoque" className="text-xs">
-              Motivo (fica registrado no histórico do pedido)
+              {veredito === "fila_disputada"
+                ? "Motivo da prioridade (fica registrado no histórico dos pedidos)"
+                : "Motivo (fica registrado no histórico do pedido)"}
             </Label>
             <Textarea
               id="motivo-forcar-estoque"
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
               rows={3}
-              placeholder="Ex.: item chega esta semana pela MIRA-2026-001, adiantando a separação dos outros itens"
+              placeholder={placeholderMotivoEstoque(veredito)}
             />
             <p className="text-xs text-muted-foreground">
               {motivo.trim().length}/{MIN_MOTIVO} caracteres mínimos
@@ -118,13 +137,14 @@ export function ForcarXpmEstoqueDialog({
           </Button>
           <Button
             size="sm"
-            variant="ghost"
-            disabled={!valido || empurrar.isPending}
+            variant="secondary"
+            disabled={!podeForcar || !valido || empurrar.isPending}
+            title={podeForcar ? undefined : motivoAlcada}
             onClick={async () => {
               try {
                 await empurrar.mutateAsync({
                   pedido_id: pedidoId,
-                  forcar: ["estoque"],
+                  forcar: [overrideCodigo],
                   motivo: motivo.trim(),
                 });
                 setOpen(false);
@@ -133,9 +153,9 @@ export function ForcarXpmEstoqueDialog({
             }}
           >
             {empurrar.isPending ? (
-              <><Loader2 className="h-4 w-4 animate-spin" />Forçando…</>
+              <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</>
             ) : (
-              "Forçar mesmo assim"
+              rotuloBotaoOverrideEstoque(veredito)
             )}
           </Button>
         </DialogFooter>
