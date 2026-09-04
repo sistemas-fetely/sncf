@@ -215,9 +215,6 @@ const MOSTRAR_MES_A_MES = false;
 type DataBase = "vencimento" | "emissao" | "recebimento";
 type BaseMensal = "competencia" | "caixa_projetado" | "caixa_confirmado";
 
-
-
-
 const SEM_CAIXA = ["haver", "bonificacao", "devolucao", "sem_pagamento"];
 
 const capitalize = (s: string) =>
