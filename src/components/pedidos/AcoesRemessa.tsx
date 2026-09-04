@@ -174,7 +174,6 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
         </Button>
       )}
 
-      {/* FOTO-NAO-BARRA (18/08/2026): saldo insuficiente na XPM avisa, nao barra. */}
       {!precisaSincronizar && podeEmpurrarXpm && (previa?.avisos?.length ?? 0) > 0 && (
         <Alert variant="default" className="bg-warning/10 border-warning/40">
           <AlertTriangle className="h-4 w-4 text-warning" />
@@ -182,11 +181,24 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
             {previa!.avisos.map((a) => (
               <p key={a} className="tabular-nums">{a}</p>
             ))}
-            <p className="text-muted-foreground">
-              A posição da XPM é uma foto do fim do dia anterior: entrada recente
-              pode ainda não aparecer. Pode enviar — se realmente faltar, o
-              armazém corta o item.
-            </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Bloqueios aparecem ANTES do clique — o operador não descobre por toast. */}
+      {!precisaSincronizar && podeEmpurrarXpm && temBloqueio && (
+        <Alert variant="default" className="bg-destructive/10 border-destructive/40">
+          <AlertTriangle className="h-4 w-4 text-destructive" />
+          <AlertDescription className="text-destructive text-xs space-y-1">
+            <p className="font-medium">Bloqueado antes do envio</p>
+            {previa!.bloqueios.map((b) => (
+              <p key={b} className="tabular-nums">{b}</p>
+            ))}
+            {temFaltaEstoque && !soEstoqueBloqueia && (
+              <p className="text-muted-foreground">
+                Resolva os outros bloqueios primeiro — forçar só o estoque falharia de novo.
+              </p>
+            )}
           </AlertDescription>
         </Alert>
       )}
@@ -196,8 +208,12 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
           size="sm"
           variant="outline"
           className="w-full gap-1.5 whitespace-normal h-auto text-xs leading-tight py-2"
-          title={podeEmpurrarXpmAcao ? `Empurrar ${id_externo} pra XPM` : MOTIVO_SEM_ACAO}
-          disabled={ocupado || !podeEmpurrarXpmAcao}
+          title={
+            temBloqueio
+              ? "Existem bloqueios antes do envio — resolva ou use o caminho de exceção"
+              : podeEmpurrarXpmAcao ? `Empurrar ${id_externo} pra XPM` : MOTIVO_SEM_ACAO
+          }
+          disabled={ocupado || !podeEmpurrarXpmAcao || temBloqueio}
           onClick={() => empurrarXpm.mutate({ pedido_id })}
         >
           {empurrarXpm.isPending ? (
@@ -206,6 +222,17 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
             <><Warehouse className="h-4 w-4 shrink-0" />Empurrar pra XPM</>
           )}
         </Button>
+      )}
+
+      {!precisaSincronizar && podeEmpurrarXpm && temFaltaEstoque && soEstoqueBloqueia && (
+        <ForcarXpmEstoqueDialog
+          pedidoId={pedido_id}
+          idExterno={id_externo}
+          itens={previaEstoque!.itens}
+          fotoEm={previaEstoque!.foto_em}
+          split={remessaSplit}
+          podeForcar={podeForcarEstoque}
+        />
       )}
 
       {pedidoXpm?.xpm_envio_erro && !jaEmpurrado && (
