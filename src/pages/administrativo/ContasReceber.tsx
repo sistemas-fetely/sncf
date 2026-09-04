@@ -1861,70 +1861,71 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
         </div>
       )}
 
-      {/* Painel recolhido — Qualidade de dado */}
-      <Card>
-        <CardHeader className="pb-2">
-          <button
-            type="button"
-            className="flex w-full items-center justify-between gap-2 text-left"
-            onClick={() => setQualidadeAberta((v) => !v)}
-          >
-            <CardTitle className="text-sm">Qualidade de dado</CardTitle>
-            {qualidadeAberta ? (
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            )}
-          </button>
-        </CardHeader>
-        {qualidadeAberta && (
-          <CardContent className="space-y-1 pt-0">
-            {achados.map((a) => {
-              const ativo = achado === a.chave;
-              return (
-                <button
-                  key={a.chave}
-                  type="button"
-                  onClick={() => {
-                    setAchado(ativo ? null : a.chave);
-                    setPage(1);
-                  }}
-                  className={
-                    "flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm transition-colors " +
-                    (ativo ? "bg-muted text-foreground" : "hover:bg-muted/50")
-                  }
-                >
-                  <span>{a.rotulo}</span>
-                  <span className="tabular-nums text-muted-foreground">
-                    {a.n} de {totalCarregado}
-                  </span>
-                </button>
-              );
-            })}
-          </CardContent>
-        )}
-      </Card>
+      {/* Painel recolhido — Qualidade de dado + modo de visualização */}
+      <div className="flex items-start gap-4">
+        <Card className="flex-1">
+          <CardHeader className="pb-2">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between gap-2 text-left"
+              onClick={() => setQualidadeAberta((v) => !v)}
+            >
+              <CardTitle className="text-sm">Qualidade de dado</CardTitle>
+              {qualidadeAberta ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
+            </button>
+          </CardHeader>
+          {qualidadeAberta && (
+            <CardContent className="space-y-1 pt-0">
+              {achados.map((a) => {
+                const ativo = achado === a.chave;
+                return (
+                  <button
+                    key={a.chave}
+                    type="button"
+                    onClick={() => {
+                      setAchado(ativo ? null : a.chave);
+                      setPage(1);
+                    }}
+                    className={
+                      "flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm transition-colors " +
+                      (ativo ? "bg-muted text-foreground" : "hover:bg-muted/50")
+                    }
+                  >
+                    <span>{a.rotulo}</span>
+                    <span className="tabular-nums text-muted-foreground">
+                      {a.n} de {totalCarregado}
+                    </span>
+                  </button>
+                );
+              })}
+            </CardContent>
+          )}
+        </Card>
 
-      {/* Tabela */}
-      <div className="flex items-center justify-end gap-1">
-        {([true, false] as const).map((modo) => (
-          <button
-            key={String(modo)}
-            type="button"
-            onClick={() => {
-              setAgrupado(modo);
-              setPage(1);
-            }}
-            className={
-              "text-xs px-3 py-1.5 rounded-full border transition-colors " +
-              (agrupado === modo
-                ? "bg-foreground text-background border-foreground"
-                : "bg-background text-muted-foreground border-border hover:border-foreground/40")
-            }
-          >
-            {modo ? "Agrupado por pedido" : "Lista plana"}
-          </button>
-        ))}
+        <div className="flex items-center gap-1 pt-2">
+          {([true, false] as const).map((modo) => (
+            <button
+              key={String(modo)}
+              type="button"
+              onClick={() => {
+                setAgrupado(modo);
+                setPage(1);
+              }}
+              className={
+                "text-xs px-3 py-1.5 rounded-full border transition-colors " +
+                (agrupado === modo
+                  ? "bg-foreground text-background border-foreground"
+                  : "bg-background text-muted-foreground border-border hover:border-foreground/40")
+              }
+            >
+              {modo ? "Agrupado por pedido" : "Lista plana"}
+            </button>
+          ))}
+        </div>
       </div>
       <Card>
         <CardContent className="p-0">
