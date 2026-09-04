@@ -422,6 +422,7 @@ export default function ContasReceber() {
             <TabsTrigger value="b2b">B2B</TabsTrigger>
             <TabsTrigger value="b2c">B2C</TabsTrigger>
           </TabsList>
+          {/* Exportação leva a base para fora: nível 3 (Coordenador) para cima. */}
           {temNivel(3) && (
             <Button
               variant="outline"
