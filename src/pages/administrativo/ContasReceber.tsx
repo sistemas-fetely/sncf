@@ -1424,10 +1424,8 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
   }, [filtrados]);
 
   return (
-    <div className="space-y-6">
-
+    <div className="space-y-4">
       {/* Faixa 1 — Estado da carteira. Recorte fixo: período, busca e banco.
-
           Colunas são filtro: "A receber" é o universo (limpa), garantido ×
           sem instrumento são par exclusivo, vencido é transversal. */}
       <div className="grid grid-cols-2 divide-x divide-border rounded-xl border border-border bg-card md:grid-cols-4">
