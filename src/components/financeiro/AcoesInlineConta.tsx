@@ -1,40 +1,45 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Loader2,
-  ThumbsUp,
-  Send,
-  ArrowRightLeft,
-  Paperclip,
-} from "lucide-react";
+import { Loader2, ArrowRightLeft, Paperclip, Receipt } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import EnviarPagamentoDialog from "./EnviarPagamentoDialog";
 import { NfStageBuscadorModal } from "./NfStageBuscadorModal";
-
 import { cn } from "@/lib/utils";
-import {
-  getFamiliaContaPagar,
-  getRegraIconeEmail,
-} from "@/lib/financeiro/familia-conta-pagar";
+
+/**
+ * EIXO PROVAS do título a pagar (reforma ESTADO × PROVAS, Camada 3b — 02/09/2026).
+ *
+ * ESTADO-NÃO-É-PROVA: um título tem UM estado exclusivo, com transições legais,
+ * e VÁRIAS provas independentes. Antes deste arquivo ter sido reescrito, ele
+ * misturava as duas coisas num checklist de 4 ícones, onde "Aprovado" (estado)
+ * parecia irmão de "NF anexada" (prova).
+ *
+ * Aqui ficam SÓ as provas. O estado vive no menu de ações da tela, alimentado por
+ * `titulo_pagar_transicao_dim` via `fn_titulo_pagar_transicionar`.
+ *
+ * SAÍRAM daqui:
+ *  - Ícone "Aprovar" (ThumbsUp): virou ação do eixo ESTADO na Camada 3a.
+ *    LACUNA REGISTRADA: ele chamava `aprovar_cpr_em_cascata`, que aprovava todas
+ *    as parcelas do mesmo `parcela_grupo_id` de uma vez. Hoje isso são 2 títulos
+ *    em 1 grupo. `fn_titulo_pagar_transicionar` age em UM título. Se a aprovação
+ *    em cascata voltar a importar, ela deve nascer DENTRO da RPC, nunca como
+ *    UPDATE paralelo.
+ *  - Ícone "Email" (Send): o adapter de e-mail foi aposentado por decisão de
+ *    02/09/2026. `enviado_para_pagamento` saiu do trilho.
+ *  - Leitura de `status_efetivo`: era alias morto de `status` (só divergia em
+ *    'aguardando_pagamento', valor que não está no CHECK e tem 0 linhas).
+ */
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Conta = Record<string, any> & {
   id: string;
   status: string;
-  status_efetivo?: string | null;
   descricao: string;
   valor: number;
-  tem_doc_pendente?: boolean | null;
   movimentacao_bancaria_id?: string | null;
   nf_numero_repositorio?: string | null;
-  email_pagamento_enviado?: boolean | null;
-  // Campos pra regra do ícone email (família + forma de pagamento)
-  meio_pagamento_id?: string | null;
-  meios_pagamento?: { codigo?: string | null } | null;
-  origem?: string | null;
-  formas_pagamento?: { codigo?: string | null; nome?: string | null; cobra_email?: boolean | null } | null;
+  comprovante_url?: string | null;
 };
 
 interface Props {
@@ -50,23 +55,57 @@ const COR_ICONE: Record<EstadoIcone, string> = {
   na: "text-muted-foreground cursor-not-allowed hover:bg-transparent",
 };
 
+/** Estados em que o título ainda não saiu do caixa — pagar ainda faz sentido. */
+const AGUARDANDO_PAGAMENTO = ["aprovado", "programado"];
+
 export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props) {
   const qc = useQueryClient();
-  
-  const [aprovando, setAprovando] = useState(false);
+
   const [lancandoMov, setLancandoMov] = useState(false);
-  const [showEnviar, setShowEnviar] = useState(false);
   const [showAnexarNF, setShowAnexarNF] = useState(false);
   const [vinculandoNF, setVinculandoNF] = useState(false);
+
+  const extractMsg = (e: unknown) =>
+    e instanceof Error
+      ? e.message
+      : typeof e === "object" && e !== null
+        ? ((e as { message?: string }).message ?? JSON.stringify(e))
+        : String(e);
+
+  const stop = (fn: () => void) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    fn();
+  };
+
+  const status = conta.status;
+
+  // PROVA 1 — NF: existe se há referência no Repositório (D-60/D-64).
+  const temNF = !!conta.nf_numero_repositorio;
+  const estadoNF: EstadoIcone = temNF ? "feito" : "pendente";
+
+  // PROVA 2 — Movimentação bancária.
+  const temMov = !!conta.movimentacao_bancaria_id;
+  const estadoMov: EstadoIcone = temMov
+    ? "feito"
+    : AGUARDANDO_PAGAMENTO.includes(status)
+      ? "pendente"
+      : "na";
+
+  // PROVA 3 — Comprovante. SOMENTE LEITURA: não existe mecanismo de anexo de
+  // comprovante de SAÍDA no sistema (`comprovante_pagamento` tem `pedido_id`
+  // NOT NULL — é comprovante de ENTRADA). Por isso o ícone nunca fica vermelho:
+  // vermelho promete uma ação que não existe. Cinza = ausente, verde = presente.
+  const temComprovante = !!conta.comprovante_url;
+  const estadoComprovante: EstadoIcone = temComprovante ? "feito" : "na";
 
   async function handleSelecionarNFDoStage(nfStageId: string) {
     setVinculandoNF(true);
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: result, error } = await (supabase as any).rpc(
-        "vincular_nf_a_conta",
-        { p_nf_id: nfStageId, p_conta_id: conta.id },
-      );
+      const { data: result, error } = await (supabase as any).rpc("vincular_nf_a_conta", {
+        p_nf_id: nfStageId,
+        p_conta_id: conta.id,
+      });
       if (error) throw error;
       if (!result?.ok && !result?.success) {
         const msg = result?.erro || result?.error || "Falha ao vincular NF";
@@ -85,118 +124,34 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
     }
   }
 
-  const stop = (fn: () => void) => (e: React.MouseEvent) => {
-    e.stopPropagation();
-    fn();
-  };
-  
-
-  const extractMsg = (e: unknown) =>
-    e instanceof Error
-      ? e.message
-      : typeof e === "object" && e !== null
-        ? ((e as { message?: string }).message ?? JSON.stringify(e))
-        : String(e);
-
-  // ESTADOS — usa critérios robustos
-  const status = conta.status;
-  const statusEfetivo = conta.status_efetivo || status;
-
-  // NF: tem se há referência no Repositório (Stage é validação pós-Movimentação — D-60/D-64)
-  const temNF = !!conta.nf_numero_repositorio;
-
-  const aprovado =
-    status === "aprovado" ||
-    status === "enviado_para_pagamento" ||
-    status === "doc_pendente" ||
-    statusEfetivo === "enviado_para_pagamento" ||
-    statusEfetivo === "conciliado";
-
-  const temMov = !!conta.movimentacao_bancaria_id;
-
-  const estadoNF: EstadoIcone = temNF ? "feito" : "pendente";
-  const estadoAprovar: EstadoIcone = aprovado ? "feito" : "pendente";
-
-  const familia = getFamiliaContaPagar({
-    meio_codigo: conta.meios_pagamento?.codigo ?? null,
-    origem: conta.origem ?? null,
-  });
-  const regraEmail = getRegraIconeEmail({
-    familia,
-    forma_cobra_email: conta.formas_pagamento?.cobra_email ?? null,
-    status,
-    email_pagamento_enviado: conta.email_pagamento_enviado ?? null,
-  });
-  const estadoEmail: EstadoIcone =
-    regraEmail === "verde" ? "feito"
-    : regraEmail === "vermelho" ? "pendente"
-    : "na";
-
-  const estadoMov: EstadoIcone =
-    temMov ? "feito"
-    : status === "aprovado" ? "pendente"
-    : "na";
-
-  async function handleAprovar() {
-    if (estadoAprovar !== "pendente") return;
-    setAprovando(true);
-    try {
-      // Cartão vai direto pra enviado_para_pagamento (sem etapa de envio de email)
-      const statusAlvo = conta.meios_pagamento?.codigo === "fatura_cartao" ? "enviado_para_pagamento" : "aprovado";
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: result, error } = await (supabase as any).rpc(
-        "aprovar_cpr_em_cascata",
-        { p_cpr_id: conta.id, p_status_alvo: statusAlvo },
-      );
-      if (error) throw error;
-      if (!result?.ok) {
-        throw new Error(result?.erro || "Falha ao aprovar");
-      }
-      const total = result.parcelas_aprovadas as number;
-      if (total > 1) {
-        toast.success(`${total} parcelas do pedido aprovadas`);
-      } else {
-        toast.success("Conta aprovada");
-      }
-      qc.invalidateQueries({ queryKey: ["contas-pagar"] });
-      qc.invalidateQueries({ queryKey: ["conta-pagar-detalhe", conta.id] });
-    } catch (e) {
-      toast.error("Erro: " + extractMsg(e));
-    } finally {
-      setAprovando(false);
-    }
-  }
-
   async function handleLancarMov() {
     if (estadoMov !== "pendente") {
       if (estadoMov === "feito") toast.info("Pagamento já confirmado");
-      else toast.info("Aprove antes de marcar como paga");
+      else toast.info("Aprove ou programe o título antes de marcar como pago");
       return;
     }
     setLancandoMov(true);
     try {
+      // Prova, não estado: esta RPC cria a movimentação e NÃO escreve `status`.
+      // Quem move o estado é `fn_titulo_pagar_transicionar`, pelo menu de ações.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: result, error } = await (supabase as any).rpc(
-        "gerar_movimentacao_de_conta",
-        { p_conta_id: conta.id },
-      );
+      const { data: result, error } = await (supabase as any).rpc("gerar_movimentacao_de_conta", {
+        p_conta_id: conta.id,
+      });
       if (error) throw error;
       if (!result?.ok) {
         const erroMsg = (result?.erro as string) || "";
         if (erroMsg.includes("pago_em_conta_id") && onAbrirEditandoBanco) {
-          toast.warning(
-            "Antes de marcar como paga, escolha o banco onde foi/será paga.",
-            { duration: 4000 },
-          );
+          toast.warning("Antes de marcar como paga, escolha o banco onde foi/será paga.", {
+            duration: 4000,
+          });
           onAbrirEditandoBanco(conta.id);
           return;
         }
         toast.error(erroMsg || "Erro ao lançar em movimentação");
         return;
       }
-      toast.success(
-        result?.ja_existia ? "Pagamento já estava confirmado" : "Marcada como paga",
-      );
+      toast.success(result?.ja_existia ? "Pagamento já estava confirmado" : "Movimentação lançada");
       qc.invalidateQueries({ queryKey: ["contas-pagar"] });
       qc.invalidateQueries({ queryKey: ["lancamentos-caixa-banco"] });
     } catch (e) {
@@ -206,45 +161,27 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
     }
   }
 
-  function handleEmail() {
-    if (estadoEmail === "na") {
-      toast.info(
-        "Email de pagamento não se aplica aqui (cartão, OFX, ou forma sem cobrança). Pra reenviar manualmente, abra o drawer.",
-      );
-      return;
-    }
-    if (estadoEmail === "feito") {
-      toast.info("Email já enviado — abra o drawer pra reenviar se precisar");
-      return;
-    }
-    setShowEnviar(true);
-  }
-
   const tooltipNF = temNF
     ? "NF anexada"
-    : "Sem NF anexada — abra o detalhe pra anexar do Repositório";
-  const tooltipAprovar = aprovado ? "Já aprovada" : "Aprovar pagamento";
-  const tooltipEmail =
-    estadoEmail === "feito"
-      ? "Email enviado"
-      : estadoEmail === "pendente"
-        ? "Enviar email de pagamento"
-        : "Email não se aplica (cartão, OFX, ou forma sem cobrança)";
+    : "Sem NF anexada — clique para anexar do Repositório";
   const tooltipMov =
     estadoMov === "feito"
-      ? "Pagamento confirmado"
+      ? "Movimentação lançada"
       : estadoMov === "pendente"
-        ? "Marcar como paga"
-        : "Aprove antes de marcar como paga";
+        ? "Lançar movimentação (marcar como paga)"
+        : "Aprove ou programe o título antes";
+  const tooltipComprovante = temComprovante
+    ? "Comprovante anexado"
+    : "Sem comprovante — ainda não há anexo de comprovante de saída no sistema";
 
   return (
     <div className="flex items-center gap-1">
-      {/* 1) NF — vermelho abre modal de anexar do Repositório; verde propaga pra abrir drawer. */}
+      {/* PROVA 1 — NF */}
       <Button
         size="icon"
         variant="ghost"
         className={cn("h-7 w-7", COR_ICONE[estadoNF])}
-        title={estadoNF === "pendente" ? "Anexar NF do Repositório" : tooltipNF}
+        title={tooltipNF}
         disabled={vinculandoNF}
         onClick={(e) => {
           if (estadoNF === "pendente") {
@@ -260,63 +197,32 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
         )}
       </Button>
 
-      {/* 2) Aprovar */}
+      {/* PROVA 2 — Movimentação bancária */}
       <Button
         size="icon"
         variant="ghost"
-        className={cn("h-7 w-7", COR_ICONE[estadoAprovar])}
-        title={tooltipAprovar}
-        disabled={aprovando}
-        onClick={stop(handleAprovar)}
+        className={cn("h-7 w-7", COR_ICONE[estadoMov])}
+        title={tooltipMov}
+        disabled={lancandoMov}
+        onClick={stop(handleLancarMov)}
       >
-        {aprovando ? (
+        {lancandoMov ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
         ) : (
-          <ThumbsUp className="h-3.5 w-3.5" />
+          <ArrowRightLeft className="h-3.5 w-3.5" />
         )}
       </Button>
 
-      {/* 3) Email */}
+      {/* PROVA 3 — Comprovante (somente leitura) */}
       <Button
         size="icon"
         variant="ghost"
-        className={cn("h-7 w-7", COR_ICONE[estadoEmail])}
-        title={tooltipEmail}
-        onClick={stop(handleEmail)}
+        className={cn("h-7 w-7", COR_ICONE[estadoComprovante])}
+        title={tooltipComprovante}
+        onClick={(e) => e.stopPropagation()}
       >
-        <Send className="h-3.5 w-3.5" />
+        <Receipt className="h-3.5 w-3.5" />
       </Button>
-
-      {/* 4) Movimentação — oculto em enviado_para_pagamento (conciliação automática) */}
-      {status !== "enviado_para_pagamento" && (
-        <Button
-          size="icon"
-          variant="ghost"
-          className={cn("h-7 w-7", COR_ICONE[estadoMov])}
-          title={tooltipMov}
-          disabled={lancandoMov}
-          onClick={stop(handleLancarMov)}
-        >
-          {lancandoMov ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <ArrowRightLeft className="h-3.5 w-3.5" />
-          )}
-        </Button>
-      )}
-
-      {/* Modais */}
-      {showEnviar && (
-        <EnviarPagamentoDialog
-          open={showEnviar}
-          onOpenChange={setShowEnviar}
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          conta={conta as any}
-          onDone={() => {
-            qc.invalidateQueries({ queryKey: ["contas-pagar"] });
-          }}
-        />
-      )}
 
       <NfStageBuscadorModal
         open={showAnexarNF}
