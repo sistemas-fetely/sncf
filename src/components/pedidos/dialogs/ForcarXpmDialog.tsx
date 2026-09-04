@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Selo } from "@/components/ui/selo";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { useEmpurrarXpm } from "@/hooks/pedidos/useEmpurrarXpm";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 
 const MIN_MOTIVO = 15;
 
