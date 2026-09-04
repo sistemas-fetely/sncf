@@ -50653,6 +50653,36 @@ export type Database = {
           },
         ]
       }
+      xpm_override_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          descricao: string | null
+          motivo_min: number
+          ordem: number
+          permissao_slug: string
+          rotulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          descricao?: string | null
+          motivo_min?: number
+          ordem?: number
+          permissao_slug: string
+          rotulo: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          descricao?: string | null
+          motivo_min?: number
+          ordem?: number
+          permissao_slug?: string
+          rotulo?: string
+        }
+        Relationships: []
+      }
       xpm_pedido_fila_b2c: {
         Row: {
           concluido_em: string | null
@@ -81191,9 +81221,10 @@ export type Database = {
       }
       fn_xpm_payload_atribui_nf: { Args: { p_nf_id: string }; Returns: Json }
       fn_xpm_payload_expedicao: {
-        Args: { p_forcar?: boolean; p_pedido_id: string }
+        Args: { p_forcar?: string[]; p_pedido_id: string }
         Returns: Json
       }
+      fn_xpm_previa_estoque: { Args: { p_pedido_id: string }; Returns: Json }
       fn_xpm_proximo_codigo_expedicao: {
         Args: { p_pedido_id: string }
         Returns: string
