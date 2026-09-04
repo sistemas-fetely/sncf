@@ -1,6 +1,6 @@
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -405,6 +405,8 @@ function AtalhosPeriodo({
 
 export default function ContasReceber() {
   const [aba, setAba] = useAbaUrl("b2b");
+  const [exportador, setExportador] = useState<{ fn: () => void; ativo: boolean } | null>(null);
+  const { temNivel } = useNivel();
 
   return (
     <PageShell>
@@ -415,26 +417,40 @@ export default function ContasReceber() {
       />
 
       <Tabs value={aba} onValueChange={setAba}>
-        <TabsList>
-          <TabsTrigger value="b2b">B2B</TabsTrigger>
-          <TabsTrigger value="b2c">B2C</TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between gap-4">
+          <TabsList>
+            <TabsTrigger value="b2b">B2B</TabsTrigger>
+            <TabsTrigger value="b2c">B2C</TabsTrigger>
+          </TabsList>
+          {temNivel(3) && (
+            <Button
+              variant="outline"
+              onClick={() => exportador?.fn()}
+              disabled={!exportador?.ativo}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Exportar XLSX
+            </Button>
+          )}
+        </div>
         <TabsContent value="b2b" className="mt-4">
-          <AbaB2B />
+          <AbaB2B onRegistrarExport={setExportador} />
         </TabsContent>
         <TabsContent value="b2c" className="mt-4">
-          <AbaB2C />
+          <AbaB2C onRegistrarExport={setExportador} />
         </TabsContent>
       </Tabs>
     </PageShell>
   );
 }
 
+
 /* ============================ B2B ============================ */
 
-function AbaB2B() {
+function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void; ativo: boolean }) => void }) {
   const navigate = useNavigate();
-  const { temNivel } = useNivel();
+
   const [busca, setBusca] = useState("");
   const [dataBase, setDataBase] = useState<DataBase>("emissao");
   const [dataDe, setDataDe] = useState("");
@@ -1106,6 +1122,8 @@ function AbaB2B() {
 
   const semChip = recebimentosAtivos.size === 0;
 
+
+
   /* Agrupamento por pedido. */
   const grupos = useMemo(() => {
     const universo = new Map<string, { n: number; total: number }>();
@@ -1398,24 +1416,15 @@ function AbaB2B() {
     XLSX.writeFile(wb, `recebiveis-b2b-${periodoLabel}.xlsx`);
   };
 
+  useEffect(() => {
+    onRegistrarExport({ fn: handleExportXLSX, ativo: filtrados.length > 0 });
+  }, [filtrados]);
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        {/* Exportação leva a base para fora: nível 3 (Coordenador) para cima. */}
-        {temNivel(3) && (
-          <Button
-            variant="outline"
-            onClick={handleExportXLSX}
-            disabled={filtrados.length === 0}
-            className="gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Exportar XLSX
-          </Button>
-        )}
-      </div>
 
       {/* Faixa 1 — Estado da carteira. Recorte fixo: período, busca e banco.
+
           Colunas são filtro: "A receber" é o universo (limpa), garantido ×
           sem instrumento são par exclusivo, vencido é transversal. */}
       <div className="grid grid-cols-2 divide-x divide-border rounded-xl border border-border bg-card md:grid-cols-4">
@@ -2181,9 +2190,9 @@ function diasDesde(iso: string | null | undefined): number | null {
   return Math.floor((Date.now() - d.getTime()) / 86400000);
 }
 
-function AbaB2C() {
-  const { temNivel } = useNivel();
+function AbaB2C({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void; ativo: boolean }) => void }) {
   const [busca, setBusca] = useState("");
+
   const [dataDe, setDataDe] = useState("");
   const [dataAte, setDataAte] = useState("");
   const [page, setPage] = useState(1);
@@ -2416,30 +2425,21 @@ function AbaB2C() {
     XLSX.writeFile(wb, `recebiveis-b2c-${periodoLabel}.xlsx`);
   };
 
+  useEffect(() => {
+    onRegistrarExport({ fn: handleExportXLSX, ativo: ordenados.length > 0 });
+  }, [ordenados]);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="max-w-3xl text-xs text-muted-foreground">
-          B2C não usa título — o recebível nasce liquidado, por pedido. Não existe aberto nem futuro
-          aqui, e estes valores não somam com os do B2B. Mercado Pago liquida em D+14: venda recente
-          ainda não caiu.
-        </p>
-        {/* Exportação leva a base para fora: nível 3 (Coordenador) para cima. */}
-        {temNivel(3) && (
-          <Button
-            variant="outline"
-            onClick={handleExportXLSX}
-            disabled={ordenados.length === 0}
-            className="gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Exportar XLSX
-          </Button>
-        )}
-      </div>
+
+      <p className="max-w-3xl text-xs text-muted-foreground">
+        B2C não usa título — o recebível nasce liquidado, por pedido. Não existe aberto nem futuro
+        aqui, e estes valores não somam com os do B2B. Mercado Pago liquida em D+14: venda recente
+        ainda não caiu.
+      </p>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Bruto Shopify</CardTitle>
