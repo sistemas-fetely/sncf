@@ -83,6 +83,7 @@ import { RetomarOportunidadeDialog } from "@/components/comercial/RetomarOportun
 
 import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
 import { PreFaturamentoCard } from "@/components/pedidos/PreFaturamentoCard";
+import { AncoraFaturamentoCard } from "@/components/pedidos/AncoraFaturamentoCard";
 import { useNivel } from "@/hooks/useNivel";
 import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { useAuth } from "@/contexts/AuthContext";
@@ -1770,8 +1771,10 @@ export default function PedidoDetalhe() {
             </Alert>
           )}
 
-
-
+          {/* ============ FAIXA 0: estação de PRÉ-FATURAMENTO ============ */}
+          {estagio === "pre_faturamento" && (
+            <AncoraFaturamentoCard pedidoId={pedido.id} idExterno={pedido.id_externo} />
+          )}
 
           {/* ============ FAIXA 1: Pedido · Resumo financeiro · Dados de envio ============ */}
           <div className="grid gap-4 lg:grid-cols-2 items-stretch">
