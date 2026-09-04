@@ -306,7 +306,8 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                 ativo={grupo === g.valor}
                 onClick={() => mudarGrupo(g.valor)}
               >
-                {g.rotulo} ({contagensGrupo[g.valor]})
+                {g.rotulo}
+                {!isErroMesa && ` (${contagensGrupo[g.valor]})`}
               </FiltroBtn>
             ))}
           </div>
