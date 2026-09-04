@@ -334,6 +334,7 @@ export function AncoraFaturamentoCard({
                 ))}
               </TableBody>
             </Table>
+            </div>
 
             {(sugestao.alertas ?? []).map((a) => (
               <Alert key={a.codigo} variant={a.bloqueia ? "destructive" : "default"}>
