@@ -121,7 +121,27 @@ type RecebivelB2B = {
   sobreposicao_instrumento: boolean | null;
   renegociacao_humana: boolean | null;
   qualidade: "firme" | "em_registro" | "promessa" | "sem_prova" | null;
+  /* ESTADO x PROVAS — envelope de eixos vindo do banco */
+  dinheiro_no_banco: boolean | null;
+  recebimento_rotulo: string | null;
+  recebimento_ordem: number | null;
+  recebimento_classe: string | null;
+  recebimento_tooltip: string | null;
+  prazo_rotulo: string | null;
+  prazo_ordem: number | null;
+  prazo_classe: string | null;
+  prazo_classe_texto: string | null;
+  instrumento_rotulo: string | null;
+  instrumento_ordem: number | null;
+  instrumento_classe: string | null;
+  instrumento_tooltip: string | null;
+  data_liquidacao_real: string | null;
+  aguardando_credito: boolean | null;
+  relogio_pontualidade: "cliente" | "adquirente" | null;
+  dias_atraso_adquirente: number | null;
+  eixo_prazo: string | null;
 };
+
 
 /** O dinheiro chegou? Eixo único de recebimento da view de gestão. */
 type EixoRecebimento = "em_aberto" | "quitado" | "compensado" | "devolvido" | "cancelado";
