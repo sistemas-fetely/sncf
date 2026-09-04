@@ -560,7 +560,6 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
   const naoRecebido = (t: RecebivelB2B) =>
     t.dinheiro_no_banco === false && t.carteira_gera_caixa !== false;
 
-
   /* UM-VENCIDO-SO: "vencido" tem uma fonte só no sistema inteiro — `eh_inadimplente`
      na view, que já respeita carteira.tem_vencimento. A tela de Cobrança lê a mesma
      coisa. Régua de caixa (data_caixa_projetada) mede conciliação, não atraso, e
