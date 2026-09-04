@@ -1547,45 +1547,47 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
       {/* Linha 2 — Carteiras */}
       {carteiras.length > 0 && (
         <div className="space-y-2">
-          <div className="flex flex-wrap gap-3">
-            {carteiras.map((c) => {
-              const ativa = carteiraAtiva === c.codigo;
-              const vazia = c.aberto === 0;
-              return (
-                <button
-                  key={c.codigo}
-                  type="button"
-                  onClick={() => {
-                    setCarteiraAtiva(ativa ? null : c.codigo);
-                    setPage(1);
-                  }}
-                  className={
-                    "min-w-[170px] flex-1 rounded-lg border p-3 text-left transition-colors " +
-                    (ativa
-                      ? "border-foreground bg-muted"
-                      : "border-border hover:border-foreground/40") +
-                    (vazia && !ativa ? " opacity-50" : "")
-                  }
-                >
-                  <div className="text-xs text-muted-foreground">{c.nome}</div>
-                  <div className="text-lg font-medium tabular-nums">{formatBRL(c.aberto)}</div>
-                  <div className="text-xs text-muted-foreground tabular-nums">
-                    {c.qtd} título{c.qtd === 1 ? "" : "s"} em aberto
-                  </div>
-                  {!c.previsaoConfiavel && (
-                    <div className="text-xs text-warning">sem previsão de caixa</div>
-                  )}
-                </button>
-              );
-            })}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-wrap gap-3">
+              {carteiras.map((c) => {
+                const ativa = carteiraAtiva === c.codigo;
+                const vazia = c.aberto === 0;
+                return (
+                  <button
+                    key={c.codigo}
+                    type="button"
+                    onClick={() => {
+                      setCarteiraAtiva(ativa ? null : c.codigo);
+                      setPage(1);
+                    }}
+                    className={
+                      "min-w-[170px] flex-1 rounded-lg border p-2.5 text-left transition-colors " +
+                      (ativa
+                        ? "border-foreground bg-muted"
+                        : "border-border hover:border-foreground/40") +
+                      (vazia && !ativa ? " opacity-50" : "")
+                    }
+                  >
+                    <div className="text-xs text-muted-foreground">{c.nome}</div>
+                    <div className="text-lg font-medium tabular-nums">{formatBRL(c.aberto)}</div>
+                    <div className="text-xs text-muted-foreground tabular-nums">
+                      {c.qtd} título{c.qtd === 1 ? "" : "s"} em aberto
+                    </div>
+                    {!c.previsaoConfiavel && (
+                      <div className="text-xs text-warning">sem previsão de caixa</div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              className="shrink-0 text-xs text-muted-foreground hover:text-foreground underline"
+              onClick={() => navigate("/administrativo/previsao-recebimentos")}
+            >
+              Para ver quando o dinheiro cai, dia a dia e por conta: Fluxo de Recebimentos
+            </button>
           </div>
-          <button
-            type="button"
-            className="text-xs text-muted-foreground hover:text-foreground underline"
-            onClick={() => navigate("/administrativo/previsao-recebimentos")}
-          >
-            Para ver quando o dinheiro cai, dia a dia e por conta: Fluxo de Recebimentos
-          </button>
         </div>
       )}
 
