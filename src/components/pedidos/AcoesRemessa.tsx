@@ -45,7 +45,9 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
   // DESABILITADO com o motivo — nunca escondido.
   const { permitido: podeEnviarBling } = usePermissaoAcaoOuSuperAdmin("acao.enviar_bling");
   const { permitido: podeEmpurrarXpmAcao } = usePermissaoAcaoOuSuperAdmin("acao.empurrar_xpm");
-  const { permitido: podeForcarEstoque } = usePermissaoAcaoOuSuperAdmin("acao.forcar_xpm_estoque");
+  // A permissão do override de estoque vem do veredito (permissao_slug) — o
+  // ForcarXpmEstoqueDialog resolve internamente.
+
   const MOTIVO_SEM_ACAO = "Ação do time de Operações";
 
   const { data: parceiroBling, refetch: recheckBling } = useQuery({
@@ -258,10 +260,8 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
         <ForcarXpmEstoqueDialog
           pedidoId={pedido_id}
           idExterno={id_externo}
-          itens={previaEstoque!.itens}
-          fotoEm={previaEstoque!.foto_em}
+          previa={previaEstoque!}
           split={remessaSplit}
-          podeForcar={podeForcarEstoque}
         />
       )}
 

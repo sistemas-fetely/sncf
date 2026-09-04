@@ -271,12 +271,34 @@ Deno.serve(async (req) => {
         }
       }
 
+      // 8c. VEREDITO-CRUZADO (04/09/2026): quando o override foi de estoque, os
+      // pedidos despriorizados recebem anotação no histórico. FAIL-LOUD PARCIAL:
+      // a expedição já existe na XPM — abortar aqui mentiria sobre o envio.
+      let disputasRegistradas: number | null = null;
+      let avisoRegistroDisputa: string | undefined;
+      if (overrides.some((c) => c === "estoque" || c === "estoque_divergente")) {
+        const { data: nDisputas, error: eDisputa } = await sb.rpc(
+          "fn_estoque_registrar_disputa",
+          { p_pedido_id: pedido_id, p_motivo: motivo.trim(), p_ator: userId },
+        );
+        if (eDisputa) {
+          console.error(`[empurrar-pedido-xpm] fn_estoque_registrar_disputa falhou: ${eDisputa.message}`);
+          avisoRegistroDisputa = `Empurrado pra XPM, mas os pedidos concorrentes não foram avisados — ${eDisputa.message}`;
+        } else {
+          disputasRegistradas = Number(nDisputas) || 0;
+        }
+      }
+
       return json({
         sucesso: true,
         codigo_expedicao: codigo,
         ambiente,
         avisos,
         ...(avisoTransicao ? { aviso_transicao: avisoTransicao } : {}),
+        ...(avisoRegistroDisputa ? { aviso_registro_disputa: avisoRegistroDisputa } : {}),
+        ...(disputasRegistradas && disputasRegistradas > 0
+          ? { disputas_registradas: disputasRegistradas }
+          : {}),
         duracao_ms: Date.now() - t0,
       });
     }

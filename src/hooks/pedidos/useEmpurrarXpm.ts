@@ -11,6 +11,9 @@ interface EmpurrarXpmResponse {
   /** FOTO-NAO-BARRA: saldo insuficiente vira aviso, nunca bloqueio. */
   avisos?: string[];
   aviso_transicao?: string;
+  /** VEREDITO-CRUZADO: pedidos despriorizados que receberam anotação. */
+  disputas_registradas?: number;
+  aviso_registro_disputa?: string;
   erro?: string;
   duracao_ms?: number;
 }
@@ -77,6 +80,19 @@ export function useEmpurrarXpm() {
         toast({
           title: (vars.forcar?.length ?? 0) > 0 ? "Empurrado pra XPM (forçado)" : "Empurrado pra XPM",
           description: `Expedição ${data.codigo_expedicao}${amb}${data.duracao_ms ? ` · ${data.duracao_ms}ms` : ""}`,
+        });
+      }
+      if ((data.disputas_registradas ?? 0) > 0) {
+        toast({
+          title: "Fila repriorizada",
+          description: `${data.disputas_registradas} pedido(s) avisados no histórico.`,
+        });
+      }
+      if (data.aviso_registro_disputa) {
+        toast({
+          title: "Atenção — concorrentes não avisados",
+          description: data.aviso_registro_disputa,
+          variant: "destructive",
         });
       }
       if (data.aviso_transicao) {
