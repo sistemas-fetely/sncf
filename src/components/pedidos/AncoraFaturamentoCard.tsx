@@ -85,6 +85,8 @@ interface Sugestao {
   venc_max: string | null;
   alertas: AlertaAncora[];
   pode_declarar: boolean;
+  pode_forcar: boolean;
+  bloqueios: string[];
 }
 
 interface Vigente {
