@@ -541,6 +541,14 @@ function AbaB2B() {
     });
   }, [data, busca, dataBase, dataDe, dataAte, filtroBanco]);
 
+  /* DINHEIRO-NO-BANCO: "ainda não recebi" é o que o banco declara, não o estado. */
+  const naoRecebido = (t: RecebivelB2B) => t.dinheiro_no_banco === false;
+
+  /* Vencido mede contra a data de caixa projetada — é ela que diz quando o
+     dinheiro deveria estar disponível. */
+  const venceuNoCaixa = (t: RecebivelB2B) =>
+    naoRecebido(t) && !!t.data_caixa_projetada && t.data_caixa_projetada < hojeIso;
+
   const casaAchado = (t: RecebivelB2B, a: Achado) => {
     if (a === "sobreposicao") return t.sobreposicao_instrumento === true;
     if (a === "renegociacao") return t.renegociacao_humana === true;
@@ -549,6 +557,7 @@ function AbaB2B() {
     if (a === "meio_divergente") return t.meio_divergente === true;
     return t.eh_inadimplente === true;
   };
+
 
   /**
    * Camada nova entre `baseFiltros` e `baseCarteira`: filtros da faixa de KPI.
