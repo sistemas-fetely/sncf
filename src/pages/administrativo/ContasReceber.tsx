@@ -1117,7 +1117,7 @@ function AbaB2B() {
     return Array.from(mapa.entries()).map(([chave, titulos]) => {
       const primeiro = titulos[0];
       const vencimentos = titulos
-        .filter((t) => t.estado_em_aberto === true && t.data_vencimento_vigente)
+        .filter((t) => naoRecebido(t) && t.data_vencimento_vigente)
         .map((t) => t.data_vencimento_vigente as string)
         .sort();
 
@@ -1125,14 +1125,10 @@ function AbaB2B() {
       const estadosDistintos = new Set(titulos.map((t) => t.estado_rotulo));
       const misto = estadosDistintos.size > 1;
       const inadimplente = titulos.find((t) => t.eh_inadimplente === true);
-      const vencido = titulos.find(
-        (t) =>
-          t.estado_em_aberto === true &&
-          t.data_vencimento_vigente != null &&
-          t.data_vencimento_vigente < hojeIso
-      );
-      const aberto = titulos.find((t) => t.estado_em_aberto === true);
-      const fechados = titulos.filter((t) => t.estado_em_aberto !== true);
+      const vencido = titulos.find((t) => venceuNoCaixa(t));
+      const aberto = titulos.find((t) => naoRecebido(t));
+      const fechados = titulos.filter((t) => !naoRecebido(t));
+
       const recenteFechado =
         fechados.length > 0
           ? [...fechados].sort((a, b) => {
