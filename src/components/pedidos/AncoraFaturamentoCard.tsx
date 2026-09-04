@@ -11,8 +11,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, CalendarCheck, Info, Loader2 } from "lucide-react";
 import { PRE_FATURAMENTO_CHECKLIST_KEY } from "@/components/pedidos/PreFaturamentoCard";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 
 /**
  * ÂNCORA DE FATURAMENTO — SISTEMA SUGERE / HUMANO DECIDE.
