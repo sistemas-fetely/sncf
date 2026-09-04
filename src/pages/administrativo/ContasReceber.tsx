@@ -1423,22 +1423,8 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
   return (
     <div className="space-y-6">
 
-      <div className="flex justify-end">
-        {/* Exportação leva a base para fora: nível 3 (Coordenador) para cima. */}
-        {temNivel(3) && (
-          <Button
-            variant="outline"
-            onClick={handleExportXLSX}
-            disabled={filtrados.length === 0}
-            className="gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Exportar XLSX
-          </Button>
-        )}
-      </div>
-
       {/* Faixa 1 — Estado da carteira. Recorte fixo: período, busca e banco.
+
           Colunas são filtro: "A receber" é o universo (limpa), garantido ×
           sem instrumento são par exclusivo, vencido é transversal. */}
       <div className="grid grid-cols-2 divide-x divide-border rounded-xl border border-border bg-card md:grid-cols-4">
