@@ -383,7 +383,8 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                 onClick={() => setPagamentoFiltro("todos")}
                 title="Estado do pagamento — calculado pelo sistema"
               >
-                Todos ({baseFase.length})
+                Todos
+                {!isErroMesa && ` (${baseFase.length})`}
               </FiltroBtn>
               {pagamentoOpcoes.map((o) => (
                 <FiltroBtn
@@ -391,7 +392,8 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                   ativo={pagamentoFiltro === o.slug}
                   onClick={() => setPagamentoFiltro(o.slug)}
                 >
-                  {o.rotulo} ({contagensPagamento.get(o.slug) ?? 0})
+                  {o.rotulo}
+                  {!isErroMesa && ` (${contagensPagamento.get(o.slug) ?? 0})`}
                 </FiltroBtn>
               ))}
             </div>
