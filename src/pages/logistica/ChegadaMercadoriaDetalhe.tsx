@@ -278,7 +278,7 @@ function Stat({ rotulo, valor }: { rotulo: string; valor: React.ReactNode }) {
 // Página
 // ============================================================================
 
-export default function PedidoMercadoriaDetalhe() {
+export default function ChegadaMercadoriaDetalhe() {
   const { id } = useParams<{ id: string }>();
   const pedidoId = Number(id);
   const [nfDialog, setNfDialog] = useState(false);
