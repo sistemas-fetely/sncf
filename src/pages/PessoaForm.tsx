@@ -694,6 +694,9 @@ export default function PessoaForm() {
                   {vinculoStatus !== "ativo" && (
                     <p className="text-xs text-muted-foreground mt-1">Salário não disponível para vínculo encerrado.</p>
                   )}
+                  {!salarioCarregado && (
+                    <p className="text-[11px] text-destructive mt-1">Salário não carregado — este campo não será gravado.</p>
+                  )}
                 </>
               ) : (
                 <>
@@ -709,6 +712,9 @@ export default function PessoaForm() {
                   <Input value={vinculo.valor_transporte} onChange={(e) => setVinculo({ ...vinculo, valor_transporte: e.target.value })} />
                   {vinculoStatus !== "ativo" && (
                     <p className="text-xs text-muted-foreground mt-1">Salário não disponível para vínculo encerrado.</p>
+                  )}
+                  {!salarioCarregado && (
+                    <p className="text-[11px] text-destructive mt-1">Salário não carregado — este campo não será gravado.</p>
                   )}
                 </>
               ) : (
