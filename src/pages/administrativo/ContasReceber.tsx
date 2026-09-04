@@ -641,12 +641,13 @@ function AbaB2B() {
 
     for (const t of baseFiltros) {
       const v = efetivoDe(t);
-      /* VENCIDO-VEM-DO-BANCO: `eh_inadimplente` é a fonte única. O front não
-         recalcula mais vencimento — eram dois números para a mesma pergunta. */
-      if (t.eh_inadimplente === true) {
+      /* VENCIDO-MEDE-CAIXA: a régua é `data_caixa_projetada` — o dia em que o
+         dinheiro deveria estar disponível. `eh_inadimplente` continua
+         separando atraso do cliente de atraso da adquirente. */
+      if (venceuNoCaixa(t)) {
         vencido += v;
         vencidoQtd += 1;
-        const venc = t.data_vencimento_vigente;
+        const venc = t.data_caixa_projetada;
         if (venc) {
           const dias = Math.floor(
             (hoje.getTime() - new Date(venc + "T12:00:00").getTime()) / 86400000
@@ -657,7 +658,8 @@ function AbaB2B() {
           else faixas.f60 += v;
         }
       }
-      if (t.estado_em_aberto !== true) continue;
+      if (!naoRecebido(t)) continue;
+
       aReceber += v;
       aReceberQtd += 1;
       if (t.data_vencimento_vigente == null) aReceberSemData += v;
