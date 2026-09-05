@@ -3147,6 +3147,13 @@ export type Database = {
             foreignKeyName: "auditoria_resumo_nfe_falhas_nfs_stage_id_fkey"
             columns: ["nfs_stage_id"]
             isOneToOne: false
+            referencedRelation: "vw_nf_a_gerar_titulo"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "auditoria_resumo_nfe_falhas_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
             referencedRelation: "vw_nf_vinculo_pessoa"
             referencedColumns: ["stage_id"]
           },
@@ -12990,6 +12997,13 @@ export type Database = {
             foreignKeyName: "despesas_documento_id_fkey"
             columns: ["documento_id"]
             isOneToOne: false
+            referencedRelation: "vw_nf_a_gerar_titulo"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "despesas_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
             referencedRelation: "vw_nf_vinculo_pessoa"
             referencedColumns: ["stage_id"]
           },
@@ -16575,6 +16589,27 @@ export type Database = {
         }
         Relationships: []
       }
+      fila_entrada_regra: {
+        Row: {
+          coluna_entrada: string
+          created_at: string
+          fila_chave: string
+          observacao: string | null
+        }
+        Insert: {
+          coluna_entrada: string
+          created_at?: string
+          fila_chave: string
+          observacao?: string | null
+        }
+        Update: {
+          coluna_entrada?: string
+          created_at?: string
+          fila_chave?: string
+          observacao?: string | null
+        }
+        Relationships: []
+      }
       fila_snapshot_diario: {
         Row: {
           created_at: string
@@ -17590,6 +17625,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_documentos_envio_estados"
             referencedColumns: ["nf_stage_id"]
+          },
+          {
+            foreignKeyName: "ged_documentos_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_a_gerar_titulo"
+            referencedColumns: ["nf_id"]
           },
           {
             foreignKeyName: "ged_documentos_nfs_stage_id_fkey"
@@ -24725,6 +24767,13 @@ export type Database = {
             foreignKeyName: "nf_devolucao_vinculo_nfs_stage_id_fkey"
             columns: ["nfs_stage_id"]
             isOneToOne: false
+            referencedRelation: "vw_nf_a_gerar_titulo"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "nf_devolucao_vinculo_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
             referencedRelation: "vw_nf_vinculo_pessoa"
             referencedColumns: ["stage_id"]
           },
@@ -26135,6 +26184,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_documentos_envio_estados"
             referencedColumns: ["nf_stage_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_documentos_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_a_gerar_titulo"
+            referencedColumns: ["nf_id"]
           },
           {
             foreignKeyName: "nfs_stage_documentos_nfs_stage_id_fkey"
@@ -59040,6 +59096,13 @@ export type Database = {
             foreignKeyName: "despesas_documento_id_fkey"
             columns: ["documento_id"]
             isOneToOne: false
+            referencedRelation: "vw_nf_a_gerar_titulo"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "despesas_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
             referencedRelation: "vw_nf_vinculo_pessoa"
             referencedColumns: ["stage_id"]
           },
@@ -66808,6 +66871,121 @@ export type Database = {
           tem_correcao_automatica: boolean | null
         }
         Relationships: []
+      }
+      vw_nf_a_gerar_titulo: {
+        Row: {
+          created_at: string | null
+          data_vencimento: string | null
+          destino_codigo: string | null
+          destino_rotulo: string | null
+          exige_etapa_antes: string | null
+          fornecedor_razao_social: string | null
+          gera_titulo: boolean | null
+          nf_data_emissao: string | null
+          nf_id: string | null
+          nf_numero: string | null
+          parceiro_id: string | null
+          plano_codigo: string | null
+          plano_contas_id: string | null
+          plano_nome: string | null
+          qtd_duplicatas: number | null
+          situacao: string | null
+          tipo_documento: string | null
+          valor: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfs_stage_destino_codigo_fkey"
+            columns: ["destino_codigo"]
+            isOneToOne: false
+            referencedRelation: "nf_entrada_destino"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "nfs_stage_destino_codigo_fkey"
+            columns: ["destino_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_nfs_stage_roteada"
+            referencedColumns: ["destino"]
+          },
+          {
+            foreignKeyName: "nfs_stage_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_limite"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_valor_a_acertar"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conta_corrente_cliente"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_estimado_parceiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_historico_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_nome"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_plano_contas_id_fkey"
+            columns: ["plano_contas_id"]
+            isOneToOne: false
+            referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vw_nf_duplicata_cobertura: {
         Row: {
@@ -83044,6 +83222,16 @@ export type Database = {
         Args: { p_nf_id: string; p_pedido_id: string }
         Returns: Json
       }
+      fn_fila_fluxo_medido: {
+        Args: { _dias?: number }
+        Returns: {
+          dias_uteis: number
+          entradas: number
+          erro: string
+          fila_chave: string
+          fluxo_dia: number
+        }[]
+      }
       fn_fluxo_caixa_projetado: {
         Args: { p_horizonte?: number; p_saldo_inicial?: number }
         Returns: {
@@ -83292,6 +83480,10 @@ export type Database = {
       fn_nf_eh_venda: { Args: { p_nf_id: string }; Returns: boolean }
       fn_nf_estado_terminal: { Args: { p_nf_id: string }; Returns: string }
       fn_nf_gerar_titulo: { Args: { p_nf_id: string }; Returns: Json }
+      fn_nf_gerar_titulos_lote: {
+        Args: { p_dry_run?: boolean; p_nf_ids?: string[] }
+        Returns: Json
+      }
       fn_nf_itens_hash: { Args: { p_itens: Json }; Returns: string }
       fn_nf_pos_rateio: { Args: { p_nf_id: number }; Returns: Json }
       fn_nfs_stage_destino: { Args: { p_stage_id: string }; Returns: string }
