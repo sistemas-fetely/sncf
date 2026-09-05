@@ -43297,6 +43297,48 @@ export type Database = {
         }
         Relationships: []
       }
+      tarefa_status_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          conta_carga: boolean
+          cor: string | null
+          created_at: string
+          descricao: string
+          e_aberto: boolean
+          e_terminal: boolean
+          exige_motivo: boolean
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          conta_carga: boolean
+          cor?: string | null
+          created_at?: string
+          descricao: string
+          e_aberto: boolean
+          e_terminal?: boolean
+          exige_motivo?: boolean
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          conta_carga?: boolean
+          cor?: string | null
+          created_at?: string
+          descricao?: string
+          e_aberto?: boolean
+          e_terminal?: boolean
+          exige_motivo?: boolean
+          nome?: string
+          ordem?: number
+        }
+        Relationships: []
+      }
       tarefas: {
         Row: {
           acao_url: string | null
