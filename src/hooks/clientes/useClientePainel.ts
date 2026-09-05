@@ -192,3 +192,89 @@ export function useSerieMensalCliente(parceiroId: string | null | undefined) {
     },
   });
 }
+
+export interface ProdutoCliente {
+  parceiro_id: string;
+  sku: string | null;
+  descricao: string | null;
+  valor: number;
+  quantidade: number;
+  pedidos: number;
+  ultima_compra: string | null;
+  recomprado: boolean | null;
+}
+
+export const QK_CLIENTE_PRODUTOS = "cliente-painel-produtos";
+
+/** Composição do faturamento por SKU. Só leitura. */
+export function useProdutosCliente(parceiroId: string | null | undefined) {
+  return useQuery({
+    queryKey: [QK_CLIENTE_PRODUTOS, parceiroId],
+    enabled: !!parceiroId,
+    queryFn: async (): Promise<ProdutoCliente[]> => {
+      const { data, error } = await (supabase as any)
+        .from("vw_conta_cliente_produtos")
+        .select("parceiro_id, sku, descricao, valor, quantidade, pedidos, ultima_compra, recomprado")
+        .eq("parceiro_id", parceiroId)
+        .order("valor", { ascending: false });
+      if (error) throw error;
+      return ((data ?? []) as Record<string, unknown>[]).map((d) => ({
+        parceiro_id: String(d.parceiro_id ?? ""),
+        sku: d.sku == null ? null : String(d.sku),
+        descricao: d.descricao == null ? null : String(d.descricao),
+        valor: Number(d.valor ?? 0),
+        quantidade: Number(d.quantidade ?? 0),
+        pedidos: Number(d.pedidos ?? 0),
+        ultima_compra: d.ultima_compra == null ? null : String(d.ultima_compra),
+        recomprado: d.recomprado == null ? null : Boolean(d.recomprado),
+      }));
+    },
+  });
+}
+
+export interface RecompraCliente {
+  parceiro_id: string;
+  compras: number;
+  primeira: string | null;
+  ultima: string | null;
+  dias_desde_ultima: number | null;
+  intervalo_medio_dias: number | null;
+  proxima_compra_estimada: string | null;
+  atrasado_recompra: boolean | null;
+  skus_recomprados: number | null;
+  skus_distintos: number | null;
+}
+
+export const QK_CLIENTE_RECOMPRA = "cliente-painel-recompra";
+
+/** Ritmo de recompra do cliente. Uma linha por parceiro. Só leitura. */
+export function useRecompraCliente(parceiroId: string | null | undefined) {
+  return useQuery({
+    queryKey: [QK_CLIENTE_RECOMPRA, parceiroId],
+    enabled: !!parceiroId,
+    queryFn: async (): Promise<RecompraCliente | null> => {
+      const { data, error } = await (supabase as any)
+        .from("vw_conta_cliente_recompra")
+        .select("parceiro_id, compras, primeira, ultima, dias_desde_ultima, intervalo_medio_dias, proxima_compra_estimada, atrasado_recompra, skus_recomprados, skus_distintos")
+        .eq("parceiro_id", parceiroId)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return null;
+      const d = data as Record<string, unknown>;
+      const num = (v: unknown) => (v == null ? null : Number(v));
+      return {
+        parceiro_id: String(d.parceiro_id ?? ""),
+        compras: Number(d.compras ?? 0),
+        primeira: d.primeira == null ? null : String(d.primeira),
+        ultima: d.ultima == null ? null : String(d.ultima),
+        dias_desde_ultima: num(d.dias_desde_ultima),
+        intervalo_medio_dias: num(d.intervalo_medio_dias),
+        proxima_compra_estimada: d.proxima_compra_estimada == null ? null : String(d.proxima_compra_estimada),
+        atrasado_recompra: d.atrasado_recompra == null ? null : Boolean(d.atrasado_recompra),
+        skus_recomprados: num(d.skus_recomprados),
+        skus_distintos: num(d.skus_distintos),
+      };
+    },
+  });
+}
+
