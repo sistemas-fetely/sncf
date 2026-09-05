@@ -94,6 +94,11 @@ export function TarefaItem({ tarefa, atrasada = false, somenteLeitura = false }:
           }
         }}
       >
+        {tarefa.parent_id && tarefa.mae_titulo && (
+          <p className="truncate text-[11px] text-muted-foreground">
+            Passo de: {tarefa.mae_titulo}
+          </p>
+        )}
         <div className="flex flex-wrap items-center gap-2">
           <span className={cn("text-sm font-medium", concluida && "line-through text-muted-foreground")}>
             {tarefa.titulo}
