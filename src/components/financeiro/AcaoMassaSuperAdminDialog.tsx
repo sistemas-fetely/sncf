@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -47,7 +46,6 @@ export function AcaoMassaSuperAdminDialog({
   onDone,
 }: Props) {
   const qc = useQueryClient();
-  const { user } = useAuth();
   const [formaPagamentoId, setFormaPagamentoId] = useState("");
   const [observacao, setObservacao] = useState("");
   const [confirmou, setConfirmou] = useState(false);
