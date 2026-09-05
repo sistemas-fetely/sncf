@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useTarefaAberta } from "@/hooks/tarefas/useTarefaAberta";
-import { PRIORIDADE_ROTULO, STATUS_ROTULO } from "@/components/tarefas/detalhe/comuns";
+import { PRIORIDADE_ROTULO, useStatusRotulo } from "@/components/tarefas/detalhe/comuns";
 import {
   CLASSE_TOM, tomDaCarga, useCargaDetalhe, useCargaSemanal, usePodeEditarCapacidade,
   useSalvarCapacidade, type CargaSemana,
@@ -248,7 +248,7 @@ function SheetDrill({
                 <p className="text-sm font-medium">{t.titulo}</p>
                 <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
                   <Badge variant="outline" className="text-[10px]">
-                    {STATUS_ROTULO[t.status] ?? t.status}
+                    {rotuloStatus(t.status)}
                   </Badge>
                   <Badge variant="outline" className="text-[10px]">
                     {PRIORIDADE_ROTULO[t.prioridade] ?? t.prioridade}

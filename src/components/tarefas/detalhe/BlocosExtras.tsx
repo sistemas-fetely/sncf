@@ -15,7 +15,7 @@ import {
   useHistoricoTarefa, useMutarAnexos, useMutarApontamentos, useMutarComentarios,
   useMutarDependencias, useMutarTimer, useTimerAtivo,
 } from "@/hooks/tarefas/useTarefaDetalheExtras";
-import { Secao, STATUS_ROTULO, useNomePessoa } from "./comuns";
+import { Secao, useNomePessoa, useStatusRotulo } from "./comuns";
 
 function dataHora(iso: string) {
   return format(new Date(iso), "dd/MM/yyyy HH:mm", { locale: ptBR });
@@ -36,7 +36,7 @@ export function BlocoDependencias({ tarefa }: { tarefa: TarefaDetalhe }) {
       {linhas.length === 0 && <p className="text-xs text-muted-foreground">nenhuma</p>}
       {linhas.map((l) => (
         <div key={l.id} className="flex items-center gap-2 rounded border border-border/60 px-2 py-1 text-sm">
-          <Badge variant="outline" className="text-[10px]">{STATUS_ROTULO[l.status] ?? l.status}</Badge>
+          <Badge variant="outline" className="text-[10px]">{rotuloStatus(l.status)}</Badge>
           <span className="min-w-0 flex-1 truncate">{l.titulo}</span>
           <button type="button" aria-label="Remover dependência" onClick={() => remover.mutate(l.id)}>
             <X className="h-3.5 w-3.5 text-muted-foreground" />
@@ -313,19 +313,24 @@ const ACAO_ROTULO: Record<string, string> = {
   atualizada: "Tarefa atualizada",
 };
 
-function legivel(valor: unknown, nome: (id: string | null) => string): string {
+function legivel(
+  valor: unknown,
+  nome: (id: string | null) => string,
+  rotuloStatus: (codigo: string) => string
+): string {
   if (valor == null) return "—";
   if (typeof valor === "boolean") return valor ? "sim" : "não";
   if (typeof valor === "number") return String(valor);
   if (typeof valor === "string") {
-    if (STATUS_ROTULO[valor]) return STATUS_ROTULO[valor];
+    const rotulo = rotuloStatus(valor);
+    if (rotulo !== valor) return rotulo;
     if (/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(valor)) return nome(valor);
     if (/^\d{4}-\d{2}-\d{2}$/.test(valor)) return format(parseISO(valor), "dd/MM/yyyy");
     return valor;
   }
   if (typeof valor === "object") {
     return Object.entries(valor as Record<string, unknown>)
-      .map(([k, v]) => `${k.replace(/_/g, " ")}: ${legivel(v, nome)}`)
+      .map(([k, v]) => `${k.replace(/_/g, " ")}: ${legivel(v, nome, rotuloStatus)}`)
       .join(" · ");
   }
   return String(valor);
