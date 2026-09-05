@@ -83,6 +83,20 @@ interface FonteDim {
   tem_estoque: boolean | null;
 }
 
+/**
+ * Confronto entre o que o líder declarou e o piso que já se sabe que entra.
+ * O piso é PISO: conta só o que entrou e ainda está pendente. Nunca é oferecido
+ * como preenchimento automático — quem declara é o líder.
+ */
+interface FluxoConfronto {
+  atribuicao_id: string;
+  fluxo_declarado: number | null;
+  fluxo_piso_medido: number | null;
+  entradas_ainda_pendentes: number | null;
+  dias_uteis: number | null;
+  veredito: string | null;
+}
+
 interface FuroFila {
   fila_id: string;
   chave: string;
