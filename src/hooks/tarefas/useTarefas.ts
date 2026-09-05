@@ -23,6 +23,9 @@ export interface Tarefa {
   motivo_cancelamento: string | null;
   /** operacional | epico | backlog_dev — dimensão tarefa_natureza_dim */
   natureza?: string | null;
+  /** vem das views que fazem join com tarefa_natureza_dim; ausente no select da tabela */
+  na_lista_de_trabalho?: boolean | null;
+  conta_carga?: boolean | null;
   ordem: number;
   criado_em: string;
 }

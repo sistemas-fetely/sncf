@@ -11,7 +11,7 @@ import { STATUS_ABERTOS, type Tarefa } from "@/hooks/tarefas/useTarefas";
  */
 
 const CAMPOS =
-  "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id,data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,acao_url,natureza,ordem,criado_em" as const;
+  "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id,data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,acao_url,motivo_cancelamento,natureza,ordem,criado_em" as const;
 
 export interface MembroTime {
   user_id: string;
