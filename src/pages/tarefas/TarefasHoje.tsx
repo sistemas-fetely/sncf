@@ -17,8 +17,7 @@ import {
   useTarefasProximos7, useTarefasSemData, type Tarefa,
 } from "@/hooks/tarefas/useTarefas";
 import { useRespondoPor } from "@/hooks/tarefas/useMinhasTarefasPapel";
-import { useFiltroNatureza } from "@/hooks/tarefas/useFiltroNatureza";
-import { ControleNatureza } from "@/components/tarefas/ControleNatureza";
+import { idsDeContainer, semContainers } from "@/lib/tarefas/containers";
 
 function Vazio({ texto }: { texto: string }) {
   return <p className="py-6 text-center text-sm text-muted-foreground">{texto}</p>;
@@ -55,15 +54,16 @@ function TarefasHojeConteudo() {
   const { data: contadores } = useTarefasContadores(userId);
   const { data: respondoPor } = useRespondoPor(userId);
 
-  const natureza = useFiltroNatureza();
-  const atrasadas = natureza.filtrar(hoje.data?.atrasadas ?? []);
-  const doDia = natureza.filtrar(hoje.data?.hoje ?? []);
-  const respondoPorFiltrado = natureza.filtrar(respondoPor ?? []);
-  const semDataFiltrado = natureza.filtrar(semData.data ?? []);
-  const ocultas = natureza.contarOcultas(
+  /** contêiner não é trabalho: sai da lista, inferido pelas filhas presentes */
+  const containers = idsDeContainer(
     hoje.data?.atrasadas, hoje.data?.hoje, respondoPor, semData.data,
-    (proximos.data ?? []).flatMap((d) => d.tarefas)
+    (proximos.data ?? []).flatMap((d) => d.tarefas),
+    (concluidas.data ?? []).flatMap((d) => d.tarefas)
   );
+  const atrasadas = semContainers(hoje.data?.atrasadas ?? [], containers);
+  const doDia = semContainers(hoje.data?.hoje ?? [], containers);
+  const respondoPorFiltrado = semContainers(respondoPor ?? [], containers);
+  const semDataFiltrado = semContainers(semData.data ?? [], containers);
   const vazioHoje = !hoje.isLoading && atrasadas.length === 0 && doDia.length === 0 && respondoPorFiltrado.length === 0;
 
   return (
@@ -82,12 +82,6 @@ function TarefasHojeConteudo() {
           </CardContent>
         </Card>
       )}
-
-      <ControleNatureza
-        incluirTodas={natureza.incluirTodas}
-        onChange={natureza.setIncluirTodas}
-        ocultas={ocultas}
-      />
 
       <Tabs value={aba} onValueChange={setAba}>
         <TabsList>
@@ -142,10 +136,10 @@ function TarefasHojeConteudo() {
               <h2 className="text-sm font-medium capitalize">
                 {format(parseISO(dia.data), "EEEE, d 'de' MMMM", { locale: ptBR })}
               </h2>
-              {natureza.filtrar(dia.tarefas).length === 0 ? (
+              {semContainers(dia.tarefas, containers).length === 0 ? (
                 <p className="text-sm text-muted-foreground/70">—</p>
               ) : (
-                <Lista tarefas={natureza.filtrar(dia.tarefas)} />
+                <Lista tarefas={semContainers(dia.tarefas, containers)} />
               )}
             </section>
           ))}
@@ -168,7 +162,7 @@ function TarefasHojeConteudo() {
                 <h2 className="text-sm font-medium capitalize">
                   {format(parseISO(dia.data), "EEEE, d 'de' MMMM", { locale: ptBR })}
                 </h2>
-                <Lista tarefas={dia.tarefas} />
+                <Lista tarefas={semContainers(dia.tarefas, containers)} />
               </section>
             ))
           )}
