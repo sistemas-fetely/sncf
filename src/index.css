@@ -50,6 +50,7 @@
     /* Borders */
     --border: 35 22% 78%;
     --input: 35 22% 78%;
+    --input-background: 36 50% 97%;
     --ring: 43 58% 39%;
     --radius: 0.375rem;             /* 6px — Thomer default */
 
@@ -120,6 +121,7 @@
 
     --border: 0 0% 16%;             /* #2A2A2A */
     --input: 0 0% 16%;
+    --input-background: 0 0% 11%;
     --ring: 45 53% 55%;
 
     --sidebar-background: 0 0% 7%;
