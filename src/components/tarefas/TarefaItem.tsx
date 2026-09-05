@@ -15,7 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { Tarefa, TarefaPrioridade } from "@/hooks/tarefas/useTarefas";
 import { useAlterarStatusTarefa, useReagendarTarefa } from "@/hooks/tarefas/useTarefaMutations";
-import { useProjetos, useNaturezasTarefa, useNaturezaExcecoes } from "@/hooks/tarefas/useTarefasCatalogos";
+import { useProjetos, useNaturezasTarefa } from "@/hooks/tarefas/useTarefasCatalogos";
 
 
 const PRIORIDADE_CLASSE: Record<TarefaPrioridade, string> = {
@@ -46,15 +46,13 @@ export function TarefaItem({ tarefa, atrasada = false, somenteLeitura = false }:
   const reagendar = useReagendarTarefa();
   const { data: projetos } = useProjetos();
   const { data: naturezas } = useNaturezasTarefa();
-  // algumas listas leem de view/RPC sem a coluna; o mapa de exceções cobre esse caso
-  const { data: excecoes } = useNaturezaExcecoes();
   const [calendarioAberto, setCalendarioAberto] = useState(false);
   const { abrir } = useTarefaAberta();
 
   const projeto = projetos?.find((p) => p.id === tarefa.projeto_id);
   const concluida = tarefa.status === "concluida";
   // badge só no caso incomum — natureza operacional é o padrão e não polui a linha
-  const codigoNatureza = tarefa.natureza ?? excecoes?.[tarefa.id] ?? "operacional";
+  const codigoNatureza = tarefa.natureza ?? "operacional";
   const natureza =
     codigoNatureza !== "operacional"
       ? (naturezas ?? []).find((n) => n.codigo === codigoNatureza) ?? {

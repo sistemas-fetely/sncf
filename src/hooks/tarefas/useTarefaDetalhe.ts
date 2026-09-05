@@ -115,7 +115,6 @@ export function useSalvarNaturezaTarefa(tarefaId: string) {
     },
     onSuccess: (descendentes) => {
       invalidar();
-      qc.invalidateQueries({ queryKey: ["tarefas", "natureza-excecoes"] });
       toast.success(
         descendentes > 0
           ? `Natureza alterada — ${descendentes} subtarefa(s) acompanharam`
