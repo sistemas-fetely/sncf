@@ -39,6 +39,7 @@ function dataBR(iso: string | null | undefined) {
 }
 
 export default function ContaCliente() {
+  const navigate = useNavigate();
   const { data: contas, isLoading, isError, error } = useContasClienteSaldo();
   const [busca, setBusca] = useState("");
   const [selecionada, setSelecionada] = useState<ContaClienteSaldo | null>(null);
