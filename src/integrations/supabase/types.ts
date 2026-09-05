@@ -66946,14 +66946,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -76480,6 +76480,7 @@ export type Database = {
           aprovacao_por: string | null
           aprovacao_status: string | null
           atualizado_em: string | null
+          conta_carga: boolean | null
           criado_em: string | null
           criado_por: string | null
           data_conclusao: string | null
@@ -76492,6 +76493,9 @@ export type Database = {
           hora_limite: string | null
           id: string | null
           modulo_origem: string | null
+          motivo_cancelamento: string | null
+          na_lista_de_trabalho: boolean | null
+          natureza: string | null
           ocorrencia_data: string | null
           ordem: number | null
           papeis: string[] | null
@@ -76514,6 +76518,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "departamentos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_natureza_fkey"
+            columns: ["natureza"]
+            isOneToOne: false
+            referencedRelation: "tarefa_natureza_dim"
+            referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_parent_id_fkey"
