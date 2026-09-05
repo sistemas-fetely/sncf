@@ -26,8 +26,10 @@ import {
   useContasClienteSaldo,
   type ContaClienteSaldo,
 } from "@/hooks/financeiro/useContaCliente";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ContaClienteDrawer } from "@/components/financeiro/ContaClienteDrawer";
 import { RegistrarRecebimentoDialog } from "@/components/financeiro/RegistrarRecebimentoDialog";
+import { EntradasReconhecerTab } from "@/components/financeiro/EntradasReconhecerTab";
 
 function dataBR(iso: string | null | undefined) {
   if (!iso) return "—";
