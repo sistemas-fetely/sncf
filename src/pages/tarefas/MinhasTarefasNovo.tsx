@@ -121,6 +121,9 @@ export default function MinhasTarefasNovo() {
   const [projetoFiltro, setProjetoFiltro] = useState<string>("__todos__");
   /** lista (padrão) ou quadro; persiste ao trocar a aba de papel, como o filtro de projeto */
   const [visao, setVisao] = useState<"lista" | "quadro">("lista");
+  /** no quadro: colunas por status (padrão) ou por projeto */
+  const [agruparPor, setAgruparPor] = useState<AgruparPor>("status");
+
   const [aba, setAba] = useAbaUrl("r");
   const abaAtual = aba as Papel;
   const { data: tarefas, isLoading } = useMinhasTarefasPapel(user?.id, filtro);
