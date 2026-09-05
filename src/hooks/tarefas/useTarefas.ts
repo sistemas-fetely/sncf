@@ -26,6 +26,14 @@ export interface Tarefa {
   /** vem das views que fazem join com tarefa_natureza_dim; ausente no select da tabela */
   na_lista_de_trabalho?: boolean | null;
   conta_carga?: boolean | null;
+  /**
+   * Regra derivada na view: raiz (sem mãe) ou subtarefa com responsável
+   * diferente do da mãe. Ausente nos selects feitos na tabela `tarefas`.
+   */
+  trabalho_independente?: boolean | null;
+  /** título da tarefa-mãe, quando a linha é subtarefa (vem da view) */
+  mae_titulo?: string | null;
+  mae_id?: string | null;
   ordem: number;
   criado_em: string;
 }
