@@ -26,7 +26,6 @@ import {
 import {
   formatarValorCampo, useCamposCatalogo, useCamposDoProjeto, useValoresCamposDoBoard,
 } from "@/hooks/tarefas/useProjetoCampos";
-import { useNaturezasTarefa } from "@/hooks/tarefas/useTarefasCatalogos";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const SEM_SECAO = "__sem_secao__";
@@ -79,16 +78,6 @@ export function BoardProjeto({ projetoId }: Props) {
     camposCard.map((c) => c.campo_id)
   );
 
-  const { data: naturezas } = useNaturezasTarefa();
-  const [naturezaFiltro, setNaturezaFiltro] = useState<string>("todas");
-  const contagemPorNatureza = useMemo(() => {
-    const mapa: Record<string, number> = {};
-    for (const t of tarefas ?? []) {
-      const cod = t.natureza ?? "operacional";
-      mapa[cod] = (mapa[cod] ?? 0) + 1;
-    }
-    return mapa;
-  }, [tarefas, naturezaFiltro]);
 
   const [alvo, setAlvo] = useState<string | null>(null);
   const [novaSecao, setNovaSecao] = useState("");
@@ -105,23 +94,19 @@ export function BoardProjeto({ projetoId }: Props) {
   }, [secoes]);
 
   /**
-   * Subtarefa com o mesmo responsável da mãe é passo de checklist — vive no
-   * detalhe da mãe, não como card solto. Mesma regra do banco
-   * (trabalho_independente), calculada aqui porque o board lê a tabela.
+   * Modelo ClickUp: quem tem filha é contêiner e continua card (é o agrupador
+   * visível no board); a FILHA não é card — vive dentro do card da mãe,
+   * independentemente de quem seja o dono dela. Subtarefa cuja mãe não está
+   * neste board continua card, senão desapareceria.
    */
-  const porResponsavelMae = useMemo(() => {
-    const mapa = new Map<string, string | null>();
-    for (const t of tarefas ?? []) mapa.set(t.id, t.responsavel_id);
-    return mapa;
-  }, [tarefas]);
+  const idsNoBoard = useMemo(
+    () => new Set((tarefas ?? []).map((t) => t.id)),
+    [tarefas]
+  );
 
-  const ehIndependente = useCallback(
-    (t: TarefaBoard) => {
-      if (!t.parent_id) return true;
-      if (!porResponsavelMae.has(t.parent_id)) return true; // mãe fora do board
-      return porResponsavelMae.get(t.parent_id) !== t.responsavel_id;
-    },
-    [porResponsavelMae]
+  const ehCard = useCallback(
+    (t: TarefaBoard) => !t.parent_id || !idsNoBoard.has(t.parent_id),
+    [idsNoBoard]
   );
 
   /** filhas de cada mãe: alimentam o selo "3/7" e a lista enxuta dentro do card */
@@ -134,26 +119,15 @@ export function BoardProjeto({ projetoId }: Props) {
     return mapa;
   }, [tarefas]);
 
-  /** título da mãe, para dar contexto à subtarefa delegada que continua no board */
-  const tituloMae = useMemo(() => {
-    const mapa = new Map<string, string>();
-    for (const t of tarefas ?? []) mapa.set(t.id, t.titulo);
-    return mapa;
-  }, [tarefas]);
-
   const porColuna = useMemo(() => {
     const mapa = new Map<string, TarefaBoard[]>();
-    const visiveis = (tarefas ?? []).filter(
-      (t) =>
-        ehIndependente(t) &&
-        (naturezaFiltro === "todas" || (t.natureza ?? "operacional") === naturezaFiltro)
-    );
+    const visiveis = (tarefas ?? []).filter(ehCard);
     for (const t of visiveis) {
       const chave = t.secao_id ?? SEM_SECAO;
       mapa.set(chave, [...(mapa.get(chave) ?? []), t]);
     }
     return mapa;
-  }, [tarefas, naturezaFiltro, ehIndependente]);
+  }, [tarefas, ehCard]);
 
   function podeArrastar(t: TarefaBoard): boolean {
     return !!podeGerenciar || t.responsavel_id === user?.id || t.criado_por === user?.id;
@@ -202,17 +176,6 @@ export function BoardProjeto({ projetoId }: Props) {
         >
           <Plus className="mr-1 h-4 w-4" /> Nova seção
         </Button>
-        <Select value={naturezaFiltro} onValueChange={setNaturezaFiltro}>
-          <SelectTrigger className="h-9 w-56"><SelectValue placeholder="Natureza" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todas">Todas as naturezas ({(tarefas ?? []).length})</SelectItem>
-            {(naturezas ?? []).map((n) => (
-              <SelectItem key={n.codigo} value={n.codigo}>
-                {n.nome} ({contagemPorNatureza[n.codigo] ?? 0})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
 
         {!podeGerenciar && (
           <span className="text-xs text-muted-foreground">
@@ -293,7 +256,6 @@ export function BoardProjeto({ projetoId }: Props) {
                     const filhas = filhasPorMae.get(t.id) ?? [];
                     const feitas = filhas.filter((f) => f.status === "concluida").length;
                     const passosVisiveis = !!passosAbertos[t.id];
-                    const nomeMae = t.parent_id ? tituloMae.get(t.parent_id) : null;
                     const camposDoCard = camposCard
                       .map((c) => {
                         const meta = catalogo?.find((k) => k.id === c.campo_id);
@@ -332,11 +294,6 @@ export function BoardProjeto({ projetoId }: Props) {
                             </TooltipProvider>
                           )}
                           <div className="min-w-0 flex-1">
-                            {nomeMae && (
-                              <p className="truncate text-[11px] text-muted-foreground">
-                                Passo de: {nomeMae}
-                              </p>
-                            )}
                             <span className="text-sm font-medium leading-snug">{t.titulo}</span>
                           </div>
                         </div>

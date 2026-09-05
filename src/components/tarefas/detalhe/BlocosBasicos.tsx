@@ -6,10 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useProjetos, useSecoes, useEtiquetas, useNaturezasTarefa } from "@/hooks/tarefas/useTarefasCatalogos";
+import { useProjetos, useSecoes, useEtiquetas } from "@/hooks/tarefas/useTarefasCatalogos";
 import {
   useCamposPersonalizados, useCriarSubtarefa, useEtiquetasDaTarefa, useMutarEtiquetasTarefa,
-  useMutarPapel, usePapeisTarefa, useSalvarCampoTarefa, useSalvarNaturezaTarefa, useSalvarValorCampo, useSubtarefas,
+  useMutarPapel, usePapeisTarefa, useSalvarCampoTarefa, useSalvarValorCampo, useSubtarefas,
   useValoresCampos, type CampoPersonalizado, type TarefaDetalhe,
 } from "@/hooks/tarefas/useTarefaDetalhe";
 import { Campo, PRIORIDADE_ROTULO, STATUS_ROTULO, Secao, SEM_VALOR, SeletorPessoa, useNomePessoa } from "./comuns";
@@ -21,10 +21,6 @@ export function BlocoCampos({ tarefa }: { tarefa: TarefaDetalhe }) {
   const salvar = useSalvarCampoTarefa(tarefa.id);
   const { data: projetos } = useProjetos();
   const { data: secoes } = useSecoes(tarefa.projeto_id);
-  const { data: naturezas } = useNaturezasTarefa();
-  const salvarNatureza = useSalvarNaturezaTarefa(tarefa.id);
-  const naturezaAtual = tarefa.natureza ?? "operacional";
-  const descricaoNatureza = (naturezas ?? []).find((n) => n.codigo === naturezaAtual)?.descricao;
   const [estimativa, setEstimativa] = useState(tarefa.estimativa_horas?.toString() ?? "");
 
   useEffect(() => setEstimativa(tarefa.estimativa_horas?.toString() ?? ""), [tarefa.estimativa_horas]);
@@ -51,26 +47,6 @@ export function BlocoCampos({ tarefa }: { tarefa: TarefaDetalhe }) {
             ))}
           </SelectContent>
         </Select>
-      </Campo>
-
-      <Campo rotulo="Natureza">
-        <Select
-          value={naturezaAtual}
-          disabled={salvarNatureza.isPending}
-          onValueChange={(v) => {
-            if (v !== naturezaAtual) salvarNatureza.mutate(v);
-          }}
-        >
-          <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {(naturezas ?? []).map((n) => (
-              <SelectItem key={n.codigo} value={n.codigo}>{n.nome}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {descricaoNatureza && (
-          <p className="mt-1 text-[11px] text-muted-foreground">{descricaoNatureza}</p>
-        )}
       </Campo>
 
       <Campo rotulo="Responsável (R)">
