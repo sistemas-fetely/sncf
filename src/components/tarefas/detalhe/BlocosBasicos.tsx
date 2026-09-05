@@ -77,39 +77,50 @@ export function BlocoCampos({ tarefa }: { tarefa: TarefaDetalhe }) {
         <SeletorPessoa valor={tarefa.responsavel_id} onChange={(id) => salvar.mutate({ responsavel_id: id })} />
       </Campo>
 
-      <Campo rotulo="Projeto">
-        <Select
-          value={tarefa.projeto_id ?? SEM_VALOR}
-          onValueChange={(v) =>
-            // trocar de projeto invalida a seção antiga — ela pertence a outro projeto
-            salvar.mutate({ projeto_id: v === SEM_VALOR ? null : v, secao_id: null })
-          }
-        >
-          <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Sem projeto" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value={SEM_VALOR}>— sem projeto —</SelectItem>
-            {(projetos ?? []).map((p) => (
-              <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </Campo>
+      {/* Subtarefa não tem endereço próprio: projeto e seção são sempre os da mãe
+          (o banco sobrescreve), então nem aparecem como campo editável. */}
+      {tarefa.parent_id ? (
+        <div className="col-span-2 rounded border border-border/60 bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">
+          Esta é uma subtarefa: projeto e seção acompanham a tarefa-mãe e não são
+          editáveis aqui.
+        </div>
+      ) : (
+        <>
+          <Campo rotulo="Projeto">
+            <Select
+              value={tarefa.projeto_id ?? SEM_VALOR}
+              onValueChange={(v) =>
+                // trocar de projeto invalida a seção antiga — ela pertence a outro projeto
+                salvar.mutate({ projeto_id: v === SEM_VALOR ? null : v, secao_id: null })
+              }
+            >
+              <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Sem projeto" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={SEM_VALOR}>— sem projeto —</SelectItem>
+                {(projetos ?? []).map((p) => (
+                  <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Campo>
 
-      <Campo rotulo="Seção">
-        <Select
-          value={tarefa.secao_id ?? SEM_VALOR}
-          disabled={!tarefa.projeto_id}
-          onValueChange={(v) => salvar.mutate({ secao_id: v === SEM_VALOR ? null : v })}
-        >
-          <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Sem seção" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value={SEM_VALOR}>— sem seção —</SelectItem>
-            {(secoes ?? []).map((s) => (
-              <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </Campo>
+          <Campo rotulo="Seção">
+            <Select
+              value={tarefa.secao_id ?? SEM_VALOR}
+              disabled={!tarefa.projeto_id}
+              onValueChange={(v) => salvar.mutate({ secao_id: v === SEM_VALOR ? null : v })}
+            >
+              <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Sem seção" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={SEM_VALOR}>— sem seção —</SelectItem>
+                {(secoes ?? []).map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Campo>
+        </>
+      )}
 
       <Campo rotulo="Data de início">
         <Input
@@ -190,6 +201,10 @@ export function BlocoSubtarefas({ tarefa }: { tarefa: TarefaDetalhe }) {
         ))}
         {lista.length === 0 && <p className="text-xs text-muted-foreground">Nenhuma subtarefa.</p>}
       </div>
+      <p className="text-[11px] text-muted-foreground">
+        Subtarefa é passo desta tarefa. Se você atribuir uma delas a outra pessoa,
+        ela passa a valer como tarefa independente na lista dessa pessoa.
+      </p>
       <form
         className="flex gap-2"
         onSubmit={(e) => {
