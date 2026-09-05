@@ -19,6 +19,12 @@ export interface ContaClienteSaldo {
   credito_futuro_boleto: number;
   ultima_movimentacao: string | null;
   lancamentos: number;
+  qtd_titulos_abertos: number | null;
+  faixa_1_7: number | null;
+  faixa_8_30: number | null;
+  faixa_31_60: number | null;
+  faixa_60_mais: number | null;
+  dias_atraso_max: number | null;
 }
 
 export interface ContaClienteLancamento {

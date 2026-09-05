@@ -14,7 +14,6 @@ import SemProvaTab from "@/pages/Credito/SemProvaTab";
 
 import MesaCobranca, { FILAS_AGIR_AGORA, ehLinhaDaMesa } from "@/pages/Credito/MesaCobranca";
 
-import CreditoClientesIndex from "@/pages/Credito/CreditoClientesIndex";
 import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
 import { useTitulosCobranca } from "@/hooks/credito/useTitulosCobranca";
 import { useReguaFilaHoje } from "@/hooks/credito/useReguaFila";
@@ -1285,7 +1284,6 @@ export default function CobrancaFila() {
             { value: "titulos", label: `Títulos${totalTitulosAbertos > 0 ? ` · ${totalTitulosAbertos}` : ""}` },
             // aba Adiantamento s/ NF removida em 01/09/2026 — alarme coberto pelo motor de auditoria (pedido-sem-recebivel, pre-nf-sem-lastro, plano-cobranca-fora-do-liquido)
             { value: "banco", slug: "tela.cobranca_remessa", label: "Banco" },
-            { value: "credito-cliente", slug: "tela.credito", label: "Crédito do cliente" },
           ].map((tab) => {
             const trigger = (
               <TabsTrigger value={tab.value} className={tabTriggerCls}>
@@ -1366,11 +1364,6 @@ export default function CobrancaFila() {
           </ConteudoAba>
         </TabsContent>
 
-        <TabsContent value="credito-cliente">
-          <ConteudoAba slug="tela.credito">
-            <CreditoClientesIndex />
-          </ConteudoAba>
-        </TabsContent>
       </Tabs>
     </div>
     </PageShell>
