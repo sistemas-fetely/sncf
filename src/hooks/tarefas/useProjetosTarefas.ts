@@ -282,7 +282,7 @@ export interface TarefaBoard extends Tarefa {
 }
 
 const CAMPOS_BOARD =
-  "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id,data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,acao_url,natureza,ordem,criado_em,criado_por,tipo_tarefa" as const;
+  "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id,data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,acao_url,ordem,criado_em,criado_por,tipo_tarefa" as const;
 
 export function chaveBoard(projetoId: string) {
   return ["tarefas", "board", projetoId];

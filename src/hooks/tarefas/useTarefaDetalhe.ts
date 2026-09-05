@@ -9,7 +9,7 @@ import type { Tarefa, TarefaStatus, TarefaPrioridade } from "./useTarefas";
  */
 
 const CAMPOS_DETALHE =
-  "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id,data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,modulo_origem,entidade_origem_id,acao_url,motivo_cancelamento,natureza,ordem,criado_em,criado_por,visibilidade,tipo_tarefa,aprovacao_status,aprovacao_comentario,aprovacao_em,aprovacao_por" as const;
+  "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id,data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,modulo_origem,entidade_origem_id,acao_url,motivo_cancelamento,ordem,criado_em,criado_por,visibilidade,tipo_tarefa,aprovacao_status,aprovacao_comentario,aprovacao_em,aprovacao_por" as const;
 
 export interface TarefaDetalhe extends Tarefa {
   modulo_origem: string | null;
@@ -68,7 +68,6 @@ export interface CamposEditaveis {
   data_limite?: string | null;
   hora_limite?: string | null;
   estimativa_horas?: number | null;
-  natureza?: string;
 }
 
 /** Salva um (ou poucos) campos da tarefa. Sem botão global de salvar. */
@@ -83,50 +82,6 @@ export function useSalvarCampoTarefa(tarefaId: string) {
     onError: (e: Error) => toast.error(`Não foi possível salvar: ${e.message}`),
   });
 }
-
-/**
- * Natureza com herança: subtarefa de épico é trabalho de projeto, não tarefa do dia.
- * Desce a árvore inteira no MESMO salvamento — await real, throw e toast no erro.
- */
-export function useSalvarNaturezaTarefa(tarefaId: string) {
-  const invalidar = useInvalidar(tarefaId);
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (natureza: string): Promise<number> => {
-      const alvo = await supabase.from("tarefas").update({ natureza }).eq("id", tarefaId);
-      if (alvo.error) throw alvo.error;
-
-      // cascata nível a nível, com trava de ciclo
-      let nivel = [tarefaId];
-      const vistos = new Set(nivel);
-      let descendentes = 0;
-      while (nivel.length) {
-        const filhos = await supabase.from("tarefas").select("id").in("parent_id", nivel);
-        if (filhos.error) throw filhos.error;
-        const ids = (filhos.data ?? []).map((f) => f.id as string).filter((id) => !vistos.has(id));
-        if (!ids.length) break;
-        for (const id of ids) vistos.add(id);
-        const upd = await supabase.from("tarefas").update({ natureza }).in("id", ids);
-        if (upd.error) throw upd.error;
-        descendentes += ids.length;
-        nivel = ids;
-      }
-      return descendentes;
-    },
-    onSuccess: (descendentes) => {
-      invalidar();
-      toast.success(
-        descendentes > 0
-          ? `Natureza alterada — ${descendentes} subtarefa(s) acompanharam`
-          : "Natureza alterada"
-      );
-    },
-    onError: (e: Error) =>
-      toast.error(`Não foi possível alterar a natureza: ${e.message}`),
-  });
-}
-
-
 
 export function useDecidirAprovacao(tarefaId: string) {
   const invalidar = useInvalidar(tarefaId);
