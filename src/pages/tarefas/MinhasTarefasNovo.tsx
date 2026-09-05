@@ -115,6 +115,7 @@ function LinhaContainer({
 export default function MinhasTarefasNovo() {
   const { user } = useAuth();
   const [filtro, setFiltro] = useState<FiltroStatus>("abertas");
+  const [projetoFiltro, setProjetoFiltro] = useState<string>("__todos__");
   const [aba, setAba] = useAbaUrl("r");
   const abaAtual = aba as Papel;
   const { data: tarefas, isLoading } = useMinhasTarefasPapel(user?.id, filtro);
@@ -147,6 +148,33 @@ export default function MinhasTarefasNovo() {
     return { ordenado, filhasPorMae };
   }, [tarefas, abaAtual]);
 
+  const { opcoesProjeto, mostrarFiltro } = useMemo(() => {
+    const contagem = new Map<string, number>();
+    for (const t of tarefas ?? []) {
+      if (!t.papeis.includes(abaAtual)) continue;
+      if (t.eh_container) continue;
+      const chave = t.projeto_id ?? "__sem__";
+      contagem.set(chave, (contagem.get(chave) ?? 0) + 1);
+    }
+    const ids = Array.from(contagem.keys()).filter((id) => id !== "__sem__");
+    const temSem = contagem.has("__sem__");
+    const opcoes: { id: string; label: string; count: number }[] = [];
+    if (temSem) {
+      opcoes.push({ id: "__sem__", label: "Sem projeto", count: contagem.get("__sem__")! });
+    }
+    for (const id of ids) {
+      const nome = projetos?.find((p) => p.id === id)?.nome ?? "Projeto";
+      opcoes.push({ id, label: nome, count: contagem.get(id)! });
+    }
+    opcoes.sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
+    return { opcoesProjeto: opcoes, mostrarFiltro: ids.length > 1 || temSem };
+  }, [tarefas, abaAtual, projetos]);
+
+  const gruposFiltrados = useMemo(() => {
+    if (projetoFiltro === "__todos__") return grupos.ordenado;
+    return grupos.ordenado.filter(([chave]) => chave === projetoFiltro);
+  }, [grupos, projetoFiltro]);
+
   const nomeProjeto = (id: string) =>
     id === "__sem__" ? "Sem projeto" : projetos?.find((p) => p.id === id)?.nome ?? "Projeto";
 
@@ -167,15 +195,33 @@ export default function MinhasTarefasNovo() {
       </Card>
 
       <div className="flex items-center justify-between">
-        <Select value={filtro} onValueChange={(v) => setFiltro(v as FiltroStatus)}>
-          <SelectTrigger className="h-8 w-52 text-sm"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="abertas">Em aberto</SelectItem>
-            {Object.entries(STATUS_ROTULO).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-3">
+          <Select value={filtro} onValueChange={(v) => setFiltro(v as FiltroStatus)}>
+            <SelectTrigger className="h-8 w-52 text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="abertas">Em aberto</SelectItem>
+              {Object.entries(STATUS_ROTULO).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {mostrarFiltro && (
+            <Select value={projetoFiltro} onValueChange={setProjetoFiltro}>
+              <SelectTrigger className="h-8 w-56 text-sm">
+                <SelectValue placeholder="Todos os projetos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__todos__">Todos os projetos</SelectItem>
+                {opcoesProjeto.map((op) => (
+                  <SelectItem key={op.id} value={op.id}>
+                    {op.label} ({op.count})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
         <span className="text-xs text-muted-foreground">{totalAba} tarefa(s)</span>
       </div>
 
@@ -195,11 +241,11 @@ export default function MinhasTarefasNovo() {
           <TabsContent key={p} value={p} className="space-y-6 pt-4">
             {isLoading ? (
               <p className="text-sm text-muted-foreground">Carregando…</p>
-            ) : grupos.ordenado.length === 0 ? (
+            ) : gruposFiltrados.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">{TEXTOS_VAZIO[p]}</p>
             ) : (
               <div className="space-y-6">
-                {grupos.ordenado.map(([chave, lista]) => (
+                {gruposFiltrados.map(([chave, lista]) => (
                   <section key={chave} className="space-y-2">
                     <h2 className="text-sm font-medium text-muted-foreground">
                       {nomeProjeto(chave)} · {lista.filter((t) => !t.eh_container).length}
