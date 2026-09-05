@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 import {
   useAnaliseCreditoVigente,
   useKpiCliente,
+  useMixCliente,
   useProdutosCliente,
   useRecompraCliente,
   useSerieMensalCliente,
