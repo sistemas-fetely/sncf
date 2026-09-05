@@ -133,6 +133,7 @@ const PlanoDeContas = lazy(() => import("@/pages/administrativo/PlanoDeContas"))
 const FluxoCaixa = lazy(() => import("@/pages/administrativo/FluxoCaixa"));
 const ContasPagar = lazy(() => import("@/pages/administrativo/ContasPagar"));
 const ContasReceber = lazy(() => import("@/pages/administrativo/ContasReceber"));
+const ContaCliente = lazy(() => import("@/pages/administrativo/ContaCliente"));
 const RecebimentosConciliar = lazy(() => import("@/pages/administrativo/RecebimentosConciliar"));
 const PainelFinanceiroConta = lazy(() => import("@/pages/administrativo/PainelFinanceiroConta"));
 const Parceiros = lazy(() => import("@/pages/administrativo/Parceiros"));
@@ -716,6 +717,7 @@ const App = () => (
                 <Route path="conciliacao" element={<Conciliacao />} />
                 <Route path="regras-ofx" element={<RegrasOFX />} />
                 <Route path="contas-receber" element={<ContasReceber />} />
+                <Route path="conta-cliente" element={<ContaCliente />} />
                 <Route path="painel-financeiro-conta" element={<PainelFinanceiroConta />} />
                 <Route path="recebimentos-conciliar" element={<RecebimentosConciliar />} />
                 <Route path="extrato-importacao" element={<ExtratoImportacao />} />
