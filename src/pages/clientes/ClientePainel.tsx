@@ -50,13 +50,14 @@ export default function ClientePainel() {
   const p3 = usePodeVerAba(ABAS[3].slug);
   const p4 = usePodeVerAba(ABAS[4].slug);
   const p5 = usePodeVerAba(ABAS[5].slug);
-  const permissoes = [p0, p1, p2, p3, p4, p5];
+  const p6 = usePodeVerAba(ABAS[6].slug);
+  const permissoes = [p0, p1, p2, p3, p4, p5, p6];
 
   const carregandoPermissoes = permissoes.some((p) => p.carregando);
   const visiveis = useMemo(
     () => ABAS.filter((_, i) => permissoes[i].podeVer),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [p0.podeVer, p1.podeVer, p2.podeVer, p3.podeVer, p4.podeVer, p5.podeVer],
+    [p0.podeVer, p1.podeVer, p2.podeVer, p3.podeVer, p4.podeVer, p5.podeVer, p6.podeVer],
   );
 
   const abaUrl = params.get("aba");
