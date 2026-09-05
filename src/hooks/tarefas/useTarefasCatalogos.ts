@@ -160,3 +160,30 @@ export function sugerirPessoas(
   if (!a) return pessoas.slice(0, 6);
   return pessoas.filter((p) => termosPessoa(p).some((t) => t.startsWith(a))).slice(0, 6);
 }
+
+export interface TipoExecucaoTarefa {
+  codigo: string;
+  nome: string;
+  descricao: string | null;
+  gera_instancia: boolean;
+  instancia_unica: boolean;
+  exige_prova_sistema: boolean;
+  ordem: number;
+}
+
+/** Dimensão de tipos de execução da recorrência — a lista vem SEMPRE da tabela. */
+export function useTiposExecucaoTarefa() {
+  return useQuery({
+    queryKey: ["tarefas", "tipos-execucao"],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async (): Promise<TipoExecucaoTarefa[]> => {
+      const { data, error } = await supabase
+        .from("tarefa_execucao_tipo_dim")
+        .select("codigo,nome,descricao,gera_instancia,instancia_unica,exige_prova_sistema,ordem")
+        .eq("ativo", true)
+        .order("ordem");
+      if (error) throw error;
+      return (data ?? []) as TipoExecucaoTarefa[];
+    },
+  });
+}

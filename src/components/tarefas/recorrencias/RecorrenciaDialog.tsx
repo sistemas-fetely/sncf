@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { usePessoasSistema, useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
+import { usePessoasSistema, useProjetos, useTiposExecucaoTarefa } from "@/hooks/tarefas/useTarefasCatalogos";
 import {
   usePreviewOcorrencias, useSalvarRecorrencia, type NovaRecorrencia, type Recorrencia,
 } from "@/hooks/tarefas/useRecorrencias";
@@ -51,6 +51,7 @@ const VAZIA: NovaRecorrencia = {
   inicio_em: hojeISO(),
   fim_em: null,
   antecedencia_dias: 0,
+  tipo_execucao: "tarefa",
   ativo: true,
 };
 
@@ -62,6 +63,9 @@ export function RecorrenciaDialog({ aberto, onOpenChange, regra }: Props) {
   const { data: projetos } = useProjetos();
   const { data: templates } = useTemplates();
   const { data: templateItens } = useTemplateItens(f.template_id);
+  const { data: tiposExecucao } = useTiposExecucaoTarefa();
+  const tipoAtual = (tiposExecucao ?? []).find((t) => t.codigo === f.tipo_execucao);
+  const instanciaUnica = tipoAtual?.instancia_unica === true;
 
 
   useEffect(() => {
@@ -104,6 +108,11 @@ export function RecorrenciaDialog({ aberto, onOpenChange, regra }: Props) {
     });
   };
 
+  // Rotina vive só no dia corrente — antecedência não faz sentido e é zerada na origem.
+  useEffect(() => {
+    if (instanciaUnica && f.antecedencia_dias !== 0) setF((a) => ({ ...a, antecedencia_dias: 0 }));
+  }, [instanciaUnica, f.antecedencia_dias]);
+
   const podeSalvar = f.titulo.trim().length > 0 && f.intervalo >= 1;
 
   const confirmar = () => {
@@ -143,6 +152,26 @@ export function RecorrenciaDialog({ aberto, onOpenChange, regra }: Props) {
               value={f.descricao ?? ""}
               onChange={(e) => setF({ ...f, descricao: e.target.value || null })}
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Tipo de execução</Label>
+            <Select value={f.tipo_execucao} onValueChange={(v) => setF({ ...f, tipo_execucao: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {(tiposExecucao ?? []).map((t) => (
+                  <SelectItem key={t.codigo} value={t.codigo} disabled={!t.gera_instancia}>
+                    {t.nome}
+                    {!t.gera_instancia && (
+                      <span className="ml-1 text-[10px] text-muted-foreground">· disponível em breve</span>
+                    )}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {tipoAtual?.descricao && (
+              <p className="text-xs text-muted-foreground">{tipoAtual.descricao}</p>
+            )}
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -324,11 +353,17 @@ export function RecorrenciaDialog({ aberto, onOpenChange, regra }: Props) {
               <Input
                 type="number"
                 min={0}
-                value={f.antecedencia_dias}
+                disabled={instanciaUnica}
+                value={instanciaUnica ? 0 : f.antecedencia_dias}
                 onChange={(e) =>
                   setF({ ...f, antecedencia_dias: Math.max(0, Number(e.target.value) || 0) })
                 }
               />
+              {instanciaUnica && (
+                <p className="text-xs text-muted-foreground">
+                  Rotina é sempre do dia corrente — não se gera com antecedência.
+                </p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label>Visibilidade</Label>

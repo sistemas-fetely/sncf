@@ -20,6 +20,7 @@ export interface Tarefa {
   data_conclusao: string | null;
   estimativa_horas: number | null;
   acao_url: string | null;
+  motivo_cancelamento: string | null;
   ordem: number;
   criado_em: string;
 }
@@ -28,7 +29,7 @@ export interface Tarefa {
 export const STATUS_ABERTOS: TarefaStatus[] = ["pendente", "em_andamento", "em_revisao"];
 
 const CAMPOS =
-  "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id,data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,acao_url,ordem,criado_em" as const;
+  "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id,data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,acao_url,motivo_cancelamento,ordem,criado_em" as const;
 
 
 function hojeISO(): string {

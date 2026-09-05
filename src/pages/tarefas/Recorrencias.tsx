@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { useNomePessoa } from "@/components/tarefas/detalhe/comuns";
+import { useTiposExecucaoTarefa } from "@/hooks/tarefas/useTarefasCatalogos";
 import { RecorrenciaDialog } from "@/components/tarefas/recorrencias/RecorrenciaDialog";
 import { dataBR, textoRecorrencia } from "@/lib/tarefas/recorrenciaTexto";
 import {
@@ -20,6 +21,9 @@ export default function Recorrencias() {
   const excluir = useExcluirRecorrencia();
   const gerar = useGerarRecorrentesAgora();
   const nomePessoa = useNomePessoa();
+  const { data: tiposExecucao } = useTiposExecucaoTarefa();
+  const nomeTipo = (codigo: string) =>
+    (tiposExecucao ?? []).find((t) => t.codigo === codigo)?.nome ?? null;
 
   const [editando, setEditando] = useState<Recorrencia | null>(null);
   const [aberto, setAberto] = useState(false);
@@ -33,9 +37,10 @@ export default function Recorrencias() {
         titulo="Recorrências"
         estado={
           <>
-            Cada ciclo gera uma <strong>tarefa nova</strong> — a regra nunca empurra a data da
-            mesma tarefa. É assim que dá para saber que o fechamento de março foi concluído em
-            04/04 e o de abril em 06/05.
+            <strong>Tarefa recorrente</strong> acumula: cada ocorrência nasce nova e tem valor
+            próprio, então o que não foi feito continua em aberto como dívida.{" "}
+            <strong>Rotina</strong> mantém uma única ocorrência viva por vez — ao chegar a
+            seguinte, a anterior não cumprida é cancelada e fica registrada como não-aderência.
           </>
         }
         acoes={
@@ -74,6 +79,9 @@ export default function Recorrencias() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <p className="truncate font-medium">{r.titulo}</p>
+                    {nomeTipo(r.tipo_execucao) && (
+                      <Badge variant="secondary" className="text-[10px]">{nomeTipo(r.tipo_execucao)}</Badge>
+                    )}
                     {!r.ativo && <Badge variant="outline" className="text-[10px]">Pausada</Badge>}
                   </div>
                   <p className="truncate text-xs text-muted-foreground">
