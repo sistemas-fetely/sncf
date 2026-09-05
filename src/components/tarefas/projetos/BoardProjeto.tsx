@@ -1,9 +1,10 @@
 import { useCallback, useMemo, useState } from "react";
-import { CalendarClock, GripVertical, ListChecks, Lock, MoreHorizontal, Plus } from "lucide-react";
+import { CalendarClock, ChevronDown, ChevronUp, GripVertical, ListChecks, Lock, MoreHorizontal, Plus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -16,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 import { useNomePessoa, PRIORIDADE_ROTULO } from "@/components/tarefas/detalhe/comuns";
 import { useTarefaAberta } from "@/hooks/tarefas/useTarefaAberta";
+import { useAlterarStatusTarefa } from "@/hooks/tarefas/useTarefaMutations";
 import {
   useCriarSecao, useCriarTarefaNaSecao, useExcluirSecao, useMoverTarefaSecao,
   usePodeGerenciarProjeto, useRenomearSecao, useReordenarSecoes, useSecoesProjeto,
@@ -62,6 +64,7 @@ export function BoardProjeto({ projetoId }: Props) {
   const reordenar = useReordenarSecoes(projetoId);
   const excluir = useExcluirSecao(projetoId);
   const criarTarefa = useCriarTarefaNaSecao(projetoId);
+  const alterarStatus = useAlterarStatusTarefa();
 
   const { data: vinculos } = useCamposDoProjeto(projetoId);
   const { data: catalogo } = useCamposCatalogo();
@@ -92,6 +95,7 @@ export function BoardProjeto({ projetoId }: Props) {
   const [renomeando, setRenomeando] = useState<{ id: string; nome: string } | null>(null);
   const [excluindo, setExcluindo] = useState<{ id: string; nome: string } | null>(null);
   const [novaTarefaEm, setNovaTarefaEm] = useState<string | null>(null);
+  const [passosAbertos, setPassosAbertos] = useState<Record<string, boolean>>({});
   const [tituloNovaTarefa, setTituloNovaTarefa] = useState("");
 
   const colunas = useMemo(() => {
@@ -120,16 +124,20 @@ export function BoardProjeto({ projetoId }: Props) {
     [porResponsavelMae]
   );
 
-  /** progresso das subtarefas de cada mãe, para o selo compacto "3/7" */
-  const progressoFilhas = useMemo(() => {
-    const mapa = new Map<string, { feitas: number; total: number }>();
+  /** filhas de cada mãe: alimentam o selo "3/7" e a lista enxuta dentro do card */
+  const filhasPorMae = useMemo(() => {
+    const mapa = new Map<string, TarefaBoard[]>();
     for (const t of tarefas ?? []) {
       if (!t.parent_id) continue;
-      const atual = mapa.get(t.parent_id) ?? { feitas: 0, total: 0 };
-      atual.total += 1;
-      if (t.status === "concluida") atual.feitas += 1;
-      mapa.set(t.parent_id, atual);
+      mapa.set(t.parent_id, [...(mapa.get(t.parent_id) ?? []), t]);
     }
+    return mapa;
+  }, [tarefas]);
+
+  /** título da mãe, para dar contexto à subtarefa delegada que continua no board */
+  const tituloMae = useMemo(() => {
+    const mapa = new Map<string, string>();
+    for (const t of tarefas ?? []) mapa.set(t.id, t.titulo);
     return mapa;
   }, [tarefas]);
 
@@ -282,7 +290,10 @@ export function BoardProjeto({ projetoId }: Props) {
                   {itens.map((t) => {
                     const arrastavel = podeArrastar(t);
                     const limite = dataCurta(t.data_limite);
-                    const progresso = progressoFilhas.get(t.id);
+                    const filhas = filhasPorMae.get(t.id) ?? [];
+                    const feitas = filhas.filter((f) => f.status === "concluida").length;
+                    const passosVisiveis = !!passosAbertos[t.id];
+                    const nomeMae = t.parent_id ? tituloMae.get(t.parent_id) : null;
                     const camposDoCard = camposCard
                       .map((c) => {
                         const meta = catalogo?.find((k) => k.id === c.campo_id);
@@ -320,7 +331,14 @@ export function BoardProjeto({ projetoId }: Props) {
                               </Tooltip>
                             </TooltipProvider>
                           )}
-                          <span className="min-w-0 flex-1 text-sm font-medium leading-snug">{t.titulo}</span>
+                          <div className="min-w-0 flex-1">
+                            {nomeMae && (
+                              <p className="truncate text-[11px] text-muted-foreground">
+                                Passo de: {nomeMae}
+                              </p>
+                            )}
+                            <span className="text-sm font-medium leading-snug">{t.titulo}</span>
+                          </div>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-1.5">
@@ -332,17 +350,29 @@ export function BoardProjeto({ projetoId }: Props) {
                               <CalendarClock className="h-3 w-3" /> {limite}
                             </span>
                           )}
-                          {progresso && (
+                          {filhas.length > 0 && (
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setPassosAbertos((a) => ({ ...a, [t.id]: !a[t.id] }));
+                                    }}
+                                    className="flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] text-muted-foreground transition hover:bg-muted"
+                                  >
                                     <ListChecks className="h-3 w-3" />
-                                    {progresso.feitas}/{progresso.total}
-                                  </span>
+                                    {feitas}/{filhas.length}
+                                    {passosVisiveis ? (
+                                      <ChevronUp className="h-3 w-3" />
+                                    ) : (
+                                      <ChevronDown className="h-3 w-3" />
+                                    )}
+                                  </button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  Passos desta tarefa — abra o detalhe para ver a lista
+                                  {passosVisiveis ? "Esconder os passos" : "Ver os passos desta tarefa"}
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
@@ -353,6 +383,35 @@ export function BoardProjeto({ projetoId }: Props) {
                             </span>
                           )}
                         </div>
+
+                        {passosVisiveis && filhas.length > 0 && (
+                          <div className="space-y-1 border-t pt-1.5" onClick={(e) => e.stopPropagation()}>
+                            {filhas.map((f) => (
+                              <div key={f.id} className="flex items-start gap-2">
+                                <Checkbox
+                                  className="mt-0.5"
+                                  checked={f.status === "concluida"}
+                                  onCheckedChange={(v) =>
+                                    alterarStatus.mutate({
+                                      id: f.id,
+                                      status: v ? "concluida" : "em_andamento",
+                                    })
+                                  }
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => abrirTarefa(f.id)}
+                                  className={cn(
+                                    "min-w-0 flex-1 text-left text-[11px] leading-snug hover:underline",
+                                    f.status === "concluida" && "text-muted-foreground line-through"
+                                  )}
+                                >
+                                  {f.titulo}
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
 
                         {camposDoCard.length > 0 && (
                           <div className="space-y-0.5 border-t pt-1.5">
