@@ -57308,13 +57308,18 @@ export type Database = {
         Row: {
           a_confirmar: number | null
           a_faturar: number | null
+          aviso_iv_a_menos: number | null
+          cambio_referencia: number | null
+          confirmada_iv: number | null
           confirmada_xpm: number | null
           custo_acordado: number | null
           custo_acordado_total: number | null
           custo_comparavel: boolean | null
+          custo_fob_origem: number | null
           custo_incomparavel_motivo: string | null
           custo_incompleto: boolean | null
           custo_medio_nf: number | null
+          custo_nacionalizacao: number | null
           custo_projetado: number | null
           custo_reposicao: number | null
           custo_ultima_nf: number | null
@@ -57323,9 +57328,12 @@ export type Database = {
           declarada_nf: number | null
           excesso_xpm: number | null
           falta_xpm: number | null
+          modalidade: string | null
           moeda: string | null
+          moeda_origem: string | null
           nao_conforme_xpm: number | null
           nf_ultima: string | null
+          origem_referencia_em: string | null
           pedida: number | null
           pedido_id: number | null
           quem_deve: string | null
@@ -57427,12 +57435,21 @@ export type Database = {
             referencedRelation: "vw_sku_embalagem_classe"
             referencedColumns: ["sku"]
           },
+          {
+            foreignKeyName: "importacao_pedido_modalidade_fkey"
+            columns: ["modalidade"]
+            isOneToOne: false
+            referencedRelation: "compra_modalidade"
+            referencedColumns: ["codigo"]
+          },
         ]
       }
       vw_compra_tres_camadas_pedido: {
         Row: {
           a_confirmar: number | null
           a_faturar: number | null
+          aviso_iv_a_menos: number | null
+          confirmada_iv: number | null
           confirmada_xpm: number | null
           custo_acordado_total: number | null
           custo_comparavel: boolean | null
@@ -68681,14 +68698,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -70945,14 +70962,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
