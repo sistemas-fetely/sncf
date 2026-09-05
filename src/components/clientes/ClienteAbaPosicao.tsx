@@ -588,8 +588,8 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
 
       {/* GRÁFICOS — linha 2: composição por família e por coleção */}
       <div className="grid gap-[10px] lg:grid-cols-2">
-        <Donut titulo="Compra por família" fatias={fatiasFamilia} carregando={produtos.isLoading} cor={corFatia} />
-        <Donut titulo="Compra por coleção" fatias={fatiasColecao} carregando={produtos.isLoading} cor={corFatia} />
+        <Donut titulo="Compra por família" fatias={fatiasFamilia} carregando={produtos.isLoading} erro={produtos.error} cor={corFatia} />
+        <Donut titulo="Compra por coleção" fatias={fatiasColecao} carregando={produtos.isLoading} erro={produtos.error} cor={corFatia} />
       </div>
 
 
