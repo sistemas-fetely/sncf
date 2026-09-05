@@ -447,6 +447,7 @@ const App = () => (
                 <Route path="/tarefas/calendario" element={<CalendarioTarefas />} />
                 <Route path="/tarefas/carga" element={<CargaTrabalho />} />
                 <Route path="/tarefas/time" element={<MeuTime />} />
+                <Route path="/tarefas/mesa-gestor" element={<MesaGestor />} />
                 <Route path="/tarefas/recorrencias" element={<RecorrenciasTarefas />} />
                 <Route path="/tarefas/templates" element={<TemplatesTarefas />} />
                 <Route path="/tarefas/notificacoes" element={<NotificacoesPreferencias />} />
