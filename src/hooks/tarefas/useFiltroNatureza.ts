@@ -2,10 +2,16 @@ import { useCallback, useMemo, useState } from "react";
 import { useNaturezasTarefa, type NaturezaTarefa } from "./useTarefasCatalogos";
 
 /**
- * Filtro de natureza das listas de trabalho do dia.
- * Por padrão só aparece o que a dimensão marca como na_lista_de_trabalho —
- * épico de produto e backlog de dev saem da lista sem serem apagados.
- * Separar não é esconder: o controle é visível e mostra quantas ficaram de fora.
+ * Filtro das listas de trabalho, em dois eixos:
+ *
+ * 1. Natureza — por padrão só aparece o que a dimensão marca como
+ *    na_lista_de_trabalho; épico de produto e backlog de dev saem da lista
+ *    sem serem apagados.
+ * 2. Trabalho independente — subtarefa com o mesmo responsável da mãe é
+ *    passo de checklist, não unidade de trabalho. Ela vive no detalhe da mãe.
+ *
+ * Separar não é esconder: os controles são visíveis e a contagem do que ficou
+ * de fora aparece separada por motivo.
  */
 
 export interface TarefaComNatureza {
@@ -13,10 +19,21 @@ export interface TarefaComNatureza {
   natureza?: string | null;
   /** vem pronto da view; quando ausente, a regra é lida da dimensão */
   na_lista_de_trabalho?: boolean | null;
+  /** vem pronto da view; quando ausente, nada é filtrado por este eixo */
+  trabalho_independente?: boolean | null;
+}
+
+export interface OcultasContagem {
+  /** fora por natureza (épico, backlog) */
+  natureza: number;
+  /** fora por ser passo de outra tarefa (subtarefa do mesmo responsável) */
+  passo: number;
+  total: number;
 }
 
 export function useFiltroNatureza() {
   const [incluirTodas, setIncluirTodas] = useState(false);
+  const [incluirPassos, setIncluirPassos] = useState(false);
   const { data: naturezas } = useNaturezasTarefa();
 
   const daLista = useMemo(
@@ -38,16 +55,38 @@ export function useFiltroNatureza() {
     [daLista, naturezaDe]
   );
 
+  /** quando a fonte não traz o campo, a tarefa passa — não inventamos a regra no front */
+  const ehTrabalhoIndependente = useCallback(
+    (t: TarefaComNatureza) =>
+      typeof t.trabalho_independente === "boolean" ? t.trabalho_independente : true,
+    []
+  );
+
+  const visivel = useCallback(
+    (t: TarefaComNatureza) =>
+      (incluirTodas || naListaDeTrabalho(t)) && (incluirPassos || ehTrabalhoIndependente(t)),
+    [incluirTodas, incluirPassos, naListaDeTrabalho, ehTrabalhoIndependente]
+  );
+
   const filtrar = useCallback(
-    <T extends TarefaComNatureza>(lista: T[]): T[] =>
-      incluirTodas ? lista : lista.filter(naListaDeTrabalho),
-    [incluirTodas, naListaDeTrabalho]
+    <T extends TarefaComNatureza>(lista: T[]): T[] => lista.filter(visivel),
+    [visivel]
   );
 
   const contarOcultas = useCallback(
-    (...listas: (TarefaComNatureza[] | undefined)[]): number =>
-      listas.flatMap((l) => l ?? []).filter((t) => !naListaDeTrabalho(t)).length,
-    [naListaDeTrabalho]
+    (...listas: (TarefaComNatureza[] | undefined)[]): OcultasContagem => {
+      const todas = listas.flatMap((l) => l ?? []);
+      const porNatureza = incluirTodas ? [] : todas.filter((t) => !naListaDeTrabalho(t));
+      const porPasso = incluirPassos
+        ? []
+        : todas.filter((t) => !ehTrabalhoIndependente(t) && (incluirTodas || naListaDeTrabalho(t)));
+      return {
+        natureza: porNatureza.length,
+        passo: porPasso.length,
+        total: porNatureza.length + porPasso.length,
+      };
+    },
+    [incluirTodas, incluirPassos, naListaDeTrabalho, ehTrabalhoIndependente]
   );
 
   const rotulo = useCallback(
@@ -59,6 +98,8 @@ export function useFiltroNatureza() {
   return {
     incluirTodas,
     setIncluirTodas,
+    incluirPassos,
+    setIncluirPassos,
     filtrar,
     contarOcultas,
     naturezaDe,
