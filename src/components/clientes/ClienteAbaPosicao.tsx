@@ -597,6 +597,11 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
         <Donut titulo="Compra por coleção" fatias={fatiasColecao} carregando={produtos.isLoading} erro={produtos.error} cor={corFatia} />
       </div>
 
+      {/* MIX VERSUS CARTEIRA — o cliente compra diferente da média? */}
+      <MixVersusCarteira parceiroId={parceiroId} />
+
+
+
 
       {/* AGING — barra empilhada única, só quando há vencido */}
       {vencido > 0 && totalFaixas > 0 && (
