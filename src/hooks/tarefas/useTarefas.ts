@@ -21,11 +21,6 @@ export interface Tarefa {
   estimativa_horas: number | null;
   acao_url: string | null;
   motivo_cancelamento: string | null;
-  /** operacional | epico | backlog_dev — dimensão tarefa_natureza_dim */
-  natureza?: string | null;
-  /** vem das views que fazem join com tarefa_natureza_dim; ausente no select da tabela */
-  na_lista_de_trabalho?: boolean | null;
-  conta_carga?: boolean | null;
   /**
    * Regra derivada na view: raiz (sem mãe) ou subtarefa com responsável
    * diferente do da mãe. Ausente nos selects feitos na tabela `tarefas`.
@@ -193,25 +188,17 @@ export function useTarefasContadores(userId: string | undefined) {
     queryFn: async () => {
       const hoje = hojeISO();
       const [ate, sem] = await Promise.all([
-        // A regra de "o que conta" mora na dimensão: embed com inner join,
-        // nunca uma lista de códigos escrita aqui.
+        // Sem dimensão de natureza: conta tudo em aberto do responsável
+        // (contêiner entra junto — diferença aceita por ora).
         supabase
           .from("tarefas")
-          .select("id, tarefa_natureza_dim!inner(na_lista_de_trabalho)", {
-            count: "exact",
-            head: true,
-          })
-          .eq("tarefa_natureza_dim.na_lista_de_trabalho", true)
+          .select("id", { count: "exact", head: true })
           .eq("responsavel_id", userId!)
           .in("status", STATUS_ABERTOS)
           .lte("data_limite", hoje),
         supabase
           .from("tarefas")
-          .select("id, tarefa_natureza_dim!inner(na_lista_de_trabalho)", {
-            count: "exact",
-            head: true,
-          })
-          .eq("tarefa_natureza_dim.na_lista_de_trabalho", true)
+          .select("id", { count: "exact", head: true })
           .eq("responsavel_id", userId!)
           .in("status", STATUS_ABERTOS)
           .is("data_limite", null),
