@@ -246,7 +246,7 @@ export default function DashboardFinanceiro() {
   const podeVerVisaoGeral = isSuperAdmin || (permitidas?.has("tela.financeiro") ?? false);
   if (!podeVerVisaoGeral) {
     const primeira = [
-      { rota: "/administrativo/painel-financeiro-conta", slug: "tela.fin_vencimentos" },
+      { rota: "/cliente", slug: "tela.cliente" },
       { rota: "/administrativo/contas-receber", slug: "tela.fin_receber" },
       { rota: "/administrativo/caixa-banco", slug: "tela.fin_movimentacoes" },
       { rota: "/administrativo/caixa-banco/contas", slug: "tela.fin_contas_bancarias" },
