@@ -72,7 +72,7 @@ export default function ClientePainel() {
   function voltar() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const from = (location.state as any)?.from as string | undefined;
-    navigate(from ?? "/administrativo/conta-cliente");
+    navigate(from ?? "/cliente");
   }
 
   if (!id) {
