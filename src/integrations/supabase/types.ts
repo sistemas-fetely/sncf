@@ -12319,11 +12319,14 @@ export type Database = {
       custo_aterrissagem: {
         Row: {
           atualizado_em: string
+          cambio_referencia: number | null
           codigo_nf: string | null
           custo_aterrissagem: number
           custo_bruto: number | null
+          custo_fob_origem: number | null
           custo_incompleto: boolean
           custo_incompleto_motivo: string | null
+          custo_nacionalizacao: number | null
           custo_reposicao: number | null
           custo_reposicao_em: string | null
           custo_reposicao_nf_id: number | null
@@ -12331,17 +12334,22 @@ export type Database = {
           icms_aliq: number
           id: string
           ipi_aliq: number | null
+          moeda_origem: string | null
           ncm: string | null
+          origem_referencia_em: string | null
           sku: string
           valor_unit: number | null
         }
         Insert: {
           atualizado_em?: string
+          cambio_referencia?: number | null
           codigo_nf?: string | null
           custo_aterrissagem: number
           custo_bruto?: number | null
+          custo_fob_origem?: number | null
           custo_incompleto?: boolean
           custo_incompleto_motivo?: string | null
+          custo_nacionalizacao?: number | null
           custo_reposicao?: number | null
           custo_reposicao_em?: string | null
           custo_reposicao_nf_id?: number | null
@@ -12349,17 +12357,22 @@ export type Database = {
           icms_aliq?: number
           id?: string
           ipi_aliq?: number | null
+          moeda_origem?: string | null
           ncm?: string | null
+          origem_referencia_em?: string | null
           sku: string
           valor_unit?: number | null
         }
         Update: {
           atualizado_em?: string
+          cambio_referencia?: number | null
           codigo_nf?: string | null
           custo_aterrissagem?: number
           custo_bruto?: number | null
+          custo_fob_origem?: number | null
           custo_incompleto?: boolean
           custo_incompleto_motivo?: string | null
+          custo_nacionalizacao?: number | null
           custo_reposicao?: number | null
           custo_reposicao_em?: string | null
           custo_reposicao_nf_id?: number | null
@@ -12367,7 +12380,9 @@ export type Database = {
           icms_aliq?: number
           id?: string
           ipi_aliq?: number | null
+          moeda_origem?: string | null
           ncm?: string | null
+          origem_referencia_em?: string | null
           sku?: string
           valor_unit?: number | null
         }
@@ -20944,6 +20959,7 @@ export type Database = {
           grupo_produto: string | null
           id: number
           importacao_pedido_id: number
+          qtd_confirmada_iv: number | null
           qtd_inner_master: number | null
           qtd_kits: number | null
           qtd_kits_inner: number | null
@@ -20973,6 +20989,7 @@ export type Database = {
           grupo_produto?: string | null
           id?: never
           importacao_pedido_id: number
+          qtd_confirmada_iv?: number | null
           qtd_inner_master?: number | null
           qtd_kits?: number | null
           qtd_kits_inner?: number | null
@@ -21002,6 +21019,7 @@ export type Database = {
           grupo_produto?: string | null
           id?: never
           importacao_pedido_id?: number
+          qtd_confirmada_iv?: number | null
           qtd_inner_master?: number | null
           qtd_kits?: number | null
           qtd_kits_inner?: number | null
