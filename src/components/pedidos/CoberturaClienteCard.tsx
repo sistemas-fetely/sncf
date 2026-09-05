@@ -1,23 +1,34 @@
 /**
- * Cobertura do cliente — SOMENTE LEITURA.
+ * Cobertura do cliente.
  *
  * O pedido não é mais o dono do dinheiro: ele valida contra o saldo da conta do
- * cliente. Este card mostra o que o sistema sugere; a decisão (e o portão novo)
- * é fatia posterior. Nada aqui libera nada.
+ * cliente. O botão "Liberar por cobertura" é o CAMINHO NOVO — convive com o
+ * portão antigo e não mexe nele.
  */
+import { useState } from "react";
+import { toast } from "sonner";
 import { AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
 import { formatBRL } from "@/lib/format-currency";
-import { useContaClienteCobertura } from "@/hooks/financeiro/useContaCliente";
+import {
+  useContaClienteCobertura,
+  useLiberarPorCobertura,
+} from "@/hooks/financeiro/useContaCliente";
 import { Selo } from "@/components/ui/selo";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface Props {
   parceiroId: string | null | undefined;
   valorPedido: number | null | undefined;
+  pedidoId?: string | null;
+  estagio?: string | null;
 }
 
-export function CoberturaClienteCard({ parceiroId, valorPedido }: Props) {
+export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagio }: Props) {
   const { data: cob, isLoading, isError, error } = useContaClienteCobertura(parceiroId);
+  const liberar = useLiberarPorCobertura();
+  const [empenhado, setEmpenhado] = useState(false);
+  const [rota, setRota] = useState<string | null>(null);
 
   if (!parceiroId) return null;
 
@@ -45,6 +56,44 @@ export function CoberturaClienteCard({ parceiroId, valorPedido }: Props) {
   const cobre = valor > 0 ? total >= valor : total > 0;
   const falta = Math.max(0, valor - total);
 
+  const estagioPermite = !!estagio && estagio !== "faturado" && estagio !== "cancelado";
+  const podeLiberar = !!pedidoId && estagioPermite && cobre && !empenhado;
+
+  async function liberarPorCobertura() {
+    if (!pedidoId) return;
+    setRota(null);
+    try {
+      const res = await liberar.mutateAsync({ pedido_id: pedidoId, parceiro_id: parceiroId });
+
+      if (res.ja_empenhado) {
+        setEmpenhado(true);
+        return;
+      }
+
+      if (res.ok && res.coberto) {
+        setEmpenhado(true);
+        toast.success(
+          `Cobertura empenhada: ${formatBRL(res.empenhado_saldo ?? 0)} de saldo + ${formatBRL(
+            res.empenhado_limite ?? 0,
+          )} de limite`,
+        );
+        return;
+      }
+
+      // ok: false com rota analise_credito NÃO é erro — é rota.
+      if (!res.ok && res.rota === "analise_credito") {
+        setRota(res.mensagem ?? "Rota: análise de crédito.");
+        return;
+      }
+
+      throw new Error(res.erro || res.mensagem || "O banco recusou a liberação por cobertura.");
+    } catch (e: any) {
+      toast.error("Não foi possível liberar por cobertura", {
+        description: e?.message ?? "Erro desconhecido.",
+      });
+    }
+  }
+
   return (
     <div
       className={cn(
@@ -54,11 +103,14 @@ export function CoberturaClienteCard({ parceiroId, valorPedido }: Props) {
     >
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-medium">Cobertura do cliente</span>
-        {cobre ? (
-          <CheckCircle2 className="h-4 w-4 text-success" />
-        ) : (
-          <AlertTriangle className="h-4 w-4 text-warning" />
-        )}
+        <div className="flex items-center gap-1.5">
+          {empenhado && <Selo estado="success">empenhado</Selo>}
+          {cobre ? (
+            <CheckCircle2 className="h-4 w-4 text-success" />
+          ) : (
+            <AlertTriangle className="h-4 w-4 text-warning" />
+          )}
+        </div>
       </div>
 
       <div className="flex items-baseline gap-2">
@@ -89,6 +141,20 @@ export function CoberturaClienteCard({ parceiroId, valorPedido }: Props) {
 
       {cob.sinal_analise_credito && (
         <Selo estado="warning">sinal para análise de crédito</Selo>
+      )}
+
+      {rota && <p className="text-[11px] text-warning">{rota}</p>}
+
+      {podeLiberar && (
+        <Button
+          size="sm"
+          className="w-full h-7 text-xs"
+          onClick={liberarPorCobertura}
+          disabled={liberar.isPending}
+        >
+          {liberar.isPending && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
+          Liberar por cobertura
+        </Button>
       )}
     </div>
   );
