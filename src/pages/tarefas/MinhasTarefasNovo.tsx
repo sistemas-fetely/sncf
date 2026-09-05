@@ -241,11 +241,11 @@ export default function MinhasTarefasNovo() {
           <TabsContent key={p} value={p} className="space-y-6 pt-4">
             {isLoading ? (
               <p className="text-sm text-muted-foreground">Carregando…</p>
-            ) : grupos.ordenado.length === 0 ? (
+            ) : gruposFiltrados.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">{TEXTOS_VAZIO[p]}</p>
             ) : (
               <div className="space-y-6">
-                {grupos.ordenado.map(([chave, lista]) => (
+                {gruposFiltrados.map(([chave, lista]) => (
                   <section key={chave} className="space-y-2">
                     <h2 className="text-sm font-medium text-muted-foreground">
                       {nomeProjeto(chave)} · {lista.filter((t) => !t.eh_container).length}
