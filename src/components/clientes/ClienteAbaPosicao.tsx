@@ -491,40 +491,14 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
             </>
           )}
         </div>
-
-        <div className="space-y-3 rounded-lg border border-border/60 bg-card p-3">
-          <TituloSecao>O que este cliente compra</TituloSecao>
-          {produtos.isLoading && (
-            <p className="flex items-center gap-2 text-[13px] font-normal text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> carregando</p>
-          )}
-          {!produtos.isLoading && produtosPizza.length === 0 && (
-            <p className="text-[13px] font-normal text-muted-foreground">Sem itens faturados ainda.</p>
-          )}
-          {!produtos.isLoading && produtosPizza.length > 0 && (
-            <div className="grid min-h-[240px] items-center gap-3 sm:grid-cols-[minmax(160px,0.8fr)_minmax(180px,1.2fr)]">
-              <div className="h-[220px] min-w-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={produtosPizza} dataKey="valor" nameKey="nome" innerRadius="52%" outerRadius="82%" paddingAngle={1} stroke="hsl(var(--card))" strokeWidth={2}>
-                      {produtosPizza.map((item, index) => <Cell key={`${item.nome}-${index}`} fill={coresPizza[index]} />)}
-                    </Pie>
-                    <Tooltip formatter={(value) => formatBRL(Number(value ?? 0))} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="space-y-2 min-w-0">
-                {produtosPizza.map((item, index) => (
-                  <div key={`${item.nome}-legenda`} className="flex min-w-0 items-center gap-2 text-[11px]">
-                    <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ backgroundColor: coresPizza[index] }} />
-                    <span className="min-w-0 flex-1 truncate text-muted-foreground" title={item.nome}>{item.nome}</span>
-                    <span className="shrink-0 tabular-nums">{formatBRL(item.valor)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
       </div>
+
+      {/* GRÁFICOS — linha 2: composição por família e por coleção */}
+      <div className="grid gap-[10px] lg:grid-cols-2">
+        <Donut titulo="Compra por família" fatias={fatiasFamilia} carregando={produtos.isLoading} cor={corFatia} />
+        <Donut titulo="Compra por coleção" fatias={fatiasColecao} carregando={produtos.isLoading} cor={corFatia} />
+      </div>
+
 
       {/* AGING — barra empilhada única, só quando há vencido */}
       {vencido > 0 && totalFaixas > 0 && (
