@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { STATUS_ABERTOS, type Tarefa, type TarefaStatus } from "./useTarefas";
+import { codigosAbertos } from "./useStatusTarefaDim";
+import { type Tarefa, type TarefaStatus } from "./useTarefas";
 
 /**
  * Minhas tarefas por PAPEL, lendo o espelho `tarefas_papeis` via vw_tarefa_meu_papel.
@@ -35,7 +36,7 @@ export function useMinhasTarefasPapel(userId: string | undefined, filtro: Filtro
     queryFn: async (): Promise<TarefaComPapel[]> => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let q = (supabase as any).from("vw_tarefa_meu_papel").select(CAMPOS);
-      q = filtro === "abertas" ? q.in("status", STATUS_ABERTOS) : q.eq("status", filtro);
+      q = filtro === "abertas" ? q.in("status", await codigosAbertos()) : q.eq("status", filtro);
       const { data, error } = await q
         .order("data_limite", { ascending: true, nullsFirst: false })
         .order("ordem", { ascending: true });
@@ -61,7 +62,7 @@ export function useRespondoPor(userId: string | undefined) {
         .from("vw_tarefa_meu_papel")
         .select(CAMPOS)
         .contains("papeis", ["a"])
-        .in("status", STATUS_ABERTOS)
+        .in("status", await codigosAbertos())
         .or(`data_limite.lte.${hoje},status.eq.em_revisao`)
         .order("data_limite", { ascending: true, nullsFirst: false });
       if (error) throw error;

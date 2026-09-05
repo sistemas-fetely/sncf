@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { codigosAbertos } from "./useStatusTarefaDim";
 import { toast } from "sonner";
 import type { Tarefa } from "./useTarefas";
-import { STATUS_ABERTOS } from "./useTarefas";
 
 /**
  * Projetos, seções e board (F3).
@@ -67,7 +67,7 @@ export function useContagemAbertasPorProjeto() {
       const { data, error } = await supabase
         .from("tarefas")
         .select("projeto_id")
-        .in("status", STATUS_ABERTOS)
+        .in("status", await codigosAbertos())
         .not("projeto_id", "is", null);
       if (error) throw error;
       const mapa: Record<string, number> = {};

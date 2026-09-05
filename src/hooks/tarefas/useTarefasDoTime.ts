@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { STATUS_ABERTOS, type Tarefa } from "@/hooks/tarefas/useTarefas";
+import { codigosAbertos } from "@/hooks/tarefas/useStatusTarefaDim";
+import { type Tarefa } from "@/hooks/tarefas/useTarefas";
 
 /**
  * Meu Time (F5).
@@ -49,7 +50,7 @@ export function useTarefasAbertasDoTime(userIds: string[] | undefined) {
         .from("tarefas")
         .select(CAMPOS)
         .in("responsavel_id", userIds!)
-        .in("status", STATUS_ABERTOS)
+        .in("status", await codigosAbertos())
         .order("data_limite", { ascending: true, nullsFirst: false })
         .order("ordem", { ascending: true });
       if (error) throw error;
