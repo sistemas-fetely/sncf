@@ -331,6 +331,21 @@ export function BoardProjeto({ projetoId }: Props) {
                               <CalendarClock className="h-3 w-3" /> {limite}
                             </span>
                           )}
+                          {progresso && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                                    <ListChecks className="h-3 w-3" />
+                                    {progresso.feitas}/{progresso.total}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  Passos desta tarefa — abra o detalhe para ver a lista
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
                           {t.responsavel_id && (
                             <span className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[10px] font-medium text-primary">
                               {iniciais(nomePessoa(t.responsavel_id))}
