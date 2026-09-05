@@ -102,39 +102,56 @@ export function AcaoMassaSuperAdminDialog({
         qc.invalidateQueries({ queryKey: ["contas-pagar"] });
         toast.success(`${contas.length} contas atualizadas com forma de pagamento`);
       } else {
-        // finalizar_legado: forma_pagamento + status='finalizado' + histórico
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error } = await (supabase as any)
+        // finalizar_legado: forma de pagamento + transição via RPC do trilho
+        const { error: errForma } = await supabase
           .from("contas_pagar_receber")
-          .update({
-            forma_pagamento_id: formaPagamentoId,
-            status: "finalizado",
-            enviado_pagamento_em: new Date().toISOString(),
-            enviado_pagamento_por: user?.id || null,
-          })
+          .update({ forma_pagamento_id: formaPagamentoId })
           .in("id", ids);
-        if (error) throw error;
+        if (errForma) throw errForma;
 
-        // Histórico (best-effort)
-        try {
-          const historicoRows = contas.map((c) => ({
-            plano_contas_id: c.id,
-            status_anterior: c.status,
-            status_novo: "finalizado",
-            observacao,
-            usuario_id: user?.id || null,
-          }));
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await (supabase as any)
-            .from("contas_pagar_historico")
-            .insert(historicoRows);
-        } catch (e) {
-          console.warn("Falha no histórico (não bloqueante):", e);
+        const novoStatus = "finalizado";
+        const motivo = observacao || "Ação em massa (legado)";
+        let ok = 0;
+        const falhas: { id: string; motivo: string }[] = [];
+
+        for (const c of contas) {
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { data, error } = await (supabase as any).rpc("fn_titulo_pagar_transicionar", {
+              p_cpr_id: c.id,
+              p_para: novoStatus,
+              p_motivo: motivo,
+              p_data_pretendida: null,
+            });
+            if (error) throw error;
+            if (data && data.ok === false) {
+              throw new Error(data.erro || data.mensagem || "Transição não permitida");
+            }
+            ok++;
+          } catch (e) {
+            falhas.push({
+              id: c.id,
+              motivo: e instanceof Error ? e.message : String(e),
+            });
+          }
         }
 
         qc.invalidateQueries({ queryKey: ["contas-pagar"] });
         qc.invalidateQueries({ queryKey: ["lancamentos-caixa-banco"] });
-        toast.success(`${contas.length} contas finalizadas (legado)`);
+        qc.invalidateQueries({ queryKey: ["titulo-pagar-acoes"] });
+
+        if (falhas.length === 0) {
+          toast.success(`${ok} contas finalizadas (legado)`);
+        } else {
+          const detalhe = falhas
+            .slice(0, 5)
+            .map((f) => `${f.id.slice(0, 8)}: ${f.motivo}`)
+            .join("\n");
+          toast.error(`${ok} finalizadas · ${falhas.length} falharam`, {
+            description:
+              detalhe + (falhas.length > 5 ? `\n… e mais ${falhas.length - 5}` : ""),
+          });
+        }
       }
 
       onDone();
