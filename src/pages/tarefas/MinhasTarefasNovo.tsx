@@ -103,7 +103,6 @@ function LinhaContainer({
               key={f.id}
               tarefa={f}
               somenteLeitura={somenteLeitura}
-              esconderNatureza
               esconderMae
             />
           ))}
@@ -219,8 +218,7 @@ export default function MinhasTarefasNovo() {
                             key={t.id}
                             tarefa={t}
                             somenteLeitura={somenteLeitura}
-                            esconderNatureza
-                            esconderMae
+                                          esconderMae
                             subtitulo={t.parent_id ? t.mae_titulo ?? undefined : undefined}
                           />
                         )

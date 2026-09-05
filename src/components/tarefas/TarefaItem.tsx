@@ -15,7 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { Tarefa, TarefaPrioridade } from "@/hooks/tarefas/useTarefas";
 import { useAlterarStatusTarefa, useReagendarTarefa } from "@/hooks/tarefas/useTarefaMutations";
-import { useProjetos, useNaturezasTarefa } from "@/hooks/tarefas/useTarefasCatalogos";
+import { useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
 
 
 const PRIORIDADE_CLASSE: Record<TarefaPrioridade, string> = {
@@ -39,8 +39,6 @@ interface Props {
   atrasada?: boolean;
   /** C/I não concluem nem reagendam a tarefa de outro R */
   somenteLeitura?: boolean;
-  /** modelo ClickUp: sem badge de natureza */
-  esconderNatureza?: boolean;
   /** hierarquia visual já mostra a mãe — não repetir "Passo de:" */
   esconderMae?: boolean;
   /** texto secundário acima do título (ex.: título da mãe fora da lista) */
@@ -51,27 +49,17 @@ export function TarefaItem({
   tarefa,
   atrasada = false,
   somenteLeitura = false,
-  esconderNatureza = false,
   esconderMae = false,
   subtitulo,
 }: Props) {
   const alterarStatus = useAlterarStatusTarefa();
   const reagendar = useReagendarTarefa();
   const { data: projetos } = useProjetos();
-  const { data: naturezas } = useNaturezasTarefa();
   const [calendarioAberto, setCalendarioAberto] = useState(false);
   const { abrir } = useTarefaAberta();
 
   const projeto = projetos?.find((p) => p.id === tarefa.projeto_id);
   const concluida = tarefa.status === "concluida";
-  // badge só no caso incomum — natureza operacional é o padrão e não polui a linha
-  const codigoNatureza = tarefa.natureza ?? "operacional";
-  const natureza =
-    codigoNatureza !== "operacional"
-      ? (naturezas ?? []).find((n) => n.codigo === codigoNatureza) ?? {
-          codigo: codigoNatureza, nome: codigoNatureza,
-        }
-      : null;
 
   const reagendarPara = (dias: number) => {
     const d = new Date();
@@ -122,11 +110,6 @@ export function TarefaItem({
           <Badge variant="outline" className={cn("text-[10px] py-0", PRIORIDADE_CLASSE[tarefa.prioridade])}>
             {PRIORIDADE_ROTULO[tarefa.prioridade]}
           </Badge>
-          {natureza && !esconderNatureza && (
-            <Badge variant="outline" className="border-primary/40 bg-primary/10 py-0 text-[10px] text-primary">
-              {natureza.nome}
-            </Badge>
-          )}
           {projeto && (
             <span className="text-[11px] text-muted-foreground" style={{ color: projeto.cor || undefined }}>
               #{projeto.nome}

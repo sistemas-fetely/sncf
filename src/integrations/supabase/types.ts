@@ -58137,6 +58137,8 @@ export type Database = {
           parceiro_id: string | null
           pct_carteira: number | null
           pct_cliente: number | null
+          potencial_reais: number | null
+          total_cliente: number | null
           valor_cliente: number | null
         }
         Relationships: []
@@ -68704,14 +68706,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
