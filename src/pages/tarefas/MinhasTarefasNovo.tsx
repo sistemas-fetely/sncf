@@ -81,6 +81,8 @@ export default function MinhasTarefasNovo() {
           <ControleNatureza
             incluirTodas={natureza.incluirTodas}
             onChange={natureza.setIncluirTodas}
+            incluirPassos={natureza.incluirPassos}
+            onChangePassos={natureza.setIncluirPassos}
             ocultas={ocultas}
           />
           <span className="text-xs text-muted-foreground">{totalAba} tarefa(s)</span>
