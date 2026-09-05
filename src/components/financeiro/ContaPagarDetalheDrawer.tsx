@@ -14,10 +14,8 @@ import {
   FileText,
   UserCheck,
   Send,
-  ThumbsUp,
   X,
   ShieldCheck,
-  RotateCcw,
   Clock,
   ChevronDown,
   CreditCard,
@@ -28,7 +26,6 @@ import {
   ExternalLink,
   Ban,
   CheckCircle,
-  CheckCircle2,
   AlertTriangle,
 } from "lucide-react";
 import {
