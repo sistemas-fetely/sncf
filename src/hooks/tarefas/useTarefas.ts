@@ -181,15 +181,25 @@ export function useTarefasContadores(userId: string | undefined) {
     queryFn: async () => {
       const hoje = hojeISO();
       const [ate, sem] = await Promise.all([
+        // A regra de "o que conta" mora na dimensão: embed com inner join,
+        // nunca uma lista de códigos escrita aqui.
         supabase
           .from("tarefas")
-          .select("id", { count: "exact", head: true })
+          .select("id, tarefa_natureza_dim!inner(na_lista_de_trabalho)", {
+            count: "exact",
+            head: true,
+          })
+          .eq("tarefa_natureza_dim.na_lista_de_trabalho", true)
           .eq("responsavel_id", userId!)
           .in("status", STATUS_ABERTOS)
           .lte("data_limite", hoje),
         supabase
           .from("tarefas")
-          .select("id", { count: "exact", head: true })
+          .select("id, tarefa_natureza_dim!inner(na_lista_de_trabalho)", {
+            count: "exact",
+            head: true,
+          })
+          .eq("tarefa_natureza_dim.na_lista_de_trabalho", true)
           .eq("responsavel_id", userId!)
           .in("status", STATUS_ABERTOS)
           .is("data_limite", null),
