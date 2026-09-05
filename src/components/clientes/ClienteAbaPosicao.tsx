@@ -455,8 +455,9 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
         </div>
       )}
 
-      {/* GRÁFICOS — movimento e composição por SKU */}
-      <div className="grid gap-[10px] lg:grid-cols-2">
+      {/* GRÁFICOS — linha 1: movimento (largura total) */}
+      <div className="grid gap-[10px]">
+
         <div className="space-y-3 rounded-lg border border-border/60 bg-card p-3">
           <TituloSecao>Movimento dos últimos meses</TituloSecao>
           {serie.isLoading && (
