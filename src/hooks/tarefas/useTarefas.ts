@@ -34,6 +34,10 @@ export interface Tarefa {
   /** título da tarefa-mãe, quando a linha é subtarefa (vem da view) */
   mae_titulo?: string | null;
   mae_id?: string | null;
+  /** derivados da view: contêiner = tem filhas não-canceladas */
+  eh_container?: boolean | null;
+  filhas_total?: number | null;
+  filhas_concluidas?: number | null;
   ordem: number;
   criado_em: string;
 }

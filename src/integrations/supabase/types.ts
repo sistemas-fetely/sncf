@@ -2120,6 +2120,7 @@ export type Database = {
           descricao: string | null
           fila_id: string | null
           fluxo_diario_estimado: number | null
+          fluxo_origem: string
           fonte_volume: string
           id: string
           nome: string
@@ -2139,6 +2140,7 @@ export type Database = {
           descricao?: string | null
           fila_id?: string | null
           fluxo_diario_estimado?: number | null
+          fluxo_origem?: string
           fonte_volume: string
           id?: string
           nome: string
@@ -2158,6 +2160,7 @@ export type Database = {
           descricao?: string | null
           fila_id?: string | null
           fluxo_diario_estimado?: number | null
+          fluxo_origem?: string
           fonte_volume?: string
           id?: string
           nome?: string
@@ -35896,6 +35899,7 @@ export type Database = {
           detalhe_payload: Json | null
           estoque_atual: number | null
           estoque_minimo: number | null
+          familia: string | null
           formato_bling: string | null
           gtin: string | null
           id: string
@@ -35933,6 +35937,7 @@ export type Database = {
           detalhe_payload?: Json | null
           estoque_atual?: number | null
           estoque_minimo?: number | null
+          familia?: string | null
           formato_bling?: string | null
           gtin?: string | null
           id?: string
@@ -35970,6 +35975,7 @@ export type Database = {
           detalhe_payload?: Json | null
           estoque_atual?: number | null
           estoque_minimo?: number | null
+          familia?: string | null
           formato_bling?: string | null
           gtin?: string | null
           id?: string
@@ -43973,6 +43979,7 @@ export type Database = {
           ativo: boolean
           chave: string
           coluna_acao_nossa: string | null
+          coluna_entrada: string | null
           created_at: string
           departamento_id: string | null
           descricao: string | null
@@ -43990,6 +43997,7 @@ export type Database = {
           ativo?: boolean
           chave: string
           coluna_acao_nossa?: string | null
+          coluna_entrada?: string | null
           created_at?: string
           departamento_id?: string | null
           descricao?: string | null
@@ -44007,6 +44015,7 @@ export type Database = {
           ativo?: boolean
           chave?: string
           coluna_acao_nossa?: string | null
+          coluna_entrada?: string | null
           created_at?: string
           departamento_id?: string | null
           descricao?: string | null
@@ -65438,6 +65447,7 @@ export type Database = {
           quantidade: number | null
           sku: string | null
           subtotal: number | null
+          veio_do_cadastro: boolean | null
         }
         Relationships: [
           {
@@ -68694,14 +68704,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -70958,14 +70968,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -78257,8 +78267,11 @@ export type Database = {
           data_limite: string | null
           departamento_destino_id: string | null
           descricao: string | null
+          eh_container: boolean | null
           entidade_origem_id: string | null
           estimativa_horas: number | null
+          filhas_concluidas: number | null
+          filhas_total: number | null
           hora_limite: string | null
           id: string | null
           mae_id: string | null
