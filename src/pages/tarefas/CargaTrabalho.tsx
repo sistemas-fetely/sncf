@@ -15,8 +15,6 @@ import {
   CLASSE_TOM, tomDaCarga, useCargaDetalhe, useCargaSemanal, usePodeEditarCapacidade,
   useSalvarCapacidade, type CargaSemana,
 } from "@/hooks/tarefas/useCargaTrabalho";
-import { useFiltroNatureza } from "@/hooks/tarefas/useFiltroNatureza";
-import { ControleNatureza } from "@/components/tarefas/ControleNatureza";
 
 const SEMANAS = 6;
 
@@ -213,8 +211,8 @@ function SheetDrill({
     drill?.inicio ?? null,
     drill?.fim ?? null
   );
-  const natureza = useFiltroNatureza();
-  const linhas = natureza.filtrar(data ?? []);
+  // as funções de carga já filtram por conta_carga no banco — não filtrar de novo aqui
+  const linhas = data ?? [];
 
   return (
     <Sheet open={!!drill} onOpenChange={(v) => !v && onFechar()}>
@@ -230,14 +228,6 @@ function SheetDrill({
             )}
           </SheetTitle>
         </SheetHeader>
-
-        <div className="mt-3">
-          <ControleNatureza
-            incluirTodas={natureza.incluirTodas}
-            onChange={natureza.setIncluirTodas}
-            ocultas={natureza.contarOcultas(data)}
-          />
-        </div>
 
         <div className="mt-4 space-y-2">
           {error ? (
