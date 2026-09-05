@@ -3,14 +3,32 @@
  *  - "Saldo da conta"      = dinheiro que já entrou e ainda não foi consumido.
  *  - "Crédito disponível"  = limite aprovado que ainda não foi usado.
  * Confundir as duas foi a origem das cinco telas divergentes.
+ *
+ * Tipografia segue o Sistema Visual Fetély v2: rótulo 11px em muted-foreground
+ * acima, número 21px abaixo (herói maior), título de seção 15px peso 500.
+ * Pesos: só 400 e 500. Número é tipografia: tabular-nums, alinhado à direita.
+ * Cor em indicador entra como régua lateral de 3px, nunca fundo ou texto solto.
  */
 import { Loader2 } from "lucide-react";
+import {
+  Bar,
+  CartesianGrid,
+  ComposedChart,
+  Line,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Selo } from "@/components/ui/selo";
-import { Separator } from "@/components/ui/separator";
 import { formatBRL } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
-import { useAnaliseCreditoVigente, useKpiCliente } from "@/hooks/clientes/useClientePainel";
+import {
+  useAnaliseCreditoVigente,
+  useKpiCliente,
+  useSerieMensalCliente,
+} from "@/hooks/clientes/useClientePainel";
 import {
   useContaClienteCobertura,
   useContasClienteSaldo,
@@ -22,9 +40,21 @@ function dataBR(iso: string | null | undefined) {
   return `${d}/${m}/${a}`;
 }
 
+/** Régua lateral de 3px no token do estado. Sem fundo, sem texto colorido. */
+type Regua = "success" | "warning" | "destructive" | undefined;
+const REGUA: Record<Exclude<Regua, undefined>, string> = {
+  success: "border-l-[3px] border-l-success",
+  warning: "border-l-[3px] border-l-warning",
+  destructive: "border-l-[3px] border-l-destructive",
+};
+
+function TituloSecao({ children }: { children: React.ReactNode }) {
+  return <h3 className="text-[15px] font-medium leading-tight">{children}</h3>;
+}
+
 function Barra({ pct, tom }: { pct: number; tom: string }) {
   return (
-    <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
       <div
         className={cn("h-full rounded-full", tom)}
         style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
@@ -37,27 +67,68 @@ function Indicador({
   rotulo,
   valor,
   legenda,
-  tom,
+  regua,
+  heroi,
+  children,
 }: {
   rotulo: string;
   valor: string;
   legenda?: string;
-  tom?: string;
+  regua?: Regua;
+  heroi?: boolean;
+  children?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-md border border-border/60 p-2.5">
-      <p className="text-[11px] text-muted-foreground">{rotulo}</p>
-      <p className={cn("text-sm font-medium", tom)}>{valor}</p>
-      {legenda && <p className="text-[10px] text-muted-foreground">{legenda}</p>}
+    <div
+      className={cn(
+        "rounded-lg border border-border/60 p-3",
+        regua && REGUA[regua],
+      )}
+    >
+      <p className="text-[11px] font-normal text-muted-foreground">{rotulo}</p>
+      <p
+        className={cn(
+          "font-medium tabular-nums",
+          heroi ? "text-[32px] leading-[1.15]" : "text-[21px] leading-[1.2]",
+        )}
+      >
+        {valor}
+      </p>
+      {legenda && (
+        <p className="mt-0.5 text-[11px] font-normal text-muted-foreground">{legenda}</p>
+      )}
+      {children}
     </div>
   );
 }
 
 function Linha({ label, value }: { label: string; value: string | null | undefined }) {
   return (
-    <div className="flex justify-between gap-3 text-sm">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="text-right">{value || "—"}</span>
+    <div className="flex justify-between gap-3 text-[13px]">
+      <span className="font-normal text-muted-foreground">{label}</span>
+      <span className="text-right tabular-nums">{value || "—"}</span>
+    </div>
+  );
+}
+
+const FAIXAS = [
+  { chave: "faixa_1_7", rotulo: "1–7 dias", cor: "bg-warning/40" },
+  { chave: "faixa_8_30", rotulo: "8–30 dias", cor: "bg-warning/70" },
+  { chave: "faixa_31_60", rotulo: "31–60 dias", cor: "bg-destructive/60" },
+  { chave: "faixa_60_mais", rotulo: "+60 dias", cor: "bg-destructive" },
+] as const;
+
+function TooltipSerie({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-md border border-border bg-popover p-2 text-[11px] shadow-none">
+      <p className="mb-1 font-medium">{label}</p>
+      {payload.map((p: any) => (
+        <p key={p.dataKey} className="flex justify-between gap-4">
+          <span className="font-normal text-muted-foreground">{p.name}</span>
+          <span className="tabular-nums">{formatBRL(Number(p.value ?? 0))}</span>
+        </p>
+      ))}
     </div>
   );
 }
@@ -67,6 +138,7 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
   const cobertura = useContaClienteCobertura(parceiroId);
   const analise = useAnaliseCreditoVigente(parceiroId);
   const kpi = useKpiCliente(parceiroId);
+  const serie = useSerieMensalCliente(parceiroId);
 
   const k = kpi.data ?? null;
   const nDias = (v: number | null | undefined) => (v == null ? "—" : `${Math.round(v)} dias`);
@@ -78,197 +150,289 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
   const conta = (saldos.data ?? []).find((c) => c.parceiro_id === parceiroId) ?? null;
   const saldo = Number(conta?.saldo ?? 0);
   const creditoDisponivel = Number(cobertura.data?.fonte3_limite_disponivel ?? 0);
+  const vencido = Number(conta?.vencido_em_aberto ?? 0);
+
+  const dados = serie.data ?? [];
+  const faixas = FAIXAS.map((f) => ({
+    ...f,
+    valor: Number((conta as any)?.[f.chave] ?? 0),
+  }));
+  const totalFaixas = faixas.reduce((s, f) => s + f.valor, 0);
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 md:grid-cols-2">
-        <div className="rounded-md border border-border/60 p-3">
-          <p className="text-[11px] text-muted-foreground">Saldo da conta</p>
-          <p
-            className={cn(
-              "text-2xl font-semibold",
-              saldo > 0 ? "text-success" : saldo < 0 ? "text-warning" : "",
-            )}
-          >
-            {saldos.isError ? "—" : formatBRL(saldo)}
-          </p>
-          <p className="text-[11px] text-muted-foreground">
-            dinheiro do cliente já reconhecido —{" "}
-            {saldo > 0 ? "crédito a favor dele" : saldo < 0 ? "ele está devendo" : "conta zerada"}
-          </p>
-        </div>
-        <div className="rounded-md border border-border/60 p-3">
-          <p className="text-[11px] text-muted-foreground">Crédito disponível</p>
-          <p className="text-2xl font-semibold">
-            {cobertura.isError ? "—" : formatBRL(creditoDisponivel)}
-          </p>
-          <p className="text-[11px] text-muted-foreground">
-            limite aprovado ainda não usado — não é dinheiro na conta
-          </p>
-        </div>
+      {/* FAIXA 1 — herói: as duas perguntas de dinheiro */}
+      <div className="grid gap-[10px] lg:grid-cols-2">
+        <Indicador
+          heroi
+          rotulo="Saldo da conta"
+          valor={saldos.isError ? "—" : formatBRL(saldo)}
+          regua={saldo < 0 ? "destructive" : undefined}
+          legenda={`dinheiro do cliente já reconhecido — ${
+            saldo > 0 ? "crédito a favor dele" : saldo < 0 ? "ele está devendo" : "conta zerada"
+          }`}
+        />
+        <Indicador
+          heroi
+          rotulo="Crédito disponível"
+          valor={cobertura.isError ? "—" : formatBRL(creditoDisponivel)}
+          legenda="limite aprovado ainda não usado — não é dinheiro na conta"
+        />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="rounded-md border border-border/60 p-2.5">
-          <p className="text-[11px] text-muted-foreground">Vencido em aberto</p>
-          <p className="text-sm font-medium text-destructive">
-            {formatBRL(conta?.vencido_em_aberto ?? 0)}
-          </p>
-        </div>
-        <div className="rounded-md border border-border/60 p-2.5">
-          <p className="text-[11px] text-muted-foreground">A vencer</p>
-          <p className="text-sm font-medium">{formatBRL(conta?.a_vencer ?? 0)}</p>
-        </div>
-        <div className="rounded-md border border-border/60 p-2.5">
-          <p className="text-[11px] text-muted-foreground">Crédito futuro (boleto)</p>
-          <p className="text-sm font-medium">{formatBRL(conta?.credito_futuro_boleto ?? 0)}</p>
-        </div>
-        <div className="rounded-md border border-border/60 p-2.5">
-          <p className="text-[11px] text-muted-foreground">Última movimentação</p>
-          <p className="text-sm font-medium">{dataBR(conta?.ultima_movimentacao)}</p>
-        </div>
+      {/* FAIXA 2 — secundários */}
+      <div className="grid grid-cols-2 gap-[10px] lg:grid-cols-4">
+        <Indicador
+          rotulo="Vencido em aberto"
+          valor={formatBRL(vencido)}
+          regua={vencido > 0 ? "destructive" : undefined}
+        />
+        <Indicador rotulo="A vencer" valor={formatBRL(conta?.a_vencer ?? 0)} />
+        <Indicador
+          rotulo="Crédito futuro (boleto)"
+          valor={formatBRL(conta?.credito_futuro_boleto ?? 0)}
+        />
+        <Indicador rotulo="Última movimentação" valor={dataBR(conta?.ultima_movimentacao)} />
       </div>
 
-      {/* AGING — só existe quando há vencido em aberto. Substitui a tela
-          "Vencimentos x Cliente", desativada no banco. */}
-      {Number(conta?.vencido_em_aberto ?? 0) > 0 && (
-        <div className="rounded-md border border-border/60 p-2.5 space-y-2">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-[11px] font-medium">Aging do vencido</p>
-            <p className="text-[11px] text-muted-foreground">
-              atraso máximo: {Number(conta?.dias_atraso_max ?? 0)} dias
-              {conta?.qtd_titulos_abertos != null
-                ? ` · ${conta.qtd_titulos_abertos} título(s) em aberto`
-                : ""}
-            </p>
+      {/* MOVIMENTO — gráfico do mês a mês */}
+      <div className="space-y-3">
+        <TituloSecao>Movimento dos últimos meses</TituloSecao>
+        {serie.isLoading && (
+          <p className="flex items-center gap-2 text-[13px] font-normal text-muted-foreground">
+            <Loader2 className="h-3 w-3 animate-spin" /> carregando
+          </p>
+        )}
+        {!serie.isLoading && dados.length < 2 && (
+          <p className="text-[13px] font-normal text-muted-foreground">
+            Histórico curto demais para gráfico.
+          </p>
+        )}
+        {!serie.isLoading && dados.length >= 2 && (
+          <div className="rounded-lg border border-border/60 p-3">
+            <div className="h-[220px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={dados} margin={{ top: 6, right: 8, bottom: 0, left: 8 }}>
+                  <CartesianGrid
+                    vertical={false}
+                    stroke="hsl(var(--border))"
+                    strokeOpacity={0.6}
+                  />
+                  <XAxis
+                    dataKey="rotulo"
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    width={64}
+                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                    tickFormatter={(v) =>
+                      new Intl.NumberFormat("pt-BR", { notation: "compact" }).format(Number(v))
+                    }
+                  />
+                  <Tooltip content={<TooltipSerie />} />
+                  <Bar
+                    dataKey="faturado"
+                    name="Faturado"
+                    fill="hsl(var(--muted-foreground))"
+                    fillOpacity={0.35}
+                    radius={[3, 3, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="recebido"
+                    name="Recebido"
+                    fill="hsl(var(--success))"
+                    fillOpacity={0.75}
+                    radius={[3, 3, 0, 0]}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="saldo_acumulado"
+                    name="Saldo acumulado"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-4 text-[11px] font-normal text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-sm bg-muted-foreground/40" /> Faturado
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-sm bg-success/75" /> Recebido
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-0.5 w-4 rounded-full bg-primary" /> Saldo acumulado
+              </span>
+            </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            {[
-              { rotulo: "1–7 dias", valor: conta?.faixa_1_7 },
-              { rotulo: "8–30", valor: conta?.faixa_8_30 },
-              { rotulo: "31–60", valor: conta?.faixa_31_60 },
-              { rotulo: "+60", valor: conta?.faixa_60_mais },
-            ].map((f) => (
-              <div key={f.rotulo} className="rounded-md bg-muted/40 px-2 py-1.5">
-                <p className="text-[10px] text-muted-foreground">{f.rotulo}</p>
-                <p
-                  className={cn(
-                    "text-xs font-medium",
-                    Number(f.valor ?? 0) > 0 ? "text-destructive" : "text-muted-foreground",
-                  )}
+        )}
+      </div>
+
+      {/* AGING — barra empilhada única, só quando há vencido */}
+      {vencido > 0 && totalFaixas > 0 && (
+        <div className="space-y-3">
+          <TituloSecao>Aging do vencido</TituloSecao>
+          <div className="rounded-lg border border-border/60 p-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="text-[21px] font-medium leading-[1.2] tabular-nums">
+                {formatBRL(vencido)}
+              </p>
+              <p className="text-[11px] font-normal tabular-nums text-muted-foreground">
+                atraso máximo: {Number(conta?.dias_atraso_max ?? 0)} dias
+                {conta?.qtd_titulos_abertos != null
+                  ? ` · ${conta.qtd_titulos_abertos} título(s) em aberto`
+                  : ""}
+              </p>
+            </div>
+            <div className="mt-3 flex h-3 w-full overflow-hidden rounded-full bg-muted">
+              {faixas.map((f) =>
+                f.valor > 0 ? (
+                  <div
+                    key={f.chave}
+                    className={f.cor}
+                    style={{ width: `${(f.valor / totalFaixas) * 100}%` }}
+                  />
+                ) : null,
+              )}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
+              {faixas.map((f) => (
+                <span
+                  key={f.chave}
+                  className="flex items-center gap-1.5 text-[11px] font-normal text-muted-foreground"
                 >
-                  {formatBRL(f.valor ?? 0)}
-                </p>
-              </div>
-            ))}
+                  <span className={cn("h-2 w-2 rounded-sm", f.cor)} />
+                  {f.rotulo}
+                  <span className="tabular-nums text-foreground">{formatBRL(f.valor)}</span>
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       )}
 
-      <Separator />
-
-      <div className="space-y-2">
-        <p className="text-xs font-medium">Cobertura para novos pedidos</p>
+      {/* COBERTURA */}
+      <div className="space-y-3">
+        <TituloSecao>Cobertura para novos pedidos</TituloSecao>
         {cobertura.isLoading && (
-          <p className="text-xs text-muted-foreground flex items-center gap-2">
+          <p className="flex items-center gap-2 text-[13px] font-normal text-muted-foreground">
             <Loader2 className="h-3 w-3 animate-spin" /> consultando
           </p>
         )}
         {cobertura.isError && (
-          <p className="text-xs text-destructive">
+          <p className="text-[13px] font-normal text-destructive">
             {(cobertura.error as any)?.message ?? "Falha ao consultar a cobertura."}
           </p>
         )}
         {cobertura.data && (
-          <div className="rounded-md border border-border/60 p-3 space-y-2">
-            <div className="flex items-baseline gap-2">
-              <span className="text-lg font-semibold">
-                {formatBRL(cobertura.data.cobertura_total)}
-              </span>
-              <span className="text-[11px] text-muted-foreground">cobertura total</span>
-            </div>
-            <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-              <dt>Saldo disponível</dt>
-              <dd className="text-right text-foreground">
-                {formatBRL(cobertura.data.fonte1_saldo_disponivel)}
-              </dd>
-              <dt>Limite vigente</dt>
-              <dd className="text-right text-foreground">
-                {formatBRL(cobertura.data.limite_vigente)}
-              </dd>
-              <dt>Limite disponível</dt>
-              <dd className="text-right text-foreground">
-                {formatBRL(cobertura.data.fonte3_limite_disponivel)}
-              </dd>
-              <dt>Exposição em aberto</dt>
-              <dd className="text-right text-foreground">
-                {formatBRL(cobertura.data.exposicao_em_aberto)}
-              </dd>
-            </dl>
-            {temLimite && utilizacao != null && (
-              <div className="space-y-1 pt-1">
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-muted-foreground">Utilização do limite</span>
-                  <span className="font-medium">{nPct(utilizacao)}</span>
+          <div className="grid gap-[10px] lg:grid-cols-3">
+            <Indicador
+              rotulo="Cobertura total"
+              valor={formatBRL(cobertura.data.cobertura_total)}
+              legenda="o quanto ainda dá para liberar"
+            >
+              {cobertura.data.sinal_analise_credito && (
+                <div className="pt-2">
+                  <Selo estado="warning">sinal para análise de crédito</Selo>
                 </div>
-                <Barra
-                  pct={utilizacao}
-                  tom={
-                    utilizacao >= 80
-                      ? "bg-destructive"
-                      : utilizacao >= 50
-                        ? "bg-warning"
-                        : "bg-success"
-                  }
-                />
-                <p className="text-[10px] text-muted-foreground">
-                  do limite aprovado já comprometido
-                </p>
-              </div>
-            )}
-            {cobertura.data.sinal_analise_credito && (
-              <Selo estado="warning">sinal para análise de crédito</Selo>
+              )}
+            </Indicador>
+            <div className="rounded-lg border border-border/60 p-3">
+              <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] font-normal text-muted-foreground">
+                <dt>Saldo disponível</dt>
+                <dd className="text-right text-[13px] tabular-nums text-foreground">
+                  {formatBRL(cobertura.data.fonte1_saldo_disponivel)}
+                </dd>
+                <dt>Limite vigente</dt>
+                <dd className="text-right text-[13px] tabular-nums text-foreground">
+                  {formatBRL(cobertura.data.limite_vigente)}
+                </dd>
+                <dt>Limite disponível</dt>
+                <dd className="text-right text-[13px] tabular-nums text-foreground">
+                  {formatBRL(cobertura.data.fonte3_limite_disponivel)}
+                </dd>
+                <dt>Exposição em aberto</dt>
+                <dd className="text-right text-[13px] tabular-nums text-foreground">
+                  {formatBRL(cobertura.data.exposicao_em_aberto)}
+                </dd>
+              </dl>
+            </div>
+            {temLimite && utilizacao != null && (
+              <Indicador
+                rotulo="Utilização do limite"
+                valor={nPct(utilizacao)}
+                legenda="do limite aprovado já comprometido"
+                regua={utilizacao >= 80 ? "destructive" : utilizacao >= 50 ? "warning" : undefined}
+              >
+                <div className="pt-2">
+                  <Barra
+                    pct={utilizacao}
+                    tom={
+                      utilizacao >= 80
+                        ? "bg-destructive"
+                        : utilizacao >= 50
+                          ? "bg-warning"
+                          : "bg-success"
+                    }
+                  />
+                </div>
+              </Indicador>
             )}
           </div>
         )}
       </div>
 
-      <Separator />
-
-      <div className="space-y-2">
-        <p className="text-xs font-medium">Comportamento de pagamento</p>
+      {/* COMPORTAMENTO DE PAGAMENTO */}
+      <div className="space-y-3">
+        <TituloSecao>Comportamento de pagamento</TituloSecao>
         {kpi.isLoading && (
-          <p className="text-xs text-muted-foreground flex items-center gap-2">
+          <p className="flex items-center gap-2 text-[13px] font-normal text-muted-foreground">
             <Loader2 className="h-3 w-3 animate-spin" /> carregando
           </p>
         )}
         {!kpi.isLoading && titulosPagos === 0 && (
-          <p className="text-xs text-muted-foreground">Sem histórico de pagamento ainda.</p>
+          <p className="text-[13px] font-normal text-muted-foreground">
+            Sem histórico de pagamento ainda.
+          </p>
         )}
         {!kpi.isLoading && titulosPagos > 0 && k && (
           <>
-            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-              <div className="rounded-md border border-border/60 p-2.5 space-y-1">
-                <div className="flex items-center justify-between">
-                  <p className="text-[11px] text-muted-foreground">Pontualidade</p>
-                  <p className="text-sm font-medium">{nPct(k.pontualidade_pct)}</p>
-                </div>
+            <div className="grid grid-cols-2 gap-[10px] lg:grid-cols-4 xl:grid-cols-6">
+              <Indicador
+                rotulo="Pontualidade"
+                valor={nPct(k.pontualidade_pct)}
+                legenda="títulos pagos até o vencimento"
+                regua={
+                  k.pontualidade_pct == null
+                    ? undefined
+                    : k.pontualidade_pct < 50
+                      ? "destructive"
+                      : k.pontualidade_pct < 80
+                        ? "warning"
+                        : undefined
+                }
+              >
                 {k.pontualidade_pct != null && (
-                  <Barra
-                    pct={k.pontualidade_pct}
-                    tom={
-                      k.pontualidade_pct >= 80
-                        ? "bg-success"
-                        : k.pontualidade_pct >= 50
-                          ? "bg-warning"
-                          : "bg-destructive"
-                    }
-                  />
+                  <div className="pt-2">
+                    <Barra
+                      pct={k.pontualidade_pct}
+                      tom={
+                        k.pontualidade_pct >= 80
+                          ? "bg-success"
+                          : k.pontualidade_pct >= 50
+                            ? "bg-warning"
+                            : "bg-destructive"
+                      }
+                    />
+                  </div>
                 )}
-                <p className="text-[10px] text-muted-foreground">
-                  títulos pagos até o vencimento
-                </p>
-              </div>
+              </Indicador>
               <Indicador
                 rotulo="Prazo médio de recebimento"
                 valor={nDias(k.pmr_dias)}
@@ -290,19 +454,17 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
                         ? `${Math.round(k.atraso_medio_dias)} dias de atraso`
                         : "em dia"
                 }
-                tom={
-                  k.atraso_medio_dias == null || Math.round(k.atraso_medio_dias) === 0
-                    ? undefined
-                    : k.atraso_medio_dias < 0
-                      ? "text-success"
-                      : "text-destructive"
+                regua={
+                  k.atraso_medio_dias != null && Math.round(k.atraso_medio_dias) > 0
+                    ? "destructive"
+                    : undefined
                 }
               />
               {Number(k.pior_atraso_dias ?? 0) > 0 && (
                 <Indicador
                   rotulo="Pior atraso"
                   valor={nDias(k.pior_atraso_dias)}
-                  tom="text-destructive"
+                  regua="destructive"
                 />
               )}
               {Number(k.pagamento_antecipado_pct ?? 0) > 0 && (
@@ -313,15 +475,18 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
                 />
               )}
             </div>
-            <p className="text-[10px] text-muted-foreground">base: {titulosPagos} títulos pagos</p>
+            <p className="text-[11px] font-normal tabular-nums text-muted-foreground">
+              base: {titulosPagos} títulos pagos
+            </p>
           </>
         )}
       </div>
 
+      {/* RELACIONAMENTO */}
       {k && (
-        <div className="space-y-2">
-          <p className="text-xs font-medium">Relacionamento</p>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="space-y-3">
+          <TituloSecao>Relacionamento</TituloSecao>
+          <div className="grid grid-cols-2 gap-[10px] lg:grid-cols-5">
             <Indicador
               rotulo="Ticket médio"
               valor={k.ticket_medio == null ? "—" : formatBRL(k.ticket_medio)}
@@ -348,84 +513,80 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
         </div>
       )}
 
-      <Separator />
-
-      <div className="grid gap-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Última análise decidida</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1.5">
-            {analise.isLoading && (
-              <p className="text-xs text-muted-foreground flex items-center gap-2">
-                <Loader2 className="h-3 w-3 animate-spin" /> carregando
-              </p>
-            )}
-            {analise.isError && (
-              <p className="text-xs text-destructive">
-                {(analise.error as any)?.message ?? "Falha ao carregar a análise."}
-              </p>
-            )}
-            {!analise.isLoading && !analise.isError && !analise.data && (
-              <p className="text-xs text-muted-foreground">
-                Este cliente não tem análise de crédito decidida.
-              </p>
-            )}
-            {analise.data && (
-              <>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-muted-foreground text-sm">Decisão</span>
-                  <Selo
-                    estado={
-                      analise.data.status_final === "aprovado"
-                        ? "success"
-                        : analise.data.status_final === "reprovado"
-                          ? "destructive"
-                          : "warning"
-                    }
-                  >
-                    {analise.data.status_final ?? "—"}
-                  </Selo>
+      {/* ANÁLISE DE CRÉDITO */}
+      <Card className="shadow-none">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-[15px] font-medium">Última análise decidida</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-1.5">
+          {analise.isLoading && (
+            <p className="flex items-center gap-2 text-[13px] font-normal text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" /> carregando
+            </p>
+          )}
+          {analise.isError && (
+            <p className="text-[13px] font-normal text-destructive">
+              {(analise.error as any)?.message ?? "Falha ao carregar a análise."}
+            </p>
+          )}
+          {!analise.isLoading && !analise.isError && !analise.data && (
+            <p className="text-[13px] font-normal text-muted-foreground">
+              Este cliente não tem análise de crédito decidida.
+            </p>
+          )}
+          {analise.data && (
+            <>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[13px] font-normal text-muted-foreground">Decisão</span>
+                <Selo
+                  estado={
+                    analise.data.status_final === "aprovado"
+                      ? "success"
+                      : analise.data.status_final === "reprovado"
+                        ? "destructive"
+                        : "warning"
+                  }
+                >
+                  {analise.data.status_final ?? "—"}
+                </Selo>
+              </div>
+              <Linha
+                label="Limite concedido"
+                value={
+                  analise.data.limite_concedido == null
+                    ? null
+                    : formatBRL(analise.data.limite_concedido)
+                }
+              />
+              <Linha
+                label="Prazo máximo"
+                value={
+                  analise.data.prazo_max_dias == null
+                    ? null
+                    : `${analise.data.prazo_max_dias} dias`
+                }
+              />
+              <Linha label="Validade" value={dataBR(analise.data.validade_ate)} />
+              <Linha label="Perfil aplicado" value={analise.data.perfil_aplicado} />
+              <Linha label="Decidida em" value={dataBR(analise.data.decidido_em)} />
+              {analise.data.ressalva && (
+                <div className="rounded-lg border border-border/60 border-l-[3px] border-l-warning p-3">
+                  <p className="text-[11px] font-normal text-muted-foreground">Ressalva</p>
+                  <p className="text-[13px] font-normal">{analise.data.ressalva}</p>
                 </div>
-                <Linha
-                  label="Limite concedido"
-                  value={
-                    analise.data.limite_concedido == null
-                      ? null
-                      : formatBRL(analise.data.limite_concedido)
-                  }
-                />
-                <Linha
-                  label="Prazo máximo"
-                  value={
-                    analise.data.prazo_max_dias == null
-                      ? null
-                      : `${analise.data.prazo_max_dias} dias`
-                  }
-                />
-                <Linha label="Validade" value={dataBR(analise.data.validade_ate)} />
-                <Linha label="Perfil aplicado" value={analise.data.perfil_aplicado} />
-                <Linha label="Decidida em" value={dataBR(analise.data.decidido_em)} />
-                {analise.data.ressalva && (
-                  <div className="rounded-md border border-warning/40 bg-warning/5 p-2.5">
-                    <p className="text-[11px] font-medium text-warning">Ressalva</p>
-                    <p className="text-[11px] text-muted-foreground">{analise.data.ressalva}</p>
-                  </div>
-                )}
-                {analise.data.parecer_final && (
-                  <div className="rounded-md border border-border/60 p-2.5">
-                    <p className="text-[11px] font-medium">Parecer</p>
-                    <p className="text-[11px] text-muted-foreground whitespace-pre-line">
-                      {analise.data.parecer_final}
-                    </p>
-                  </div>
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-      </div>
+              )}
+              {analise.data.parecer_final && (
+                <div className="rounded-lg border border-border/60 p-3">
+                  <p className="text-[11px] font-normal text-muted-foreground">Parecer</p>
+                  <p className="whitespace-pre-line text-[13px] font-normal">
+                    {analise.data.parecer_final}
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
