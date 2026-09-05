@@ -20,6 +20,7 @@ import { usePedidoOrigens } from "@/hooks/pedidos/usePedidoOrigens";
 import { supabase } from "@/integrations/supabase/client";
 import { usePedidoTitulos } from "@/hooks/pedidos/usePedidoTitulos";
 import { PlanoRecebimentoCard } from "@/components/pedidos/PlanoRecebimentoCard";
+import { CoberturaClienteCard } from "@/components/pedidos/CoberturaClienteCard";
 import { ComprovantePagamentoBloco } from "@/components/comercial/ComprovantePagamentoBloco";
 import { AlertasPedidoPanel } from "@/components/pedidos/AlertasPedidoPanel";
 import { useRecebivelFamilia } from "@/hooks/pedidos/useRecebivelFamilia";
@@ -2922,7 +2923,14 @@ export default function PedidoDetalhe() {
               {temNivel(2) && <ExportarPedidoDialog pedidoId={pedido.id} />}
 
               {geraTituloReceber ? (
-                <LinkPagamentoCard pedido={pedido} titulos={titulosData ?? []} />
+                <>
+                  {/* CONTA DO CLIENTE — leitura. O dinheiro e do CNPJ; o pedido valida contra o saldo. */}
+                  <CoberturaClienteCard
+                    parceiroId={pedido.parceiro_id}
+                    valorPedido={Number(pedido.valor_total ?? 0)}
+                  />
+                  <LinkPagamentoCard pedido={pedido} titulos={titulosData ?? []} />
+                </>
               ) : (
                 <p className="text-xs text-muted-foreground italic px-1">
                   Natureza de operação sem cobrança{natureza?.nome ? ` · ${natureza.nome}` : ""}.
