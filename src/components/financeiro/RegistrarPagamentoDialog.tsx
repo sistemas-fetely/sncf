@@ -65,37 +65,54 @@ export default function RegistrarPagamentoDialog({ open, onOpenChange, conta, on
 
   const mut = useMutation({
     mutationFn: async () => {
-      let comprovante_url: string | null = null;
+      let storagePath: string | null = null;
+      let hashHex: string | null = null;
+
       if (arquivo) {
+        const buf = await arquivo.arrayBuffer();
+        const digest = await crypto.subtle.digest("SHA-256", buf);
+        hashHex = Array.from(new Uint8Array(digest))
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+
         const ext = arquivo.name.split(".").pop() || "bin";
         const path = `${conta.id}/${Date.now()}.${ext}`;
         const { error: upErr } = await supabase.storage
           .from("comprovantes-pagamento")
           .upload(path, arquivo, { upsert: false });
         if (upErr) throw upErr;
-        comprovante_url = path;
+        storagePath = path;
       }
 
       const valorNum = parseFloat(valorPago.replace(",", ".")) || conta.valor;
 
-      const { error } = await supabase
-        .from("contas_pagar_receber")
-        .update({
-          status: "enviado_para_pagamento",
-          data_pagamento: dataPagamento,
-          forma_pagamento_id: formaId,
-          valor_pago: valorNum,
-          observacao_pagamento: observacao || null,
-          comprovante_url,
-        })
-        .eq("id", conta.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      const valorNum = parseFloat(valorPago.replace(",", ".")) || conta.valor;
-      toast.success("Pagamento registrado!", {
-        description: `${formatBRL(valorNum)} em ${new Date(dataPagamento + "T00:00:00").toLocaleDateString("pt-BR")}`,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc("fn_registrar_pagamento_titulo", {
+        p_cpr_id: conta.id,
+        p_data_pagamento: dataPagamento,
+        p_valor_pago: valorNum,
+        p_forma_pagamento_id: formaId,
+        p_observacao: observacao || null,
+        p_storage_path: storagePath,
+        p_hash: hashHex,
+        p_mime: arquivo?.type ?? null,
+        p_bytes: arquivo?.size ?? null,
       });
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.erro || "Falha ao registrar pagamento");
+      return data;
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onSuccess: (data: any) => {
+      const valorNum = parseFloat(valorPago.replace(",", ".")) || conta.valor;
+      const resumo = `${formatBRL(valorNum)} em ${new Date(dataPagamento + "T00:00:00").toLocaleDateString("pt-BR")}`;
+      if (data?.tem_prova) {
+        toast.success("Pagamento registrado com comprovante", { description: resumo });
+      } else {
+        toast.success("Pagamento registrado", {
+          description: `${resumo}. Sem comprovante o título fica em "Pago" e não avança para "Provado".`,
+        });
+      }
       qc.invalidateQueries({ queryKey: ["contas-pagar"] });
       qc.invalidateQueries({ queryKey: ["contas-receber"] });
       qc.invalidateQueries({ queryKey: ["lancamentos"] });
@@ -104,6 +121,7 @@ export default function RegistrarPagamentoDialog({ open, onOpenChange, conta, on
       qc.invalidateQueries({ queryKey: ["dashboard-financeiro-contas"] });
       qc.invalidateQueries({ queryKey: ["fluxo-caixa"] });
       qc.invalidateQueries({ queryKey: ["dre-lancamentos"] });
+      qc.invalidateQueries({ queryKey: ["titulo-pagar-acoes"] });
       onOpenChange(false);
       onPaid?.();
     },
@@ -172,7 +190,7 @@ export default function RegistrarPagamentoDialog({ open, onOpenChange, conta, on
 
           <div className="space-y-1.5">
             <Label htmlFor="comprovPag" className="flex items-center gap-2">
-              <Upload className="h-3.5 w-3.5" /> Comprovante (PDF/imagem, opcional)
+              <Upload className="h-3.5 w-3.5" /> Comprovante (PDF/imagem) — sem ele o título para em "Pago"
             </Label>
             <Input
               id="comprovPag"
