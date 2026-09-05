@@ -434,9 +434,17 @@ export default function MesaGestor() {
               </p>
             )}
             {detalhePessoa.isError && (
-              <p className="text-sm text-destructive">{formatError(detalhePessoa.error)}</p>
+              <div className="rounded-md border border-destructive/40 bg-card p-3">
+                <p className="text-sm text-destructive">
+                  {semPermissao(detalhePessoa.error)
+                    ? "Sem permissão para ver esta mesa. Ela só abre para o seu time direto e para quem lhe foi delegado."
+                    : formatError(detalhePessoa.error)}
+                </p>
+              </div>
             )}
-            {!detalhePessoa.isLoading && (detalhePessoa.data ?? []).length === 0 && (
+            {!detalhePessoa.isLoading &&
+              !detalhePessoa.isError &&
+              (detalhePessoa.data ?? []).length === 0 && (
               <p className="text-sm text-muted-foreground">
                 Nenhuma atribuição declarada para esta pessoa.
               </p>
