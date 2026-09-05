@@ -148,6 +148,33 @@ export default function MinhasTarefasNovo() {
     return { ordenado, filhasPorMae };
   }, [tarefas, abaAtual]);
 
+  const { opcoesProjeto, mostrarFiltro } = useMemo(() => {
+    const contagem = new Map<string, number>();
+    for (const t of tarefas ?? []) {
+      if (!t.papeis.includes(abaAtual)) continue;
+      if (t.eh_container) continue;
+      const chave = t.projeto_id ?? "__sem__";
+      contagem.set(chave, (contagem.get(chave) ?? 0) + 1);
+    }
+    const ids = Array.from(contagem.keys()).filter((id) => id !== "__sem__");
+    const temSem = contagem.has("__sem__");
+    const opcoes: { id: string; label: string; count: number }[] = [];
+    if (temSem) {
+      opcoes.push({ id: "__sem__", label: "Sem projeto", count: contagem.get("__sem__")! });
+    }
+    for (const id of ids) {
+      const nome = projetos?.find((p) => p.id === id)?.nome ?? "Projeto";
+      opcoes.push({ id, label: nome, count: contagem.get(id)! });
+    }
+    opcoes.sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
+    return { opcoesProjeto: opcoes, mostrarFiltro: ids.length > 1 || temSem };
+  }, [tarefas, abaAtual, projetos]);
+
+  const gruposFiltrados = useMemo(() => {
+    if (projetoFiltro === "__todos__") return grupos.ordenado;
+    return grupos.ordenado.filter(([chave]) => chave === projetoFiltro);
+  }, [grupos, projetoFiltro]);
+
   const nomeProjeto = (id: string) =>
     id === "__sem__" ? "Sem projeto" : projetos?.find((p) => p.id === id)?.nome ?? "Projeto";
 
