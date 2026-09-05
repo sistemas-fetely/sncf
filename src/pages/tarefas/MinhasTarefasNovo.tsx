@@ -195,15 +195,33 @@ export default function MinhasTarefasNovo() {
       </Card>
 
       <div className="flex items-center justify-between">
-        <Select value={filtro} onValueChange={(v) => setFiltro(v as FiltroStatus)}>
-          <SelectTrigger className="h-8 w-52 text-sm"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="abertas">Em aberto</SelectItem>
-            {Object.entries(STATUS_ROTULO).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-3">
+          <Select value={filtro} onValueChange={(v) => setFiltro(v as FiltroStatus)}>
+            <SelectTrigger className="h-8 w-52 text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="abertas">Em aberto</SelectItem>
+              {Object.entries(STATUS_ROTULO).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {mostrarFiltro && (
+            <Select value={projetoFiltro} onValueChange={setProjetoFiltro}>
+              <SelectTrigger className="h-8 w-56 text-sm">
+                <SelectValue placeholder="Todos os projetos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__todos__">Todos os projetos</SelectItem>
+                {opcoesProjeto.map((op) => (
+                  <SelectItem key={op.id} value={op.id}>
+                    {op.label} ({op.count})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
         <span className="text-xs text-muted-foreground">{totalAba} tarefa(s)</span>
       </div>
 
