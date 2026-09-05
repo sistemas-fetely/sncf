@@ -38,6 +38,7 @@ import { useConfirmarPagamentoLinha } from "@/hooks/pedidos/useConfirmarPagament
 import { useConfirmarCartaoCapturado } from "@/hooks/pedidos/useConfirmarCartaoCapturado";
 import {
   usePlanoAbertoPedido,
+  meioDaLinha,
   rotuloMeio,
   type LinhaPlanoAberta,
 } from "@/hooks/pedidos/usePlanoAbertoPedido";
@@ -132,7 +133,9 @@ export function ConfirmarPagamentoDialog({
   const [comprovanteId, setComprovanteId] = useState<string | null>(null);
   const [confianca, setConfianca] = useState<string | null>(null);
 
-  const planoQ = usePlanoAbertoPedido(pedidoId, aberto && !provisaoId);
+  // O plano aberto carrega sempre que o dialog abre — mesmo com provisaoId fixo,
+  // porque o tipo de prova nasce do MEIO da linha (MEIO-DITA-PROVA).
+  const planoQ = usePlanoAbertoPedido(pedidoId, aberto);
   const bancosQ = useBancosRecebimento(aberto);
   const adquirentesQ = useAdquirentes(aberto && provaTipo === "cartao_nsu");
   const comprovantesQ = useComprovantesPedido(pedidoId, aberto);
@@ -165,6 +168,13 @@ export function ConfirmarPagamentoDialog({
 
   const provisaoEfetiva = provisaoId ?? linhaAlvo?.id ?? null;
 
+  // Linha efetiva do plano nos DOIS caminhos (provisaoId fixo ou escolha manual):
+  // é ela quem dita o meio — e o meio dita o tipo de prova.
+  const linhaEfetiva = useMemo(
+    () => candidatas.find((l) => l.id === provisaoEfetiva) ?? null,
+    [candidatas, provisaoEfetiva],
+  );
+
   // O comprovante mais recente já lido pela IA preenche a tela sozinho.
   const lido = useMemo(
     () => (comprovantesQ.data ?? []).find((c) => c.status === "lido") ?? null,
@@ -181,6 +191,22 @@ export function ConfirmarPagamentoDialog({
     if (lido.valor_lido != null) setValor(String(lido.valor_lido));
   }, [aberto, lido, comprovanteId]);
 
+  // MEIO-DITA-PROVA: ao trocar de linha, a prova nasce do meio dela — cartão
+  // pede NSU, boleto pede CNAB, o resto fecha por E2E/txid. Não manda quando um
+  // comprovante lido já está ditando a prova, nem sobrescreve a escolha manual
+  // do operador na MESMA linha (o ref marca a última linha sincronizada).
+  const ultimaLinhaSyncRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!linhaEfetiva) return;
+    if (lido && comprovanteId === lido.id) return;
+    if (ultimaLinhaSyncRef.current === linhaEfetiva.id) return;
+    ultimaLinhaSyncRef.current = linhaEfetiva.id;
+    const meio = meioDaLinha(linhaEfetiva);
+    setProvaTipo(
+      meio === "cartao" ? "cartao_nsu" : meio === "boleto" ? "boleto_cnab" : "pix_txid",
+    );
+  }, [linhaEfetiva, lido, comprovanteId]);
+
   useEffect(() => {
     if (aberto) return;
     // Fechou: a próxima confirmação começa limpa.
@@ -194,9 +220,12 @@ export function ConfirmarPagamentoDialog({
     setObservacao("");
     setComprovanteId(null);
     setConfianca(null);
+    ultimaLinhaSyncRef.current = null;
   }, [aberto]);
 
   const ehCartao = provaTipo === "cartao_nsu";
+  // Linha de cartão SÓ fecha pela captura com NSU — a prova fica travada.
+  const linhaEhCartao = !!linhaEfetiva && meioDaLinha(linhaEfetiva) === "cartao";
   const temAnexo = !!comprovanteId;
   const valorNum = Number(String(valor).replace(",", ".")) || 0;
 
@@ -340,7 +369,11 @@ export function ConfirmarPagamentoDialog({
           {/* Tipo de prova */}
           <div className="space-y-2">
             <Label htmlFor="prova-tipo">Tipo de prova</Label>
-            <Select value={provaTipo} onValueChange={(v) => setProvaTipo(v as ProvaTipoUI)}>
+            <Select
+              value={provaTipo}
+              onValueChange={(v) => setProvaTipo(v as ProvaTipoUI)}
+              disabled={linhaEhCartao}
+            >
               <SelectTrigger id="prova-tipo">
                 <SelectValue />
               </SelectTrigger>
@@ -350,6 +383,12 @@ export function ConfirmarPagamentoDialog({
                 ))}
               </SelectContent>
             </Select>
+            {linhaEhCartao && (
+              <p className="text-[11px] text-muted-foreground">
+                Cartão fecha pela captura com NSU — se o cliente pagou por outro meio, refaça o
+                plano de pagamento.
+              </p>
+            )}
           </div>
 
           {/* Referência */}
