@@ -21,15 +21,14 @@ import { ClienteAbaPosicao } from "@/components/clientes/ClienteAbaPosicao";
 import { ClienteAbaExtrato } from "@/components/clientes/ClienteAbaExtrato";
 import { ClienteAbaCadastro } from "@/components/clientes/ClienteAbaCadastro";
 import { ClienteAbaPendencias } from "@/components/clientes/ClienteAbaPendencias";
-import { ClienteAbaSugestao } from "@/components/clientes/ClienteAbaSugestao";
 import { BonificacoesTab } from "@/components/clientes/BonificacoesTab";
 import { PedidosDoParceiroSection } from "@/components/parceiros/PedidosDoParceiroSection";
+import { ClienteBlocoProdutos } from "@/components/clientes/ClienteBlocoProdutos";
 
 const ABAS = [
   { value: "posicao", label: "Posição e Crédito", slug: "tela.cliente_posicao" },
   { value: "extrato", label: "Extrato", slug: "tela.cliente_extrato" },
-  { value: "pedidos", label: "Pedidos", slug: "tela.cliente_pedidos" },
-  { value: "sugestao", label: "Sugestão de venda", slug: "tela.cliente_sugestao" },
+  { value: "pedidos", label: "Pedidos e produtos", slug: "tela.cliente_pedidos" },
   { value: "bonificacoes", label: "Bonificações", slug: "tela.cliente_bonificacoes" },
   { value: "cadastro", label: "Cadastro", slug: "tela.cliente_cadastro" },
   { value: "pendencias", label: "Pendências", slug: "tela.cliente_auditoria" },
@@ -50,17 +49,18 @@ export default function ClientePainel() {
   const p3 = usePodeVerAba(ABAS[3].slug);
   const p4 = usePodeVerAba(ABAS[4].slug);
   const p5 = usePodeVerAba(ABAS[5].slug);
-  const p6 = usePodeVerAba(ABAS[6].slug);
-  const permissoes = [p0, p1, p2, p3, p4, p5, p6];
+  const permissoes = [p0, p1, p2, p3, p4, p5];
 
   const carregandoPermissoes = permissoes.some((p) => p.carregando);
   const visiveis = useMemo(
     () => ABAS.filter((_, i) => permissoes[i].podeVer),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [p0.podeVer, p1.podeVer, p2.podeVer, p3.podeVer, p4.podeVer, p5.podeVer, p6.podeVer],
+    [p0.podeVer, p1.podeVer, p2.podeVer, p3.podeVer, p4.podeVer, p5.podeVer],
   );
 
-  const abaUrl = params.get("aba");
+  // Link antigo/favorito de "?aba=sugestao" cai em Pedidos e produtos, onde o conteúdo mora agora.
+  const abaBruta = params.get("aba");
+  const abaUrl = abaBruta === "sugestao" ? "pedidos" : abaBruta;
   const abaAtiva =
     visiveis.find((a) => a.value === abaUrl)?.value ?? visiveis[0]?.value ?? "";
 
@@ -160,12 +160,10 @@ export default function ClientePainel() {
         )}
         {visiveis.some((a) => a.value === "pedidos") && (
           <TabsContent value="pedidos">
-            <PedidosDoParceiroSection parceiroId={id} />
-          </TabsContent>
-        )}
-        {visiveis.some((a) => a.value === "sugestao") && (
-          <TabsContent value="sugestao">
-            <ClienteAbaSugestao parceiroId={id} />
+            <div className="space-y-6">
+              <PedidosDoParceiroSection parceiroId={id} />
+              <ClienteBlocoProdutos parceiroId={id} />
+            </div>
           </TabsContent>
         )}
         {visiveis.some((a) => a.value === "bonificacoes") && (
