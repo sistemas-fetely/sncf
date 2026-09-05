@@ -57095,9 +57095,15 @@ export type Database = {
         Row: {
           a_vencer: number | null
           credito_futuro_boleto: number | null
+          dias_atraso_max: number | null
+          faixa_1_7: number | null
+          faixa_31_60: number | null
+          faixa_60_mais: number | null
+          faixa_8_30: number | null
           lancamentos: number | null
           nome_fantasia: string | null
           parceiro_id: string | null
+          qtd_titulos_abertos: number | null
           saldo: number | null
           ultima_movimentacao: string | null
           vencido_em_aberto: number | null
@@ -57303,7 +57309,6 @@ export type Database = {
           saldo: number | null
           situacao_pagamento: string | null
           status: string | null
-          status_efetivo: string | null
           tags: Json | null
           tem_doc_pendente: boolean | null
           updated_at: string | null
@@ -66946,14 +66951,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -67809,14 +67814,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -79952,10 +79957,6 @@ export type Database = {
         Args: { p_stage_id: string; p_user_id?: string }
         Returns: Json
       }
-      aprovar_cpr_em_cascata: {
-        Args: { p_cpr_id: string; p_status_alvo?: string }
-        Returns: Json
-      }
       aprovar_nf_pj: {
         Args: { _nota_id: string; _observacao_rh?: string }
         Returns: Json
@@ -79987,7 +79988,6 @@ export type Database = {
         }
         Returns: Json
       }
-      atualizar_contas_atrasadas: { Args: never; Returns: undefined }
       atualizar_docs_status: {
         Args: { p_conta_id: string }
         Returns: undefined
@@ -82161,6 +82161,18 @@ export type Database = {
         Returns: boolean
       }
       fn_tem_nf_anexada: { Args: { p_conta_id: string }; Returns: boolean }
+      fn_titulo_pagar_atrasados_relatorio: {
+        Args: never
+        Returns: {
+          cpr_id: string
+          data_pretendida: string
+          data_vencimento: string
+          descricao: string
+          dias_atraso: number
+          status: string
+          valor: number
+        }[]
+      }
       fn_titulo_pagar_transicionar: {
         Args: {
           p_cpr_id: string
