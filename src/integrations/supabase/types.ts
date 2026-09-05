@@ -2330,6 +2330,13 @@ export type Database = {
             foreignKeyName: "atribuicao_pessoa_atribuicao_id_fkey"
             columns: ["atribuicao_id"]
             isOneToOne: false
+            referencedRelation: "vw_atribuicao_fluxo_confronto"
+            referencedColumns: ["atribuicao_id"]
+          },
+          {
+            foreignKeyName: "atribuicao_pessoa_atribuicao_id_fkey"
+            columns: ["atribuicao_id"]
+            isOneToOne: false
             referencedRelation: "vw_carga_atribuicao"
             referencedColumns: ["atribuicao_id"]
           },
@@ -55053,6 +55060,20 @@ export type Database = {
           },
         ]
       }
+      vw_atribuicao_fluxo_confronto: {
+        Row: {
+          atribuicao_id: string | null
+          dias_uteis: number | null
+          entradas_ainda_pendentes: number | null
+          erro: string | null
+          fila_chave: string | null
+          fluxo_declarado: number | null
+          fluxo_piso_medido: number | null
+          nome: string | null
+          veredito: string | null
+        }
+        Relationships: []
+      }
       vw_atribuicao_furo_fila: {
         Row: {
           area: string | null
@@ -83222,14 +83243,14 @@ export type Database = {
         Args: { p_nf_id: string; p_pedido_id: string }
         Returns: Json
       }
-      fn_fila_fluxo_medido: {
+      fn_fila_fluxo_piso: {
         Args: { _dias?: number }
         Returns: {
           dias_uteis: number
-          entradas: number
+          entradas_ainda_pendentes: number
           erro: string
           fila_chave: string
-          fluxo_dia: number
+          fluxo_dia_piso: number
         }[]
       }
       fn_fluxo_caixa_projetado: {
@@ -83440,6 +83461,20 @@ export type Database = {
         Args: never
         Returns: {
           pessoa_id: string
+        }[]
+      }
+      fn_mesa_ver_como: {
+        Args: { _pessoa_id: string }
+        Returns: {
+          atribuicao_id: string
+          atribuicao_nome: string
+          estoque_atual: number
+          fluxo_diario_estimado: number
+          fonte_volume: string
+          furo_sem_numero: boolean
+          minutos_estoque: number
+          minutos_fluxo_dia: number
+          tempo_unitario_min: number
         }[]
       }
       fn_meu_cadastro_autodeclarar: { Args: { p_dados: Json }; Returns: Json }
