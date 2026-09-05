@@ -27,7 +27,10 @@ function meioBanco(meio: string | null | undefined, banco: string | null | undef
   const partes: string[] = [];
   if (meio) {
     const m = meio.trim();
-    partes.push(m.charAt(0).toUpperCase() + m.slice(1).toLowerCase());
+    const normalizado = m === m.toLowerCase()
+      ? m.charAt(0).toUpperCase() + m.slice(1)
+      : m;
+    partes.push(normalizado);
   }
   if (banco) partes.push(banco.trim());
   return partes.length ? partes.join(" · ") : "—";
