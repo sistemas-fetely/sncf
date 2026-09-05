@@ -14,10 +14,8 @@ import {
   FileText,
   UserCheck,
   Send,
-  ThumbsUp,
   X,
   ShieldCheck,
-  RotateCcw,
   Clock,
   ChevronDown,
   CreditCard,
@@ -28,7 +26,6 @@ import {
   ExternalLink,
   Ban,
   CheckCircle,
-  CheckCircle2,
   AlertTriangle,
 } from "lucide-react";
 import {
@@ -53,7 +50,15 @@ import DocumentosCP from "./DocumentosCP";
 
 import { NfStageVinculadaCard } from "@/components/financeiro/NfStageVinculadaCard";
 import ContaPagarFormEdit from "./ContaPagarFormEdit";
-import { useContaWorkflow, type ContaStatus } from "@/hooks/useContaWorkflow";
+import {
+  useTituloPagarAcoes,
+  useTituloPagarTransicionar,
+  type TituloPagarAcao,
+} from "@/hooks/financeiro/useTituloPagarEstado";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { formatError } from "@/lib/format-error";
 
 type Conta = {
@@ -123,7 +128,10 @@ export default function ContaPagarDetalheDrawer({
   const [apagando, setApagando] = useState(false);
   const [lancandoMov, setLancandoMov] = useState(false);
   
-  const workflow = useContaWorkflow();
+  const [acaoPendente, setAcaoPendente] = useState<TituloPagarAcao | null>(null);
+  const [motivo, setMotivo] = useState("");
+  const [dataPretendida, setDataPretendida] = useState("");
+  const transicionar = useTituloPagarTransicionar();
   const qc = useQueryClient();
 
   async function handleLancarMov() {
@@ -312,17 +320,27 @@ export default function ContaPagarDetalheDrawer({
     return cats.size > 1;
   })();
 
-  async function avancar(novoStatus: ContaStatus, observacao?: string, closeOnSuccess = true) {
+  // MECANISMO-ANTES-DE-UPDATE: as ações vêm do banco (vw_titulo_pagar_acoes).
+  // Ausência de linha = botão não existe. O drawer não fecha após transicionar:
+  // o badge de estado atualiza na frente do operador.
+  const { data: acoesMap } = useTituloPagarAcoes(conta?.id ? [conta.id] : []);
+  const acoes = (conta?.id && acoesMap?.get(conta.id)) || [];
+
+  function fecharDialogAcao() {
+    setAcaoPendente(null);
+    setMotivo("");
+    setDataPretendida("");
+  }
+
+  function clicarAcao(acao: TituloPagarAcao) {
     if (!conta) return;
-    await workflow.mudarStatus.mutateAsync({
-      contaId: conta.id,
-      statusAnterior: conta.status,
-      novoStatus,
-      observacao: observacao || undefined,
-    });
-    // Click inteligente: por padrão fecha o drawer após avançar status
-    // Próxima ação geralmente é avaliar outras CPRs
-    if (closeOnSuccess) onClose();
+    if (acao.exige_motivo || acao.exige_data_pretendida) {
+      setAcaoPendente(acao);
+      setMotivo("");
+      setDataPretendida("");
+      return;
+    }
+    transicionar.mutate({ cprId: conta.id, para: acao.para });
   }
 
   const dadosBancarios =
@@ -642,99 +660,34 @@ export default function ContaPagarDetalheDrawer({
               </>
             )}
 
-            {/* AÇÕES DO WORKFLOW - PR2: aberto → aprovado → doc_pendente → finalizado */}
+            {/* AÇÕES DO ESTADO — vindas de `vw_titulo_pagar_acoes` (Camada 3c).
+                Ausência de linha na dimensão = botão não existe. */}
             {conta.tipo === "pagar" && (
               <>
                 <Separator className="my-4" />
                 <div className="space-y-3">
-                  {/* ABERTO ou ATRASADO → pode aprovar */}
-                  {(conta.status === "aberto" || conta.status === "atrasado") && (
+                  {acoes.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      Nenhuma ação disponível neste estado.
+                    </p>
+                  ) : (
                     <div className="space-y-2">
-                      <p
-                        className={`text-xs ${conta.status === "atrasado" ? "text-destructive font-medium" : "text-muted-foreground"}`}
-                      >
-                        {conta.status === "atrasado"
-                          ? "⚠ Atrasada! Aprove para liberar pagamento."
-                          : "Validada. Aprove para liberar pagamento."}
-                      </p>
-                      <Button
-                        className="w-full bg-info hover:bg-info text-white gap-2"
-                        onClick={async () => {
-                          // Cartão vai direto pra enviado_para_pagamento em cascata (sem email ao fornecedor)
-                          // Não-cartão vai pra aprovado em cascata (requer envio de email depois)
-                          const statusAlvo = isCartao ? "enviado_para_pagamento" : "aprovado";
-                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          const { data: cascata } = await (supabase as any).rpc(
-                            "aprovar_cpr_em_cascata",
-                            { p_cpr_id: conta.id, p_status_alvo: statusAlvo },
-                          );
-                          const totalAprovadas = (cascata?.parcelas_aprovadas as number) || 1;
-                          if (totalAprovadas > 1) {
-                            toast.success(
-                              isCartao
-                                ? `${totalAprovadas} parcelas aguardando pagamento pela fatura`
-                                : `${totalAprovadas} parcelas do grupo aprovadas`,
-                            );
-                          }
-                          onClose();
-                        }}
-                      >
-                        <ThumbsUp className="h-4 w-4" /> Aprovar pagamento
-                      </Button>
+                      {acoes.map((acao) => (
+                        <Button
+                          key={`${acao.de}-${acao.para}`}
+                          variant="outline"
+                          className="w-full gap-2"
+                          disabled={transicionar.isPending}
+                          onClick={() => clicarAcao(acao)}
+                        >
+                          {transicionar.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                          {acao.rotulo_acao}
+                        </Button>
+                      ))}
                     </div>
                   )}
 
-                  {/* APROVADO → enviar para pagamento (Família A) ou pular pra aguardando (Família B) */}
-                  {conta.status === "aprovado" && (
-                    <div className="space-y-2">
-                      {isCartao ? (
-                        <>
-                          <p className="text-xs text-muted-foreground">
-                            Pagamento via fatura de cartão — não cabe envio de email ao fornecedor.
-                          </p>
-                          <Button
-                            className="w-full bg-warning hover:bg-warning text-white gap-2"
-                            onClick={() =>
-                              avancar(
-                                "enviado_para_pagamento",
-                                "Marcado como aguardando — pagamento via fatura de cartão.",
-                              )
-                            }
-                          >
-                            <Send className="h-4 w-4" /> Marcar como aguardando pagamento
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <p className="text-xs text-muted-foreground">
-                            Aprovado! Envie ao financeiro com os documentos.
-                          </p>
-                          <Button
-                            className="w-full bg-warning hover:bg-warning text-white gap-2"
-                            onClick={() => setShowEnviar(true)}
-                          >
-                            <Send className="h-4 w-4" /> Enviar para pagamento
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  )}
-
-                  {/* ENVIADO_PARA_PAGAMENTO — status terminal, conciliação automática */}
-                  {conta.status === "enviado_para_pagamento" && (
-                    <div className="p-4 rounded-lg bg-success/10 border border-success/40 text-success text-sm flex items-start gap-3">
-                      <CheckCircle2 className="h-5 w-5 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-medium">Enviado para pagamento</p>
-                        <p className="text-xs mt-1 text-success">
-                          A conciliação bancária irá confirmar automaticamente quando o débito aparecer no extrato.
-                          Acesse <strong>Conciliação → Stage 1</strong> para vincular à movimentação.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* DOC_PENDENTE → reenviar email + opção finalizar manual */}
+                  {/* DOC_PENDENTE — cobrança de PROVA (a NF), não mudança de estado */}
                   {conta.status === "doc_pendente" && (
                     <div className="space-y-2">
                       <div className="p-3 rounded-lg bg-warning/10 text-warning text-sm flex items-center gap-2">
@@ -746,61 +699,6 @@ export default function ContaPagarDetalheDrawer({
                       >
                         <Send className="h-4 w-4" /> Reenviar e-mail (cobrar documentação)
                       </Button>
-                      <button
-                        className="text-[11px] text-muted-foreground hover:text-foreground underline w-full text-center"
-                        onClick={() => avancar("enviado_para_pagamento", "Marcado como aguardando pagamento (documentação OK)")}
-                      >
-                        Finalizar manualmente (NF entregue fora do sistema)
-                      </button>
-                    </div>
-                  )}
-
-                  {/* FINALIZADO */}
-                  {conta.status === "finalizado" && (
-                    <div className="space-y-2">
-                      <div className="p-3 rounded-lg bg-success/10 text-success text-sm flex items-center gap-2">
-                        <Check className="h-4 w-4" /> Finalizado — documentação OK, pagamento gerenciado em Caixa e Banco
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full gap-2"
-                        onClick={() => setShowEnviar(true)}
-                      >
-                        <Send className="h-3.5 w-3.5" /> Reenviar e-mail (caso necessário)
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* CANCELADO */}
-                  {conta.status === "cancelado" && (
-                    <div className="space-y-2">
-                      <div className="p-3 rounded-lg bg-muted/10 text-muted-foreground text-sm flex items-center gap-2">
-                        <X className="h-4 w-4" /> Cancelado
-                      </div>
-                      <Button
-                        variant="outline"
-                        className="w-full gap-2"
-                        onClick={() => avancar("aberto", "Reaberto após cancelamento", false)}
-                      >
-                        <RotateCcw className="h-4 w-4" /> Reabrir
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* STATUS LEGADOS (registros antigos migrados manualmente) */}
-                  {(conta.status === "rascunho" || conta.status === "agendado" || conta.status === "conciliado") && (
-                    <div className="space-y-2">
-                      <div className="p-3 rounded-lg bg-info/10 text-info text-xs">
-                        Status legado: <strong>{conta.status}</strong>. Reabrir para novo fluxo.
-                      </div>
-                      <Button
-                        variant="outline"
-                        className="w-full gap-2"
-                        onClick={() => avancar("aberto", "Migrado para novo fluxo", false)}
-                      >
-                        <RotateCcw className="h-4 w-4" /> Reabrir para novo fluxo
-                      </Button>
                     </div>
                   )}
 
@@ -810,7 +708,7 @@ export default function ContaPagarDetalheDrawer({
                     conta.status !== "finalizado" &&
                     conta.status !== "conciliado" && (
                       <div className="pt-4 border-t">
-                        <CancelarButton conta={conta} workflow={workflow} onClose={onClose} temIrmasAtivas={temIrmasAtivas} />
+                        <CancelarButton conta={conta} onClose={onClose} temIrmasAtivas={temIrmasAtivas} />
                       </div>
                     )}
                 </div>
@@ -830,6 +728,66 @@ export default function ContaPagarDetalheDrawer({
                 onPaid={onClose}
               />
             )}
+
+            {/* Diálogo único de transição — motivo e/ou data pretendida */}
+            <Dialog open={!!acaoPendente} onOpenChange={(o) => { if (!o) fecharDialogAcao(); }}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>{acaoPendente?.rotulo_acao}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3">
+                  {acaoPendente?.exige_data_pretendida && (
+                    <div className="space-y-1">
+                      <Label htmlFor="data-pretendida">Data pretendida</Label>
+                      <Input
+                        id="data-pretendida"
+                        type="date"
+                        value={dataPretendida}
+                        onChange={(e) => setDataPretendida(e.target.value)}
+                      />
+                    </div>
+                  )}
+                  {acaoPendente?.exige_motivo && (
+                    <div className="space-y-1">
+                      <Label htmlFor="motivo-transicao">Motivo</Label>
+                      <Textarea
+                        id="motivo-transicao"
+                        value={motivo}
+                        onChange={(e) => setMotivo(e.target.value)}
+                        rows={3}
+                      />
+                    </div>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button variant="ghost" onClick={fecharDialogAcao} disabled={transicionar.isPending}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    disabled={
+                      transicionar.isPending ||
+                      (!!acaoPendente?.exige_motivo && !motivo.trim()) ||
+                      (!!acaoPendente?.exige_data_pretendida && !dataPretendida)
+                    }
+                    onClick={() => {
+                      if (!acaoPendente || !conta) return;
+                      transicionar.mutate(
+                        {
+                          cprId: conta.id,
+                          para: acaoPendente.para,
+                          motivo: motivo.trim() || undefined,
+                          dataPretendida: dataPretendida || null,
+                        },
+                        { onSuccess: () => fecharDialogAcao() },
+                      );
+                    }}
+                  >
+                    {transicionar.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                    Confirmar
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             {showEnviar && (
               <EnviarPagamentoDialog
@@ -854,12 +812,10 @@ export default function ContaPagarDetalheDrawer({
 
 function CancelarButton({
   conta,
-  workflow: _workflow,
   onClose,
   temIrmasAtivas,
 }: {
   conta: { id: string; status: string };
-  workflow: ReturnType<typeof useContaWorkflow>;
   onClose: () => void;
   temIrmasAtivas: boolean;
 }) {
