@@ -211,7 +211,7 @@ function SheetDrill({
     drill?.inicio ?? null,
     drill?.fim ?? null
   );
-  // as funções de carga já filtram por conta_carga no banco — não filtrar de novo aqui
+  // as funções de carga já aplicam suas regras no banco — não filtrar de novo aqui
   const linhas = data ?? [];
 
   return (
