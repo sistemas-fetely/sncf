@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { CalendarClock, GripVertical, Lock, MoreHorizontal, Plus } from "lucide-react";
+import { CalendarClock, GripVertical, ListChecks, Lock, MoreHorizontal, Plus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -282,6 +282,7 @@ export function BoardProjeto({ projetoId }: Props) {
                   {itens.map((t) => {
                     const arrastavel = podeArrastar(t);
                     const limite = dataCurta(t.data_limite);
+                    const progresso = progressoFilhas.get(t.id);
                     const camposDoCard = camposCard
                       .map((c) => {
                         const meta = catalogo?.find((k) => k.id === c.campo_id);
