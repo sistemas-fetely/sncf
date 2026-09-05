@@ -335,3 +335,50 @@ export function useMixCliente(parceiroId: string | null | undefined) {
     },
   });
 }
+
+export type MotivoSugestao = "completar_colecao" | "familia_sub_comprada";
+
+export interface SugestaoVenda {
+  parceiro_id: string;
+  motivo: MotivoSugestao;
+  sku: string;
+  nome: string;
+  familia: string;
+  colecao: string;
+  preco_venda: number;
+  clientes_compram: number;
+  porque: string;
+  prioridade: number;
+}
+
+export const QK_CLIENTE_SUGESTAO = "cliente-painel-sugestao";
+
+/** Sugestão ativa de venda: SKU + argumento pronto para o vendedor. Só leitura. */
+export function useSugestaoVenda(parceiroId: string | null | undefined) {
+  return useQuery({
+    queryKey: [QK_CLIENTE_SUGESTAO, parceiroId],
+    enabled: !!parceiroId,
+    queryFn: async (): Promise<SugestaoVenda[]> => {
+      const { data, error } = await (supabase as any)
+        .from("vw_sugestao_venda_cliente")
+        .select("parceiro_id, motivo, sku, nome, familia, colecao, preco_venda, clientes_compram, porque, prioridade")
+        .eq("parceiro_id", parceiroId)
+        .order("prioridade", { ascending: true })
+        .order("clientes_compram", { ascending: false })
+        .limit(30);
+      if (error) throw error;
+      return ((data ?? []) as Record<string, unknown>[]).map((d) => ({
+        parceiro_id: String(d.parceiro_id ?? ""),
+        motivo: String(d.motivo ?? "completar_colecao") as MotivoSugestao,
+        sku: String(d.sku ?? ""),
+        nome: String(d.nome ?? "—"),
+        familia: String(d.familia ?? "—"),
+        colecao: String(d.colecao ?? "—"),
+        preco_venda: Number(d.preco_venda ?? 0),
+        clientes_compram: Number(d.clientes_compram ?? 0),
+        porque: String(d.porque ?? ""),
+        prioridade: Number(d.prioridade ?? 2),
+      }));
+    },
+  });
+}
