@@ -29,6 +29,7 @@ const ABAS = [
   { value: "posicao", label: "Posição e Crédito", slug: "tela.cliente_posicao" },
   { value: "extrato", label: "Extrato", slug: "tela.cliente_extrato" },
   { value: "pedidos", label: "Pedidos", slug: "tela.cliente_pedidos" },
+  { value: "sugestao", label: "Sugestão de venda", slug: "tela.cliente_sugestao" },
   { value: "bonificacoes", label: "Bonificações", slug: "tela.cliente_bonificacoes" },
   { value: "cadastro", label: "Cadastro", slug: "tela.cliente_cadastro" },
   { value: "pendencias", label: "Pendências", slug: "tela.cliente_auditoria" },
