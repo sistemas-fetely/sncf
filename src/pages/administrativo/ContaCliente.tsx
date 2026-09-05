@@ -26,8 +26,10 @@ import {
   useContasClienteSaldo,
   type ContaClienteSaldo,
 } from "@/hooks/financeiro/useContaCliente";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ContaClienteDrawer } from "@/components/financeiro/ContaClienteDrawer";
 import { RegistrarRecebimentoDialog } from "@/components/financeiro/RegistrarRecebimentoDialog";
+import { EntradasReconhecerTab } from "@/components/financeiro/EntradasReconhecerTab";
 
 function dataBR(iso: string | null | undefined) {
   if (!iso) return "—";
@@ -113,92 +115,106 @@ export default function ContaCliente() {
         </div>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-        <Input
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          placeholder="Buscar cliente"
-          className="h-8 pl-8"
-        />
-      </div>
+      <Tabs defaultValue="contas" className="space-y-3">
+        <TabsList>
+          <TabsTrigger value="contas">Contas de clientes</TabsTrigger>
+          <TabsTrigger value="entradas">Entradas a reconhecer</TabsTrigger>
+        </TabsList>
 
-      {isLoading ? (
-        <div className="space-y-2">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-9 w-full" />
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-md border border-border/60">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Cliente</TableHead>
-                <TableHead className="text-right">Saldo</TableHead>
-                <TableHead className="text-right">Vencido em aberto</TableHead>
-                <TableHead className="text-right">A vencer</TableHead>
-                <TableHead className="text-right">Crédito futuro</TableHead>
-                <TableHead>Última movimentação</TableHead>
-                <TableHead>Estado</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtradas.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center text-xs text-muted-foreground py-6">
-                    Nenhum cliente com movimento em conta.
-                  </TableCell>
-                </TableRow>
-              )}
-              {filtradas.map((c) => {
-                const s = Number(c.saldo ?? 0);
-                const vencido = Number(c.vencido_em_aberto ?? 0) > 0;
-                return (
-                  <TableRow
-                    key={c.parceiro_id}
-                    className="cursor-pointer"
-                    onClick={() => setSelecionada(c)}
-                  >
-                    <TableCell className="text-xs font-medium">
-                      {c.nome_fantasia ?? "(sem nome)"}
-                    </TableCell>
-                    <TableCell
-                      className={cn(
-                        "text-right text-xs font-medium",
-                        s > 0 ? "text-success" : s < 0 ? "text-warning" : "",
-                      )}
-                    >
-                      {formatBRL(s)}
-                    </TableCell>
-                    <TableCell className="text-right text-xs">
-                      {formatBRL(c.vencido_em_aberto ?? 0)}
-                    </TableCell>
-                    <TableCell className="text-right text-xs">
-                      {formatBRL(c.a_vencer ?? 0)}
-                    </TableCell>
-                    <TableCell className="text-right text-xs">
-                      {formatBRL(c.credito_futuro_boleto ?? 0)}
-                    </TableCell>
-                    <TableCell className="text-xs">{dataBR(c.ultima_movimentacao)}</TableCell>
-                    <TableCell>
-                      {vencido ? (
-                        <Selo estado="destructive">vencido em aberto</Selo>
-                      ) : s > 0 ? (
-                        <Selo estado="success">crédito</Selo>
-                      ) : s < 0 ? (
-                        <Selo estado="warning">a receber</Selo>
-                      ) : (
-                        <Selo estado="muted">zerada</Selo>
-                      )}
-                    </TableCell>
+        <TabsContent value="contas" className="space-y-3">
+          <div className="relative max-w-sm">
+            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar cliente"
+              className="h-8 pl-8"
+            />
+          </div>
+
+          {isLoading ? (
+            <div className="space-y-2">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-9 w-full" />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-md border border-border/60">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead className="text-right">Saldo</TableHead>
+                    <TableHead className="text-right">Vencido em aberto</TableHead>
+                    <TableHead className="text-right">A vencer</TableHead>
+                    <TableHead className="text-right">Crédito futuro</TableHead>
+                    <TableHead>Última movimentação</TableHead>
+                    <TableHead>Estado</TableHead>
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+                </TableHeader>
+                <TableBody>
+                  {filtradas.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-xs text-muted-foreground py-6">
+                        Nenhum cliente com movimento em conta.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {filtradas.map((c) => {
+                    const s = Number(c.saldo ?? 0);
+                    const vencido = Number(c.vencido_em_aberto ?? 0) > 0;
+                    return (
+                      <TableRow
+                        key={c.parceiro_id}
+                        className="cursor-pointer"
+                        onClick={() => setSelecionada(c)}
+                      >
+                        <TableCell className="text-xs font-medium">
+                          {c.nome_fantasia ?? "(sem nome)"}
+                        </TableCell>
+                        <TableCell
+                          className={cn(
+                            "text-right text-xs font-medium",
+                            s > 0 ? "text-success" : s < 0 ? "text-warning" : "",
+                          )}
+                        >
+                          {formatBRL(s)}
+                        </TableCell>
+                        <TableCell className="text-right text-xs">
+                          {formatBRL(c.vencido_em_aberto ?? 0)}
+                        </TableCell>
+                        <TableCell className="text-right text-xs">
+                          {formatBRL(c.a_vencer ?? 0)}
+                        </TableCell>
+                        <TableCell className="text-right text-xs">
+                          {formatBRL(c.credito_futuro_boleto ?? 0)}
+                        </TableCell>
+                        <TableCell className="text-xs">{dataBR(c.ultima_movimentacao)}</TableCell>
+                        <TableCell>
+                          {vencido ? (
+                            <Selo estado="destructive">vencido em aberto</Selo>
+                          ) : s > 0 ? (
+                            <Selo estado="success">crédito</Selo>
+                          ) : s < 0 ? (
+                            <Selo estado="warning">a receber</Selo>
+                          ) : (
+                            <Selo estado="muted">zerada</Selo>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="entradas">
+          <EntradasReconhecerTab />
+        </TabsContent>
+      </Tabs>
+
 
       <ContaClienteDrawer
         conta={selecionada}

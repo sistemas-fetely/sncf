@@ -214,3 +214,122 @@ export function useClientesBusca(termo: string) {
     },
   });
 }
+
+/* ------------------------------------------------------------------------- *
+ * ENTRADAS A RECONHECER — o que a varredura automática não reconheceu.
+ * ------------------------------------------------------------------------- */
+
+export interface EntradaReconhecer {
+  id: string;
+  data_transacao: string;
+  valor: number;
+  contraparte_nome: string | null;
+  contraparte_documento: string | null;
+  descricao: string;
+  tipo_meio: string | null;
+}
+
+export const QK_ENTRADAS_RECONHECER = "conta-cliente-entradas-reconhecer";
+
+/** Créditos bancários sem cliente atribuído. Fonte: movimentacoes_bancarias. */
+export function useEntradasReconhecer() {
+  return useQuery({
+    queryKey: [QK_ENTRADAS_RECONHECER],
+    queryFn: async (): Promise<EntradaReconhecer[]> => {
+      const { data, error } = await (supabase as any)
+        .from("movimentacoes_bancarias")
+        .select("id, data_transacao, valor, contraparte_nome, contraparte_documento, descricao, tipo_meio")
+        .eq("tipo", "credito")
+        .eq("conciliado", false)
+        .is("duplicada_de", null)
+        .is("classe", null)
+        .gte("data_transacao", "2026-09-05")
+        .in("tipo_meio", ["pix", "transferencia", "boleto", "outro"])
+        .order("data_transacao", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as EntradaReconhecer[];
+    },
+  });
+}
+
+export interface AtribuirClienteResultado {
+  ok: boolean;
+  erro?: string | null;
+  valor?: number;
+  pagador_aprendido?: boolean;
+}
+
+/** Atribui uma entrada bancária a um cliente. FAIL-LOUD. */
+export function useAtribuirClienteExtrato() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: {
+      movimentacao_id: string;
+      parceiro_id: string;
+    }): Promise<AtribuirClienteResultado> => {
+      const { data: sessao } = await supabase.auth.getUser();
+      const { data, error } = await (supabase as any).rpc("fn_extrato_atribuir_cliente", {
+        p_movimentacao_id: input.movimentacao_id,
+        p_parceiro_id: input.parceiro_id,
+        p_nota: null,
+        p_user_id: sessao?.user?.id ?? null,
+      });
+      if (error) throw error;
+      const res = (data ?? {}) as AtribuirClienteResultado;
+      if (!res.ok) throw new Error(res.erro || "O banco recusou a atribuição.");
+      return res;
+    },
+    onSuccess: (_res, input) => {
+      qc.invalidateQueries({ queryKey: [QK_ENTRADAS_RECONHECER] });
+      qc.invalidateQueries({ queryKey: [QK_CONTA_CLIENTE_SALDO] });
+      qc.invalidateQueries({ queryKey: [QK_CONTA_CLIENTE_LANC, input.parceiro_id] });
+      qc.invalidateQueries({ queryKey: [QK_CONTA_CLIENTE_COBERTURA, input.parceiro_id] });
+    },
+  });
+}
+
+/* ------------------------------------------------------------------------- *
+ * LIBERAR POR COBERTURA — caminho novo, convive com o portão antigo.
+ * ------------------------------------------------------------------------- */
+
+export interface LiberarCoberturaResultado {
+  ok: boolean;
+  coberto?: boolean;
+  empenhado_saldo?: number;
+  empenhado_limite?: number;
+  ja_empenhado?: boolean;
+  erro?: string | null;
+  mensagem?: string | null;
+  rota?: string | null;
+}
+
+/**
+ * Empenha a cobertura do cliente para o pedido. `ok: false` com rota
+ * `analise_credito` NÃO é erro — é rota, e quem chama mostra em âmbar.
+ */
+export function useLiberarPorCobertura() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: {
+      pedido_id: string;
+      parceiro_id?: string | null;
+    }): Promise<LiberarCoberturaResultado> => {
+      const { data: sessao } = await supabase.auth.getUser();
+      const { data, error } = await (supabase as any).rpc("fn_pedido_liberar_por_cobertura", {
+        p_pedido_id: input.pedido_id,
+        p_user_id: sessao?.user?.id ?? null,
+      });
+      if (error) throw error;
+      return (data ?? {}) as LiberarCoberturaResultado;
+    },
+    onSuccess: (_res, input) => {
+      qc.invalidateQueries({ queryKey: [QK_CONTA_CLIENTE_SALDO] });
+      if (input.parceiro_id) {
+        qc.invalidateQueries({ queryKey: [QK_CONTA_CLIENTE_COBERTURA, input.parceiro_id] });
+        qc.invalidateQueries({ queryKey: [QK_CONTA_CLIENTE_LANC, input.parceiro_id] });
+      }
+    },
+  });
+}
