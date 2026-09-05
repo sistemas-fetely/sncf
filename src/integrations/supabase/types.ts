@@ -43276,39 +43276,6 @@ export type Database = {
         }
         Relationships: []
       }
-      tarefa_natureza_dim: {
-        Row: {
-          ativo: boolean
-          codigo: string
-          conta_carga: boolean
-          created_at: string
-          descricao: string
-          na_lista_de_trabalho: boolean
-          nome: string
-          ordem: number
-        }
-        Insert: {
-          ativo?: boolean
-          codigo: string
-          conta_carga: boolean
-          created_at?: string
-          descricao: string
-          na_lista_de_trabalho: boolean
-          nome: string
-          ordem?: number
-        }
-        Update: {
-          ativo?: boolean
-          codigo?: string
-          conta_carga?: boolean
-          created_at?: string
-          descricao?: string
-          na_lista_de_trabalho?: boolean
-          nome?: string
-          ordem?: number
-        }
-        Relationships: []
-      }
       tarefas: {
         Row: {
           acao_url: string | null
@@ -43330,7 +43297,6 @@ export type Database = {
           id: string
           modulo_origem: string | null
           motivo_cancelamento: string | null
-          natureza: string
           ocorrencia_data: string | null
           ordem: number
           parent_id: string | null
@@ -43365,7 +43331,6 @@ export type Database = {
           id?: string
           modulo_origem?: string | null
           motivo_cancelamento?: string | null
-          natureza?: string
           ocorrencia_data?: string | null
           ordem?: number
           parent_id?: string | null
@@ -43400,7 +43365,6 @@ export type Database = {
           id?: string
           modulo_origem?: string | null
           motivo_cancelamento?: string | null
-          natureza?: string
           ocorrencia_data?: string | null
           ordem?: number
           parent_id?: string | null
@@ -43422,13 +43386,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "departamentos"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tarefas_natureza_fkey"
-            columns: ["natureza"]
-            isOneToOne: false
-            referencedRelation: "tarefa_natureza_dim"
-            referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_parent_id_fkey"
@@ -68706,14 +68663,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -70970,14 +70927,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -78253,6 +78210,21 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_sugestao_venda_cliente: {
+        Row: {
+          clientes_compram: number | null
+          colecao: string | null
+          familia: string | null
+          motivo: string | null
+          nome: string | null
+          parceiro_id: string | null
+          porque: string | null
+          preco_venda: number | null
+          prioridade: number | null
+          sku: string | null
+        }
+        Relationships: []
+      }
       vw_tarefa_meu_papel: {
         Row: {
           acao_url: string | null
@@ -78261,7 +78233,6 @@ export type Database = {
           aprovacao_por: string | null
           aprovacao_status: string | null
           atualizado_em: string | null
-          conta_carga: boolean | null
           criado_em: string | null
           criado_por: string | null
           data_conclusao: string | null
@@ -78280,8 +78251,6 @@ export type Database = {
           mae_titulo: string | null
           modulo_origem: string | null
           motivo_cancelamento: string | null
-          na_lista_de_trabalho: boolean | null
-          natureza: string | null
           ocorrencia_data: string | null
           ordem: number | null
           papeis: string[] | null
@@ -78295,7 +78264,6 @@ export type Database = {
           tipo_origem: string | null
           tipo_tarefa: string | null
           titulo: string | null
-          trabalho_independente: boolean | null
           visibilidade: string | null
         }
         Relationships: [
@@ -78305,13 +78273,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "departamentos"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tarefas_natureza_fkey"
-            columns: ["natureza"]
-            isOneToOne: false
-            referencedRelation: "tarefa_natureza_dim"
-            referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_parent_id_fkey"
