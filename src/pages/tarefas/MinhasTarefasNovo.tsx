@@ -226,6 +226,20 @@ export default function MinhasTarefasNovo() {
               </SelectContent>
             </Select>
           )}
+
+          <ToggleGroup
+            type="single"
+            value={visao}
+            onValueChange={(v) => v && setVisao(v as "lista" | "quadro")}
+            className="ml-1"
+          >
+            <ToggleGroupItem value="lista" aria-label="Visão em lista" className="h-8 gap-1.5 px-2.5 text-xs">
+              <LayoutList className="h-3.5 w-3.5" /> Lista
+            </ToggleGroupItem>
+            <ToggleGroupItem value="quadro" aria-label="Visão em quadro" className="h-8 gap-1.5 px-2.5 text-xs">
+              <KanbanSquare className="h-3.5 w-3.5" /> Quadro
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
         <span className="text-xs text-muted-foreground">{totalAba} tarefa(s)</span>
       </div>
