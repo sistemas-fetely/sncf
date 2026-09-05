@@ -13,6 +13,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { useDb } from "@/lib/db";
 import { humanizeError } from "@/lib/errorMessages";
 import { formatError } from "@/lib/format-error";
 import { PageShell } from "@/components/layout/PageShell";
@@ -107,6 +108,7 @@ function ListaOuVazio({ vazio, aviso, children }: { vazio: boolean; aviso: strin
 
 
 export default function PessoaEntradaRapida() {
+  const db = useDb();
   const navigate = useNavigate();
 
   // Pessoa
@@ -309,7 +311,7 @@ export default function PessoaEntradaRapida() {
         return;
       }
 
-      const { data: p, error: e1 } = await (supabase as any)
+      const { data: p, error: e1 } = await (db as any)
         .from("pessoas")
         .insert({
           nome_completo: nomeCompleto.trim(),
@@ -322,14 +324,14 @@ export default function PessoaEntradaRapida() {
       if (e1) throw e1;
       const pessoaId = p.id as string;
 
-      const { data: v, error: e2 } = await (supabase as any)
+      const { data: v, error: e2 } = await (db as any)
         .from("vinculos")
         .insert(payloadVinculo(pessoaId))
         .select("id")
         .single();
       if (e2) {
         // Rollback otimista: nunca deixar pessoa órfã.
-        const { error: errDel } = await (supabase as any).from("pessoas").delete().eq("id", pessoaId);
+        const { error: errDel } = await (db as any).from("pessoas").delete().eq("id", pessoaId);
         if (errDel) {
           toast.error(
             "Vínculo falhou e a pessoa não pôde ser removida (" + humanizeError(errDel.message) + "). Edite a ficha para completar."
@@ -350,7 +352,7 @@ export default function PessoaEntradaRapida() {
     if (!pessoaExistente) return;
     setSalvando(true);
     try {
-      const { data: v, error } = await (supabase as any)
+      const { data: v, error } = await (db as any)
         .from("vinculos")
         .insert(payloadVinculo(pessoaExistente.id))
         .select("id")

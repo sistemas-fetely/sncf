@@ -124,6 +124,7 @@ const emptyVinculo: VinculoForm = {
 function onlyDigits(s: string) { return (s || "").replace(/\D/g, ""); }
 
 export default function PessoaForm() {
+  const db = useDb();
   const { id } = useParams<{ id: string }>();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
