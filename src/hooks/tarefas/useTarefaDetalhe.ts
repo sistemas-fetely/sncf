@@ -84,6 +84,51 @@ export function useSalvarCampoTarefa(tarefaId: string) {
   });
 }
 
+/**
+ * Natureza com herança: subtarefa de épico é trabalho de projeto, não tarefa do dia.
+ * Desce a árvore inteira no MESMO salvamento — await real, throw e toast no erro.
+ */
+export function useSalvarNaturezaTarefa(tarefaId: string) {
+  const invalidar = useInvalidar(tarefaId);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (natureza: string): Promise<number> => {
+      const alvo = await supabase.from("tarefas").update({ natureza }).eq("id", tarefaId);
+      if (alvo.error) throw alvo.error;
+
+      // cascata nível a nível, com trava de ciclo
+      let nivel = [tarefaId];
+      const vistos = new Set(nivel);
+      let descendentes = 0;
+      while (nivel.length) {
+        const filhos = await supabase.from("tarefas").select("id").in("parent_id", nivel);
+        if (filhos.error) throw filhos.error;
+        const ids = (filhos.data ?? []).map((f) => f.id as string).filter((id) => !vistos.has(id));
+        if (!ids.length) break;
+        for (const id of ids) vistos.add(id);
+        const upd = await supabase.from("tarefas").update({ natureza }).in("id", ids);
+        if (upd.error) throw upd.error;
+        descendentes += ids.length;
+        nivel = ids;
+      }
+      return descendentes;
+    },
+    onSuccess: (descendentes) => {
+      invalidar();
+      qc.invalidateQueries({ queryKey: ["tarefas", "natureza-excecoes"] });
+      toast.success(
+        descendentes > 0
+          ? `Natureza alterada — ${descendentes} subtarefa(s) acompanharam`
+          : "Natureza alterada"
+      );
+    },
+    onError: (e: Error) =>
+      toast.error(`Não foi possível alterar a natureza: ${e.message}`),
+  });
+}
+
+
+
 export function useDecidirAprovacao(tarefaId: string) {
   const invalidar = useInvalidar(tarefaId);
   return useMutation({
