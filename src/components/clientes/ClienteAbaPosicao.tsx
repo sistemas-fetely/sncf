@@ -144,16 +144,22 @@ interface Fatia {
   recomprado: boolean;
 }
 
-/** Donut de composição com legenda ao lado. Só leitura. */
+/**
+ * Donut de composição com legenda ao lado. Só leitura.
+ * FAIL-LOUD: a ordem é carregando → erro → vazio → gráfico. Erro NUNCA vira
+ * estado vazio: dizer "sem itens" num cliente que tem itens é mentira.
+ */
 function Donut({
   titulo,
   fatias,
   carregando,
+  erro,
   cor,
 }: {
   titulo: string;
   fatias: Fatia[];
   carregando: boolean;
+  erro?: unknown;
   cor: (nome: string, index: number) => string;
 }) {
   return (
@@ -164,10 +170,15 @@ function Donut({
           <Loader2 className="h-3 w-3 animate-spin" /> carregando
         </p>
       )}
-      {!carregando && fatias.length === 0 && (
+      {!carregando && erro && (
+        <p className="text-[13px] font-normal text-destructive">
+          {(erro as any)?.message ?? "Falha ao consultar a composição de compra."}
+        </p>
+      )}
+      {!carregando && !erro && fatias.length === 0 && (
         <p className="text-[13px] font-normal text-muted-foreground">Sem itens faturados ainda.</p>
       )}
-      {!carregando && fatias.length > 0 && (
+      {!carregando && !erro && fatias.length > 0 && (
         <div className="grid min-h-[240px] items-center gap-3 sm:grid-cols-[minmax(150px,0.8fr)_minmax(180px,1.2fr)]">
           <div className="h-[220px] min-w-0">
             <ResponsiveContainer width="100%" height="100%">
