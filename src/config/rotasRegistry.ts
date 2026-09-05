@@ -49,7 +49,6 @@ export const ROTAS: RegraRota[] = [
   // longo: estas vencem o /administrativo base. As não listadas caem em
   // tela.financeiro (guarda-chuva) — só quem tem acesso total as vê.
   { prefixo: "/administrativo/caixa-banco/contas", status: "pronta", tela_slug: "tela.fin_contas_bancarias" },
-  { prefixo: "/administrativo/painel-financeiro-conta", status: "pronta", tela_slug: "tela.fin_vencimentos" },
   { prefixo: "/administrativo/contas-receber", status: "pronta", tela_slug: "tela.fin_receber" },
   { prefixo: "/administrativo/conta-cliente", status: "pronta", tela_slug: "tela.fin_receber" },
   { prefixo: "/administrativo/caixa-banco", status: "pronta", tela_slug: "tela.fin_movimentacoes" },

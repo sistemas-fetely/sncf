@@ -23,12 +23,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatBRL } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
-import {
-  useContasClienteSaldo,
-  type ContaClienteSaldo,
-} from "@/hooks/financeiro/useContaCliente";
+import { useContasClienteSaldo } from "@/hooks/financeiro/useContaCliente";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ContaClienteDrawer } from "@/components/financeiro/ContaClienteDrawer";
 import { RegistrarRecebimentoDialog } from "@/components/financeiro/RegistrarRecebimentoDialog";
 import { EntradasReconhecerTab } from "@/components/financeiro/EntradasReconhecerTab";
 
@@ -42,7 +38,6 @@ export default function ContaCliente() {
   const navigate = useNavigate();
   const { data: contas, isLoading, isError, error } = useContasClienteSaldo();
   const [busca, setBusca] = useState("");
-  const [selecionada, setSelecionada] = useState<ContaClienteSaldo | null>(null);
 
   const filtradas = useMemo(() => {
     const t = busca.trim().toLowerCase();
@@ -220,14 +215,6 @@ export default function ContaCliente() {
           <EntradasReconhecerTab />
         </TabsContent>
       </Tabs>
-
-
-      <ContaClienteDrawer
-        conta={selecionada}
-        onOpenChange={(open) => {
-          if (!open) setSelecionada(null);
-        }}
-      />
     </div>
   );
 }

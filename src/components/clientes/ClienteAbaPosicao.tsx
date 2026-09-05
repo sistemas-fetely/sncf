@@ -78,6 +78,43 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
         </div>
       </div>
 
+      {/* AGING — só existe quando há vencido em aberto. Substitui a tela
+          "Vencimentos x Cliente", desativada no banco. */}
+      {Number(conta?.vencido_em_aberto ?? 0) > 0 && (
+        <div className="rounded-md border border-border/60 p-2.5 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[11px] font-medium">Aging do vencido</p>
+            <p className="text-[11px] text-muted-foreground">
+              atraso máximo: {Number(conta?.dias_atraso_max ?? 0)} dias
+              {conta?.qtd_titulos_abertos != null
+                ? ` · ${conta.qtd_titulos_abertos} título(s) em aberto`
+                : ""}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {[
+              { rotulo: "1–7 dias", valor: conta?.faixa_1_7 },
+              { rotulo: "8–30", valor: conta?.faixa_8_30 },
+              { rotulo: "31–60", valor: conta?.faixa_31_60 },
+              { rotulo: "+60", valor: conta?.faixa_60_mais },
+            ].map((f) => (
+              <div key={f.rotulo} className="rounded-md bg-muted/40 px-2 py-1.5">
+                <p className="text-[10px] text-muted-foreground">{f.rotulo}</p>
+                <p
+                  className={cn(
+                    "text-xs font-medium",
+                    Number(f.valor ?? 0) > 0 ? "text-destructive" : "text-muted-foreground",
+                  )}
+                >
+                  {formatBRL(f.valor ?? 0)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+
       <Separator />
 
       <div className="space-y-2">
