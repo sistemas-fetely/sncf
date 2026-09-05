@@ -157,3 +157,38 @@ export function useKpiCliente(parceiroId: string | null | undefined) {
     },
   });
 }
+
+export interface SerieMensalCliente {
+  mes: string;
+  rotulo: string;
+  faturado: number;
+  recebido: number;
+  saldo_acumulado: number;
+}
+
+export const QK_CLIENTE_SERIE_MENSAL = "cliente-painel-serie-mensal";
+
+/** Últimos 12 meses com movimento. Só leitura. */
+export function useSerieMensalCliente(parceiroId: string | null | undefined) {
+  return useQuery({
+    queryKey: [QK_CLIENTE_SERIE_MENSAL, parceiroId],
+    enabled: !!parceiroId,
+    queryFn: async (): Promise<SerieMensalCliente[]> => {
+      const { data, error } = await (supabase as any)
+        .from("vw_conta_cliente_serie_mensal")
+        .select("mes, rotulo, faturado, recebido, saldo_acumulado")
+        .eq("parceiro_id", parceiroId)
+        .order("mes", { ascending: false })
+        .limit(12);
+      if (error) throw error;
+      const linhas = ((data ?? []) as Record<string, unknown>[]).map((d) => ({
+        mes: String(d.mes ?? ""),
+        rotulo: String(d.rotulo ?? ""),
+        faturado: Number(d.faturado ?? 0),
+        recebido: Number(d.recebido ?? 0),
+        saldo_acumulado: Number(d.saldo_acumulado ?? 0),
+      }));
+      return linhas.reverse();
+    },
+  });
+}
