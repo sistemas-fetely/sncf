@@ -339,3 +339,61 @@ export function useLiberarPorCobertura() {
     },
   });
 }
+
+/* ------------------------------------------------------------------------- *
+ * BONIFICAÇÕES — o que o cliente já recebeu sem pagar.
+ * ------------------------------------------------------------------------- */
+
+export interface CortesiaCliente {
+  parceiro_id: string;
+  tipo: "pedido" | "credito";
+  origem_id: string;
+  referencia: string | null;
+  natureza: string | null;
+  data: string;
+  valor: number;
+  situacao: string | null;
+  qtd_itens: number;
+  itens: string | null;
+  /** nome do cliente, resolvido em parceiros_comerciais */
+  cliente_nome: string;
+}
+
+export const QK_CONTA_CLIENTE_CORTESIAS = "conta-cliente-cortesias";
+
+/** Fonte: vw_conta_cliente_cortesias + nome do parceiro. */
+export function useCortesiasCliente() {
+  return useQuery({
+    queryKey: [QK_CONTA_CLIENTE_CORTESIAS],
+    queryFn: async (): Promise<CortesiaCliente[]> => {
+      const { data, error } = await (supabase as any)
+        .from("vw_conta_cliente_cortesias")
+        .select(
+          "parceiro_id, tipo, origem_id, referencia, natureza, data, valor, situacao, qtd_itens, itens",
+        )
+        .order("data", { ascending: false });
+      if (error) throw error;
+
+      const linhas = (data ?? []) as Omit<CortesiaCliente, "cliente_nome">[];
+      const ids = [...new Set(linhas.map((l) => l.parceiro_id).filter(Boolean))];
+      const nomes = new Map<string, string>();
+      if (ids.length) {
+        const p = await (supabase as any)
+          .from("parceiros_comerciais")
+          .select("id, nome_fantasia, razao_social")
+          .in("id", ids);
+        if (p.error) throw p.error;
+        for (const linha of (p.data ?? []) as any[]) {
+          nomes.set(linha.id, linha.nome_fantasia || linha.razao_social || "(sem nome)");
+        }
+      }
+
+      return linhas.map((l) => ({
+        ...l,
+        valor: Number(l.valor ?? 0),
+        qtd_itens: Number(l.qtd_itens ?? 0),
+        cliente_nome: nomes.get(l.parceiro_id) ?? "(sem nome)",
+      }));
+    },
+  });
+}
