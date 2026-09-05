@@ -191,6 +191,22 @@ export function ConfirmarPagamentoDialog({
     if (lido.valor_lido != null) setValor(String(lido.valor_lido));
   }, [aberto, lido, comprovanteId]);
 
+  // MEIO-DITA-PROVA: ao trocar de linha, a prova nasce do meio dela — cartão
+  // pede NSU, boleto pede CNAB, o resto fecha por E2E/txid. Não manda quando um
+  // comprovante lido já está ditando a prova, nem sobrescreve a escolha manual
+  // do operador na MESMA linha (o ref marca a última linha sincronizada).
+  const ultimaLinhaSyncRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!linhaEfetiva) return;
+    if (lido && comprovanteId === lido.id) return;
+    if (ultimaLinhaSyncRef.current === linhaEfetiva.id) return;
+    ultimaLinhaSyncRef.current = linhaEfetiva.id;
+    const meio = meioDaLinha(linhaEfetiva);
+    setProvaTipo(
+      meio === "cartao" ? "cartao_nsu" : meio === "boleto" ? "boleto_cnab" : "pix_txid",
+    );
+  }, [linhaEfetiva, lido, comprovanteId]);
+
   useEffect(() => {
     if (aberto) return;
     // Fechou: a próxima confirmação começa limpa.
