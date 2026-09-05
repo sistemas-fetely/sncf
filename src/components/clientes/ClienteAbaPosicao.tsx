@@ -553,10 +553,15 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
               <Loader2 className="h-3 w-3 animate-spin" /> carregando
             </p>
           )}
-          {!serie.isLoading && dados.length < 2 && (
+          {!serie.isLoading && serie.isError && (
+            <p className="text-[13px] font-normal text-destructive">
+              {(serie.error as any)?.message ?? "Falha ao consultar o movimento mensal."}
+            </p>
+          )}
+          {!serie.isLoading && !serie.isError && dados.length < 2 && (
             <p className="text-[13px] font-normal text-muted-foreground">Histórico curto demais para gráfico.</p>
           )}
-          {!serie.isLoading && dados.length >= 2 && (
+          {!serie.isLoading && !serie.isError && dados.length >= 2 && (
             <>
               <div className="h-[240px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
