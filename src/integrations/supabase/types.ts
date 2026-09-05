@@ -42575,6 +42575,42 @@ export type Database = {
         }
         Relationships: []
       }
+      tarefa_execucao_tipo_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          descricao: string
+          exige_prova_sistema: boolean
+          gera_instancia: boolean
+          instancia_unica: boolean
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          descricao: string
+          exige_prova_sistema?: boolean
+          gera_instancia: boolean
+          instancia_unica?: boolean
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          descricao?: string
+          exige_prova_sistema?: boolean
+          gera_instancia?: boolean
+          instancia_unica?: boolean
+          nome?: string
+          ordem?: number
+        }
+        Relationships: []
+      }
       tarefas: {
         Row: {
           acao_url: string | null
@@ -42595,6 +42631,7 @@ export type Database = {
           hora_limite: string | null
           id: string
           modulo_origem: string | null
+          motivo_cancelamento: string | null
           ocorrencia_data: string | null
           ordem: number
           parent_id: string | null
@@ -42628,6 +42665,7 @@ export type Database = {
           hora_limite?: string | null
           id?: string
           modulo_origem?: string | null
+          motivo_cancelamento?: string | null
           ocorrencia_data?: string | null
           ordem?: number
           parent_id?: string | null
@@ -42661,6 +42699,7 @@ export type Database = {
           hora_limite?: string | null
           id?: string
           modulo_origem?: string | null
+          motivo_cancelamento?: string | null
           ocorrencia_data?: string | null
           ordem?: number
           parent_id?: string | null
@@ -43436,6 +43475,7 @@ export type Database = {
           responsavel_id: string | null
           secao_id: string | null
           template_id: string | null
+          tipo_execucao: string
           titulo: string
           visibilidade: string
         }
@@ -43462,6 +43502,7 @@ export type Database = {
           responsavel_id?: string | null
           secao_id?: string | null
           template_id?: string | null
+          tipo_execucao?: string
           titulo: string
           visibilidade?: string
         }
@@ -43488,6 +43529,7 @@ export type Database = {
           responsavel_id?: string | null
           secao_id?: string | null
           template_id?: string | null
+          tipo_execucao?: string
           titulo?: string
           visibilidade?: string
         }
@@ -43526,6 +43568,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tarefas_templates"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_recorrencias_tipo_execucao_fkey"
+            columns: ["tipo_execucao"]
+            isOneToOne: false
+            referencedRelation: "tarefa_execucao_tipo_dim"
+            referencedColumns: ["codigo"]
           },
         ]
       }
