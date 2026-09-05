@@ -227,16 +227,17 @@ function Donut({
 }
 
 /**
- * Mix do cliente contra a média da carteira. Barra clara = benchmark.
+ * Bullet chart: barra sólida = o cliente, marca vertical = média da carteira.
+ * Uma barra e um marcador — fica óbvio o que é dado e o que é referência.
  * FAIL-LOUD: carregando → erro → vazio → conteúdo.
  */
 function MixVersusCarteira({ parceiroId }: { parceiroId: string }) {
   const mix = useMixCliente(parceiroId);
   const linhas = mix.data ?? [];
   const escala = Math.max(1, ...linhas.map((l) => Math.max(l.pct_cliente, l.pct_carteira)));
-  const pctBR = (v: number) => `${v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
-  const gapBR = (v: number) =>
-    `${v < 0 ? "−" : "+"}${Math.abs(v).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} pp`;
+  const potencialTotal = linhas.reduce((s, l) => s + Math.max(0, l.potencial_reais), 0);
+  const pctBR = (v: number) =>
+    `${v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 
   return (
     <div className="space-y-3">
@@ -257,54 +258,78 @@ function MixVersusCarteira({ parceiroId }: { parceiroId: string }) {
         )}
         {!mix.isLoading && !mix.isError && linhas.length > 0 && (
           <>
-            <p className="text-[11px] font-normal text-muted-foreground">
-              Onde este cliente compra menos que a média há espaço para crescer.
-            </p>
-            <div className="space-y-3">
-              {linhas.map((l) => (
-                <div
-                  key={l.familia}
-                  className={cn(
-                    "grid items-center gap-3 pl-2 sm:grid-cols-[minmax(110px,1fr)_minmax(120px,2fr)_auto]",
-                    l.gap_pp < -5 ? REGUA.warning : "border-l-[3px] border-l-transparent",
-                  )}
-                >
-                  <span className="truncate text-[13px] font-normal" title={l.familia}>
-                    {l.familia}
-                  </span>
-                  <div className="space-y-1">
-                    <div className="h-1.5 w-full rounded-full bg-muted">
-                      <div
-                        className="h-1.5 rounded-full bg-primary"
-                        style={{ width: `${Math.min(100, (l.pct_cliente / escala) * 100)}%` }}
-                      />
-                    </div>
-                    <div className="h-1.5 w-full rounded-full bg-muted/50">
-                      <div
-                        className="h-1.5 rounded-full bg-muted-foreground/25"
-                        style={{ width: `${Math.min(100, (l.pct_carteira / escala) * 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-baseline justify-end gap-3 text-[13px]">
-                    {l.nunca_comprou ? (
-                      <span className="font-normal text-muted-foreground">não compra</span>
-                    ) : (
-                      <span className="w-[64px] text-right tabular-nums">{pctBR(l.pct_cliente)}</span>
-                    )}
-                    <span
-                      className={cn(
-                        "w-[80px] text-right tabular-nums",
-                        l.gap_pp < -5 ? "text-warning" : "text-muted-foreground",
-                      )}
-                    >
-                      {gapBR(l.gap_pp)}
-                    </span>
-                  </div>
-                </div>
-              ))}
+            <div className="space-y-0.5">
+              <p className="text-[11px] font-normal text-muted-foreground">Potencial não explorado</p>
+              <p className="text-[21px] font-normal leading-tight tabular-nums">
+                {formatBRL(potencialTotal)}
+              </p>
+              <p className="text-[11px] font-normal text-muted-foreground">
+                Comparado com o que a carteira compra, este cliente tem espaço nestas famílias.
+              </p>
             </div>
-            <p className="text-[11px] font-normal text-muted-foreground">barra clara = média da carteira</p>
+
+            <div className="space-y-3">
+              {linhas.map((l) => {
+                const temEspaco = l.potencial_reais > 0;
+                return (
+                  <div
+                    key={l.familia}
+                    className={cn(
+                      "grid items-center gap-3 pl-2 sm:grid-cols-[minmax(110px,1fr)_minmax(120px,2fr)_auto]",
+                      temEspaco ? REGUA.warning : "border-l-[3px] border-l-transparent",
+                    )}
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="truncate text-[13px] font-normal" title={l.familia}>
+                        {l.familia}
+                      </span>
+                      {l.nunca_comprou && (
+                        <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[11px] font-normal text-muted-foreground">
+                          nunca comprou
+                        </span>
+                      )}
+                    </span>
+
+                    {/* bullet: barra do cliente + tick da média da carteira */}
+                    <div className="relative h-3 w-full">
+                      <div className="absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-muted">
+                        <div
+                          className={cn("h-2 rounded-full", temEspaco ? "bg-warning" : "bg-primary")}
+                          style={{ width: `${Math.min(100, (l.pct_cliente / escala) * 100)}%` }}
+                        />
+                      </div>
+                      <span
+                        className="absolute top-0 h-3 w-[2px] rounded-sm bg-muted-foreground"
+                        style={{ left: `calc(${Math.min(100, (l.pct_carteira / escala) * 100)}% - 1px)` }}
+                        title={`média da carteira: ${pctBR(l.pct_carteira)}`}
+                        aria-label="média da carteira"
+                      />
+                    </div>
+
+                    <div className="flex items-baseline justify-end gap-3 text-[13px]">
+                      <span className="w-[56px] text-right tabular-nums text-muted-foreground">
+                        {pctBR(l.pct_cliente)}
+                      </span>
+                      {temEspaco ? (
+                        <span className="w-[132px] text-right">
+                          <span className="block tabular-nums text-warning">
+                            +{formatBRL(l.potencial_reais)}
+                          </span>
+                          <span className="block text-[11px] font-normal text-muted-foreground">
+                            se comprasse como a média
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="w-[132px] text-right font-normal text-muted-foreground">
+                          acima da média
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-[11px] font-normal text-muted-foreground">marca vertical = média da carteira</p>
           </>
         )}
       </div>
