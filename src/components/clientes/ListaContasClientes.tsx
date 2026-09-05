@@ -32,7 +32,12 @@ function dataBR(iso: string | null | undefined) {
   return `${d}/${m}/${a}`;
 }
 
-export function ListaContasClientes() {
+interface Props {
+  /** o cabeçalho da tela é da página (que tem abas); a lista pode omiti-lo */
+  mostrarCabecalho?: boolean;
+}
+
+export function ListaContasClientes({ mostrarCabecalho = true }: Props = {}) {
   const navigate = useNavigate();
   const { data: contas, isLoading, isError, error } = useContasClienteSaldo();
   const [busca, setBusca] = useState("");
@@ -60,6 +65,7 @@ export function ListaContasClientes() {
 
   return (
     <div className="space-y-4">
+      {mostrarCabecalho && (
       <PageHeader
         titulo="Conta Corrente Cliente"
         icone={Users}
@@ -78,6 +84,7 @@ export function ListaContasClientes() {
           </RegistrarRecebimentoDialog>
         }
       />
+      )}
 
       {isError && (
         <Alert variant="destructive">
