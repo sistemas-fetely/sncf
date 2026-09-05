@@ -1,8 +1,8 @@
 /**
  * /cliente — CONTA CORRENTE CLIENTE.
  *
- * Três abas na mesma tela, porque é o mesmo assunto: quanto o cliente deve,
- * o que entrou no banco e ainda não tem dono, e o que ele já recebeu de graça.
+ * Duas abas na mesma tela: a lista de contas e o dinheiro que caiu no banco
+ * e ainda não tem dono. Bonificação é lente da ficha do cliente, não da lista.
  * Antes a fila de entradas morava em Finanças — o usuário tinha que sair do
  * SOps e voltar. Constraint de banco não manda em produto.
  *
@@ -17,25 +17,21 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePodeVerAba } from "@/components/AbaGate";
 import { ListaContasClientes } from "@/components/clientes/ListaContasClientes";
-import { BonificacoesTab } from "@/components/clientes/BonificacoesTab";
 import { EntradasReconhecerTab } from "@/components/financeiro/EntradasReconhecerTab";
 import { RegistrarRecebimentoDialog } from "@/components/financeiro/RegistrarRecebimentoDialog";
 
 const ABA_ENTRADAS = "tela.cliente_entradas";
-const ABA_BONIFICACOES = "tela.cliente_bonificacoes";
 
 export default function ClientesLista() {
   const [params, setParams] = useSearchParams();
 
   const podeEntradas = usePodeVerAba(ABA_ENTRADAS);
-  const podeBonificacoes = usePodeVerAba(ABA_BONIFICACOES);
 
   const visiveis = useMemo(() => {
     const abas = [{ value: "contas", label: "Contas de clientes" }];
     if (podeEntradas.podeVer) abas.push({ value: "entradas", label: "Entradas a reconhecer" });
-    if (podeBonificacoes.podeVer) abas.push({ value: "bonificacoes", label: "Bonificações" });
     return abas;
-  }, [podeEntradas.podeVer, podeBonificacoes.podeVer]);
+  }, [podeEntradas.podeVer]);
 
   const abaUrl = params.get("aba");
   const abaAtiva = visiveis.find((a) => a.value === abaUrl)?.value ?? "contas";
@@ -89,11 +85,6 @@ export default function ClientesLista() {
           </TabsContent>
         )}
 
-        {podeBonificacoes.podeVer && (
-          <TabsContent value="bonificacoes" className="mt-4">
-            <BonificacoesTab />
-          </TabsContent>
-        )}
       </Tabs>
     </div>
   );

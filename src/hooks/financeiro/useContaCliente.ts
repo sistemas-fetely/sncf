@@ -362,15 +362,17 @@ export interface CortesiaCliente {
 export const QK_CONTA_CLIENTE_CORTESIAS = "conta-cliente-cortesias";
 
 /** Fonte: vw_conta_cliente_cortesias + nome do parceiro. */
-export function useCortesiasCliente() {
+export function useCortesiasCliente(parceiroId?: string) {
   return useQuery({
-    queryKey: [QK_CONTA_CLIENTE_CORTESIAS],
+    enabled: !!parceiroId,
+    queryKey: [QK_CONTA_CLIENTE_CORTESIAS, parceiroId],
     queryFn: async (): Promise<CortesiaCliente[]> => {
       const { data, error } = await (supabase as any)
         .from("vw_conta_cliente_cortesias")
         .select(
           "parceiro_id, tipo, origem_id, referencia, natureza, data, valor, situacao, qtd_itens, itens",
         )
+        .eq("parceiro_id", parceiroId)
         .order("data", { ascending: false });
       if (error) throw error;
 
