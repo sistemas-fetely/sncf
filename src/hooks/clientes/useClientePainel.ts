@@ -282,6 +282,9 @@ export function useRecompraCliente(parceiroId: string | null | undefined) {
         atrasado_recompra: d.atrasado_recompra == null ? null : Boolean(d.atrasado_recompra),
         skus_recomprados: num(d.skus_recomprados),
         skus_distintos: num(d.skus_distintos),
+        colecoes_recompradas: num(d.colecoes_recompradas),
+        colecoes_distintas: num(d.colecoes_distintas),
+
       };
     },
   });
