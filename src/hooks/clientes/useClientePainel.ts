@@ -299,6 +299,9 @@ export interface MixCliente {
   pct_carteira: number;
   gap_pp: number;
   nunca_comprou: boolean;
+  /** quanto ele compraria a mais nesta família na proporção da carteira; > 0 só quando compra menos */
+  potencial_reais: number;
+  total_cliente: number;
 }
 
 export const QK_CLIENTE_MIX = "cliente-painel-mix";
@@ -314,9 +317,9 @@ export function useMixCliente(parceiroId: string | null | undefined) {
     queryFn: async (): Promise<MixCliente[]> => {
       const { data, error } = await (supabase as any)
         .from("vw_conta_cliente_mix")
-        .select("parceiro_id, familia, valor_cliente, pct_cliente, pct_carteira, gap_pp, nunca_comprou")
+        .select("parceiro_id, familia, valor_cliente, pct_cliente, pct_carteira, gap_pp, nunca_comprou, potencial_reais, total_cliente")
         .eq("parceiro_id", parceiroId)
-        .order("pct_cliente", { ascending: false });
+        .order("potencial_reais", { ascending: false });
       if (error) throw error;
       return ((data ?? []) as Record<string, unknown>[]).map((d) => ({
         parceiro_id: String(d.parceiro_id ?? ""),
@@ -326,6 +329,8 @@ export function useMixCliente(parceiroId: string | null | undefined) {
         pct_carteira: Number(d.pct_carteira ?? 0),
         gap_pp: Number(d.gap_pp ?? 0),
         nunca_comprou: Boolean(d.nunca_comprou),
+        potencial_reais: Number(d.potencial_reais ?? 0),
+        total_cliente: Number(d.total_cliente ?? 0),
       }));
     },
   });
