@@ -214,26 +214,3 @@ export function useNaturezasTarefa() {
   });
 }
 
-/**
- * Mapa id da tarefa -> natureza, só das que NÃO são operacionais.
- * Existe porque algumas listas leem de vw_tarefa_meu_papel / RPC de carga,
- * que não expõem a coluna. Lista curta por definição (épico e backlog).
- */
-export function useNaturezaExcecoes() {
-  return useQuery({
-    queryKey: ["tarefas", "natureza-excecoes"],
-    staleTime: 60 * 1000,
-    queryFn: async (): Promise<Record<string, string>> => {
-      const { data, error } = await supabase
-        .from("tarefas")
-        .select("id,natureza")
-        .neq("natureza", "operacional");
-      if (error) throw error;
-      const mapa: Record<string, string> = {};
-      for (const l of (data ?? []) as { id: string; natureza: string | null }[]) {
-        if (l.natureza) mapa[l.id] = l.natureza;
-      }
-      return mapa;
-    },
-  });
-}

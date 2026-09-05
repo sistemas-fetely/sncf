@@ -1,7 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import {
-  useNaturezaExcecoes, useNaturezasTarefa, type NaturezaTarefa,
-} from "./useTarefasCatalogos";
+import { useNaturezasTarefa, type NaturezaTarefa } from "./useTarefasCatalogos";
 
 /**
  * Filtro de natureza das listas de trabalho do dia.
@@ -13,12 +11,13 @@ import {
 export interface TarefaComNatureza {
   id: string;
   natureza?: string | null;
+  /** vem pronto da view; quando ausente, a regra é lida da dimensão */
+  na_lista_de_trabalho?: boolean | null;
 }
 
 export function useFiltroNatureza() {
   const [incluirTodas, setIncluirTodas] = useState(false);
   const { data: naturezas } = useNaturezasTarefa();
-  const { data: excecoes } = useNaturezaExcecoes();
 
   const daLista = useMemo(
     () => new Set((naturezas ?? []).filter((n) => n.na_lista_de_trabalho).map((n) => n.codigo)),
@@ -26,13 +25,16 @@ export function useFiltroNatureza() {
   );
 
   const naturezaDe = useCallback(
-    (t: TarefaComNatureza): string => t.natureza ?? excecoes?.[t.id] ?? "operacional",
-    [excecoes]
+    (t: TarefaComNatureza): string => t.natureza ?? "operacional",
+    []
   );
 
   /** enquanto a dimensão não carrega, nada é filtrado — lista vazia por engano é pior */
   const naListaDeTrabalho = useCallback(
-    (t: TarefaComNatureza) => daLista.size === 0 || daLista.has(naturezaDe(t)),
+    (t: TarefaComNatureza) =>
+      typeof t.na_lista_de_trabalho === "boolean"
+        ? t.na_lista_de_trabalho
+        : daLista.size === 0 || daLista.has(naturezaDe(t)),
     [daLista, naturezaDe]
   );
 
