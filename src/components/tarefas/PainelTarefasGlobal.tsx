@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ListChecks } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { codigosAbertos } from "@/hooks/tarefas/useStatusTarefaDim";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTarefaAberta } from "@/hooks/tarefas/useTarefaAberta";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -17,10 +18,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { TarefaItem } from "@/components/tarefas/TarefaItem";
 import { QuickAddTarefa } from "@/components/tarefas/QuickAddTarefa";
-import { STATUS_ABERTOS, type Tarefa } from "@/hooks/tarefas/useTarefas";
+import { type Tarefa } from "@/hooks/tarefas/useTarefas";
 
 const CAMPOS =
-  "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id,data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,acao_url,motivo_cancelamento,ordem,criado_em" as const;
+  "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id,data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,acao_url,motivo_estado,ordem,criado_em" as const;
 
 function hojeIso(): string {
   const d = new Date();
@@ -42,7 +43,7 @@ export function PainelTarefasGlobal() {
         .from("tarefas")
         .select(CAMPOS)
         .eq("responsavel_id", user!.id)
-        .in("status", STATUS_ABERTOS)
+        .in("status", await codigosAbertos())
         .order("data_limite", { ascending: true, nullsFirst: false })
         .order("ordem", { ascending: true });
       if (error) throw error;

@@ -9,7 +9,7 @@ import { TarefaItem } from "@/components/tarefas/TarefaItem";
 import { QuickAddTarefa } from "@/components/tarefas/QuickAddTarefa";
 import { useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
 import { type TarefaStatus } from "@/hooks/tarefas/useTarefas";
-import { STATUS_ROTULO } from "@/components/tarefas/detalhe/comuns";
+import { useStatusTarefaDim } from "@/hooks/tarefas/useStatusTarefaDim";
 import {
   PAPEL_ROTULO, PAPEL_SO_LEITURA, type Papel, useMinhasTarefasPapel,
   type TarefaComPapel,
@@ -22,7 +22,7 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useTarefaAberta } from "@/hooks/tarefas/useTarefaAberta";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { QuadroMinhasTarefas } from "@/components/tarefas/QuadroMinhasTarefas";
+import { QuadroMinhasTarefas, type AgruparPor } from "@/components/tarefas/QuadroMinhasTarefas";
 import { LayoutList, KanbanSquare } from "lucide-react";
 
 const TEXTOS_VAZIO: Record<Papel, string> = {
@@ -121,6 +121,9 @@ export default function MinhasTarefasNovo() {
   const [projetoFiltro, setProjetoFiltro] = useState<string>("__todos__");
   /** lista (padrão) ou quadro; persiste ao trocar a aba de papel, como o filtro de projeto */
   const [visao, setVisao] = useState<"lista" | "quadro">("lista");
+  /** no quadro: colunas por status (padrão) ou por projeto */
+  const [agruparPor, setAgruparPor] = useState<AgruparPor>("status");
+
   const [aba, setAba] = useAbaUrl("r");
   const abaAtual = aba as Papel;
   const { data: tarefas, isLoading } = useMinhasTarefasPapel(user?.id, filtro);
@@ -180,6 +183,8 @@ export default function MinhasTarefasNovo() {
     return grupos.ordenado.filter(([chave]) => chave === projetoFiltro);
   }, [grupos, projetoFiltro]);
 
+  const { data: statusDim } = useStatusTarefaDim();
+
   const nomeProjeto = (id: string) =>
     id === "__sem__" ? "Sem projeto" : projetos?.find((p) => p.id === id)?.nome ?? "Projeto";
 
@@ -205,8 +210,8 @@ export default function MinhasTarefasNovo() {
             <SelectTrigger className="h-8 w-52 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="abertas">Em aberto</SelectItem>
-              {Object.entries(STATUS_ROTULO).map(([k, v]) => (
-                <SelectItem key={k} value={k}>{v}</SelectItem>
+              {(statusDim ?? []).map((s) => (
+                <SelectItem key={s.codigo} value={s.codigo}>{s.nome}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -240,6 +245,18 @@ export default function MinhasTarefasNovo() {
               <KanbanSquare className="h-3.5 w-3.5" /> Quadro
             </ToggleGroupItem>
           </ToggleGroup>
+
+          {visao === "quadro" && (
+            <Select value={agruparPor} onValueChange={(v) => setAgruparPor(v as AgruparPor)}>
+              <SelectTrigger className="h-8 w-52 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="status">Agrupar por: Status</SelectItem>
+                <SelectItem value="projeto">Agrupar por: Projeto</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
         </div>
         <span className="text-xs text-muted-foreground">{totalAba} tarefa(s)</span>
       </div>
@@ -268,6 +285,7 @@ export default function MinhasTarefasNovo() {
                 filhasPorMae={grupos.filhasPorMae}
                 somenteLeitura={somenteLeitura}
                 nomeProjeto={nomeProjeto}
+                agruparPor={agruparPor}
               />
             ) : (
               <div className="space-y-6">

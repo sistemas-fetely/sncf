@@ -12,7 +12,8 @@ import {
   useMutarPapel, usePapeisTarefa, useSalvarCampoTarefa, useSalvarValorCampo, useSubtarefas,
   useValoresCampos, type CampoPersonalizado, type TarefaDetalhe,
 } from "@/hooks/tarefas/useTarefaDetalhe";
-import { Campo, PRIORIDADE_ROTULO, STATUS_ROTULO, Secao, SEM_VALOR, SeletorPessoa, useNomePessoa } from "./comuns";
+import { Campo, PRIORIDADE_ROTULO, Secao, SEM_VALOR, SeletorPessoa, useNomePessoa, useStatusRotulo } from "./comuns";
+import { useStatusTarefaDim } from "@/hooks/tarefas/useStatusTarefaDim";
 import type { TarefaPrioridade, TarefaStatus } from "@/hooks/tarefas/useTarefas";
 
 /* ------------------------------------------------------------- campos ----- */
@@ -22,6 +23,7 @@ export function BlocoCampos({ tarefa }: { tarefa: TarefaDetalhe }) {
   const { data: projetos } = useProjetos();
   const { data: secoes } = useSecoes(tarefa.projeto_id);
   const [estimativa, setEstimativa] = useState(tarefa.estimativa_horas?.toString() ?? "");
+  const { data: statusDim } = useStatusTarefaDim();
 
   useEffect(() => setEstimativa(tarefa.estimativa_horas?.toString() ?? ""), [tarefa.estimativa_horas]);
 
@@ -31,8 +33,8 @@ export function BlocoCampos({ tarefa }: { tarefa: TarefaDetalhe }) {
         <Select value={tarefa.status} onValueChange={(v) => salvar.mutate({ status: v as TarefaStatus })}>
           <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
           <SelectContent>
-            {Object.entries(STATUS_ROTULO).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v}</SelectItem>
+            {(statusDim ?? []).map((s) => (
+              <SelectItem key={s.codigo} value={s.codigo}>{s.nome}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -155,6 +157,7 @@ export function BlocoDescricao({ tarefa }: { tarefa: TarefaDetalhe }) {
 /* --------------------------------------------------------- subtarefas ----- */
 
 export function BlocoSubtarefas({ tarefa }: { tarefa: TarefaDetalhe }) {
+  const rotuloStatus = useStatusRotulo();
   const { data: filhas } = useSubtarefas(tarefa.id);
   const criar = useCriarSubtarefa(tarefa);
   const [titulo, setTitulo] = useState("");
@@ -169,7 +172,7 @@ export function BlocoSubtarefas({ tarefa }: { tarefa: TarefaDetalhe }) {
       <div className="space-y-1">
         {lista.map((t) => (
           <div key={t.id} className="flex items-center gap-2 rounded border border-border/60 px-2 py-1.5 text-sm">
-            <Badge variant="outline" className="text-[10px]">{STATUS_ROTULO[t.status]}</Badge>
+            <Badge variant="outline" className="text-[10px]">{rotuloStatus(t.status)}</Badge>
             <span className={t.status === "concluida" ? "line-through text-muted-foreground" : ""}>
               {t.titulo}
             </span>

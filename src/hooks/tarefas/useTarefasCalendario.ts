@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { codigosAbertos } from "./useStatusTarefaDim";
 import { toast } from "sonner";
-import { STATUS_ABERTOS, type Tarefa } from "./useTarefas";
+import { type Tarefa } from "./useTarefas";
 
 /**
  * Calendário (F4) — grade própria, nenhuma biblioteca de calendário.
@@ -10,7 +11,7 @@ import { STATUS_ABERTOS, type Tarefa } from "./useTarefas";
  */
 
 const CAMPOS =
-  "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id,data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,acao_url,motivo_cancelamento,ordem,criado_em" as const;
+  "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id,data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,acao_url,motivo_estado,ordem,criado_em" as const;
 
 export interface FiltroCalendario {
   /** null = todos os responsáveis */
@@ -30,7 +31,7 @@ export function useTarefasCalendario(inicio: string, fim: string, filtro: Filtro
       let q = supabase
         .from("tarefas")
         .select(CAMPOS)
-        .in("status", STATUS_ABERTOS)
+        .in("status", await codigosAbertos())
         .not("data_limite", "is", null)
         .gte("data_limite", inicio)
         .lte("data_limite", fim)

@@ -1,15 +1,18 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePessoasSistema } from "@/hooks/tarefas/useTarefasCatalogos";
+import { rotuloStatus, useStatusTarefaDim } from "@/hooks/tarefas/useStatusTarefaDim";
 
 export const SEM_VALOR = "__nenhum__";
 
-export const STATUS_ROTULO: Record<string, string> = {
-  pendente: "Pendente",
-  em_andamento: "Em andamento",
-  em_revisao: "Em revisão",
-  concluida: "Concluída",
-  cancelada: "Cancelada",
-};
+/**
+ * Rótulo de status SEMPRE da dimensão `tarefa_status_dim`. Enquanto carrega,
+ * devolve o próprio código — nunca uma lista fixa de status no front.
+ */
+export function useStatusRotulo(): (codigo: string) => string {
+  const { data } = useStatusTarefaDim();
+  return (codigo: string) => rotuloStatus(data, codigo);
+}
+
 
 export const PRIORIDADE_ROTULO: Record<string, string> = {
   baixa: "Baixa", media: "Média", alta: "Alta", urgente: "Urgente",

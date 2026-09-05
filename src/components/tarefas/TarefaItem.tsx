@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import type { Tarefa, TarefaPrioridade } from "@/hooks/tarefas/useTarefas";
 import { useAlterarStatusTarefa, useReagendarTarefa } from "@/hooks/tarefas/useTarefaMutations";
 import { useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
+import { useStatusRotulo } from "@/components/tarefas/detalhe/comuns";
 
 
 const PRIORIDADE_CLASSE: Record<TarefaPrioridade, string> = {
@@ -55,6 +56,7 @@ export function TarefaItem({
   const alterarStatus = useAlterarStatusTarefa();
   const reagendar = useReagendarTarefa();
   const { data: projetos } = useProjetos();
+  const rotuloStatus = useStatusRotulo();
   const [calendarioAberto, setCalendarioAberto] = useState(false);
   const { abrir } = useTarefaAberta();
 
@@ -117,9 +119,9 @@ export function TarefaItem({
           )}
         </div>
 
-        {tarefa.status === "cancelada" && tarefa.motivo_cancelamento && (
+        {tarefa.motivo_estado && (
           <p className="mt-1 text-[11px] text-muted-foreground">
-            Cancelada: {tarefa.motivo_cancelamento}
+            {rotuloStatus(tarefa.status)}: {tarefa.motivo_estado}
           </p>
         )}
 

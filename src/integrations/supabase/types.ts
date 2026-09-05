@@ -12900,6 +12900,113 @@ export type Database = {
           },
         ]
       }
+      descritor_parceiro_depara: {
+        Row: {
+          confirmado: boolean
+          confirmado_em: string | null
+          confirmado_por: string | null
+          created_at: string
+          id: string
+          marca: string
+          observacao: string | null
+          parceiro_id: string | null
+          rotulo: string | null
+        }
+        Insert: {
+          confirmado?: boolean
+          confirmado_em?: string | null
+          confirmado_por?: string | null
+          created_at?: string
+          id?: string
+          marca: string
+          observacao?: string | null
+          parceiro_id?: string | null
+          rotulo?: string | null
+        }
+        Update: {
+          confirmado?: boolean
+          confirmado_em?: string | null
+          confirmado_por?: string | null
+          created_at?: string
+          id?: string
+          marca?: string
+          observacao?: string | null
+          parceiro_id?: string | null
+          rotulo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "descritor_parceiro_depara_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "descritor_parceiro_depara_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "descritor_parceiro_depara_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_limite"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "descritor_parceiro_depara_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_valor_a_acertar"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "descritor_parceiro_depara_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conta_corrente_cliente"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "descritor_parceiro_depara_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_estimado_parceiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "descritor_parceiro_depara_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "descritor_parceiro_depara_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_historico_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "descritor_parceiro_depara_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_nome"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "descritor_parceiro_depara_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+        ]
+      }
       despesas: {
         Row: {
           centro_custo_id: string | null
@@ -43359,7 +43466,7 @@ export type Database = {
           hora_limite: string | null
           id: string
           modulo_origem: string | null
-          motivo_cancelamento: string | null
+          motivo_estado: string | null
           ocorrencia_data: string | null
           ordem: number
           parent_id: string | null
@@ -43393,7 +43500,7 @@ export type Database = {
           hora_limite?: string | null
           id?: string
           modulo_origem?: string | null
-          motivo_cancelamento?: string | null
+          motivo_estado?: string | null
           ocorrencia_data?: string | null
           ordem?: number
           parent_id?: string | null
@@ -43427,7 +43534,7 @@ export type Database = {
           hora_limite?: string | null
           id?: string
           modulo_origem?: string | null
-          motivo_cancelamento?: string | null
+          motivo_estado?: string | null
           ocorrencia_data?: string | null
           ordem?: number
           parent_id?: string | null
@@ -43512,6 +43619,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tarefas_secoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_status_fkey"
+            columns: ["status"]
+            isOneToOne: false
+            referencedRelation: "tarefa_status_dim"
+            referencedColumns: ["codigo"]
           },
         ]
       }
@@ -56672,6 +56786,90 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_recebivel_b2c_pedido"
             referencedColumns: ["movimentacao_id"]
+          },
+        ]
+      }
+      vw_cartao_identidade_sugestao: {
+        Row: {
+          depara_confirmado: boolean | null
+          depara_parceiro_id: string | null
+          marca: string | null
+          parceiro_sugerido_id: string | null
+          parceiro_sugerido_nome: string | null
+          titulos: number | null
+          valor: number | null
+          variantes: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "descritor_parceiro_depara_parceiro_id_fkey"
+            columns: ["depara_parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "descritor_parceiro_depara_parceiro_id_fkey"
+            columns: ["depara_parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "descritor_parceiro_depara_parceiro_id_fkey"
+            columns: ["depara_parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_limite"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "descritor_parceiro_depara_parceiro_id_fkey"
+            columns: ["depara_parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_valor_a_acertar"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "descritor_parceiro_depara_parceiro_id_fkey"
+            columns: ["depara_parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conta_corrente_cliente"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "descritor_parceiro_depara_parceiro_id_fkey"
+            columns: ["depara_parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_estimado_parceiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "descritor_parceiro_depara_parceiro_id_fkey"
+            columns: ["depara_parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "descritor_parceiro_depara_parceiro_id_fkey"
+            columns: ["depara_parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_historico_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "descritor_parceiro_depara_parceiro_id_fkey"
+            columns: ["depara_parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_nome"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "descritor_parceiro_depara_parceiro_id_fkey"
+            columns: ["depara_parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
           },
         ]
       }
@@ -74039,7 +74237,15 @@ export type Database = {
           tarefa_id: string | null
           titulo: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_status_fkey"
+            columns: ["status"]
+            isOneToOne: false
+            referencedRelation: "tarefa_status_dim"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       vw_pedidos_export_comercial: {
         Row: {
@@ -78605,6 +78811,13 @@ export type Database = {
             referencedRelation: "tarefas_secoes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tarefas_status_fkey"
+            columns: ["status"]
+            isOneToOne: false
+            referencedRelation: "tarefa_status_dim"
+            referencedColumns: ["codigo"]
+          },
         ]
       }
       vw_tarefas: {
@@ -83136,6 +83349,10 @@ export type Database = {
         Args: { p_pedido_id: string }
         Returns: string
       }
+      fn_cartao_aplicar_identidade: {
+        Args: { p_dry_run?: boolean }
+        Returns: Json
+      }
       fn_casar_nf_por_fob: {
         Args: { p_pedido_id: number }
         Returns: {
@@ -83814,6 +84031,7 @@ export type Database = {
         Args: { p_codigo: string }
         Returns: string
       }
+      fn_normalizar_descritor: { Args: { p_desc: string }; Returns: string }
       fn_normalizar_municipio: { Args: { p_nome: string }; Returns: string }
       fn_normalizar_ncm: { Args: { p_ncm: string }; Returns: string }
       fn_normalizar_nsu: { Args: { p_nsu: string }; Returns: string }

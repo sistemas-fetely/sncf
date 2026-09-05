@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
+import { useStatusRotulo } from "./comuns";
 import {
   useDecidirAprovacao, useSalvarCampoTarefa, useTarefaDetalhe,
   type TarefaDetalhe,
@@ -48,6 +49,7 @@ export function TarefaDetalhePainel({ tarefaId, aberto, onOpenChange }: Props) {
 function Conteudo({ tarefaId }: { tarefaId: string }) {
   const { data: tarefa, isLoading, error } = useTarefaDetalhe(tarefaId);
   const { data: projetos } = useProjetos();
+  const rotuloStatus = useStatusRotulo();
   const salvar = useSalvarCampoTarefa(tarefaId);
   const navigate = useNavigate();
   const [titulo, setTitulo] = useState("");
@@ -114,10 +116,12 @@ function Conteudo({ tarefaId }: { tarefaId: string }) {
 
       {tarefa.tipo_tarefa === "aprovacao" && <BlocoAprovacao tarefaId={tarefaId} statusAtual={tarefa.aprovacao_status} />}
 
-      {tarefa.status === "cancelada" && tarefa.motivo_cancelamento && (
+      {tarefa.motivo_estado && (
         <div className="rounded-lg border border-border bg-muted/40 p-3">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Motivo do cancelamento</p>
-          <p className="mt-1 text-sm">{tarefa.motivo_cancelamento}</p>
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            Motivo · {rotuloStatus(tarefa.status)}
+          </p>
+          <p className="mt-1 text-sm">{tarefa.motivo_estado}</p>
         </div>
       )}
 

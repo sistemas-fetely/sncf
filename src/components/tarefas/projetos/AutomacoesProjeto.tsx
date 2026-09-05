@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SeletorPessoa, STATUS_ROTULO, PRIORIDADE_ROTULO } from "@/components/tarefas/detalhe/comuns";
+import { SeletorPessoa, PRIORIDADE_ROTULO } from "@/components/tarefas/detalhe/comuns";
+import { useStatusTarefaDim } from "@/hooks/tarefas/useStatusTarefaDim";
 import { useSecoesProjeto, usePodeGerenciarProjeto } from "@/hooks/tarefas/useProjetosTarefas";
 import { useEtiquetas } from "@/hooks/tarefas/useTarefasCatalogos";
 import {
@@ -19,7 +20,6 @@ import {
 
 const GATILHOS = Object.keys(GATILHO_ROTULO) as GatilhoTipo[];
 const ACOES = Object.keys(ACAO_ROTULO) as AcaoTipo[];
-const STATUS = Object.keys(STATUS_ROTULO);
 const PRIORIDADES = Object.keys(PRIORIDADE_ROTULO);
 
 interface Props {
@@ -34,6 +34,7 @@ export function AutomacoesProjeto({ projetoId }: Props) {
   const excluir = useExcluirRegra(projetoId);
   const { data: secoes } = useSecoesProjeto(projetoId);
   const { data: etiquetas } = useEtiquetas();
+  const { data: statusDim } = useStatusTarefaDim();
 
   const [editando, setEditando] = useState<{ id?: string; form: RegraForm } | null>(null);
 
@@ -59,7 +60,7 @@ export function AutomacoesProjeto({ projetoId }: Props) {
         <Select value={valor ?? ""} onValueChange={onChange}>
           <SelectTrigger className="h-8 w-48"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
-            {STATUS.map((s) => <SelectItem key={s} value={s}>{STATUS_ROTULO[s]}</SelectItem>)}
+            {(statusDim ?? []).map((s) => <SelectItem key={s.codigo} value={s.codigo}>{s.nome}</SelectItem>)}
           </SelectContent>
         </Select>
       );

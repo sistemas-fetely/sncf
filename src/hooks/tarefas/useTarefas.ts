@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { codigosAbertos } from "./useStatusTarefaDim";
 
 export type TarefaStatus = "pendente" | "em_andamento" | "em_revisao" | "concluida" | "cancelada";
 export type TarefaPrioridade = "baixa" | "media" | "alta" | "urgente";
@@ -20,7 +21,7 @@ export interface Tarefa {
   data_conclusao: string | null;
   estimativa_horas: number | null;
   acao_url: string | null;
-  motivo_cancelamento: string | null;
+  motivo_estado: string | null;
   /** título da tarefa-mãe, quando a linha é subtarefa (vem da view) */
   mae_titulo?: string | null;
   mae_id?: string | null;
@@ -32,11 +33,10 @@ export interface Tarefa {
   criado_em: string;
 }
 
-/** status que ainda pedem ação — cancelada e concluida saem da lista */
-export const STATUS_ABERTOS: TarefaStatus[] = ["pendente", "em_andamento", "em_revisao"];
+/** status que ainda pedem ação vêm da dimensão (e_aberto), nunca de lista fixa */
 
 const CAMPOS =
-  "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id,data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,acao_url,motivo_cancelamento,ordem,criado_em" as const;
+  "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id,data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,acao_url,motivo_estado,ordem,criado_em" as const;
 
 
 function hojeISO(): string {
@@ -69,7 +69,7 @@ export function useTarefasHoje(userId: string | undefined) {
         .from("tarefas")
         .select(CAMPOS)
         .eq("responsavel_id", userId!)
-        .in("status", STATUS_ABERTOS)
+        .in("status", await codigosAbertos())
         .not("data_limite", "is", null)
         .lte("data_limite", hoje)
         .order("data_limite", { ascending: true })
@@ -106,7 +106,7 @@ export function useTarefasProximos7(userId: string | undefined) {
         .from("tarefas")
         .select(CAMPOS)
         .eq("responsavel_id", userId!)
-        .in("status", STATUS_ABERTOS)
+        .in("status", await codigosAbertos())
         .gte("data_limite", de)
         .lte("data_limite", ate)
         .order("data_limite", { ascending: true })
@@ -134,7 +134,7 @@ export function useTarefasSemData(userId: string | undefined) {
         .from("tarefas")
         .select(CAMPOS)
         .eq("responsavel_id", userId!)
-        .in("status", STATUS_ABERTOS)
+        .in("status", await codigosAbertos())
         .is("data_limite", null)
         .order("criado_em", { ascending: false });
       if (error) throw error;
@@ -189,13 +189,13 @@ export function useTarefasContadores(userId: string | undefined) {
           .from("tarefas")
           .select("id", { count: "exact", head: true })
           .eq("responsavel_id", userId!)
-          .in("status", STATUS_ABERTOS)
+          .in("status", await codigosAbertos())
           .lte("data_limite", hoje),
         supabase
           .from("tarefas")
           .select("id", { count: "exact", head: true })
           .eq("responsavel_id", userId!)
-          .in("status", STATUS_ABERTOS)
+          .in("status", await codigosAbertos())
           .is("data_limite", null),
       ]);
       if (ate.error) throw ate.error;
