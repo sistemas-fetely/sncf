@@ -195,18 +195,22 @@ export function useSerieMensalCliente(parceiroId: string | null | undefined) {
 
 export interface ProdutoCliente {
   parceiro_id: string;
-  sku: string | null;
-  descricao: string | null;
+  eixo: "familia" | "colecao";
+  grupo: string;
   valor: number;
   quantidade: number;
   pedidos: number;
+  skus: number;
   ultima_compra: string | null;
   recomprado: boolean | null;
 }
 
 export const QK_CLIENTE_PRODUTOS = "cliente-painel-produtos";
 
-/** Composição do faturamento por SKU. Só leitura. */
+/**
+ * Composição do faturamento por taxonomia derivada (família e coleção).
+ * Uma consulta só; o componente separa por `eixo`. Só leitura.
+ */
 export function useProdutosCliente(parceiroId: string | null | undefined) {
   return useQuery({
     queryKey: [QK_CLIENTE_PRODUTOS, parceiroId],
@@ -214,23 +218,25 @@ export function useProdutosCliente(parceiroId: string | null | undefined) {
     queryFn: async (): Promise<ProdutoCliente[]> => {
       const { data, error } = await (supabase as any)
         .from("vw_conta_cliente_produtos")
-        .select("parceiro_id, sku, descricao, valor, quantidade, pedidos, ultima_compra, recomprado")
+        .select("parceiro_id, eixo, grupo, valor, quantidade, pedidos, skus, ultima_compra, recomprado")
         .eq("parceiro_id", parceiroId)
         .order("valor", { ascending: false });
       if (error) throw error;
       return ((data ?? []) as Record<string, unknown>[]).map((d) => ({
         parceiro_id: String(d.parceiro_id ?? ""),
-        sku: d.sku == null ? null : String(d.sku),
-        descricao: d.descricao == null ? null : String(d.descricao),
+        eixo: (String(d.eixo ?? "familia") as "familia" | "colecao"),
+        grupo: String(d.grupo ?? "—"),
         valor: Number(d.valor ?? 0),
         quantidade: Number(d.quantidade ?? 0),
         pedidos: Number(d.pedidos ?? 0),
+        skus: Number(d.skus ?? 0),
         ultima_compra: d.ultima_compra == null ? null : String(d.ultima_compra),
         recomprado: d.recomprado == null ? null : Boolean(d.recomprado),
       }));
     },
   });
 }
+
 
 export interface RecompraCliente {
   parceiro_id: string;
