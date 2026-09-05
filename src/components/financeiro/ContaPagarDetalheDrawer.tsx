@@ -323,17 +323,27 @@ export default function ContaPagarDetalheDrawer({
     return cats.size > 1;
   })();
 
-  async function avancar(novoStatus: ContaStatus, observacao?: string, closeOnSuccess = true) {
+  // MECANISMO-ANTES-DE-UPDATE: as ações vêm do banco (vw_titulo_pagar_acoes).
+  // Ausência de linha = botão não existe. O drawer não fecha após transicionar:
+  // o badge de estado atualiza na frente do operador.
+  const { data: acoesMap } = useTituloPagarAcoes(conta?.id ? [conta.id] : []);
+  const acoes = (conta?.id && acoesMap?.get(conta.id)) || [];
+
+  function fecharDialogAcao() {
+    setAcaoPendente(null);
+    setMotivo("");
+    setDataPretendida("");
+  }
+
+  function clicarAcao(acao: TituloPagarAcao) {
     if (!conta) return;
-    await workflow.mudarStatus.mutateAsync({
-      contaId: conta.id,
-      statusAnterior: conta.status,
-      novoStatus,
-      observacao: observacao || undefined,
-    });
-    // Click inteligente: por padrão fecha o drawer após avançar status
-    // Próxima ação geralmente é avaliar outras CPRs
-    if (closeOnSuccess) onClose();
+    if (acao.exige_motivo || acao.exige_data_pretendida) {
+      setAcaoPendente(acao);
+      setMotivo("");
+      setDataPretendida("");
+      return;
+    }
+    transicionar.mutate({ cprId: conta.id, para: acao.para });
   }
 
   const dadosBancarios =
