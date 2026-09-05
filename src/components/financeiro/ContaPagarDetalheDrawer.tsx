@@ -711,7 +711,7 @@ export default function ContaPagarDetalheDrawer({
                     conta.status !== "finalizado" &&
                     conta.status !== "conciliado" && (
                       <div className="pt-4 border-t">
-                        <CancelarButton conta={conta} workflow={workflow} onClose={onClose} temIrmasAtivas={temIrmasAtivas} />
+                        <CancelarButton conta={conta} onClose={onClose} temIrmasAtivas={temIrmasAtivas} />
                       </div>
                     )}
                 </div>
@@ -731,6 +731,66 @@ export default function ContaPagarDetalheDrawer({
                 onPaid={onClose}
               />
             )}
+
+            {/* Diálogo único de transição — motivo e/ou data pretendida */}
+            <Dialog open={!!acaoPendente} onOpenChange={(o) => { if (!o) fecharDialogAcao(); }}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>{acaoPendente?.rotulo_acao}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3">
+                  {acaoPendente?.exige_data_pretendida && (
+                    <div className="space-y-1">
+                      <Label htmlFor="data-pretendida">Data pretendida</Label>
+                      <Input
+                        id="data-pretendida"
+                        type="date"
+                        value={dataPretendida}
+                        onChange={(e) => setDataPretendida(e.target.value)}
+                      />
+                    </div>
+                  )}
+                  {acaoPendente?.exige_motivo && (
+                    <div className="space-y-1">
+                      <Label htmlFor="motivo-transicao">Motivo</Label>
+                      <Textarea
+                        id="motivo-transicao"
+                        value={motivo}
+                        onChange={(e) => setMotivo(e.target.value)}
+                        rows={3}
+                      />
+                    </div>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button variant="ghost" onClick={fecharDialogAcao} disabled={transicionar.isPending}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    disabled={
+                      transicionar.isPending ||
+                      (!!acaoPendente?.exige_motivo && !motivo.trim()) ||
+                      (!!acaoPendente?.exige_data_pretendida && !dataPretendida)
+                    }
+                    onClick={() => {
+                      if (!acaoPendente || !conta) return;
+                      transicionar.mutate(
+                        {
+                          cprId: conta.id,
+                          para: acaoPendente.para,
+                          motivo: motivo.trim() || undefined,
+                          dataPretendida: dataPretendida || null,
+                        },
+                        { onSuccess: () => fecharDialogAcao() },
+                      );
+                    }}
+                  >
+                    {transicionar.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                    Confirmar
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             {showEnviar && (
               <EnviarPagamentoDialog
@@ -755,12 +815,10 @@ export default function ContaPagarDetalheDrawer({
 
 function CancelarButton({
   conta,
-  workflow: _workflow,
   onClose,
   temIrmasAtivas,
 }: {
   conta: { id: string; status: string };
-  workflow: ReturnType<typeof useContaWorkflow>;
   onClose: () => void;
   temIrmasAtivas: boolean;
 }) {
