@@ -163,6 +163,11 @@ export default function ClientePainel() {
             <PedidosDoParceiroSection parceiroId={id} />
           </TabsContent>
         )}
+        {visiveis.some((a) => a.value === "sugestao") && (
+          <TabsContent value="sugestao">
+            <ClienteAbaSugestao parceiroId={id} />
+          </TabsContent>
+        )}
         {visiveis.some((a) => a.value === "bonificacoes") && (
           <TabsContent value="bonificacoes">
             <BonificacoesTab parceiroId={id!} />
