@@ -12,7 +12,7 @@ import {
   useMutarPapel, usePapeisTarefa, useSalvarCampoTarefa, useSalvarValorCampo, useSubtarefas,
   useValoresCampos, type CampoPersonalizado, type TarefaDetalhe,
 } from "@/hooks/tarefas/useTarefaDetalhe";
-import { Campo, PRIORIDADE_ROTULO, Secao, SEM_VALOR, SeletorPessoa, useNomePessoa } from "./comuns";
+import { Campo, PRIORIDADE_ROTULO, Secao, SEM_VALOR, SeletorPessoa, useNomePessoa, useStatusRotulo } from "./comuns";
 import { useStatusTarefaDim } from "@/hooks/tarefas/useStatusTarefaDim";
 import type { TarefaPrioridade, TarefaStatus } from "@/hooks/tarefas/useTarefas";
 
@@ -157,6 +157,7 @@ export function BlocoDescricao({ tarefa }: { tarefa: TarefaDetalhe }) {
 /* --------------------------------------------------------- subtarefas ----- */
 
 export function BlocoSubtarefas({ tarefa }: { tarefa: TarefaDetalhe }) {
+  const rotuloStatus = useStatusRotulo();
   const { data: filhas } = useSubtarefas(tarefa.id);
   const criar = useCriarSubtarefa(tarefa);
   const [titulo, setTitulo] = useState("");

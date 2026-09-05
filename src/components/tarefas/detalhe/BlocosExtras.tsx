@@ -24,6 +24,7 @@ function dataHora(iso: string) {
 /* ------------------------------------------------------- dependências ----- */
 
 export function BlocoDependencias({ tarefa }: { tarefa: TarefaDetalhe }) {
+  const rotuloStatus = useStatusRotulo();
   const { data } = useDependencias(tarefa.id);
   const { adicionar, remover } = useMutarDependencias(tarefa.id);
   const [termo, setTermo] = useState("");
@@ -340,6 +341,7 @@ export function BlocoHistorico({ tarefa }: { tarefa: TarefaDetalhe }) {
   const [aberto, setAberto] = useState(false);
   const { data: linhas } = useHistoricoTarefa(tarefa.id, aberto);
   const nome = useNomePessoa();
+  const rotuloStatus = useStatusRotulo();
 
   return (
     <Collapsible open={aberto} onOpenChange={setAberto}>
@@ -358,7 +360,7 @@ export function BlocoHistorico({ tarefa }: { tarefa: TarefaDetalhe }) {
               </div>
               {(h.de != null || h.para != null) && (
                 <p className="text-muted-foreground">
-                  de {legivel(h.de, nome)} para {legivel(h.para, nome)}
+                  de {legivel(h.de, nome, rotuloStatus)} para {legivel(h.para, nome, rotuloStatus)}
                 </p>
               )}
             </div>

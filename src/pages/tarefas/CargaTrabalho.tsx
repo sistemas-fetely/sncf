@@ -206,6 +206,7 @@ function SheetDrill({
   onFechar: () => void;
   onAbrirTarefa: (id: string) => void;
 }) {
+  const rotuloStatus = useStatusRotulo();
   const { data, isLoading, error } = useCargaDetalhe(
     drill?.userId ?? null,
     drill?.inicio ?? null,
