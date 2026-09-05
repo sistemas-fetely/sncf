@@ -15,6 +15,8 @@ import {
   CLASSE_TOM, tomDaCarga, useCargaDetalhe, useCargaSemanal, usePodeEditarCapacidade,
   useSalvarCapacidade, type CargaSemana,
 } from "@/hooks/tarefas/useCargaTrabalho";
+import { useFiltroNatureza } from "@/hooks/tarefas/useFiltroNatureza";
+import { ControleNatureza } from "@/components/tarefas/ControleNatureza";
 
 const SEMANAS = 6;
 
@@ -211,6 +213,8 @@ function SheetDrill({
     drill?.inicio ?? null,
     drill?.fim ?? null
   );
+  const natureza = useFiltroNatureza();
+  const linhas = natureza.filtrar(data ?? []);
 
   return (
     <Sheet open={!!drill} onOpenChange={(v) => !v && onFechar()}>
@@ -227,6 +231,14 @@ function SheetDrill({
           </SheetTitle>
         </SheetHeader>
 
+        <div className="mt-3">
+          <ControleNatureza
+            incluirTodas={natureza.incluirTodas}
+            onChange={natureza.setIncluirTodas}
+            ocultas={natureza.contarOcultas(data)}
+          />
+        </div>
+
         <div className="mt-4 space-y-2">
           {error ? (
             <p className="text-sm text-destructive">
@@ -234,10 +246,10 @@ function SheetDrill({
             </p>
           ) : isLoading ? (
             <p className="text-sm text-muted-foreground">Carregando tarefas…</p>
-          ) : (data ?? []).length === 0 ? (
+          ) : linhas.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhuma tarefa nessa semana.</p>
           ) : (
-            (data ?? []).map((t) => (
+            linhas.map((t) => (
               <button
                 key={t.id}
                 onClick={() => onAbrirTarefa(t.id)}

@@ -137,15 +137,15 @@ function TarefasHojeConteudo() {
         </TabsContent>
 
         <TabsContent value="proximos" className="space-y-5 pt-4">
-          {(proximos.data ?? []).map((dia) => natureza.filtrar(dia.tarefas)).map((tarefasDia, i) => ({ data: (proximos.data ?? [])[i].data, tarefas: tarefasDia })).map((dia) => (
+          {(proximos.data ?? []).map((dia) => (
             <section key={dia.data} className="space-y-2">
               <h2 className="text-sm font-medium capitalize">
                 {format(parseISO(dia.data), "EEEE, d 'de' MMMM", { locale: ptBR })}
               </h2>
-              {dia.tarefas.length === 0 ? (
+              {natureza.filtrar(dia.tarefas).length === 0 ? (
                 <p className="text-sm text-muted-foreground/70">—</p>
               ) : (
-                <Lista tarefas={dia.tarefas} />
+                <Lista tarefas={natureza.filtrar(dia.tarefas)} />
               )}
             </section>
           ))}
