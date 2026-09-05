@@ -66753,14 +66753,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -67616,14 +67616,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -73189,6 +73189,37 @@ export type Database = {
           severidade: string | null
           slug: string | null
           titulo: string | null
+        }
+        Relationships: []
+      }
+      vw_recebimento_divergencia: {
+        Row: {
+          aritmetica_ok: boolean | null
+          classificacao: string | null
+          data_termo: string | null
+          em_aberto: boolean | null
+          fornecedor: string | null
+          nf_data_emissao: string | null
+          nf_id: number | null
+          nf_numero: string | null
+          numero_pedido: string | null
+          pedido_id: number | null
+          preco_origem: string | null
+          preco_unit_nf: number | null
+          qtd_excesso: number | null
+          qtd_falta: number | null
+          qtd_nao_conforme: number | null
+          qtd_nf: number | null
+          qtd_recebida: number | null
+          qtd_termo_declarada: number | null
+          rnc: string | null
+          sem_cobertura_fiscal: boolean | null
+          sku: string | null
+          termos: string | null
+          valor_excesso: number | null
+          valor_falta: number | null
+          valor_liquido_em_aberto: number | null
+          valor_nao_conforme: number | null
         }
         Relationships: []
       }
