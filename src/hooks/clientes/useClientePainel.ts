@@ -264,7 +264,7 @@ export function useRecompraCliente(parceiroId: string | null | undefined) {
     queryFn: async (): Promise<RecompraCliente | null> => {
       const { data, error } = await (supabase as any)
         .from("vw_conta_cliente_recompra")
-        .select("parceiro_id, compras, primeira, ultima, dias_desde_ultima, intervalo_medio_dias, proxima_compra_estimada, atrasado_recompra, skus_recomprados, skus_distintos")
+        .select("parceiro_id, compras, primeira, ultima, dias_desde_ultima, intervalo_medio_dias, proxima_compra_estimada, atrasado_recompra, skus_recomprados, skus_distintos, colecoes_recompradas, colecoes_distintas")
         .eq("parceiro_id", parceiroId)
         .maybeSingle();
       if (error) throw error;
