@@ -14,6 +14,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { useDb } from "@/lib/db";
 import { humanizeError } from "@/lib/errorMessages";
 import VinculoBeneficiosSection from "@/components/pessoas/VinculoBeneficiosSection";
 import VinculoExtrasSection from "@/components/pessoas/VinculoExtrasSection";
@@ -123,6 +124,7 @@ const emptyVinculo: VinculoForm = {
 function onlyDigits(s: string) { return (s || "").replace(/\D/g, ""); }
 
 export default function PessoaForm() {
+  const db = useDb();
   const { id } = useParams<{ id: string }>();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
@@ -465,7 +467,7 @@ export default function PessoaForm() {
     try {
       if (isEdit && id) {
         // UPDATE pessoa
-        const { error: e1 } = await (supabase as any).from("pessoas").update(payloadPessoa()).eq("id", id);
+        const { error: e1 } = await (db as any).from("pessoas").update(payloadPessoa()).eq("id", id);
         if (e1) throw e1;
 
         // UPDATE do vínculo. Tela de edição NUNCA cria vínculo.
@@ -473,7 +475,7 @@ export default function PessoaForm() {
           toast.error("Não foi possível carregar o vínculo desta pessoa. Recarregue a tela antes de salvar.");
           return;
         }
-        const { error: e2 } = await (supabase as any).from("vinculos").update(payloadVinculo(id)).eq("id", vinculoId);
+        const { error: e2 } = await (db as any).from("vinculos").update(payloadVinculo(id)).eq("id", vinculoId);
         if (e2) throw e2;
         setEmailCorporativoOriginal((vinculo.email_corporativo || "").trim());
 
@@ -487,10 +489,10 @@ export default function PessoaForm() {
           return; // dialog cuidará, ou a checagem falhou e já avisou
         }
 
-        const { data: p, error: e1 } = await (supabase as any).from("pessoas").insert(payloadPessoa()).select("id").single();
+        const { data: p, error: e1 } = await (db as any).from("pessoas").insert(payloadPessoa()).select("id").single();
         if (e1) throw e1;
         const novoId = p.id as string;
-        const { error: e2 } = await (supabase as any).from("vinculos").insert({ ...payloadVinculo(novoId), status: "ativo" });
+        const { error: e2 } = await (db as any).from("vinculos").insert({ ...payloadVinculo(novoId), status: "ativo" });
         if (e2) {
           toast.error("Pessoa criada mas o vínculo falhou: " + humanizeError(e2.message) + ". Edite a pessoa para completar.");
           navigate(`/pessoas/${novoId}/editar`);
@@ -510,7 +512,7 @@ export default function PessoaForm() {
     if (!pessoaExistente) return;
     setSaving(true);
     try {
-      const { error } = await (supabase as any).from("vinculos").insert({ ...payloadVinculo(pessoaExistente.id), status: "ativo" });
+      const { error } = await (db as any).from("vinculos").insert({ ...payloadVinculo(pessoaExistente.id), status: "ativo" });
       if (error) throw error;
       toast.success("Vínculo criado para pessoa existente");
       navigate(`/pessoas/${pessoaExistente.id}/editar`);
