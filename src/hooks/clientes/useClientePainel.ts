@@ -249,6 +249,9 @@ export interface RecompraCliente {
   atrasado_recompra: boolean | null;
   skus_recomprados: number | null;
   skus_distintos: number | null;
+  colecoes_recompradas: number | null;
+  colecoes_distintas: number | null;
+
 }
 
 export const QK_CLIENTE_RECOMPRA = "cliente-painel-recompra";
