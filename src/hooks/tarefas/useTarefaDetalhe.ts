@@ -9,7 +9,7 @@ import type { Tarefa, TarefaStatus, TarefaPrioridade } from "./useTarefas";
  */
 
 const CAMPOS_DETALHE =
-  "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id,data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,modulo_origem,entidade_origem_id,acao_url,motivo_cancelamento,ordem,criado_em,criado_por,visibilidade,tipo_tarefa,aprovacao_status,aprovacao_comentario,aprovacao_em,aprovacao_por" as const;
+  "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id,data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,modulo_origem,entidade_origem_id,acao_url,motivo_cancelamento,natureza,ordem,criado_em,criado_por,visibilidade,tipo_tarefa,aprovacao_status,aprovacao_comentario,aprovacao_em,aprovacao_por" as const;
 
 export interface TarefaDetalhe extends Tarefa {
   modulo_origem: string | null;
@@ -68,6 +68,7 @@ export interface CamposEditaveis {
   data_limite?: string | null;
   hora_limite?: string | null;
   estimativa_horas?: number | null;
+  natureza?: string;
 }
 
 /** Salva um (ou poucos) campos da tarefa. Sem botão global de salvar. */
