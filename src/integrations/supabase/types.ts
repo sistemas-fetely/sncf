@@ -57907,6 +57907,17 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_conta_cliente_serie_mensal: {
+        Row: {
+          faturado: number | null
+          mes: string | null
+          parceiro_id: string | null
+          recebido: number | null
+          rotulo: string | null
+          saldo_acumulado: number | null
+        }
+        Relationships: []
+      }
       vw_conta_corrente_cliente: {
         Row: {
           cnpj: string | null
@@ -70019,14 +70030,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
