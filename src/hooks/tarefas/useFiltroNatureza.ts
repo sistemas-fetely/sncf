@@ -25,15 +25,14 @@ export interface TarefaComNatureza {
 
 export interface OcultasContagem {
   /** fora por natureza (épico, backlog) */
-  natureza: number;
+  porNatureza: number;
   /** fora por ser passo de outra tarefa (subtarefa do mesmo responsável) */
-  passo: number;
+  porSerPasso: number;
   total: number;
 }
 
 export function useFiltroNatureza() {
   const [incluirTodas, setIncluirTodas] = useState(false);
-  const [incluirPassos, setIncluirPassos] = useState(false);
   const { data: naturezas } = useNaturezasTarefa();
 
   const daLista = useMemo(
@@ -64,8 +63,8 @@ export function useFiltroNatureza() {
 
   const visivel = useCallback(
     (t: TarefaComNatureza) =>
-      (incluirTodas || naListaDeTrabalho(t)) && (incluirPassos || ehTrabalhoIndependente(t)),
-    [incluirTodas, incluirPassos, naListaDeTrabalho, ehTrabalhoIndependente]
+      incluirTodas || (naListaDeTrabalho(t) && ehTrabalhoIndependente(t)),
+    [incluirTodas, naListaDeTrabalho, ehTrabalhoIndependente]
   );
 
   const filtrar = useCallback(
@@ -76,17 +75,14 @@ export function useFiltroNatureza() {
   const contarOcultas = useCallback(
     (...listas: (TarefaComNatureza[] | undefined)[]): OcultasContagem => {
       const todas = listas.flatMap((l) => l ?? []);
-      const porNatureza = incluirTodas ? [] : todas.filter((t) => !naListaDeTrabalho(t));
-      const porPasso = incluirPassos
-        ? []
-        : todas.filter((t) => !ehTrabalhoIndependente(t) && (incluirTodas || naListaDeTrabalho(t)));
-      return {
-        natureza: porNatureza.length,
-        passo: porPasso.length,
-        total: porNatureza.length + porPasso.length,
-      };
+      if (incluirTodas) return { porNatureza: 0, porSerPasso: 0, total: 0 };
+      const porNatureza = todas.filter((t) => !naListaDeTrabalho(t)).length;
+      const porSerPasso = todas.filter(
+        (t) => naListaDeTrabalho(t) && !ehTrabalhoIndependente(t)
+      ).length;
+      return { porNatureza, porSerPasso, total: porNatureza + porSerPasso };
     },
-    [incluirTodas, incluirPassos, naListaDeTrabalho, ehTrabalhoIndependente]
+    [incluirTodas, naListaDeTrabalho, ehTrabalhoIndependente]
   );
 
   const rotulo = useCallback(
@@ -98,8 +94,6 @@ export function useFiltroNatureza() {
   return {
     incluirTodas,
     setIncluirTodas,
-    incluirPassos,
-    setIncluirPassos,
     filtrar,
     contarOcultas,
     naturezaDe,
