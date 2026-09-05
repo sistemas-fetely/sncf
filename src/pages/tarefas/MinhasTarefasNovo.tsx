@@ -262,6 +262,13 @@ export default function MinhasTarefasNovo() {
               <p className="text-sm text-muted-foreground">Carregando…</p>
             ) : gruposFiltrados.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">{TEXTOS_VAZIO[p]}</p>
+            ) : visao === "quadro" ? (
+              <QuadroMinhasTarefas
+                grupos={gruposFiltrados}
+                filhasPorMae={grupos.filhasPorMae}
+                somenteLeitura={somenteLeitura}
+                nomeProjeto={nomeProjeto}
+              />
             ) : (
               <div className="space-y-6">
                 {gruposFiltrados.map(([chave, lista]) => (
