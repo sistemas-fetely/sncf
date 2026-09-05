@@ -140,6 +140,7 @@ const RecebimentosConciliar = lazy(() => import("@/pages/administrativo/Recebime
 const Parceiros = lazy(() => import("@/pages/administrativo/Parceiros"));
 const ImportarDados = lazy(() => import("@/pages/administrativo/ImportarDados"));
 const NFsStage = lazy(() => import("@/pages/administrativo/NFsStage"));
+const NfAGerarTitulo = lazy(() => import("@/pages/administrativo/NfAGerarTitulo"));
 const DevolucoesFiscais = lazy(() => import("@/pages/administrativo/DevolucoesFiscais"));
 const MotorClassificacao = lazy(() => import("@/pages/administrativo/MotorClassificacao"));
 const FaturasCartao = lazy(() => import("@/pages/administrativo/FaturasCartao"));
@@ -758,6 +759,7 @@ const App = () => (
                 <Route path="contratos" element={<AdminContratos />} />
                 <Route path="importar" element={<ImportarDados />} />
                 <Route path="nfs-stage" element={<NFsStage />} />
+                <Route path="nf-a-gerar-titulo" element={<NfAGerarTitulo />} />
                 <Route path="devolucoes-fiscais" element={<DevolucoesFiscais />} />
                 <Route path="motor-classificacao" element={<MotorClassificacao />} />
                 <Route path="documentos-pendentes" element={<DocumentosPendentes />} />
