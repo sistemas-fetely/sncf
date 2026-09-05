@@ -81431,7 +81431,10 @@ export type Database = {
           r_sku: string
         }[]
       }
-      fn_custo_registrar_nf: { Args: { p_nf_id: number }; Returns: Json }
+      fn_custo_registrar_nf: {
+        Args: { p_forcar?: boolean; p_nf_id: number }
+        Returns: Json
+      }
       fn_data_entrega_rastreio: { Args: { p_eventos: Json }; Returns: string }
       fn_declaracao_vigente: {
         Args: { p_entidade: string; p_entidade_id: string; p_tipo?: string }
