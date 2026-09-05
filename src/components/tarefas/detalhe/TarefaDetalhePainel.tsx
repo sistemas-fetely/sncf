@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
+import { useStatusRotulo } from "./comuns";
 import {
   useDecidirAprovacao, useSalvarCampoTarefa, useTarefaDetalhe,
   type TarefaDetalhe,
@@ -48,6 +49,7 @@ export function TarefaDetalhePainel({ tarefaId, aberto, onOpenChange }: Props) {
 function Conteudo({ tarefaId }: { tarefaId: string }) {
   const { data: tarefa, isLoading, error } = useTarefaDetalhe(tarefaId);
   const { data: projetos } = useProjetos();
+  const rotuloStatus = useStatusRotulo();
   const salvar = useSalvarCampoTarefa(tarefaId);
   const navigate = useNavigate();
   const [titulo, setTitulo] = useState("");
