@@ -21,11 +21,6 @@ export interface Tarefa {
   estimativa_horas: number | null;
   acao_url: string | null;
   motivo_cancelamento: string | null;
-  /**
-   * Regra derivada na view: raiz (sem mãe) ou subtarefa com responsável
-   * diferente do da mãe. Ausente nos selects feitos na tabela `tarefas`.
-   */
-  trabalho_independente?: boolean | null;
   /** título da tarefa-mãe, quando a linha é subtarefa (vem da view) */
   mae_titulo?: string | null;
   mae_id?: string | null;
