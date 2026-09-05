@@ -104,6 +104,7 @@ const ProjetoDetalhe = lazy(() => import("@/pages/tarefas/ProjetoDetalhe"));
 const CalendarioTarefas = lazy(() => import("@/pages/tarefas/CalendarioTarefas"));
 const CargaTrabalho = lazy(() => import("@/pages/tarefas/CargaTrabalho"));
 const MeuTime = lazy(() => import("@/pages/tarefas/MeuTime"));
+const MesaGestor = lazy(() => import("@/pages/tarefas/MesaGestor"));
 const RecorrenciasTarefas = lazy(() => import("@/pages/tarefas/Recorrencias"));
 const TemplatesTarefas = lazy(() => import("@/pages/tarefas/Templates"));
 const NotificacoesPreferencias = lazy(() => import("@/pages/tarefas/NotificacoesPreferencias"));
