@@ -1,10 +1,10 @@
-/** Furos de trilha do cliente — tom de alerta, texto do banco. */
+/** Pendências de trilha do cliente — tom de alerta, texto do banco. */
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { Selo } from "@/components/ui/selo";
 import { formatBRL } from "@/lib/format-currency";
 import { useContaClienteFuros } from "@/hooks/financeiro/useContaCliente";
 
-export function ClienteAbaFuros({ parceiroId }: { parceiroId: string }) {
+export function ClienteAbaPendencias({ parceiroId }: { parceiroId: string }) {
   const furos = useContaClienteFuros(parceiroId);
 
   if (furos.isLoading) {
@@ -18,7 +18,7 @@ export function ClienteAbaFuros({ parceiroId }: { parceiroId: string }) {
   if (furos.isError) {
     return (
       <p className="text-xs text-destructive">
-        {(furos.error as any)?.message ?? "Falha ao carregar os furos."}
+        {(furos.error as any)?.message ?? "Falha ao carregar as pendências."}
       </p>
     );
   }
@@ -26,7 +26,7 @@ export function ClienteAbaFuros({ parceiroId }: { parceiroId: string }) {
   if (!furos.data || furos.data.length === 0) {
     return (
       <p className="text-xs text-muted-foreground">
-        Nenhum furo de trilha neste cliente.
+        Nenhuma pendência de trilha neste cliente.
       </p>
     );
   }
@@ -35,7 +35,7 @@ export function ClienteAbaFuros({ parceiroId }: { parceiroId: string }) {
     <div className="space-y-2">
       <p className="text-xs font-medium flex items-center gap-1.5">
         <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
-        {furos.data.length} {furos.data.length === 1 ? "furo" : "furos"} de trilha
+        {furos.data.length} {furos.data.length === 1 ? "pendência" : "pendências"} de trilha
       </p>
       <div className="space-y-1.5">
         {furos.data.map((f, i) => (

@@ -19,18 +19,16 @@ import { usePodeVerAba } from "@/components/AbaGate";
 import { useClienteCadastro } from "@/hooks/clientes/useClientePainel";
 import { ClienteAbaPosicao } from "@/components/clientes/ClienteAbaPosicao";
 import { ClienteAbaExtrato } from "@/components/clientes/ClienteAbaExtrato";
-import { ClienteAbaCredito } from "@/components/clientes/ClienteAbaCredito";
 import { ClienteAbaCadastro } from "@/components/clientes/ClienteAbaCadastro";
-import { ClienteAbaFuros } from "@/components/clientes/ClienteAbaFuros";
+import { ClienteAbaPendencias } from "@/components/clientes/ClienteAbaPendencias";
 import { PedidosDoParceiroSection } from "@/components/parceiros/PedidosDoParceiroSection";
 
 const ABAS = [
-  { value: "posicao", label: "Posição", slug: "tela.cliente_posicao" },
+  { value: "posicao", label: "Posição e Crédito", slug: "tela.cliente_posicao" },
   { value: "extrato", label: "Extrato", slug: "tela.cliente_extrato" },
-  { value: "credito", label: "Crédito", slug: "tela.cliente_credito" },
   { value: "pedidos", label: "Pedidos", slug: "tela.cliente_pedidos" },
   { value: "cadastro", label: "Cadastro", slug: "tela.cliente_cadastro" },
-  { value: "furos", label: "Furos", slug: "tela.cliente_auditoria" },
+  { value: "pendencias", label: "Pendências", slug: "tela.cliente_auditoria" },
 ] as const;
 
 export default function ClientePainel() {
@@ -47,14 +45,13 @@ export default function ClientePainel() {
   const p2 = usePodeVerAba(ABAS[2].slug);
   const p3 = usePodeVerAba(ABAS[3].slug);
   const p4 = usePodeVerAba(ABAS[4].slug);
-  const p5 = usePodeVerAba(ABAS[5].slug);
-  const permissoes = [p0, p1, p2, p3, p4, p5];
+  const permissoes = [p0, p1, p2, p3, p4];
 
   const carregandoPermissoes = permissoes.some((p) => p.carregando);
   const visiveis = useMemo(
     () => ABAS.filter((_, i) => permissoes[i].podeVer),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [p0.podeVer, p1.podeVer, p2.podeVer, p3.podeVer, p4.podeVer, p5.podeVer],
+    [p0.podeVer, p1.podeVer, p2.podeVer, p3.podeVer, p4.podeVer],
   );
 
   const abaUrl = params.get("aba");
@@ -155,11 +152,6 @@ export default function ClientePainel() {
             <ClienteAbaExtrato parceiroId={id} clienteNome={nome} />
           </TabsContent>
         )}
-        {visiveis.some((a) => a.value === "credito") && (
-          <TabsContent value="credito">
-            <ClienteAbaCredito parceiroId={id} />
-          </TabsContent>
-        )}
         {visiveis.some((a) => a.value === "pedidos") && (
           <TabsContent value="pedidos">
             <PedidosDoParceiroSection parceiroId={id} />
@@ -170,9 +162,9 @@ export default function ClientePainel() {
             <ClienteAbaCadastro parceiroId={id} />
           </TabsContent>
         )}
-        {visiveis.some((a) => a.value === "furos") && (
-          <TabsContent value="furos">
-            <ClienteAbaFuros parceiroId={id} />
+        {visiveis.some((a) => a.value === "pendencias") && (
+          <TabsContent value="pendencias">
+            <ClienteAbaPendencias parceiroId={id} />
           </TabsContent>
         )}
       </Tabs>
