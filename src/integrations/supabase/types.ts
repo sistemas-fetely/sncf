@@ -7225,6 +7225,7 @@ export type Database = {
           confianca_ia: string | null
           confirmado_em: string | null
           confirmado_por: string | null
+          conta_pagar_id: string | null
           criado_em: string
           criado_por: string | null
           data_lida: string | null
@@ -7238,7 +7239,7 @@ export type Database = {
           movimentacao_id: string | null
           pagador_lido: string | null
           payload_ia: Json | null
-          pedido_id: string
+          pedido_id: string | null
           provisao_id: string | null
           sentido: string
           status: string
@@ -7257,6 +7258,7 @@ export type Database = {
           confianca_ia?: string | null
           confirmado_em?: string | null
           confirmado_por?: string | null
+          conta_pagar_id?: string | null
           criado_em?: string
           criado_por?: string | null
           data_lida?: string | null
@@ -7270,7 +7272,7 @@ export type Database = {
           movimentacao_id?: string | null
           pagador_lido?: string | null
           payload_ia?: Json | null
-          pedido_id: string
+          pedido_id?: string | null
           provisao_id?: string | null
           sentido?: string
           status?: string
@@ -7289,6 +7291,7 @@ export type Database = {
           confianca_ia?: string | null
           confirmado_em?: string | null
           confirmado_por?: string | null
+          conta_pagar_id?: string | null
           criado_em?: string
           criado_por?: string | null
           data_lida?: string | null
@@ -7302,7 +7305,7 @@ export type Database = {
           movimentacao_id?: string | null
           pagador_lido?: string | null
           payload_ia?: Json | null
-          pedido_id?: string
+          pedido_id?: string | null
           provisao_id?: string | null
           sentido?: string
           status?: string
@@ -7325,6 +7328,83 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "banco_recebimento"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar_receber_ativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "v_cpr_bola_redonda"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_furos"
+            referencedColumns: ["sugestao_cpr_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contas_pagar_consolidado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cpr_cobertura"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_match_sugestoes"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_documentos_envio_estados"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_pagar_acoes"
+            referencedColumns: ["cpr_id"]
           },
           {
             foreignKeyName: "comprovante_pagamento_movimentacao_id_fkey"
@@ -46705,6 +46785,7 @@ export type Database = {
           ativo: boolean
           cor: string | null
           descricao: string | null
+          exige_comprovante: boolean
           exige_data_pretendida: boolean
           exige_motivo: boolean
           legado_status: string | null
@@ -46723,6 +46804,7 @@ export type Database = {
           ativo?: boolean
           cor?: string | null
           descricao?: string | null
+          exige_comprovante?: boolean
           exige_data_pretendida?: boolean
           exige_motivo?: boolean
           legado_status?: string | null
@@ -46741,6 +46823,7 @@ export type Database = {
           ativo?: boolean
           cor?: string | null
           descricao?: string | null
+          exige_comprovante?: boolean
           exige_data_pretendida?: boolean
           exige_motivo?: boolean
           legado_status?: string | null
