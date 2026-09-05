@@ -42611,6 +42611,39 @@ export type Database = {
         }
         Relationships: []
       }
+      tarefa_natureza_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          conta_carga: boolean
+          created_at: string
+          descricao: string
+          na_lista_de_trabalho: boolean
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          conta_carga: boolean
+          created_at?: string
+          descricao: string
+          na_lista_de_trabalho: boolean
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          conta_carga?: boolean
+          created_at?: string
+          descricao?: string
+          na_lista_de_trabalho?: boolean
+          nome?: string
+          ordem?: number
+        }
+        Relationships: []
+      }
       tarefas: {
         Row: {
           acao_url: string | null
@@ -42632,6 +42665,7 @@ export type Database = {
           id: string
           modulo_origem: string | null
           motivo_cancelamento: string | null
+          natureza: string
           ocorrencia_data: string | null
           ordem: number
           parent_id: string | null
@@ -42666,6 +42700,7 @@ export type Database = {
           id?: string
           modulo_origem?: string | null
           motivo_cancelamento?: string | null
+          natureza?: string
           ocorrencia_data?: string | null
           ordem?: number
           parent_id?: string | null
@@ -42700,6 +42735,7 @@ export type Database = {
           id?: string
           modulo_origem?: string | null
           motivo_cancelamento?: string | null
+          natureza?: string
           ocorrencia_data?: string | null
           ordem?: number
           parent_id?: string | null
@@ -42721,6 +42757,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "departamentos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_natureza_fkey"
+            columns: ["natureza"]
+            isOneToOne: false
+            referencedRelation: "tarefa_natureza_dim"
+            referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_parent_id_fkey"
