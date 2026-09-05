@@ -1,7 +1,7 @@
 /**
  * BONIFICAÇÕES — o que o cliente já recebeu sem pagar.
  *
- * Aba de /cliente. Fonte: vw_conta_cliente_cortesias (pedidos bonificados e
+ * Aba da ficha do cliente. Fonte: vw_conta_cliente_cortesias (pedidos bonificados e
  * créditos de cortesia). Total somado no topo: bonificação também é dinheiro.
  */
 import { AlertTriangle, Gift } from "lucide-react";
@@ -25,8 +25,8 @@ function dataBR(iso: string | null | undefined) {
   return `${d}/${m}/${a}`;
 }
 
-export function BonificacoesTab() {
-  const { data: linhas, isLoading, isError, error } = useCortesiasCliente();
+export function BonificacoesTab({ parceiroId }: { parceiroId: string }) {
+  const { data: linhas, isLoading, isError, error } = useCortesiasCliente(parceiroId);
 
   const lista = linhas ?? [];
   const total = lista.reduce((s, l) => s + Number(l.valor ?? 0), 0);
@@ -36,7 +36,7 @@ export function BonificacoesTab() {
   return (
     <div className="space-y-4">
       <p className="text-xs text-muted-foreground">
-        Tudo que saiu para o cliente sem cobrança: pedidos bonificados e créditos de
+        Tudo que saiu para este cliente sem cobrança: pedidos bonificados e créditos de
         cortesia. Serve para saber quanto já foi dado antes de dar mais.
       </p>
 
@@ -82,32 +82,24 @@ export function BonificacoesTab() {
       ) : lista.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-md border border-border/60 py-10 text-sm text-muted-foreground">
           <Gift className="h-5 w-5" />
-          Nenhuma bonificação registrada.
+          Este cliente não recebeu bonificação.
         </div>
       ) : (
         <div className="rounded-md border border-border/60">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Cliente</TableHead>
                 <TableHead className="w-24">Data</TableHead>
                 <TableHead className="w-24">Tipo</TableHead>
                 <TableHead className="w-28">Referência</TableHead>
-                <TableHead>Natureza</TableHead>
+                <TableHead>Itens</TableHead>
+                <TableHead className="w-40">Natureza</TableHead>
                 <TableHead className="w-28 text-right">Valor</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {lista.map((l) => (
                 <TableRow key={`${l.tipo}-${l.origem_id}`}>
-                  <TableCell className="align-top">
-                    <p className="text-sm">{l.cliente_nome}</p>
-                    {l.qtd_itens > 0 && l.itens && (
-                      <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-                        {l.qtd_itens} item(ns): {l.itens}
-                      </p>
-                    )}
-                  </TableCell>
                   <TableCell className="align-top text-sm">{dataBR(l.data)}</TableCell>
                   <TableCell className="align-top">
                     <Selo estado={l.tipo === "pedido" ? "info" : "muted"}>
@@ -115,6 +107,18 @@ export function BonificacoesTab() {
                     </Selo>
                   </TableCell>
                   <TableCell className="align-top text-sm">{l.referencia ?? "—"}</TableCell>
+                  <TableCell className="align-top text-sm">
+                    {l.qtd_itens > 0 && l.itens ? (
+                      <>
+                        <span className="leading-snug">{l.itens}</span>
+                        <span className="ml-1 text-[11px] text-muted-foreground">
+                          ({l.qtd_itens} item{l.qtd_itens > 1 ? "s" : ""})
+                        </span>
+                      </>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
                   <TableCell className="align-top text-sm text-muted-foreground">
                     {l.natureza ?? "—"}
                     {l.situacao ? ` · ${l.situacao}` : ""}
