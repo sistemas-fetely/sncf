@@ -61,7 +61,7 @@ export function ListaContasClientes() {
   return (
     <div className="space-y-4">
       <PageHeader
-        titulo="Clientes"
+        titulo="Conta Corrente Cliente"
         icone={Users}
         estado={
           isError
