@@ -21,6 +21,9 @@ import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useTarefaAberta } from "@/hooks/tarefas/useTarefaAberta";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { QuadroMinhasTarefas } from "@/components/tarefas/QuadroMinhasTarefas";
+import { LayoutList, KanbanSquare } from "lucide-react";
 
 const TEXTOS_VAZIO: Record<Papel, string> = {
   r: "Nada sob sua execução.",
