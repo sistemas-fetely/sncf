@@ -100,17 +100,52 @@ export function BoardProjeto({ projetoId }: Props) {
     return lista;
   }, [secoes]);
 
+  /**
+   * Subtarefa com o mesmo responsável da mãe é passo de checklist — vive no
+   * detalhe da mãe, não como card solto. Mesma regra do banco
+   * (trabalho_independente), calculada aqui porque o board lê a tabela.
+   */
+  const porResponsavelMae = useMemo(() => {
+    const mapa = new Map<string, string | null>();
+    for (const t of tarefas ?? []) mapa.set(t.id, t.responsavel_id);
+    return mapa;
+  }, [tarefas]);
+
+  const ehIndependente = useCallback(
+    (t: TarefaBoard) => {
+      if (!t.parent_id) return true;
+      if (!porResponsavelMae.has(t.parent_id)) return true; // mãe fora do board
+      return porResponsavelMae.get(t.parent_id) !== t.responsavel_id;
+    },
+    [porResponsavelMae]
+  );
+
+  /** progresso das subtarefas de cada mãe, para o selo compacto "3/7" */
+  const progressoFilhas = useMemo(() => {
+    const mapa = new Map<string, { feitas: number; total: number }>();
+    for (const t of tarefas ?? []) {
+      if (!t.parent_id) continue;
+      const atual = mapa.get(t.parent_id) ?? { feitas: 0, total: 0 };
+      atual.total += 1;
+      if (t.status === "concluida") atual.feitas += 1;
+      mapa.set(t.parent_id, atual);
+    }
+    return mapa;
+  }, [tarefas]);
+
   const porColuna = useMemo(() => {
     const mapa = new Map<string, TarefaBoard[]>();
     const visiveis = (tarefas ?? []).filter(
-      (t) => naturezaFiltro === "todas" || (t.natureza ?? "operacional") === naturezaFiltro
+      (t) =>
+        ehIndependente(t) &&
+        (naturezaFiltro === "todas" || (t.natureza ?? "operacional") === naturezaFiltro)
     );
     for (const t of visiveis) {
       const chave = t.secao_id ?? SEM_SECAO;
       mapa.set(chave, [...(mapa.get(chave) ?? []), t]);
     }
     return mapa;
-  }, [tarefas]);
+  }, [tarefas, naturezaFiltro, ehIndependente]);
 
   function podeArrastar(t: TarefaBoard): boolean {
     return !!podeGerenciar || t.responsavel_id === user?.id || t.criado_por === user?.id;
