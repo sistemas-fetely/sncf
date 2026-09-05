@@ -17846,6 +17846,13 @@ export type Database = {
             referencedRelation: "vw_tarefa_meu_papel"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "gestao_reuniao_item_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_meu_papel"
+            referencedColumns: ["mae_id"]
+          },
         ]
       }
       gestao_reuniao_participante: {
@@ -19938,6 +19945,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_tarefa_meu_papel"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_tarefas_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_meu_papel"
+            referencedColumns: ["mae_id"]
           },
         ]
       }
@@ -42887,6 +42901,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "tarefas_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_meu_papel"
+            referencedColumns: ["mae_id"]
+          },
+          {
             foreignKeyName: "tarefas_projeto_id_fkey"
             columns: ["projeto_id"]
             isOneToOne: false
@@ -42969,6 +42990,13 @@ export type Database = {
             referencedRelation: "vw_tarefa_meu_papel"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tarefas_anexos_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_meu_papel"
+            referencedColumns: ["mae_id"]
+          },
         ]
       }
       tarefas_apontamentos: {
@@ -43023,6 +43051,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_tarefa_meu_papel"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_apontamentos_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_meu_papel"
+            referencedColumns: ["mae_id"]
           },
         ]
       }
@@ -43173,6 +43208,13 @@ export type Database = {
             referencedRelation: "vw_tarefa_meu_papel"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tarefas_campos_valores_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_meu_papel"
+            referencedColumns: ["mae_id"]
+          },
         ]
       }
       tarefas_capacidade: {
@@ -43249,6 +43291,13 @@ export type Database = {
             referencedRelation: "vw_tarefa_meu_papel"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tarefas_comentarios_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_meu_papel"
+            referencedColumns: ["mae_id"]
+          },
         ]
       }
       tarefas_dependencias: {
@@ -43296,6 +43345,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "tarefas_dependencias_depende_de_id_fkey"
+            columns: ["depende_de_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_meu_papel"
+            referencedColumns: ["mae_id"]
+          },
+          {
             foreignKeyName: "tarefas_dependencias_tarefa_id_fkey"
             columns: ["tarefa_id"]
             isOneToOne: false
@@ -43315,6 +43371,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_tarefa_meu_papel"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_dependencias_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_meu_papel"
+            referencedColumns: ["mae_id"]
           },
         ]
       }
@@ -43458,6 +43521,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_tarefa_meu_papel"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_papeis_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_meu_papel"
+            referencedColumns: ["mae_id"]
           },
         ]
       }
@@ -43859,6 +43929,13 @@ export type Database = {
             referencedRelation: "vw_tarefa_meu_papel"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tarefas_tarefa_etiquetas_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_meu_papel"
+            referencedColumns: ["mae_id"]
+          },
         ]
       }
       tarefas_template_itens: {
@@ -43999,6 +44076,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_tarefa_meu_papel"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_timer_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_meu_papel"
+            referencedColumns: ["mae_id"]
           },
         ]
       }
@@ -44243,26 +44327,61 @@ export type Database = {
       tipos_contrato: {
         Row: {
           ativo: boolean
+          centro_custo_id: string | null
           codigo: string
           created_at: string | null
           id: string
           nome: string
+          plano_contas_id: string | null
         }
         Insert: {
           ativo?: boolean
+          centro_custo_id?: string | null
           codigo: string
           created_at?: string | null
           id?: string
           nome: string
+          plano_contas_id?: string | null
         }
         Update: {
           ativo?: boolean
+          centro_custo_id?: string | null
           codigo?: string
           created_at?: string | null
           id?: string
           nome?: string
+          plano_contas_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tipos_contrato_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipos_contrato_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "tipos_contrato_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dimensionamento_areas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "tipos_contrato_plano_contas_id_fkey"
+            columns: ["plano_contas_id"]
+            isOneToOne: false
+            referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tipos_usuario: {
         Row: {
@@ -57165,6 +57284,21 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_conta_cliente_cortesias: {
+        Row: {
+          data: string | null
+          itens: string | null
+          natureza: string | null
+          origem_id: string | null
+          parceiro_id: string | null
+          qtd_itens: number | null
+          referencia: string | null
+          situacao: string | null
+          tipo: string | null
+          valor: number | null
+        }
+        Relationships: []
+      }
       vw_conta_cliente_furos: {
         Row: {
           cliente: string | null
@@ -63466,6 +63600,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_tarefa_meu_papel"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gestao_reuniao_item_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_meu_papel"
+            referencedColumns: ["mae_id"]
           },
           {
             foreignKeyName: "gestao_reuniao_sala_id_fkey"
@@ -76597,6 +76738,8 @@ export type Database = {
           estimativa_horas: number | null
           hora_limite: string | null
           id: string | null
+          mae_id: string | null
+          mae_titulo: string | null
           modulo_origem: string | null
           motivo_cancelamento: string | null
           na_lista_de_trabalho: boolean | null
@@ -76614,6 +76757,7 @@ export type Database = {
           tipo_origem: string | null
           tipo_tarefa: string | null
           titulo: string | null
+          trabalho_independente: boolean | null
           visibilidade: string | null
         }
         Relationships: [
@@ -76651,6 +76795,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_tarefa_meu_papel"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_meu_papel"
+            referencedColumns: ["mae_id"]
           },
           {
             foreignKeyName: "tarefas_projeto_id_fkey"
