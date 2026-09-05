@@ -24,6 +24,8 @@ import {
 import {
   formatarValorCampo, useCamposCatalogo, useCamposDoProjeto, useValoresCamposDoBoard,
 } from "@/hooks/tarefas/useProjetoCampos";
+import { useNaturezasTarefa } from "@/hooks/tarefas/useTarefasCatalogos";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const SEM_SECAO = "__sem_secao__";
 
@@ -74,6 +76,17 @@ export function BoardProjeto({ projetoId }: Props) {
     camposCard.map((c) => c.campo_id)
   );
 
+  const { data: naturezas } = useNaturezasTarefa();
+  const [naturezaFiltro, setNaturezaFiltro] = useState<string>("todas");
+  const contagemPorNatureza = useMemo(() => {
+    const mapa: Record<string, number> = {};
+    for (const t of tarefas ?? []) {
+      const cod = t.natureza ?? "operacional";
+      mapa[cod] = (mapa[cod] ?? 0) + 1;
+    }
+    return mapa;
+  }, [tarefas, naturezaFiltro]);
+
   const [alvo, setAlvo] = useState<string | null>(null);
   const [novaSecao, setNovaSecao] = useState("");
   const [renomeando, setRenomeando] = useState<{ id: string; nome: string } | null>(null);
@@ -89,7 +102,10 @@ export function BoardProjeto({ projetoId }: Props) {
 
   const porColuna = useMemo(() => {
     const mapa = new Map<string, TarefaBoard[]>();
-    for (const t of tarefas ?? []) {
+    const visiveis = (tarefas ?? []).filter(
+      (t) => naturezaFiltro === "todas" || (t.natureza ?? "operacional") === naturezaFiltro
+    );
+    for (const t of visiveis) {
       const chave = t.secao_id ?? SEM_SECAO;
       mapa.set(chave, [...(mapa.get(chave) ?? []), t]);
     }
@@ -143,6 +159,18 @@ export function BoardProjeto({ projetoId }: Props) {
         >
           <Plus className="mr-1 h-4 w-4" /> Nova seção
         </Button>
+        <Select value={naturezaFiltro} onValueChange={setNaturezaFiltro}>
+          <SelectTrigger className="h-9 w-56"><SelectValue placeholder="Natureza" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Todas as naturezas ({(tarefas ?? []).length})</SelectItem>
+            {(naturezas ?? []).map((n) => (
+              <SelectItem key={n.codigo} value={n.codigo}>
+                {n.nome} ({contagemPorNatureza[n.codigo] ?? 0})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         {!podeGerenciar && (
           <span className="text-xs text-muted-foreground">
             Você não gerencia este projeto — seções são somente leitura.

@@ -187,3 +187,53 @@ export function useTiposExecucaoTarefa() {
     },
   });
 }
+
+export interface NaturezaTarefa {
+  codigo: string;
+  nome: string;
+  descricao: string | null;
+  conta_carga: boolean;
+  na_lista_de_trabalho: boolean;
+  ordem: number;
+}
+
+/** Dimensão de natureza da tarefa — a lista vem SEMPRE da tabela, nunca hardcode. */
+export function useNaturezasTarefa() {
+  return useQuery({
+    queryKey: ["tarefas", "naturezas"],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async (): Promise<NaturezaTarefa[]> => {
+      const { data, error } = await supabase
+        .from("tarefa_natureza_dim")
+        .select("codigo,nome,descricao,conta_carga,na_lista_de_trabalho,ordem")
+        .eq("ativo", true)
+        .order("ordem");
+      if (error) throw error;
+      return (data ?? []) as NaturezaTarefa[];
+    },
+  });
+}
+
+/**
+ * Mapa id da tarefa -> natureza, só das que NÃO são operacionais.
+ * Existe porque algumas listas leem de vw_tarefa_meu_papel / RPC de carga,
+ * que não expõem a coluna. Lista curta por definição (épico e backlog).
+ */
+export function useNaturezaExcecoes() {
+  return useQuery({
+    queryKey: ["tarefas", "natureza-excecoes"],
+    staleTime: 60 * 1000,
+    queryFn: async (): Promise<Record<string, string>> => {
+      const { data, error } = await supabase
+        .from("tarefas")
+        .select("id,natureza")
+        .neq("natureza", "operacional");
+      if (error) throw error;
+      const mapa: Record<string, string> = {};
+      for (const l of (data ?? []) as { id: string; natureza: string | null }[]) {
+        if (l.natureza) mapa[l.id] = l.natureza;
+      }
+      return mapa;
+    },
+  });
+}

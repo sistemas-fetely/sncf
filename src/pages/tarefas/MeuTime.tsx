@@ -17,6 +17,8 @@ import {
   usePessoasDoTime, useTarefasAbertasDoTime, useTarefasEntreguesDoTime,
 } from "@/hooks/tarefas/useTarefasDoTime";
 import type { Tarefa, TarefaPrioridade } from "@/hooks/tarefas/useTarefas";
+import { useFiltroNatureza } from "@/hooks/tarefas/useFiltroNatureza";
+import { ControleNatureza } from "@/components/tarefas/ControleNatureza";
 
 const PRIORIDADES: { valor: TarefaPrioridade; rotulo: string }[] = [
   { valor: "urgente", rotulo: "Urgente" },
@@ -189,14 +191,19 @@ export default function MeuTime() {
   }, [userIds, pessoaFiltro]);
 
 
+  const natureza = useFiltroNatureza();
+  const filtrarNatureza = natureza.filtrar;
+
   const filtrar = useCallback(
     (linhas: Tarefa[]) =>
-      linhas.filter(
-        (t) =>
-          (!t.responsavel_id || idsVisiveis.includes(t.responsavel_id)) &&
-          (prioridadeFiltro === "todas" || t.prioridade === prioridadeFiltro)
+      filtrarNatureza(
+        linhas.filter(
+          (t) =>
+            (!t.responsavel_id || idsVisiveis.includes(t.responsavel_id)) &&
+            (prioridadeFiltro === "todas" || t.prioridade === prioridadeFiltro)
+        )
       ),
-    [idsVisiveis, prioridadeFiltro]
+    [idsVisiveis, prioridadeFiltro, filtrarNatureza]
   );
 
   const agrupar = (linhas: Tarefa[]): GrupoPessoa[] =>
@@ -319,6 +326,12 @@ export default function MeuTime() {
                 ))}
               </SelectContent>
             </Select>
+
+            <ControleNatureza
+              incluirTodas={natureza.incluirTodas}
+              onChange={natureza.setIncluirTodas}
+              ocultas={natureza.contarOcultas(abertas, entregues)}
+            />
           </div>
 
           <Tabs value={aba} onValueChange={setAba}>
