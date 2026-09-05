@@ -540,6 +540,11 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
             />
 
           </div>
+          {recompra.isError && (
+            <p className="text-[11px] font-normal text-destructive">
+              Ritmo de recompra indisponível: {(recompra.error as any)?.message ?? "falha na consulta"}
+            </p>
+          )}
         </div>
       )}
 
