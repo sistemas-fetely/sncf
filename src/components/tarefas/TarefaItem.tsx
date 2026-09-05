@@ -39,9 +39,22 @@ interface Props {
   atrasada?: boolean;
   /** C/I não concluem nem reagendam a tarefa de outro R */
   somenteLeitura?: boolean;
+  /** modelo ClickUp: sem badge de natureza */
+  esconderNatureza?: boolean;
+  /** hierarquia visual já mostra a mãe — não repetir "Passo de:" */
+  esconderMae?: boolean;
+  /** texto secundário acima do título (ex.: título da mãe fora da lista) */
+  subtitulo?: string;
 }
 
-export function TarefaItem({ tarefa, atrasada = false, somenteLeitura = false }: Props) {
+export function TarefaItem({
+  tarefa,
+  atrasada = false,
+  somenteLeitura = false,
+  esconderNatureza = false,
+  esconderMae = false,
+  subtitulo,
+}: Props) {
   const alterarStatus = useAlterarStatusTarefa();
   const reagendar = useReagendarTarefa();
   const { data: projetos } = useProjetos();
@@ -94,7 +107,10 @@ export function TarefaItem({ tarefa, atrasada = false, somenteLeitura = false }:
           }
         }}
       >
-        {tarefa.parent_id && tarefa.mae_titulo && (
+        {subtitulo && (
+          <p className="truncate text-[11px] text-muted-foreground">{subtitulo}</p>
+        )}
+        {!esconderMae && !subtitulo && tarefa.parent_id && tarefa.mae_titulo && (
           <p className="truncate text-[11px] text-muted-foreground">
             Passo de: {tarefa.mae_titulo}
           </p>
@@ -106,7 +122,7 @@ export function TarefaItem({ tarefa, atrasada = false, somenteLeitura = false }:
           <Badge variant="outline" className={cn("text-[10px] py-0", PRIORIDADE_CLASSE[tarefa.prioridade])}>
             {PRIORIDADE_ROTULO[tarefa.prioridade]}
           </Badge>
-          {natureza && (
+          {natureza && !esconderNatureza && (
             <Badge variant="outline" className="border-primary/40 bg-primary/10 py-0 text-[10px] text-primary">
               {natureza.nome}
             </Badge>
