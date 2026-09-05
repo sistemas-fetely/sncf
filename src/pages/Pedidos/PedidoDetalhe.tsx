@@ -2928,7 +2928,10 @@ export default function PedidoDetalhe() {
                   <CoberturaClienteCard
                     parceiroId={pedido.parceiro_id}
                     valorPedido={Number(pedido.valor_total ?? 0)}
+                    pedidoId={pedido.id}
+                    estagio={pedido.estagio}
                   />
+
                   <LinkPagamentoCard pedido={pedido} titulos={titulosData ?? []} />
                 </>
               ) : (
