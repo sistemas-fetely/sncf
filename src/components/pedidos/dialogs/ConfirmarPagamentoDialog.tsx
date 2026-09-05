@@ -220,9 +220,12 @@ export function ConfirmarPagamentoDialog({
     setObservacao("");
     setComprovanteId(null);
     setConfianca(null);
+    ultimaLinhaSyncRef.current = null;
   }, [aberto]);
 
   const ehCartao = provaTipo === "cartao_nsu";
+  // Linha de cartão SÓ fecha pela captura com NSU — a prova fica travada.
+  const linhaEhCartao = !!linhaEfetiva && meioDaLinha(linhaEfetiva) === "cartao";
   const temAnexo = !!comprovanteId;
   const valorNum = Number(String(valor).replace(",", ".")) || 0;
 
