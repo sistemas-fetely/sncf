@@ -21,6 +21,9 @@ import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useTarefaAberta } from "@/hooks/tarefas/useTarefaAberta";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { QuadroMinhasTarefas } from "@/components/tarefas/QuadroMinhasTarefas";
+import { LayoutList, KanbanSquare } from "lucide-react";
 
 const TEXTOS_VAZIO: Record<Papel, string> = {
   r: "Nada sob sua execução.",
@@ -116,6 +119,8 @@ export default function MinhasTarefasNovo() {
   const { user } = useAuth();
   const [filtro, setFiltro] = useState<FiltroStatus>("abertas");
   const [projetoFiltro, setProjetoFiltro] = useState<string>("__todos__");
+  /** lista (padrão) ou quadro; persiste ao trocar a aba de papel, como o filtro de projeto */
+  const [visao, setVisao] = useState<"lista" | "quadro">("lista");
   const [aba, setAba] = useAbaUrl("r");
   const abaAtual = aba as Papel;
   const { data: tarefas, isLoading } = useMinhasTarefasPapel(user?.id, filtro);
@@ -221,6 +226,20 @@ export default function MinhasTarefasNovo() {
               </SelectContent>
             </Select>
           )}
+
+          <ToggleGroup
+            type="single"
+            value={visao}
+            onValueChange={(v) => v && setVisao(v as "lista" | "quadro")}
+            className="ml-1"
+          >
+            <ToggleGroupItem value="lista" aria-label="Visão em lista" className="h-8 gap-1.5 px-2.5 text-xs">
+              <LayoutList className="h-3.5 w-3.5" /> Lista
+            </ToggleGroupItem>
+            <ToggleGroupItem value="quadro" aria-label="Visão em quadro" className="h-8 gap-1.5 px-2.5 text-xs">
+              <KanbanSquare className="h-3.5 w-3.5" /> Quadro
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
         <span className="text-xs text-muted-foreground">{totalAba} tarefa(s)</span>
       </div>
@@ -243,6 +262,13 @@ export default function MinhasTarefasNovo() {
               <p className="text-sm text-muted-foreground">Carregando…</p>
             ) : gruposFiltrados.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">{TEXTOS_VAZIO[p]}</p>
+            ) : visao === "quadro" ? (
+              <QuadroMinhasTarefas
+                grupos={gruposFiltrados}
+                filhasPorMae={grupos.filhasPorMae}
+                somenteLeitura={somenteLeitura}
+                nomeProjeto={nomeProjeto}
+              />
             ) : (
               <div className="space-y-6">
                 {gruposFiltrados.map(([chave, lista]) => (
