@@ -369,7 +369,11 @@ export function ConfirmarPagamentoDialog({
           {/* Tipo de prova */}
           <div className="space-y-2">
             <Label htmlFor="prova-tipo">Tipo de prova</Label>
-            <Select value={provaTipo} onValueChange={(v) => setProvaTipo(v as ProvaTipoUI)}>
+            <Select
+              value={provaTipo}
+              onValueChange={(v) => setProvaTipo(v as ProvaTipoUI)}
+              disabled={linhaEhCartao}
+            >
               <SelectTrigger id="prova-tipo">
                 <SelectValue />
               </SelectTrigger>
@@ -379,6 +383,12 @@ export function ConfirmarPagamentoDialog({
                 ))}
               </SelectContent>
             </Select>
+            {linhaEhCartao && (
+              <p className="text-[11px] text-muted-foreground">
+                Cartão fecha pela captura com NSU — se o cliente pagou por outro meio, refaça o
+                plano de pagamento.
+              </p>
+            )}
           </div>
 
           {/* Referência */}
