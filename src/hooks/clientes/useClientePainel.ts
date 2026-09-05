@@ -290,3 +290,43 @@ export function useRecompraCliente(parceiroId: string | null | undefined) {
   });
 }
 
+
+export interface MixCliente {
+  parceiro_id: string;
+  familia: string;
+  valor_cliente: number;
+  pct_cliente: number;
+  pct_carteira: number;
+  gap_pp: number;
+  nunca_comprou: boolean;
+}
+
+export const QK_CLIENTE_MIX = "cliente-painel-mix";
+
+/**
+ * Mix do cliente confrontado com a média da carteira. Uma linha por família,
+ * inclusive as que ele nunca comprou. Só leitura.
+ */
+export function useMixCliente(parceiroId: string | null | undefined) {
+  return useQuery({
+    queryKey: [QK_CLIENTE_MIX, parceiroId],
+    enabled: !!parceiroId,
+    queryFn: async (): Promise<MixCliente[]> => {
+      const { data, error } = await (supabase as any)
+        .from("vw_conta_cliente_mix")
+        .select("parceiro_id, familia, valor_cliente, pct_cliente, pct_carteira, gap_pp, nunca_comprou")
+        .eq("parceiro_id", parceiroId)
+        .order("pct_cliente", { ascending: false });
+      if (error) throw error;
+      return ((data ?? []) as Record<string, unknown>[]).map((d) => ({
+        parceiro_id: String(d.parceiro_id ?? ""),
+        familia: String(d.familia ?? "—"),
+        valor_cliente: Number(d.valor_cliente ?? 0),
+        pct_cliente: Number(d.pct_cliente ?? 0),
+        pct_carteira: Number(d.pct_carteira ?? 0),
+        gap_pp: Number(d.gap_pp ?? 0),
+        nunca_comprou: Boolean(d.nunca_comprou),
+      }));
+    },
+  });
+}
