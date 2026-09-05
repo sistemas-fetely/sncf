@@ -73,6 +73,21 @@ interface LinhaCargaPessoa {
   furo_sem_numero: boolean | null;
 }
 
+/** A RPC lança exceção quando a pessoa não está no time visível. */
+function semPermissao(erro: unknown): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const e = erro as any;
+  const msg = String(e?.message ?? "").toLowerCase();
+  return (
+    e?.code === "42501" ||
+    msg.includes("permiss") ||
+    msg.includes("não autorizado") ||
+    msg.includes("nao autorizado") ||
+    msg.includes("visível") ||
+    msg.includes("visivel")
+  );
+}
+
 /** Minutos → "2h 30min". Nunca soma fluxo com estoque. */
 function minutos(v: number | null | undefined) {
   if (v == null) return "—";
