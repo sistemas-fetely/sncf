@@ -38,6 +38,7 @@ import { useConfirmarPagamentoLinha } from "@/hooks/pedidos/useConfirmarPagament
 import { useConfirmarCartaoCapturado } from "@/hooks/pedidos/useConfirmarCartaoCapturado";
 import {
   usePlanoAbertoPedido,
+  meioDaLinha,
   rotuloMeio,
   type LinhaPlanoAberta,
 } from "@/hooks/pedidos/usePlanoAbertoPedido";
