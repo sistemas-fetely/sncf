@@ -21,6 +21,7 @@ import { ClienteAbaPosicao } from "@/components/clientes/ClienteAbaPosicao";
 import { ClienteAbaExtrato } from "@/components/clientes/ClienteAbaExtrato";
 import { ClienteAbaCadastro } from "@/components/clientes/ClienteAbaCadastro";
 import { ClienteAbaPendencias } from "@/components/clientes/ClienteAbaPendencias";
+import { ClienteAbaSugestao } from "@/components/clientes/ClienteAbaSugestao";
 import { BonificacoesTab } from "@/components/clientes/BonificacoesTab";
 import { PedidosDoParceiroSection } from "@/components/parceiros/PedidosDoParceiroSection";
 
