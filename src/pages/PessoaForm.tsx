@@ -475,6 +475,7 @@ export default function PessoaForm() {
         }
         const { error: e2 } = await (supabase as any).from("vinculos").update(payloadVinculo(id)).eq("id", vinculoId);
         if (e2) throw e2;
+        setEmailCorporativoOriginal((vinculo.email_corporativo || "").trim());
 
         toast.success("Pessoa atualizada");
         navigate("/pessoas");
