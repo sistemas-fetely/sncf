@@ -132,7 +132,9 @@ export function ConfirmarPagamentoDialog({
   const [comprovanteId, setComprovanteId] = useState<string | null>(null);
   const [confianca, setConfianca] = useState<string | null>(null);
 
-  const planoQ = usePlanoAbertoPedido(pedidoId, aberto && !provisaoId);
+  // O plano aberto carrega sempre que o dialog abre — mesmo com provisaoId fixo,
+  // porque o tipo de prova nasce do MEIO da linha (MEIO-DITA-PROVA).
+  const planoQ = usePlanoAbertoPedido(pedidoId, aberto);
   const bancosQ = useBancosRecebimento(aberto);
   const adquirentesQ = useAdquirentes(aberto && provaTipo === "cartao_nsu");
   const comprovantesQ = useComprovantesPedido(pedidoId, aberto);
@@ -164,6 +166,13 @@ export function ConfirmarPagamentoDialog({
   }, [candidatas, escolhida, provisaoId]);
 
   const provisaoEfetiva = provisaoId ?? linhaAlvo?.id ?? null;
+
+  // Linha efetiva do plano nos DOIS caminhos (provisaoId fixo ou escolha manual):
+  // é ela quem dita o meio — e o meio dita o tipo de prova.
+  const linhaEfetiva = useMemo(
+    () => candidatas.find((l) => l.id === provisaoEfetiva) ?? null,
+    [candidatas, provisaoEfetiva],
+  );
 
   // O comprovante mais recente já lido pela IA preenche a tela sozinho.
   const lido = useMemo(
