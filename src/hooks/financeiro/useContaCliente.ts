@@ -9,6 +9,11 @@
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  sha256Hex,
+  extensaoDe,
+  type LeituraComprovante,
+} from "@/hooks/comercial/useComprovantePagamento";
 
 export interface ContaClienteSaldo {
   parceiro_id: string;
@@ -145,6 +150,8 @@ export interface RegistrarRecebimentoInput {
   pagador_nome?: string | null;
   pagador_documento?: string | null;
   observacao?: string | null;
+  /** Caminho no bucket `comprovantes-pagamento` — prova anexada ao lançamento. */
+  comprovantePath?: string | null;
 }
 
 export interface RegistrarRecebimentoResultado {
@@ -179,6 +186,7 @@ export function useRegistrarRecebimentoCliente() {
         p_pagador_nome: input.pagador_nome ?? null,
         p_pagador_documento: input.pagador_documento ?? null,
         p_observacao: input.observacao ?? null,
+        p_comprovante_path: input.comprovantePath ?? null,
         p_user_id: sessao?.user?.id ?? null,
       });
       if (error) throw error;
@@ -192,6 +200,60 @@ export function useRegistrarRecebimentoCliente() {
       qc.invalidateQueries({ queryKey: [QK_CONTA_CLIENTE_LANC, input.parceiro_id] });
       qc.invalidateQueries({ queryKey: [QK_CONTA_CLIENTE_FUROS, input.parceiro_id] });
       qc.invalidateQueries({ queryKey: [QK_CONTA_CLIENTE_COBERTURA, input.parceiro_id] });
+    },
+  });
+}
+
+const MIMES_COMPROVANTE = ["application/pdf", "image/png", "image/jpeg", "image/webp"];
+const MAX_BYTES_COMPROVANTE = 10 * 1024 * 1024;
+
+export interface LeituraComprovanteConta {
+  leitura: LeituraComprovante;
+  storagePath: string;
+}
+
+/**
+ * Lê um comprovante para o dialog de recebimento. Reaproveita o mecanismo do
+ * fluxo de pedido: bucket `comprovantes-pagamento` + edge `ler-comprovante-pagamento`.
+ * FAIL-LOUD: qualquer erro sobe com a mensagem real.
+ */
+export function useLerComprovanteConta() {
+  return useMutation({
+    mutationFn: async ({
+      file,
+      parceiroId,
+    }: {
+      file: File;
+      parceiroId: string | null;
+    }): Promise<LeituraComprovanteConta> => {
+      if (!MIMES_COMPROVANTE.includes(file.type)) {
+        throw new Error("Formato não aceito. Envie PDF, PNG, JPEG ou WEBP.");
+      }
+      if (file.size > MAX_BYTES_COMPROVANTE) {
+        throw new Error("Arquivo acima de 10 MB — envie uma versão menor.");
+      }
+
+      const hash = await sha256Hex(file);
+      const storagePath = `conta-cliente/${parceiroId ?? "sem-cliente"}/${hash}.${extensaoDe(file)}`;
+
+      const { error: erroUpload } = await supabase.storage
+        .from("comprovantes-pagamento")
+        .upload(storagePath, file, { contentType: file.type || undefined, upsert: true });
+      if (erroUpload) throw erroUpload;
+
+      const { data, error } = await supabase.functions.invoke("ler-comprovante-pagamento", {
+        body: { storage_path: storagePath },
+      });
+      if (error) {
+        const detalhe =
+          (data as { error?: string } | null)?.error ?? error.message ?? "falha ao ler o comprovante";
+        throw new Error(detalhe);
+      }
+      const lido = data as (LeituraComprovante & { error?: string }) | null;
+      if (!lido || lido.error) {
+        throw new Error(lido?.error || "A IA não devolveu a leitura do comprovante.");
+      }
+      return { leitura: lido, storagePath };
     },
   });
 }
