@@ -20,6 +20,10 @@ export const ROTAS: RegraRota[] = [
   // Pedidos / Casa
   { prefixo: "/pedidos",       status: "pronta",        tela_slug: "tela.pedidos"     },
   { prefixo: "/parceiros",     status: "pronta",        tela_slug: "tela.pedidos"     },
+  // Painel do Cliente: a porta é aberta e o controle mora NAS ABAS, cada uma com
+  // sua concessão (tela.cliente_*). Sem nenhuma aba concedida a tela mostra
+  // sem-permissão e não consulta nada — fail-closed no conteúdo, não na porta.
+  { prefixo: "/cliente",       status: "pronta",        tela_slug: "tela.self"        },
   { prefixo: "/vendas/gestao-pedidos", status: "pronta", tela_slug: "tela.gestao_pedidos" },
   // Produto / Acervo
   { prefixo: "/vendas/produto/estoque/destinos", status: "pronta", tela_slug: "tela.produto" },
