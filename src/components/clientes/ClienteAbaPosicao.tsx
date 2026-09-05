@@ -162,13 +162,6 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
   const dados = serie.data ?? [];
   const r = recompra.data ?? null;
   const primeiraCompra = Number(r?.compras ?? 0) < 2;
-  const produtosOrdenados = produtos.data ?? [];
-  const produtosPizza = produtosOrdenados.length <= 6
-    ? produtosOrdenados.map((item) => ({ nome: item.descricao || item.sku || "SKU sem descrição", valor: item.valor }))
-    : [
-        ...produtosOrdenados.slice(0, 6).map((item) => ({ nome: item.descricao || item.sku || "SKU sem descrição", valor: item.valor })),
-        { nome: "Outros", valor: produtosOrdenados.slice(6).reduce((total, item) => total + item.valor, 0) },
-      ];
   const coresPizza = [
     "hsl(var(--chart-1))",
     "hsl(var(--chart-2))",
@@ -176,8 +169,34 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
     "hsl(var(--chart-4))",
     "hsl(var(--chart-5))",
     "hsl(var(--chart-1) / 0.65)",
-    "hsl(var(--muted-foreground))",
+    "hsl(var(--chart-2) / 0.65)",
+    "hsl(var(--chart-3) / 0.65)",
+    "hsl(var(--chart-4) / 0.65)",
   ];
+  const COR_OUTROS = "hsl(var(--muted-foreground))";
+
+  const linhas = produtos.data ?? [];
+  const montarFatias = (eixo: "familia" | "colecao", topo: number | null) => {
+    const base = linhas
+      .filter((l) => l.eixo === eixo)
+      .sort((a, b) => b.valor - a.valor)
+      .map((l) => ({ nome: l.grupo, valor: l.valor, recomprado: !!l.recomprado }));
+    if (topo == null || base.length <= topo) return base;
+    const resto = base.slice(topo);
+    return [
+      ...base.slice(0, topo),
+      {
+        nome: "Outros",
+        valor: resto.reduce((t, i) => t + i.valor, 0),
+        recomprado: false,
+      },
+    ];
+  };
+  const fatiasFamilia = montarFatias("familia", null);
+  const fatiasColecao = montarFatias("colecao", 8);
+  const corFatia = (nome: string, index: number) =>
+    nome === "Outros" ? COR_OUTROS : coresPizza[index % coresPizza.length];
+
   const faixas = FAIXAS.map((f) => ({
     ...f,
     valor: Number((conta as any)?.[f.chave] ?? 0),
