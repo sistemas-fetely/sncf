@@ -34,12 +34,13 @@ export interface Recorrencia {
   fim_em: string | null;
   proxima_geracao: string | null;
   antecedencia_dias: number;
+  tipo_execucao: string;
   ativo: boolean;
   criado_em: string;
 }
 
 const CAMPOS =
-  "id,titulo,descricao,prioridade,projeto_id,secao_id,responsavel_id,template_id,visibilidade,estimativa_horas,departamento_destino_id,frequencia,intervalo,dias_semana,dia_mes,mes,inicio_em,fim_em,proxima_geracao,antecedencia_dias,ativo,criado_em" as const;
+  "id,titulo,descricao,prioridade,projeto_id,secao_id,responsavel_id,template_id,visibilidade,estimativa_horas,departamento_destino_id,frequencia,intervalo,dias_semana,dia_mes,mes,inicio_em,fim_em,proxima_geracao,antecedencia_dias,tipo_execucao,ativo,criado_em" as const;
 
 
 export type NovaRecorrencia = Omit<Recorrencia, "id" | "criado_em" | "proxima_geracao">;
