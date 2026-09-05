@@ -119,6 +119,8 @@ export default function MinhasTarefasNovo() {
   const { user } = useAuth();
   const [filtro, setFiltro] = useState<FiltroStatus>("abertas");
   const [projetoFiltro, setProjetoFiltro] = useState<string>("__todos__");
+  /** lista (padrão) ou quadro; persiste ao trocar a aba de papel, como o filtro de projeto */
+  const [visao, setVisao] = useState<"lista" | "quadro">("lista");
   const [aba, setAba] = useAbaUrl("r");
   const abaAtual = aba as Papel;
   const { data: tarefas, isLoading } = useMinhasTarefasPapel(user?.id, filtro);
