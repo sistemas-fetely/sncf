@@ -36263,6 +36263,106 @@ export type Database = {
           },
         ]
       }
+      recebimento_ocorrencia: {
+        Row: {
+          criado_em: string
+          decidido_em: string | null
+          decidido_por: string | null
+          id: string
+          importacao_pedido_id: number | null
+          nf_id: number | null
+          observacao: string | null
+          prazo_reclamacao: string | null
+          quantidade: number
+          rnc_numero: string | null
+          situacao: string
+          sku: string
+          termo: string | null
+          tipo: string
+          valor_total: number | null
+          valor_unitario: number | null
+        }
+        Insert: {
+          criado_em?: string
+          decidido_em?: string | null
+          decidido_por?: string | null
+          id?: string
+          importacao_pedido_id?: number | null
+          nf_id?: number | null
+          observacao?: string | null
+          prazo_reclamacao?: string | null
+          quantidade: number
+          rnc_numero?: string | null
+          situacao?: string
+          sku: string
+          termo?: string | null
+          tipo: string
+          valor_total?: number | null
+          valor_unitario?: number | null
+        }
+        Update: {
+          criado_em?: string
+          decidido_em?: string | null
+          decidido_por?: string | null
+          id?: string
+          importacao_pedido_id?: number | null
+          nf_id?: number | null
+          observacao?: string | null
+          prazo_reclamacao?: string | null
+          quantidade?: number
+          rnc_numero?: string | null
+          situacao?: string
+          sku?: string
+          termo?: string | null
+          tipo?: string
+          valor_total?: number | null
+          valor_unitario?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recebimento_ocorrencia_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_pedido"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recebimento_ocorrencia_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_compras_pendencias"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "recebimento_ocorrencia_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_pedido_detalhe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recebimento_ocorrencia_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_saldo_pedido"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "recebimento_ocorrencia_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_nf"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recebimento_ocorrencia_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_pedido_conferencia_nf"
+            referencedColumns: ["nf_id"]
+          },
+        ]
+      }
       reembolso_apontamentos: {
         Row: {
           created_at: string
