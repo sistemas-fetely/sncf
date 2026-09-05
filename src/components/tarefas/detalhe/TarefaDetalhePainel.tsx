@@ -114,10 +114,10 @@ function Conteudo({ tarefaId }: { tarefaId: string }) {
 
       {tarefa.tipo_tarefa === "aprovacao" && <BlocoAprovacao tarefaId={tarefaId} statusAtual={tarefa.aprovacao_status} />}
 
-      {tarefa.status === "cancelada" && tarefa.motivo_cancelamento && (
+      {tarefa.status === "cancelada" && tarefa.motivo_estado && (
         <div className="rounded-lg border border-border bg-muted/40 p-3">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Motivo do cancelamento</p>
-          <p className="mt-1 text-sm">{tarefa.motivo_cancelamento}</p>
+          <p className="mt-1 text-sm">{tarefa.motivo_estado}</p>
         </div>
       )}
 

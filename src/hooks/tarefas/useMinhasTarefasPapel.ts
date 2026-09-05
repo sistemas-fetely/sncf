@@ -24,7 +24,7 @@ export const PAPEL_ROTULO: Record<Papel, string> = {
 export const PAPEL_SO_LEITURA: Papel[] = ["c", "i"];
 
 const CAMPOS =
-  "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id,data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,acao_url,motivo_cancelamento,ordem,criado_em,papeis,mae_titulo,mae_id,eh_container,filhas_total,filhas_concluidas" as const;
+  "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id,data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,acao_url,motivo_estado,ordem,criado_em,papeis,mae_titulo,mae_id,eh_container,filhas_total,filhas_concluidas" as const;
 
 export type FiltroStatus = "abertas" | TarefaStatus;
 

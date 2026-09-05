@@ -117,9 +117,9 @@ export function TarefaItem({
           )}
         </div>
 
-        {tarefa.status === "cancelada" && tarefa.motivo_cancelamento && (
+        {tarefa.status === "cancelada" && tarefa.motivo_estado && (
           <p className="mt-1 text-[11px] text-muted-foreground">
-            Cancelada: {tarefa.motivo_cancelamento}
+            Cancelada: {tarefa.motivo_estado}
           </p>
         )}
 

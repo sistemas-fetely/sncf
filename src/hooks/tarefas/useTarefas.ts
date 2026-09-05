@@ -20,7 +20,7 @@ export interface Tarefa {
   data_conclusao: string | null;
   estimativa_horas: number | null;
   acao_url: string | null;
-  motivo_cancelamento: string | null;
+  motivo_estado: string | null;
   /** título da tarefa-mãe, quando a linha é subtarefa (vem da view) */
   mae_titulo?: string | null;
   mae_id?: string | null;
@@ -36,7 +36,7 @@ export interface Tarefa {
 export const STATUS_ABERTOS: TarefaStatus[] = ["pendente", "em_andamento", "em_revisao"];
 
 const CAMPOS =
-  "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id,data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,acao_url,motivo_cancelamento,ordem,criado_em" as const;
+  "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id,data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,acao_url,motivo_estado,ordem,criado_em" as const;
 
 
 function hojeISO(): string {
