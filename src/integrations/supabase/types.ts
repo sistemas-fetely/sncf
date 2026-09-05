@@ -10002,6 +10002,107 @@ export type Database = {
           },
         ]
       }
+      conta_cliente_pagador: {
+        Row: {
+          aprendido_em: string
+          aprendido_por: string | null
+          documento: string
+          id: string
+          nome: string | null
+          origem: string
+          parceiro_id: string
+        }
+        Insert: {
+          aprendido_em?: string
+          aprendido_por?: string | null
+          documento: string
+          id?: string
+          nome?: string | null
+          origem?: string
+          parceiro_id: string
+        }
+        Update: {
+          aprendido_em?: string
+          aprendido_por?: string | null
+          documento?: string
+          id?: string
+          nome?: string | null
+          origem?: string
+          parceiro_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conta_cliente_pagador_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conta_cliente_pagador_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "conta_cliente_pagador_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_limite"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "conta_cliente_pagador_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_valor_a_acertar"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "conta_cliente_pagador_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conta_corrente_cliente"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "conta_cliente_pagador_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_estimado_parceiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "conta_cliente_pagador_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "conta_cliente_pagador_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_historico_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "conta_cliente_pagador_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_nome"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "conta_cliente_pagador_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+        ]
+      }
       contabil_fechamento: {
         Row: {
           competencia: string
@@ -81017,6 +81118,9 @@ export type Database = {
         Args: { p_pedido_id: string }
         Returns: Json
       }
+      fn_conta_conciliar_entradas:
+        | { Args: { p_dry_run?: boolean }; Returns: Json }
+        | { Args: { p_corte?: string; p_dry_run?: boolean }; Returns: Json }
       fn_contabil_evolucao_mensal: {
         Args: never
         Returns: {
@@ -81221,6 +81325,15 @@ export type Database = {
       }
       fn_extracao_aplicar: { Args: { p_extracao_id: string }; Returns: Json }
       fn_extrair_dimensoes: { Args: { p_texto: string }; Returns: number[] }
+      fn_extrato_atribuir_cliente: {
+        Args: {
+          p_movimentacao_id: string
+          p_nota?: string
+          p_parceiro_id: string
+          p_user_id?: string
+        }
+        Returns: Json
+      }
       fn_extrato_classificar: {
         Args: { p_conta: string; p_descricao: string }
         Returns: {
