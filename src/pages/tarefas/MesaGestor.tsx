@@ -151,18 +151,29 @@ export default function MesaGestor() {
     },
   });
 
+  // O detalhe vem da RPC, não da view: quem decide se este gestor pode ver a
+  // mesa de alguém é o banco. Erro dela é resposta legítima, não tela quebrada.
   const detalhePessoa = useQuery({
     queryKey: [...QK, "detalhe", detalhe?.pessoa_id],
     enabled: !!detalhe?.pessoa_id,
+    retry: false,
     queryFn: async (): Promise<LinhaCargaPessoa[]> => {
-      const { data, error } = await (supabase as any)
-        .from("vw_carga_atribuicao")
-        .select(
-          "atribuicao_id, nome, pessoa_id, fonte_volume, tempo_unitario_min, fluxo_diario_estimado, minutos_fluxo_dia, minutos_estoque, furo_sem_numero, furo_sem_dono",
-        )
-        .eq("pessoa_id", detalhe!.pessoa_id);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc("fn_mesa_ver_como", {
+        _pessoa_id: detalhe!.pessoa_id,
+      });
       if (error) throw error;
-      return (data ?? []) as LinhaCargaPessoa[];
+      return ((data ?? []) as any[]).map((d) => ({
+        atribuicao_id: String(d.atribuicao_id),
+        nome: String(d.atribuicao_nome ?? "—"),
+        fonte_volume: d.fonte_volume ?? null,
+        tempo_unitario_min: d.tempo_unitario_min ?? null,
+        fluxo_diario_estimado: d.fluxo_diario_estimado ?? null,
+        estoque_atual: d.estoque_atual ?? null,
+        minutos_fluxo_dia: d.minutos_fluxo_dia ?? null,
+        minutos_estoque: d.minutos_estoque ?? null,
+        furo_sem_numero: d.furo_sem_numero ?? null,
+      })) as LinhaCargaPessoa[];
     },
   });
 
