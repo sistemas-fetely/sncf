@@ -5,6 +5,7 @@
  * A única escrita é registrar recebimento (sem campo de pedido, por desenho).
  */
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Plus, Search, Users, AlertTriangle } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Input } from "@/components/ui/input";
@@ -167,7 +168,11 @@ export default function ContaCliente() {
                       <TableRow
                         key={c.parceiro_id}
                         className="cursor-pointer"
-                        onClick={() => setSelecionada(c)}
+                        onClick={() =>
+                          navigate(`/cliente/${c.parceiro_id}?aba=posicao`, {
+                            state: { from: "/administrativo/conta-cliente" },
+                          })
+                        }
                       >
                         <TableCell className="text-xs font-medium">
                           {c.nome_fantasia ?? "(sem nome)"}
