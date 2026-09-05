@@ -15,6 +15,9 @@ import {
   CartesianGrid,
   ComposedChart,
   Line,
+  Pie,
+  PieChart,
+  Cell,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -27,6 +30,8 @@ import { cn } from "@/lib/utils";
 import {
   useAnaliseCreditoVigente,
   useKpiCliente,
+  useProdutosCliente,
+  useRecompraCliente,
   useSerieMensalCliente,
 } from "@/hooks/clientes/useClientePainel";
 import {
@@ -81,7 +86,7 @@ function Indicador({
   return (
     <div
       className={cn(
-        "rounded-lg border border-border/60 p-3",
+        "rounded-lg border border-border/60 bg-card p-3",
         regua && REGUA[regua],
       )}
     >
@@ -139,6 +144,8 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
   const analise = useAnaliseCreditoVigente(parceiroId);
   const kpi = useKpiCliente(parceiroId);
   const serie = useSerieMensalCliente(parceiroId);
+  const produtos = useProdutosCliente(parceiroId);
+  const recompra = useRecompraCliente(parceiroId);
 
   const k = kpi.data ?? null;
   const nDias = (v: number | null | undefined) => (v == null ? "—" : `${Math.round(v)} dias`);
@@ -153,6 +160,24 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
   const vencido = Number(conta?.vencido_em_aberto ?? 0);
 
   const dados = serie.data ?? [];
+  const r = recompra.data ?? null;
+  const primeiraCompra = Number(r?.compras ?? 0) < 2;
+  const produtosOrdenados = produtos.data ?? [];
+  const produtosPizza = produtosOrdenados.length <= 6
+    ? produtosOrdenados.map((item) => ({ nome: item.descricao || item.sku || "SKU sem descrição", valor: item.valor }))
+    : [
+        ...produtosOrdenados.slice(0, 6).map((item) => ({ nome: item.descricao || item.sku || "SKU sem descrição", valor: item.valor })),
+        { nome: "Outros", valor: produtosOrdenados.slice(6).reduce((total, item) => total + item.valor, 0) },
+      ];
+  const coresPizza = [
+    "hsl(var(--chart-1))",
+    "hsl(var(--chart-2))",
+    "hsl(var(--chart-3))",
+    "hsl(var(--chart-4))",
+    "hsl(var(--chart-5))",
+    "hsl(var(--chart-1) / 0.65)",
+    "hsl(var(--muted-foreground))",
+  ];
   const faixas = FAIXAS.map((f) => ({
     ...f,
     valor: Number((conta as any)?.[f.chave] ?? 0),
@@ -195,128 +220,6 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
         <Indicador rotulo="Última movimentação" valor={dataBR(conta?.ultima_movimentacao)} />
       </div>
 
-      {/* MOVIMENTO — gráfico do mês a mês */}
-      <div className="space-y-3">
-        <TituloSecao>Movimento dos últimos meses</TituloSecao>
-        {serie.isLoading && (
-          <p className="flex items-center gap-2 text-[13px] font-normal text-muted-foreground">
-            <Loader2 className="h-3 w-3 animate-spin" /> carregando
-          </p>
-        )}
-        {!serie.isLoading && dados.length < 2 && (
-          <p className="text-[13px] font-normal text-muted-foreground">
-            Histórico curto demais para gráfico.
-          </p>
-        )}
-        {!serie.isLoading && dados.length >= 2 && (
-          <div className="rounded-lg border border-border/60 p-3">
-            <div className="h-[220px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={dados} margin={{ top: 6, right: 8, bottom: 0, left: 8 }}>
-                  <CartesianGrid
-                    vertical={false}
-                    stroke="hsl(var(--border))"
-                    strokeOpacity={0.6}
-                  />
-                  <XAxis
-                    dataKey="rotulo"
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                  />
-                  <YAxis
-                    tickLine={false}
-                    axisLine={false}
-                    width={64}
-                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                    tickFormatter={(v) =>
-                      new Intl.NumberFormat("pt-BR", { notation: "compact" }).format(Number(v))
-                    }
-                  />
-                  <Tooltip content={<TooltipSerie />} />
-                  <Bar
-                    dataKey="faturado"
-                    name="Faturado"
-                    fill="hsl(var(--muted-foreground))"
-                    fillOpacity={0.35}
-                    radius={[3, 3, 0, 0]}
-                  />
-                  <Bar
-                    dataKey="recebido"
-                    name="Recebido"
-                    fill="hsl(var(--success))"
-                    fillOpacity={0.75}
-                    radius={[3, 3, 0, 0]}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="saldo_acumulado"
-                    name="Saldo acumulado"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="mt-2 flex flex-wrap items-center gap-4 text-[11px] font-normal text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-sm bg-muted-foreground/40" /> Faturado
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-sm bg-success/75" /> Recebido
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="h-0.5 w-4 rounded-full bg-primary" /> Saldo acumulado
-              </span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* AGING — barra empilhada única, só quando há vencido */}
-      {vencido > 0 && totalFaixas > 0 && (
-        <div className="space-y-3">
-          <TituloSecao>Aging do vencido</TituloSecao>
-          <div className="rounded-lg border border-border/60 p-3">
-            <div className="flex items-baseline justify-between gap-3">
-              <p className="text-[21px] font-medium leading-[1.2] tabular-nums">
-                {formatBRL(vencido)}
-              </p>
-              <p className="text-[11px] font-normal tabular-nums text-muted-foreground">
-                atraso máximo: {Number(conta?.dias_atraso_max ?? 0)} dias
-                {conta?.qtd_titulos_abertos != null
-                  ? ` · ${conta.qtd_titulos_abertos} título(s) em aberto`
-                  : ""}
-              </p>
-            </div>
-            <div className="mt-3 flex h-3 w-full overflow-hidden rounded-full bg-muted">
-              {faixas.map((f) =>
-                f.valor > 0 ? (
-                  <div
-                    key={f.chave}
-                    className={f.cor}
-                    style={{ width: `${(f.valor / totalFaixas) * 100}%` }}
-                  />
-                ) : null,
-              )}
-            </div>
-            <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
-              {faixas.map((f) => (
-                <span
-                  key={f.chave}
-                  className="flex items-center gap-1.5 text-[11px] font-normal text-muted-foreground"
-                >
-                  <span className={cn("h-2 w-2 rounded-sm", f.cor)} />
-                  {f.rotulo}
-                  <span className="tabular-nums text-foreground">{formatBRL(f.valor)}</span>
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* COBERTURA */}
       <div className="space-y-3">
         <TituloSecao>Cobertura para novos pedidos</TituloSecao>
@@ -343,7 +246,7 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
                 </div>
               )}
             </Indicador>
-            <div className="rounded-lg border border-border/60 p-3">
+            <div className="rounded-lg border border-border/60 bg-card p-3">
               <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] font-normal text-muted-foreground">
                 <dt>Saldo disponível</dt>
                 <dd className="text-right text-[13px] tabular-nums text-foreground">
@@ -486,7 +389,7 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
       {k && (
         <div className="space-y-3">
           <TituloSecao>Relacionamento</TituloSecao>
-          <div className="grid grid-cols-2 gap-[10px] lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-[10px] lg:grid-cols-4 xl:grid-cols-8">
             <Indicador
               rotulo="Ticket médio"
               valor={k.ticket_medio == null ? "—" : formatBRL(k.ticket_medio)}
@@ -509,12 +412,140 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
                   : `há ${Math.round(k.dias_desde_ultima_compra)} dias`
               }
             />
+            <Indicador
+              rotulo="Intervalo médio de recompra"
+              valor={primeiraCompra || r?.intervalo_medio_dias == null ? "—" : nDias(r.intervalo_medio_dias)}
+              legenda={primeiraCompra ? "primeira compra" : undefined}
+            />
+            <Indicador
+              rotulo="Próxima compra estimada"
+              valor={primeiraCompra ? "—" : dataBR(r?.proxima_compra_estimada)}
+              legenda={primeiraCompra ? "primeira compra" : r?.atrasado_recompra ? "recompra atrasada" : undefined}
+              regua={r?.atrasado_recompra ? "warning" : undefined}
+            />
+            <Indicador
+              rotulo="SKUs recomprados"
+              valor={r?.skus_recomprados == null || r?.skus_distintos == null ? "—" : `${r.skus_recomprados} de ${r.skus_distintos}`}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* GRÁFICOS — movimento e composição por SKU */}
+      <div className="grid gap-[10px] lg:grid-cols-2">
+        <div className="space-y-3 rounded-lg border border-border/60 bg-card p-3">
+          <TituloSecao>Movimento dos últimos meses</TituloSecao>
+          {serie.isLoading && (
+            <p className="flex items-center gap-2 text-[13px] font-normal text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" /> carregando
+            </p>
+          )}
+          {!serie.isLoading && dados.length < 2 && (
+            <p className="text-[13px] font-normal text-muted-foreground">Histórico curto demais para gráfico.</p>
+          )}
+          {!serie.isLoading && dados.length >= 2 && (
+            <>
+              <div className="h-[240px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={dados} margin={{ top: 6, right: 8, bottom: 0, left: 8 }}>
+                    <CartesianGrid vertical={false} stroke="hsl(var(--border))" strokeOpacity={0.6} />
+                    <XAxis dataKey="rotulo" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+                    <YAxis tickLine={false} axisLine={false} width={64} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => new Intl.NumberFormat("pt-BR", { notation: "compact" }).format(Number(v))} />
+                    <Tooltip content={<TooltipSerie />} />
+                    <Bar dataKey="faturado" name="Faturado" fill="hsl(var(--muted-foreground))" fillOpacity={0.35} radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="recebido" name="Recebido" fill="hsl(var(--success))" fillOpacity={0.75} radius={[3, 3, 0, 0]} />
+                    <Line type="monotone" dataKey="saldo_acumulado" name="Saldo acumulado" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex flex-wrap items-center gap-4 text-[11px] font-normal text-muted-foreground">
+                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-muted-foreground/40" /> Faturado</span>
+                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-success/75" /> Recebido</span>
+                <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 rounded-full bg-primary" /> Saldo acumulado</span>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="space-y-3 rounded-lg border border-border/60 bg-card p-3">
+          <TituloSecao>O que este cliente compra</TituloSecao>
+          {produtos.isLoading && (
+            <p className="flex items-center gap-2 text-[13px] font-normal text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> carregando</p>
+          )}
+          {!produtos.isLoading && produtosPizza.length === 0 && (
+            <p className="text-[13px] font-normal text-muted-foreground">Sem itens faturados ainda.</p>
+          )}
+          {!produtos.isLoading && produtosPizza.length > 0 && (
+            <div className="grid min-h-[240px] items-center gap-3 sm:grid-cols-[minmax(160px,0.8fr)_minmax(180px,1.2fr)]">
+              <div className="h-[220px] min-w-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={produtosPizza} dataKey="valor" nameKey="nome" innerRadius="52%" outerRadius="82%" paddingAngle={1} stroke="hsl(var(--card))" strokeWidth={2}>
+                      {produtosPizza.map((item, index) => <Cell key={`${item.nome}-${index}`} fill={coresPizza[index]} />)}
+                    </Pie>
+                    <Tooltip formatter={(value) => formatBRL(Number(value ?? 0))} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="space-y-2 min-w-0">
+                {produtosPizza.map((item, index) => (
+                  <div key={`${item.nome}-legenda`} className="flex min-w-0 items-center gap-2 text-[11px]">
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ backgroundColor: coresPizza[index] }} />
+                    <span className="min-w-0 flex-1 truncate text-muted-foreground" title={item.nome}>{item.nome}</span>
+                    <span className="shrink-0 tabular-nums">{formatBRL(item.valor)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* AGING — barra empilhada única, só quando há vencido */}
+      {vencido > 0 && totalFaixas > 0 && (
+        <div className="space-y-3">
+          <TituloSecao>Aging do vencido</TituloSecao>
+          <div className="rounded-lg border border-border/60 bg-card p-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="text-[21px] font-medium leading-[1.2] tabular-nums">
+                {formatBRL(vencido)}
+              </p>
+              <p className="text-[11px] font-normal tabular-nums text-muted-foreground">
+                atraso máximo: {Number(conta?.dias_atraso_max ?? 0)} dias
+                {conta?.qtd_titulos_abertos != null
+                  ? ` · ${conta.qtd_titulos_abertos} título(s) em aberto`
+                  : ""}
+              </p>
+            </div>
+            <div className="mt-3 flex h-3 w-full overflow-hidden rounded-full bg-muted">
+              {faixas.map((f) =>
+                f.valor > 0 ? (
+                  <div
+                    key={f.chave}
+                    className={f.cor}
+                    style={{ width: `${(f.valor / totalFaixas) * 100}%` }}
+                  />
+                ) : null,
+              )}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
+              {faixas.map((f) => (
+                <span
+                  key={f.chave}
+                  className="flex items-center gap-1.5 text-[11px] font-normal text-muted-foreground"
+                >
+                  <span className={cn("h-2 w-2 rounded-sm", f.cor)} />
+                  {f.rotulo}
+                  <span className="tabular-nums text-foreground">{formatBRL(f.valor)}</span>
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       )}
 
       {/* ANÁLISE DE CRÉDITO */}
-      <Card className="shadow-none">
+      <Card className="bg-card shadow-none">
         <CardHeader className="pb-2">
           <CardTitle className="text-[15px] font-medium">Última análise decidida</CardTitle>
         </CardHeader>
@@ -570,13 +601,13 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
               <Linha label="Perfil aplicado" value={analise.data.perfil_aplicado} />
               <Linha label="Decidida em" value={dataBR(analise.data.decidido_em)} />
               {analise.data.ressalva && (
-                <div className="rounded-lg border border-border/60 border-l-[3px] border-l-warning p-3">
+                <div className="rounded-lg border border-border/60 bg-card border-l-[3px] border-l-warning p-3">
                   <p className="text-[11px] font-normal text-muted-foreground">Ressalva</p>
                   <p className="text-[13px] font-normal">{analise.data.ressalva}</p>
                 </div>
               )}
               {analise.data.parecer_final && (
-                <div className="rounded-lg border border-border/60 p-3">
+                <div className="rounded-lg border border-border/60 bg-card p-3">
                   <p className="text-[11px] font-normal text-muted-foreground">Parecer</p>
                   <p className="whitespace-pre-line text-[13px] font-normal">
                     {analise.data.parecer_final}
