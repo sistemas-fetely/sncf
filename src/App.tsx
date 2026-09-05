@@ -195,6 +195,7 @@ const PedidosIndex = lazy(() => import("@/pages/Pedidos/PedidosIndex"));
 const PedidoDetalhe = lazy(() => import("@/pages/Pedidos/PedidoDetalhe"));
 const ParceiroDetalhe = lazy(() => import("@/pages/Parceiros/ParceiroDetalhe"));
 const ClientePainel = lazy(() => import("@/pages/clientes/ClientePainel"));
+const ClientesLista = lazy(() => import("@/pages/clientes/ClientesLista"));
 const EstoqueVirtual = lazy(() => import("@/pages/Comercial/EstoqueVirtual"));
 const ConsignadoDetalhe = lazy(() => import("@/pages/Comercial/ConsignadoDetalhe"));
 
@@ -361,6 +362,8 @@ const App = () => (
                   ═══════════════════════════════════════════════ */}
               <Route element={<VendasLayout />}>
                 <Route path="/pedidos" element={<PedidosIndex />} />
+                {/* /cliente = lista (porta); /cliente/:id = detalhe */}
+                <Route path="/cliente" element={<ClientesLista />} />
                 <Route path="/recebimento/cobranca" element={<CobrancaFila />} />
 
                 <Route path="/vendas/nfs" element={<NfsDeVenda />} />
