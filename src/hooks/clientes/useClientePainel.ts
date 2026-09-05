@@ -92,3 +92,68 @@ export function useAnaliseCreditoVigente(parceiroId: string | null | undefined) 
     },
   });
 }
+
+export interface KpiCliente {
+  parceiro_id: string;
+  utilizacao_limite_pct: number | null;
+  pmr_dias: number | null;
+  prazo_medio_concedido: number | null;
+  atraso_medio_dias: number | null;
+  pontualidade_pct: number | null;
+  pagamento_antecipado_pct: number | null;
+  pior_atraso_dias: number | null;
+  titulos_pagos: number | null;
+  pedidos_faturados: number | null;
+  ticket_medio: number | null;
+  total_faturado: number | null;
+  ultima_compra: string | null;
+  primeira_compra: string | null;
+  dias_desde_ultima_compra: number | null;
+  limite_concedido: number | null;
+  prazo_max_dias: number | null;
+  validade_ate: string | null;
+  saldo: number | null;
+  vencido_em_aberto: number | null;
+  a_vencer: number | null;
+}
+
+export const QK_CLIENTE_KPI = "cliente-painel-kpi";
+
+/** Indicadores de comportamento do cliente. Uma linha por parceiro. Só leitura. */
+export function useKpiCliente(parceiroId: string | null | undefined) {
+  return useQuery({
+    queryKey: [QK_CLIENTE_KPI, parceiroId],
+    enabled: !!parceiroId,
+    queryFn: async (): Promise<KpiCliente | null> => {
+      const { data, error } = await (supabase as any)
+        .from("vw_conta_cliente_kpi")
+        .select("*")
+        .eq("parceiro_id", parceiroId)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return null;
+      const num = (v: unknown) => (v == null ? null : Number(v));
+      const d = data as Record<string, unknown>;
+      return {
+        ...(data as any),
+        utilizacao_limite_pct: num(d.utilizacao_limite_pct),
+        pmr_dias: num(d.pmr_dias),
+        prazo_medio_concedido: num(d.prazo_medio_concedido),
+        atraso_medio_dias: num(d.atraso_medio_dias),
+        pontualidade_pct: num(d.pontualidade_pct),
+        pagamento_antecipado_pct: num(d.pagamento_antecipado_pct),
+        pior_atraso_dias: num(d.pior_atraso_dias),
+        titulos_pagos: num(d.titulos_pagos),
+        pedidos_faturados: num(d.pedidos_faturados),
+        ticket_medio: num(d.ticket_medio),
+        total_faturado: num(d.total_faturado),
+        dias_desde_ultima_compra: num(d.dias_desde_ultima_compra),
+        limite_concedido: num(d.limite_concedido),
+        prazo_max_dias: num(d.prazo_max_dias),
+        saldo: num(d.saldo),
+        vencido_em_aberto: num(d.vencido_em_aberto),
+        a_vencer: num(d.a_vencer),
+      } as KpiCliente;
+    },
+  });
+}

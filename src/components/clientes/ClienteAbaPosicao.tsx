@@ -10,7 +10,7 @@ import { Selo } from "@/components/ui/selo";
 import { Separator } from "@/components/ui/separator";
 import { formatBRL } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
-import { useAnaliseCreditoVigente } from "@/hooks/clientes/useClientePainel";
+import { useAnaliseCreditoVigente, useKpiCliente } from "@/hooks/clientes/useClientePainel";
 import {
   useContaClienteCobertura,
   useContasClienteSaldo,
@@ -20,6 +20,37 @@ function dataBR(iso: string | null | undefined) {
   if (!iso) return "—";
   const [a, m, d] = iso.slice(0, 10).split("-");
   return `${d}/${m}/${a}`;
+}
+
+function Barra({ pct, tom }: { pct: number; tom: string }) {
+  return (
+    <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+      <div
+        className={cn("h-full rounded-full", tom)}
+        style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
+      />
+    </div>
+  );
+}
+
+function Indicador({
+  rotulo,
+  valor,
+  legenda,
+  tom,
+}: {
+  rotulo: string;
+  valor: string;
+  legenda?: string;
+  tom?: string;
+}) {
+  return (
+    <div className="rounded-md border border-border/60 p-2.5">
+      <p className="text-[11px] text-muted-foreground">{rotulo}</p>
+      <p className={cn("text-sm font-medium", tom)}>{valor}</p>
+      {legenda && <p className="text-[10px] text-muted-foreground">{legenda}</p>}
+    </div>
+  );
 }
 
 function Linha({ label, value }: { label: string; value: string | null | undefined }) {
@@ -35,6 +66,14 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
   const saldos = useContasClienteSaldo();
   const cobertura = useContaClienteCobertura(parceiroId);
   const analise = useAnaliseCreditoVigente(parceiroId);
+  const kpi = useKpiCliente(parceiroId);
+
+  const k = kpi.data ?? null;
+  const nDias = (v: number | null | undefined) => (v == null ? "—" : `${Math.round(v)} dias`);
+  const nPct = (v: number | null | undefined) => (v == null ? "—" : `${Math.round(v)}%`);
+  const temLimite = Number(k?.limite_concedido ?? 0) > 0;
+  const utilizacao = k?.utilizacao_limite_pct;
+  const titulosPagos = Number(k?.titulos_pagos ?? 0);
 
   const conta = (saldos.data ?? []).find((c) => c.parceiro_id === parceiroId) ?? null;
   const saldo = Number(conta?.saldo ?? 0);
@@ -166,6 +205,27 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
                 {formatBRL(cobertura.data.exposicao_em_aberto)}
               </dd>
             </dl>
+            {temLimite && utilizacao != null && (
+              <div className="space-y-1 pt-1">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-muted-foreground">Utilização do limite</span>
+                  <span className="font-medium">{nPct(utilizacao)}</span>
+                </div>
+                <Barra
+                  pct={utilizacao}
+                  tom={
+                    utilizacao >= 80
+                      ? "bg-destructive"
+                      : utilizacao >= 50
+                        ? "bg-warning"
+                        : "bg-success"
+                  }
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  do limite aprovado já comprometido
+                </p>
+              </div>
+            )}
             {cobertura.data.sinal_analise_credito && (
               <Selo estado="warning">sinal para análise de crédito</Selo>
             )}
@@ -175,7 +235,122 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
 
       <Separator />
 
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="space-y-2">
+        <p className="text-xs font-medium">Comportamento de pagamento</p>
+        {kpi.isLoading && (
+          <p className="text-xs text-muted-foreground flex items-center gap-2">
+            <Loader2 className="h-3 w-3 animate-spin" /> carregando
+          </p>
+        )}
+        {!kpi.isLoading && titulosPagos === 0 && (
+          <p className="text-xs text-muted-foreground">Sem histórico de pagamento ainda.</p>
+        )}
+        {!kpi.isLoading && titulosPagos > 0 && k && (
+          <>
+            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+              <div className="rounded-md border border-border/60 p-2.5 space-y-1">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] text-muted-foreground">Pontualidade</p>
+                  <p className="text-sm font-medium">{nPct(k.pontualidade_pct)}</p>
+                </div>
+                {k.pontualidade_pct != null && (
+                  <Barra
+                    pct={k.pontualidade_pct}
+                    tom={
+                      k.pontualidade_pct >= 80
+                        ? "bg-success"
+                        : k.pontualidade_pct >= 50
+                          ? "bg-warning"
+                          : "bg-destructive"
+                    }
+                  />
+                )}
+                <p className="text-[10px] text-muted-foreground">
+                  títulos pagos até o vencimento
+                </p>
+              </div>
+              <Indicador
+                rotulo="Prazo médio de recebimento"
+                valor={nDias(k.pmr_dias)}
+                legenda="do faturamento até o pagamento"
+              />
+              <Indicador
+                rotulo="Prazo médio concedido"
+                valor={nDias(k.prazo_medio_concedido)}
+                legenda="prazo que damos a ele"
+              />
+              <Indicador
+                rotulo="Atraso médio"
+                valor={
+                  k.atraso_medio_dias == null
+                    ? "—"
+                    : Math.round(k.atraso_medio_dias) < 0
+                      ? `${Math.abs(Math.round(k.atraso_medio_dias))} dias adiantado`
+                      : Math.round(k.atraso_medio_dias) > 0
+                        ? `${Math.round(k.atraso_medio_dias)} dias de atraso`
+                        : "em dia"
+                }
+                tom={
+                  k.atraso_medio_dias == null || Math.round(k.atraso_medio_dias) === 0
+                    ? undefined
+                    : k.atraso_medio_dias < 0
+                      ? "text-success"
+                      : "text-destructive"
+                }
+              />
+              {Number(k.pior_atraso_dias ?? 0) > 0 && (
+                <Indicador
+                  rotulo="Pior atraso"
+                  valor={nDias(k.pior_atraso_dias)}
+                  tom="text-destructive"
+                />
+              )}
+              {Number(k.pagamento_antecipado_pct ?? 0) > 0 && (
+                <Indicador
+                  rotulo="Pagamento antecipado"
+                  valor={nPct(k.pagamento_antecipado_pct)}
+                  legenda="paga antes de faturar"
+                />
+              )}
+            </div>
+            <p className="text-[10px] text-muted-foreground">base: {titulosPagos} títulos pagos</p>
+          </>
+        )}
+      </div>
+
+      {k && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium">Relacionamento</p>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <Indicador
+              rotulo="Ticket médio"
+              valor={k.ticket_medio == null ? "—" : formatBRL(k.ticket_medio)}
+            />
+            <Indicador
+              rotulo="Pedidos faturados"
+              valor={k.pedidos_faturados == null ? "—" : String(k.pedidos_faturados)}
+            />
+            <Indicador
+              rotulo="Total faturado"
+              valor={k.total_faturado == null ? "—" : formatBRL(k.total_faturado)}
+            />
+            <Indicador rotulo="Cliente desde" valor={dataBR(k.primeira_compra)} />
+            <Indicador
+              rotulo="Última compra"
+              valor={dataBR(k.ultima_compra)}
+              legenda={
+                k.dias_desde_ultima_compra == null
+                  ? undefined
+                  : `há ${Math.round(k.dias_desde_ultima_compra)} dias`
+              }
+            />
+          </div>
+        </div>
+      )}
+
+      <Separator />
+
+      <div className="grid gap-3">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Última análise decidida</CardTitle>
@@ -250,42 +425,6 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Limite hoje</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1.5">
-            {cobertura.isLoading && (
-              <p className="text-xs text-muted-foreground flex items-center gap-2">
-                <Loader2 className="h-3 w-3 animate-spin" /> consultando
-              </p>
-            )}
-            {cobertura.isError && (
-              <p className="text-xs text-destructive">
-                {(cobertura.error as any)?.message ?? "Falha ao consultar a cobertura."}
-              </p>
-            )}
-            {cobertura.data && (
-              <>
-                <div>
-                  <p className="text-[11px] text-muted-foreground">Crédito disponível</p>
-                  <p className="text-2xl font-semibold">
-                    {formatBRL(cobertura.data.fonte3_limite_disponivel)}
-                  </p>
-                </div>
-                <Linha label="Limite vigente" value={formatBRL(cobertura.data.limite_vigente)} />
-                <Linha
-                  label="Exposição em aberto"
-                  value={formatBRL(cobertura.data.exposicao_em_aberto)}
-                />
-                <Linha
-                  label="Vencido em aberto"
-                  value={formatBRL(cobertura.data.vencido_em_aberto)}
-                />
-              </>
-            )}
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
