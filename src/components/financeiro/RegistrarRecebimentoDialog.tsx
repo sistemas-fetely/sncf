@@ -5,9 +5,9 @@
  * DINHEIRO-CREDITA-CONTA-PEDIDO-DEBITA-SALDO. Quem procura pedido está
  * procurando o eixo antigo.
  */
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
+import { Check, ChevronsUpDown, Loader2, Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,9 +42,11 @@ import { Selo } from "@/components/ui/selo";
 import { formatBRL } from "@/lib/format-currency";
 import {
   useClientesBusca,
+  useLerComprovanteConta,
   useRegistrarRecebimentoCliente,
   type NivelProva,
 } from "@/hooks/financeiro/useContaCliente";
+import type { LeituraComprovante } from "@/hooks/comercial/useComprovantePagamento";
 import { InputMoedaBR } from "@/components/compras/InputMoedaBR";
 
 const MEIOS: { valor: string; label: string }[] = [
@@ -60,6 +62,14 @@ const PROVA_META: Record<NivelProva, { estado: "success" | "warning" | "destruct
   conciliado: { estado: "success", label: "Conciliado" },
   aguardando_extrato: { estado: "warning", label: "Aguardando extrato" },
   declarado_humano: { estado: "destructive", label: "Declarado por humano" },
+};
+
+/** tipo lido pela IA -> meio da conta do cliente. `indefinido` não mexe no campo. */
+const MEIO_POR_TIPO: Record<string, string> = {
+  pix: "pix",
+  cartao: "cartao",
+  boleto: "boleto",
+  ted: "transferencia",
 };
 
 function hojeIso() {
@@ -88,9 +98,14 @@ export function RegistrarRecebimentoDialog({ children, parceiroId, parceiroNome 
   const [pagadorDoc, setPagadorDoc] = useState("");
   const [observacao, setObservacao] = useState("");
   const [ultimaProva, setUltimaProva] = useState<{ nivel: NivelProva; aviso?: string | null } | null>(null);
+  const [comprovantePath, setComprovantePath] = useState<string | null>(null);
+  const [comprovanteNome, setComprovanteNome] = useState<string | null>(null);
+  const [leitura, setLeitura] = useState<LeituraComprovante | null>(null);
+  const inputArquivo = useRef<HTMLInputElement | null>(null);
 
   const { data: opcoes = [], isLoading: buscando } = useClientesBusca(busca);
   const registrar = useRegistrarRecebimentoCliente();
+  const lerComprovante = useLerComprovanteConta();
 
   useEffect(() => {
     if (parceiroId) setCliente({ id: parceiroId, nome: parceiroNome || "Cliente" });
@@ -113,7 +128,50 @@ export function RegistrarRecebimentoDialog({ children, parceiroId, parceiroNome 
     setPagadorNome("");
     setPagadorDoc("");
     setObservacao("");
+    descartarComprovante();
     if (!parceiroId) setCliente(null);
+  }
+
+  function descartarComprovante() {
+    setComprovantePath(null);
+    setComprovanteNome(null);
+    setLeitura(null);
+    if (inputArquivo.current) inputArquivo.current.value = "";
+  }
+
+  /** SISTEMA SUGERE / HUMANO DECIDE: preenche o formulário, nunca registra. */
+  async function importarComprovante(file: File) {
+    try {
+      const { leitura: lido, storagePath } = await lerComprovante.mutateAsync({
+        file,
+        parceiroId: cliente?.id ?? null,
+      });
+
+      if (lido.valor > 0) setValor(lido.valor);
+
+      if (lido.data && /^\d{4}-\d{2}-\d{2}$/.test(lido.data)) {
+        if (lido.data > hojeIso()) {
+          toast.warning("O comprovante traz uma data futura — a data não foi preenchida.");
+        } else {
+          setData(lido.data);
+        }
+      }
+
+      const meioLido = MEIO_POR_TIPO[lido.tipo];
+      if (meioLido) setMeio(meioLido);
+      if (lido.chave) setChave(lido.chave);
+      if (lido.pagador) setPagadorNome(lido.pagador);
+      if (lido.pagador_documento) setPagadorDoc(lido.pagador_documento);
+
+      setLeitura(lido);
+      setComprovantePath(storagePath);
+      setComprovanteNome(file.name);
+    } catch (e: any) {
+      // FAIL-LOUD: mensagem real na tela. O caminho manual continua livre.
+      toast.error("Comprovante não lido", { description: e?.message ?? String(e) });
+    } finally {
+      if (inputArquivo.current) inputArquivo.current.value = "";
+    }
   }
 
   async function submit() {
@@ -128,6 +186,7 @@ export function RegistrarRecebimentoDialog({ children, parceiroId, parceiroNome 
         pagador_nome: pagadorNome.trim() || null,
         pagador_documento: pagadorDoc.trim() || null,
         observacao: observacao.trim() || null,
+        comprovantePath,
       });
       const nivel = (res.nivel_prova ?? "declarado_humano") as NivelProva;
       setUltimaProva({ nivel, aviso: res.aviso });
@@ -157,6 +216,66 @@ export function RegistrarRecebimentoDialog({ children, parceiroId, parceiroNome 
         </DialogHeader>
 
         <div className="space-y-4">
+          <div className="space-y-1">
+            <input
+              ref={inputArquivo}
+              type="file"
+              accept="application/pdf,image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void importarComprovante(f);
+              }}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-2"
+              disabled={lerComprovante.isPending}
+              onClick={() => inputArquivo.current?.click()}
+            >
+              {lerComprovante.isPending ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Lendo comprovante…
+                </>
+              ) : (
+                <>
+                  <Upload className="h-3.5 w-3.5" />
+                  Importar comprovante
+                </>
+              )}
+            </Button>
+
+            {leitura && (
+              <div className="space-y-0.5 pt-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-muted-foreground">
+                    Preenchido do comprovante ({comprovanteNome}) — confira antes de registrar.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={descartarComprovante}
+                    className="text-muted-foreground hover:text-foreground"
+                    aria-label="Descartar comprovante"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+                {leitura.sentido === "saida" && (
+                  <p className="text-[11px] text-warning">
+                    Este comprovante parece ser de dinheiro SAINDO da Fetely — confira.
+                  </p>
+                )}
+                {leitura.confianca === "baixa" && (
+                  <p className="text-[11px] text-warning">
+                    Leitura com confiança baixa — confira cada campo.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="space-y-1.5">
             <Label>Cliente</Label>
             <Popover open={buscaOpen} onOpenChange={setBuscaOpen}>
