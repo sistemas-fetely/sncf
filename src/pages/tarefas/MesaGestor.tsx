@@ -60,17 +60,17 @@ interface LinhaMesa {
   ocupacao_pct: number | null;
 }
 
+/** Forma devolvida por fn_mesa_ver_como — a RPC valida permissão no banco. */
 interface LinhaCargaPessoa {
   atribuicao_id: string;
   nome: string;
-  pessoa_id: string | null;
   fonte_volume: string | null;
   tempo_unitario_min: number | null;
   fluxo_diario_estimado: number | null;
+  estoque_atual: number | null;
   minutos_fluxo_dia: number | null;
   minutos_estoque: number | null;
   furo_sem_numero: boolean | null;
-  furo_sem_dono: boolean | null;
 }
 
 /** Minutos → "2h 30min". Nunca soma fluxo com estoque. */
