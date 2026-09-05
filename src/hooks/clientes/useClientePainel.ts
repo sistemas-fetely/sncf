@@ -338,22 +338,26 @@ export function useMixCliente(parceiroId: string | null | undefined) {
 
 export type MotivoSugestao = "completar_colecao" | "familia_sub_comprada";
 
+export type CurvaAbc = "A" | "B" | "C";
+
 export interface SugestaoVenda {
   parceiro_id: string;
   motivo: MotivoSugestao;
-  sku: string;
-  nome: string;
   familia: string;
   colecao: string;
-  preco_venda: number;
+  n_itens: number;
+  preco_min: number;
+  preco_max: number;
+  faturado_carteira: number;
   clientes_compram: number;
+  curva: CurvaAbc;
   porque: string;
   prioridade: number;
 }
 
 export const QK_CLIENTE_SUGESTAO = "cliente-painel-sugestao";
 
-/** Sugestão ativa de venda: SKU + argumento pronto para o vendedor. Só leitura. */
+/** Sugestão ativa de venda no grão COLEÇÃO + curva da carteira. Só leitura. */
 export function useSugestaoVenda(parceiroId: string | null | undefined) {
   return useQuery({
     queryKey: [QK_CLIENTE_SUGESTAO, parceiroId],
@@ -361,24 +365,111 @@ export function useSugestaoVenda(parceiroId: string | null | undefined) {
     queryFn: async (): Promise<SugestaoVenda[]> => {
       const { data, error } = await (supabase as any)
         .from("vw_sugestao_venda_cliente")
-        .select("parceiro_id, motivo, sku, nome, familia, colecao, preco_venda, clientes_compram, porque, prioridade")
+        .select(
+          "parceiro_id, motivo, familia, colecao, n_itens, preco_min, preco_max, faturado_carteira, clientes_compram, curva, porque, prioridade",
+        )
         .eq("parceiro_id", parceiroId)
         .order("prioridade", { ascending: true })
         .order("clientes_compram", { ascending: false })
-        .limit(30);
+        .limit(40);
       if (error) throw error;
       return ((data ?? []) as Record<string, unknown>[]).map((d) => ({
         parceiro_id: String(d.parceiro_id ?? ""),
         motivo: String(d.motivo ?? "completar_colecao") as MotivoSugestao,
-        sku: String(d.sku ?? ""),
-        nome: String(d.nome ?? "—"),
         familia: String(d.familia ?? "—"),
         colecao: String(d.colecao ?? "—"),
-        preco_venda: Number(d.preco_venda ?? 0),
+        n_itens: Number(d.n_itens ?? 0),
+        preco_min: Number(d.preco_min ?? 0),
+        preco_max: Number(d.preco_max ?? 0),
+        faturado_carteira: Number(d.faturado_carteira ?? 0),
         clientes_compram: Number(d.clientes_compram ?? 0),
+        curva: String(d.curva ?? "C") as CurvaAbc,
         porque: String(d.porque ?? ""),
         prioridade: Number(d.prioridade ?? 2),
       }));
     },
   });
 }
+
+export interface ColecaoItemCliente {
+  parceiro_id: string;
+  familia: string;
+  colecao: string;
+  sku: string;
+  nome: string;
+  preco_venda: number;
+  comprou: boolean;
+  valor_cliente: number;
+  /** null quando o item nunca vendeu na casa */
+  curva: CurvaAbc | null;
+  clientes_compram: number;
+}
+
+export const QK_CLIENTE_COLECAO_ITENS = "cliente-painel-colecao-itens";
+
+/** Itens ativos por coleção, marcando o que o cliente já levou. Só leitura. */
+export function useColecaoItens(parceiroId: string | null | undefined) {
+  return useQuery({
+    queryKey: [QK_CLIENTE_COLECAO_ITENS, parceiroId],
+    enabled: !!parceiroId,
+    queryFn: async (): Promise<ColecaoItemCliente[]> => {
+      const { data, error } = await (supabase as any)
+        .from("vw_cliente_colecao_itens")
+        .select(
+          "parceiro_id, familia, colecao, sku, nome, preco_venda, comprou, valor_cliente, curva, clientes_compram",
+        )
+        .eq("parceiro_id", parceiroId)
+        .order("familia", { ascending: true })
+        .order("colecao", { ascending: true })
+        .order("comprou", { ascending: false })
+        .order("clientes_compram", { ascending: false })
+        .limit(1000);
+      if (error) throw error;
+      return ((data ?? []) as Record<string, unknown>[]).map((d) => ({
+        parceiro_id: String(d.parceiro_id ?? ""),
+        familia: String(d.familia ?? "—"),
+        colecao: String(d.colecao ?? "—"),
+        sku: String(d.sku ?? ""),
+        nome: String(d.nome ?? "—"),
+        preco_venda: Number(d.preco_venda ?? 0),
+        comprou: Boolean(d.comprou),
+        valor_cliente: Number(d.valor_cliente ?? 0),
+        curva: d.curva == null ? null : (String(d.curva) as CurvaAbc),
+        clientes_compram: Number(d.clientes_compram ?? 0),
+      }));
+    },
+  });
+}
+
+export interface MixAbcCliente {
+  parceiro_id: string;
+  curva: CurvaAbc;
+  valor_cliente: number;
+  pct_cliente: number;
+  pct_carteira: number;
+}
+
+export const QK_CLIENTE_MIX_ABC = "cliente-painel-mix-abc";
+
+/** Qualidade do mix: participação por curva ABC, cliente contra carteira. Só leitura. */
+export function useMixAbc(parceiroId: string | null | undefined) {
+  return useQuery({
+    queryKey: [QK_CLIENTE_MIX_ABC, parceiroId],
+    enabled: !!parceiroId,
+    queryFn: async (): Promise<MixAbcCliente[]> => {
+      const { data, error } = await (supabase as any)
+        .from("vw_cliente_mix_abc")
+        .select("parceiro_id, curva, valor_cliente, pct_cliente, pct_carteira")
+        .eq("parceiro_id", parceiroId);
+      if (error) throw error;
+      return ((data ?? []) as Record<string, unknown>[]).map((d) => ({
+        parceiro_id: String(d.parceiro_id ?? ""),
+        curva: String(d.curva ?? "C") as CurvaAbc,
+        valor_cliente: Number(d.valor_cliente ?? 0),
+        pct_cliente: Number(d.pct_cliente ?? 0),
+        pct_carteira: Number(d.pct_carteira ?? 0),
+      }));
+    },
+  });
+}
+
