@@ -17,6 +17,8 @@ import {
   useTarefasProximos7, useTarefasSemData, type Tarefa,
 } from "@/hooks/tarefas/useTarefas";
 import { useRespondoPor } from "@/hooks/tarefas/useMinhasTarefasPapel";
+import { useFiltroNatureza } from "@/hooks/tarefas/useFiltroNatureza";
+import { ControleNatureza } from "@/components/tarefas/ControleNatureza";
 
 function Vazio({ texto }: { texto: string }) {
   return <p className="py-6 text-center text-sm text-muted-foreground">{texto}</p>;
@@ -53,9 +55,16 @@ function TarefasHojeConteudo() {
   const { data: contadores } = useTarefasContadores(userId);
   const { data: respondoPor } = useRespondoPor(userId);
 
-  const atrasadas = hoje.data?.atrasadas ?? [];
-  const doDia = hoje.data?.hoje ?? [];
-  const vazioHoje = !hoje.isLoading && atrasadas.length === 0 && doDia.length === 0 && (respondoPor?.length ?? 0) === 0;
+  const natureza = useFiltroNatureza();
+  const atrasadas = natureza.filtrar(hoje.data?.atrasadas ?? []);
+  const doDia = natureza.filtrar(hoje.data?.hoje ?? []);
+  const respondoPorFiltrado = natureza.filtrar(respondoPor ?? []);
+  const semDataFiltrado = natureza.filtrar(semData.data ?? []);
+  const ocultas = natureza.contarOcultas(
+    hoje.data?.atrasadas, hoje.data?.hoje, respondoPor, semData.data,
+    (proximos.data ?? []).flatMap((d) => d.tarefas)
+  );
+  const vazioHoje = !hoje.isLoading && atrasadas.length === 0 && doDia.length === 0 && respondoPorFiltrado.length === 0;
 
   return (
     <PageShell>
@@ -74,6 +83,12 @@ function TarefasHojeConteudo() {
         </Card>
       )}
 
+      <ControleNatureza
+        incluirTodas={natureza.incluirTodas}
+        onChange={natureza.setIncluirTodas}
+        ocultas={ocultas}
+      />
+
       <Tabs value={aba} onValueChange={setAba}>
         <TabsList>
           <TabsTrigger value="hoje">
@@ -89,13 +104,13 @@ function TarefasHojeConteudo() {
         <TabsContent value="hoje" className="space-y-6 pt-4">
           <InboxFilas />
 
-          {respondoPor && respondoPor.length > 0 && (
+          {respondoPorFiltrado.length > 0 && (
             <section className="space-y-2">
-              <h2 className="text-sm font-medium">Respondo por ({respondoPor.length})</h2>
+              <h2 className="text-sm font-medium">Respondo por ({respondoPorFiltrado.length})</h2>
               <p className="text-xs text-muted-foreground">
                 Você é o A destas tarefas. A execução é de outra pessoa.
               </p>
-              <Lista tarefas={respondoPor} somenteLeitura />
+              <Lista tarefas={respondoPorFiltrado} somenteLeitura />
             </section>
           )}
 
@@ -122,7 +137,7 @@ function TarefasHojeConteudo() {
         </TabsContent>
 
         <TabsContent value="proximos" className="space-y-5 pt-4">
-          {(proximos.data ?? []).map((dia) => (
+          {(proximos.data ?? []).map((dia) => natureza.filtrar(dia.tarefas)).map((tarefasDia, i) => ({ data: (proximos.data ?? [])[i].data, tarefas: tarefasDia })).map((dia) => (
             <section key={dia.data} className="space-y-2">
               <h2 className="text-sm font-medium capitalize">
                 {format(parseISO(dia.data), "EEEE, d 'de' MMMM", { locale: ptBR })}
@@ -137,10 +152,10 @@ function TarefasHojeConteudo() {
         </TabsContent>
 
         <TabsContent value="semData" className="pt-4">
-          {(semData.data ?? []).length === 0 ? (
+          {semDataFiltrado.length === 0 ? (
             <Vazio texto="Caixa de entrada vazia." />
           ) : (
-            <Lista tarefas={semData.data ?? []} />
+            <Lista tarefas={semDataFiltrado} />
           )}
         </TabsContent>
 

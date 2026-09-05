@@ -14,6 +14,8 @@ import {
   PAPEL_ROTULO, PAPEL_SO_LEITURA, type Papel, useMinhasTarefasPapel,
 } from "@/hooks/tarefas/useMinhasTarefasPapel";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
+import { useFiltroNatureza } from "@/hooks/tarefas/useFiltroNatureza";
+import { ControleNatureza } from "@/components/tarefas/ControleNatureza";
 
 const TEXTOS_VAZIO: Record<Papel, string> = {
   r: "Nada sob sua execução.",
@@ -32,20 +34,24 @@ export default function MinhasTarefasNovo() {
   const { data: tarefas, isLoading } = useMinhasTarefasPapel(user?.id, filtro);
   const { data: projetos } = useProjetos();
 
+  const natureza = useFiltroNatureza();
+  const visiveis = useMemo(() => natureza.filtrar(tarefas ?? []), [tarefas, natureza]);
+  const ocultas = natureza.contarOcultas(tarefas);
+
   const grupos = useMemo(() => {
-    const recorte = (tarefas ?? []).filter((t) => t.papeis.includes(abaAtual));
+    const recorte = visiveis.filter((t) => t.papeis.includes(abaAtual));
     const mapa = new Map<string, typeof tarefas>();
     for (const t of recorte) {
       const chave = t.projeto_id ?? "__sem__";
       mapa.set(chave, [...(mapa.get(chave) ?? []), t]);
     }
     return [...mapa.entries()].sort(([a], [b]) => (a === "__sem__" ? 1 : b === "__sem__" ? -1 : 0));
-  }, [tarefas, aba]);
+  }, [visiveis, abaAtual]);
 
   const nomeProjeto = (id: string) =>
     id === "__sem__" ? "Sem projeto" : projetos?.find((p) => p.id === id)?.nome ?? "Projeto";
 
-  const totalAba = (tarefas ?? []).filter((t) => t.papeis.includes(abaAtual)).length;
+  const totalAba = visiveis.filter((t) => t.papeis.includes(abaAtual)).length;
   const somenteLeitura = PAPEL_SO_LEITURA.includes(abaAtual);
 
   return (
@@ -71,13 +77,20 @@ export default function MinhasTarefasNovo() {
             ))}
           </SelectContent>
         </Select>
-        <span className="text-xs text-muted-foreground">{totalAba} tarefa(s)</span>
+        <div className="flex flex-wrap items-center gap-4">
+          <ControleNatureza
+            incluirTodas={natureza.incluirTodas}
+            onChange={natureza.setIncluirTodas}
+            ocultas={ocultas}
+          />
+          <span className="text-xs text-muted-foreground">{totalAba} tarefa(s)</span>
+        </div>
       </div>
 
       <Tabs value={aba} onValueChange={setAba}>
         <TabsList>
           {PAPEIS.map((p) => {
-            const n = (tarefas ?? []).filter((t) => t.papeis.includes(p)).length;
+            const n = visiveis.filter((t) => t.papeis.includes(p)).length;
             return (
               <TabsTrigger key={p} value={p}>
                 {PAPEL_ROTULO[p]}{n > 0 ? ` (${n})` : ""}
