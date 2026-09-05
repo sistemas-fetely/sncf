@@ -225,8 +225,94 @@ function Donut({
   );
 }
 
+/**
+ * Mix do cliente contra a média da carteira. Barra clara = benchmark.
+ * FAIL-LOUD: carregando → erro → vazio → conteúdo.
+ */
+function MixVersusCarteira({ parceiroId }: { parceiroId: string }) {
+  const mix = useMixCliente(parceiroId);
+  const linhas = mix.data ?? [];
+  const escala = Math.max(1, ...linhas.map((l) => Math.max(l.pct_cliente, l.pct_carteira)));
+  const pctBR = (v: number) => `${v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+  const gapBR = (v: number) =>
+    `${v < 0 ? "−" : "+"}${Math.abs(v).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} pp`;
+
+  return (
+    <div className="space-y-3">
+      <TituloSecao>Mix versus carteira</TituloSecao>
+      <div className="space-y-3 rounded-lg border border-border/60 bg-card p-3">
+        {mix.isLoading && (
+          <p className="flex items-center gap-2 text-[13px] font-normal text-muted-foreground">
+            <Loader2 className="h-3 w-3 animate-spin" /> carregando
+          </p>
+        )}
+        {!mix.isLoading && mix.isError && (
+          <p className="text-[13px] font-normal text-destructive">
+            {(mix.error as any)?.message ?? "Falha ao consultar o mix do cliente."}
+          </p>
+        )}
+        {!mix.isLoading && !mix.isError && linhas.length === 0 && (
+          <p className="text-[13px] font-normal text-muted-foreground">Sem itens faturados ainda.</p>
+        )}
+        {!mix.isLoading && !mix.isError && linhas.length > 0 && (
+          <>
+            <p className="text-[11px] font-normal text-muted-foreground">
+              Onde este cliente compra menos que a média há espaço para crescer.
+            </p>
+            <div className="space-y-3">
+              {linhas.map((l) => (
+                <div
+                  key={l.familia}
+                  className={cn(
+                    "grid items-center gap-3 pl-2 sm:grid-cols-[minmax(110px,1fr)_minmax(120px,2fr)_auto]",
+                    l.gap_pp < -5 ? REGUA.warning : "border-l-[3px] border-l-transparent",
+                  )}
+                >
+                  <span className="truncate text-[13px] font-normal" title={l.familia}>
+                    {l.familia}
+                  </span>
+                  <div className="space-y-1">
+                    <div className="h-1.5 w-full rounded-full bg-muted">
+                      <div
+                        className="h-1.5 rounded-full bg-primary"
+                        style={{ width: `${Math.min(100, (l.pct_cliente / escala) * 100)}%` }}
+                      />
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-muted/50">
+                      <div
+                        className="h-1.5 rounded-full bg-muted-foreground/25"
+                        style={{ width: `${Math.min(100, (l.pct_carteira / escala) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-baseline justify-end gap-3 text-[13px]">
+                    {l.nunca_comprou ? (
+                      <span className="font-normal text-muted-foreground">não compra</span>
+                    ) : (
+                      <span className="w-[64px] text-right tabular-nums">{pctBR(l.pct_cliente)}</span>
+                    )}
+                    <span
+                      className={cn(
+                        "w-[80px] text-right tabular-nums",
+                        l.gap_pp < -5 ? "text-warning" : "text-muted-foreground",
+                      )}
+                    >
+                      {gapBR(l.gap_pp)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] font-normal text-muted-foreground">barra clara = média da carteira</p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
+
   const saldos = useContasClienteSaldo();
   const cobertura = useContaClienteCobertura(parceiroId);
   const analise = useAnaliseCreditoVigente(parceiroId);
