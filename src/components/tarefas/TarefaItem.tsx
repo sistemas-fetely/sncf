@@ -99,6 +99,12 @@ export function TarefaItem({ tarefa, atrasada = false, somenteLeitura = false }:
           )}
         </div>
 
+        {tarefa.status === "cancelada" && tarefa.motivo_cancelamento && (
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Cancelada: {tarefa.motivo_cancelamento}
+          </p>
+        )}
+
         {tarefa.data_limite && (
           <div
             className={cn(
