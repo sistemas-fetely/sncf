@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AlertTriangle, Check, Copy, KeyRound, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,15 +10,6 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
-
-type VinculoAcesso = {
-  id: string;
-  status: string;
-  tipo_vinculo: string;
-  email_corporativo: string | null;
-  usuario_id: string | null;
-  data_inicio: string;
-};
 
 type RespostaAcesso = {
   success: boolean;
@@ -31,38 +22,44 @@ type RespostaAcesso = {
   error?: string;
 };
 
-export default function CriarAcessoCard({ pessoaId }: { pessoaId: string }) {
+// FONTE-ÚNICA-NA-TELA: este card não consulta `vinculos`. Tudo vem do PessoaForm,
+// que já tem o vínculo em estado. Duas fontes para o mesmo fato geravam e-mail velho.
+type Props = {
+  pessoaId: string;
+  vinculoId: string | null;
+  emailCorporativo: string;
+  usuarioId: string | null;
+  tipoVinculo: string | null;
+  statusVinculo: string | null;
+  /** true quando o e-mail corporativo na tela difere do que veio do banco */
+  emailAlterado?: boolean;
+  onAcessoCriado?: (usuarioId: string) => void;
+};
+
+export default function CriarAcessoCard({
+  pessoaId,
+  vinculoId,
+  emailCorporativo,
+  usuarioId,
+  tipoVinculo,
+  statusVinculo,
+  emailAlterado = false,
+  onAcessoCriado,
+}: Props) {
   const qc = useQueryClient();
   const [confirmando, setConfirmando] = useState(false);
   const [avisos, setAvisos] = useState<string[]>([]);
   const [link, setLink] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
 
-  const vinculosQ = useQuery({
-    queryKey: ["pessoa-vinculos-acesso", pessoaId],
-    queryFn: async (): Promise<VinculoAcesso[]> => {
-      const { data, error } = await supabase
-        .from("vinculos")
-        .select("id, status, tipo_vinculo, email_corporativo, usuario_id, data_inicio")
-        .eq("pessoa_id", pessoaId)
-        .order("data_inicio", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as VinculoAcesso[];
-    },
-  });
-
-  const todos = vinculosQ.data ?? [];
-  const ativos = todos.filter((v) => v.status === "ativo");
-  // Mais de um vínculo ativo: usamos o mais recente por data_inicio e avisamos na tela.
-  const vinculo = ativos[0] ?? todos[0] ?? null;
-  const inativo = !!vinculo && vinculo.status !== "ativo";
-  const email = vinculo?.email_corporativo?.trim() || "";
+  const inativo = !!vinculoId && statusVinculo !== "ativo";
+  const email = (emailCorporativo || "").trim();
 
   const criar = useMutation({
     mutationFn: async () => {
-      if (!vinculo) throw new Error("Vínculo não encontrado.");
+      if (!vinculoId) throw new Error("Vínculo não encontrado.");
       const { data, error } = await supabase.functions.invoke<RespostaAcesso>("manage-user", {
-        body: { action: "create_user_from_vinculo", vinculo_id: vinculo.id, enviar_email: true },
+        body: { action: "create_user_from_vinculo", vinculo_id: vinculoId, enviar_email: true },
       });
       if (error) {
         let msg = error.message;
@@ -84,7 +81,7 @@ export default function CriarAcessoCard({ pessoaId }: { pessoaId: string }) {
       setLink(data.link_primeiro_acesso ?? null);
       if (lista.length === 0) toast.success("Acesso criado e e-mail de boas-vindas enviado.");
       else toast.success("Acesso criado — há pendências de configuração.");
-      void qc.invalidateQueries({ queryKey: ["pessoa-vinculos-acesso", pessoaId] });
+      if (data.user_id) onAcessoCriado?.(data.user_id);
       void qc.invalidateQueries({ queryKey: ["pessoa", pessoaId] });
       void qc.invalidateQueries({ queryKey: ["pessoas"] });
       void qc.invalidateQueries({ queryKey: ["vinculos"] });
@@ -100,7 +97,7 @@ export default function CriarAcessoCard({ pessoaId }: { pessoaId: string }) {
     setTimeout(() => setCopiado(false), 2000);
   }
 
-  const jaTem = !!vinculo?.usuario_id;
+  const jaTem = !!usuarioId;
 
   return (
     <Card>
@@ -108,29 +105,25 @@ export default function CriarAcessoCard({ pessoaId }: { pessoaId: string }) {
         <CardTitle className="text-base font-medium">Acesso ao sistema</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {vinculosQ.isLoading && (
-          <p className="text-sm text-muted-foreground">Carregando vínculo…</p>
-        )}
-
-        {!vinculosQ.isLoading && !vinculo && (
+        {!vinculoId && (
           <p className="text-sm text-muted-foreground">
             Esta pessoa ainda não tem vínculo. Salve o vínculo para poder criar o acesso.
           </p>
         )}
 
-        {vinculo && jaTem && (
+        {vinculoId && jaTem && (
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">Acesso ativo</Badge>
             <span className="text-sm text-muted-foreground">{email || "sem e-mail registrado"}</span>
           </div>
         )}
 
-        {vinculo && !jaTem && (
+        {vinculoId && !jaTem && (
           <div className="space-y-2">
             <AlertDialog open={confirmando} onOpenChange={setConfirmando}>
               <Button
                 onClick={() => setConfirmando(true)}
-                disabled={inativo || !email || criar.isPending}
+                disabled={inativo || !email || emailAlterado || criar.isPending}
               >
                 {criar.isPending
                   ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -160,21 +153,18 @@ export default function CriarAcessoCard({ pessoaId }: { pessoaId: string }) {
 
             {inativo ? (
               <p className="text-sm text-muted-foreground">Vínculo inativo.</p>
+            ) : emailAlterado ? (
+              <p className="text-sm text-muted-foreground">Salve a ficha antes de criar o acesso.</p>
             ) : !email ? (
               <p className="text-sm text-muted-foreground">
                 Informe o e-mail corporativo para criar o acesso.
               </p>
             ) : (
-              <p className="text-sm text-muted-foreground">{email}</p>
+              <p className="text-sm text-muted-foreground">
+                {email}{tipoVinculo ? ` · ${tipoVinculo}` : ""}
+              </p>
             )}
           </div>
-        )}
-
-        {ativos.length > 1 && (
-          <p className="text-sm text-muted-foreground">
-            Esta pessoa tem {ativos.length} vínculos ativos. O acesso usa o mais recente
-            ({vinculo?.tipo_vinculo}, início {vinculo?.data_inicio}).
-          </p>
         )}
 
         {avisos.length > 0 && (
