@@ -21,12 +21,14 @@ import { ClienteAbaPosicao } from "@/components/clientes/ClienteAbaPosicao";
 import { ClienteAbaExtrato } from "@/components/clientes/ClienteAbaExtrato";
 import { ClienteAbaCadastro } from "@/components/clientes/ClienteAbaCadastro";
 import { ClienteAbaPendencias } from "@/components/clientes/ClienteAbaPendencias";
+import { BonificacoesTab } from "@/components/clientes/BonificacoesTab";
 import { PedidosDoParceiroSection } from "@/components/parceiros/PedidosDoParceiroSection";
 
 const ABAS = [
   { value: "posicao", label: "Posição e Crédito", slug: "tela.cliente_posicao" },
   { value: "extrato", label: "Extrato", slug: "tela.cliente_extrato" },
   { value: "pedidos", label: "Pedidos", slug: "tela.cliente_pedidos" },
+  { value: "bonificacoes", label: "Bonificações", slug: "tela.cliente_bonificacoes" },
   { value: "cadastro", label: "Cadastro", slug: "tela.cliente_cadastro" },
   { value: "pendencias", label: "Pendências", slug: "tela.cliente_auditoria" },
 ] as const;
@@ -45,13 +47,14 @@ export default function ClientePainel() {
   const p2 = usePodeVerAba(ABAS[2].slug);
   const p3 = usePodeVerAba(ABAS[3].slug);
   const p4 = usePodeVerAba(ABAS[4].slug);
-  const permissoes = [p0, p1, p2, p3, p4];
+  const p5 = usePodeVerAba(ABAS[5].slug);
+  const permissoes = [p0, p1, p2, p3, p4, p5];
 
   const carregandoPermissoes = permissoes.some((p) => p.carregando);
   const visiveis = useMemo(
     () => ABAS.filter((_, i) => permissoes[i].podeVer),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [p0.podeVer, p1.podeVer, p2.podeVer, p3.podeVer, p4.podeVer],
+    [p0.podeVer, p1.podeVer, p2.podeVer, p3.podeVer, p4.podeVer, p5.podeVer],
   );
 
   const abaUrl = params.get("aba");
@@ -155,6 +158,11 @@ export default function ClientePainel() {
         {visiveis.some((a) => a.value === "pedidos") && (
           <TabsContent value="pedidos">
             <PedidosDoParceiroSection parceiroId={id} />
+          </TabsContent>
+        )}
+        {visiveis.some((a) => a.value === "bonificacoes") && (
+          <TabsContent value="bonificacoes">
+            <BonificacoesTab parceiroId={id!} />
           </TabsContent>
         )}
         {visiveis.some((a) => a.value === "cadastro") && (

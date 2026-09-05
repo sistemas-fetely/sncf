@@ -82312,6 +82312,20 @@ export type Database = {
         Args: { p_pedido_id: string }
         Returns: Json
       }
+      fn_registrar_pagamento_titulo: {
+        Args: {
+          p_bytes?: number
+          p_cpr_id: string
+          p_data_pagamento: string
+          p_forma_pagamento_id?: string
+          p_hash?: string
+          p_mime?: string
+          p_observacao?: string
+          p_storage_path?: string
+          p_valor_pago: number
+        }
+        Returns: Json
+      }
       fn_registrar_rastreio_pedido: {
         Args: {
           p_codigo_rastreio: string
