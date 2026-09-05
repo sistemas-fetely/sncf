@@ -60,17 +60,32 @@ interface LinhaMesa {
   ocupacao_pct: number | null;
 }
 
+/** Forma devolvida por fn_mesa_ver_como — a RPC valida permissão no banco. */
 interface LinhaCargaPessoa {
   atribuicao_id: string;
   nome: string;
-  pessoa_id: string | null;
   fonte_volume: string | null;
   tempo_unitario_min: number | null;
   fluxo_diario_estimado: number | null;
+  estoque_atual: number | null;
   minutos_fluxo_dia: number | null;
   minutos_estoque: number | null;
   furo_sem_numero: boolean | null;
-  furo_sem_dono: boolean | null;
+}
+
+/** A RPC lança exceção quando a pessoa não está no time visível. */
+function semPermissao(erro: unknown): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const e = erro as any;
+  const msg = String(e?.message ?? "").toLowerCase();
+  return (
+    e?.code === "42501" ||
+    msg.includes("permiss") ||
+    msg.includes("não autorizado") ||
+    msg.includes("nao autorizado") ||
+    msg.includes("visível") ||
+    msg.includes("visivel")
+  );
 }
 
 /** Minutos → "2h 30min". Nunca soma fluxo com estoque. */
@@ -151,18 +166,29 @@ export default function MesaGestor() {
     },
   });
 
+  // O detalhe vem da RPC, não da view: quem decide se este gestor pode ver a
+  // mesa de alguém é o banco. Erro dela é resposta legítima, não tela quebrada.
   const detalhePessoa = useQuery({
     queryKey: [...QK, "detalhe", detalhe?.pessoa_id],
     enabled: !!detalhe?.pessoa_id,
+    retry: false,
     queryFn: async (): Promise<LinhaCargaPessoa[]> => {
-      const { data, error } = await (supabase as any)
-        .from("vw_carga_atribuicao")
-        .select(
-          "atribuicao_id, nome, pessoa_id, fonte_volume, tempo_unitario_min, fluxo_diario_estimado, minutos_fluxo_dia, minutos_estoque, furo_sem_numero, furo_sem_dono",
-        )
-        .eq("pessoa_id", detalhe!.pessoa_id);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc("fn_mesa_ver_como", {
+        _pessoa_id: detalhe!.pessoa_id,
+      });
       if (error) throw error;
-      return (data ?? []) as LinhaCargaPessoa[];
+      return ((data ?? []) as any[]).map((d) => ({
+        atribuicao_id: String(d.atribuicao_id),
+        nome: String(d.atribuicao_nome ?? "—"),
+        fonte_volume: d.fonte_volume ?? null,
+        tempo_unitario_min: d.tempo_unitario_min ?? null,
+        fluxo_diario_estimado: d.fluxo_diario_estimado ?? null,
+        estoque_atual: d.estoque_atual ?? null,
+        minutos_fluxo_dia: d.minutos_fluxo_dia ?? null,
+        minutos_estoque: d.minutos_estoque ?? null,
+        furo_sem_numero: d.furo_sem_numero ?? null,
+      })) as LinhaCargaPessoa[];
     },
   });
 
@@ -423,9 +449,17 @@ export default function MesaGestor() {
               </p>
             )}
             {detalhePessoa.isError && (
-              <p className="text-sm text-destructive">{formatError(detalhePessoa.error)}</p>
+              <div className="rounded-md border border-destructive/40 bg-card p-3">
+                <p className="text-sm text-destructive">
+                  {semPermissao(detalhePessoa.error)
+                    ? "Sem permissão para ver esta mesa. Ela só abre para o seu time direto e para quem lhe foi delegado."
+                    : formatError(detalhePessoa.error)}
+                </p>
+              </div>
             )}
-            {!detalhePessoa.isLoading && (detalhePessoa.data ?? []).length === 0 && (
+            {!detalhePessoa.isLoading &&
+              !detalhePessoa.isError &&
+              (detalhePessoa.data ?? []).length === 0 && (
               <p className="text-sm text-muted-foreground">
                 Nenhuma atribuição declarada para esta pessoa.
               </p>

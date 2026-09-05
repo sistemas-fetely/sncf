@@ -83,6 +83,20 @@ interface FonteDim {
   tem_estoque: boolean | null;
 }
 
+/**
+ * Confronto entre o que o líder declarou e o piso que já se sabe que entra.
+ * O piso é PISO: conta só o que entrou e ainda está pendente. Nunca é oferecido
+ * como preenchimento automático — quem declara é o líder.
+ */
+interface FluxoConfronto {
+  atribuicao_id: string;
+  fluxo_declarado: number | null;
+  fluxo_piso_medido: number | null;
+  entradas_ainda_pendentes: number | null;
+  dias_uteis: number | null;
+  veredito: string | null;
+}
+
 interface FuroFila {
   fila_id: string;
   chave: string;
@@ -141,6 +155,19 @@ export default function AtribuicoesCarga() {
     },
   });
 
+  const confronto = useQuery({
+    queryKey: [...QK, "fluxo-confronto"],
+    queryFn: async (): Promise<FluxoConfronto[]> => {
+      const { data, error } = await (supabase as any)
+        .from("vw_atribuicao_fluxo_confronto")
+        .select(
+          "atribuicao_id, fluxo_declarado, fluxo_piso_medido, entradas_ainda_pendentes, dias_uteis, veredito",
+        );
+      if (error) throw error;
+      return (data ?? []) as FluxoConfronto[];
+    },
+  });
+
   const filasSemDono = useQuery({
     queryKey: [...QK, "furo-fila"],
     queryFn: async (): Promise<FuroFila[]> => {
@@ -154,6 +181,9 @@ export default function AtribuicoesCarga() {
   });
 
   const fonteDe = (codigo: string) => fontes.data?.find((f) => f.codigo === codigo) ?? null;
+
+  const confrontoDe = (atribuicaoId: string) =>
+    confronto.data?.find((c) => c.atribuicao_id === atribuicaoId) ?? null;
 
   const grupos = useMemo(() => {
     const mapa = new Map<string, LinhaCarga[]>();
@@ -238,6 +268,8 @@ export default function AtribuicoesCarga() {
                 <TableBody>
                   {linhas.map((l) => {
                     const fonte = fonteDe(l.fonte_volume);
+                    const conf = confrontoDe(l.atribuicao_id);
+                    const abaixoDoPiso = conf?.veredito === "declarado ABAIXO do piso";
                     return (
                       <TableRow key={l.atribuicao_id} className={l.ativo === false ? "opacity-60" : ""}>
                         <TableCell className="align-top">
@@ -250,6 +282,20 @@ export default function AtribuicoesCarga() {
                               <Selo estado="warning">dono sem acesso</Selo>
                             )}
                             {l.furo_sem_numero && <Selo estado="warning">sem número</Selo>}
+                            {abaixoDoPiso && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="cursor-help">
+                                    <Selo estado="warning">abaixo do piso</Selo>
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs text-[11px]">
+                                  O fluxo declarado ({num(conf?.fluxo_declarado)}/dia) é menor que o
+                                  piso já medido ({num(conf?.fluxo_piso_medido)}/dia). A carga desta
+                                  atribuição está subestimada.
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="align-top text-sm">{l.cargo_nome ?? "—"}</TableCell>
@@ -386,6 +432,7 @@ export default function AtribuicoesCarga() {
         <DialogEdicao
           linha={emEdicao}
           fonte={fonteDe(emEdicao.fonte_volume)}
+          confronto={confrontoDe(emEdicao.atribuicao_id)}
           userId={user?.id ?? null}
           onFechar={() => setEmEdicao(null)}
           onSalvo={() => {
@@ -416,12 +463,14 @@ const SEM = "__sem__";
 function DialogEdicao({
   linha,
   fonte,
+  confronto,
   userId,
   onFechar,
   onSalvo,
 }: {
   linha: LinhaCarga;
   fonte: FonteDim | null;
+  confronto: FluxoConfronto | null;
   userId: string | null;
   onFechar: () => void;
   onSalvo: () => void;
@@ -622,6 +671,12 @@ function DialogEdicao({
               <p className="text-[11px] text-muted-foreground">
                 Unidades que entram por dia — não é o acumulado da fila.
               </p>
+              {confronto?.fluxo_piso_medido != null && (
+                <p className="text-[11px] text-muted-foreground">
+                  Piso medido: {num(confronto.fluxo_piso_medido)}/dia. Conta só o que entrou e ainda
+                  está pendente, então subestima o fluxo real — use como piso, não como resposta.
+                </p>
+              )}
             </div>
           </div>
 
