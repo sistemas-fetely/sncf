@@ -10113,6 +10113,7 @@ export type Database = {
       conta_cliente_lancamento: {
         Row: {
           chave: string | null
+          comprovante_path: string | null
           criado_em: string
           criado_por: string | null
           data_recebimento: string
@@ -10132,6 +10133,7 @@ export type Database = {
         }
         Insert: {
           chave?: string | null
+          comprovante_path?: string | null
           criado_em?: string
           criado_por?: string | null
           data_recebimento: string
@@ -10151,6 +10153,7 @@ export type Database = {
         }
         Update: {
           chave?: string | null
+          comprovante_path?: string | null
           criado_em?: string
           criado_por?: string | null
           data_recebimento?: string
@@ -85292,6 +85295,7 @@ export type Database = {
       registrar_recebimento_cliente: {
         Args: {
           p_chave?: string
+          p_comprovante_path?: string
           p_data: string
           p_meio: string
           p_observacao?: string

@@ -22,6 +22,7 @@ Responda APENAS com JSON, sem markdown, sem explicação, exatamente com estas c
   "data": "YYYY-MM-DD",
   "chave": "",
   "pagador": "",
+  "pagador_documento": "",
   "beneficiario_nome": "",
   "beneficiario_cnpj": "",
   "instituicao": "",
@@ -35,7 +36,8 @@ REGRAS (vindas de comprovantes reais):
 4. "valor" é o valor da transação, número puro, ponto decimal, sem "R$" e sem separador de milhar.
 5. "data" sempre no formato YYYY-MM-DD.
 6. "confianca" é "baixa" quando a imagem estiver cortada, ilegível ou faltar valor/data.
-7. Não simule dados: campo que não existe no comprovante vai como string vazia (ou 0 no valor).`;
+7. "pagador_documento" é o CPF/CNPJ do pagador como aparece no comprovante (pode vir mascarado, ex. ***.123.456-**) — copie exatamente, nunca complete os dígitos ocultos.
+8. Não simule dados: campo que não existe no comprovante vai como string vazia (ou 0 no valor).`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {

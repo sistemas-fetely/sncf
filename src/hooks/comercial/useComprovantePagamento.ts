@@ -33,6 +33,8 @@ export interface LeituraComprovante {
   data: string;
   chave: string;
   pagador: string;
+  /** CPF/CNPJ do pagador como veio no comprovante (pode vir mascarado). Chave nova: opcional para não quebrar payloads antigos. */
+  pagador_documento?: string;
   beneficiario_nome: string;
   beneficiario_cnpj: string;
   instituicao: string;
@@ -60,7 +62,7 @@ export function useComprovantesPedido(pedidoId: string, enabled = true) {
   });
 }
 
-async function sha256Hex(file: File): Promise<string> {
+export async function sha256Hex(file: File): Promise<string> {
   const buf = await file.arrayBuffer();
   const hash = await crypto.subtle.digest("SHA-256", buf);
   return Array.from(new Uint8Array(hash))
@@ -68,7 +70,7 @@ async function sha256Hex(file: File): Promise<string> {
     .join("");
 }
 
-function extensaoDe(file: File): string {
+export function extensaoDe(file: File): string {
   const doNome = file.name.includes(".") ? file.name.split(".").pop()!.toLowerCase() : "";
   if (doNome) return doNome;
   if (file.type === "application/pdf") return "pdf";
