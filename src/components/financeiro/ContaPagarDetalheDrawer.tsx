@@ -131,7 +131,10 @@ export default function ContaPagarDetalheDrawer({
   const [apagando, setApagando] = useState(false);
   const [lancandoMov, setLancandoMov] = useState(false);
   
-  const workflow = useContaWorkflow();
+  const [acaoPendente, setAcaoPendente] = useState<TituloPagarAcao | null>(null);
+  const [motivo, setMotivo] = useState("");
+  const [dataPretendida, setDataPretendida] = useState("");
+  const transicionar = useTituloPagarTransicionar();
   const qc = useQueryClient();
 
   async function handleLancarMov() {
