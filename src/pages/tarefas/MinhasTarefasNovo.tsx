@@ -115,6 +115,7 @@ function LinhaContainer({
 export default function MinhasTarefasNovo() {
   const { user } = useAuth();
   const [filtro, setFiltro] = useState<FiltroStatus>("abertas");
+  const [projetoFiltro, setProjetoFiltro] = useState<string>("__todos__");
   const [aba, setAba] = useAbaUrl("r");
   const abaAtual = aba as Papel;
   const { data: tarefas, isLoading } = useMinhasTarefasPapel(user?.id, filtro);
