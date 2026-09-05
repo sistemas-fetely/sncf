@@ -144,12 +144,23 @@ export function useReagendarTarefa() {
 /**
  * Troca de status. NÃO seta data_conclusao — quem faz isso é trigger no banco,
  * conforme o status. Setar no front cria duas fontes de verdade.
+ * `motivo` grava em motivo_estado — obrigatório nos status com exige_motivo.
  */
 export function useAlterarStatusTarefa() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: TarefaStatus }) => {
-      const { error } = await supabase.from("tarefas").update({ status }).eq("id", id);
+    mutationFn: async ({
+      id,
+      status,
+      motivo,
+    }: {
+      id: string;
+      status: TarefaStatus;
+      motivo?: string | null;
+    }) => {
+      const patch: { status: TarefaStatus; motivo_estado?: string } = { status };
+      if (motivo != null && motivo.trim()) patch.motivo_estado = motivo.trim();
+      const { error } = await supabase.from("tarefas").update(patch).eq("id", id);
       if (error) throw error;
     },
     onSuccess: (_d, v) => {
@@ -159,3 +170,4 @@ export function useAlterarStatusTarefa() {
     onError: (e: Error) => toast.error(`Não foi possível alterar o status: ${e.message}`),
   });
 }
+
