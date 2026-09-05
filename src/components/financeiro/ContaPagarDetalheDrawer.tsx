@@ -53,7 +53,15 @@ import DocumentosCP from "./DocumentosCP";
 
 import { NfStageVinculadaCard } from "@/components/financeiro/NfStageVinculadaCard";
 import ContaPagarFormEdit from "./ContaPagarFormEdit";
-import { useContaWorkflow, type ContaStatus } from "@/hooks/useContaWorkflow";
+import {
+  useTituloPagarAcoes,
+  useTituloPagarTransicionar,
+  type TituloPagarAcao,
+} from "@/hooks/financeiro/useTituloPagarEstado";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { formatError } from "@/lib/format-error";
 
 type Conta = {
