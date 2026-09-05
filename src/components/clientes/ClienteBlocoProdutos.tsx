@@ -19,7 +19,6 @@ import {
 } from "recharts";
 import { Button } from "@/components/ui/button";
 import { formatBRL } from "@/lib/format-currency";
-import { cn } from "@/lib/utils";
 import { usePodeVerAba } from "@/components/AbaGate";
 import {
   useClienteCadastro,

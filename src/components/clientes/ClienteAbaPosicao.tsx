@@ -15,9 +15,6 @@ import {
   CartesianGrid,
   ComposedChart,
   Line,
-  Pie,
-  PieChart,
-  Cell,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -30,8 +27,6 @@ import { cn } from "@/lib/utils";
 import {
   useAnaliseCreditoVigente,
   useKpiCliente,
-  useMixCliente,
-  useProdutosCliente,
   useRecompraCliente,
   useSerieMensalCliente,
 } from "@/hooks/clientes/useClientePainel";
@@ -139,204 +134,6 @@ function TooltipSerie({ active, payload, label }: any) {
   );
 }
 
-interface Fatia {
-  nome: string;
-  valor: number;
-  recomprado: boolean;
-}
-
-/**
- * Donut de composição com legenda ao lado. Só leitura.
- * FAIL-LOUD: a ordem é carregando → erro → vazio → gráfico. Erro NUNCA vira
- * estado vazio: dizer "sem itens" num cliente que tem itens é mentira.
- */
-function Donut({
-  titulo,
-  fatias,
-  carregando,
-  erro,
-  cor,
-}: {
-  titulo: string;
-  fatias: Fatia[];
-  carregando: boolean;
-  erro?: unknown;
-  cor: (nome: string, index: number) => string;
-}) {
-  return (
-    <div className="space-y-3 rounded-lg border border-border/60 bg-card p-3">
-      <TituloSecao>{titulo}</TituloSecao>
-      {carregando && (
-        <p className="flex items-center gap-2 text-[13px] font-normal text-muted-foreground">
-          <Loader2 className="h-3 w-3 animate-spin" /> carregando
-        </p>
-      )}
-      {!carregando && erro && (
-        <p className="text-[13px] font-normal text-destructive">
-          {(erro as any)?.message ?? "Falha ao consultar a composição de compra."}
-        </p>
-      )}
-      {!carregando && !erro && fatias.length === 0 && (
-        <p className="text-[13px] font-normal text-muted-foreground">Sem itens faturados ainda.</p>
-      )}
-      {!carregando && !erro && fatias.length > 0 && (
-        <div className="grid min-h-[240px] items-center gap-3 sm:grid-cols-[minmax(150px,0.8fr)_minmax(180px,1.2fr)]">
-          <div className="h-[220px] min-w-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={fatias}
-                  dataKey="valor"
-                  nameKey="nome"
-                  innerRadius="52%"
-                  outerRadius="82%"
-                  paddingAngle={1}
-                  stroke="hsl(var(--card))"
-                  strokeWidth={2}
-                >
-                  {fatias.map((item, index) => (
-                    <Cell key={`${item.nome}-${index}`} fill={cor(item.nome, index)} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => formatBRL(Number(value ?? 0))} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="min-w-0 space-y-2">
-            {fatias.map((item, index) => (
-              <div key={`${item.nome}-legenda`} className="flex min-w-0 items-center gap-2 text-[11px]">
-                <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ backgroundColor: cor(item.nome, index) }} />
-                <span className="min-w-0 flex-1 truncate text-muted-foreground" title={item.nome}>
-                  {item.nome}
-                </span>
-                {item.recomprado && (
-                  <span
-                    className="h-1.5 w-1.5 shrink-0 rounded-full bg-success"
-                    title="cliente já recomprou"
-                    aria-label="recomprado"
-                  />
-                )}
-                <span className="shrink-0 tabular-nums">{formatBRL(item.valor)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/**
- * Bullet chart: barra sólida = o cliente, marca vertical = média da carteira.
- * Uma barra e um marcador — fica óbvio o que é dado e o que é referência.
- * FAIL-LOUD: carregando → erro → vazio → conteúdo.
- */
-function MixVersusCarteira({ parceiroId }: { parceiroId: string }) {
-  const mix = useMixCliente(parceiroId);
-  const linhas = mix.data ?? [];
-  const escala = Math.max(1, ...linhas.map((l) => Math.max(l.pct_cliente, l.pct_carteira)));
-  const potencialTotal = linhas.reduce((s, l) => s + Math.max(0, l.potencial_reais), 0);
-  const pctBR = (v: number) =>
-    `${v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
-
-  return (
-    <div className="space-y-3">
-      <TituloSecao>Mix versus carteira</TituloSecao>
-      <div className="space-y-3 rounded-lg border border-border/60 bg-card p-3">
-        {mix.isLoading && (
-          <p className="flex items-center gap-2 text-[13px] font-normal text-muted-foreground">
-            <Loader2 className="h-3 w-3 animate-spin" /> carregando
-          </p>
-        )}
-        {!mix.isLoading && mix.isError && (
-          <p className="text-[13px] font-normal text-destructive">
-            {(mix.error as any)?.message ?? "Falha ao consultar o mix do cliente."}
-          </p>
-        )}
-        {!mix.isLoading && !mix.isError && linhas.length === 0 && (
-          <p className="text-[13px] font-normal text-muted-foreground">Sem itens faturados ainda.</p>
-        )}
-        {!mix.isLoading && !mix.isError && linhas.length > 0 && (
-          <>
-            <div className="space-y-0.5">
-              <p className="text-[11px] font-normal text-muted-foreground">Potencial não explorado</p>
-              <p className="text-[21px] font-normal leading-tight tabular-nums">
-                {formatBRL(potencialTotal)}
-              </p>
-              <p className="text-[11px] font-normal text-muted-foreground">
-                Comparado com o que a carteira compra, este cliente tem espaço nestas famílias.
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              {linhas.map((l) => {
-                const temEspaco = l.potencial_reais > 0;
-                return (
-                  <div
-                    key={l.familia}
-                    className={cn(
-                      "grid items-center gap-3 pl-2 sm:grid-cols-[minmax(110px,1fr)_minmax(120px,2fr)_auto]",
-                      temEspaco ? REGUA.warning : "border-l-[3px] border-l-transparent",
-                    )}
-                  >
-                    <span className="flex min-w-0 items-center gap-2">
-                      <span className="truncate text-[13px] font-normal" title={l.familia}>
-                        {l.familia}
-                      </span>
-                      {l.nunca_comprou && (
-                        <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[11px] font-normal text-muted-foreground">
-                          nunca comprou
-                        </span>
-                      )}
-                    </span>
-
-                    {/* bullet: barra do cliente + tick da média da carteira */}
-                    <div className="relative h-3 w-full">
-                      <div className="absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-muted">
-                        <div
-                          className={cn("h-2 rounded-full", temEspaco ? "bg-warning" : "bg-primary")}
-                          style={{ width: `${Math.min(100, (l.pct_cliente / escala) * 100)}%` }}
-                        />
-                      </div>
-                      <span
-                        className="absolute top-0 h-3 w-[2px] rounded-sm bg-muted-foreground"
-                        style={{ left: `calc(${Math.min(100, (l.pct_carteira / escala) * 100)}% - 1px)` }}
-                        title={`média da carteira: ${pctBR(l.pct_carteira)}`}
-                        aria-label="média da carteira"
-                      />
-                    </div>
-
-                    <div className="flex items-baseline justify-end gap-3 text-[13px]">
-                      <span className="w-[56px] text-right tabular-nums text-muted-foreground">
-                        {pctBR(l.pct_cliente)}
-                      </span>
-                      {temEspaco ? (
-                        <span className="w-[132px] text-right">
-                          <span className="block tabular-nums text-warning">
-                            +{formatBRL(l.potencial_reais)}
-                          </span>
-                          <span className="block text-[11px] font-normal text-muted-foreground">
-                            se comprasse como a média
-                          </span>
-                        </span>
-                      ) : (
-                        <span className="w-[132px] text-right font-normal text-muted-foreground">
-                          acima da média
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <p className="text-[11px] font-normal text-muted-foreground">marca vertical = média da carteira</p>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
 export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
 
   const saldos = useContasClienteSaldo();
@@ -344,7 +141,6 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
   const analise = useAnaliseCreditoVigente(parceiroId);
   const kpi = useKpiCliente(parceiroId);
   const serie = useSerieMensalCliente(parceiroId);
-  const produtos = useProdutosCliente(parceiroId);
   const recompra = useRecompraCliente(parceiroId);
 
   const k = kpi.data ?? null;
@@ -362,41 +158,6 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
   const dados = serie.data ?? [];
   const r = recompra.data ?? null;
   const primeiraCompra = Number(r?.compras ?? 0) < 2;
-  const coresPizza = [
-    "hsl(var(--chart-1))",
-    "hsl(var(--chart-2))",
-    "hsl(var(--chart-3))",
-    "hsl(var(--chart-4))",
-    "hsl(var(--chart-5))",
-    "hsl(var(--chart-1) / 0.65)",
-    "hsl(var(--chart-2) / 0.65)",
-    "hsl(var(--chart-3) / 0.65)",
-    "hsl(var(--chart-4) / 0.65)",
-  ];
-  const COR_OUTROS = "hsl(var(--muted-foreground))";
-
-  const linhas = produtos.data ?? [];
-  const montarFatias = (eixo: "familia" | "colecao", topo: number | null) => {
-    const base = linhas
-      .filter((l) => l.eixo === eixo)
-      .sort((a, b) => b.valor - a.valor)
-      .map((l) => ({ nome: l.grupo, valor: l.valor, recomprado: !!l.recomprado }));
-    if (topo == null || base.length <= topo) return base;
-    const resto = base.slice(topo);
-    return [
-      ...base.slice(0, topo),
-      {
-        nome: "Outros",
-        valor: resto.reduce((t, i) => t + i.valor, 0),
-        recomprado: false,
-      },
-    ];
-  };
-  const fatiasFamilia = montarFatias("familia", null);
-  const fatiasColecao = montarFatias("colecao", 8);
-  const corFatia = (nome: string, index: number) =>
-    nome === "Outros" ? COR_OUTROS : coresPizza[index % coresPizza.length];
-
   const faixas = FAIXAS.map((f) => ({
     ...f,
     valor: Number((conta as any)?.[f.chave] ?? 0),
@@ -702,18 +463,6 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
           )}
         </div>
       </div>
-
-      {/* GRÁFICOS — linha 2: composição por família e por coleção */}
-      <div className="grid gap-[10px] lg:grid-cols-2">
-        <Donut titulo="Compra por família" fatias={fatiasFamilia} carregando={produtos.isLoading} erro={produtos.error} cor={corFatia} />
-        <Donut titulo="Compra por coleção" fatias={fatiasColecao} carregando={produtos.isLoading} erro={produtos.error} cor={corFatia} />
-      </div>
-
-      {/* MIX VERSUS CARTEIRA — o cliente compra diferente da média? */}
-      <MixVersusCarteira parceiroId={parceiroId} />
-
-
-
 
       {/* AGING — barra empilhada única, só quando há vencido */}
       {vencido > 0 && totalFaixas > 0 && (
