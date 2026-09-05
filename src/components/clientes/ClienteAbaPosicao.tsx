@@ -443,9 +443,14 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
               regua={r?.atrasado_recompra ? "warning" : undefined}
             />
             <Indicador
-              rotulo="SKUs recomprados"
-              valor={r?.skus_recomprados == null || r?.skus_distintos == null ? "—" : `${r.skus_recomprados} de ${r.skus_distintos}`}
+              rotulo="Coleções recompradas"
+              valor={
+                r?.colecoes_recompradas == null || r?.colecoes_distintas == null
+                  ? "—"
+                  : `${r.colecoes_recompradas} de ${r.colecoes_distintas}`
+              }
             />
+
           </div>
         </div>
       )}
