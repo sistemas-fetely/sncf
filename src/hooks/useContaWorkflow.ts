@@ -1,75 +1,17 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+/**
+ * ATENÇÃO: `useContaWorkflow` e `mudarStatus` foram REMOVIDOS em 02/09/2026
+ * (Camada 3c da reforma ESTADO × PROVAS). Faziam UPDATE direto em
+ * `contas_pagar_receber.status` pelo cliente, contornando toda a validação de
+ * `fn_titulo_pagar_transicionar` (transição legal, motivo, data).
+ *
+ * MECANISMO-ANTES-DE-UPDATE: a única via de mudança de estado do título a pagar
+ * é `useTituloPagarTransicionar` em `@/hooks/financeiro/useTituloPagarEstado`.
+ * NÃO recriar mutation de status aqui.
+ *
+ * O que sobrou neste arquivo é leitura e cálculo, sem efeito colateral.
+ */
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
-
-export const STATUS_FLOW = [
-  { key: "aberto", label: "Aberto" },
-  { key: "aprovado", label: "Aprovado" },
-  { key: "enviado_para_pagamento", label: "Enviado para Pagamento" },
-] as const;
-
-export type ContaStatus =
-  | "aberto"
-  | "aprovado"
-  | "enviado_para_pagamento"
-  | "cancelado";
-
-export function useContaWorkflow() {
-  const { user } = useAuth();
-  const qc = useQueryClient();
-
-  const mudarStatus = useMutation({
-    mutationFn: async (params: {
-      contaId: string;
-      statusAnterior: string;
-      novoStatus: ContaStatus;
-      observacao?: string;
-      extras?: Record<string, unknown>;
-    }) => {
-      const { contaId, statusAnterior, novoStatus, observacao, extras } = params;
-
-      // Histórico
-      await supabase.from("contas_pagar_historico").insert({
-        conta_id: contaId,
-        status_anterior: statusAnterior,
-        status_novo: novoStatus,
-        observacao: observacao || null,
-        usuario_id: user?.id || null,
-      });
-
-      const updateData: Record<string, unknown> = {
-        status: novoStatus,
-        updated_at: new Date().toISOString(),
-        ...(extras || {}),
-      };
-
-      if (novoStatus === "aprovado") {
-        updateData.aprovado_por = user?.id || null;
-        updateData.aprovado_em = new Date().toISOString();
-      }
-
-      const { error } = await supabase
-        .from("contas_pagar_receber")
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .update(updateData as any)
-        .eq("id", contaId);
-
-      if (error) throw error;
-      return { contaId, novoStatus };
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["contas-pagar"] });
-      qc.invalidateQueries({ queryKey: ["conta-pagar-detalhe"] });
-      qc.invalidateQueries({ queryKey: ["cp-historico"] });
-    },
-    onError: (e: Error) => {
-      toast.error("Erro: " + (e.message || String(e)));
-    },
-  });
-
-  return { mudarStatus };
-}
 
 export function useHistoricoConta(contaId: string | null) {
   return useQuery({
