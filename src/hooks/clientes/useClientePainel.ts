@@ -195,18 +195,22 @@ export function useSerieMensalCliente(parceiroId: string | null | undefined) {
 
 export interface ProdutoCliente {
   parceiro_id: string;
-  sku: string | null;
-  descricao: string | null;
+  eixo: "familia" | "colecao";
+  grupo: string;
   valor: number;
   quantidade: number;
   pedidos: number;
+  skus: number;
   ultima_compra: string | null;
   recomprado: boolean | null;
 }
 
 export const QK_CLIENTE_PRODUTOS = "cliente-painel-produtos";
 
-/** Composição do faturamento por SKU. Só leitura. */
+/**
+ * Composição do faturamento por taxonomia derivada (família e coleção).
+ * Uma consulta só; o componente separa por `eixo`. Só leitura.
+ */
 export function useProdutosCliente(parceiroId: string | null | undefined) {
   return useQuery({
     queryKey: [QK_CLIENTE_PRODUTOS, parceiroId],
@@ -214,23 +218,25 @@ export function useProdutosCliente(parceiroId: string | null | undefined) {
     queryFn: async (): Promise<ProdutoCliente[]> => {
       const { data, error } = await (supabase as any)
         .from("vw_conta_cliente_produtos")
-        .select("parceiro_id, sku, descricao, valor, quantidade, pedidos, ultima_compra, recomprado")
+        .select("parceiro_id, eixo, grupo, valor, quantidade, pedidos, skus, ultima_compra, recomprado")
         .eq("parceiro_id", parceiroId)
         .order("valor", { ascending: false });
       if (error) throw error;
       return ((data ?? []) as Record<string, unknown>[]).map((d) => ({
         parceiro_id: String(d.parceiro_id ?? ""),
-        sku: d.sku == null ? null : String(d.sku),
-        descricao: d.descricao == null ? null : String(d.descricao),
+        eixo: (String(d.eixo ?? "familia") as "familia" | "colecao"),
+        grupo: String(d.grupo ?? "—"),
         valor: Number(d.valor ?? 0),
         quantidade: Number(d.quantidade ?? 0),
         pedidos: Number(d.pedidos ?? 0),
+        skus: Number(d.skus ?? 0),
         ultima_compra: d.ultima_compra == null ? null : String(d.ultima_compra),
         recomprado: d.recomprado == null ? null : Boolean(d.recomprado),
       }));
     },
   });
 }
+
 
 export interface RecompraCliente {
   parceiro_id: string;
@@ -243,6 +249,9 @@ export interface RecompraCliente {
   atrasado_recompra: boolean | null;
   skus_recomprados: number | null;
   skus_distintos: number | null;
+  colecoes_recompradas: number | null;
+  colecoes_distintas: number | null;
+
 }
 
 export const QK_CLIENTE_RECOMPRA = "cliente-painel-recompra";
@@ -255,7 +264,7 @@ export function useRecompraCliente(parceiroId: string | null | undefined) {
     queryFn: async (): Promise<RecompraCliente | null> => {
       const { data, error } = await (supabase as any)
         .from("vw_conta_cliente_recompra")
-        .select("parceiro_id, compras, primeira, ultima, dias_desde_ultima, intervalo_medio_dias, proxima_compra_estimada, atrasado_recompra, skus_recomprados, skus_distintos")
+        .select("parceiro_id, compras, primeira, ultima, dias_desde_ultima, intervalo_medio_dias, proxima_compra_estimada, atrasado_recompra, skus_recomprados, skus_distintos, colecoes_recompradas, colecoes_distintas")
         .eq("parceiro_id", parceiroId)
         .maybeSingle();
       if (error) throw error;
@@ -273,6 +282,9 @@ export function useRecompraCliente(parceiroId: string | null | undefined) {
         atrasado_recompra: d.atrasado_recompra == null ? null : Boolean(d.atrasado_recompra),
         skus_recomprados: num(d.skus_recomprados),
         skus_distintos: num(d.skus_distintos),
+        colecoes_recompradas: num(d.colecoes_recompradas),
+        colecoes_distintas: num(d.colecoes_distintas),
+
       };
     },
   });

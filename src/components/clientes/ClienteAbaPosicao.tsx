@@ -138,6 +138,83 @@ function TooltipSerie({ active, payload, label }: any) {
   );
 }
 
+interface Fatia {
+  nome: string;
+  valor: number;
+  recomprado: boolean;
+}
+
+/** Donut de composição com legenda ao lado. Só leitura. */
+function Donut({
+  titulo,
+  fatias,
+  carregando,
+  cor,
+}: {
+  titulo: string;
+  fatias: Fatia[];
+  carregando: boolean;
+  cor: (nome: string, index: number) => string;
+}) {
+  return (
+    <div className="space-y-3 rounded-lg border border-border/60 bg-card p-3">
+      <TituloSecao>{titulo}</TituloSecao>
+      {carregando && (
+        <p className="flex items-center gap-2 text-[13px] font-normal text-muted-foreground">
+          <Loader2 className="h-3 w-3 animate-spin" /> carregando
+        </p>
+      )}
+      {!carregando && fatias.length === 0 && (
+        <p className="text-[13px] font-normal text-muted-foreground">Sem itens faturados ainda.</p>
+      )}
+      {!carregando && fatias.length > 0 && (
+        <div className="grid min-h-[240px] items-center gap-3 sm:grid-cols-[minmax(150px,0.8fr)_minmax(180px,1.2fr)]">
+          <div className="h-[220px] min-w-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={fatias}
+                  dataKey="valor"
+                  nameKey="nome"
+                  innerRadius="52%"
+                  outerRadius="82%"
+                  paddingAngle={1}
+                  stroke="hsl(var(--card))"
+                  strokeWidth={2}
+                >
+                  {fatias.map((item, index) => (
+                    <Cell key={`${item.nome}-${index}`} fill={cor(item.nome, index)} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => formatBRL(Number(value ?? 0))} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="min-w-0 space-y-2">
+            {fatias.map((item, index) => (
+              <div key={`${item.nome}-legenda`} className="flex min-w-0 items-center gap-2 text-[11px]">
+                <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ backgroundColor: cor(item.nome, index) }} />
+                <span className="min-w-0 flex-1 truncate text-muted-foreground" title={item.nome}>
+                  {item.nome}
+                </span>
+                {item.recomprado && (
+                  <span
+                    className="h-1.5 w-1.5 shrink-0 rounded-full bg-success"
+                    title="cliente já recomprou"
+                    aria-label="recomprado"
+                  />
+                )}
+                <span className="shrink-0 tabular-nums">{formatBRL(item.valor)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
   const saldos = useContasClienteSaldo();
   const cobertura = useContaClienteCobertura(parceiroId);
@@ -162,13 +239,6 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
   const dados = serie.data ?? [];
   const r = recompra.data ?? null;
   const primeiraCompra = Number(r?.compras ?? 0) < 2;
-  const produtosOrdenados = produtos.data ?? [];
-  const produtosPizza = produtosOrdenados.length <= 6
-    ? produtosOrdenados.map((item) => ({ nome: item.descricao || item.sku || "SKU sem descrição", valor: item.valor }))
-    : [
-        ...produtosOrdenados.slice(0, 6).map((item) => ({ nome: item.descricao || item.sku || "SKU sem descrição", valor: item.valor })),
-        { nome: "Outros", valor: produtosOrdenados.slice(6).reduce((total, item) => total + item.valor, 0) },
-      ];
   const coresPizza = [
     "hsl(var(--chart-1))",
     "hsl(var(--chart-2))",
@@ -176,8 +246,34 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
     "hsl(var(--chart-4))",
     "hsl(var(--chart-5))",
     "hsl(var(--chart-1) / 0.65)",
-    "hsl(var(--muted-foreground))",
+    "hsl(var(--chart-2) / 0.65)",
+    "hsl(var(--chart-3) / 0.65)",
+    "hsl(var(--chart-4) / 0.65)",
   ];
+  const COR_OUTROS = "hsl(var(--muted-foreground))";
+
+  const linhas = produtos.data ?? [];
+  const montarFatias = (eixo: "familia" | "colecao", topo: number | null) => {
+    const base = linhas
+      .filter((l) => l.eixo === eixo)
+      .sort((a, b) => b.valor - a.valor)
+      .map((l) => ({ nome: l.grupo, valor: l.valor, recomprado: !!l.recomprado }));
+    if (topo == null || base.length <= topo) return base;
+    const resto = base.slice(topo);
+    return [
+      ...base.slice(0, topo),
+      {
+        nome: "Outros",
+        valor: resto.reduce((t, i) => t + i.valor, 0),
+        recomprado: false,
+      },
+    ];
+  };
+  const fatiasFamilia = montarFatias("familia", null);
+  const fatiasColecao = montarFatias("colecao", 8);
+  const corFatia = (nome: string, index: number) =>
+    nome === "Outros" ? COR_OUTROS : coresPizza[index % coresPizza.length];
+
   const faixas = FAIXAS.map((f) => ({
     ...f,
     valor: Number((conta as any)?.[f.chave] ?? 0),
@@ -424,15 +520,21 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
               regua={r?.atrasado_recompra ? "warning" : undefined}
             />
             <Indicador
-              rotulo="SKUs recomprados"
-              valor={r?.skus_recomprados == null || r?.skus_distintos == null ? "—" : `${r.skus_recomprados} de ${r.skus_distintos}`}
+              rotulo="Coleções recompradas"
+              valor={
+                r?.colecoes_recompradas == null || r?.colecoes_distintas == null
+                  ? "—"
+                  : `${r.colecoes_recompradas} de ${r.colecoes_distintas}`
+              }
             />
+
           </div>
         </div>
       )}
 
-      {/* GRÁFICOS — movimento e composição por SKU */}
-      <div className="grid gap-[10px] lg:grid-cols-2">
+      {/* GRÁFICOS — linha 1: movimento (largura total) */}
+      <div className="grid gap-[10px]">
+
         <div className="space-y-3 rounded-lg border border-border/60 bg-card p-3">
           <TituloSecao>Movimento dos últimos meses</TituloSecao>
           {serie.isLoading && (
@@ -466,40 +568,14 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
             </>
           )}
         </div>
-
-        <div className="space-y-3 rounded-lg border border-border/60 bg-card p-3">
-          <TituloSecao>O que este cliente compra</TituloSecao>
-          {produtos.isLoading && (
-            <p className="flex items-center gap-2 text-[13px] font-normal text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> carregando</p>
-          )}
-          {!produtos.isLoading && produtosPizza.length === 0 && (
-            <p className="text-[13px] font-normal text-muted-foreground">Sem itens faturados ainda.</p>
-          )}
-          {!produtos.isLoading && produtosPizza.length > 0 && (
-            <div className="grid min-h-[240px] items-center gap-3 sm:grid-cols-[minmax(160px,0.8fr)_minmax(180px,1.2fr)]">
-              <div className="h-[220px] min-w-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={produtosPizza} dataKey="valor" nameKey="nome" innerRadius="52%" outerRadius="82%" paddingAngle={1} stroke="hsl(var(--card))" strokeWidth={2}>
-                      {produtosPizza.map((item, index) => <Cell key={`${item.nome}-${index}`} fill={coresPizza[index]} />)}
-                    </Pie>
-                    <Tooltip formatter={(value) => formatBRL(Number(value ?? 0))} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="space-y-2 min-w-0">
-                {produtosPizza.map((item, index) => (
-                  <div key={`${item.nome}-legenda`} className="flex min-w-0 items-center gap-2 text-[11px]">
-                    <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ backgroundColor: coresPizza[index] }} />
-                    <span className="min-w-0 flex-1 truncate text-muted-foreground" title={item.nome}>{item.nome}</span>
-                    <span className="shrink-0 tabular-nums">{formatBRL(item.valor)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
       </div>
+
+      {/* GRÁFICOS — linha 2: composição por família e por coleção */}
+      <div className="grid gap-[10px] lg:grid-cols-2">
+        <Donut titulo="Compra por família" fatias={fatiasFamilia} carregando={produtos.isLoading} cor={corFatia} />
+        <Donut titulo="Compra por coleção" fatias={fatiasColecao} carregando={produtos.isLoading} cor={corFatia} />
+      </div>
+
 
       {/* AGING — barra empilhada única, só quando há vencido */}
       {vencido > 0 && totalFaixas > 0 && (
