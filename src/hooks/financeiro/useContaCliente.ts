@@ -38,6 +38,9 @@ export interface ContaClienteLancamento {
   vencimento: string | null;
   vencido_aberto: boolean | null;
   titulo_id: string | null;
+  banco: string | null;
+  meio: string | null;
+  data_pagamento: string | null;
 }
 
 export interface ContaClienteFuro {
@@ -89,7 +92,9 @@ export function useContaClienteLancamentos(parceiroId: string | null | undefined
     queryFn: async (): Promise<ContaClienteLancamento[]> => {
       const { data, error } = await (supabase as any)
         .from("vw_conta_cliente_lancamentos")
-        .select("*")
+        .select(
+          "parceiro_id, data, tipo, sinal, valor, ref, pedido_ref, vencimento, vencido_aberto, titulo_id, banco, meio, data_pagamento",
+        )
         .eq("parceiro_id", parceiroId)
         .order("data", { ascending: false });
       if (error) throw error;

@@ -23,6 +23,16 @@ function dataBR(iso: string | null | undefined) {
   return `${d}/${m}/${a}`;
 }
 
+function meioBanco(meio: string | null | undefined, banco: string | null | undefined) {
+  const partes: string[] = [];
+  if (meio) {
+    const m = meio.trim();
+    partes.push(m.charAt(0).toUpperCase() + m.slice(1).toLowerCase());
+  }
+  if (banco) partes.push(banco.trim());
+  return partes.length ? partes.join(" · ") : "—";
+}
+
 export function ClienteAbaExtrato({
   parceiroId,
   clienteNome,
@@ -71,6 +81,8 @@ export function ClienteAbaExtrato({
                 <TableHead>Referência</TableHead>
                 <TableHead>Pedido</TableHead>
                 <TableHead>Vencimento</TableHead>
+                <TableHead>Pagamento</TableHead>
+                <TableHead>Meio · Banco</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
               </TableRow>
             </TableHeader>
@@ -89,6 +101,8 @@ export function ClienteAbaExtrato({
                         <span className="ml-1 text-[10px] text-destructive">vencido</span>
                       )}
                     </TableCell>
+                    <TableCell className="text-xs">{dataBR(l.data_pagamento)}</TableCell>
+                    <TableCell className="text-[11px]">{meioBanco(l.meio, l.banco)}</TableCell>
                     <TableCell
                       className={cn(
                         "text-right text-xs font-medium",
