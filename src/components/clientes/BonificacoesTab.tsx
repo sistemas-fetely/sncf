@@ -79,7 +79,7 @@ export function BonificacoesTab({ parceiroId }: { parceiroId: string }) {
             <Skeleton key={i} className="h-9 w-full" />
           ))}
         </div>
-      ) : lista.length === 0 ? (
+      ) : isError ? null : lista.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-md border border-border/60 py-10 text-sm text-muted-foreground">
           <Gift className="h-5 w-5" />
           Este cliente não recebeu bonificação.
