@@ -4324,13 +4324,6 @@ export type Database = {
             foreignKeyName: "bem_imobilizado_cpr_id_fkey"
             columns: ["cpr_id"]
             isOneToOne: true
-            referencedRelation: "contas_pagar"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bem_imobilizado_cpr_id_fkey"
-            columns: ["cpr_id"]
-            isOneToOne: true
             referencedRelation: "contas_pagar_receber"
             referencedColumns: ["id"]
           },
@@ -5312,13 +5305,6 @@ export type Database = {
           vencimento?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "boleto_stage_contas_pagar_receber_id_fkey"
-            columns: ["contas_pagar_receber_id"]
-            isOneToOne: false
-            referencedRelation: "contas_pagar"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "boleto_stage_contas_pagar_receber_id_fkey"
             columns: ["contas_pagar_receber_id"]
@@ -7783,13 +7769,6 @@ export type Database = {
             columns: ["banco_recebimento_id"]
             isOneToOne: false
             referencedRelation: "banco_recebimento"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "comprovante_pagamento_conta_pagar_id_fkey"
-            columns: ["conta_pagar_id"]
-            isOneToOne: false
-            referencedRelation: "contas_pagar"
             referencedColumns: ["id"]
           },
           {
@@ -10994,13 +10973,6 @@ export type Database = {
             foreignKeyName: "contas_pagar_documentos_conta_id_fkey"
             columns: ["conta_pagar_id"]
             isOneToOne: false
-            referencedRelation: "contas_pagar"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_documentos_conta_id_fkey"
-            columns: ["conta_pagar_id"]
-            isOneToOne: false
             referencedRelation: "contas_pagar_receber"
             referencedColumns: ["id"]
           },
@@ -11112,13 +11084,6 @@ export type Database = {
           usuario_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "contas_pagar_historico_conta_id_fkey"
-            columns: ["conta_id"]
-            isOneToOne: false
-            referencedRelation: "contas_pagar"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "contas_pagar_historico_conta_id_fkey"
             columns: ["conta_id"]
@@ -11261,13 +11226,6 @@ export type Database = {
           valor_unitario?: number | null
         }
         Relationships: [
-          {
-            foreignKeyName: "contas_pagar_itens_conta_pagar_id_fkey"
-            columns: ["conta_pagar_id"]
-            isOneToOne: false
-            referencedRelation: "contas_pagar"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "contas_pagar_itens_conta_pagar_id_fkey"
             columns: ["conta_pagar_id"]
@@ -16202,13 +16160,6 @@ export type Database = {
             foreignKeyName: "fatura_cartao_lancamentos_conta_pagar_id_fkey"
             columns: ["conta_pagar_id"]
             isOneToOne: false
-            referencedRelation: "contas_pagar"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fatura_cartao_lancamentos_conta_pagar_id_fkey"
-            columns: ["conta_pagar_id"]
-            isOneToOne: false
             referencedRelation: "contas_pagar_receber"
             referencedColumns: ["id"]
           },
@@ -16301,13 +16252,6 @@ export type Database = {
             columns: ["fatura_id"]
             isOneToOne: false
             referencedRelation: "vw_faturas_cartao_resumo"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fatura_cartao_lancamentos_nf_vinculada_id_fkey"
-            columns: ["nf_vinculada_id"]
-            isOneToOne: false
-            referencedRelation: "contas_pagar"
             referencedColumns: ["id"]
           },
           {
@@ -16673,13 +16617,6 @@ export type Database = {
             columns: ["conta_bancaria_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "faturas_cartao_conta_pagar_id_fkey"
-            columns: ["conta_pagar_id"]
-            isOneToOne: false
-            referencedRelation: "contas_pagar"
             referencedColumns: ["id"]
           },
           {
@@ -17149,27 +17086,6 @@ export type Database = {
           criado_por?: string | null
           ferramenta?: string
           id?: string
-        }
-        Relationships: []
-      }
-      fila_entrada_regra: {
-        Row: {
-          coluna_entrada: string
-          created_at: string
-          fila_chave: string
-          observacao: string | null
-        }
-        Insert: {
-          coluna_entrada: string
-          created_at?: string
-          fila_chave: string
-          observacao?: string | null
-        }
-        Update: {
-          coluna_entrada?: string
-          created_at?: string
-          fila_chave?: string
-          observacao?: string | null
         }
         Relationships: []
       }
@@ -22227,13 +22143,6 @@ export type Database = {
             foreignKeyName: "importacao_nf_duplicata_contas_pagar_id_fkey"
             columns: ["contas_pagar_id"]
             isOneToOne: false
-            referencedRelation: "contas_pagar"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "importacao_nf_duplicata_contas_pagar_id_fkey"
-            columns: ["contas_pagar_id"]
-            isOneToOne: false
             referencedRelation: "contas_pagar_receber"
             referencedColumns: ["id"]
           },
@@ -23331,13 +23240,6 @@ export type Database = {
             columns: ["conta_bancaria_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "itau_pagamentos_stage_conta_pagar_id_fkey"
-            columns: ["conta_pagar_id"]
-            isOneToOne: false
-            referencedRelation: "contas_pagar"
             referencedColumns: ["id"]
           },
           {
@@ -26851,13 +26753,6 @@ export type Database = {
             foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
             columns: ["conta_pagar_id"]
             isOneToOne: false
-            referencedRelation: "contas_pagar"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
-            columns: ["conta_pagar_id"]
-            isOneToOne: false
             referencedRelation: "contas_pagar_receber"
             referencedColumns: ["id"]
           },
@@ -28438,13 +28333,6 @@ export type Database = {
             foreignKeyName: "pagamento_alocacao_conta_pagar_receber_id_fkey"
             columns: ["conta_pagar_receber_id"]
             isOneToOne: false
-            referencedRelation: "contas_pagar"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pagamento_alocacao_conta_pagar_receber_id_fkey"
-            columns: ["conta_pagar_receber_id"]
-            isOneToOne: false
             referencedRelation: "contas_pagar_receber"
             referencedColumns: ["id"]
           },
@@ -29432,13 +29320,6 @@ export type Database = {
           valor_real?: number | null
         }
         Relationships: [
-          {
-            foreignKeyName: "pasta_contrato_parcelas_conta_pagar_id_fkey"
-            columns: ["conta_pagar_id"]
-            isOneToOne: false
-            referencedRelation: "contas_pagar"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "pasta_contrato_parcelas_conta_pagar_id_fkey"
             columns: ["conta_pagar_id"]
@@ -38841,13 +38722,6 @@ export type Database = {
             foreignKeyName: "reembolso_lotes_cpr_id_fkey"
             columns: ["cpr_id"]
             isOneToOne: false
-            referencedRelation: "contas_pagar"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reembolso_lotes_cpr_id_fkey"
-            columns: ["cpr_id"]
-            isOneToOne: false
             referencedRelation: "contas_pagar_receber"
             referencedColumns: ["id"]
           },
@@ -40155,13 +40029,6 @@ export type Database = {
           remessa_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "remessas_contador_itens_conta_id_fkey"
-            columns: ["conta_id"]
-            isOneToOne: false
-            referencedRelation: "contas_pagar"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "remessas_contador_itens_conta_id_fkey"
             columns: ["conta_id"]
@@ -47197,13 +47064,6 @@ export type Database = {
             columns: ["carteira_id"]
             isOneToOne: false
             referencedRelation: "carteira"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "titulo_a_receber_conta_id_fkey"
-            columns: ["conta_id"]
-            isOneToOne: false
-            referencedRelation: "contas_pagar"
             referencedColumns: ["id"]
           },
           {
@@ -55144,347 +55004,6 @@ export type Database = {
       }
     }
     Views: {
-      contas_pagar: {
-        Row: {
-          aprovado_em: string | null
-          aprovado_por: string | null
-          bling_id: string | null
-          canal_venda_id: string | null
-          categoria_confirmada: boolean | null
-          categoria_sugerida_ia: boolean | null
-          centro_custo_id: string | null
-          comprovante_url: string | null
-          conciliado_em: string | null
-          conciliado_por: string | null
-          conta_id: string | null
-          created_at: string | null
-          criado_por: string | null
-          dados_bancarios_fornecedor: Json | null
-          dados_enriquecidos_qive: boolean | null
-          dados_pagamento_fornecedor: Json | null
-          data_compra: string | null
-          data_pagamento: string | null
-          data_vencimento: string | null
-          descricao: string | null
-          docs_status: string | null
-          editado_em: string | null
-          editado_por: string | null
-          eh_cartao: boolean | null
-          email_pagamento_enviado: boolean | null
-          enviado_pagamento_em: string | null
-          enviado_pagamento_por: string | null
-          forma_pagamento_id: string | null
-          fornecedor_cliente: string | null
-          fornecedor_id: string | null
-          id: string | null
-          meio_codigo: string | null
-          meio_pagamento_id: string | null
-          movimentacao_bancaria_id: string | null
-          nf_cfop: string | null
-          nf_chave_acesso: string | null
-          nf_cnpj_emitente: string | null
-          nf_data_emissao: string | null
-          nf_natureza_operacao: string | null
-          nf_ncm: string | null
-          nf_numero: string | null
-          nf_pdf_url: string | null
-          nf_serie: string | null
-          nf_valor_impostos: number | null
-          nf_valor_produtos: number | null
-          nf_xml_url: string | null
-          numero_parcela: number | null
-          observacao: string | null
-          observacao_pagamento: string | null
-          observacao_pagamento_manual: string | null
-          origem: string | null
-          pago_em: string | null
-          pago_em_conta_id: string | null
-          pago_por: string | null
-          parceiro_id: string | null
-          parcela_atual: number | null
-          parcela_grupo_id: string | null
-          parcelas: number | null
-          sla_aprovacao_dias: number | null
-          sla_pagamento_dias: number | null
-          status: string | null
-          tags: Json | null
-          tarefa_id: string | null
-          tipo: string | null
-          total_parcelas: number | null
-          unidade_id: string | null
-          updated_at: string | null
-          valor: number | null
-          valor_pago: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contas_pagar_receber_canal_venda_id_fkey"
-            columns: ["canal_venda_id"]
-            isOneToOne: false
-            referencedRelation: "canais_venda"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_centro_custo_id_fkey"
-            columns: ["centro_custo_id"]
-            isOneToOne: false
-            referencedRelation: "centros_custo"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_centro_custo_id_fkey"
-            columns: ["centro_custo_id"]
-            isOneToOne: false
-            referencedRelation: "vw_custo_pessoas"
-            referencedColumns: ["centro_custo_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_centro_custo_id_fkey"
-            columns: ["centro_custo_id"]
-            isOneToOne: false
-            referencedRelation: "vw_dimensionamento_areas"
-            referencedColumns: ["centro_custo_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_forma_pagamento_id_fkey"
-            columns: ["forma_pagamento_id"]
-            isOneToOne: false
-            referencedRelation: "formas_pagamento"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_meio_pagamento_id_fkey"
-            columns: ["meio_pagamento_id"]
-            isOneToOne: false
-            referencedRelation: "meios_pagamento"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_movimentacao_bancaria_id_fkey"
-            columns: ["movimentacao_bancaria_id"]
-            isOneToOne: false
-            referencedRelation: "movimentacoes_bancarias"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_movimentacao_bancaria_id_fkey"
-            columns: ["movimentacao_bancaria_id"]
-            isOneToOne: false
-            referencedRelation: "vw_baixa_extrato_inequivoca"
-            referencedColumns: ["mov_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_movimentacao_bancaria_id_fkey"
-            columns: ["movimentacao_bancaria_id"]
-            isOneToOne: false
-            referencedRelation: "vw_cartao_credito_par"
-            referencedColumns: ["movimentacao_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_movimentacao_bancaria_id_fkey"
-            columns: ["movimentacao_bancaria_id"]
-            isOneToOne: false
-            referencedRelation: "vw_ciclo_titulo"
-            referencedColumns: ["movimentacao_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_movimentacao_bancaria_id_fkey"
-            columns: ["movimentacao_bancaria_id"]
-            isOneToOne: false
-            referencedRelation: "vw_conciliacao_cartao_sugestoes"
-            referencedColumns: ["ofx_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_movimentacao_bancaria_id_fkey"
-            columns: ["movimentacao_bancaria_id"]
-            isOneToOne: false
-            referencedRelation: "vw_conciliacao_furos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_movimentacao_bancaria_id_fkey"
-            columns: ["movimentacao_bancaria_id"]
-            isOneToOne: false
-            referencedRelation: "vw_conciliacao_mesa"
-            referencedColumns: ["movimentacao_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_movimentacao_bancaria_id_fkey"
-            columns: ["movimentacao_bancaria_id"]
-            isOneToOne: false
-            referencedRelation: "vw_despesas_match_nf_sugestoes"
-            referencedColumns: ["mov_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_movimentacao_bancaria_id_fkey"
-            columns: ["movimentacao_bancaria_id"]
-            isOneToOne: false
-            referencedRelation: "vw_despesas_match_sugestoes"
-            referencedColumns: ["mov_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_movimentacao_bancaria_id_fkey"
-            columns: ["movimentacao_bancaria_id"]
-            isOneToOne: false
-            referencedRelation: "vw_extrato_conta"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_movimentacao_bancaria_id_fkey"
-            columns: ["movimentacao_bancaria_id"]
-            isOneToOne: false
-            referencedRelation: "vw_fila_creditos_nao_conciliados"
-            referencedColumns: ["movimentacao_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_movimentacao_bancaria_id_fkey"
-            columns: ["movimentacao_bancaria_id"]
-            isOneToOne: false
-            referencedRelation: "vw_movimentacao_destino"
-            referencedColumns: ["movimentacao_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_movimentacao_bancaria_id_fkey"
-            columns: ["movimentacao_bancaria_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pagamento_alocacao_detalhe"
-            referencedColumns: ["mov_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_movimentacao_bancaria_id_fkey"
-            columns: ["movimentacao_bancaria_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pares_transferencia_sugeridos"
-            referencedColumns: ["credito_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_movimentacao_bancaria_id_fkey"
-            columns: ["movimentacao_bancaria_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pares_transferencia_sugeridos"
-            referencedColumns: ["debito_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_movimentacao_bancaria_id_fkey"
-            columns: ["movimentacao_bancaria_id"]
-            isOneToOne: false
-            referencedRelation: "vw_pix_candidato_conciliacao"
-            referencedColumns: ["movimentacao_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_movimentacao_bancaria_id_fkey"
-            columns: ["movimentacao_bancaria_id"]
-            isOneToOne: false
-            referencedRelation: "vw_recebivel_b2c_pedido"
-            referencedColumns: ["movimentacao_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_movimentacao_bancaria_id_fkey"
-            columns: ["movimentacao_bancaria_id"]
-            isOneToOne: false
-            referencedRelation: "vw_sugestao_baixa_extrato"
-            referencedColumns: ["mov_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_pago_em_conta_id_fkey"
-            columns: ["pago_em_conta_id"]
-            isOneToOne: false
-            referencedRelation: "contas_bancarias"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "parceiros_comerciais"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "v_credito_resumo_financeiro"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_consignado_limite"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_consignado_valor_a_acertar"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_conta_corrente_cliente"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_estoque_estimado_parceiro"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_oportunidades_comercial"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_parceiro_historico_comercial"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_parceiro_nome"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_recebivel_por_conta"
-            referencedColumns: ["conta_id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_plano_contas_id_fkey"
-            columns: ["conta_id"]
-            isOneToOne: false
-            referencedRelation: "plano_contas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contas_pagar_receber_unidade_id_fkey"
-            columns: ["unidade_id"]
-            isOneToOne: false
-            referencedRelation: "unidades"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_cpr_origem_dim"
-            columns: ["origem"]
-            isOneToOne: false
-            referencedRelation: "titulo_origem_dim"
-            referencedColumns: ["slug"]
-          },
-        ]
-      }
       contas_pagar_receber_ativas: {
         Row: {
           aprovado_em: string | null
@@ -57127,13 +56646,6 @@ export type Database = {
           valor: number | null
         }
         Relationships: [
-          {
-            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
-            columns: ["conta_pagar_id"]
-            isOneToOne: false
-            referencedRelation: "contas_pagar"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
             columns: ["conta_pagar_id"]
@@ -71443,13 +70955,6 @@ export type Database = {
             foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
             columns: ["conta_pagar_id"]
             isOneToOne: false
-            referencedRelation: "contas_pagar"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
-            columns: ["conta_pagar_id"]
-            isOneToOne: false
             referencedRelation: "contas_pagar_receber"
             referencedColumns: ["id"]
           },
@@ -71686,13 +71191,6 @@ export type Database = {
           valor: number | null
         }
         Relationships: [
-          {
-            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
-            columns: ["conta_pagar_id"]
-            isOneToOne: false
-            referencedRelation: "contas_pagar"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
             columns: ["conta_pagar_id"]
@@ -72366,13 +71864,6 @@ export type Database = {
             foreignKeyName: "pagamento_alocacao_conta_pagar_receber_id_fkey"
             columns: ["cpr_id"]
             isOneToOne: false
-            referencedRelation: "contas_pagar"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pagamento_alocacao_conta_pagar_receber_id_fkey"
-            columns: ["cpr_id"]
-            isOneToOne: false
             referencedRelation: "contas_pagar_receber"
             referencedColumns: ["id"]
           },
@@ -72521,14 +72012,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -73943,14 +73434,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -78867,13 +78358,6 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_conta_id_fkey"
             columns: ["conta_id"]
             isOneToOne: false
-            referencedRelation: "contas_pagar"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "titulo_a_receber_conta_id_fkey"
-            columns: ["conta_id"]
-            isOneToOne: false
             referencedRelation: "contas_pagar_receber"
             referencedColumns: ["id"]
           },
@@ -79745,13 +79229,6 @@ export type Database = {
             columns: ["banco_recebimento_id"]
             isOneToOne: false
             referencedRelation: "banco_recebimento"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "titulo_a_receber_conta_id_fkey"
-            columns: ["conta_id"]
-            isOneToOne: false
-            referencedRelation: "contas_pagar"
             referencedColumns: ["id"]
           },
           {
@@ -81574,13 +81051,6 @@ export type Database = {
             foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
             columns: ["titulo_id"]
             isOneToOne: false
-            referencedRelation: "contas_pagar"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
-            columns: ["titulo_id"]
-            isOneToOne: false
             referencedRelation: "contas_pagar_receber"
             referencedColumns: ["id"]
           },
@@ -81823,14 +81293,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -82519,13 +81989,6 @@ export type Database = {
             columns: ["banco_recebimento_id"]
             isOneToOne: false
             referencedRelation: "banco_recebimento"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "titulo_a_receber_conta_id_fkey"
-            columns: ["conta_id"]
-            isOneToOne: false
-            referencedRelation: "contas_pagar"
             referencedColumns: ["id"]
           },
           {
@@ -83603,13 +83066,6 @@ export type Database = {
             columns: ["banco_recebimento_id"]
             isOneToOne: false
             referencedRelation: "banco_recebimento"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "titulo_a_receber_conta_id_fkey"
-            columns: ["conta_id"]
-            isOneToOne: false
-            referencedRelation: "contas_pagar"
             referencedColumns: ["id"]
           },
           {
