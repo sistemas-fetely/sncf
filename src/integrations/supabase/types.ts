@@ -11111,6 +11111,7 @@ export type Database = {
           fornecedor_id: string | null
           id: string
           meio_pagamento_id: string
+          motivo_exclusao: string | null
           movimentacao_bancaria_id: string | null
           nf_aplicavel: boolean
           nf_aplicavel_motivo: string | null
@@ -11202,6 +11203,7 @@ export type Database = {
           fornecedor_id?: string | null
           id?: string
           meio_pagamento_id: string
+          motivo_exclusao?: string | null
           movimentacao_bancaria_id?: string | null
           nf_aplicavel?: boolean
           nf_aplicavel_motivo?: string | null
@@ -11293,6 +11295,7 @@ export type Database = {
           fornecedor_id?: string | null
           id?: string
           meio_pagamento_id?: string
+          motivo_exclusao?: string | null
           movimentacao_bancaria_id?: string | null
           nf_aplicavel?: boolean
           nf_aplicavel_motivo?: string | null
@@ -36158,12 +36161,37 @@ export type Database = {
         }
         Relationships: []
       }
+      produto_fase_dim: {
+        Row: {
+          descricao: string | null
+          nome: string
+          ordem: number
+          slug: string
+          visivel_catalogo: boolean
+        }
+        Insert: {
+          descricao?: string | null
+          nome: string
+          ordem: number
+          slug: string
+          visivel_catalogo: boolean
+        }
+        Update: {
+          descricao?: string | null
+          nome?: string
+          ordem?: number
+          slug?: string
+          visivel_catalogo?: boolean
+        }
+        Relationships: []
+      }
       produto_ficha_nascimento: {
         Row: {
           bloco: string
           campo: string
           descricao: string | null
           dono: string
+          fase_exigida: string | null
           obrigatorio: boolean
           ordem: number
         }
@@ -36172,6 +36200,7 @@ export type Database = {
           campo: string
           descricao?: string | null
           dono: string
+          fase_exigida?: string | null
           obrigatorio?: boolean
           ordem: number
         }
@@ -36180,10 +36209,19 @@ export type Database = {
           campo?: string
           descricao?: string | null
           dono?: string
+          fase_exigida?: string | null
           obrigatorio?: boolean
           ordem?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "produto_ficha_nascimento_fase_exigida_fkey"
+            columns: ["fase_exigida"]
+            isOneToOne: false
+            referencedRelation: "produto_fase_dim"
+            referencedColumns: ["slug"]
+          },
+        ]
       }
       produtos: {
         Row: {
@@ -42085,6 +42123,7 @@ export type Database = {
           descricao_produto: string | null
           ean: string | null
           estampa: string | null
+          fase: string | null
           grupo: string | null
           largura_cm: number | null
           linha: string | null
@@ -42120,6 +42159,7 @@ export type Database = {
           descricao_produto?: string | null
           ean?: string | null
           estampa?: string | null
+          fase?: string | null
           grupo?: string | null
           largura_cm?: number | null
           linha?: string | null
@@ -42155,6 +42195,7 @@ export type Database = {
           descricao_produto?: string | null
           ean?: string | null
           estampa?: string | null
+          fase?: string | null
           grupo?: string | null
           largura_cm?: number | null
           linha?: string | null
@@ -69448,14 +69489,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -71719,14 +71760,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -75216,6 +75257,7 @@ export type Database = {
           cod_cadastro: string | null
           colecao: string | null
           dono: string | null
+          fase: string | null
           nome_comercial: string | null
           sku: string | null
         }
