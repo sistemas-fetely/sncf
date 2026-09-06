@@ -292,6 +292,11 @@ if (body.tipo === "ficha_pendencias") {
             ...(typeof p.cod_cadastro === "string" && p.cod_cadastro.length > 0
               ? { cod_cadastro: p.cod_cadastro.trim() }
               : {}),
+            // Fase do ciclo de vida (mapa-donos-catalogo-v1 v4). CONDICIONAL pelo mesmo motivo do
+            // cod_cadastro: se o FOP não enviar, a chave não entra no upsert e o backfill sobrevive.
+            ...(typeof p.fase === "string" && p.fase.length > 0
+              ? { fase: p.fase.trim() }
+              : {}),
             ean:                  p.ean                 ?? null,
             nome_comercial:       p.nome_comercial,
             nome_completo:        p.nome_completo        ?? null,
