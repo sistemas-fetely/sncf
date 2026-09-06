@@ -11365,6 +11365,9 @@ export type Database = {
         Row: {
           aprovado_em: string | null
           aprovado_por: string | null
+          apuracao_historica_em: string | null
+          apuracao_historica_motivo: string | null
+          apuracao_historica_por: string | null
           bling_id: string | null
           boleto_avulso_justificativa: string | null
           canal_venda_id: string | null
@@ -11457,6 +11460,9 @@ export type Database = {
         Insert: {
           aprovado_em?: string | null
           aprovado_por?: string | null
+          apuracao_historica_em?: string | null
+          apuracao_historica_motivo?: string | null
+          apuracao_historica_por?: string | null
           bling_id?: string | null
           boleto_avulso_justificativa?: string | null
           canal_venda_id?: string | null
@@ -11549,6 +11555,9 @@ export type Database = {
         Update: {
           aprovado_em?: string | null
           aprovado_por?: string | null
+          apuracao_historica_em?: string | null
+          apuracao_historica_motivo?: string | null
+          apuracao_historica_por?: string | null
           bling_id?: string | null
           boleto_avulso_justificativa?: string | null
           canal_venda_id?: string | null
@@ -81808,14 +81817,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
