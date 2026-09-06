@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { CalendarClock, ChevronDown, ChevronUp, GripVertical, ListChecks, Lock, MoreHorizontal, Plus } from "lucide-react";
+import { CalendarClock, Check, ChevronDown, ChevronUp, GripVertical, ListChecks, Lock, MoreHorizontal, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
