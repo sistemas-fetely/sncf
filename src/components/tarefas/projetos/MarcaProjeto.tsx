@@ -61,7 +61,7 @@ export function MarcaProjeto({
       style={{ backgroundColor: cor ?? "hsl(var(--muted))" }}
       aria-hidden
     >
-      {Icone && <Icone className={cn("h-1/2 w-1/2 text-white", iconeClassName)} />}
+      {Icone && <Icone className={cn("h-1/2 w-1/2 text-primary-foreground", iconeClassName)} />}
     </span>
   );
 }
