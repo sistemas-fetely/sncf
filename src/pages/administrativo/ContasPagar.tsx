@@ -864,6 +864,7 @@ export default function ContasPagar() {
                 })}
               </TableBody>
             </Table>
+            </TooltipProvider>
           )}
         </CardContent>
       </Card>
