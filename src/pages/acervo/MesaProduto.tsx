@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  Loader2, RefreshCw, ArrowUpCircle, AlertTriangle, PackageX, Search, CheckCircle2, Ban,
+  Loader2, RefreshCw, ArrowUpCircle, AlertTriangle, PackageX, Search, Ban,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
