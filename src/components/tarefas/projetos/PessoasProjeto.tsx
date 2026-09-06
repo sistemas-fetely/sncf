@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ChevronsUpDown, MoreHorizontal, Plus, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ChevronsUpDown, MoreHorizontal, Plus, Trash2, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,10 +26,24 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePodeGerenciarProjeto, useProjeto } from "@/hooks/tarefas/useProjetosTarefas";
 import {
-  useAdicionarMembro, useMembrosProjeto, usePapeisProjeto, usePessoasParaProjeto,
-  useRemoverMembro, useTrocarPapelMembro,
+  useAdicionarMembro, useAdicionarMembrosEmMassa, useMembrosProjeto, usePapeisProjeto,
+  usePessoasParaProjeto, useRemoverMembro, useTrocarPapelMembro,
 } from "@/hooks/tarefas/useProjetoMembros";
+import type { PessoaParaProjeto } from "@/hooks/tarefas/useProjetoMembros";
 import { cn } from "@/lib/utils";
+
+const ROTULO_NIVEL: Record<string, string> = {
+  c_level: "C-level",
+  coordenacao: "Coordenação",
+  especialista: "Especialista",
+  sr: "Sênior",
+  pl: "Pleno",
+  jr: "Júnior",
+};
+const rotuloNivel = (nivel: string) => ROTULO_NIVEL[nivel] ?? nivel;
+
+type ModoAdicao = "uma" | "massa";
+type CriterioMassa = "departamento" | "nivel";
 
 const dataBr = (iso: string | null | undefined) =>
   iso ? iso.slice(0, 10).split("-").reverse().join("/") : "—";
@@ -53,12 +67,16 @@ export function PessoasProjeto({ projetoId }: Props) {
   const { data: pessoas } = usePessoasParaProjeto();
 
   const adicionar = useAdicionarMembro(projetoId);
+  const adicionarMassa = useAdicionarMembrosEmMassa(projetoId);
   const trocar = useTrocarPapelMembro(projetoId);
   const remover = useRemoverMembro(projetoId);
 
   const [novaPessoa, setNovaPessoa] = useState("");
   const [novoPapel, setNovoPapel] = useState("");
   const [abertoPessoa, setAbertoPessoa] = useState(false);
+  const [modo, setModo] = useState<ModoAdicao>("uma");
+  const [criterio, setCriterio] = useState<CriterioMassa>("departamento");
+  const [valorCriterio, setValorCriterio] = useState("");
 
   const papelEscolhido = papeis?.find((p) => p.codigo === novoPapel);
   const pessoaEscolhida = pessoas?.find((p) => p.user_id === novaPessoa);
@@ -77,6 +95,31 @@ export function PessoasProjeto({ projetoId }: Props) {
     (p) => !(membros ?? []).some((m) => m.user_id === p.user_id) && !fixos.some((f) => f.id === p.user_id)
   );
   const haPessoaComAcesso = candidatos.some((p) => p.tem_acesso && p.user_id);
+
+  // ---- Adição em massa ----
+  const grupos = useMemo(() => {
+    const mapa = new Map<string, { rotulo: string; pessoas: PessoaParaProjeto[] }>();
+    for (const p of candidatos) {
+      const chave = criterio === "departamento" ? p.departamento_id : p.nivel_cargo;
+      if (!chave) continue;
+      const rotulo =
+        criterio === "departamento"
+          ? p.departamento ?? "Sem departamento"
+          : rotuloNivel(p.nivel_cargo!);
+      const atual = mapa.get(chave) ?? { rotulo, pessoas: [] };
+      atual.pessoas.push(p);
+      mapa.set(chave, atual);
+    }
+    return [...mapa.entries()]
+      .map(([valor, g]) => ({ valor, rotulo: g.rotulo, pessoas: g.pessoas }))
+      .sort((a, b) => a.rotulo.localeCompare(b.rotulo, "pt-BR"));
+  }, [candidatos, criterio]);
+
+  const grupoEscolhido = grupos.find((g) => g.valor === valorCriterio);
+  const elegiveisMassa = (grupoEscolhido?.pessoas ?? []).filter((p) => p.tem_acesso && p.user_id);
+  const semAcessoMassa = (grupoEscolhido?.pessoas ?? []).filter((p) => !p.tem_acesso || !p.user_id);
+  const contagemElegiveis = (g: { pessoas: PessoaParaProjeto[] }) =>
+    g.pessoas.filter((p) => p.tem_acesso && p.user_id).length;
 
   const detalhePessoa = (pessoa?: ReturnType<typeof pessoaPorUsuario>) =>
     [pessoa?.cargo, pessoa?.departamento].filter(Boolean).join(" · ") || null;
@@ -197,9 +240,36 @@ export function PessoasProjeto({ projetoId }: Props) {
       </section>
 
       <section className="space-y-3 border-t pt-4">
-        <h3 className="text-sm font-medium">Adicionar participante</h3>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-medium">Adicionar participante</h3>
+          {podeGerenciar && (
+            <div className="inline-flex rounded-md border bg-muted/40 p-0.5">
+              {(
+                [
+                  { valor: "uma", rotulo: "Uma pessoa" },
+                  { valor: "massa", rotulo: "Vários de uma vez" },
+                ] as const
+              ).map((op) => (
+                <button
+                  key={op.valor}
+                  type="button"
+                  onClick={() => setModo(op.valor)}
+                  className={cn(
+                    "rounded-sm px-3 py-1 text-xs transition-colors",
+                    modo === op.valor
+                      ? "bg-background font-medium shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {op.rotulo}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="flex flex-col gap-4">
           <div className="grid gap-4 sm:grid-cols-2">
+            {modo === "uma" ? (
             <div className="space-y-2">
               <Label htmlFor="pessoa-nova">Pessoa</Label>
               <Popover open={abertoPessoa} onOpenChange={setAbertoPessoa}>
@@ -262,6 +332,38 @@ export function PessoasProjeto({ projetoId }: Props) {
                 <p className="text-xs text-muted-foreground">Ninguém mais com acesso ao sistema.</p>
               ) : null}
             </div>
+            ) : (
+            <div className="space-y-2">
+              <Label htmlFor="criterio-massa">Adicionar por</Label>
+              <Select
+                value={criterio}
+                onValueChange={(v) => {
+                  setCriterio(v as CriterioMassa);
+                  setValorCriterio("");
+                }}
+              >
+                <SelectTrigger id="criterio-massa" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="departamento">Departamento</SelectItem>
+                  <SelectItem value="nivel">Nível do cargo</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={valorCriterio} onValueChange={setValorCriterio}>
+                <SelectTrigger className="w-full" aria-label="Grupo">
+                  <SelectValue placeholder={criterio === "departamento" ? "Escolha o departamento" : "Escolha o nível"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {grupos.map((g) => (
+                    <SelectItem key={g.valor} value={g.valor}>
+                      {g.rotulo} ({contagemElegiveis(g)})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="papel-novo">Papel</Label>
@@ -292,21 +394,83 @@ export function PessoasProjeto({ projetoId }: Props) {
             </div>
           </div>
 
+          {modo === "massa" && valorCriterio && (
+            <div className="space-y-2 rounded-md border bg-muted/30 p-3">
+              <p className="text-xs font-medium">
+                Quem será adicionado ({elegiveisMassa.length})
+              </p>
+              {elegiveisMassa.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Nenhuma pessoa deste grupo tem acesso ao sistema
+                  {semAcessoMassa.length > 0 &&
+                    ` — ${semAcessoMassa.length} ${semAcessoMassa.length === 1 ? "pessoa ficou" : "pessoas ficaram"} de fora por isso`}
+                  .
+                </p>
+              ) : (
+                <>
+                  <ul className="grid gap-1 sm:grid-cols-2">
+                    {elegiveisMassa.map((p) => (
+                      <li key={p.pessoa_id} className="text-xs">
+                        <span className="font-medium">{p.nome}</span>
+                        {p.cargo && <span className="text-muted-foreground"> · {p.cargo}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                  {semAcessoMassa.length > 0 && (
+                    <p className="text-[11px] text-muted-foreground">
+                      {semAcessoMassa.length === 1
+                        ? "1 pessoa do grupo ficou de fora por não ter acesso ao sistema."
+                        : `${semAcessoMassa.length} pessoas do grupo ficaram de fora por não terem acesso ao sistema.`}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
           <div>
-            <Button
-              size="sm"
-              disabled={!podeGerenciar || !novaPessoa || !novoPapel || adicionar.isPending}
-              onClick={async () => {
-                await adicionar.mutateAsync({ userId: novaPessoa, papel: novoPapel });
-                setNovaPessoa("");
-                setNovoPapel("");
-              }}
-            >
-              <Plus className="mr-1 h-4 w-4" />
-              {pessoaEscolhida && papelEscolhido
-                ? `Adicionar ${pessoaEscolhida.nome} como ${papelEscolhido.nome}`
-                : "Escolha uma pessoa e um papel"}
-            </Button>
+            {modo === "uma" ? (
+              <Button
+                size="sm"
+                disabled={!podeGerenciar || !novaPessoa || !novoPapel || adicionar.isPending}
+                onClick={async () => {
+                  await adicionar.mutateAsync({ userId: novaPessoa, papel: novoPapel });
+                  setNovaPessoa("");
+                  setNovoPapel("");
+                }}
+              >
+                <Plus className="mr-1 h-4 w-4" />
+                {pessoaEscolhida && papelEscolhido
+                  ? `Adicionar ${pessoaEscolhida.nome} como ${papelEscolhido.nome}`
+                  : "Escolha uma pessoa e um papel"}
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                disabled={
+                  !podeGerenciar ||
+                  !valorCriterio ||
+                  !novoPapel ||
+                  elegiveisMassa.length === 0 ||
+                  adicionarMassa.isPending
+                }
+                onClick={async () => {
+                  await adicionarMassa.mutateAsync({
+                    userIds: elegiveisMassa.map((p) => p.user_id!),
+                    papel: novoPapel,
+                  });
+                  setValorCriterio("");
+                  setNovoPapel("");
+                }}
+              >
+                <Users className="mr-1 h-4 w-4" />
+                {papelEscolhido
+                  ? elegiveisMassa.length === 1
+                    ? `Adicionar 1 pessoa como ${papelEscolhido.nome}`
+                    : `Adicionar ${elegiveisMassa.length} pessoas como ${papelEscolhido.nome}`
+                  : "Escolha um grupo e um papel"}
+              </Button>
+            )}
           </div>
         </div>
       </section>

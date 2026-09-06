@@ -23,6 +23,8 @@ export interface PessoaParaProjeto {
   nome: string;
   cargo: string | null;
   departamento: string | null;
+  departamento_id: string | null;
+  nivel_cargo: string | null;
   unidade: string | null;
   gestor_nome: string | null;
   tipo_vinculo: string | null;
@@ -36,7 +38,7 @@ export function usePessoasParaProjeto() {
     queryFn: async (): Promise<PessoaParaProjeto[]> => {
       const { data, error } = await supabase
         .from("vw_pessoa_para_projeto")
-        .select("user_id,pessoa_id,nome,cargo,departamento,unidade,gestor_nome,tipo_vinculo,tem_acesso")
+        .select("user_id,pessoa_id,nome,cargo,departamento,departamento_id,nivel_cargo,unidade,gestor_nome,tipo_vinculo,tem_acesso")
         .order("nome");
       if (error) throw error;
       return (data ?? []) as PessoaParaProjeto[];
@@ -136,6 +138,32 @@ export function useAdicionarMembro(projetoId: string) {
       toast.success("Participante adicionado");
     },
     onError: (e: Error) => toast.error(`Não foi possível adicionar: ${e.message}`),
+  });
+}
+
+/** Adição em massa: um único insert com várias linhas. FAIL-LOUD: se falhar, nenhuma entra. */
+export function useAdicionarMembrosEmMassa(projetoId: string) {
+  const invalidar = useInvalidarMembros(projetoId);
+  return useMutation({
+    mutationFn: async ({ userIds, papel }: { userIds: string[]; papel: string }) => {
+      if (userIds.length === 0) throw new Error("Nenhuma pessoa selecionada.");
+      const { data: auth } = await supabase.auth.getUser();
+      const linhas = userIds.map((user_id) => ({
+        projeto_id: projetoId,
+        user_id,
+        papel,
+        adicionado_por: auth.user?.id ?? null,
+      }));
+      const { error } = await supabase.from("tarefas_projeto_membros").insert(linhas);
+      if (error) throw error;
+      return userIds.length;
+    },
+    onSuccess: (n) => {
+      invalidar();
+      toast.success(n === 1 ? "1 participante adicionado" : `${n} participantes adicionados`);
+    },
+    onError: (e: Error) =>
+      toast.error(`Não foi possível adicionar: ${e.message}. Ninguém entrou no projeto.`),
   });
 }
 
