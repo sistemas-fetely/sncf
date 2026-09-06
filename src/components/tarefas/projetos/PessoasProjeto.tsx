@@ -268,8 +268,8 @@ export function PessoasProjeto({ projetoId }: Props) {
           )}
         </div>
         <div className="flex flex-col gap-4">
-          {modo === "uma" ? (
           <div className="grid gap-4 sm:grid-cols-2">
+            {modo === "uma" ? (
             <div className="space-y-2">
               <Label htmlFor="pessoa-nova">Pessoa</Label>
               <Popover open={abertoPessoa} onOpenChange={setAbertoPessoa}>
