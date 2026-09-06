@@ -1,6 +1,6 @@
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { useMemo, useState, type ComponentProps } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
 import { getStatusCprMeta, STATUS_CPR_FILTRAVEIS, STATUS_CPR_META } from "@/lib/financeiro/status-cpr";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -139,6 +139,18 @@ export default function ContasPagar() {
   const qc = useQueryClient();
 
   const [kpiFilter, setKpiFilter] = useState<KpiFilter>(null);
+  // Altura do bloco sticky de KPIs/filtros — o cabeçalho da tabela fica ancorado logo abaixo dele
+  const headerStickyRef = useRef<HTMLDivElement>(null);
+  const [headerStickyH, setHeaderStickyH] = useState(0);
+  useEffect(() => {
+    const el = headerStickyRef.current;
+    if (!el) return;
+    const update = () => setHeaderStickyH(el.getBoundingClientRect().height);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const [busca, setBusca] = useState("");
   const [dataDe, setDataDe] = useState("");
   const [dataAte, setDataAte] = useState("");
@@ -459,7 +471,7 @@ export default function ContasPagar() {
   return (
     <PageShell>
       {/* Header sticky */}
-      <div className="sticky top-0 z-20 bg-background -mx-6 -mt-6 px-6 pt-6 pb-4 border-b space-y-4 backdrop-blur">
+      <div ref={headerStickyRef} className="sticky top-0 z-20 bg-background -mx-6 -mt-6 px-6 pt-6 pb-4 border-b space-y-4 backdrop-blur">
         <PageHeader
           titulo="Contas a Pagar"
           icone={ArrowUpFromLine}
@@ -613,8 +625,12 @@ export default function ContasPagar() {
               </p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
+            // overflow-visible: sem isso o wrapper overflow-auto vira o contexto de scroll e quebra o sticky do cabeçalho na rolagem da página
+            <Table containerClassName="overflow-visible">
+              <TableHeader
+                className="sticky z-10 bg-background"
+                style={{ top: headerStickyH }}
+              >
                 <TableRow>
                   <SortableTableHead column="parceiro" sort={sort} onSort={setSort}>
                     Parceiro
