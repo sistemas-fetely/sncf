@@ -77,22 +77,35 @@ export function QuadroMinhasTarefas({
 
   const abertos = (statusDim ?? []).filter((s) => s.e_aberto);
   const arrastavelNoModo = agruparPor === "status" && !somenteLeitura;
-  const todas = grupos.flatMap(([, lista]) => lista);
   const rotulo = (codigo: string) => statusDim?.find((s) => s.codigo === codigo)?.nome ?? codigo;
 
   let colunas: Coluna[];
   if (agruparPor === "status") {
-    const porColuna = new Map<string, TarefaComPapel[]>(abertos.map((s) => [s.codigo, []]));
+    /** abertas + concluídas recentes, distribuídas pelo status exibido (otimista) */
+    const todas = [
+      ...grupos.flatMap(([, lista]) => lista),
+      ...concluidasRecentes,
+    ];
+    const chaves = [...abertos.map((s) => s.codigo), "concluida"];
+    const porColuna = new Map<string, TarefaComPapel[]>(chaves.map((c) => [c, []]));
     for (const t of todas) {
       const col = porColuna.get(otimista[t.id] ?? t.status);
       if (col) col.push(t);
     }
-    colunas = abertos.map((s) => ({
-      chave: s.codigo,
-      titulo: s.nome,
-      itens: porColuna.get(s.codigo) ?? [],
-    }));
+    colunas = [
+      ...abertos.map((s) => ({
+        chave: s.codigo,
+        titulo: s.nome,
+        itens: porColuna.get(s.codigo) ?? [],
+      })),
+      {
+        chave: "concluida",
+        titulo: `${rotulo("concluida")} · últimos 7 dias`,
+        itens: porColuna.get("concluida") ?? [],
+      },
+    ];
   } else {
+    const todas = grupos.flatMap(([, lista]) => lista);
     colunas = grupos.map(([chave, lista]) => ({
       chave,
       titulo: nomeProjeto(chave),
