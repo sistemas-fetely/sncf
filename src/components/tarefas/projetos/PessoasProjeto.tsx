@@ -515,35 +515,35 @@ export function PessoasProjeto({ projetoId }: Props) {
                 )}
               </div>
 
-              <div className="max-w-sm space-y-2">
-                <Label htmlFor="papel-novo">Papel</Label>
-                <Select
-                  value={novoPapel}
-                  disabled={!podeGerenciar}
-                  onValueChange={(v) => setNovoPapel(v)}
-                >
-                  <SelectTrigger id="papel-novo" className="w-full">
-                    <SelectValue placeholder="Escolha um papel" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(papeis ?? []).map((p) => (
-                      <SelectItem key={p.codigo} value={p.codigo}>
-                        <span className="flex flex-col">
-                          <span>{p.nome}</span>
-                          {p.descricao && (
-                            <span className="text-[11px] text-muted-foreground">{p.descricao}</span>
-                          )}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {papelEscolhido?.descricao && (
-                  <p className="text-xs text-muted-foreground">{papelEscolhido.descricao}</p>
-                )}
-              </div>
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="w-full space-y-1 sm:w-[240px]">
+                  <Label htmlFor="papel-novo">Papel</Label>
+                  <Select
+                    value={novoPapel}
+                    disabled={!podeGerenciar}
+                    onValueChange={(v) => setNovoPapel(v)}
+                  >
+                    <SelectTrigger id="papel-novo" className="w-full">
+                      <SelectValue placeholder="Escolha um papel" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(papeis ?? []).map((p) => (
+                        <SelectItem key={p.codigo} value={p.codigo}>
+                          <span className="flex flex-col">
+                            <span>{p.nome}</span>
+                            {p.descricao && (
+                              <span className="text-[11px] text-muted-foreground">{p.descricao}</span>
+                            )}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {papelEscolhido?.descricao && (
+                    <p className="text-xs text-muted-foreground">{papelEscolhido.descricao}</p>
+                  )}
+                </div>
 
-              <div>
                 <Button
                   size="sm"
                   disabled={
