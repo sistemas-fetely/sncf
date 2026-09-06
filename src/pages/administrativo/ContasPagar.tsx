@@ -10,6 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -333,7 +339,7 @@ export default function ContasPagar() {
     return !!s && s.nf_aplicavel && !s.vinculo_nf_completo;
   };
 
-  type SortColumn = "parceiro" | "descricao" | "vencimento" | "pretendida" | "meio_pagamento" | "categoria" | "valor" | "status";
+  type SortColumn = "parceiro" | "descricao" | "documento" | "vencimento" | "pretendida" | "meio_pagamento" | "categoria" | "valor" | "status";
   const [sort, setSort] = useState<SortState<SortColumn> | null>({ column: "vencimento", direction: "asc" });
 
   const limite = limiteSemana();
@@ -384,6 +390,7 @@ export default function ContasPagar() {
     lista = ordenarPor(lista, sort, {
       parceiro: (c) => c.parceiros_comerciais?.razao_social || c.fornecedor_cliente || "",
       descricao: (c) => c.descricao || "",
+      documento: (c) => c.nf_numero_repositorio || null,
       vencimento: (c) => c.data_vencimento || "",
       // nulos por último nas duas direções (ordenarPor já trata null assim)
       pretendida: (c) => c.data_pretendida ?? null,
@@ -626,7 +633,8 @@ export default function ContasPagar() {
             </div>
           ) : (
             // overflow-visible: sem isso o wrapper overflow-auto vira o contexto de scroll e quebra o sticky do cabeçalho na rolagem da página
-            <Table containerClassName="overflow-visible">
+            <TooltipProvider>
+              <Table containerClassName="overflow-visible">
               <TableHeader
                 className="sticky z-10 bg-background"
                 style={{ top: headerStickyH }}
@@ -637,6 +645,16 @@ export default function ContasPagar() {
                   </SortableTableHead>
                   <SortableTableHead column="descricao" sort={sort} onSort={setSort}>
                     Descrição
+                  </SortableTableHead>
+                  <SortableTableHead column="documento" sort={sort} onSort={setSort}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span>Documento</span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Nota fiscal amarrada ao título. Traço = título sem nota verificada.
+                      </TooltipContent>
+                    </Tooltip>
                   </SortableTableHead>
                   <SortableTableHead column="vencimento" sort={sort} onSort={setSort}>
                     Vencimento
@@ -690,6 +708,15 @@ export default function ContasPagar() {
                         <div className="truncate" title={c.descricao}>
                           {c.descricao}
                         </div>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {c.nf_numero_repositorio ? (
+                          <Badge variant="outline" className="text-[10px] font-normal">
+                            NF {c.nf_numero_repositorio}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                       <TableCell
                         className={cn(
@@ -837,6 +864,7 @@ export default function ContasPagar() {
                 })}
               </TableBody>
             </Table>
+            </TooltipProvider>
           )}
         </CardContent>
       </Card>
