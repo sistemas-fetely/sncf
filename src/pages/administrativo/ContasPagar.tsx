@@ -644,6 +644,16 @@ export default function ContasPagar() {
                   <SortableTableHead column="descricao" sort={sort} onSort={setSort}>
                     Descrição
                   </SortableTableHead>
+                  <SortableTableHead column="documento" sort={sort} onSort={setSort}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span>Documento</span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Nota fiscal amarrada ao título. Traço = título sem nota verificada.
+                      </TooltipContent>
+                    </Tooltip>
+                  </SortableTableHead>
                   <SortableTableHead column="vencimento" sort={sort} onSort={setSort}>
                     Vencimento
                   </SortableTableHead>
