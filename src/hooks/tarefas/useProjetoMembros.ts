@@ -17,6 +17,33 @@ export interface PapelProjeto {
   ordem: number;
 }
 
+export interface PessoaParaProjeto {
+  user_id: string | null;
+  pessoa_id: string;
+  nome: string;
+  cargo: string | null;
+  departamento: string | null;
+  unidade: string | null;
+  gestor_nome: string | null;
+  tipo_vinculo: string | null;
+  tem_acesso: boolean;
+}
+
+export function usePessoasParaProjeto() {
+  return useQuery({
+    queryKey: ["tarefas", "pessoas-para-projeto"],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async (): Promise<PessoaParaProjeto[]> => {
+      const { data, error } = await supabase
+        .from("vw_pessoa_para_projeto")
+        .select("user_id,pessoa_id,nome,cargo,departamento,unidade,gestor_nome,tipo_vinculo,tem_acesso")
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as PessoaParaProjeto[];
+    },
+  });
+}
+
 export function usePapeisProjeto() {
   return useQuery({
     queryKey: ["tarefas", "papeis-projeto"],
