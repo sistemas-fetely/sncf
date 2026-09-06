@@ -58025,10 +58025,15 @@ export type Database = {
           cargo_id: string | null
           cargo_nome: string | null
           chave: string | null
+          declarado_em: string | null
+          declarado_por: string | null
           departamento_id: string | null
           departamento_nome: string | null
+          descricao: string | null
           estoque_atual: number | null
           estoque_erro: string | null
+          fila_id: string | null
+          fila_nome: string | null
           fluxo_diario_estimado: number | null
           fonte_volume: string | null
           furo_dono_sem_acesso: boolean | null
@@ -58042,6 +58047,7 @@ export type Database = {
           origem_medida: string | null
           pessoa_id: string | null
           pessoa_nome: string | null
+          recorrencia_id: string | null
           tempo_unitario_min: number | null
         }
         Relationships: [
@@ -58060,6 +58066,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "atribuicao_catalogo_fila_id_fkey"
+            columns: ["fila_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas_filas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_fila_id_fkey"
+            columns: ["fila_id"]
+            isOneToOne: false
+            referencedRelation: "vw_atribuicao_furo_fila"
+            referencedColumns: ["fila_id"]
+          },
+          {
             foreignKeyName: "atribuicao_catalogo_fonte_volume_fkey"
             columns: ["fonte_volume"]
             isOneToOne: false
@@ -58067,81 +58087,95 @@ export type Database = {
             referencedColumns: ["codigo"]
           },
           {
-            foreignKeyName: "atribuicao_pessoa_pessoa_id_fkey"
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoas"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "atribuicao_pessoa_pessoa_id_fkey"
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_cadastro_pendencia"
             referencedColumns: ["pessoa_id"]
           },
           {
-            foreignKeyName: "atribuicao_pessoa_pessoa_id_fkey"
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_custo_pessoas"
             referencedColumns: ["pessoa_id"]
           },
           {
-            foreignKeyName: "atribuicao_pessoa_pessoa_id_fkey"
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_gestao_pessoa"
             referencedColumns: ["pessoa_id"]
           },
           {
-            foreignKeyName: "atribuicao_pessoa_pessoa_id_fkey"
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_meu_cadastro_pendencia"
             referencedColumns: ["pessoa_id"]
           },
           {
-            foreignKeyName: "atribuicao_pessoa_pessoa_id_fkey"
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_nf_vinculo_pessoa"
             referencedColumns: ["pessoa_id"]
           },
           {
-            foreignKeyName: "atribuicao_pessoa_pessoa_id_fkey"
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_organograma"
             referencedColumns: ["pessoa_id"]
           },
           {
-            foreignKeyName: "atribuicao_pessoa_pessoa_id_fkey"
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_pessoa_para_projeto"
             referencedColumns: ["pessoa_id"]
           },
           {
-            foreignKeyName: "atribuicao_pessoa_pessoa_id_fkey"
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_pj_notas_fiscais"
             referencedColumns: ["pessoa_id"]
           },
           {
-            foreignKeyName: "atribuicao_pessoa_pessoa_id_fkey"
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_pj_pagamentos"
             referencedColumns: ["pessoa_id"]
           },
           {
-            foreignKeyName: "atribuicao_pessoa_pessoa_id_fkey"
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_reembolso_saneamento"
             referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_recorrencia_id_fkey"
+            columns: ["recorrencia_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas_recorrencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_recorrencia_id_fkey"
+            columns: ["recorrencia_id"]
+            isOneToOne: false
+            referencedRelation: "vw_rotina_aderencia"
+            referencedColumns: ["recorrencia_id"]
           },
           {
             foreignKeyName: "vinculos_gestor_pessoa_id_fkey"
@@ -68833,77 +68867,77 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "atribuicao_pessoa_pessoa_id_fkey"
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoas"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "atribuicao_pessoa_pessoa_id_fkey"
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_cadastro_pendencia"
             referencedColumns: ["pessoa_id"]
           },
           {
-            foreignKeyName: "atribuicao_pessoa_pessoa_id_fkey"
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_custo_pessoas"
             referencedColumns: ["pessoa_id"]
           },
           {
-            foreignKeyName: "atribuicao_pessoa_pessoa_id_fkey"
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_gestao_pessoa"
             referencedColumns: ["pessoa_id"]
           },
           {
-            foreignKeyName: "atribuicao_pessoa_pessoa_id_fkey"
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_meu_cadastro_pendencia"
             referencedColumns: ["pessoa_id"]
           },
           {
-            foreignKeyName: "atribuicao_pessoa_pessoa_id_fkey"
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_nf_vinculo_pessoa"
             referencedColumns: ["pessoa_id"]
           },
           {
-            foreignKeyName: "atribuicao_pessoa_pessoa_id_fkey"
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_organograma"
             referencedColumns: ["pessoa_id"]
           },
           {
-            foreignKeyName: "atribuicao_pessoa_pessoa_id_fkey"
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_pessoa_para_projeto"
             referencedColumns: ["pessoa_id"]
           },
           {
-            foreignKeyName: "atribuicao_pessoa_pessoa_id_fkey"
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_pj_notas_fiscais"
             referencedColumns: ["pessoa_id"]
           },
           {
-            foreignKeyName: "atribuicao_pessoa_pessoa_id_fkey"
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_pj_pagamentos"
             referencedColumns: ["pessoa_id"]
           },
           {
-            foreignKeyName: "atribuicao_pessoa_pessoa_id_fkey"
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "vw_reembolso_saneamento"
@@ -70945,14 +70979,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -71822,14 +71856,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -81066,14 +81100,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
