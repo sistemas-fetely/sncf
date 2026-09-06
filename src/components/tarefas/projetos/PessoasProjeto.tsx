@@ -206,7 +206,7 @@ export function PessoasProjeto({ projetoId }: Props) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-6xl space-y-4">
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium">Quem participa</h3>
