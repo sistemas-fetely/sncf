@@ -13,7 +13,7 @@
 
 import { Suspense, useEffect, useRef } from "react";
 import { Outlet } from "react-router-dom";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { MeuEspacoSidebar } from "@/components/MeuEspacoSidebar";
 import { CommandPaletteProvider } from "@/components/navegacao/CommandPaletteProvider";
 import { rodarManutencaoTarefas } from "@/hooks/tarefas/useNotificacoesTarefas";
@@ -33,9 +33,7 @@ export default function MeuEspacoLayout() {
       <div className="flex w-full min-h-screen bg-background">
         <MeuEspacoSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b bg-card/80 px-3 backdrop-blur-sm">
-            <SidebarTrigger className="-ml-1" />
-          </header>
+          {/* a faixa com o botão de recolher morreu: o controle mora no topo da própria sidebar */}
           <main className="flex-1 relative min-w-0">
             <Suspense
               fallback={

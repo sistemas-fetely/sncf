@@ -24,7 +24,7 @@ import { ListChecks, Star } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
-  SidebarHeader, useSidebar,
+  SidebarHeader, SidebarTrigger, useSidebar,
 } from "@/components/ui/sidebar";
 
 export function MeuEspacoSidebar() {
@@ -63,17 +63,23 @@ export function MeuEspacoSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r-0">
       <SidebarHeader className="p-5">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gold shadow-sm">
-            <ListChecks className="h-5 w-5 text-primary-foreground" />
+        {collapsed ? (
+          // recolhida: o controle fica sozinho e centrado, sempre clicável para reabrir
+          <div className="flex justify-center">
+            <SidebarTrigger className="text-sidebar-muted hover:text-sidebar-foreground" />
           </div>
-          {!collapsed && (
-            <div className="flex flex-col">
+        ) : (
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gold shadow-sm">
+              <ListChecks className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <div className="flex min-w-0 flex-col">
               <span className="text-sm font-medium tracking-tight text-sidebar-foreground">Meu Espaço</span>
               <span className="text-[11px] text-sidebar-muted">O que precisa sair hoje</span>
             </div>
-          )}
-        </div>
+            <SidebarTrigger className="ml-auto -mr-2 shrink-0 text-sidebar-muted hover:text-sidebar-foreground" />
+          </div>
+        )}
       </SidebarHeader>
 
       <SidebarContent className="px-2 space-y-1">
