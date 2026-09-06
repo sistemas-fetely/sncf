@@ -3230,6 +3230,13 @@ export type Database = {
             referencedRelation: "vw_pj_notas_fiscais"
             referencedColumns: ["nf_id"]
           },
+          {
+            foreignKeyName: "auditoria_resumo_nfe_falhas_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_sugestao_amarra_cartao"
+            referencedColumns: ["nf_stage_id"]
+          },
         ]
       }
       auditoria_saude_historico: {
@@ -13272,11 +13279,25 @@ export type Database = {
             referencedColumns: ["nf_id"]
           },
           {
+            foreignKeyName: "despesas_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_sugestao_amarra_cartao"
+            referencedColumns: ["nf_stage_id"]
+          },
+          {
             foreignKeyName: "despesas_fatura_lancamento_id_fkey"
             columns: ["fatura_lancamento_id"]
             isOneToOne: false
             referencedRelation: "fatura_cartao_lancamentos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesas_fatura_lancamento_id_fkey"
+            columns: ["fatura_lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_sugestao_amarra_cartao"
+            referencedColumns: ["lancamento_id"]
           },
           {
             foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
@@ -18021,6 +18042,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pj_notas_fiscais"
             referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "ged_documentos_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_sugestao_amarra_cartao"
+            referencedColumns: ["nf_stage_id"]
           },
           {
             foreignKeyName: "ged_documentos_parceiro_id_fkey"
@@ -25295,6 +25323,13 @@ export type Database = {
             referencedRelation: "vw_pj_notas_fiscais"
             referencedColumns: ["nf_id"]
           },
+          {
+            foreignKeyName: "nf_devolucao_vinculo_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_sugestao_amarra_cartao"
+            referencedColumns: ["nf_stage_id"]
+          },
         ]
       }
       nf_entrada_destino: {
@@ -26723,6 +26758,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_pj_notas_fiscais"
             referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_documentos_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_sugestao_amarra_cartao"
+            referencedColumns: ["nf_stage_id"]
           },
         ]
       }
@@ -60745,11 +60787,25 @@ export type Database = {
             referencedColumns: ["nf_id"]
           },
           {
+            foreignKeyName: "despesas_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_sugestao_amarra_cartao"
+            referencedColumns: ["nf_stage_id"]
+          },
+          {
             foreignKeyName: "despesas_fatura_lancamento_id_fkey"
             columns: ["fatura_lancamento_id"]
             isOneToOne: false
             referencedRelation: "fatura_cartao_lancamentos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesas_fatura_lancamento_id_fkey"
+            columns: ["fatura_lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_sugestao_amarra_cartao"
+            referencedColumns: ["lancamento_id"]
           },
           {
             foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
@@ -70426,14 +70482,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -72725,14 +72781,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -80206,6 +80262,100 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_sugestao_amarra_cartao: {
+        Row: {
+          confianca: string | null
+          data_compra: string | null
+          fatura_paga: boolean | null
+          fornecedor: string | null
+          lancamento: string | null
+          lancamento_id: string | null
+          nf_data_emissao: string | null
+          nf_numero: string | null
+          nf_stage_id: string | null
+          titulo_id: string | null
+          valor: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar_receber_ativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "v_cpr_bola_redonda"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_furos"
+            referencedColumns: ["sugestao_cpr_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contas_pagar_consolidado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cpr_cobertura"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_match_sugestoes"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_documentos_envio_estados"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["cpr_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_conta_pagar_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_pagar_acoes"
+            referencedColumns: ["cpr_id"]
+          },
+        ]
+      }
       vw_sugestao_venda_cliente: {
         Row: {
           clientes_compram: number | null
@@ -80350,14 +80500,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -85555,6 +85705,10 @@ export type Database = {
           qtd_lancamentos: number
           total_calculado: number
         }[]
+      }
+      fn_fatura_gerar_titulo: {
+        Args: { p_fatura_id: string; p_parceiro_id: string }
+        Returns: Json
       }
       fn_faturar_pedido: {
         Args: { p_nf_id: string; p_pedido_id: string }
