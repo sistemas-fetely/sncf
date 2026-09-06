@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +18,9 @@ import {
   type ProjetoStatus, type ProjetoVisibilidade,
 } from "@/hooks/tarefas/useProjetosTarefas";
 import { CORES } from "./NovoProjetoDialog";
+import { MarcaProjeto, NOMES_ICONE_PROJETO, iconeProjeto } from "./MarcaProjeto";
+import { useQueryClient } from "@tanstack/react-query";
+import { Upload, Trash2 } from "lucide-react";
 
 /** Efeito de cada visibilidade, explicado ao lado da opção. */
 const EFEITO_VISIBILIDADE: Record<ProjetoVisibilidade, string> = {
@@ -34,8 +37,18 @@ const STATUS_ROTULO: Record<ProjetoStatus, string> = {
 
 const TIPO_ROTULO: Record<string, string> = { projeto: "Projeto", tema: "Tema" };
 
-/** Ícones aceitos (nome guardado em texto na coluna `icone`). */
-const ICONES = ["folder", "target", "rocket", "sparkles", "flag", "calendar", "box", "chart"];
+/** Ícones aceitos — o mapa vive em MarcaProjeto, ponto único de resolução. */
+const ICONES = NOMES_ICONE_PROJETO;
+
+/** Imagem do projeto: tipos e tamanho validados ANTES de subir. */
+const TIPOS_IMAGEM: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+  "image/svg+xml": "svg",
+};
+const LIMITE_IMAGEM_BYTES = 512 * 1024;
+const BUCKET_IMAGEM = "projeto-icones";
 
 function useDepartamentos() {
   return useQuery({
@@ -79,6 +92,77 @@ export function ConfiguracoesProjeto({ projetoId }: Props) {
   const [cor, setCor] = useState(CORES[0]);
   const [icone, setIcone] = useState<string | null>(null);
   const [confirmarResponsavel, setConfirmarResponsavel] = useState(false);
+  const [enviandoImagem, setEnviandoImagem] = useState(false);
+  const qc = useQueryClient();
+  const arquivoRef = useRef<HTMLInputElement>(null);
+
+  const imagemUrl = projeto?.imagem_url ?? null;
+
+  /** Caminho dentro do bucket a partir da URL pública gravada. */
+  function caminhoDaUrl(url: string): string | null {
+    const marca = `/${BUCKET_IMAGEM}/`;
+    const i = url.indexOf(marca);
+    return i === -1 ? null : decodeURIComponent(url.slice(i + marca.length));
+  }
+
+  /** FAIL-LOUD: valida, sobe, grava a URL e só então avisa sucesso. */
+  async function enviarImagem(arquivo: File) {
+    const ext = TIPOS_IMAGEM[arquivo.type];
+    if (!ext) {
+      toast.error("Formato não aceito. Envie PNG, JPEG, WEBP ou SVG.");
+      return;
+    }
+    if (arquivo.size > LIMITE_IMAGEM_BYTES) {
+      toast.error(
+        `A imagem tem ${(arquivo.size / 1024).toFixed(0)} KB e o limite é 512 KB. Reduza o arquivo e tente de novo.`
+      );
+      return;
+    }
+    setEnviandoImagem(true);
+    try {
+      const caminho = `${projetoId}/${Date.now()}.${ext}`;
+      const { error: erroUpload } = await supabase.storage
+        .from(BUCKET_IMAGEM)
+        .upload(caminho, arquivo, { contentType: arquivo.type, upsert: false });
+      if (erroUpload) throw erroUpload;
+
+      const { data: pub } = supabase.storage.from(BUCKET_IMAGEM).getPublicUrl(caminho);
+      if (!pub?.publicUrl) throw new Error("Não foi possível obter o endereço público da imagem.");
+
+      const antigo = imagemUrl ? caminhoDaUrl(imagemUrl) : null;
+      await salvar.mutateAsync({ imagem_url: pub.publicUrl });
+      if (antigo && antigo !== caminho) {
+        await supabase.storage.from(BUCKET_IMAGEM).remove([antigo]);
+      }
+      await qc.invalidateQueries({ queryKey: ["tarefas"] });
+      toast.success("Imagem do projeto atualizada");
+    } catch (e) {
+      toast.error(`Não foi possível enviar a imagem: ${(e as Error).message}`);
+    } finally {
+      setEnviandoImagem(false);
+      if (arquivoRef.current) arquivoRef.current.value = "";
+    }
+  }
+
+  /** Remove a referência e o arquivo — nada de órfão no bucket. */
+  async function removerImagem() {
+    if (!imagemUrl) return;
+    setEnviandoImagem(true);
+    try {
+      const caminho = caminhoDaUrl(imagemUrl);
+      await salvar.mutateAsync({ imagem_url: null });
+      if (caminho) {
+        const { error } = await supabase.storage.from(BUCKET_IMAGEM).remove([caminho]);
+        if (error) throw error;
+      }
+      await qc.invalidateQueries({ queryKey: ["tarefas"] });
+      toast.success("Imagem removida");
+    } catch (e) {
+      toast.error(`Não foi possível remover a imagem: ${(e as Error).message}`);
+    } finally {
+      setEnviandoImagem(false);
+    }
+  }
 
   // hidrata o formulário a partir do projeto carregado
   useEffect(() => {
@@ -327,11 +411,67 @@ export function ConfiguracoesProjeto({ projetoId }: Props) {
           <SelectTrigger><SelectValue placeholder="Sem ícone" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="none">Sem ícone</SelectItem>
-            {ICONES.map((i) => (
-              <SelectItem key={i} value={i}>{i}</SelectItem>
-            ))}
+            {ICONES.map((i) => {
+              const Icone = iconeProjeto(i);
+              return (
+                <SelectItem key={i} value={i}>
+                  <span className="flex items-center gap-2">
+                    <Icone className="h-4 w-4" />
+                    {i}
+                  </span>
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Imagem do projeto</Label>
+        <div className="flex items-center gap-3">
+          <MarcaProjeto
+            nome={nome}
+            cor={cor}
+            icone={icone}
+            imagemUrl={imagemUrl}
+            className="h-12 w-12"
+          />
+          <input
+            ref={arquivoRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/svg+xml"
+            className="hidden"
+            onChange={(e) => {
+              const arq = e.target.files?.[0];
+              if (arq) void enviarImagem(arq);
+            }}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={somenteLeitura || enviandoImagem}
+            onClick={() => arquivoRef.current?.click()}
+          >
+            <Upload className="mr-1 h-3.5 w-3.5" />
+            {enviandoImagem ? "Enviando…" : imagemUrl ? "Trocar imagem" : "Enviar imagem"}
+          </Button>
+          {imagemUrl && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={somenteLeitura || enviandoImagem}
+              onClick={() => void removerImagem()}
+            >
+              <Trash2 className="mr-1 h-3.5 w-3.5" /> Remover imagem
+            </Button>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          PNG, JPEG, WEBP ou SVG, até 512 KB. Quando há imagem, ela manda: o ícone escolhido não
+          aparece. Sem imagem e sem ícone, fica só a cor.
+        </p>
       </div>
 
       <div className="flex justify-end">
