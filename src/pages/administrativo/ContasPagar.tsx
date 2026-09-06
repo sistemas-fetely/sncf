@@ -1,6 +1,6 @@
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { useMemo, useState, type ComponentProps } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
 import { getStatusCprMeta, STATUS_CPR_FILTRAVEIS, STATUS_CPR_META } from "@/lib/financeiro/status-cpr";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -139,6 +139,18 @@ export default function ContasPagar() {
   const qc = useQueryClient();
 
   const [kpiFilter, setKpiFilter] = useState<KpiFilter>(null);
+  // Altura do bloco sticky de KPIs/filtros — o cabeçalho da tabela fica ancorado logo abaixo dele
+  const headerStickyRef = useRef<HTMLDivElement>(null);
+  const [headerStickyH, setHeaderStickyH] = useState(0);
+  useEffect(() => {
+    const el = headerStickyRef.current;
+    if (!el) return;
+    const update = () => setHeaderStickyH(el.getBoundingClientRect().height);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const [busca, setBusca] = useState("");
   const [dataDe, setDataDe] = useState("");
   const [dataAte, setDataAte] = useState("");
