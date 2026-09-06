@@ -172,7 +172,11 @@ export function QuadroMinhasTarefas({
 
   return (
     <>
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div
+        ref={trilhoRef}
+        style={alturaTrilho ? { height: alturaTrilho } : undefined}
+        className="flex items-stretch gap-4 overflow-x-auto pb-4"
+      >
         {colunas.length === 0 && (
           <p className="text-sm text-muted-foreground">Nada para mostrar.</p>
         )}
