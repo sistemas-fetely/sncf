@@ -882,7 +882,7 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
 
           <SheetFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+            <Button onClick={() => mutation.mutate({})} disabled={mutation.isPending}>
               {mutation.isPending ? "Salvando..." : "Salvar"}
             </Button>
           </SheetFooter>
