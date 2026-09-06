@@ -29,6 +29,7 @@ export const ROTAS: RegraRota[] = [
   { prefixo: "/vendas/gestao-pedidos", status: "pronta", tela_slug: "tela.gestao_pedidos" },
   // Produto / Acervo
   { prefixo: "/vendas/produto/estoque/destinos", status: "pronta", tela_slug: "tela.produto" },
+  { prefixo: "/vendas/produto/mesa", status: "pronta", tela_slug: "tela.produto" },
   // Comercial
   { prefixo: "/comercial",     status: "pronta",        tela_slug: "tela.comercial"   },
   // SNCF
