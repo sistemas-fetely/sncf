@@ -1010,6 +1010,7 @@ export default function ContasPagar() {
         onOpenChange={(v) => !v && setAcaoLote(null)}
         ids={idsSelecionados}
         acao={acaoLote}
+        dataPretendidaInicial={dataPretendidaInicialLote}
         onAplicado={() => {
           setSelecionados(new Set());
           invalidarTudo();
