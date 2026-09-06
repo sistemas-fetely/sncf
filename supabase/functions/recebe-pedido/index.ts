@@ -261,6 +261,13 @@ if (body.tipo === "canal_badges") {
         .upsert(
           body.produtos.map((p: any) => ({
             sku:                  p.sku,
+            // Chave canônica (mapa-donos-catalogo-v1). CONDICIONAL de propósito: se o FOP ainda não
+            // enviar o campo, a chave NÃO entra no upsert e o valor já gravado no banco sobrevive.
+            // Nunca trocar por `cod_cadastro: p.cod_cadastro ?? null` — isso apagaria o backfill
+            // a cada sync (mesmo padrão do fire-and-erase do sync-produtos, corrigido em 08/08).
+            ...(typeof p.cod_cadastro === "string" && p.cod_cadastro.length > 0
+              ? { cod_cadastro: p.cod_cadastro.trim() }
+              : {}),
             ean:                  p.ean                 ?? null,
             nome_comercial:       p.nome_comercial,
             nome_completo:        p.nome_completo        ?? null,
