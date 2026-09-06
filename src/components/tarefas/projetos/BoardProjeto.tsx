@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { CalendarClock, ChevronDown, ChevronUp, GripVertical, ListChecks, Lock, MoreHorizontal, Plus } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { LinkOrigemTarefa } from "@/components/tarefas/LinkOrigemTarefa";
@@ -7,18 +8,26 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useNomePessoa, PRIORIDADE_ROTULO } from "@/components/tarefas/detalhe/comuns";
+import { useFiltrosPersistentes } from "@/hooks/useFiltrosPersistentes";
 import { useTarefaAberta } from "@/hooks/tarefas/useTarefaAberta";
 import { useAlterarStatusTarefa } from "@/hooks/tarefas/useTarefaMutations";
+import { useStatusTarefaDim, type StatusTarefaDim } from "@/hooks/tarefas/useStatusTarefaDim";
+import type { TarefaStatus } from "@/hooks/tarefas/useTarefas";
 import {
   useCriarSecao, useCriarTarefaNaSecao, useExcluirSecao, useMoverTarefaSecao,
   usePodeGerenciarProjeto, useRenomearSecao, useReordenarSecoes, useSecoesProjeto,
@@ -30,6 +39,10 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const SEM_SECAO = "__sem_secao__";
+const DIAS_CONCLUIDAS = 7;
+
+type AgruparPor = "secao" | "status";
+
 
 const PRIORIDADE_CLASSE: Record<string, string> = {
   urgente: "border-destructive/40 bg-destructive/10 text-destructive",
