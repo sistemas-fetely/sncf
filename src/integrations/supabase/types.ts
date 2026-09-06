@@ -11804,6 +11804,13 @@ export type Database = {
             referencedRelation: "unidades"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_cpr_origem_dim"
+            columns: ["origem"]
+            isOneToOne: false
+            referencedRelation: "titulo_origem_dim"
+            referencedColumns: ["slug"]
+          },
         ]
       }
       contas_pagar_receber_audit_delete: {
@@ -54543,6 +54550,13 @@ export type Database = {
             referencedRelation: "unidades"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_cpr_origem_dim"
+            columns: ["origem"]
+            isOneToOne: false
+            referencedRelation: "titulo_origem_dim"
+            referencedColumns: ["slug"]
+          },
         ]
       }
       contas_pagar_receber_ativas: {
@@ -54866,6 +54880,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "unidades"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_cpr_origem_dim"
+            columns: ["origem"]
+            isOneToOne: false
+            referencedRelation: "titulo_origem_dim"
+            referencedColumns: ["slug"]
           },
         ]
       }
@@ -60256,6 +60277,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_cpr_origem_dim"
+            columns: ["origem"]
+            isOneToOne: false
+            referencedRelation: "titulo_origem_dim"
+            referencedColumns: ["slug"]
           },
         ]
       }
