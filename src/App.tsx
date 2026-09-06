@@ -98,6 +98,7 @@ const GestaoProjetos = lazy(() => import("@/pages/gestao/ProjetosGestao"));
 const GestaoDecisoes = lazy(() => import("@/pages/gestao/Decisoes"));
 const GestaoRiscos = lazy(() => import("@/pages/gestao/Riscos"));
 const TarefasHoje = lazy(() => import("@/pages/tarefas/TarefasHoje"));
+const TarefasDash = lazy(() => import("@/pages/tarefas/TarefasDash"));
 const MinhasTarefasNovo = lazy(() => import("@/pages/tarefas/MinhasTarefasNovo"));
 const ProjetosGrid = lazy(() => import("@/pages/tarefas/ProjetosGrid"));
 const ProjetoDetalhe = lazy(() => import("@/pages/tarefas/ProjetoDetalhe"));
@@ -441,6 +442,7 @@ const App = () => (
               {/* SNCF — Portal SNCF movido para dentro do AcervoLayout (23/08/2026) */}
               <Route path="/tarefas" element={<Navigate to="/tarefas/hoje" replace />} />
               <Route element={<MeuEspacoLayout />}>
+                <Route path="/tarefas/dash" element={<TarefasDash />} />
                 <Route path="/tarefas/hoje" element={<TarefasHoje />} />
                 <Route path="/tarefas/minhas" element={<MinhasTarefasNovo />} />
                 <Route path="/tarefas/projetos" element={<ProjetosGrid />} />
