@@ -106,6 +106,7 @@ const CalendarioTarefas = lazy(() => import("@/pages/tarefas/CalendarioTarefas")
 const CargaTrabalho = lazy(() => import("@/pages/tarefas/CargaTrabalho"));
 const MeuTime = lazy(() => import("@/pages/tarefas/MeuTime"));
 const MesaGestor = lazy(() => import("@/pages/tarefas/MesaGestor"));
+const AtribuicoesTime = lazy(() => import("@/pages/tarefas/AtribuicoesTime"));
 const RecorrenciasTarefas = lazy(() => import("@/pages/tarefas/Recorrencias"));
 const TemplatesTarefas = lazy(() => import("@/pages/tarefas/Templates"));
 const NotificacoesPreferencias = lazy(() => import("@/pages/tarefas/NotificacoesPreferencias"));
@@ -128,7 +129,6 @@ const SistemaReportes = lazy(() => import("@/pages/admin/SistemaReportes"));
 const HistoricoImportacoesPDF = lazy(() => import("@/pages/admin/HistoricoImportacoesPDF"));
 const GerenciarVisibilidade = lazy(() => import("@/pages/admin/GerenciarVisibilidade"));
 const MesaDeclaracoes = lazy(() => import("@/pages/admin/MesaDeclaracoes"));
-const AtribuicoesCarga = lazy(() => import("@/pages/admin/AtribuicoesCarga"));
 const CamposTarefa = lazy(() => import("@/pages/admin/CamposTarefa"));
 const NomesBling = lazy(() => import("@/pages/acervo/NomesBling"));
 const MesaProduto = lazy(() => import("@/pages/acervo/MesaProduto"));
@@ -458,6 +458,7 @@ const App = () => (
                 <Route path="/tarefas/carga" element={<CargaTrabalho />} />
                 <Route path="/tarefas/time" element={<MeuTime />} />
                 <Route path="/tarefas/mesa-gestor" element={<MesaGestor />} />
+                <Route path="/tarefas/atribuicoes" element={<AtribuicoesTime />} />
                 <Route path="/tarefas/recorrencias" element={<RecorrenciasTarefas />} />
                 <Route path="/tarefas/templates" element={<TemplatesTarefas />} />
                 <Route path="/tarefas/notificacoes" element={<NotificacoesPreferencias />} />
@@ -704,11 +705,6 @@ const App = () => (
                 <Route path="declaracoes" element={
                   <ProtectedRoute>
                     <MesaDeclaracoes />
-                  </ProtectedRoute>
-                } />
-                <Route path="atribuicoes" element={
-                  <ProtectedRoute>
-                    <AtribuicoesCarga />
                   </ProtectedRoute>
                 } />
                 <Route path="campos-tarefa" element={
