@@ -583,6 +583,44 @@ export function BoardProjeto({ projetoId }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* status com exige_motivo não move sem explicação — cancelar deixa o card onde estava */}
+      <Dialog open={!!pedido} onOpenChange={(v) => !v && setPedido(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Por que está {pedido?.status.nome.toLowerCase()}?</DialogTitle>
+            <DialogDescription>
+              {pedido?.status.descricao ??
+                "Esse status exige um motivo — quem olhar depois precisa entender a parada."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="motivo-estado-board">Motivo</Label>
+            <Textarea
+              id="motivo-estado-board"
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              placeholder="Ex.: esperando resposta do fornecedor"
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPedido(null)}>Cancelar</Button>
+            <Button
+              disabled={!motivo.trim()}
+              onClick={() => {
+                if (!pedido) return;
+                const { tarefaId, status } = pedido;
+                const texto = motivo.trim();
+                setPedido(null);
+                void trocarStatus(tarefaId, status.codigo as TarefaStatus, texto);
+              }}
+            >
+              Mover
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
