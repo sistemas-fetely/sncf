@@ -105,9 +105,9 @@ Deno.serve(async (req) => {
 
   for (const alvo of alvos) {
     try {
-      const xmlPath = alvo.xml_storage_path || alvo.arquivo_storage_path;
+      const xmlPath = alvo.arquivo_storage_path;
       if (!xmlPath) {
-        await registrarFalha(admin, alvo.id, "sem xml_storage_path nem arquivo_storage_path");
+        await registrarFalha(admin, alvo.id, "sem arquivo_storage_path");
         resultados.push({ nfs_stage_id: alvo.id, ok: false, erro: "sem storage_path" });
         continue;
       }
