@@ -54,7 +54,7 @@ export function PessoasProjeto({ projetoId }: Props) {
   }[];
 
   const candidatos = (pessoas ?? []).filter(
-    (p) => p.user_id && !(membros ?? []).some((m) => m.user_id === p.user_id) && !fixos.some((f) => f.id === p.user_id)
+    (p) => !(membros ?? []).some((m) => m.user_id === p.user_id) && !fixos.some((f) => f.id === p.user_id)
   );
   const buscaNormalizada = buscaPessoa.trim().toLocaleLowerCase("pt-BR");
   const disponiveis = candidatos.filter((p) => p.nome.toLocaleLowerCase("pt-BR").includes(buscaNormalizada));
