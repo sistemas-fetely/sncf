@@ -1,18 +1,17 @@
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/contexts/AuthContext";
 import { usePodeGerenciarProjeto } from "@/hooks/tarefas/useProjetosTarefas";
 import {
   CAMPO_TIPO_ROTULO, useAtualizarCampoProjeto, useCamposCatalogo, useCamposDoProjeto,
-  useCriarCampo, useDesvincularCampo, useVincularCampo, type CampoTipo,
+  useDesvincularCampo, useVincularCampo,
 } from "@/hooks/tarefas/useProjetoCampos";
-
-const TIPOS = Object.keys(CAMPO_TIPO_ROTULO) as CampoTipo[];
 
 interface Props {
   projetoId: string;
