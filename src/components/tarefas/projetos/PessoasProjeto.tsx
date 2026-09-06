@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ChevronsUpDown, MoreHorizontal, Plus, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ChevronsUpDown, MoreHorizontal, Plus, Trash2, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,10 +26,24 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePodeGerenciarProjeto, useProjeto } from "@/hooks/tarefas/useProjetosTarefas";
 import {
-  useAdicionarMembro, useMembrosProjeto, usePapeisProjeto, usePessoasParaProjeto,
-  useRemoverMembro, useTrocarPapelMembro,
+  useAdicionarMembro, useAdicionarMembrosEmMassa, useMembrosProjeto, usePapeisProjeto,
+  usePessoasParaProjeto, useRemoverMembro, useTrocarPapelMembro,
 } from "@/hooks/tarefas/useProjetoMembros";
+import type { PessoaParaProjeto } from "@/hooks/tarefas/useProjetoMembros";
 import { cn } from "@/lib/utils";
+
+const ROTULO_NIVEL: Record<string, string> = {
+  c_level: "C-level",
+  coordenacao: "Coordenação",
+  especialista: "Especialista",
+  sr: "Sênior",
+  pl: "Pleno",
+  jr: "Júnior",
+};
+const rotuloNivel = (nivel: string) => ROTULO_NIVEL[nivel] ?? nivel;
+
+type ModoAdicao = "uma" | "massa";
+type CriterioMassa = "departamento" | "nivel";
 
 const dataBr = (iso: string | null | undefined) =>
   iso ? iso.slice(0, 10).split("-").reverse().join("/") : "—";
