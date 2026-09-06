@@ -448,6 +448,17 @@ export default function ContasPagar() {
     const hoje = hojeISO();
     return menor >= hoje ? menor : hoje;
   }, [filtrados, selecionados]);
+  /** Data de pagamento inicial do lote: menor vencimento se já passou, senão hoje. */
+  const dataPagamentoInicialLote = useMemo(() => {
+    const contas = filtrados.filter((c) => selecionados.has(c.id));
+    const vencimentos = contas
+      .map((c) => c.data_vencimento)
+      .filter((d): d is string => !!d);
+    const hoje = hojeISO();
+    if (vencimentos.length === 0) return hoje;
+    const menor = [...vencimentos].sort()[0];
+    return menor <= hoje ? menor : hoje;
+  }, [filtrados, selecionados]);
   const todosSelecionados =
     filtrados.length > 0 && idsSelecionados.length === filtrados.length;
 
@@ -479,20 +490,32 @@ export default function ContasPagar() {
   >(null);
   const [motivo, setMotivo] = useState("");
   const [dataPretendida, setDataPretendida] = useState("");
+  const [dataPagamento, setDataPagamento] = useState("");
 
-  function executar(cprId: string, acao: TituloPagarAcao, m?: string, d?: string) {
+  function executar(
+    cprId: string,
+    acao: TituloPagarAcao,
+    m?: string,
+    d?: string,
+    dPago?: string,
+  ) {
     transicionar.mutate({
       cprId,
       para: acao.para,
       motivo: m || undefined,
       dataPretendida: d || null,
+      dataPagamento: dPago || null,
     });
   }
 
   function abrirAcao(conta: Conta, acao: TituloPagarAcao) {
-    if (acao.exige_motivo || acao.exige_data_pretendida) {
+    if (acao.exige_motivo || acao.exige_data_pretendida || acao.exige_data_pagamento) {
+      const hoje = hojeISO();
       setMotivo("");
       setDataPretendida(conta.data_pretendida || "");
+      setDataPagamento(
+        conta.data_vencimento && conta.data_vencimento <= hoje ? conta.data_vencimento : hoje,
+      );
       setAcaoPendente({ conta, acao });
       return;
     }
@@ -502,7 +525,13 @@ export default function ContasPagar() {
   function confirmarAcaoPendente() {
     if (!acaoPendente) return;
     const { conta, acao } = acaoPendente;
-    executar(conta.id, acao, acao.exige_motivo ? motivo : undefined, acao.exige_motivo ? undefined : dataPretendida);
+    executar(
+      conta.id,
+      acao,
+      acao.exige_motivo ? motivo : undefined,
+      acao.exige_data_pretendida ? dataPretendida : undefined,
+      acao.exige_data_pagamento ? dataPagamento : undefined,
+    );
     setAcaoPendente(null);
   }
 
@@ -1011,6 +1040,7 @@ export default function ContasPagar() {
         ids={idsSelecionados}
         acao={acaoLote}
         dataPretendidaInicial={dataPretendidaInicialLote}
+        dataPagamentoInicial={dataPagamentoInicialLote}
         onAplicado={() => {
           setSelecionados(new Set());
           invalidarTudo();
@@ -1027,7 +1057,7 @@ export default function ContasPagar() {
             </DialogDescription>
           </DialogHeader>
 
-          {acaoPendente?.acao.exige_motivo ? (
+          {acaoPendente?.acao.exige_motivo && (
             <div className="space-y-2">
               <Label htmlFor="motivo-transicao">Motivo</Label>
               <Textarea
@@ -1038,15 +1068,34 @@ export default function ContasPagar() {
                 rows={3}
               />
             </div>
-          ) : (
+          )}
+
+          {acaoPendente?.acao.exige_data_pretendida && (
             <div className="space-y-2">
               <Label htmlFor="data-pretendida-transicao">Data pretendida de pagamento</Label>
               <Input
                 id="data-pretendida-transicao"
                 type="date"
+                min={hojeISO()}
                 value={dataPretendida}
                 onChange={(e) => setDataPretendida(e.target.value)}
               />
+            </div>
+          )}
+
+          {acaoPendente?.acao.exige_data_pagamento && (
+            <div className="space-y-2">
+              <Label htmlFor="data-pagamento-transicao">Data em que o pagamento foi feito</Label>
+              <Input
+                id="data-pagamento-transicao"
+                type="date"
+                max={hojeISO()}
+                value={dataPagamento}
+                onChange={(e) => setDataPagamento(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Quando o dinheiro saiu de fato. Pode ser no passado.
+              </p>
             </div>
           )}
 
@@ -1058,7 +1107,9 @@ export default function ContasPagar() {
               onClick={confirmarAcaoPendente}
               disabled={
                 transicionar.isPending ||
-                (acaoPendente?.acao.exige_motivo ? !motivo.trim() : !dataPretendida)
+                (!!acaoPendente?.acao.exige_motivo && !motivo.trim()) ||
+                (!!acaoPendente?.acao.exige_data_pretendida && !dataPretendida) ||
+                (!!acaoPendente?.acao.exige_data_pagamento && !dataPagamento)
               }
             >
               Confirmar

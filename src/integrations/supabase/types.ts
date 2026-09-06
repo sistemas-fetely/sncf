@@ -48853,6 +48853,7 @@ export type Database = {
           ativo: boolean
           de: string
           exige_bola_redonda: boolean
+          exige_data_pagamento: boolean
           exige_motivo: boolean
           observacao: string | null
           papeis: string[]
@@ -48865,6 +48866,7 @@ export type Database = {
           ativo?: boolean
           de: string
           exige_bola_redonda?: boolean
+          exige_data_pagamento?: boolean
           exige_motivo?: boolean
           observacao?: string | null
           papeis?: string[]
@@ -48877,6 +48879,7 @@ export type Database = {
           ativo?: boolean
           de?: string
           exige_bola_redonda?: boolean
+          exige_data_pagamento?: boolean
           exige_motivo?: boolean
           observacao?: string | null
           papeis?: string[]
@@ -73278,14 +73281,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -81490,6 +81493,8 @@ export type Database = {
         Row: {
           cpr_id: string | null
           de: string | null
+          exige_bola_redonda: boolean | null
+          exige_data_pagamento: boolean | null
           exige_data_pretendida: boolean | null
           exige_motivo: boolean | null
           observacao: string | null
@@ -87160,6 +87165,7 @@ export type Database = {
       fn_titulo_pagar_transicionar: {
         Args: {
           p_cpr_id: string
+          p_data_pagamento?: string
           p_data_pretendida?: string
           p_motivo?: string
           p_para: string
@@ -87169,6 +87175,7 @@ export type Database = {
       fn_titulo_pagar_transicionar_lote: {
         Args: {
           p_cpr_ids: string[]
+          p_data_pagamento?: string
           p_data_pretendida?: string
           p_motivo?: string
           p_para: string

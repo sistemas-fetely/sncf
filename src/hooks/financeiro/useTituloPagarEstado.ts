@@ -37,6 +37,8 @@ export type TituloPagarAcao = {
   para_cor: string | null;
   para_ordem: number;
   exige_data_pretendida: boolean;
+  exige_data_pagamento: boolean;
+  exige_bola_redonda: boolean;
 };
 
 /** Dimensão de estados. Muda raramente — cache longo. */
@@ -69,7 +71,7 @@ export function useTituloPagarAcoes(cprIds: string[]) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("vw_titulo_pagar_acoes")
-        .select("cpr_id, de, para, rotulo_acao, exige_motivo, reversivel, para_rotulo, para_cor, para_ordem, exige_data_pretendida")
+        .select("cpr_id, de, para, rotulo_acao, exige_motivo, reversivel, para_rotulo, para_cor, para_ordem, exige_data_pretendida, exige_data_pagamento, exige_bola_redonda")
         .in("cpr_id", ids)
         .order("para_ordem");
       if (error) throw error;
@@ -100,6 +102,7 @@ export function useTituloPagarTransicionar() {
       para: string;
       motivo?: string;
       dataPretendida?: string | null;
+      dataPagamento?: string | null;
     }) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any).rpc("fn_titulo_pagar_transicionar", {
@@ -107,6 +110,7 @@ export function useTituloPagarTransicionar() {
         p_para: p.para,
         p_motivo: p.motivo ?? null,
         p_data_pretendida: p.dataPretendida ?? null,
+        p_data_pagamento: p.dataPagamento ?? null,
       });
       if (error) throw error;
       if (!data?.ok) throw new Error(data?.erro || "Falha ao mudar o estado do título");
