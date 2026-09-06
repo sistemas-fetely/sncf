@@ -339,7 +339,7 @@ export default function ContasPagar() {
     return !!s && s.nf_aplicavel && !s.vinculo_nf_completo;
   };
 
-  type SortColumn = "parceiro" | "descricao" | "vencimento" | "pretendida" | "meio_pagamento" | "categoria" | "valor" | "status";
+  type SortColumn = "parceiro" | "descricao" | "documento" | "vencimento" | "pretendida" | "meio_pagamento" | "categoria" | "valor" | "status";
   const [sort, setSort] = useState<SortState<SortColumn> | null>({ column: "vencimento", direction: "asc" });
 
   const limite = limiteSemana();
