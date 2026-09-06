@@ -3,7 +3,13 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { descreverPreview, parseQuickAdd, type TokenTipo } from "@/lib/tarefas/quickAddParser";
+import {
+  casarPrioridade,
+  descreverPreview,
+  parseQuickAdd,
+  OPCOES_PRIORIDADE,
+  type TokenTipo,
+} from "@/lib/tarefas/quickAddParser";
 import { useCriarTarefaQuickAdd } from "@/hooks/tarefas/useTarefaMutations";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -11,10 +17,10 @@ import {
   casarPorNome,
   handlePessoa,
   sugerirPessoas,
+  useEtiquetas,
   usePessoasSistema,
   useProjetos,
   useSecoes,
-  type PessoaSistema,
 } from "@/hooks/tarefas/useTarefasCatalogos";
 
 const COR_TOKEN: Record<TokenTipo, string> = {
@@ -30,6 +36,22 @@ const COR_TOKEN: Record<TokenTipo, string> = {
 /** classes que precisam ser IDÊNTICAS no input e na camada de realce */
 const CLASSES_TEXTO = "px-3 py-2 text-sm font-normal leading-[1.25rem] tracking-normal";
 
+type Prefixo = "@" | "!" | "#" | "/" | "+";
+
+/** uma linha do dropdown; `inserir` é o texto que entra DEPOIS do prefixo */
+interface Sugestao {
+  chave: string;
+  rotulo: string;
+  detalhe?: string;
+  inserir: string;
+}
+
+const semAcento = (s: string) =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+/** o parser corta o token no espaço: nome composto vira "Financeiro-Interno" */
+const paraToken = (nome: string) => nome.trim().replace(/\s+/g, "-");
+
 export function QuickAddTarefa() {
   const { user } = useAuth();
   const [valor, setValor] = useState("");
@@ -42,6 +64,7 @@ export function QuickAddTarefa() {
   const { data: projetos } = useProjetos();
   const { data: secoes } = useSecoes();
   const { data: pessoas } = usePessoasSistema();
+  const { data: etiquetas } = useEtiquetas();
 
   const resultado = useMemo(() => parseQuickAdd(valor), [valor]);
   const preview = useMemo(() => descreverPreview(resultado), [resultado]);
@@ -60,33 +83,128 @@ export function QuickAddTarefa() {
 
   const fragmento = useMemo(() => {
     const ate = valor.slice(0, cursor);
-    const m = /(?:^|\s)@([^\s]*)$/.exec(ate);
+    const m = /(?:^|\s)([@!#/+])([^\s]*)$/.exec(ate);
     if (!m) return null;
-    return { termo: m[1], inicio: cursor - m[1].length };
+    return { prefixo: m[1] as Prefixo, termo: m[2], inicio: cursor - m[2].length };
   }, [valor, cursor]);
 
-  const candidatos = useMemo(
-    () => (fragmento ? sugerirPessoas(pessoas, fragmento.termo) : []),
-    [fragmento, pessoas]
+  /** projeto já escolhido nesta mesma entrada — a seção depende dele */
+  const projetoIdEntrada = useMemo(
+    () => casarPorNome(projetos, resultado.projetoNome),
+    [projetos, resultado.projetoNome]
   );
 
-  const dropdownAberto = !!fragmento && candidatos.length > 0 && !suprimido;
+  const { candidatos, dica } = useMemo<{ candidatos: Sugestao[]; dica: string | null }>(() => {
+    if (!fragmento) return { candidatos: [], dica: null };
+    const termo = semAcento(fragmento.termo).replace(/[-_]+/g, " ");
+    const casa = (nome: string) => semAcento(nome).replace(/[-_]+/g, " ").includes(termo);
+
+    if (fragmento.prefixo === "@") {
+      return {
+        candidatos: sugerirPessoas(pessoas, fragmento.termo).map((p) => ({
+          chave: p.id,
+          rotulo: p.nome,
+          detalhe: `@${handlePessoa(p)}${p.cargo ? ` · ${p.cargo}` : ""}`,
+          inserir: handlePessoa(p) ?? "",
+        })),
+        dica: null,
+      };
+    }
+
+    if (fragmento.prefixo === "!") {
+      return {
+        candidatos: OPCOES_PRIORIDADE.filter((o) => !termo || casa(o.valor) || casa(o.rotulo)).map(
+          (o) => ({ chave: o.valor, rotulo: o.rotulo, detalhe: `!${o.valor}`, inserir: o.valor })
+        ),
+        dica: null,
+      };
+    }
+
+    if (fragmento.prefixo === "#") {
+      return {
+        candidatos: (projetos ?? [])
+          .filter((p) => !termo || casa(p.nome))
+          .slice(0, 8)
+          .map((p) => ({ chave: p.id, rotulo: p.nome, inserir: paraToken(p.nome) })),
+        dica: null,
+      };
+    }
+
+    if (fragmento.prefixo === "/") {
+      if (!projetoIdEntrada) {
+        return { candidatos: [], dica: "Escolha o projeto com # primeiro — a seção pertence a um projeto." };
+      }
+      const doProjeto = (secoes ?? []).filter((s) => s.projeto_id === projetoIdEntrada);
+      if (!doProjeto.length) {
+        return { candidatos: [], dica: "Este projeto ainda não tem seções." };
+      }
+      return {
+        candidatos: doProjeto
+          .filter((s) => !termo || casa(s.nome))
+          .slice(0, 8)
+          .map((s) => ({ chave: s.id, rotulo: s.nome, inserir: paraToken(s.nome) })),
+        dica: null,
+      };
+    }
+
+    // "+" etiqueta: existentes + criar nova quando o nome não existe
+    const existentes = (etiquetas ?? []).filter((e) => !termo || casa(e.nome)).slice(0, 8);
+    const lista: Sugestao[] = existentes.map((e) => ({
+      chave: e.id,
+      rotulo: e.nome,
+      inserir: paraToken(e.nome),
+    }));
+    const exata = (etiquetas ?? []).some((e) => semAcento(e.nome) === semAcento(fragmento.termo));
+    if (fragmento.termo && !exata) {
+      lista.unshift({
+        chave: "__nova__",
+        rotulo: `Criar etiqueta ${fragmento.termo}`,
+        detalhe: "ainda não existe — será criada ao salvar",
+        inserir: paraToken(fragmento.termo),
+      });
+    }
+    return { candidatos: lista, dica: null };
+  }, [fragmento, pessoas, projetos, secoes, etiquetas, projetoIdEntrada]);
+
+  const dropdownAberto = !!fragmento && !suprimido && (candidatos.length > 0 || !!dica);
+  const navegavel = dropdownAberto && candidatos.length > 0;
 
   useEffect(() => {
     setIndice(0);
     setSuprimido(false);
-  }, [fragmento?.termo]);
+  }, [fragmento?.termo, fragmento?.prefixo]);
 
   const pessoaResolvida = useMemo(
     () => casarPessoa(pessoas, resultado.responsavelNome),
     [pessoas, resultado.responsavelNome]
   );
 
-  const escolher = (p: PessoaSistema) => {
-    const h = handlePessoa(p);
-    if (!h || !fragmento) return;
-    const novo = valor.slice(0, fragmento.inicio) + h + " " + valor.slice(cursor);
-    const pos = fragmento.inicio + h.length + 1;
+  /** trechos digitados que o parser NÃO reconheceu — viram texto do título */
+  const naoReconhecidos = useMemo(() => {
+    const avisos: string[] = [];
+    // "!" só é consumido pelo parser quando casa com uma prioridade conhecida
+    const re = /(?:^|\s)!([^\s]+)/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(valor)) !== null) {
+      if (!casarPrioridade(m[1])) avisos.push(`!${m[1]} não é prioridade`);
+    }
+    if (resultado.projetoNome && !projetoIdEntrada) {
+      avisos.push(`#${resultado.projetoNome} não é um projeto ativo`);
+    }
+    if (resultado.secaoNome) {
+      const secaoId = casarPorNome(
+        projetoIdEntrada ? secoes?.filter((s) => s.projeto_id === projetoIdEntrada) : secoes,
+        resultado.secaoNome
+      );
+      if (!secaoId) avisos.push(`/${resultado.secaoNome} não é uma seção deste projeto`);
+    }
+    return avisos;
+  }, [valor, resultado.projetoNome, resultado.secaoNome, projetoIdEntrada, secoes]);
+
+  const escolher = (s: Sugestao) => {
+    if (!s.inserir || !fragmento) return;
+    const novo = valor.slice(0, fragmento.inicio) + s.inserir + " " + valor.slice(cursor);
+    const pos = fragmento.inicio + s.inserir.length + 1;
     setValor(novo);
     requestAnimationFrame(() => {
       inputRef.current?.focus();
@@ -151,25 +269,27 @@ export function QuickAddTarefa() {
             onSelect={(e) => setCursor(e.currentTarget.selectionStart ?? 0)}
             onKeyDown={(e) => {
               if (dropdownAberto) {
-                if (e.key === "ArrowDown") {
-                  e.preventDefault();
-                  setIndice((i) => (i + 1) % candidatos.length);
-                  return;
-                }
-                if (e.key === "ArrowUp") {
-                  e.preventDefault();
-                  setIndice((i) => (i - 1 + candidatos.length) % candidatos.length);
-                  return;
-                }
-                if (e.key === "Enter" || e.key === "Tab") {
-                  e.preventDefault();
-                  escolher(candidatos[indice]);
-                  return;
-                }
                 if (e.key === "Escape") {
                   e.preventDefault();
                   setSuprimido(true);
                   return;
+                }
+                if (navegavel) {
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setIndice((i) => (i + 1) % candidatos.length);
+                    return;
+                  }
+                  if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setIndice((i) => (i - 1 + candidatos.length) % candidatos.length);
+                    return;
+                  }
+                  if (e.key === "Enter" || e.key === "Tab") {
+                    e.preventDefault();
+                    escolher(candidatos[indice]);
+                    return;
+                  }
                 }
               }
               if (e.key === "Enter") {
@@ -182,29 +302,34 @@ export function QuickAddTarefa() {
             disabled={isPending}
           />
           {dropdownAberto && (
-            <ul className="absolute left-0 right-0 top-full z-50 mt-1 max-h-64 overflow-y-auto rounded-md border border-border bg-popover py-1 shadow-md">
-              {candidatos.map((p, i) => (
-                <li key={p.id}>
-                  <button
-                    type="button"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      escolher(p);
-                    }}
-                    onMouseEnter={() => setIndice(i)}
-                    className={cn(
-                      "flex w-full flex-col items-start px-3 py-1.5 text-left",
-                      i === indice && "bg-accent"
-                    )}
-                  >
-                    <span className="text-sm">{p.nome}</span>
-                    <span className="text-[11px] text-muted-foreground">
-                      @{handlePessoa(p)}{p.cargo ? ` · ${p.cargo}` : ""}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-64 overflow-y-auto rounded-md border border-border bg-popover py-1 shadow-md">
+              {dica && <p className="px-3 py-1.5 text-[11px] text-muted-foreground">{dica}</p>}
+              {candidatos.length > 0 && (
+                <ul>
+                  {candidatos.map((c, i) => (
+                    <li key={c.chave}>
+                      <button
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          escolher(c);
+                        }}
+                        onMouseEnter={() => setIndice(i)}
+                        className={cn(
+                          "flex w-full flex-col items-start px-3 py-1.5 text-left",
+                          i === indice && "bg-accent"
+                        )}
+                      >
+                        <span className="text-sm">{c.rotulo}</span>
+                        {c.detalhe && (
+                          <span className="text-[11px] text-muted-foreground">{c.detalhe}</span>
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           )}
         </div>
         <Button
@@ -228,8 +353,14 @@ export function QuickAddTarefa() {
         )
       )}
 
+      {naoReconhecidos.length > 0 && (
+        <p className="text-xs text-warning">
+          Não reconhecido: {naoReconhecidos.join(" · ")} — vai ficar como texto do título.
+        </p>
+      )}
+
       <p className="text-[11px] text-muted-foreground/80">
-        #projeto @pessoa (digite @ e escolha) +etiqueta /seção !prioridade · datas em português: amanhã, sexta, dia 15, em 3 dias
+        #projeto @pessoa +etiqueta /seção !prioridade (digite o símbolo e escolha na lista) · datas em português: amanhã, sexta, dia 15, em 3 dias
       </p>
 
 
