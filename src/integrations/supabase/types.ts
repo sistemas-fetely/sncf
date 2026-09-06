@@ -44604,6 +44604,7 @@ export type Database = {
           descricao: string | null
           icone: string | null
           id: string
+          imagem_url: string | null
           nome: string
           responsavel_id: string | null
           saude: string
@@ -44625,6 +44626,7 @@ export type Database = {
           descricao?: string | null
           icone?: string | null
           id?: string
+          imagem_url?: string | null
           nome: string
           responsavel_id?: string | null
           saude?: string
@@ -44646,6 +44648,7 @@ export type Database = {
           descricao?: string | null
           icone?: string | null
           id?: string
+          imagem_url?: string | null
           nome?: string
           responsavel_id?: string | null
           saude?: string
