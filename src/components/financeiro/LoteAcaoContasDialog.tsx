@@ -167,7 +167,7 @@ export function LoteAcaoContasDialog({ open, onOpenChange, ids, acao, dataPreten
             <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning">
               <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
               <span>
-                {resumo.sem_nf_verificada} destes títulos NÃO têm nota fiscal verificada.
+                {resumo.sem_nf_verificada} deste{resumo.sem_nf_verificada === 1 ? "" : "s"} título{resumo.sem_nf_verificada === 1 ? "" : "s"} NÃO {resumo.sem_nf_verificada === 1 ? "tem" : "têm"} nota fiscal verificada.
               </span>
             </div>
           )}
