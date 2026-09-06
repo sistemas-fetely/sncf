@@ -67,11 +67,10 @@ Deno.serve(async (req) => {
   type Alvo = {
     id: string;
     arquivo_storage_path: string | null;
-    xml_storage_path: string | null;
     nf_numero: string | null;
   };
   let alvos: Alvo[] = [];
-  const SELECT_COLS = "id, arquivo_storage_path, xml_storage_path, nf_numero";
+  const SELECT_COLS = "id, arquivo_storage_path, nf_numero";
 
   if (body.nfs_stage_id) {
     const { data, error } = await admin
