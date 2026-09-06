@@ -13,6 +13,10 @@ import {
   type NFParaCriar,
   type BoletoFisico,
 } from "@/components/financeiro/CriarDespesaDeNFDialog";
+import {
+  GemeosTituloAlertDialog,
+  type TituloGemeo,
+} from "@/components/financeiro/GemeosTituloAlertDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { StageResult } from "@/lib/financeiro/stage-handler";
