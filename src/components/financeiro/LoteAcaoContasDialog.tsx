@@ -94,10 +94,15 @@ export function LoteAcaoContasDialog({ open, onOpenChange, ids, acao, dataPreten
   const exigeMotivo = !!acao?.exige_motivo;
   const exigeData = !!acao?.exige_data_pretendida;
   const motivoOk = !exigeMotivo || motivo.trim().length >= 5;
-  const dataOk = !exigeData || !!dataPretendida;
+  const dataOk = !exigeData || (!!dataPretendida && dataPretendida >= hoje);
 
   async function executar() {
     if (!acao) return;
+    if (exigeData && dataPretendida < hoje) {
+      setErroData("A data pretendida não pode ser no passado.");
+      return;
+    }
+    setErroData(null);
     setExecutando(true);
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
