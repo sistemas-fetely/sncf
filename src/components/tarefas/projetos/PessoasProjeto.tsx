@@ -479,9 +479,9 @@ export function PessoasProjeto({ projetoId }: Props) {
                 </div>
               </div>
 
-              <div className="max-h-72 divide-y overflow-y-auto rounded-md border">
+              <div className="grid max-h-72 grid-cols-1 gap-2 overflow-y-auto rounded-md border p-2 md:grid-cols-2 lg:grid-cols-3">
                 {visiveisMassa.length === 0 ? (
-                  <p className="p-4 text-sm text-muted-foreground">
+                  <p className="col-span-full p-4 text-sm text-muted-foreground">
                     Ninguém encontrado com esses filtros.
                   </p>
                 ) : (
@@ -492,7 +492,7 @@ export function PessoasProjeto({ projetoId }: Props) {
                       <label
                         key={p.pessoa_id}
                         className={cn(
-                          "flex items-start gap-3 p-3",
+                          "flex items-start gap-2 rounded-sm border p-2",
                           desabilitada ? "opacity-60" : "cursor-pointer hover:bg-muted/40"
                         )}
                       >
