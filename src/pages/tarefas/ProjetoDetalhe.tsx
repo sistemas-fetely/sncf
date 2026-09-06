@@ -1,3 +1,4 @@
+import { MarcaProjeto } from "@/components/tarefas/projetos/MarcaProjeto";
 import { PageTitle } from "@/components/layout/PageTitle";
 import { PageShell } from "@/components/layout/PageShell";
 import { useState } from "react";
@@ -42,9 +43,12 @@ export default function ProjetoDetalhe() {
       )}
 
       <div className="flex flex-wrap items-center gap-3">
-        <span
-          className="h-10 w-10 shrink-0 rounded-xl"
-          style={{ backgroundColor: projeto?.cor ?? "hsl(var(--muted))" }}
+        <MarcaProjeto
+          nome={projeto?.nome}
+          cor={projeto?.cor}
+          icone={projeto?.icone}
+          imagemUrl={projeto?.imagem_url}
+          className="h-10 w-10"
         />
         <PageTitle
           className="min-w-0 flex-1"

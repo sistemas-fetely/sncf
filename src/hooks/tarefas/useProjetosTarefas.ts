@@ -22,6 +22,7 @@ export interface Projeto {
   responsavel_id: string | null;
   cor: string;
   icone: string | null;
+  imagem_url: string | null;
   visibilidade: ProjetoVisibilidade;
   status: ProjetoStatus;
   data_inicio: string | null;
@@ -33,7 +34,7 @@ export interface Projeto {
 }
 
 const CAMPOS_PROJETO =
-  "id,nome,descricao,departamento_id,responsavel_id,cor,icone,visibilidade,status,data_inicio,data_fim_prevista,saude,saude_atualizada_em,criado_em,criado_por" as const;
+  "id,nome,descricao,departamento_id,responsavel_id,cor,icone,imagem_url,visibilidade,status,data_inicio,data_fim_prevista,saude,saude_atualizada_em,criado_em,criado_por" as const;
 
 export const SAUDE_ROTULO: Record<ProjetoSaude, string> = {
   no_prazo: "No prazo",
@@ -137,6 +138,7 @@ export function useSalvarProjeto(projetoId: string) {
         status?: ProjetoStatus;
         tipo?: string;
         icone?: string | null;
+        imagem_url?: string | null;
         departamento_id?: string | null;
         cadencia_checkin_dias?: number;
       }
