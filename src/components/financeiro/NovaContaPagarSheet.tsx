@@ -343,8 +343,10 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
   // Vindo de boleto via import: trava parcelas + bloqueia valor/vencimento
   const veioDeBoleto = !!initialData?.nfStageDocumentoId;
 
+  const [gemeos, setGemeos] = useState<TituloGemeo[]>([]);
+
   const mutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (opts?: { forcar?: boolean }) => {
       if (!parceiroId) throw new Error("Parceiro / Fornecedor é obrigatório");
       if (!descricao.trim()) throw new Error("Descrição é obrigatória");
       if (!valorNum || valorNum <= 0) throw new Error("Valor inválido");
