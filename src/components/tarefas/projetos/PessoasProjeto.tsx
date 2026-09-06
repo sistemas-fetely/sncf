@@ -492,7 +492,7 @@ export function PessoasProjeto({ projetoId }: Props) {
                       <label
                         key={p.pessoa_id}
                         className={cn(
-                          "flex items-start gap-2 rounded-sm border p-2",
+                          "flex items-start gap-2 rounded-sm border bg-card p-2",
                           desabilitada ? "opacity-60" : "cursor-pointer hover:bg-muted/40"
                         )}
                       >
