@@ -192,7 +192,12 @@ const Sidebar = React.forwardRef<
       />
       <div
         className={cn(
-          "fixed inset-y-0 z-10 hidden h-svh w-[--sidebar-width] transition-[left,right,width] duration-200 ease-linear md:flex",
+          // CABECALHO-GLOBAL-NAO-COBRE-SIDEBAR (06/09/2026): o CasaHeader e
+          // sticky top-0 h-16 z-40; com a sidebar em inset-y-0 z-10 os
+          // primeiros 64px dela (o SidebarHeader, com logo e botao de
+          // recolher) ficavam escondidos atras do header. A sidebar comeca
+          // abaixo do header.
+          "fixed bottom-0 top-16 z-10 hidden h-[calc(100svh-4rem)] w-[--sidebar-width] transition-[left,right,width] duration-200 ease-linear md:flex",
           side === "left"
             ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
             : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
