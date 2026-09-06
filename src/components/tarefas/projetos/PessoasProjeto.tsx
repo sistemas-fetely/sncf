@@ -67,12 +67,16 @@ export function PessoasProjeto({ projetoId }: Props) {
   const { data: pessoas } = usePessoasParaProjeto();
 
   const adicionar = useAdicionarMembro(projetoId);
+  const adicionarMassa = useAdicionarMembrosEmMassa(projetoId);
   const trocar = useTrocarPapelMembro(projetoId);
   const remover = useRemoverMembro(projetoId);
 
   const [novaPessoa, setNovaPessoa] = useState("");
   const [novoPapel, setNovoPapel] = useState("");
   const [abertoPessoa, setAbertoPessoa] = useState(false);
+  const [modo, setModo] = useState<ModoAdicao>("uma");
+  const [criterio, setCriterio] = useState<CriterioMassa>("departamento");
+  const [valorCriterio, setValorCriterio] = useState("");
 
   const papelEscolhido = papeis?.find((p) => p.codigo === novoPapel);
   const pessoaEscolhida = pessoas?.find((p) => p.user_id === novaPessoa);
@@ -91,6 +95,31 @@ export function PessoasProjeto({ projetoId }: Props) {
     (p) => !(membros ?? []).some((m) => m.user_id === p.user_id) && !fixos.some((f) => f.id === p.user_id)
   );
   const haPessoaComAcesso = candidatos.some((p) => p.tem_acesso && p.user_id);
+
+  // ---- Adição em massa ----
+  const grupos = useMemo(() => {
+    const mapa = new Map<string, { rotulo: string; pessoas: PessoaParaProjeto[] }>();
+    for (const p of candidatos) {
+      const chave = criterio === "departamento" ? p.departamento_id : p.nivel_cargo;
+      if (!chave) continue;
+      const rotulo =
+        criterio === "departamento"
+          ? p.departamento ?? "Sem departamento"
+          : rotuloNivel(p.nivel_cargo!);
+      const atual = mapa.get(chave) ?? { rotulo, pessoas: [] };
+      atual.pessoas.push(p);
+      mapa.set(chave, atual);
+    }
+    return [...mapa.entries()]
+      .map(([valor, g]) => ({ valor, rotulo: g.rotulo, pessoas: g.pessoas }))
+      .sort((a, b) => a.rotulo.localeCompare(b.rotulo, "pt-BR"));
+  }, [candidatos, criterio]);
+
+  const grupoEscolhido = grupos.find((g) => g.valor === valorCriterio);
+  const elegiveisMassa = (grupoEscolhido?.pessoas ?? []).filter((p) => p.tem_acesso && p.user_id);
+  const semAcessoMassa = (grupoEscolhido?.pessoas ?? []).filter((p) => !p.tem_acesso || !p.user_id);
+  const contagemElegiveis = (g: { pessoas: PessoaParaProjeto[] }) =>
+    g.pessoas.filter((p) => p.tem_acesso && p.user_id).length;
 
   const detalhePessoa = (pessoa?: ReturnType<typeof pessoaPorUsuario>) =>
     [pessoa?.cargo, pessoa?.departamento].filter(Boolean).join(" · ") || null;
