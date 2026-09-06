@@ -471,7 +471,7 @@ export default function ContasPagar() {
   return (
     <PageShell>
       {/* Header sticky */}
-      <div className="sticky top-0 z-20 bg-background -mx-6 -mt-6 px-6 pt-6 pb-4 border-b space-y-4 backdrop-blur">
+      <div ref={headerStickyRef} className="sticky top-0 z-20 bg-background -mx-6 -mt-6 px-6 pt-6 pb-4 border-b space-y-4 backdrop-blur">
         <PageHeader
           titulo="Contas a Pagar"
           icone={ArrowUpFromLine}
@@ -626,7 +626,10 @@ export default function ContasPagar() {
             </div>
           ) : (
             <Table>
-              <TableHeader>
+              <TableHeader
+                className="sticky z-10 bg-background"
+                style={{ top: headerStickyH }}
+              >
                 <TableRow>
                   <SortableTableHead column="parceiro" sort={sort} onSort={setSort}>
                     Parceiro
