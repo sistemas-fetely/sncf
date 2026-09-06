@@ -64,6 +64,8 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
   const [lancandoMov, setLancandoMov] = useState(false);
   const [showAnexarNF, setShowAnexarNF] = useState(false);
   const [vinculandoNF, setVinculandoNF] = useState(false);
+  const [showComprovante, setShowComprovante] = useState(false);
+  const [abrindoComprovante, setAbrindoComprovante] = useState(false);
 
   const extractMsg = (e: unknown) =>
     e instanceof Error
