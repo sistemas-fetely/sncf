@@ -445,16 +445,15 @@ export function BoardProjeto({ projetoId }: Props) {
                               </Tooltip>
                             </TooltipProvider>
                           )}
-                          {/* contêiner NÃO tem checkbox: fecha pelo progresso das filhas */}
+                          {/* contêiner NÃO tem círculo: fecha pelo progresso das filhas */}
                           {!container && (
-                            <Checkbox
-                              className="mt-0.5"
-                              checked={statusDoCard === "concluida"}
-                              aria-label="Concluir tarefa"
-                              onClick={(e) => e.stopPropagation()}
-                              onCheckedChange={(v) =>
-                                void trocarStatus(t.id, v ? "concluida" : "pendente")
-                              }
+                            <BotaoConcluir
+                              concluida={statusDoCard === "concluida"}
+                              className="mt-0.5 shrink-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void trocarStatus(t.id, statusDoCard === "concluida" ? "pendente" : "concluida");
+                              }}
                             />
                           )}
                           <div className="min-w-0 flex-1">
