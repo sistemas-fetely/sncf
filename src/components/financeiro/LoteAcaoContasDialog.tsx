@@ -55,14 +55,17 @@ interface Props {
   acao: TituloPagarAcao | null;
   /** Data pretendida inicial, calculada a partir do menor vencimento dos títulos selecionados. */
   dataPretendidaInicial?: string | null;
+  /** Data de pagamento inicial: vencimento se já passou (ou é hoje), senão hoje. */
+  dataPagamentoInicial?: string | null;
   /** Chamado quando o lote foi aplicado sem falhas (para limpar a seleção). */
   onAplicado: () => void;
 }
 
-export function LoteAcaoContasDialog({ open, onOpenChange, ids, acao, dataPretendidaInicial, onAplicado }: Props) {
+export function LoteAcaoContasDialog({ open, onOpenChange, ids, acao, dataPretendidaInicial, dataPagamentoInicial, onAplicado }: Props) {
   const qc = useQueryClient();
   const [motivo, setMotivo] = useState("");
   const [dataPretendida, setDataPretendida] = useState("");
+  const [dataPagamento, setDataPagamento] = useState("");
   const [erroData, setErroData] = useState<string | null>(null);
   const [executando, setExecutando] = useState(false);
   const [resultado, setResultado] = useState<{ aplicados: number; falhas: Falha[] } | null>(null);
@@ -73,10 +76,11 @@ export function LoteAcaoContasDialog({ open, onOpenChange, ids, acao, dataPreten
     if (open) {
       setMotivo("");
       setDataPretendida(dataPretendidaInicial || "");
+      setDataPagamento(dataPagamentoInicial || hojeISO());
       setErroData(null);
       setResultado(null);
     }
-  }, [open, dataPretendidaInicial]);
+  }, [open, dataPretendidaInicial, dataPagamentoInicial]);
 
   const resumoQuery = useQuery({
     queryKey: ["titulo-pagar-lote-resumo", ids.slice().sort().join(",")],
@@ -94,7 +98,9 @@ export function LoteAcaoContasDialog({ open, onOpenChange, ids, acao, dataPreten
   const exigeMotivo = !!acao?.exige_motivo;
   const exigeData = !!acao?.exige_data_pretendida;
   const motivoOk = !exigeMotivo || motivo.trim().length >= 5;
+  const exigeDataPagamento = !!acao?.exige_data_pagamento;
   const dataOk = !exigeData || (!!dataPretendida && dataPretendida >= hoje);
+  const dataPagamentoOk = !exigeDataPagamento || (!!dataPagamento && dataPagamento <= hoje);
 
   async function executar() {
     if (!acao) return;
@@ -111,6 +117,7 @@ export function LoteAcaoContasDialog({ open, onOpenChange, ids, acao, dataPreten
         p_para: acao.para,
         p_motivo: exigeMotivo ? motivo.trim() : null,
         p_data_pretendida: exigeData ? dataPretendida : null,
+        p_data_pagamento: exigeDataPagamento ? (dataPagamento || null) : null,
       });
       if (error) throw error;
 
@@ -204,10 +211,26 @@ export function LoteAcaoContasDialog({ open, onOpenChange, ids, acao, dataPreten
             </div>
           )}
 
+          {exigeDataPagamento && (
+            <div className="space-y-2">
+              <Label htmlFor="data-pagamento-lote">Data em que o pagamento foi feito</Label>
+              <Input
+                id="data-pagamento-lote"
+                type="date"
+                max={hoje}
+                value={dataPagamento}
+                onChange={(e) => setDataPagamento(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Quando o dinheiro saiu de fato. Pode ser no passado.
+              </p>
+            </div>
+          )}
+
           <AlertDialogFooter>
             <AlertDialogCancel disabled={executando}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              disabled={executando || !motivoOk || !dataOk}
+              disabled={executando || !motivoOk || !dataOk || !dataPagamentoOk}
               onClick={(e) => {
                 e.preventDefault();
                 executar();
