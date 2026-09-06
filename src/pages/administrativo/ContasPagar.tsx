@@ -390,6 +390,7 @@ export default function ContasPagar() {
     lista = ordenarPor(lista, sort, {
       parceiro: (c) => c.parceiros_comerciais?.razao_social || c.fornecedor_cliente || "",
       descricao: (c) => c.descricao || "",
+      documento: (c) => c.nf_numero_repositorio || null,
       vencimento: (c) => c.data_vencimento || "",
       // nulos por último nas duas direções (ordenarPor já trata null assim)
       pretendida: (c) => c.data_pretendida ?? null,
