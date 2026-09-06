@@ -18,6 +18,8 @@ import { useAlterarStatusTarefa, useReagendarTarefa } from "@/hooks/tarefas/useT
 import { useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
 import { useStatusRotulo } from "@/components/tarefas/detalhe/comuns";
 import { LinkOrigemTarefa } from "@/components/tarefas/LinkOrigemTarefa";
+import { SeloBloqueio } from "@/components/tarefas/SeloBloqueio";
+import { useTarefasBloqueadas } from "@/hooks/tarefas/useTarefaBloqueio";
 
 
 const PRIORIDADE_CLASSE: Record<TarefaPrioridade, string> = {
@@ -60,6 +62,8 @@ export function TarefaItem({
   const rotuloStatus = useStatusRotulo();
   const [calendarioAberto, setCalendarioAberto] = useState(false);
   const { abrir } = useTarefaAberta();
+  const { data: bloqueadas } = useTarefasBloqueadas();
+  const bloqueio = bloqueadas?.get(tarefa.id);
 
   const projeto = projetos?.find((p) => p.id === tarefa.projeto_id);
   const concluida = tarefa.status === "concluida";
@@ -110,6 +114,7 @@ export function TarefaItem({
           <span className={cn("text-sm font-medium", concluida && "line-through text-muted-foreground")}>
             {tarefa.titulo}
           </span>
+          {bloqueio?.bloqueada && <SeloBloqueio abertos={bloqueio.bloqueadores_abertos} />}
           <Badge variant="outline" className={cn("text-[10px] py-0", PRIORIDADE_CLASSE[tarefa.prioridade])}>
             {PRIORIDADE_ROTULO[tarefa.prioridade]}
           </Badge>

@@ -21,6 +21,8 @@ import { useAlterarStatusTarefa } from "@/hooks/tarefas/useTarefaMutations";
 import { useStatusTarefaDim, type StatusTarefaDim } from "@/hooks/tarefas/useStatusTarefaDim";
 import type { TarefaStatus } from "@/hooks/tarefas/useTarefas";
 import type { TarefaComPapel } from "@/hooks/tarefas/useMinhasTarefasPapel";
+import { SeloBloqueio } from "@/components/tarefas/SeloBloqueio";
+import { useTarefasBloqueadas } from "@/hooks/tarefas/useTarefaBloqueio";
 
 const PRIORIDADE_CLASSE: Record<string, string> = {
   urgente: "border-destructive/40 bg-destructive/10 text-destructive",
@@ -277,6 +279,9 @@ export function QuadroMinhasTarefas({
                     </div>
 
                     <div className="flex flex-wrap items-center gap-1.5">
+                      {bloqueadas?.get(t.id)?.bloqueada && (
+                        <SeloBloqueio abertos={bloqueadas.get(t.id)!.bloqueadores_abertos} />
+                      )}
                       <Badge variant="outline" className={cn("text-[10px]", PRIORIDADE_CLASSE[t.prioridade])}>
                         {PRIORIDADE_ROTULO[t.prioridade]}
                       </Badge>
