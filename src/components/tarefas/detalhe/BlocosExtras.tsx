@@ -23,65 +23,110 @@ function dataHora(iso: string) {
 
 /* ------------------------------------------------------- dependências ----- */
 
+/**
+ * Os dois lados do bloqueio. "Depende de" mostra quem trava esta tarefa;
+ * "Está travando" mostra quem espera por ela. Resolvidos ficam esmaecidos,
+ * nunca escondidos — a história de quem já saiu do caminho também conta.
+ */
 export function BlocoDependencias({ tarefa }: { tarefa: TarefaDetalhe }) {
-  const rotuloStatus = useStatusRotulo();
-  const { data } = useDependencias(tarefa.id);
-  const { adicionar, remover } = useMutarDependencias(tarefa.id);
-  const [termo, setTermo] = useState("");
-  const [sentido, setSentido] = useState<"bloqueada_por" | "bloqueia">("bloqueada_por");
-  const { data: achadas } = useBuscarTarefas(termo, tarefa.id);
+  const { abrir } = useTarefaAberta();
+  const { data, isLoading, error } = useDependenciasDetalhe(tarefa.id);
+  const { adicionar, remover } = useMutarDependenciaTarefa(tarefa.id);
 
-  const Lista = ({ titulo, linhas }: { titulo: string; linhas: { id: string; titulo: string; status: string }[] }) => (
-    <div className="space-y-1">
-      <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{titulo}</span>
-      {linhas.length === 0 && <p className="text-xs text-muted-foreground">nenhuma</p>}
-      {linhas.map((l) => (
-        <div key={l.id} className="flex items-center gap-2 rounded border border-border/60 px-2 py-1 text-sm">
-          <Badge variant="outline" className="text-[10px]">{rotuloStatus(l.status)}</Badge>
-          <span className="min-w-0 flex-1 truncate">{l.titulo}</span>
-          <button type="button" aria-label="Remover dependência" onClick={() => remover.mutate(l.id)}>
-            <X className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
-        </div>
-      ))}
-    </div>
-  );
+  const dependeDe = data?.dependeDe ?? [];
+  const travando = data?.travando ?? [];
+  const abertos = dependeDe.filter((d) => !d.bloqueador_resolvido).length;
 
   return (
-    <Secao titulo="Dependências">
-      <Lista titulo="Bloqueada por" linhas={data?.bloqueadaPor ?? []} />
-      <Lista titulo="Bloqueia" linhas={data?.bloqueia ?? []} />
-
-      <div className="space-y-2 pt-1">
-        <div className="flex gap-2">
-          <Button
-            size="sm" variant={sentido === "bloqueada_por" ? "secondary" : "outline"}
-            onClick={() => setSentido("bloqueada_por")}
-          >
-            É bloqueada por
-          </Button>
-          <Button
-            size="sm" variant={sentido === "bloqueia" ? "secondary" : "outline"}
-            onClick={() => setSentido("bloqueia")}
-          >
-            Bloqueia
-          </Button>
-        </div>
-        <Input
-          className="h-8 text-sm" placeholder="Buscar tarefa pelo título (2+ letras)"
-          value={termo} onChange={(e) => setTermo(e.target.value)}
+    <Secao
+      titulo="Dependências"
+      acao={
+        <SeletorTarefaDependencia
+          tarefaId={tarefa.id}
+          jaLigados={dependeDe.map((d) => d.depende_de_id)}
+          disabled={adicionar.isPending}
+          onEscolher={(id) => adicionar.mutate(id)}
         />
-        {(achadas ?? []).map((t) => (
-          <button
-            key={t.id} type="button"
-            className="flex w-full items-center gap-2 rounded border border-border/60 px-2 py-1 text-left text-sm hover:bg-accent/40"
-            onClick={() =>
-              adicionar.mutate({ outraId: t.id, sentido }, { onSuccess: () => setTermo("") })
-            }
+      }
+    >
+      {error && (
+        <p className="text-xs text-destructive">
+          Não foi possível carregar as dependências: {(error as Error).message}
+        </p>
+      )}
+      {isLoading && <p className="text-xs text-muted-foreground">Carregando…</p>}
+
+      {abertos > 0 && <SeloBloqueio abertos={abertos} />}
+
+      <div className="space-y-1">
+        <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          Depende de
+        </span>
+        {dependeDe.length === 0 && (
+          <p className="text-xs text-muted-foreground">Não espera nenhuma tarefa.</p>
+        )}
+        {dependeDe.map((d) => (
+          <div
+            key={d.id}
+            className={cn(
+              "flex items-center gap-2 rounded border border-border/60 px-2 py-1 text-sm",
+              d.bloqueador_resolvido && "opacity-55",
+            )}
           >
-            <Plus className="h-3.5 w-3.5" />
-            <span className="truncate">{t.titulo}</span>
-          </button>
+            {d.bloqueador_resolvido ? (
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-success" />
+            ) : (
+              <Ban className="h-3.5 w-3.5 shrink-0 text-destructive" />
+            )}
+            <button
+              type="button"
+              className="min-w-0 flex-1 truncate text-left hover:underline"
+              onClick={() => abrir(d.depende_de_id)}
+            >
+              {d.bloqueador_titulo ?? "(sem título)"}
+            </button>
+            <Badge variant="outline" className="shrink-0 text-[10px]">
+              {d.bloqueador_status_nome ?? "—"}
+            </Badge>
+            <button
+              type="button"
+              aria-label="Remover dependência"
+              disabled={remover.isPending}
+              onClick={() => remover.mutate(d.id)}
+            >
+              <X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-1 pt-1">
+        <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          Está travando
+        </span>
+        {travando.length === 0 && (
+          <p className="text-xs text-muted-foreground">Ninguém está esperando por esta tarefa.</p>
+        )}
+        {travando.map((d) => (
+          <div
+            key={d.id}
+            className={cn(
+              "flex items-center gap-2 rounded border border-border/60 px-2 py-1 text-sm",
+              d.bloqueada_resolvida && "opacity-55",
+            )}
+          >
+            <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <button
+              type="button"
+              className="min-w-0 flex-1 truncate text-left hover:underline"
+              onClick={() => abrir(d.tarefa_id)}
+            >
+              {d.bloqueada_titulo ?? "(sem título)"}
+            </button>
+            <Badge variant="outline" className="shrink-0 text-[10px]">
+              {d.bloqueada_status_nome ?? "—"}
+            </Badge>
+          </div>
         ))}
       </div>
     </Secao>
