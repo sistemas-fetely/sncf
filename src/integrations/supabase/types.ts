@@ -2139,7 +2139,7 @@ export type Database = {
       atribuicao_catalogo: {
         Row: {
           ativo: boolean
-          cargo_id: string
+          cargo_id: string | null
           chave: string
           created_at: string
           declarado_em: string | null
@@ -2153,13 +2153,14 @@ export type Database = {
           id: string
           nome: string
           origem_medida: string
+          pessoa_id: string | null
           recorrencia_id: string | null
           tempo_unitario_min: number | null
           updated_at: string
         }
         Insert: {
           ativo?: boolean
-          cargo_id: string
+          cargo_id?: string | null
           chave: string
           created_at?: string
           declarado_em?: string | null
@@ -2173,13 +2174,14 @@ export type Database = {
           id?: string
           nome: string
           origem_medida?: string
+          pessoa_id?: string | null
           recorrencia_id?: string | null
           tempo_unitario_min?: number | null
           updated_at?: string
         }
         Update: {
           ativo?: boolean
-          cargo_id?: string
+          cargo_id?: string | null
           chave?: string
           created_at?: string
           declarado_em?: string | null
@@ -2193,6 +2195,7 @@ export type Database = {
           id?: string
           nome?: string
           origem_medida?: string
+          pessoa_id?: string | null
           recorrencia_id?: string | null
           tempo_unitario_min?: number | null
           updated_at?: string
@@ -2232,6 +2235,83 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "atribuicao_fonte_volume_dim"
             referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cadastro_pendencia"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_pessoa"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_meu_cadastro_pendencia"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_vinculo_pessoa"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organograma"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pessoa_para_projeto"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_reembolso_saneamento"
+            referencedColumns: ["pessoa_id"]
           },
           {
             foreignKeyName: "atribuicao_catalogo_recorrencia_id_fkey"
@@ -36494,7 +36574,69 @@ export type Database = {
           },
         ]
       }
+      produto_colecao_cad_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          linha_codigo: string | null
+          no_catalogo_2026: boolean
+          ordem: number
+          rotulo: string
+          variantes: string[]
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          linha_codigo?: string | null
+          no_catalogo_2026?: boolean
+          ordem?: number
+          rotulo: string
+          variantes?: string[]
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          linha_codigo?: string | null
+          no_catalogo_2026?: boolean
+          ordem?: number
+          rotulo?: string
+          variantes?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_colecao_cad_dim_linha_codigo_fkey"
+            columns: ["linha_codigo"]
+            isOneToOne: false
+            referencedRelation: "produto_linha_dim"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
       produto_colecao_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          ordem: number
+          rotulo: string
+          variantes: string[]
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          ordem?: number
+          rotulo: string
+          variantes?: string[]
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          ordem?: number
+          rotulo?: string
+          variantes?: string[]
+        }
+        Relationships: []
+      }
+      produto_embalagem_dim: {
         Row: {
           ativo: boolean
           codigo: string
@@ -36577,6 +36719,194 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "produto_fase_dim"
             referencedColumns: ["slug"]
+          },
+        ]
+      }
+      produto_grupo_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          ordem: number
+          rotulo: string
+          variantes: string[]
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          ordem?: number
+          rotulo: string
+          variantes?: string[]
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          ordem?: number
+          rotulo?: string
+          variantes?: string[]
+        }
+        Relationships: []
+      }
+      produto_linha_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          descricao: string | null
+          ordem: number
+          rotulo: string
+          variantes: string[]
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          descricao?: string | null
+          ordem?: number
+          rotulo: string
+          variantes?: string[]
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          descricao?: string | null
+          ordem?: number
+          rotulo?: string
+          variantes?: string[]
+        }
+        Relationships: []
+      }
+      produto_marca_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          ordem: number
+          rotulo: string
+          variantes: string[]
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          ordem?: number
+          rotulo: string
+          variantes?: string[]
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          ordem?: number
+          rotulo?: string
+          variantes?: string[]
+        }
+        Relationships: []
+      }
+      produto_material_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          descritivo: string | null
+          ordem: number
+          rotulo: string
+          variantes: string[]
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          descritivo?: string | null
+          ordem?: number
+          rotulo: string
+          variantes?: string[]
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          descritivo?: string | null
+          ordem?: number
+          rotulo?: string
+          variantes?: string[]
+        }
+        Relationships: []
+      }
+      produto_origem_fiscal_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          descricao_oficial: string
+          ordem: number
+          rotulo: string
+          variantes: string[]
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          descricao_oficial: string
+          ordem?: number
+          rotulo: string
+          variantes?: string[]
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          descricao_oficial?: string
+          ordem?: number
+          rotulo?: string
+          variantes?: string[]
+        }
+        Relationships: []
+      }
+      produto_origem_prod_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          ordem: number
+          rotulo: string
+          variantes: string[]
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          ordem?: number
+          rotulo: string
+          variantes?: string[]
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          ordem?: number
+          rotulo?: string
+          variantes?: string[]
+        }
+        Relationships: []
+      }
+      produto_tipo_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          grupo_codigo: string | null
+          ordem: number
+          rotulo: string
+          variantes: string[]
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          grupo_codigo?: string | null
+          ordem?: number
+          rotulo: string
+          variantes?: string[]
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          grupo_codigo?: string | null
+          ordem?: number
+          rotulo?: string
+          variantes?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_tipo_dim_grupo_codigo_fkey"
+            columns: ["grupo_codigo"]
+            isOneToOne: false
+            referencedRelation: "produto_grupo_dim"
+            referencedColumns: ["codigo"]
           },
         ]
       }
@@ -42604,7 +42934,64 @@ export type Database = {
           tipo?: string | null
           tipo_embalagem?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_produto_colecao"
+            columns: ["colecao"]
+            isOneToOne: false
+            referencedRelation: "produto_colecao_cad_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_embalagem"
+            columns: ["tipo_embalagem"]
+            isOneToOne: false
+            referencedRelation: "produto_embalagem_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_grupo"
+            columns: ["grupo"]
+            isOneToOne: false
+            referencedRelation: "produto_grupo_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_linha"
+            columns: ["linha"]
+            isOneToOne: false
+            referencedRelation: "produto_linha_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_material"
+            columns: ["material"]
+            isOneToOne: false
+            referencedRelation: "produto_material_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_origem_fisc"
+            columns: ["origem_fisc"]
+            isOneToOne: false
+            referencedRelation: "produto_origem_fiscal_dim"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "fk_produto_origem_prod"
+            columns: ["origem_prod"]
+            isOneToOne: false
+            referencedRelation: "produto_origem_prod_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_tipo"
+            columns: ["tipo"]
+            isOneToOne: false
+            referencedRelation: "produto_tipo_dim"
+            referencedColumns: ["rotulo"]
+          },
+        ]
       }
       sncf_relatorios: {
         Row: {
@@ -48465,6 +48852,7 @@ export type Database = {
         Row: {
           ativo: boolean
           de: string
+          exige_bola_redonda: boolean
           exige_motivo: boolean
           observacao: string | null
           papeis: string[]
@@ -48476,6 +48864,7 @@ export type Database = {
         Insert: {
           ativo?: boolean
           de: string
+          exige_bola_redonda?: boolean
           exige_motivo?: boolean
           observacao?: string | null
           papeis?: string[]
@@ -48487,6 +48876,7 @@ export type Database = {
         Update: {
           ativo?: boolean
           de?: string
+          exige_bola_redonda?: boolean
           exige_motivo?: boolean
           observacao?: string | null
           papeis?: string[]
@@ -56891,7 +57281,22 @@ export type Database = {
           profundidade_cm: number | null
           sku: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_produto_grupo"
+            columns: ["grupo"]
+            isOneToOne: false
+            referencedRelation: "produto_grupo_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_linha"
+            columns: ["linha"]
+            isOneToOne: false
+            referencedRelation: "produto_linha_dim"
+            referencedColumns: ["rotulo"]
+          },
+        ]
       }
       vw_bling_completar_fiscal: {
         Row: {
@@ -59480,7 +59885,29 @@ export type Database = {
           sku: string | null
           variantes_shopify: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_produto_colecao"
+            columns: ["colecao"]
+            isOneToOne: false
+            referencedRelation: "produto_colecao_cad_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_grupo"
+            columns: ["grupo"]
+            isOneToOne: false
+            referencedRelation: "produto_grupo_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_linha"
+            columns: ["linha"]
+            isOneToOne: false
+            referencedRelation: "produto_linha_dim"
+            referencedColumns: ["rotulo"]
+          },
+        ]
       }
       vw_consignado_estoque_parceiro: {
         Row: {
@@ -62701,7 +63128,15 @@ export type Database = {
           tem_razao: boolean | null
           tipo: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_produto_tipo"
+            columns: ["tipo"]
+            isOneToOne: false
+            referencedRelation: "produto_tipo_dim"
+            referencedColumns: ["rotulo"]
+          },
+        ]
       }
       vw_estoque_shopify_retido: {
         Row: {
@@ -63248,6 +63683,27 @@ export type Database = {
           unidade: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_produto_colecao"
+            columns: ["colecao"]
+            isOneToOne: false
+            referencedRelation: "produto_colecao_cad_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_grupo"
+            columns: ["grupo"]
+            isOneToOne: false
+            referencedRelation: "produto_grupo_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_linha"
+            columns: ["linha"]
+            isOneToOne: false
+            referencedRelation: "produto_linha_dim"
+            referencedColumns: ["rotulo"]
+          },
           {
             foreignKeyName: "nfs_emitidas_parceiro_id_fkey"
             columns: ["parceiro_id"]
@@ -64890,6 +65346,13 @@ export type Database = {
           unidade_fornecedor: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_produto_grupo"
+            columns: ["grupo"]
+            isOneToOne: false
+            referencedRelation: "produto_grupo_dim"
+            referencedColumns: ["rotulo"]
+          },
           {
             foreignKeyName: "fornecedor_produto_fornecedor_id_fkey"
             columns: ["fornecedor_id"]
@@ -76311,7 +76774,29 @@ export type Database = {
           un_por_dia: number | null
           un_vendidas: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_produto_colecao"
+            columns: ["colecao"]
+            isOneToOne: false
+            referencedRelation: "produto_colecao_cad_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_grupo"
+            columns: ["grupo"]
+            isOneToOne: false
+            referencedRelation: "produto_grupo_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_linha"
+            columns: ["linha"]
+            isOneToOne: false
+            referencedRelation: "produto_linha_dim"
+            referencedColumns: ["rotulo"]
+          },
+        ]
       }
       vw_produto_crosswalk: {
         Row: {
@@ -76376,7 +76861,36 @@ export type Database = {
           preco_atacado: number | null
           sku: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_produto_colecao"
+            columns: ["colecao"]
+            isOneToOne: false
+            referencedRelation: "produto_colecao_cad_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_linha"
+            columns: ["linha"]
+            isOneToOne: false
+            referencedRelation: "produto_linha_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_origem_fisc"
+            columns: ["origem_fisc"]
+            isOneToOne: false
+            referencedRelation: "produto_origem_fiscal_dim"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "fk_produto_origem_prod"
+            columns: ["origem_prod"]
+            isOneToOne: false
+            referencedRelation: "produto_origem_prod_dim"
+            referencedColumns: ["rotulo"]
+          },
+        ]
       }
       vw_produto_mesa_fase: {
         Row: {
@@ -76398,7 +76912,22 @@ export type Database = {
           sugestao: string | null
           tem_bling: boolean | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_produto_colecao"
+            columns: ["colecao"]
+            isOneToOne: false
+            referencedRelation: "produto_colecao_cad_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_grupo"
+            columns: ["grupo"]
+            isOneToOne: false
+            referencedRelation: "produto_grupo_dim"
+            referencedColumns: ["rotulo"]
+          },
+        ]
       }
       vw_produto_venda_periodo: {
         Row: {
@@ -79303,7 +79832,22 @@ export type Database = {
           sem_preco: boolean | null
           sku: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_produto_colecao"
+            columns: ["colecao"]
+            isOneToOne: false
+            referencedRelation: "produto_colecao_cad_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_grupo"
+            columns: ["grupo"]
+            isOneToOne: false
+            referencedRelation: "produto_grupo_dim"
+            referencedColumns: ["rotulo"]
+          },
+        ]
       }
       vw_rotina_aderencia: {
         Row: {
@@ -80260,7 +80804,29 @@ export type Database = {
           tipo: string | null
           volume_l: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_produto_colecao"
+            columns: ["colecao"]
+            isOneToOne: false
+            referencedRelation: "produto_colecao_cad_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_grupo"
+            columns: ["grupo"]
+            isOneToOne: false
+            referencedRelation: "produto_grupo_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_tipo"
+            columns: ["tipo"]
+            isOneToOne: false
+            referencedRelation: "produto_tipo_dim"
+            referencedColumns: ["rotulo"]
+          },
+        ]
       }
       vw_sugestao_amarra_cartao: {
         Row: {
@@ -83097,7 +83663,15 @@ export type Database = {
           valor_total: number | null
           valor_venda: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_produto_colecao"
+            columns: ["colecao"]
+            isOneToOne: false
+            referencedRelation: "produto_colecao_cad_dim"
+            referencedColumns: ["rotulo"]
+          },
+        ]
       }
       vw_vendedor_contato: {
         Row: {
@@ -83521,6 +84095,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_produto_embalagem"
+            columns: ["descricao_embalagem"]
+            isOneToOne: false
+            referencedRelation: "produto_embalagem_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["codigo_material"]
             isOneToOne: false
@@ -83740,7 +84321,29 @@ export type Database = {
           xpm_normal: number | null
           xpm_truncado: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_produto_colecao"
+            columns: ["colecao"]
+            isOneToOne: false
+            referencedRelation: "produto_colecao_cad_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_grupo"
+            columns: ["grupo"]
+            isOneToOne: false
+            referencedRelation: "produto_grupo_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_linha"
+            columns: ["linha"]
+            isOneToOne: false
+            referencedRelation: "produto_linha_dim"
+            referencedColumns: ["rotulo"]
+          },
+        ]
       }
       vw_xpm_estoque_conciliacao_api: {
         Row: {
@@ -83759,7 +84362,29 @@ export type Database = {
           xpm_outras: number | null
           xpm_total: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_produto_colecao"
+            columns: ["colecao"]
+            isOneToOne: false
+            referencedRelation: "produto_colecao_cad_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_grupo"
+            columns: ["grupo"]
+            isOneToOne: false
+            referencedRelation: "produto_grupo_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_linha"
+            columns: ["linha"]
+            isOneToOne: false
+            referencedRelation: "produto_linha_dim"
+            referencedColumns: ["rotulo"]
+          },
+        ]
       }
       vw_xpm_estoque_fotos: {
         Row: {
@@ -85207,6 +85832,22 @@ export type Database = {
       fn_aplicar_sugestao_transportadora: {
         Args: { p_forcar?: boolean; p_pedido_id: string }
         Returns: Json
+      }
+      fn_atribuicao_apagar: { Args: { _id: string }; Returns: undefined }
+      fn_atribuicao_salvar: {
+        Args: {
+          _departamento_id?: string
+          _descricao: string
+          _fila_id?: string
+          _fluxo_diario: number
+          _fonte_volume?: string
+          _id: string
+          _nome: string
+          _pessoa_id: string
+          _recorrencia_id?: string
+          _tempo_unitario_min: number
+        }
+        Returns: string
       }
       fn_auditoria_conferir_tipos: {
         Args: { p_amostra: Json }

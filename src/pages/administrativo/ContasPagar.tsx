@@ -437,6 +437,17 @@ export default function ContasPagar() {
         .reduce((s, c) => s + Number(c.valor || 0), 0),
     [filtrados, selecionados],
   );
+  /** Menor vencimento entre os selecionados; se já passou, usa hoje. */
+  const dataPretendidaInicialLote = useMemo(() => {
+    const contas = filtrados.filter((c) => selecionados.has(c.id));
+    const vencimentos = contas
+      .map((c) => c.data_vencimento)
+      .filter((d): d is string => !!d);
+    if (vencimentos.length === 0) return null;
+    const menor = [...vencimentos].sort()[0];
+    const hoje = hojeISO();
+    return menor >= hoje ? menor : hoje;
+  }, [filtrados, selecionados]);
   const todosSelecionados =
     filtrados.length > 0 && idsSelecionados.length === filtrados.length;
 
@@ -999,6 +1010,7 @@ export default function ContasPagar() {
         onOpenChange={(v) => !v && setAcaoLote(null)}
         ids={idsSelecionados}
         acao={acaoLote}
+        dataPretendidaInicial={dataPretendidaInicialLote}
         onAplicado={() => {
           setSelecionados(new Set());
           invalidarTudo();

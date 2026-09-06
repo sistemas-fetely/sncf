@@ -27,6 +27,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { formatBRL } from "@/lib/format-currency";
+import { hojeISO } from "@/lib/data";
 import type { TituloPagarAcao } from "@/hooks/financeiro/useTituloPagarEstado";
 
 /**
@@ -52,24 +53,30 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   ids: string[];
   acao: TituloPagarAcao | null;
+  /** Data pretendida inicial, calculada a partir do menor vencimento dos títulos selecionados. */
+  dataPretendidaInicial?: string | null;
   /** Chamado quando o lote foi aplicado sem falhas (para limpar a seleção). */
   onAplicado: () => void;
 }
 
-export function LoteAcaoContasDialog({ open, onOpenChange, ids, acao, onAplicado }: Props) {
+export function LoteAcaoContasDialog({ open, onOpenChange, ids, acao, dataPretendidaInicial, onAplicado }: Props) {
   const qc = useQueryClient();
   const [motivo, setMotivo] = useState("");
   const [dataPretendida, setDataPretendida] = useState("");
+  const [erroData, setErroData] = useState<string | null>(null);
   const [executando, setExecutando] = useState(false);
   const [resultado, setResultado] = useState<{ aplicados: number; falhas: Falha[] } | null>(null);
+
+  const hoje = hojeISO();
 
   useEffect(() => {
     if (open) {
       setMotivo("");
-      setDataPretendida("");
+      setDataPretendida(dataPretendidaInicial || "");
+      setErroData(null);
       setResultado(null);
     }
-  }, [open]);
+  }, [open, dataPretendidaInicial]);
 
   const resumoQuery = useQuery({
     queryKey: ["titulo-pagar-lote-resumo", ids.slice().sort().join(",")],
@@ -87,10 +94,15 @@ export function LoteAcaoContasDialog({ open, onOpenChange, ids, acao, onAplicado
   const exigeMotivo = !!acao?.exige_motivo;
   const exigeData = !!acao?.exige_data_pretendida;
   const motivoOk = !exigeMotivo || motivo.trim().length >= 5;
-  const dataOk = !exigeData || !!dataPretendida;
+  const dataOk = !exigeData || (!!dataPretendida && dataPretendida >= hoje);
 
   async function executar() {
     if (!acao) return;
+    if (exigeData && dataPretendida < hoje) {
+      setErroData("A data pretendida não pode ser no passado.");
+      return;
+    }
+    setErroData(null);
     setExecutando(true);
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -136,14 +148,18 @@ export function LoteAcaoContasDialog({ open, onOpenChange, ids, acao, onAplicado
           <AlertDialogHeader>
             <AlertDialogTitle>
               {acao?.rotulo_acao}
-              {resumo ? ` — ${resumo.titulos} títulos, ${formatBRL(Number(resumo.valor_total || 0))}` : ""}
+              {resumo
+                ? ` — ${resumo.titulos} título${resumo.titulos === 1 ? "" : "s"}, ${formatBRL(Number(resumo.valor_total || 0))}`
+                : ""}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {resumoQuery.isLoading
                 ? "Somando os títulos selecionados..."
                 : resumoQuery.error
                   ? (resumoQuery.error as Error).message
-                  : `Esta ação vale para todos os ${ids.length} títulos selecionados.`}
+                  : ids.length === 1
+                    ? "Esta ação vale para o título selecionado."
+                    : `Esta ação vale para todos os ${ids.length} títulos selecionados.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -151,7 +167,7 @@ export function LoteAcaoContasDialog({ open, onOpenChange, ids, acao, onAplicado
             <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning">
               <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
               <span>
-                {resumo.sem_nf_verificada} destes títulos NÃO têm nota fiscal verificada.
+                {resumo.sem_nf_verificada} deste{resumo.sem_nf_verificada === 1 ? "" : "s"} título{resumo.sem_nf_verificada === 1 ? "" : "s"} NÃO {resumo.sem_nf_verificada === 1 ? "tem" : "têm"} nota fiscal verificada.
               </span>
             </div>
           )}
@@ -175,9 +191,16 @@ export function LoteAcaoContasDialog({ open, onOpenChange, ids, acao, onAplicado
               <Input
                 id="data-lote"
                 type="date"
+                min={hoje}
                 value={dataPretendida}
-                onChange={(e) => setDataPretendida(e.target.value)}
+                onChange={(e) => {
+                  setDataPretendida(e.target.value);
+                  if (erroData) setErroData(null);
+                }}
               />
+              {erroData && (
+                <p className="text-xs text-destructive">{erroData}</p>
+              )}
             </div>
           )}
 
