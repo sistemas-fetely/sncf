@@ -131,7 +131,16 @@ export function useCriarProjeto() {
 export function useSalvarProjeto(projetoId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (patch: Partial<NovoProjeto> & { saude?: ProjetoSaude; status?: ProjetoStatus }) => {
+    mutationFn: async (
+      patch: Partial<NovoProjeto> & {
+        saude?: ProjetoSaude;
+        status?: ProjetoStatus;
+        tipo?: string;
+        icone?: string | null;
+        departamento_id?: string | null;
+        cadencia_checkin_dias?: number;
+      }
+    ) => {
       const { error } = await supabase.from("tarefas_projetos").update(patch).eq("id", projetoId);
       if (error) throw error;
     },

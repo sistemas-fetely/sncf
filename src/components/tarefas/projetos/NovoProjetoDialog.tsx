@@ -12,7 +12,7 @@ import { SeletorPessoa } from "@/components/tarefas/detalhe/comuns";
 import { useCriarProjeto, type ProjetoVisibilidade } from "@/hooks/tarefas/useProjetosTarefas";
 import { cn } from "@/lib/utils";
 
-const CORES = ["#2563EB", "#0EA5E9", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#64748B"];
+export const CORES = ["#2563EB", "#0EA5E9", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#64748B"];
 
 interface Props {
   aberto: boolean;

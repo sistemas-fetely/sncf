@@ -13,6 +13,7 @@ import { PainelProjeto } from "@/components/tarefas/projetos/PainelProjeto";
 import { AutomacoesProjeto } from "@/components/tarefas/projetos/AutomacoesProjeto";
 import { CamposProjeto } from "@/components/tarefas/projetos/CamposProjeto";
 import { PessoasProjeto } from "@/components/tarefas/projetos/PessoasProjeto";
+import { ConfiguracoesProjeto } from "@/components/tarefas/projetos/ConfiguracoesProjeto";
 import { SalvarProjetoComoTemplateDialog } from "@/components/tarefas/templates/SalvarProjetoComoTemplateDialog";
 import { SAUDE_CLASSE, SAUDE_ROTULO, useProjeto } from "@/hooks/tarefas/useProjetosTarefas";
 
@@ -76,6 +77,7 @@ export default function ProjetoDetalhe() {
           <TabsTrigger value="automacoes">Automações</TabsTrigger>
           <TabsTrigger value="campos">Campos</TabsTrigger>
           <TabsTrigger value="pessoas">Pessoas</TabsTrigger>
+          <TabsTrigger value="config">Configurações</TabsTrigger>
         </TabsList>
 
         <TabsContent value="board" className="pt-4">
@@ -92,6 +94,9 @@ export default function ProjetoDetalhe() {
         </TabsContent>
         <TabsContent value="pessoas" className="pt-4">
           <PessoasProjeto projetoId={id} />
+        </TabsContent>
+        <TabsContent value="config" className="pt-4">
+          <ConfiguracoesProjeto projetoId={id} />
         </TabsContent>
       </Tabs>
 
