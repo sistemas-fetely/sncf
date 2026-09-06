@@ -68,6 +68,7 @@ export function QuadroMinhasTarefas({
   grupos, concluidasRecentes = [], filhasPorMae, somenteLeitura, nomeProjeto, agruparPor,
 }: Props) {
   const { abrir: abrirTarefa } = useTarefaAberta();
+  const { data: bloqueadas } = useTarefasBloqueadas();
   const alterarStatus = useAlterarStatusTarefa();
   const { data: statusDim } = useStatusTarefaDim();
   const [alvo, setAlvo] = useState<string | null>(null);
