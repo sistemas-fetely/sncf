@@ -141,7 +141,8 @@ export function QuadroMinhasTarefas({
     if (!tarefa || tarefa.eh_container) return;
     if ((otimista[tarefaId] ?? tarefa.status) === status) return;
 
-    const dim = abertos.find((s) => s.codigo === status);
+    // dimensão inteira, não só abertos: a coluna Concluída também é alvo
+    const dim = statusDim?.find((s) => s.codigo === status);
     if (dim?.exige_motivo) {
       setMotivo("");
       setPedido({ tarefaId, status: dim });
