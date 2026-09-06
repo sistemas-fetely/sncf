@@ -443,7 +443,11 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
             p_conta_id: primeira.id,
           });
           if (vincErr) {
-            console.warn("Falha ao vincular NF à CPR recém-criada:", vincErr);
+            console.error("Falha ao vincular NF à CPR recém-criada:", vincErr);
+            toast.error(
+              `Despesa criada, mas falhou ao vincular a NF: ${vincErr.message}. Vincule manualmente pelo clipe na tabela.`,
+              { duration: 12000, closeButton: true },
+            );
           }
         }
       }
