@@ -287,7 +287,7 @@ export default function MesaGestor() {
               </p>
             )}
             <Button asChild size="sm">
-              <Link to="/admin/atribuicoes">
+              <Link to="/tarefas/atribuicoes">
                 Declarar no catálogo de atribuições
                 <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
               </Link>
