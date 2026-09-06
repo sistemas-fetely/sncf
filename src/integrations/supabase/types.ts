@@ -17430,6 +17430,13 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_mesa_fase"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_resultado_produto"
             referencedColumns: ["sku"]
           },
@@ -21229,6 +21236,13 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_mesa_fase"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_resultado_produto"
             referencedColumns: ["sku"]
           },
@@ -21465,6 +21479,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_produto_fiscal"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_mesa_fase"
             referencedColumns: ["sku"]
           },
           {
@@ -22119,6 +22140,13 @@ export type Database = {
             foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_mesa_fase"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_resultado_produto"
             referencedColumns: ["sku"]
           },
@@ -22535,6 +22563,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_produto_fiscal"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_mesa_fase"
             referencedColumns: ["sku"]
           },
           {
@@ -53868,6 +53903,13 @@ export type Database = {
             foreignKeyName: "xpm_termo_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_mesa_fase"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_resultado_produto"
             referencedColumns: ["sku"]
           },
@@ -58591,6 +58633,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_produto_fiscal"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_mesa_fase"
             referencedColumns: ["sku"]
           },
           {
@@ -64574,6 +64623,13 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_mesa_fase"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_resultado_produto"
             referencedColumns: ["sku"]
           },
@@ -66308,6 +66364,13 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_mesa_fase"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_resultado_produto"
             referencedColumns: ["sku"]
           },
@@ -66427,6 +66490,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_produto_fiscal"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_mesa_fase"
             referencedColumns: ["sku"]
           },
           {
@@ -70008,14 +70078,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -72307,14 +72377,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -75901,6 +75971,27 @@ export type Database = {
           origem_rotulo: string | null
           preco_atacado: number | null
           sku: string | null
+        }
+        Relationships: []
+      }
+      vw_produto_mesa_fase: {
+        Row: {
+          campos_faltando: string[] | null
+          cod_cadastro: string | null
+          colecao: string | null
+          donos_pendencia: string[] | null
+          fase: string | null
+          fase_nome: string | null
+          fase_ordem: number | null
+          ficha_limpa: boolean | null
+          grupo: string | null
+          nome_comercial: string | null
+          nome_operacional: string | null
+          proxima_fase: string | null
+          saldo_disponivel: number | null
+          sku: string | null
+          sugestao: string | null
+          tem_bling: boolean | null
         }
         Relationships: []
       }
@@ -82741,6 +82832,13 @@ export type Database = {
             columns: ["codigo_material"]
             isOneToOne: false
             referencedRelation: "vw_produto_fiscal"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["codigo_material"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_mesa_fase"
             referencedColumns: ["sku"]
           },
           {
