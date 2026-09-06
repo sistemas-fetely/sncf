@@ -708,6 +708,15 @@ export default function ContasPagar() {
                           {c.descricao}
                         </div>
                       </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {c.nf_numero_repositorio ? (
+                          <Badge variant="outline" className="text-[10px] font-normal">
+                            NF {c.nf_numero_repositorio}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                       <TableCell
                         className={cn(
                           "whitespace-nowrap",
