@@ -68,6 +68,10 @@ export interface CamposEditaveis {
   data_limite?: string | null;
   hora_limite?: string | null;
   estimativa_horas?: number | null;
+  /** vínculo com entidade de origem — os três andam juntos, nunca isolados */
+  entidade_origem_id?: string | null;
+  modulo_origem?: string | null;
+  acao_url?: string | null;
 }
 
 /** Salva um (ou poucos) campos da tarefa. Sem botão global de salvar. */
