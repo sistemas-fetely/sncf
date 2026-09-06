@@ -274,7 +274,93 @@ if (body.tipo === "ficha_pendencias") {
 }
 // ── fim branch ficha_pendencias ──
 
+// ── Branch: espelho de dimensões e matriz campo × fase do produto ─────
+// ESPELHO: o mestre da matriz campo x fase e da dimensao de fase e o FOP
+// (produto_fase_ficha / produto_fase_dim). Aqui so se recebe. Alterar
+// exigencia e' no FOP.
+// Autenticação já validada acima via FOP_INBOUND_TOKEN
+if (body.tipo === "dimensoes_produto") {
+  const fases = Array.isArray(body.fases) ? body.fases : [];
+  const ficha = Array.isArray(body.ficha) ? body.ficha : [];
 
+  // Payload vazio quase certamente é falha de leitura no FOP. Apagar a matriz
+  // inteira por causa disso seria catastrófico — é ela que dita o portão de fase.
+  if (fases.length === 0 || ficha.length === 0) {
+    return jsonResponse(400, {
+      error: "Payload inválido",
+      detalhe: "fases e ficha são obrigatórios e não podem ser vazios",
+    });
+  }
+
+  const camposRecebidos = ficha.map((f: any) => f.campo).filter((c: unknown) => typeof c === "string" && c.length > 0);
+  const slugsRecebidos = fases.map((f: any) => f.slug).filter((s: unknown) => typeof s === "string" && s.length > 0);
+
+  // 1. Remove campos órfãos da matriz antes de mexer nas fases (FK segura).
+  if (camposRecebidos.length > 0) {
+    const { error: errLimpaFicha } = await (supabase as any)
+      .from("produto_ficha_nascimento")
+      .delete()
+      .not("campo", "in", `(${camposRecebidos.map((c: string) => `"${c}"`).join(",")})`);
+    if (errLimpaFicha) {
+      console.error("[recebe-pedido] dimensoes_produto: erro ao limpar ficha órfã", errLimpaFicha);
+      return jsonResponse(500, { error: errLimpaFicha.message });
+    }
+  }
+
+  // 2. Upsert das fases.
+  const { error: errUpsertFases } = await (supabase as any)
+    .from("produto_fase_dim")
+    .upsert(
+      fases.map((f: any) => ({
+        slug: f.slug,
+        nome: f.nome,
+        ordem: f.ordem,
+        visivel_catalogo: f.visivel_catalogo,
+        descricao: f.descricao ?? null,
+      })),
+      { onConflict: "slug" }
+    );
+  if (errUpsertFases) {
+    console.error("[recebe-pedido] dimensoes_produto: erro ao upsert fases", errUpsertFases);
+    return jsonResponse(500, { error: errUpsertFases.message });
+  }
+
+  // 3. Remove fases órfãs (só depois que a matriz já foi ajustada).
+  if (slugsRecebidos.length > 0) {
+    const { error: errLimpaFases } = await (supabase as any)
+      .from("produto_fase_dim")
+      .delete()
+      .not("slug", "in", `(${slugsRecebidos.map((s: string) => `"${s}"`).join(",")})`);
+    if (errLimpaFases) {
+      console.error("[recebe-pedido] dimensoes_produto: erro ao limpar fases órfãs", errLimpaFases);
+      return jsonResponse(500, { error: errLimpaFases.message });
+    }
+  }
+
+  // 4. Upsert da matriz campo × fase.
+  const { error: errUpsertFicha } = await (supabase as any)
+    .from("produto_ficha_nascimento")
+    .upsert(
+      ficha.map((f: any) => ({
+        campo: f.campo,
+        bloco: f.bloco,
+        dono: f.dono,
+        fase_exigida: f.fase_exigida,
+        obrigatorio: f.obrigatorio,
+        ordem: f.ordem,
+        descricao: f.descricao ?? null,
+      })),
+      { onConflict: "campo" }
+    );
+  if (errUpsertFicha) {
+    console.error("[recebe-pedido] dimensoes_produto: erro ao upsert ficha", errUpsertFicha);
+    return jsonResponse(500, { error: errUpsertFicha.message });
+  }
+
+  console.log(`[recebe-pedido] dimensoes_produto: ${fases.length} fases, ${ficha.length} campos espelhados`);
+  return jsonResponse(200, { ok: true, fases: fases.length, ficha: ficha.length });
+}
+// ── fim branch dimensoes_produto ──
 
 
     // ── Branch: sincronização de catálogo de produtos ─────────────────────
