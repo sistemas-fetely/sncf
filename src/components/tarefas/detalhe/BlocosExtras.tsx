@@ -1,20 +1,29 @@
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronDown, Download, Pause, Play, Plus, Trash2, X } from "lucide-react";
+import {
+  ArrowUpRight, Ban, CheckCircle2, ChevronDown, Download, Pause, Play, Trash2, X,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePessoasSistema } from "@/hooks/tarefas/useTarefasCatalogos";
+import { useTarefaAberta } from "@/hooks/tarefas/useTarefaAberta";
 import type { TarefaDetalhe } from "@/hooks/tarefas/useTarefaDetalhe";
 import {
-  abrirAnexo, useAnexos, useApontamentos, useBuscarTarefas, useComentarios, useDependencias,
+  abrirAnexo, useAnexos, useApontamentos, useComentarios,
   useHistoricoTarefa, useMutarAnexos, useMutarApontamentos, useMutarComentarios,
-  useMutarDependencias, useMutarTimer, useTimerAtivo,
+  useMutarTimer, useTimerAtivo,
 } from "@/hooks/tarefas/useTarefaDetalheExtras";
+import {
+  useDependenciasDetalhe, useMutarDependenciaTarefa,
+} from "@/hooks/tarefas/useTarefaBloqueio";
+import { SeloBloqueio } from "@/components/tarefas/SeloBloqueio";
+import { SeletorTarefaDependencia } from "./SeletorTarefaDependencia";
 import { Secao, useNomePessoa, useStatusRotulo } from "./comuns";
 
 function dataHora(iso: string) {
