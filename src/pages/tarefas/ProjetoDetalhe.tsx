@@ -13,6 +13,7 @@ import { PainelProjeto } from "@/components/tarefas/projetos/PainelProjeto";
 import { AutomacoesProjeto } from "@/components/tarefas/projetos/AutomacoesProjeto";
 import { CamposProjeto } from "@/components/tarefas/projetos/CamposProjeto";
 import { PessoasProjeto } from "@/components/tarefas/projetos/PessoasProjeto";
+import { ConfiguracoesProjeto } from "@/components/tarefas/projetos/ConfiguracoesProjeto";
 import { SalvarProjetoComoTemplateDialog } from "@/components/tarefas/templates/SalvarProjetoComoTemplateDialog";
 import { SAUDE_CLASSE, SAUDE_ROTULO, useProjeto } from "@/hooks/tarefas/useProjetosTarefas";
 
