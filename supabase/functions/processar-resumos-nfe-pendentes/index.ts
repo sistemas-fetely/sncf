@@ -67,11 +67,10 @@ Deno.serve(async (req) => {
   type Alvo = {
     id: string;
     arquivo_storage_path: string | null;
-    xml_storage_path: string | null;
     nf_numero: string | null;
   };
   let alvos: Alvo[] = [];
-  const SELECT_COLS = "id, arquivo_storage_path, xml_storage_path, nf_numero";
+  const SELECT_COLS = "id, arquivo_storage_path, nf_numero";
 
   if (body.nfs_stage_id) {
     const { data, error } = await admin
@@ -79,7 +78,13 @@ Deno.serve(async (req) => {
       .select(SELECT_COLS)
       .eq("id", body.nfs_stage_id)
       .single();
-    if (error || !data) {
+    if (error) {
+      return new Response(
+        JSON.stringify({ ok: false, erro: error.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    if (!data) {
       return new Response(
         JSON.stringify({ ok: false, erro: "NFs stage não encontrada" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -87,18 +92,32 @@ Deno.serve(async (req) => {
     }
     alvos = [data as Alvo];
   } else if (body.nfs_stage_ids?.length) {
-    const { data } = await admin
+    const { data, error } = await admin
       .from("nfs_stage")
       .select(SELECT_COLS)
       .in("id", body.nfs_stage_ids);
+    if (error) {
+      return new Response(
+        JSON.stringify({ ok: false, erro: error.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
     alvos = (data || []) as Alvo[];
   } else {
-    const { data } = await admin
+    // coluna inexistente no select fazia a fila voltar vazia e a funcao declarar sucesso —
+    // 364 NFs pararam em silencio. Erro de leitura agora derruba a chamada.
+    const { data, error } = await admin
       .from("nfs_stage")
       .select(SELECT_COLS)
       .eq("resumo_pdf_pendente", true)
       .is("resumo_pdf_gerado_em", null)
       .limit(LOTE_MAX);
+    if (error) {
+      return new Response(
+        JSON.stringify({ ok: false, erro: error.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
     alvos = (data || []) as Alvo[];
   }
 
@@ -106,9 +125,9 @@ Deno.serve(async (req) => {
 
   for (const alvo of alvos) {
     try {
-      const xmlPath = alvo.xml_storage_path || alvo.arquivo_storage_path;
+      const xmlPath = alvo.arquivo_storage_path;
       if (!xmlPath) {
-        await registrarFalha(admin, alvo.id, "sem xml_storage_path nem arquivo_storage_path");
+        await registrarFalha(admin, alvo.id, "sem arquivo_storage_path");
         resultados.push({ nfs_stage_id: alvo.id, ok: false, erro: "sem storage_path" });
         continue;
       }
