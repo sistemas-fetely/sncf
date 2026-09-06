@@ -366,63 +366,51 @@ if (body.tipo === "dimensoes_produto") {
     // ── Branch: sincronização de catálogo de produtos ─────────────────────
     // Autenticação já validada acima via FOP_INBOUND_TOKEN
     if (body.tipo === "catalogo" && Array.isArray(body.produtos)) {
-      const { error: upsertErr } = await (supabase as any)
-        .from("sncf_produtos")
-        .upsert(
-          body.produtos.map((p: any) => {
-            // AUSÊNCIA-NÃO-É-APAGAMENTO: null / undefined / string vazia NÃO entram no upsert
-            // — o valor já gravado no banco sobrevive. Consequência assumida: LIMPAR um campo no
-            // FOP não propaga pelo sync; limpeza é fluxo explícito. Booleans (ativo=false) e
-            // números 0 SÃO valores e entram. Exceção: sku e atualizado_em sempre entram.
-            const linha: Record<string, unknown> = {
-              sku:                  p.sku,
-              cod_cadastro:         typeof p.cod_cadastro === "string" ? p.cod_cadastro.trim() : p.cod_cadastro,
-              fase:                 typeof p.fase === "string" ? p.fase.trim() : p.fase,
-              ean:                  p.ean,
-              nome_comercial:       p.nome_comercial,
-              nome_completo:        p.nome_completo,
-              marca:                p.marca,
-              linha:                p.linha,
-              grupo:                p.grupo,
-              tipo:                 p.tipo,
-              colecao:              p.colecao,
-              cor_nome:             p.cor_nome,
-              tamanho_numero:       p.tamanho_numero,
-              descricao_produto:    p.descricao_produto,
-              tipo_embalagem:       p.tipo_embalagem,
-              material:             p.material,
-              material_descritivo:  p.material_descritivo,
-              ncm:                  p.ncm,
-              cest:                 p.cest,
-              origem_fisc:          p.origem_fisc,
-              origem_prod:          p.origem_prod,
-              preco_atacado:        p.preco_atacado,
-              preco_varejo:         p.preco_varejo,
-              peso_g:               p.peso_g,
-              multiplos:            p.multiplos,
-              ativo:                p.ativo,
-              altura_cm:            p.altura_cm,
-              largura_cm:           p.largura_cm,
-              profundidade_cm:      p.profundidade_cm,
-              // cor e estampa sao os atributos DISCRIMINANTES do produto. Alimentam
-              // fn_gerar_nome_operacional(), que monta o nome_operacional usado pela separacao
-              // (vw_xpm_cad_item) e pela NF. Sem eles, SKUs de nome comercial identico voltam
-              // a ser indistinguiveis para quem separa (causa do PED-2122). Nao remover.
-              cor:                  p.cor,
-              estampa:              p.estampa,
-              atualizado_em:        new Date().toISOString(),
-            };
+      const payload = body.produtos.map((p: any) => ({
+        sku: p.sku,
+        cod_cadastro: p.cod_cadastro,
+        fase: p.fase,
+        ean: p.ean,
+        nome_comercial: p.nome_comercial,
+        nome_completo: p.nome_completo,
+        marca: p.marca,
+        linha: p.linha,
+        grupo: p.grupo,
+        tipo: p.tipo,
+        colecao: p.colecao,
+        cor_nome: p.cor_nome,
+        // cor e estampa sao os atributos DISCRIMINANTES do produto. Alimentam
+        // fn_gerar_nome_operacional(), que monta o nome_operacional usado pela separacao
+        // (vw_xpm_cad_item) e pela NF. Sem eles, SKUs de nome comercial identico voltam
+        // a ser indistinguiveis para quem separa (causa do PED-2122). Nao remover.
+        cor: p.cor,
+        estampa: p.estampa,
+        tamanho_numero: p.tamanho_numero,
+        descricao_produto: p.descricao_produto,
+        tipo_embalagem: p.tipo_embalagem,
+        material: p.material,
+        material_descritivo: p.material_descritivo,
+        ncm: p.ncm,
+        cest: p.cest,
+        origem_fisc: p.origem_fisc,
+        origem_prod: p.origem_prod,
+        preco_atacado: p.preco_atacado,
+        preco_varejo: p.preco_varejo,
+        peso_g: p.peso_g,
+        multiplos: p.multiplos,
+        ativo: p.ativo,
+        altura_cm: p.altura_cm,
+        largura_cm: p.largura_cm,
+        profundidade_cm: p.profundidade_cm,
+      }));
 
-            for (const k of Object.keys(linha)) {
-              if (k === "sku" || k === "atualizado_em") continue;
-              const v = linha[k];
-              if (v === undefined || v === null || (typeof v === "string" && v.trim() === "")) delete linha[k];
-            }
+      // AUSÊNCIA-NÃO-É-APAGAMENTO vive na RPC (lei do banco), não aqui. Upsert direto em
+      // sncf_produtos está PROIBIDO neste branch: o lote do PostgREST unifica colunas e
+      // chave ausente viraria null sobrescrevendo (bug pego em teste E2E 06/09/2026).
+      const { data: resultado, error: upsertErr } = await supabase.rpc("fn_upsert_catalogo", {
+        p_produtos: payload,
+      });
 
-            return linha;
-          }),
-          { onConflict: "sku" }
-        );
       if (upsertErr) {
         console.error("[recebe-pedido] upsert catálogo:", upsertErr);
         return jsonResponse(500, { error: upsertErr.message });
@@ -448,8 +436,14 @@ if (body.tipo === "dimensoes_produto") {
         }
       }
 
-      console.log(`[recebe-pedido] catálogo: ${body.produtos.length} produtos upsertados`);
-      return jsonResponse(200, { ok: true, upsertados: body.produtos.length });
+      const resumo = (resultado as any) ?? {};
+      console.log(`[recebe-pedido] catálogo: ${resumo.recebidos ?? body.produtos.length} produtos processados`);
+      return jsonResponse(200, {
+        ok: true,
+        recebidos: resumo.recebidos ?? body.produtos.length,
+        inseridos: resumo.inseridos ?? 0,
+        atualizados: resumo.atualizados ?? 0,
+      });
     }
     // ─────────────────────────────────────────────────────────────────────
 

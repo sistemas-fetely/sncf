@@ -87972,6 +87972,7 @@ export type Database = {
         Returns: string
       }
       fn_uf_por_cep: { Args: { p_cep: string }; Returns: string }
+      fn_upsert_catalogo: { Args: { p_produtos: Json }; Returns: Json }
       fn_v_pessoas_sistema: {
         Args: never
         Returns: {
