@@ -13,6 +13,8 @@ import {
   useValoresCampos, type CampoPersonalizado, type TarefaDetalhe,
 } from "@/hooks/tarefas/useTarefaDetalhe";
 import { Campo, PRIORIDADE_ROTULO, Secao, SEM_VALOR, SeletorPessoa, useNomePessoa, useStatusRotulo } from "./comuns";
+import { SeletorPedidoVinculo } from "./SeletorPedidoVinculo";
+import { pedidoIdDaUrl } from "@/hooks/tarefas/usePedidosParaVinculo";
 import { useStatusTarefaDim } from "@/hooks/tarefas/useStatusTarefaDim";
 import type { TarefaPrioridade, TarefaStatus } from "@/hooks/tarefas/useTarefas";
 
