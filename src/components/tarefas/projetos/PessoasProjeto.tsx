@@ -76,8 +76,10 @@ export function PessoasProjeto({ projetoId }: Props) {
   const [novoPapel, setNovoPapel] = useState("");
   const [abertoPessoa, setAbertoPessoa] = useState(false);
   const [modo, setModo] = useState<ModoAdicao>("uma");
-  const [criterio, setCriterio] = useState<CriterioMassa>("departamento");
-  const [valorCriterio, setValorCriterio] = useState("");
+  const [buscaMassa, setBuscaMassa] = useState("");
+  const [filtroDepto, setFiltroDepto] = useState("todos");
+  const [filtroNivel, setFiltroNivel] = useState("todos");
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
 
   const papelEscolhido = papeis?.find((p) => p.codigo === novoPapel);
   const pessoaEscolhida = pessoas?.find((p) => p.user_id === novaPessoa);
