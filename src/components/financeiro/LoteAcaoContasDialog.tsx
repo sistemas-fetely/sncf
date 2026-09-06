@@ -27,6 +27,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { formatBRL } from "@/lib/format-currency";
+import { hojeISO } from "@/lib/data";
 import type { TituloPagarAcao } from "@/hooks/financeiro/useTituloPagarEstado";
 
 /**
