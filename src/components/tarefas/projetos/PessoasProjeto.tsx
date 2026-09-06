@@ -272,7 +272,7 @@ export function PessoasProjeto({ projetoId }: Props) {
         </div>
       </section>
 
-      <section className="space-y-3 border-t pt-4">
+      <section className="space-y-2 border-t pt-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-medium">Adicionar participante</h3>
           {podeGerenciar && (
