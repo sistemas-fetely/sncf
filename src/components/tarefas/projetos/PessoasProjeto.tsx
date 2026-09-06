@@ -207,7 +207,7 @@ export function PessoasProjeto({ projetoId }: Props) {
 
   return (
     <div className="max-w-6xl space-y-4">
-      <section className="space-y-3">
+      <section className="space-y-2">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium">Quem participa</h3>
           {!podeGerenciar && (
