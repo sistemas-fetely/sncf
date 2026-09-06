@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { CalendarClock, ChevronDown, ChevronUp, GripVertical, ListChecks, Lock, MoreHorizontal, Plus } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { LinkOrigemTarefa } from "@/components/tarefas/LinkOrigemTarefa";
@@ -7,18 +8,26 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useNomePessoa, PRIORIDADE_ROTULO } from "@/components/tarefas/detalhe/comuns";
+import { useFiltrosPersistentes } from "@/hooks/useFiltrosPersistentes";
 import { useTarefaAberta } from "@/hooks/tarefas/useTarefaAberta";
 import { useAlterarStatusTarefa } from "@/hooks/tarefas/useTarefaMutations";
+import { useStatusTarefaDim, type StatusTarefaDim } from "@/hooks/tarefas/useStatusTarefaDim";
+import type { TarefaStatus } from "@/hooks/tarefas/useTarefas";
 import {
   useCriarSecao, useCriarTarefaNaSecao, useExcluirSecao, useMoverTarefaSecao,
   usePodeGerenciarProjeto, useRenomearSecao, useReordenarSecoes, useSecoesProjeto,
@@ -30,6 +39,10 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const SEM_SECAO = "__sem_secao__";
+const DIAS_CONCLUIDAS = 7;
+
+type AgruparPor = "secao" | "status";
+
 
 const PRIORIDADE_CLASSE: Record<string, string> = {
   urgente: "border-destructive/40 bg-destructive/10 text-destructive",
@@ -87,12 +100,22 @@ export function BoardProjeto({ projetoId }: Props) {
   const [novaTarefaEm, setNovaTarefaEm] = useState<string | null>(null);
   const [passosAbertos, setPassosAbertos] = useState<Record<string, boolean>>({});
   const [tituloNovaTarefa, setTituloNovaTarefa] = useState("");
+  /** a escolha do agrupamento sobrevive a sair e voltar do board */
+  const [agruparPor, setAgruparPor] = useFiltrosPersistentes<AgruparPor>("board_agrupar", "secao");
+  const { data: statusDim } = useStatusTarefaDim();
+  /** status exibido até a mutation confirmar; rollback em erro */
+  const [otimista, setOtimista] = useState<Record<string, TarefaStatus>>({});
+  const [pedido, setPedido] = useState<{ tarefaId: string; status: StatusTarefaDim } | null>(null);
+  const [motivo, setMotivo] = useState("");
 
-  const colunas = useMemo(() => {
-    const lista = [{ id: SEM_SECAO, nome: "Sem seção", fixa: true }];
-    for (const s of secoes ?? []) lista.push({ id: s.id, nome: s.nome, fixa: false });
-    return lista;
-  }, [secoes]);
+  const statusAbertos = useMemo(
+    () => (statusDim ?? []).filter((s) => s.e_aberto),
+    [statusDim]
+  );
+  const rotuloStatus = useCallback(
+    (codigo: string) => statusDim?.find((s) => s.codigo === codigo)?.nome ?? codigo,
+    [statusDim]
+  );
 
   /**
    * Modelo ClickUp: quem tem filha é contêiner e continua card (é o agrupador
@@ -120,18 +143,78 @@ export function BoardProjeto({ projetoId }: Props) {
     return mapa;
   }, [tarefas]);
 
+  const ehContainer = useCallback(
+    (t: TarefaBoard) => (filhasPorMae.get(t.id) ?? []).length > 0,
+    [filhasPorMae]
+  );
+
+  const statusExibido = useCallback(
+    (t: TarefaBoard) => otimista[t.id] ?? (t.status as TarefaStatus),
+    [otimista]
+  );
+
+  /**
+   * Seção = onde o trabalho está no fluxo; status = estado. Nunca existe coluna
+   * "Concluídos" entre as seções — no modo status, sim: uma coluna de concluída
+   * no fim, com recorte de 7 dias no cabeçalho.
+   */
+  const colunas = useMemo(() => {
+    if (agruparPor === "status") {
+      return [
+        ...statusAbertos.map((s) => ({ id: s.codigo, nome: s.nome, fixa: true })),
+        {
+          id: "concluida",
+          nome: `${rotuloStatus("concluida")} · últimos ${DIAS_CONCLUIDAS} dias`,
+          fixa: true,
+        },
+      ];
+    }
+    const lista = [{ id: SEM_SECAO, nome: "Sem seção", fixa: true }];
+    for (const s of secoes ?? []) lista.push({ id: s.id, nome: s.nome, fixa: false });
+    return lista;
+  }, [agruparPor, secoes, statusAbertos, rotuloStatus]);
+
   const porColuna = useMemo(() => {
     const mapa = new Map<string, TarefaBoard[]>();
     const visiveis = (tarefas ?? []).filter(ehCard);
+    const corte = Date.now() - DIAS_CONCLUIDAS * 24 * 60 * 60 * 1000;
     for (const t of visiveis) {
-      const chave = t.secao_id ?? SEM_SECAO;
+      let chave: string;
+      if (agruparPor === "status") {
+        chave = statusExibido(t);
+        if (chave === "concluida" && t.data_conclusao) {
+          if (new Date(t.data_conclusao).getTime() < corte) continue;
+        }
+      } else {
+        chave = t.secao_id ?? SEM_SECAO;
+      }
       mapa.set(chave, [...(mapa.get(chave) ?? []), t]);
     }
     return mapa;
-  }, [tarefas, ehCard]);
+  }, [tarefas, ehCard, agruparPor, statusExibido]);
 
   function podeArrastar(t: TarefaBoard): boolean {
-    return !!podeGerenciar || t.responsavel_id === user?.id || t.criado_por === user?.id;
+    const permitido = !!podeGerenciar || t.responsavel_id === user?.id || t.criado_por === user?.id;
+    if (!permitido) return false;
+    // contêiner fecha pelo progresso das filhas — não muda de status arrastando
+    if (agruparPor === "status" && ehContainer(t)) return false;
+    return true;
+  }
+
+  /** FAIL-LOUD: otimista, await real, rollback e toast no erro. */
+  async function trocarStatus(tarefaId: string, status: TarefaStatus, motivoTexto?: string) {
+    setOtimista((o) => ({ ...o, [tarefaId]: status }));
+    try {
+      await alterarStatus.mutateAsync({ id: tarefaId, status, motivo: motivoTexto ?? null });
+    } catch (err) {
+      setOtimista((o) => {
+        const { [tarefaId]: _fora, ...resto } = o;
+        return resto;
+      });
+      toast.error(
+        `Não foi possível mover para "${rotuloStatus(status)}": ${err instanceof Error ? err.message : "erro inesperado"}`
+      );
+    }
   }
 
   function soltar(colunaId: string, e: React.DragEvent) {
@@ -141,10 +224,26 @@ export function BoardProjeto({ projetoId }: Props) {
     if (!tarefaId) return;
     const atual = (tarefas ?? []).find((t) => t.id === tarefaId);
     if (!atual) return;
+
+    if (agruparPor === "status") {
+      if (ehContainer(atual)) return;
+      if (statusExibido(atual) === colunaId) return;
+      // dimensão inteira, não só abertos: a coluna Concluída também é alvo
+      const dim = statusDim?.find((s) => s.codigo === colunaId);
+      if (dim?.exige_motivo) {
+        setMotivo("");
+        setPedido({ tarefaId, status: dim });
+        return;
+      }
+      void trocarStatus(tarefaId, colunaId as TarefaStatus);
+      return;
+    }
+
     const destino = colunaId === SEM_SECAO ? null : colunaId;
     if ((atual.secao_id ?? null) === destino) return;
     mover.mutate({ tarefaId, secaoId: destino });
   }
+
 
   function mover1(id: string, direcao: -1 | 1) {
     const lista = (secoes ?? []).slice();
@@ -160,30 +259,44 @@ export function BoardProjeto({ projetoId }: Props) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        <Input
-          value={novaSecao}
-          onChange={(e) => setNovaSecao(e.target.value)}
-          placeholder="Nome da nova seção"
-          className="h-9 w-56"
-          disabled={!podeGerenciar}
-        />
-        <Button
-          size="sm"
-          disabled={!podeGerenciar || !novaSecao.trim() || criarSecao.isPending}
-          onClick={() => {
-            criarSecao.mutate({ nome: novaSecao.trim(), ordem: (secoes?.length ?? 0) });
-            setNovaSecao("");
-          }}
-        >
-          <Plus className="mr-1 h-4 w-4" /> Nova seção
-        </Button>
+        <span className="text-xs text-muted-foreground">Agrupar por:</span>
+        <Select value={agruparPor} onValueChange={(v) => setAgruparPor(v as AgruparPor)}>
+          <SelectTrigger className="h-9 w-40"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="secao">Seção</SelectItem>
+            <SelectItem value="status">Status</SelectItem>
+          </SelectContent>
+        </Select>
 
-        {!podeGerenciar && (
-          <span className="text-xs text-muted-foreground">
-            Você não gerencia este projeto — seções são somente leitura.
-          </span>
+        {agruparPor === "secao" && (
+          <>
+            <Input
+              value={novaSecao}
+              onChange={(e) => setNovaSecao(e.target.value)}
+              placeholder="Nome da nova seção"
+              className="h-9 w-56"
+              disabled={!podeGerenciar}
+            />
+            <Button
+              size="sm"
+              disabled={!podeGerenciar || !novaSecao.trim() || criarSecao.isPending}
+              onClick={() => {
+                criarSecao.mutate({ nome: novaSecao.trim(), ordem: (secoes?.length ?? 0) });
+                setNovaSecao("");
+              }}
+            >
+              <Plus className="mr-1 h-4 w-4" /> Nova seção
+            </Button>
+
+            {!podeGerenciar && (
+              <span className="text-xs text-muted-foreground">
+                Você não gerencia este projeto — seções são somente leitura.
+              </span>
+            )}
+          </>
         )}
       </div>
+
 
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando board…</p>
@@ -257,6 +370,8 @@ export function BoardProjeto({ projetoId }: Props) {
                     const filhas = filhasPorMae.get(t.id) ?? [];
                     const feitas = filhas.filter((f) => f.status === "concluida").length;
                     const passosVisiveis = !!passosAbertos[t.id];
+                    const container = filhas.length > 0;
+                    const statusDoCard = statusExibido(t);
                     const camposDoCard = camposCard
                       .map((c) => {
                         const meta = catalogo?.find((k) => k.id === c.campo_id);
@@ -271,6 +386,7 @@ export function BoardProjeto({ projetoId }: Props) {
                         key={t.id}
                         draggable={arrastavel}
                         onDragStart={(e) => {
+                          if (!arrastavel) return;
                           e.dataTransfer.setData("text/tarefa-id", t.id);
                           e.dataTransfer.effectAllowed = "move";
                         }}
@@ -278,7 +394,7 @@ export function BoardProjeto({ projetoId }: Props) {
                         className={cn(
                           "cursor-pointer space-y-2 border p-3 transition hover:shadow-sm",
                           arrastavel ? "active:opacity-70" : "opacity-95",
-                          t.status === "concluida" && "opacity-60"
+                          statusDoCard === "concluida" && "opacity-60"
                         )}
                       >
                         <div className="flex items-start gap-2">
@@ -290,14 +406,38 @@ export function BoardProjeto({ projetoId }: Props) {
                                 <TooltipTrigger asChild>
                                   <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                                 </TooltipTrigger>
-                                <TooltipContent>Você não pode mover esta tarefa</TooltipContent>
+                                <TooltipContent>
+                                  {agruparPor === "status" && container
+                                    ? "Agrupador: fecha pelo progresso das subtarefas, não arrasta"
+                                    : "Você não pode mover esta tarefa"}
+                                </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                           )}
+                          {/* contêiner NÃO tem checkbox: fecha pelo progresso das filhas */}
+                          {!container && (
+                            <Checkbox
+                              className="mt-0.5"
+                              checked={statusDoCard === "concluida"}
+                              aria-label="Concluir tarefa"
+                              onClick={(e) => e.stopPropagation()}
+                              onCheckedChange={(v) =>
+                                void trocarStatus(t.id, v ? "concluida" : "pendente")
+                              }
+                            />
+                          )}
                           <div className="min-w-0 flex-1">
-                            <span className="text-sm font-medium leading-snug">{t.titulo}</span>
+                            <span
+                              className={cn(
+                                "text-sm font-medium leading-snug",
+                                statusDoCard === "concluida" && "text-muted-foreground line-through"
+                              )}
+                            >
+                              {t.titulo}
+                            </span>
                           </div>
                         </div>
+
 
                         <div className="flex flex-wrap items-center gap-1.5">
                           <Badge variant="outline" className={cn("text-[10px]", PRIORIDADE_CLASSE[t.prioridade])}>
@@ -386,7 +526,7 @@ export function BoardProjeto({ projetoId }: Props) {
                     );
                   })}
 
-                  {novaTarefaEm === col.id ? (
+                  {agruparPor === "status" ? null : novaTarefaEm === col.id ? (
                     <Input
                       autoFocus
                       className="h-8"
@@ -443,6 +583,44 @@ export function BoardProjeto({ projetoId }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* status com exige_motivo não move sem explicação — cancelar deixa o card onde estava */}
+      <Dialog open={!!pedido} onOpenChange={(v) => !v && setPedido(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Por que está {pedido?.status.nome.toLowerCase()}?</DialogTitle>
+            <DialogDescription>
+              {pedido?.status.descricao ??
+                "Esse status exige um motivo — quem olhar depois precisa entender a parada."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="motivo-estado-board">Motivo</Label>
+            <Textarea
+              id="motivo-estado-board"
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              placeholder="Ex.: esperando resposta do fornecedor"
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPedido(null)}>Cancelar</Button>
+            <Button
+              disabled={!motivo.trim()}
+              onClick={() => {
+                if (!pedido) return;
+                const { tarefaId, status } = pedido;
+                const texto = motivo.trim();
+                setPedido(null);
+                void trocarStatus(tarefaId, status.codigo as TarefaStatus, texto);
+              }}
+            >
+              Mover
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
