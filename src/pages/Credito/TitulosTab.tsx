@@ -1,5 +1,5 @@
-import React, { Fragment, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { Fragment, useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useTitulosCobranca,
@@ -45,6 +45,7 @@ import { RegistrarDevolucaoDialog } from "@/components/credito/RegistrarDevoluca
 import { DevolucaoParcialDialog } from "@/components/credito/DevolucaoParcialDialog";
 import { BaixarPorPerdaDialog } from "@/components/credito/BaixarPorPerdaDialog";
 import { RenegociarTituloDialog } from "@/components/credito/RenegociarTituloDialog";
+import { TituloTarefasBloco } from "@/components/credito/TituloTarefasBloco";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -587,6 +588,8 @@ export default function TitulosTab() {
   const [vencDe, setVencDe] = useState("");
   const [vencAte, setVencAte] = useState("");
   const [detalhe, setDetalhe] = useState<TituloCobranca | null>(null);
+  const [params, setParams] = useSearchParams();
+  const tituloDaUrl = params.get("titulo");
   const [baixando, setBaixando] = useState<TituloCobranca | null>(null);
   const [convertendo, setConvertendo] = useState<TituloCobranca | null>(null);
   const [reemitindo, setReemitindo] = useState<TituloCobranca | null>(null);
@@ -609,6 +612,13 @@ export default function TitulosTab() {
       return next;
     });
   }
+
+  /* Link vindo de uma tarefa (`?titulo={id}`): abre o drawer do título. */
+  useEffect(() => {
+    if (!tituloDaUrl || detalhe?.id === tituloDaUrl) return;
+    const achado = titulos.find((t) => t.id === tituloDaUrl);
+    if (achado) setDetalhe(achado);
+  }, [tituloDaUrl, titulos, detalhe?.id]);
 
   const mesAtual = new Date().toISOString().slice(0, 7);
   const q = busca.trim().toLowerCase();
@@ -927,7 +937,18 @@ export default function TitulosTab() {
       </p>
 
       {/* Drawer detalhe */}
-      <Sheet open={!!detalhe} onOpenChange={(o) => !o && setDetalhe(null)}>
+      <Sheet
+        open={!!detalhe}
+        onOpenChange={(o) => {
+          if (o) return;
+          setDetalhe(null);
+          if (params.get("titulo")) {
+            const next = new URLSearchParams(params);
+            next.delete("titulo");
+            setParams(next, { replace: true });
+          }
+        }}
+      >
         <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
           {detalhe && (
             <>
@@ -1226,6 +1247,8 @@ export default function TitulosTab() {
 
                 <HistoricoInstrumentoSection tituloId={detalhe.id} />
                 <HistoricoReguaSection tituloId={detalhe.id} />
+
+                <TituloTarefasBloco tituloId={detalhe.id} />
               </div>
 
 

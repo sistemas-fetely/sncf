@@ -17,7 +17,7 @@ import type { Tarefa, TarefaPrioridade } from "@/hooks/tarefas/useTarefas";
 import { useAlterarStatusTarefa, useReagendarTarefa } from "@/hooks/tarefas/useTarefaMutations";
 import { useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
 import { useStatusRotulo } from "@/components/tarefas/detalhe/comuns";
-import { LinkPedidoTarefa } from "@/components/tarefas/LinkPedidoTarefa";
+import { LinkOrigemTarefa } from "@/components/tarefas/LinkOrigemTarefa";
 
 
 const PRIORIDADE_CLASSE: Record<TarefaPrioridade, string> = {
@@ -113,7 +113,7 @@ export function TarefaItem({
           <Badge variant="outline" className={cn("text-[10px] py-0", PRIORIDADE_CLASSE[tarefa.prioridade])}>
             {PRIORIDADE_ROTULO[tarefa.prioridade]}
           </Badge>
-          <LinkPedidoTarefa acaoUrl={tarefa.acao_url} />
+          <LinkOrigemTarefa acaoUrl={tarefa.acao_url} />
           {projeto && (
             <span className="text-[11px] text-muted-foreground" style={{ color: projeto.cor || undefined }}>
               #{projeto.nome}
