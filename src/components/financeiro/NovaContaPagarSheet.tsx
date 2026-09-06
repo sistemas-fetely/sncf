@@ -397,12 +397,34 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
           origem: "manual",
         });
       }
+
+      // Guarda de duplicata: sistema sugere, humano decide. Nunca bloqueia.
+      if (!opts?.forcar) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: gemeosRaw, error: gemeosErr } = await (supabase as any).rpc(
+          "fn_titulo_pagar_gemeos",
+          {
+            p_parceiro_id: parceiroId,
+            p_valor: rows[0].valor,
+            p_data_vencimento: rows[0].data_vencimento,
+            p_nf_numero: null,
+          },
+        );
+        if (gemeosErr) throw gemeosErr;
+        const lista = (gemeosRaw ?? []) as TituloGemeo[];
+        if (lista.length > 0) {
+          setGemeos(lista);
+          return "gemeos" as const;
+        }
+      }
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: inseridas, error } = await (supabase as any)
         .from("contas_pagar_receber")
         .insert(rows)
         .select("id, parcela_atual");
       if (error) throw error;
+
 
       // Vincula NF do Repositório à primeira parcela (modelo N:1).
       if (nfStageId) {
