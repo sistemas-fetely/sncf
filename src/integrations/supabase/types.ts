@@ -16919,6 +16919,96 @@ export type Database = {
         }
         Relationships: []
       }
+      fop_categorias: {
+        Row: {
+          criado_em: string | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          criado_em?: string | null
+          id: string
+          nome: string
+        }
+        Update: {
+          criado_em?: string | null
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      fop_colecoes: {
+        Row: {
+          criado_em: string | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          criado_em?: string | null
+          id: string
+          nome: string
+        }
+        Update: {
+          criado_em?: string | null
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      fop_cores: {
+        Row: {
+          criado_em: string | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          criado_em?: string | null
+          id: string
+          nome: string
+        }
+        Update: {
+          criado_em?: string | null
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      fop_departamentos: {
+        Row: {
+          criado_em: string | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          criado_em?: string | null
+          id: string
+          nome: string
+        }
+        Update: {
+          criado_em?: string | null
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      fop_grupos: {
+        Row: {
+          criado_em: string | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          criado_em?: string | null
+          id: string
+          nome: string
+        }
+        Update: {
+          criado_em?: string | null
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
       formas_pagamento: {
         Row: {
           ativo: boolean | null
@@ -36012,6 +36102,33 @@ export type Database = {
         }
         Relationships: []
       }
+      produto_ficha_nascimento: {
+        Row: {
+          bloco: string
+          campo: string
+          descricao: string | null
+          dono: string
+          obrigatorio: boolean
+          ordem: number
+        }
+        Insert: {
+          bloco: string
+          campo: string
+          descricao?: string | null
+          dono: string
+          obrigatorio?: boolean
+          ordem: number
+        }
+        Update: {
+          bloco?: string
+          campo?: string
+          descricao?: string | null
+          dono?: string
+          obrigatorio?: boolean
+          ordem?: number
+        }
+        Relationships: []
+      }
       produtos: {
         Row: {
           altura_cm: number | null
@@ -41905,6 +42022,7 @@ export type Database = {
           ativo: boolean
           atualizado_em: string
           cest: string | null
+          cod_cadastro: string | null
           colecao: string | null
           cor: string | null
           cor_nome: string | null
@@ -41939,6 +42057,7 @@ export type Database = {
           ativo?: boolean
           atualizado_em?: string
           cest?: string | null
+          cod_cadastro?: string | null
           colecao?: string | null
           cor?: string | null
           cor_nome?: string | null
@@ -41973,6 +42092,7 @@ export type Database = {
           ativo?: boolean
           atualizado_em?: string
           cest?: string | null
+          cod_cadastro?: string | null
           colecao?: string | null
           cor?: string | null
           cor_nome?: string | null
