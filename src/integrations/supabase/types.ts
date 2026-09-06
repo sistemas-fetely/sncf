@@ -75976,17 +75976,18 @@ export type Database = {
       }
       vw_produto_mesa_fase: {
         Row: {
-          campos_faltando: string[] | null
           cod_cadastro: string | null
           colecao: string | null
           donos_pendencia: string[] | null
+          falta_fase_atual: string[] | null
+          falta_proxima_fase: string[] | null
           fase: string | null
           fase_nome: string | null
           fase_ordem: number | null
-          ficha_limpa: boolean | null
           grupo: string | null
           nome_comercial: string | null
           nome_operacional: string | null
+          pronto_proxima_fase: boolean | null
           proxima_fase: string | null
           saldo_disponivel: number | null
           sku: string | null
