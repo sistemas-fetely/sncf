@@ -78,7 +78,13 @@ Deno.serve(async (req) => {
       .select(SELECT_COLS)
       .eq("id", body.nfs_stage_id)
       .single();
-    if (error || !data) {
+    if (error) {
+      return new Response(
+        JSON.stringify({ ok: false, erro: error.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    if (!data) {
       return new Response(
         JSON.stringify({ ok: false, erro: "NFs stage não encontrada" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -86,18 +92,32 @@ Deno.serve(async (req) => {
     }
     alvos = [data as Alvo];
   } else if (body.nfs_stage_ids?.length) {
-    const { data } = await admin
+    const { data, error } = await admin
       .from("nfs_stage")
       .select(SELECT_COLS)
       .in("id", body.nfs_stage_ids);
+    if (error) {
+      return new Response(
+        JSON.stringify({ ok: false, erro: error.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
     alvos = (data || []) as Alvo[];
   } else {
-    const { data } = await admin
+    // coluna inexistente no select fazia a fila voltar vazia e a funcao declarar sucesso —
+    // 364 NFs pararam em silencio. Erro de leitura agora derruba a chamada.
+    const { data, error } = await admin
       .from("nfs_stage")
       .select(SELECT_COLS)
       .eq("resumo_pdf_pendente", true)
       .is("resumo_pdf_gerado_em", null)
       .limit(LOTE_MAX);
+    if (error) {
+      return new Response(
+        JSON.stringify({ ok: false, erro: error.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
     alvos = (data || []) as Alvo[];
   }
 
