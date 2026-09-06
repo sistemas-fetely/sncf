@@ -971,6 +971,17 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
           toast.success("Dados da NF preenchidos automaticamente");
         }}
       />
+
+      <GemeosTituloAlertDialog
+        open={gemeos.length > 0}
+        gemeos={gemeos}
+        processando={mutation.isPending}
+        onCancelar={() => setGemeos([])}
+        onCriarMesmoAssim={() => {
+          setGemeos([]);
+          mutation.mutate({ forcar: true });
+        }}
+      />
     </>
   );
 }
