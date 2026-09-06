@@ -59,20 +59,24 @@ interface Props {
   onAplicado: () => void;
 }
 
-export function LoteAcaoContasDialog({ open, onOpenChange, ids, acao, onAplicado }: Props) {
+export function LoteAcaoContasDialog({ open, onOpenChange, ids, acao, dataPretendidaInicial, onAplicado }: Props) {
   const qc = useQueryClient();
   const [motivo, setMotivo] = useState("");
   const [dataPretendida, setDataPretendida] = useState("");
+  const [erroData, setErroData] = useState<string | null>(null);
   const [executando, setExecutando] = useState(false);
   const [resultado, setResultado] = useState<{ aplicados: number; falhas: Falha[] } | null>(null);
+
+  const hoje = hojeISO();
 
   useEffect(() => {
     if (open) {
       setMotivo("");
-      setDataPretendida("");
+      setDataPretendida(dataPretendidaInicial || "");
+      setErroData(null);
       setResultado(null);
     }
-  }, [open]);
+  }, [open, dataPretendidaInicial]);
 
   const resumoQuery = useQuery({
     queryKey: ["titulo-pagar-lote-resumo", ids.slice().sort().join(",")],
