@@ -86298,6 +86298,15 @@ export type Database = {
           valor: number
         }[]
       }
+      fn_titulo_pagar_gemeos: {
+        Args: {
+          p_data_vencimento: string
+          p_nf_numero?: string
+          p_parceiro_id: string
+          p_valor: number
+        }
+        Returns: Json
+      }
       fn_titulo_pagar_tem_prova: { Args: { p_cpr_id: string }; Returns: Json }
       fn_titulo_pagar_transicionar: {
         Args: {

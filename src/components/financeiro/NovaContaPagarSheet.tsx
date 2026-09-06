@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  GemeosTituloAlertDialog,
+  type TituloGemeo,
+} from "@/components/financeiro/GemeosTituloAlertDialog";
+import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -343,8 +347,10 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
   // Vindo de boleto via import: trava parcelas + bloqueia valor/vencimento
   const veioDeBoleto = !!initialData?.nfStageDocumentoId;
 
+  const [gemeos, setGemeos] = useState<TituloGemeo[]>([]);
+
   const mutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (opts?: { forcar?: boolean }) => {
       if (!parceiroId) throw new Error("Parceiro / Fornecedor é obrigatório");
       if (!descricao.trim()) throw new Error("Descrição é obrigatória");
       if (!valorNum || valorNum <= 0) throw new Error("Valor inválido");
@@ -397,12 +403,34 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
           origem: "manual",
         });
       }
+
+      // Guarda de duplicata: sistema sugere, humano decide. Nunca bloqueia.
+      if (!opts?.forcar) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: gemeosRaw, error: gemeosErr } = await (supabase as any).rpc(
+          "fn_titulo_pagar_gemeos",
+          {
+            p_parceiro_id: parceiroId,
+            p_valor: rows[0].valor,
+            p_data_vencimento: rows[0].data_vencimento,
+            p_nf_numero: null,
+          },
+        );
+        if (gemeosErr) throw gemeosErr;
+        const lista = (gemeosRaw ?? []) as TituloGemeo[];
+        if (lista.length > 0) {
+          setGemeos(lista);
+          return "gemeos" as const;
+        }
+      }
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: inseridas, error } = await (supabase as any)
         .from("contas_pagar_receber")
         .insert(rows)
         .select("id, parcela_atual");
       if (error) throw error;
+
 
       // Vincula NF do Repositório à primeira parcela (modelo N:1).
       if (nfStageId) {
@@ -415,7 +443,11 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
             p_conta_id: primeira.id,
           });
           if (vincErr) {
-            console.warn("Falha ao vincular NF à CPR recém-criada:", vincErr);
+            console.error("Falha ao vincular NF à CPR recém-criada:", vincErr);
+            toast.error(
+              `Despesa criada, mas falhou ao vincular a NF: ${vincErr.message}. Vincule manualmente pelo clipe na tabela.`,
+              { duration: 12000, closeButton: true },
+            );
           }
         }
       }
@@ -446,13 +478,16 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
 
       // Status do stage é recalculado automaticamente por trigger no banco
       // (ver função recalcular_status_nf_stage / Fase E)
+      return "criado" as const;
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
+      if (res === "gemeos") return; // aguardando decisão do humano
       toast.success(parcelas > 1 ? `${parcelas} parcelas registradas!` : "Despesa registrada!");
       qc.invalidateQueries({ queryKey: ["contas-pagar"] });
       setNfStageId(null);
       onOpenChange(false);
     },
+
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -851,7 +886,7 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
 
           <SheetFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+            <Button onClick={() => mutation.mutate({})} disabled={mutation.isPending}>
               {mutation.isPending ? "Salvando..." : "Salvar"}
             </Button>
           </SheetFooter>
@@ -934,6 +969,17 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
           if (!categoriaId && nf.plano_contas_id) setCategoriaId(nf.plano_contas_id);
 
           toast.success("Dados da NF preenchidos automaticamente");
+        }}
+      />
+
+      <GemeosTituloAlertDialog
+        open={gemeos.length > 0}
+        gemeos={gemeos}
+        processando={mutation.isPending}
+        onCancelar={() => setGemeos([])}
+        onCriarMesmoAssim={() => {
+          setGemeos([]);
+          mutation.mutate({ forcar: true });
         }}
       />
     </>
