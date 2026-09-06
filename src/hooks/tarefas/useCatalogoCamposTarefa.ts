@@ -132,7 +132,13 @@ export function useEditarCampoCatalogo() {
   const invalidar = useInvalidarCatalogo();
   return useMutation({
     mutationFn: async (p: EditarCampoPayload) => {
-      const patch: Record<string, unknown> = {
+      const patch: {
+        nome: string;
+        descricao: string | null;
+        departamento_id: string | null;
+        opcoes: Json;
+        tipo?: CampoTipo;
+      } = {
         nome: p.nome,
         descricao: p.descricao,
         departamento_id: p.departamento_id,
