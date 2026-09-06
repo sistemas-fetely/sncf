@@ -130,6 +130,7 @@ const GerenciarVisibilidade = lazy(() => import("@/pages/admin/GerenciarVisibili
 const MesaDeclaracoes = lazy(() => import("@/pages/admin/MesaDeclaracoes"));
 const AtribuicoesCarga = lazy(() => import("@/pages/admin/AtribuicoesCarga"));
 const NomesBling = lazy(() => import("@/pages/acervo/NomesBling"));
+const MesaProduto = lazy(() => import("@/pages/acervo/MesaProduto"));
 const GestaoAVista = lazy(() => import("@/pages/GestaoAVista"));
 const DocumentacaoGeral = lazy(() => import("@/pages/DocumentacaoGeral"));
 const PlanoDeContas = lazy(() => import("@/pages/administrativo/PlanoDeContas"));
@@ -373,6 +374,11 @@ const App = () => (
                 <Route path="/vendas/bling-pedidos" element={<PedidosVenda />} />
                 
                 <Route path="/vendas/produto" element={<Produtos />} />
+                <Route path="/vendas/produto/mesa" element={
+                  <ProtectedRoute>
+                    <MesaProduto />
+                  </ProtectedRoute>
+                } />
                 <Route element={<ProdutoEstoqueLayout />}>
                   
                   <Route path="/vendas/produto/estoque/virtual" element={<EstoqueVirtual />} />
