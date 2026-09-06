@@ -75,6 +75,7 @@ export default function ProjetoDetalhe() {
           <TabsTrigger value="painel">Painel</TabsTrigger>
           <TabsTrigger value="automacoes">Automações</TabsTrigger>
           <TabsTrigger value="campos">Campos</TabsTrigger>
+          <TabsTrigger value="pessoas">Pessoas</TabsTrigger>
         </TabsList>
 
         <TabsContent value="board" className="pt-4">
