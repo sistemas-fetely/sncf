@@ -304,10 +304,27 @@ export function ImportarNFDespesaDialog({
           boletos={itemAtual.boletos}
           posicaoFila={{ atual: filaIndex + 1, total: fila.length }}
           processando={criandoDespesa}
-          onConfirmar={criarDespesa}
+          onConfirmar={(d) => criarDespesa(d)}
           onPular={pularNF}
         />
       )}
+
+      <GemeosTituloAlertDialog
+        open={gemeos.length > 0}
+        gemeos={gemeos}
+        processando={criandoDespesa}
+        onCancelar={() => {
+          setGemeos([]);
+          setDadosPendentes(null);
+        }}
+        onCriarMesmoAssim={() => {
+          const pend = dadosPendentes;
+          setGemeos([]);
+          setDadosPendentes(null);
+          if (pend) void criarDespesa(pend, true);
+        }}
+      />
+
     </>
   );
 }
