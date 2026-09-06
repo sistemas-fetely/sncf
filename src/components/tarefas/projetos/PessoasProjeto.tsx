@@ -1,8 +1,18 @@
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { MoreHorizontal, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePodeGerenciarProjeto, useProjeto } from "@/hooks/tarefas/useProjetosTarefas";
@@ -17,6 +27,13 @@ const dataBr = (iso: string | null | undefined) =>
 
 interface Props {
   projetoId: string;
+}
+
+function iniciais(nome: string) {
+  const partes = nome.trim().split(/\s+/);
+  if (partes.length === 0) return "?";
+  if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
+  return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
 }
 
 export function PessoasProjeto({ projetoId }: Props) {
@@ -59,38 +76,44 @@ export function PessoasProjeto({ projetoId }: Props) {
     vinculo,
     papel,
     desde,
-    acao,
+    acoes,
   }: {
     userId: string;
     vinculo?: string;
     papel?: string;
     desde?: string | null;
-    acao?: React.ReactNode;
+    acoes?: React.ReactNode;
   }) => {
     const pessoa = pessoaPorUsuario(userId);
+    const nome = pessoa?.nome ?? "Pessoa fora do catálogo";
     return (
-      <Card>
-        <CardContent className="flex flex-wrap items-start gap-4 p-4">
-          <div className="min-w-0 flex-1 space-y-1">
-            <div className="flex items-center gap-2">
-              <p className="truncate text-sm font-semibold">{pessoa?.nome ?? "Pessoa fora do catálogo"}</p>
-              {vinculo && <Badge variant="outline" className="text-[10px]">{vinculo}</Badge>}
-            </div>
-            {detalhePessoa(pessoa) ? (
-              <p className="text-xs text-muted-foreground">{detalhePessoa(pessoa)}</p>
-            ) : (
-              <p className="text-xs text-muted-foreground">Cargo e departamento não informados</p>
-            )}
-            {pessoa?.gestor_nome && (
-              <p className="text-[11px] text-muted-foreground">reporta a {pessoa.gestor_nome}</p>
-            )}
-            {papel && (
-              <p className="text-xs text-muted-foreground">
-                {rotuloPapel(papel)} · desde {dataBr(desde)}
-              </p>
-            )}
+      <Card className="relative">
+        {acoes && <div className="absolute right-2 top-2">{acoes}</div>}
+        <CardContent className="flex flex-col items-center p-5 text-center">
+          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+            {iniciais(nome)}
           </div>
-          {acao && <div className="flex items-center gap-1">{acao}</div>}
+          <p className="w-full truncate text-sm font-semibold" title={nome}>{nome}</p>
+          {detalhePessoa(pessoa) ? (
+            <p className="mt-1 w-full truncate text-xs text-muted-foreground" title={detalhePessoa(pessoa)!}>
+              {detalhePessoa(pessoa)}
+            </p>
+          ) : (
+            <p className="mt-1 text-xs text-muted-foreground">Cargo e departamento não informados</p>
+          )}
+          {pessoa?.gestor_nome && (
+            <p className="mt-1 text-[11px] text-muted-foreground">reporta a {pessoa.gestor_nome}</p>
+          )}
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+            {vinculo ? (
+              <Badge variant="secondary" className="text-[10px]">{vinculo}</Badge>
+            ) : papel ? (
+              <Badge variant="secondary" className="text-[10px]">{rotuloPapel(papel)}</Badge>
+            ) : null}
+          </div>
+          {papel && (
+            <p className="mt-3 text-[11px] text-muted-foreground">desde {dataBr(desde)}</p>
+          )}
         </CardContent>
       </Card>
     );
@@ -108,56 +131,59 @@ export function PessoasProjeto({ projetoId }: Props) {
           )}
         </div>
 
-        {fixos.map((f) => (
-          <CardPessoa key={`fixo-${f.id}`} userId={f.id} vinculo={f.vinculo} />
-        ))}
-
         {(membros ?? []).length === 0 && fixos.length === 0 && (
           <p className="text-sm text-muted-foreground">Ninguém participa deste projeto ainda.</p>
         )}
 
-        {(membros ?? []).map((m) => (
-          <CardPessoa
-            key={m.id}
-            userId={m.user_id}
-            papel={m.papel}
-            desde={m.desde}
-            acao={
-              <>
-                <Select
-                  value={m.papel}
-                  disabled={!podeGerenciar}
-                  onValueChange={(v) => trocar.mutate({ id: m.id, papel: v })}
-                >
-                  <SelectTrigger className="h-8 w-44 text-sm">
-                    <SelectValue>{rotuloPapel(m.papel)}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(papeis ?? []).map((p) => (
-                      <SelectItem key={p.codigo} value={p.codigo}>
-                        <span className="flex flex-col">
-                          <span>{p.nome}</span>
-                          {p.descricao && (
-                            <span className="text-[11px] text-muted-foreground">{p.descricao}</span>
-                          )}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  disabled={!podeGerenciar}
-                  onClick={() => remover.mutate(m.id)}
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </>
-            }
-          />
-        ))}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {fixos.map((f) => (
+            <CardPessoa key={`fixo-${f.id}`} userId={f.id} vinculo={f.vinculo} />
+          ))}
+
+          {(membros ?? []).map((m) => (
+            <CardPessoa
+              key={m.id}
+              userId={m.user_id}
+              papel={m.papel}
+              desde={m.desde}
+              acoes={
+                podeGerenciar ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>Alterar papel</DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                          {(papeis ?? []).map((p) => (
+                            <DropdownMenuItem
+                              key={p.codigo}
+                              disabled={m.papel === p.codigo}
+                              onClick={() => trocar.mutate({ id: m.id, papel: p.codigo })}
+                            >
+                              {p.nome}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => remover.mutate(m.id)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Remover participante
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : null
+              }
+            />
+          ))}
+        </div>
       </section>
 
       <section className="space-y-3 border-t pt-4">
