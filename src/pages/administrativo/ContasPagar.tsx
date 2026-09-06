@@ -162,7 +162,7 @@ export default function ContasPagar() {
   const [busca, setBusca] = useState("");
   const [dataDe, setDataDe] = useState("");
   const [dataAte, setDataAte] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("todos");
+  const [statusFilter, setStatusFilter] = useState<string>("pendentes");
   const [solicitanteFilter, setSolicitanteFilter] = useState<string>("todos");
 
   const [contaIdSelecionada, setContaIdSelecionada] = useState<string | null>(null);
@@ -375,7 +375,9 @@ export default function ContasPagar() {
           c.fornecedor_cliente?.toLowerCase().includes(b),
       );
     }
-    if (statusFilter === "pendencia_nf") {
+    if (statusFilter === "pendentes") {
+      lista = lista.filter((c) => !c.estado_terminal);
+    } else if (statusFilter === "pendencia_nf") {
       lista = lista.filter((c) => temPendenciaNF(c.id));
     } else if (statusFilter === "parcialmente_pago") {
       lista = lista.filter((c) => c.situacao_pagamento === "parcial");
@@ -498,7 +500,7 @@ export default function ContasPagar() {
     !!busca.trim() ||
     !!dataDe ||
     !!dataAte ||
-    statusFilter !== "todos" ||
+    statusFilter !== "pendentes" ||
     solicitanteFilter !== "todos" ||
     kpiFilter !== null;
 
@@ -506,7 +508,7 @@ export default function ContasPagar() {
     setBusca("");
     setDataDe("");
     setDataAte("");
-    setStatusFilter("todos");
+    setStatusFilter("pendentes");
     setSolicitanteFilter("todos");
     setKpiFilter(null);
   }
@@ -531,7 +533,7 @@ export default function ContasPagar() {
         <PageHeader
           titulo="Contas a Pagar"
           icone={ArrowUpFromLine}
-          estado="Vencimentos a parceiros — abertos, pagos e atrasados."
+          estado="O que precisa de ação. Títulos já provados ficam em 'Todos os status'."
           acoes={
             <div className="flex items-center gap-2">
               <Button variant="outline" onClick={() => setImportarNFOpen(true)} className="gap-2">
@@ -626,6 +628,7 @@ export default function ContasPagar() {
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="pendentes">Pendentes (padrão)</SelectItem>
             <SelectItem value="todos">Todos os status</SelectItem>
             {STATUS_CPR_FILTRAVEIS.map((s) => (
               <SelectItem key={s} value={s}>
