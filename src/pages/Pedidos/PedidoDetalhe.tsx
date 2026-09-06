@@ -51,6 +51,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PedidoStepper } from "@/components/pedidos/PedidoStepper";
 import { PedidoTimeline } from "@/components/pedidos/PedidoTimeline";
 import { PedidoTarefasVinculadasTab } from "@/components/pedidos/PedidoTarefasVinculadasTab";
+import { PedidoTarefasBloco } from "@/components/pedidos/PedidoTarefasBloco";
 import { STATUS_ABERTOS, usePedidoTarefasVinculadas } from "@/hooks/pedidos/usePedidoTarefasVinculadas";
 import { BadgePriorizacao } from "@/components/pedidos/BadgePriorizacao";
 import { MarcacaoPedido } from "@/components/pedidos/MarcacaoPedido";
