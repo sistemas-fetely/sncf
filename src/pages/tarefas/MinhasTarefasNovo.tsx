@@ -11,7 +11,7 @@ import { useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
 import { type TarefaStatus } from "@/hooks/tarefas/useTarefas";
 import { useStatusTarefaDim } from "@/hooks/tarefas/useStatusTarefaDim";
 import {
-  PAPEL_ROTULO, PAPEL_SO_LEITURA, type Papel, useMinhasTarefasPapel,
+  PAPEL_ROTULO, PAPEL_SO_LEITURA, type Papel, useMinhasTarefasPapel, useConcluidasRecentesPapel,
   type TarefaComPapel,
 } from "@/hooks/tarefas/useMinhasTarefasPapel";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
@@ -127,6 +127,8 @@ export default function MinhasTarefasNovo() {
   const [aba, setAba] = useAbaUrl("r");
   const abaAtual = aba as Papel;
   const { data: tarefas, isLoading } = useMinhasTarefasPapel(user?.id, filtro);
+  // coluna "Concluída" do quadro busca por conta própria — o filtro de status do topo não a alimenta
+  const { data: concluidasRecentes } = useConcluidasRecentesPapel(user?.id);
   const { data: projetos } = useProjetos();
 
   const contarFolhas = (p: Papel) =>
@@ -277,11 +279,12 @@ export default function MinhasTarefasNovo() {
           <TabsContent key={p} value={p} className="space-y-6 pt-4">
             {isLoading ? (
               <p className="text-sm text-muted-foreground">Carregando…</p>
-            ) : gruposFiltrados.length === 0 ? (
+            ) : gruposFiltrados.length === 0 && !(visao === "quadro" && (concluidasRecentes?.length ?? 0) > 0) ? (
               <p className="py-6 text-center text-sm text-muted-foreground">{TEXTOS_VAZIO[p]}</p>
             ) : visao === "quadro" ? (
               <QuadroMinhasTarefas
                 grupos={gruposFiltrados}
+                concluidasRecentes={concluidasRecentes ?? []}
                 filhasPorMae={grupos.filhasPorMae}
                 somenteLeitura={somenteLeitura}
                 nomeProjeto={nomeProjeto}
