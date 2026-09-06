@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   CalendarClock, ChevronDown, ChevronUp, ExternalLink, GripVertical, ListChecks, Lock,
@@ -74,6 +74,25 @@ export function QuadroMinhasTarefas({
   const [otimista, setOtimista] = useState<Record<string, TarefaStatus>>({});
   const [pedido, setPedido] = useState<{ tarefaId: string; status: StatusTarefaDim } | null>(null);
   const [motivo, setMotivo] = useState("");
+
+  /**
+   * Altura do trilho = janela − topo do quadro − respiro. Medida uma vez e no
+   * resize; abaixo do mínimo a coluna não é espremida — a página rola normal.
+   */
+  const ALTURA_MINIMA_COLUNA = 320;
+  const trilhoRef = useRef<HTMLDivElement>(null);
+  const [alturaTrilho, setAlturaTrilho] = useState<number | null>(null);
+  useEffect(() => {
+    const medir = () => {
+      const el = trilhoRef.current;
+      if (!el) return;
+      const disponivel = window.innerHeight - el.getBoundingClientRect().top - 24;
+      setAlturaTrilho(disponivel >= ALTURA_MINIMA_COLUNA ? disponivel : null);
+    };
+    medir();
+    window.addEventListener("resize", medir);
+    return () => window.removeEventListener("resize", medir);
+  }, []);
 
   const abertos = (statusDim ?? []).filter((s) => s.e_aberto);
   const arrastavelNoModo = agruparPor === "status" && !somenteLeitura;
@@ -153,7 +172,11 @@ export function QuadroMinhasTarefas({
 
   return (
     <>
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div
+        ref={trilhoRef}
+        style={alturaTrilho ? { height: alturaTrilho } : undefined}
+        className="flex items-stretch gap-4 overflow-x-auto pb-4"
+      >
         {colunas.length === 0 && (
           <p className="text-sm text-muted-foreground">Nada para mostrar.</p>
         )}
@@ -171,7 +194,7 @@ export function QuadroMinhasTarefas({
               soltar(coluna.chave, e);
             }}
             className={cn(
-              "flex w-[280px] shrink-0 flex-col rounded-xl border bg-muted/30 p-3",
+              "flex max-h-full min-h-0 w-[280px] shrink-0 flex-col rounded-xl border bg-muted/30 p-3",
               alvo === coluna.chave && arrastavelNoModo && "border-primary bg-primary/5"
             )}
           >
@@ -198,7 +221,8 @@ export function QuadroMinhasTarefas({
               </div>
             </div>
 
-            <div className="flex flex-col gap-2">
+            {/* cabeçalho fica fora desta área: título e contagem não rolam com os cards */}
+            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-0.5">
               {coluna.itens.length === 0 && (
                 <p className="rounded-lg border border-dashed border-border/60 px-3 py-4 text-center text-[11px] text-muted-foreground">
                   Nada aqui.
