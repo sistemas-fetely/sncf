@@ -100,12 +100,22 @@ export function BoardProjeto({ projetoId }: Props) {
   const [novaTarefaEm, setNovaTarefaEm] = useState<string | null>(null);
   const [passosAbertos, setPassosAbertos] = useState<Record<string, boolean>>({});
   const [tituloNovaTarefa, setTituloNovaTarefa] = useState("");
+  /** a escolha do agrupamento sobrevive a sair e voltar do board */
+  const [agruparPor, setAgruparPor] = useFiltrosPersistentes<AgruparPor>("board_agrupar", "secao");
+  const { data: statusDim } = useStatusTarefaDim();
+  /** status exibido até a mutation confirmar; rollback em erro */
+  const [otimista, setOtimista] = useState<Record<string, TarefaStatus>>({});
+  const [pedido, setPedido] = useState<{ tarefaId: string; status: StatusTarefaDim } | null>(null);
+  const [motivo, setMotivo] = useState("");
 
-  const colunas = useMemo(() => {
-    const lista = [{ id: SEM_SECAO, nome: "Sem seção", fixa: true }];
-    for (const s of secoes ?? []) lista.push({ id: s.id, nome: s.nome, fixa: false });
-    return lista;
-  }, [secoes]);
+  const statusAbertos = useMemo(
+    () => (statusDim ?? []).filter((s) => s.e_aberto),
+    [statusDim]
+  );
+  const rotuloStatus = useCallback(
+    (codigo: string) => statusDim?.find((s) => s.codigo === codigo)?.nome ?? codigo,
+    [statusDim]
+  );
 
   /**
    * Modelo ClickUp: quem tem filha é contêiner e continua card (é o agrupador
@@ -133,18 +143,78 @@ export function BoardProjeto({ projetoId }: Props) {
     return mapa;
   }, [tarefas]);
 
+  const ehContainer = useCallback(
+    (t: TarefaBoard) => (filhasPorMae.get(t.id) ?? []).length > 0,
+    [filhasPorMae]
+  );
+
+  const statusExibido = useCallback(
+    (t: TarefaBoard) => otimista[t.id] ?? (t.status as TarefaStatus),
+    [otimista]
+  );
+
+  /**
+   * Seção = onde o trabalho está no fluxo; status = estado. Nunca existe coluna
+   * "Concluídos" entre as seções — no modo status, sim: uma coluna de concluída
+   * no fim, com recorte de 7 dias no cabeçalho.
+   */
+  const colunas = useMemo(() => {
+    if (agruparPor === "status") {
+      return [
+        ...statusAbertos.map((s) => ({ id: s.codigo, nome: s.nome, fixa: true })),
+        {
+          id: "concluida",
+          nome: `${rotuloStatus("concluida")} · últimos ${DIAS_CONCLUIDAS} dias`,
+          fixa: true,
+        },
+      ];
+    }
+    const lista = [{ id: SEM_SECAO, nome: "Sem seção", fixa: true }];
+    for (const s of secoes ?? []) lista.push({ id: s.id, nome: s.nome, fixa: false });
+    return lista;
+  }, [agruparPor, secoes, statusAbertos, rotuloStatus]);
+
   const porColuna = useMemo(() => {
     const mapa = new Map<string, TarefaBoard[]>();
     const visiveis = (tarefas ?? []).filter(ehCard);
+    const corte = Date.now() - DIAS_CONCLUIDAS * 24 * 60 * 60 * 1000;
     for (const t of visiveis) {
-      const chave = t.secao_id ?? SEM_SECAO;
+      let chave: string;
+      if (agruparPor === "status") {
+        chave = statusExibido(t);
+        if (chave === "concluida" && t.data_conclusao) {
+          if (new Date(t.data_conclusao).getTime() < corte) continue;
+        }
+      } else {
+        chave = t.secao_id ?? SEM_SECAO;
+      }
       mapa.set(chave, [...(mapa.get(chave) ?? []), t]);
     }
     return mapa;
-  }, [tarefas, ehCard]);
+  }, [tarefas, ehCard, agruparPor, statusExibido]);
 
   function podeArrastar(t: TarefaBoard): boolean {
-    return !!podeGerenciar || t.responsavel_id === user?.id || t.criado_por === user?.id;
+    const permitido = !!podeGerenciar || t.responsavel_id === user?.id || t.criado_por === user?.id;
+    if (!permitido) return false;
+    // contêiner fecha pelo progresso das filhas — não muda de status arrastando
+    if (agruparPor === "status" && ehContainer(t)) return false;
+    return true;
+  }
+
+  /** FAIL-LOUD: otimista, await real, rollback e toast no erro. */
+  async function trocarStatus(tarefaId: string, status: TarefaStatus, motivoTexto?: string) {
+    setOtimista((o) => ({ ...o, [tarefaId]: status }));
+    try {
+      await alterarStatus.mutateAsync({ id: tarefaId, status, motivo: motivoTexto ?? null });
+    } catch (err) {
+      setOtimista((o) => {
+        const { [tarefaId]: _fora, ...resto } = o;
+        return resto;
+      });
+      toast.error(
+        `Não foi possível mover para "${rotuloStatus(status)}": ${err instanceof Error ? err.message : "erro inesperado"}`
+      );
+    }
   }
 
   function soltar(colunaId: string, e: React.DragEvent) {
@@ -154,10 +224,26 @@ export function BoardProjeto({ projetoId }: Props) {
     if (!tarefaId) return;
     const atual = (tarefas ?? []).find((t) => t.id === tarefaId);
     if (!atual) return;
+
+    if (agruparPor === "status") {
+      if (ehContainer(atual)) return;
+      if (statusExibido(atual) === colunaId) return;
+      // dimensão inteira, não só abertos: a coluna Concluída também é alvo
+      const dim = statusDim?.find((s) => s.codigo === colunaId);
+      if (dim?.exige_motivo) {
+        setMotivo("");
+        setPedido({ tarefaId, status: dim });
+        return;
+      }
+      void trocarStatus(tarefaId, colunaId as TarefaStatus);
+      return;
+    }
+
     const destino = colunaId === SEM_SECAO ? null : colunaId;
     if ((atual.secao_id ?? null) === destino) return;
     mover.mutate({ tarefaId, secaoId: destino });
   }
+
 
   function mover1(id: string, direcao: -1 | 1) {
     const lista = (secoes ?? []).slice();
