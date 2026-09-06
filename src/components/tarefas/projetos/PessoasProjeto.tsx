@@ -240,8 +240,35 @@ export function PessoasProjeto({ projetoId }: Props) {
       </section>
 
       <section className="space-y-3 border-t pt-4">
-        <h3 className="text-sm font-medium">Adicionar participante</h3>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-medium">Adicionar participante</h3>
+          {podeGerenciar && (
+            <div className="inline-flex rounded-md border bg-muted/40 p-0.5">
+              {(
+                [
+                  { valor: "uma", rotulo: "Uma pessoa" },
+                  { valor: "massa", rotulo: "Vários de uma vez" },
+                ] as const
+              ).map((op) => (
+                <button
+                  key={op.valor}
+                  type="button"
+                  onClick={() => setModo(op.valor)}
+                  className={cn(
+                    "rounded-sm px-3 py-1 text-xs transition-colors",
+                    modo === op.valor
+                      ? "bg-background font-medium shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {op.rotulo}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="flex flex-col gap-4">
+          {modo === "uma" ? (
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="pessoa-nova">Pessoa</Label>
