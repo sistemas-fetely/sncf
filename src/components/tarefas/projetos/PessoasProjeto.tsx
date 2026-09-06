@@ -300,7 +300,7 @@ export function PessoasProjeto({ projetoId }: Props) {
             </div>
           )}
         </div>
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           {modo === "uma" ? (
             <>
               <div className="grid gap-4 sm:grid-cols-2">
