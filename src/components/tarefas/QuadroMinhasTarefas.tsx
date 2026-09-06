@@ -75,6 +75,25 @@ export function QuadroMinhasTarefas({
   const [pedido, setPedido] = useState<{ tarefaId: string; status: StatusTarefaDim } | null>(null);
   const [motivo, setMotivo] = useState("");
 
+  /**
+   * Altura do trilho = janela − topo do quadro − respiro. Medida uma vez e no
+   * resize; abaixo do mínimo a coluna não é espremida — a página rola normal.
+   */
+  const ALTURA_MINIMA_COLUNA = 320;
+  const trilhoRef = useRef<HTMLDivElement>(null);
+  const [alturaTrilho, setAlturaTrilho] = useState<number | null>(null);
+  useEffect(() => {
+    const medir = () => {
+      const el = trilhoRef.current;
+      if (!el) return;
+      const disponivel = window.innerHeight - el.getBoundingClientRect().top - 24;
+      setAlturaTrilho(disponivel >= ALTURA_MINIMA_COLUNA ? disponivel : null);
+    };
+    medir();
+    window.addEventListener("resize", medir);
+    return () => window.removeEventListener("resize", medir);
+  }, []);
+
   const abertos = (statusDim ?? []).filter((s) => s.e_aberto);
   const arrastavelNoModo = agruparPor === "status" && !somenteLeitura;
   /** abertas + concluídas recentes — base do modo status e do lookup no arraste */
