@@ -633,7 +633,8 @@ export default function ContasPagar() {
             </div>
           ) : (
             // overflow-visible: sem isso o wrapper overflow-auto vira o contexto de scroll e quebra o sticky do cabeçalho na rolagem da página
-            <Table containerClassName="overflow-visible">
+            <TooltipProvider>
+              <Table containerClassName="overflow-visible">
               <TableHeader
                 className="sticky z-10 bg-background"
                 style={{ top: headerStickyH }}
