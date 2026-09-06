@@ -194,7 +194,7 @@ export function QuadroMinhasTarefas({
               soltar(coluna.chave, e);
             }}
             className={cn(
-              "flex w-[280px] shrink-0 flex-col rounded-xl border bg-muted/30 p-3",
+              "flex max-h-full min-h-0 w-[280px] shrink-0 flex-col rounded-xl border bg-muted/30 p-3",
               alvo === coluna.chave && arrastavelNoModo && "border-primary bg-primary/5"
             )}
           >
