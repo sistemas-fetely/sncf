@@ -58,6 +58,13 @@ export function ImportarNFDespesaDialog({
   const [fila, setFila] = useState<ItemFila[]>([]);
   const [filaIndex, setFilaIndex] = useState(0);
   const [criandoDespesa, setCriandoDespesa] = useState(false);
+  const [gemeos, setGemeos] = useState<TituloGemeo[]>([]);
+  const [dadosPendentes, setDadosPendentes] = useState<{
+    formaPgtoId: string | null;
+    cartaoId: string | null;
+    parcelas: number;
+    dataPrimeiraParcela: string;
+  } | null>(null);
 
   async function handleImported(result: StageResult) {
     if (!result.stageIdsCriados || result.stageIdsCriados.length === 0) {
