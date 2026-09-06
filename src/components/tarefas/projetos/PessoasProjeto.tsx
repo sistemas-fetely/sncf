@@ -3,6 +3,8 @@ import { ChevronsUpDown, MoreHorizontal, Plus, Trash2, Users } from "lucide-reac
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import {
   Command,
   CommandEmpty,
