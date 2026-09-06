@@ -99,30 +99,60 @@ export function PessoasProjeto({ projetoId }: Props) {
   );
   const haPessoaComAcesso = candidatos.some((p) => p.tem_acesso && p.user_id);
 
-  // ---- Adição em massa ----
-  const grupos = useMemo(() => {
-    const mapa = new Map<string, { rotulo: string; pessoas: PessoaParaProjeto[] }>();
+  // ---- Adição em massa: seleção livre com checkbox ----
+  const departamentosMassa = useMemo(() => {
+    const mapa = new Map<string, string>();
     for (const p of candidatos) {
-      const chave = criterio === "departamento" ? p.departamento_id : p.nivel_cargo;
-      if (!chave) continue;
-      const rotulo =
-        criterio === "departamento"
-          ? p.departamento ?? "Sem departamento"
-          : rotuloNivel(p.nivel_cargo!);
-      const atual = mapa.get(chave) ?? { rotulo, pessoas: [] };
-      atual.pessoas.push(p);
-      mapa.set(chave, atual);
+      if (p.departamento_id && p.departamento) mapa.set(p.departamento_id, p.departamento);
     }
     return [...mapa.entries()]
-      .map(([valor, g]) => ({ valor, rotulo: g.rotulo, pessoas: g.pessoas }))
-      .sort((a, b) => a.rotulo.localeCompare(b.rotulo, "pt-BR"));
-  }, [candidatos, criterio]);
+      .map(([id, nome]) => ({ id, nome }))
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  }, [candidatos]);
 
-  const grupoEscolhido = grupos.find((g) => g.valor === valorCriterio);
-  const elegiveisMassa = (grupoEscolhido?.pessoas ?? []).filter((p) => p.tem_acesso && p.user_id);
-  const semAcessoMassa = (grupoEscolhido?.pessoas ?? []).filter((p) => !p.tem_acesso || !p.user_id);
-  const contagemElegiveis = (g: { pessoas: PessoaParaProjeto[] }) =>
-    g.pessoas.filter((p) => p.tem_acesso && p.user_id).length;
+  const niveisMassa = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of candidatos) if (p.nivel_cargo) set.add(p.nivel_cargo);
+    return [...set].sort((a, b) => rotuloNivel(a).localeCompare(rotuloNivel(b), "pt-BR"));
+  }, [candidatos]);
+
+  const visiveisMassa = useMemo(() => {
+    const busca = buscaMassa.trim().toLowerCase();
+    return candidatos.filter((p) => {
+      if (filtroDepto !== "todos" && p.departamento_id !== filtroDepto) return false;
+      if (filtroNivel !== "todos" && p.nivel_cargo !== filtroNivel) return false;
+      if (busca) {
+        const alvo = `${p.nome} ${p.cargo ?? ""} ${p.departamento ?? ""}`.toLowerCase();
+        if (!alvo.includes(busca)) return false;
+      }
+      return true;
+    });
+  }, [candidatos, buscaMassa, filtroDepto, filtroNivel]);
+
+  const alternarSelecionado = (userId: string) =>
+    setSelecionados((atual) => {
+      const proximo = new Set(atual);
+      if (proximo.has(userId)) proximo.delete(userId);
+      else proximo.add(userId);
+      return proximo;
+    });
+
+  const selecionarTodosVisiveis = () =>
+    setSelecionados((atual) => {
+      const proximo = new Set(atual);
+      for (const p of visiveisMassa) if (p.tem_acesso && p.user_id) proximo.add(p.user_id);
+      return proximo;
+    });
+
+  const limparSelecao = () => setSelecionados(new Set());
+
+  const selecionadosValidos = useMemo(
+    () =>
+      [...selecionados].filter((id) =>
+        candidatos.some((p) => p.user_id === id && p.tem_acesso)
+      ),
+    [selecionados, candidatos]
+  );
 
   const detalhePessoa = (pessoa?: ReturnType<typeof pessoaPorUsuario>) =>
     [pessoa?.cargo, pessoa?.departamento].filter(Boolean).join(" · ") || null;
