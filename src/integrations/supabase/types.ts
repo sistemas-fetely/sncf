@@ -44459,6 +44459,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "tarefas_campos_projeto_campo_id_fkey"
+            columns: ["campo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_campo_tarefa_uso"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tarefas_campos_projeto_projeto_id_fkey"
             columns: ["projeto_id"]
             isOneToOne: false
@@ -44502,6 +44509,13 @@ export type Database = {
             columns: ["campo_id"]
             isOneToOne: false
             referencedRelation: "tarefas_campos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_campos_valores_campo_id_fkey"
+            columns: ["campo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_campo_tarefa_uso"
             referencedColumns: ["id"]
           },
           {
@@ -56694,21 +56708,28 @@ export type Database = {
           altura_cm: number | null
           ativo: boolean | null
           ausente_no_bling: boolean | null
+          bling_altura: number | null
           bling_ativo: boolean | null
           bling_categoria: string | null
+          bling_cest: string | null
           bling_gtin: string | null
+          bling_gtin_embalagem: string | null
           bling_id: string | null
+          bling_itens_por_caixa: number | null
+          bling_largura: number | null
           bling_marca: string | null
           bling_ncm: string | null
           bling_nome: string | null
           bling_peso_liquido: number | null
           bling_preco_custo: number | null
           bling_preco_venda: number | null
+          bling_profundidade: number | null
           bling_unidade: string | null
           campos_divergentes: string[] | null
-          campos_nao_espelhados: string[] | null
+          campos_marketplace_vazios: string[] | null
           cest: string | null
           ean: string | null
+          fase: string | null
           grupo: string | null
           largura_cm: number | null
           linha: string | null
@@ -56716,6 +56737,7 @@ export type Database = {
           ncm: string | null
           nome_comercial: string | null
           nome_completo: string | null
+          nome_operacional: string | null
           peso_g: number | null
           preco_custo: number | null
           preco_varejo: number | null
@@ -57418,6 +57440,31 @@ export type Database = {
           total: number | null
         }
         Relationships: []
+      }
+      vw_campo_tarefa_uso: {
+        Row: {
+          ativo: boolean | null
+          criado_em: string | null
+          departamento: string | null
+          departamento_id: string | null
+          descricao: string | null
+          id: string | null
+          nome: string | null
+          opcoes: Json | null
+          pode_apagar: boolean | null
+          projetos_ligados: number | null
+          tipo: string | null
+          valores_preenchidos: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_campos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vw_carga_atribuicao: {
         Row: {
@@ -70260,14 +70307,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
