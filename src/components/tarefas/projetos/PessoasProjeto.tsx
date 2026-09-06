@@ -415,7 +415,7 @@ export function PessoasProjeto({ projetoId }: Props) {
             </>
           ) : (
             <>
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid max-w-[900px] gap-3 sm:grid-cols-[1fr_180px_180px]">
                 <div className="space-y-2">
                   <Label htmlFor="busca-massa">Buscar</Label>
                   <Input
