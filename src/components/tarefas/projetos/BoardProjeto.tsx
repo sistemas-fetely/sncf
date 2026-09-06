@@ -526,7 +526,7 @@ export function BoardProjeto({ projetoId }: Props) {
                     );
                   })}
 
-                  {novaTarefaEm === col.id ? (
+                  {agruparPor === "status" ? null : novaTarefaEm === col.id ? (
                     <Input
                       autoFocus
                       className="h-8"
