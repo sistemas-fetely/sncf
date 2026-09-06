@@ -1,8 +1,16 @@
 import { useState } from "react";
-import { MoreHorizontal, Plus, Trash2 } from "lucide-react";
+import { ChevronsUpDown, MoreHorizontal, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePodeGerenciarProjeto, useProjeto } from "@/hooks/tarefas/useProjetosTarefas";
 import {
@@ -49,6 +58,7 @@ export function PessoasProjeto({ projetoId }: Props) {
 
   const [novaPessoa, setNovaPessoa] = useState("");
   const [novoPapel, setNovoPapel] = useState("");
+  const [abertoPessoa, setAbertoPessoa] = useState(false);
 
   const papelEscolhido = papeis?.find((p) => p.codigo === novoPapel);
   const pessoaEscolhida = pessoas?.find((p) => p.user_id === novaPessoa);
@@ -192,36 +202,60 @@ export function PessoasProjeto({ projetoId }: Props) {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="pessoa-nova">Pessoa</Label>
-              <Select
-                value={novaPessoa}
-                disabled={!podeGerenciar || candidatos.length === 0}
-                onValueChange={(v) => setNovaPessoa(v)}
-              >
-                <SelectTrigger id="pessoa-nova" className="w-full">
-                  <SelectValue placeholder="Escolha uma pessoa" />
-                </SelectTrigger>
-                <SelectContent>
-                  {candidatos.map((p) => {
-                    const desabilitada = !p.tem_acesso || !p.user_id;
-                    return (
-                      <SelectItem
-                        key={p.pessoa_id}
-                        value={p.user_id ?? p.pessoa_id}
-                        disabled={desabilitada}
-                        className={cn(desabilitada && "opacity-60")}
-                      >
-                        <span className="flex flex-col">
-                          <span className="text-sm">{p.nome}</span>
-                          <span className="text-[11px] text-muted-foreground">
-                            {[p.cargo, p.departamento].filter(Boolean).join(" · ") || "Cargo e departamento não informados"}
-                            {!p.tem_acesso && " · sem acesso ao sistema"}
-                          </span>
-                        </span>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+              <Popover open={abertoPessoa} onOpenChange={setAbertoPessoa}>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="pessoa-nova"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={abertoPessoa}
+                    className="h-10 w-full justify-between px-3 font-normal"
+                    disabled={!podeGerenciar || candidatos.length === 0}
+                  >
+                    <span className="truncate">
+                      {pessoaEscolhida ? pessoaEscolhida.nome : "Escolha uma pessoa"}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Buscar por nome, cargo ou departamento" />
+                    <CommandList>
+                      <CommandEmpty>Ninguém encontrado</CommandEmpty>
+                      <CommandGroup>
+                        {candidatos.map((p) => {
+                          const desabilitada = !p.tem_acesso || !p.user_id;
+                          return (
+                            <CommandItem
+                              key={p.pessoa_id}
+                              value={`${p.nome} ${p.cargo ?? ""} ${p.departamento ?? ""}`}
+                              disabled={desabilitada}
+                              onSelect={() => {
+                                if (p.user_id) {
+                                  setNovaPessoa(p.user_id);
+                                  setAbertoPessoa(false);
+                                }
+                              }}
+                              className={cn(desabilitada && "opacity-60")}
+                            >
+                              <span className="flex flex-col">
+                                <span className={cn("text-sm", novaPessoa === p.user_id && "font-medium")}>
+                                  {p.nome}
+                                </span>
+                                <span className="text-[11px] text-muted-foreground">
+                                  {[p.cargo, p.departamento].filter(Boolean).join(" · ") || "Cargo e departamento não informados"}
+                                  {!p.tem_acesso && " · sem acesso ao sistema"}
+                                </span>
+                              </span>
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
               {candidatos.length === 0 ? (
                 <p className="text-xs text-muted-foreground">Todos já participam deste projeto.</p>
               ) : !haPessoaComAcesso ? (
