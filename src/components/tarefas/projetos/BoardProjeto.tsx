@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { CalendarClock, ChevronDown, ChevronUp, GripVertical, ListChecks, Lock, MoreHorizontal, Plus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
+import { LinkPedidoTarefa } from "@/components/tarefas/LinkPedidoTarefa";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -302,6 +303,7 @@ export function BoardProjeto({ projetoId }: Props) {
                           <Badge variant="outline" className={cn("text-[10px]", PRIORIDADE_CLASSE[t.prioridade])}>
                             {PRIORIDADE_ROTULO[t.prioridade]}
                           </Badge>
+                          <LinkPedidoTarefa acaoUrl={t.acao_url} />
                           {limite && (
                             <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
                               <CalendarClock className="h-3 w-3" /> {limite}
