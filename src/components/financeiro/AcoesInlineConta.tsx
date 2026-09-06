@@ -179,9 +179,28 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
       : estadoMov === "pendente"
         ? "Lançar movimentação (marcar como paga)"
         : "Aprove ou programe o título antes";
+  // A prova mais forte é a conciliação bancária; comprovante anexado ainda espera o extrato.
   const tooltipComprovante = temComprovante
-    ? "Comprovante anexado"
-    : "Sem comprovante — ainda não há anexo de comprovante de saída no sistema";
+    ? temMov
+      ? "Provado pelo extrato bancário"
+      : "Provado por comprovante anexado (aguarda conciliação bancária)"
+    : estadoComprovante === "pendente"
+      ? "Sem comprovante — clique para anexar o comprovante de pagamento"
+      : "Comprovante de saída só depois de programar o título";
+
+  async function abrirComprovante() {
+    if (!conta.comprovante_url) return;
+    setAbrindoComprovante(true);
+    try {
+      const url = await getUrlAssinada("comprovantes-pagamento", conta.comprovante_url, 600);
+      if (!url) throw new Error("Não foi possível gerar o link do comprovante");
+      window.open(url, "_blank", "noopener");
+    } catch (e) {
+      toast.error("Erro: " + extractMsg(e));
+    } finally {
+      setAbrindoComprovante(false);
+    }
+  }
 
   return (
     <div className="flex items-center gap-1">
