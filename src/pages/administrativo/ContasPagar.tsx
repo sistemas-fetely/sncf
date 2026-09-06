@@ -50,6 +50,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
   ArrowUpFromLine,
@@ -77,6 +78,7 @@ import { ImportarNFDespesaDialog } from "@/components/financeiro/ImportarNFDespe
 import { getMeioPagamentoIcon } from "@/lib/financeiro/meio-pagamento-icon";
 import { cn } from "@/lib/utils";
 import { hojeISO } from "@/lib/data";
+import { LoteAcaoContasDialog } from "@/components/financeiro/LoteAcaoContasDialog";
 
 type Conta = {
   id: string;
@@ -412,6 +414,53 @@ export default function ContasPagar() {
   const { data: acoesMap } = useTituloPagarAcoes(filtrados.map((c) => c.id));
   const transicionar = useTituloPagarTransicionar();
 
+  // ---- Seleção em lote --------------------------------------------------
+  // A seleção vive aqui e morre a cada troca de filtro: selecionar 187 títulos
+  // e depois mudar o filtro faria a barra agir sobre o que não está mais na tela.
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+  const [acaoLote, setAcaoLote] = useState<TituloPagarAcao | null>(null);
+
+  useEffect(() => {
+    setSelecionados(new Set());
+  }, [kpiFilter, busca, statusFilter, solicitanteFilter, dataDe, dataAte]);
+
+  const idsSelecionados = useMemo(
+    () => filtrados.filter((c) => selecionados.has(c.id)).map((c) => c.id),
+    [filtrados, selecionados],
+  );
+  const valorSelecionado = useMemo(
+    () =>
+      filtrados
+        .filter((c) => selecionados.has(c.id))
+        .reduce((s, c) => s + Number(c.valor || 0), 0),
+    [filtrados, selecionados],
+  );
+  const todosSelecionados =
+    filtrados.length > 0 && idsSelecionados.length === filtrados.length;
+
+  function alternarSelecao(id: string) {
+    setSelecionados((prev) => {
+      const proximo = new Set(prev);
+      if (proximo.has(id)) proximo.delete(id);
+      else proximo.add(id);
+      return proximo;
+    });
+  }
+
+  /**
+   * INTERSEÇÃO das ações da dimensão: só ofereço em lote o que é transição legal
+   * para TODOS os selecionados. Nada de condicional por estado no TSX.
+   */
+  const acoesLote = useMemo<TituloPagarAcao[]>(() => {
+    if (idsSelecionados.length === 0 || !acoesMap) return [];
+    const listas = idsSelecionados.map((id) => acoesMap.get(id) ?? []);
+    if (listas.some((l) => l.length === 0)) return [];
+    const [primeira, ...resto] = listas;
+    return primeira.filter((a) =>
+      resto.every((l) => l.some((b) => b.para === a.para)),
+    );
+  }, [idsSelecionados, acoesMap]);
+
   const [acaoPendente, setAcaoPendente] = useState<
     { conta: Conta; acao: TituloPagarAcao } | null
   >(null);
@@ -612,6 +661,33 @@ export default function ContasPagar() {
         </div>
       </div>
 
+      {/* Barra de ação em lote */}
+      {idsSelecionados.length > 0 && (
+        <div className="sticky top-0 z-10 flex flex-wrap items-center gap-3 rounded-md border bg-card px-4 py-3 shadow-sm">
+          <span className="text-sm font-medium">
+            {idsSelecionados.length} título{idsSelecionados.length === 1 ? "" : "s"} selecionado
+            {idsSelecionados.length === 1 ? "" : "s"} ·{" "}
+            <span className="font-mono">{formatBRL(valorSelecionado)}</span>
+          </span>
+          <Button variant="ghost" size="sm" onClick={() => setSelecionados(new Set())} className="gap-1">
+            <X className="h-3 w-3" /> Limpar seleção
+          </Button>
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            {acoesLote.length === 0 ? (
+              <span className="text-sm text-muted-foreground">
+                Os títulos selecionados estão em estados diferentes — refine a seleção.
+              </span>
+            ) : (
+              acoesLote.map((a) => (
+                <Button key={a.para} size="sm" variant="outline" onClick={() => setAcaoLote(a)}>
+                  {a.rotulo_acao}
+                </Button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Tabela */}
       <Card>
         <CardContent className="p-0">
@@ -640,6 +716,15 @@ export default function ContasPagar() {
                 style={{ top: headerStickyH }}
               >
                 <TableRow>
+                  <TableHead className="w-[36px]">
+                    <Checkbox
+                      checked={todosSelecionados}
+                      aria-label="Selecionar todos os títulos filtrados"
+                      onCheckedChange={(v) =>
+                        setSelecionados(v ? new Set(filtrados.map((c) => c.id)) : new Set())
+                      }
+                    />
+                  </TableHead>
                   <SortableTableHead column="parceiro" sort={sort} onSort={setSort}>
                     Parceiro
                   </SortableTableHead>
@@ -699,6 +784,13 @@ export default function ContasPagar() {
                       className="cursor-pointer"
                       onClick={() => setContaIdSelecionada(c.id)}
                     >
+                      <TableCell className="w-[36px]" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selecionados.has(c.id)}
+                          aria-label={`Selecionar ${c.descricao}`}
+                          onCheckedChange={() => alternarSelecao(c.id)}
+                        />
+                      </TableCell>
                       <TableCell className="max-w-[160px]">
                         <div className="truncate" title={parceiro}>
                           {parceiro}
@@ -897,6 +989,17 @@ export default function ContasPagar() {
           }
         }}
         initialData={initialDataNovaConta}
+      />
+
+      <LoteAcaoContasDialog
+        open={!!acaoLote}
+        onOpenChange={(v) => !v && setAcaoLote(null)}
+        ids={idsSelecionados}
+        acao={acaoLote}
+        onAplicado={() => {
+          setSelecionados(new Set());
+          invalidarTudo();
+        }}
       />
 
       {/* UM só Dialog para toda a tabela — controlado por `acaoPendente`. */}
