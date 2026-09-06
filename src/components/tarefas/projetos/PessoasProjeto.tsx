@@ -221,7 +221,7 @@ export function PessoasProjeto({ projetoId }: Props) {
           <p className="text-sm text-muted-foreground">Ninguém participa deste projeto ainda.</p>
         )}
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {fixos.map((f) => (
             <CardPessoa key={`fixo-${f.id}`} userId={f.id} vinculo={f.vinculo} />
           ))}
