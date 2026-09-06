@@ -29,10 +29,11 @@ export interface Projeto {
   saude: ProjetoSaude;
   saude_atualizada_em: string | null;
   criado_em: string;
+  criado_por: string | null;
 }
 
 const CAMPOS_PROJETO =
-  "id,nome,descricao,departamento_id,responsavel_id,cor,icone,visibilidade,status,data_inicio,data_fim_prevista,saude,saude_atualizada_em,criado_em" as const;
+  "id,nome,descricao,departamento_id,responsavel_id,cor,icone,visibilidade,status,data_inicio,data_fim_prevista,saude,saude_atualizada_em,criado_em,criado_por" as const;
 
 export const SAUDE_ROTULO: Record<ProjetoSaude, string> = {
   no_prazo: "No prazo",
