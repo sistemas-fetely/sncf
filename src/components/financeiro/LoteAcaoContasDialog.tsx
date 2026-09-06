@@ -187,9 +187,16 @@ export function LoteAcaoContasDialog({ open, onOpenChange, ids, acao, dataPreten
               <Input
                 id="data-lote"
                 type="date"
+                min={hoje}
                 value={dataPretendida}
-                onChange={(e) => setDataPretendida(e.target.value)}
+                onChange={(e) => {
+                  setDataPretendida(e.target.value);
+                  if (erroData) setErroData(null);
+                }}
               />
+              {erroData && (
+                <p className="text-xs text-destructive">{erroData}</p>
+              )}
             </div>
           )}
 
