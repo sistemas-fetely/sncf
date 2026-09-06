@@ -10,7 +10,6 @@ import {
   PermissaoTelaProvider, usePermissaoTelaContext, AvisoSomenteLeitura,
 } from "@/contexts/PermissaoTelaContext";
 import { QuickAddTarefa } from "@/components/tarefas/QuickAddTarefa";
-import { InboxFilas } from "@/components/tarefas/InboxFilas";
 import { TarefaItem } from "@/components/tarefas/TarefaItem";
 import {
   useTarefasConcluidas, useTarefasContadores, useTarefasHoje,
@@ -96,8 +95,6 @@ function TarefasHojeConteudo() {
         </TabsList>
 
         <TabsContent value="hoje" className="space-y-6 pt-4">
-          <InboxFilas />
-
           {respondoPorFiltrado.length > 0 && (
             <section className="space-y-2">
               <h2 className="text-sm font-medium">Respondo por ({respondoPorFiltrado.length})</h2>
