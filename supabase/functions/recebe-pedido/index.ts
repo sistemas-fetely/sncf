@@ -369,54 +369,58 @@ if (body.tipo === "dimensoes_produto") {
       const { error: upsertErr } = await (supabase as any)
         .from("sncf_produtos")
         .upsert(
-          body.produtos.map((p: any) => ({
-            sku:                  p.sku,
-            // Chave canônica (mapa-donos-catalogo-v1). CONDICIONAL de propósito: se o FOP ainda não
-            // enviar o campo, a chave NÃO entra no upsert e o valor já gravado no banco sobrevive.
-            // Nunca trocar por `cod_cadastro: p.cod_cadastro ?? null` — isso apagaria o backfill
-            // a cada sync (mesmo padrão do fire-and-erase do sync-produtos, corrigido em 08/08).
-            ...(typeof p.cod_cadastro === "string" && p.cod_cadastro.length > 0
-              ? { cod_cadastro: p.cod_cadastro.trim() }
-              : {}),
-            // Fase do ciclo de vida (mapa-donos-catalogo-v1 v4). CONDICIONAL pelo mesmo motivo do
-            // cod_cadastro: se o FOP não enviar, a chave não entra no upsert e o backfill sobrevive.
-            ...(typeof p.fase === "string" && p.fase.length > 0
-              ? { fase: p.fase.trim() }
-              : {}),
-            ean:                  p.ean                 ?? null,
-            nome_comercial:       p.nome_comercial,
-            nome_completo:        p.nome_completo        ?? null,
-            marca:                p.marca               ?? null,
-            linha:                p.linha               ?? null,
-            grupo:                p.grupo               ?? null,
-            tipo:                 p.tipo                ?? null,
-            colecao:              p.colecao             ?? null,
-            cor_nome:             p.cor_nome            ?? null,
-            tamanho_numero:       p.tamanho_numero      ?? null,
-            descricao_produto:    p.descricao_produto   ?? null,
-            tipo_embalagem:       p.tipo_embalagem      ?? null,
-            material:             p.material            ?? null,
-            material_descritivo:  p.material_descritivo ?? null,
-            ncm:                  p.ncm                 ?? null,
-            cest:                 p.cest                ?? null,
-            origem_fisc:          p.origem_fisc         ?? null,
-            origem_prod:          p.origem_prod         ?? null,
-            preco_atacado:        p.preco_atacado,
-            preco_varejo:         p.preco_varejo        ?? null,
-            peso_g:               p.peso_g,
-            multiplos:            p.multiplos,
-            ativo:                p.ativo,
-            altura_cm:            p.altura_cm           ?? null,
-            largura_cm:           p.largura_cm          ?? null,
-            profundidade_cm:      p.profundidade_cm     ?? null,
-            // cor e estampa sao os atributos DISCRIMINANTES do produto. Alimentam
-            // fn_gerar_nome_operacional(), que monta o nome_operacional usado pela separacao
-            // (vw_xpm_cad_item) e pela NF. Sem eles, SKUs de nome comercial identico voltam
-            // a ser indistinguiveis para quem separa (causa do PED-2122). Nao remover.
-            cor:                  p.cor                 ?? null,
-            estampa:              p.estampa             ?? null,
-            atualizado_em:        new Date().toISOString(),
-          })),
+          body.produtos.map((p: any) => {
+            // AUSÊNCIA-NÃO-É-APAGAMENTO: null / undefined / string vazia NÃO entram no upsert
+            // — o valor já gravado no banco sobrevive. Consequência assumida: LIMPAR um campo no
+            // FOP não propaga pelo sync; limpeza é fluxo explícito. Booleans (ativo=false) e
+            // números 0 SÃO valores e entram. Exceção: sku e atualizado_em sempre entram.
+            const linha: Record<string, unknown> = {
+              sku:                  p.sku,
+              cod_cadastro:         typeof p.cod_cadastro === "string" ? p.cod_cadastro.trim() : p.cod_cadastro,
+              fase:                 typeof p.fase === "string" ? p.fase.trim() : p.fase,
+              ean:                  p.ean,
+              nome_comercial:       p.nome_comercial,
+              nome_completo:        p.nome_completo,
+              marca:                p.marca,
+              linha:                p.linha,
+              grupo:                p.grupo,
+              tipo:                 p.tipo,
+              colecao:              p.colecao,
+              cor_nome:             p.cor_nome,
+              tamanho_numero:       p.tamanho_numero,
+              descricao_produto:    p.descricao_produto,
+              tipo_embalagem:       p.tipo_embalagem,
+              material:             p.material,
+              material_descritivo:  p.material_descritivo,
+              ncm:                  p.ncm,
+              cest:                 p.cest,
+              origem_fisc:          p.origem_fisc,
+              origem_prod:          p.origem_prod,
+              preco_atacado:        p.preco_atacado,
+              preco_varejo:         p.preco_varejo,
+              peso_g:               p.peso_g,
+              multiplos:            p.multiplos,
+              ativo:                p.ativo,
+              altura_cm:            p.altura_cm,
+              largura_cm:           p.largura_cm,
+              profundidade_cm:      p.profundidade_cm,
+              // cor e estampa sao os atributos DISCRIMINANTES do produto. Alimentam
+              // fn_gerar_nome_operacional(), que monta o nome_operacional usado pela separacao
+              // (vw_xpm_cad_item) e pela NF. Sem eles, SKUs de nome comercial identico voltam
+              // a ser indistinguiveis para quem separa (causa do PED-2122). Nao remover.
+              cor:                  p.cor,
+              estampa:              p.estampa,
+              atualizado_em:        new Date().toISOString(),
+            };
+
+            for (const k of Object.keys(linha)) {
+              if (k === "sku" || k === "atualizado_em") continue;
+              const v = linha[k];
+              if (v === undefined || v === null || (typeof v === "string" && v.trim() === "")) delete linha[k];
+            }
+
+            return linha;
+          }),
           { onConflict: "sku" }
         );
       if (upsertErr) {
