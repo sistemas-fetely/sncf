@@ -1936,6 +1936,9 @@ export default function PedidoDetalhe() {
                 </CardContent>
               </Card>
 
+              {/* Card — Tarefas do pedido */}
+              <PedidoTarefasBloco pedidoId={pedido.id} />
+
               {/* Card — Resumo financeiro */}
                 <Card className="border-border/60 flex-1 flex flex-col">
                   <CardHeader className="pb-3">
