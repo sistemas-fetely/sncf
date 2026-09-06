@@ -143,13 +143,14 @@ export default function CamposTarefa() {
       <Card>
         <CardContent className="space-y-1 p-4 text-sm text-muted-foreground">
           <p>
-            O campo é criado <strong className="text-foreground">uma vez</strong> aqui e
-            reaproveitado em vários projetos — este catálogo é da empresa inteira.
+            <strong className="text-foreground">Este é o único lugar onde campos nascem.</strong>{" "}
+            O campo é criado uma vez aqui e reaproveitado em vários projetos — este catálogo é da
+            empresa inteira.
           </p>
           <p>
-            Ligar um campo a um projeto é decisão de cada projeto, na aba{" "}
-            <strong className="text-foreground">Campos</strong> dele. Desativar aqui tira o campo
-            das listas de escolha, mas mantém tudo que já foi preenchido.
+            Os projetos apenas escolhem quais campos usar: ligar um campo a um projeto é decisão de
+            cada projeto, na aba <strong className="text-foreground">Campos</strong> dele.
+            Desativar aqui tira o campo das listas de escolha, mas mantém tudo que já foi preenchido.
           </p>
         </CardContent>
       </Card>
