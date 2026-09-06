@@ -130,7 +130,25 @@ export function BlocoCampos({ tarefa }: { tarefa: TarefaDetalhe }) {
           }
         />
       </Campo>
+
+      {/* Vínculo com pedido: os três campos andam juntos, sempre.
+          `tipo_origem` NÃO muda — quem criou e do que trata são coisas diferentes. */}
+      <Campo rotulo="Pedido vinculado">
+        <SeletorPedidoVinculo
+          pedidoId={
+            tarefa.modulo_origem === "pedidos" ? tarefa.entidade_origem_id : pedidoIdDaUrl(tarefa.acao_url)
+          }
+          onChange={(p) =>
+            salvar.mutate(
+              p
+                ? { entidade_origem_id: p.id, modulo_origem: "pedidos", acao_url: `/pedidos/${p.id}` }
+                : { entidade_origem_id: null, modulo_origem: null, acao_url: null },
+            )
+          }
+        />
+      </Campo>
     </div>
+
   );
 }
 
