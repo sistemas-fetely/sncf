@@ -9,6 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
 import { LinkOrigemTarefa } from "@/components/tarefas/LinkOrigemTarefa";
+import { SeloBloqueio } from "@/components/tarefas/SeloBloqueio";
+import { useBloqueioTarefa } from "@/hooks/tarefas/useTarefaBloqueio";
 import { useStatusRotulo } from "./comuns";
 import {
   useDecidirAprovacao, useSalvarCampoTarefa, useTarefaDetalhe,
@@ -53,6 +55,7 @@ function Conteudo({ tarefaId }: { tarefaId: string }) {
   const rotuloStatus = useStatusRotulo();
   const salvar = useSalvarCampoTarefa(tarefaId);
   const navigate = useNavigate();
+  const { data: bloqueio } = useBloqueioTarefa(tarefaId);
   const [titulo, setTitulo] = useState("");
 
   useEffect(() => setTitulo(tarefa?.titulo ?? ""), [tarefa?.titulo]);
@@ -99,6 +102,7 @@ function Conteudo({ tarefaId }: { tarefaId: string }) {
           className="h-auto border-transparent px-1 text-lg font-medium shadow-none focus-visible:border-input"
         />
         <div className="flex flex-wrap items-center gap-2 px-1">
+          {bloqueio?.bloqueada && <SeloBloqueio abertos={bloqueio.bloqueadores_abertos} />}
           <span className="text-xs text-muted-foreground" style={{ color: projeto?.cor || undefined }}>
             {projeto ? `#${projeto.nome}` : "Sem projeto"}
           </span>

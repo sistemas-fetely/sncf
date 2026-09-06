@@ -18604,6 +18604,13 @@ export type Database = {
             foreignKeyName: "gestao_reuniao_item_tarefa_id_fkey"
             columns: ["tarefa_id"]
             isOneToOne: false
+            referencedRelation: "vw_tarefa_bloqueio"
+            referencedColumns: ["tarefa_id"]
+          },
+          {
+            foreignKeyName: "gestao_reuniao_item_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
             referencedRelation: "vw_tarefa_do_pedido"
             referencedColumns: ["tarefa_id"]
           },
@@ -20761,6 +20768,13 @@ export type Database = {
             columns: ["tarefa_id"]
             isOneToOne: false
             referencedRelation: "vw_pedido_tarefas"
+            referencedColumns: ["tarefa_id"]
+          },
+          {
+            foreignKeyName: "historico_tarefas_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_bloqueio"
             referencedColumns: ["tarefa_id"]
           },
           {
@@ -44158,6 +44172,13 @@ export type Database = {
             foreignKeyName: "tarefas_parent_id_fkey"
             columns: ["parent_id"]
             isOneToOne: false
+            referencedRelation: "vw_tarefa_bloqueio"
+            referencedColumns: ["tarefa_id"]
+          },
+          {
+            foreignKeyName: "tarefas_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
             referencedRelation: "vw_tarefa_do_pedido"
             referencedColumns: ["tarefa_id"]
           },
@@ -44276,6 +44297,13 @@ export type Database = {
             foreignKeyName: "tarefas_anexos_tarefa_id_fkey"
             columns: ["tarefa_id"]
             isOneToOne: false
+            referencedRelation: "vw_tarefa_bloqueio"
+            referencedColumns: ["tarefa_id"]
+          },
+          {
+            foreignKeyName: "tarefas_anexos_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
             referencedRelation: "vw_tarefa_do_pedido"
             referencedColumns: ["tarefa_id"]
           },
@@ -44346,6 +44374,13 @@ export type Database = {
             columns: ["tarefa_id"]
             isOneToOne: false
             referencedRelation: "vw_pedido_tarefas"
+            referencedColumns: ["tarefa_id"]
+          },
+          {
+            foreignKeyName: "tarefas_apontamentos_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_bloqueio"
             referencedColumns: ["tarefa_id"]
           },
           {
@@ -44536,6 +44571,13 @@ export type Database = {
             foreignKeyName: "tarefas_campos_valores_tarefa_id_fkey"
             columns: ["tarefa_id"]
             isOneToOne: false
+            referencedRelation: "vw_tarefa_bloqueio"
+            referencedColumns: ["tarefa_id"]
+          },
+          {
+            foreignKeyName: "tarefas_campos_valores_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
             referencedRelation: "vw_tarefa_do_pedido"
             referencedColumns: ["tarefa_id"]
           },
@@ -44633,6 +44675,13 @@ export type Database = {
             foreignKeyName: "tarefas_comentarios_tarefa_id_fkey"
             columns: ["tarefa_id"]
             isOneToOne: false
+            referencedRelation: "vw_tarefa_bloqueio"
+            referencedColumns: ["tarefa_id"]
+          },
+          {
+            foreignKeyName: "tarefas_comentarios_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
             referencedRelation: "vw_tarefa_do_pedido"
             referencedColumns: ["tarefa_id"]
           },
@@ -44700,6 +44749,13 @@ export type Database = {
             foreignKeyName: "tarefas_dependencias_depende_de_id_fkey"
             columns: ["depende_de_id"]
             isOneToOne: false
+            referencedRelation: "vw_tarefa_bloqueio"
+            referencedColumns: ["tarefa_id"]
+          },
+          {
+            foreignKeyName: "tarefas_dependencias_depende_de_id_fkey"
+            columns: ["depende_de_id"]
+            isOneToOne: false
             referencedRelation: "vw_tarefa_do_pedido"
             referencedColumns: ["tarefa_id"]
           },
@@ -44736,6 +44792,13 @@ export type Database = {
             columns: ["tarefa_id"]
             isOneToOne: false
             referencedRelation: "vw_pedido_tarefas"
+            referencedColumns: ["tarefa_id"]
+          },
+          {
+            foreignKeyName: "tarefas_dependencias_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_bloqueio"
             referencedColumns: ["tarefa_id"]
           },
           {
@@ -44903,6 +44966,13 @@ export type Database = {
             columns: ["tarefa_id"]
             isOneToOne: false
             referencedRelation: "vw_pedido_tarefas"
+            referencedColumns: ["tarefa_id"]
+          },
+          {
+            foreignKeyName: "tarefas_papeis_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_bloqueio"
             referencedColumns: ["tarefa_id"]
           },
           {
@@ -45385,6 +45455,13 @@ export type Database = {
             foreignKeyName: "tarefas_tarefa_etiquetas_tarefa_id_fkey"
             columns: ["tarefa_id"]
             isOneToOne: false
+            referencedRelation: "vw_tarefa_bloqueio"
+            referencedColumns: ["tarefa_id"]
+          },
+          {
+            foreignKeyName: "tarefas_tarefa_etiquetas_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
             referencedRelation: "vw_tarefa_do_pedido"
             referencedColumns: ["tarefa_id"]
           },
@@ -45541,6 +45618,13 @@ export type Database = {
             columns: ["tarefa_id"]
             isOneToOne: false
             referencedRelation: "vw_pedido_tarefas"
+            referencedColumns: ["tarefa_id"]
+          },
+          {
+            foreignKeyName: "tarefas_timer_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_bloqueio"
             referencedColumns: ["tarefa_id"]
           },
           {
@@ -66067,6 +66151,13 @@ export type Database = {
             foreignKeyName: "gestao_reuniao_item_tarefa_id_fkey"
             columns: ["tarefa_id"]
             isOneToOne: false
+            referencedRelation: "vw_tarefa_bloqueio"
+            referencedColumns: ["tarefa_id"]
+          },
+          {
+            foreignKeyName: "gestao_reuniao_item_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
             referencedRelation: "vw_tarefa_do_pedido"
             referencedColumns: ["tarefa_id"]
           },
@@ -71184,14 +71275,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -72606,14 +72697,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -80104,6 +80195,147 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_tarefa_bloqueio: {
+        Row: {
+          bloqueada: boolean | null
+          bloqueadores_abertos: number | null
+          bloqueadores_total: number | null
+          tarefa_id: string | null
+          travando_outras: number | null
+        }
+        Relationships: []
+      }
+      vw_tarefa_dependencia_detalhe: {
+        Row: {
+          bloqueada_resolvida: boolean | null
+          bloqueada_responsavel_id: string | null
+          bloqueada_status: string | null
+          bloqueada_status_nome: string | null
+          bloqueada_titulo: string | null
+          bloqueador_resolvido: boolean | null
+          bloqueador_responsavel_id: string | null
+          bloqueador_status: string | null
+          bloqueador_status_nome: string | null
+          bloqueador_titulo: string | null
+          depende_de_id: string | null
+          id: string | null
+          tarefa_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_dependencias_depende_de_id_fkey"
+            columns: ["depende_de_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_dependencias_depende_de_id_fkey"
+            columns: ["depende_de_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_tarefas"
+            referencedColumns: ["tarefa_id"]
+          },
+          {
+            foreignKeyName: "tarefas_dependencias_depende_de_id_fkey"
+            columns: ["depende_de_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_bloqueio"
+            referencedColumns: ["tarefa_id"]
+          },
+          {
+            foreignKeyName: "tarefas_dependencias_depende_de_id_fkey"
+            columns: ["depende_de_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_do_pedido"
+            referencedColumns: ["tarefa_id"]
+          },
+          {
+            foreignKeyName: "tarefas_dependencias_depende_de_id_fkey"
+            columns: ["depende_de_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_do_titulo"
+            referencedColumns: ["tarefa_id"]
+          },
+          {
+            foreignKeyName: "tarefas_dependencias_depende_de_id_fkey"
+            columns: ["depende_de_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_meu_papel"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_dependencias_depende_de_id_fkey"
+            columns: ["depende_de_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_meu_papel"
+            referencedColumns: ["mae_id"]
+          },
+          {
+            foreignKeyName: "tarefas_dependencias_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_dependencias_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_tarefas"
+            referencedColumns: ["tarefa_id"]
+          },
+          {
+            foreignKeyName: "tarefas_dependencias_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_bloqueio"
+            referencedColumns: ["tarefa_id"]
+          },
+          {
+            foreignKeyName: "tarefas_dependencias_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_do_pedido"
+            referencedColumns: ["tarefa_id"]
+          },
+          {
+            foreignKeyName: "tarefas_dependencias_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_do_titulo"
+            referencedColumns: ["tarefa_id"]
+          },
+          {
+            foreignKeyName: "tarefas_dependencias_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_meu_papel"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_dependencias_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_meu_papel"
+            referencedColumns: ["mae_id"]
+          },
+          {
+            foreignKeyName: "tarefas_status_fkey"
+            columns: ["bloqueada_status"]
+            isOneToOne: false
+            referencedRelation: "tarefa_status_dim"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "tarefas_status_fkey"
+            columns: ["bloqueador_status"]
+            isOneToOne: false
+            referencedRelation: "tarefa_status_dim"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
       vw_tarefa_do_pedido: {
         Row: {
           atrasada: boolean | null
@@ -80244,6 +80476,13 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "vw_pedido_tarefas"
+            referencedColumns: ["tarefa_id"]
+          },
+          {
+            foreignKeyName: "tarefas_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefa_bloqueio"
             referencedColumns: ["tarefa_id"]
           },
           {
