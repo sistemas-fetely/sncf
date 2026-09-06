@@ -252,6 +252,30 @@ if (body.tipo === "canal_badges") {
 }
 // ── fim branch canal_badges ──
 
+// ── Branch: ficha_pendencias — portão de publicação do cadastro no FOP ──
+// Autenticação já validada acima via FOP_INBOUND_TOKEN
+if (body.tipo === "ficha_pendencias") {
+  const skus = Array.isArray(body.skus)
+    ? body.skus.map((s: unknown) => String(s).trim()).filter(Boolean)
+    : [];
+
+  let q = (supabase as any)
+    .from("vw_produto_ficha_pendencias")
+    .select("sku, cod_cadastro, colecao, nome_comercial, campo, bloco, dono");
+  if (skus.length > 0) q = q.in("sku", skus);
+
+  const { data: pendencias, error: errPend } = await q;
+  if (errPend) {
+    console.error("[recebe-pedido] ficha_pendencias: erro na query", errPend);
+    return jsonResponse(500, { error: errPend.message });
+  }
+
+  return jsonResponse(200, { ok: true, pendencias: pendencias ?? [] });
+}
+// ── fim branch ficha_pendencias ──
+
+
+
 
     // ── Branch: sincronização de catálogo de produtos ─────────────────────
     // Autenticação já validada acima via FOP_INBOUND_TOKEN
