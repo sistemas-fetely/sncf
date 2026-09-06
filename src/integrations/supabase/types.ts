@@ -69448,14 +69448,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -74976,7 +74976,9 @@ export type Database = {
         Row: {
           cargo: string | null
           departamento: string | null
+          departamento_id: string | null
           gestor_nome: string | null
+          nivel_cargo: string | null
           nome: string | null
           pessoa_id: string | null
           tem_acesso: boolean | null
@@ -74985,6 +74987,13 @@ export type Database = {
           user_id: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "vinculos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "vinculos_tipo_vinculo_fkey"
             columns: ["tipo_vinculo"]
