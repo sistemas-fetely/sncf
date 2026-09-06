@@ -394,21 +394,83 @@ export function PessoasProjeto({ projetoId }: Props) {
             </div>
           </div>
 
+          {modo === "massa" && valorCriterio && (
+            <div className="space-y-2 rounded-md border bg-muted/30 p-3">
+              <p className="text-xs font-medium">
+                Quem será adicionado ({elegiveisMassa.length})
+              </p>
+              {elegiveisMassa.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Nenhuma pessoa deste grupo tem acesso ao sistema
+                  {semAcessoMassa.length > 0 &&
+                    ` — ${semAcessoMassa.length} ${semAcessoMassa.length === 1 ? "pessoa ficou" : "pessoas ficaram"} de fora por isso`}
+                  .
+                </p>
+              ) : (
+                <>
+                  <ul className="grid gap-1 sm:grid-cols-2">
+                    {elegiveisMassa.map((p) => (
+                      <li key={p.pessoa_id} className="text-xs">
+                        <span className="font-medium">{p.nome}</span>
+                        {p.cargo && <span className="text-muted-foreground"> · {p.cargo}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                  {semAcessoMassa.length > 0 && (
+                    <p className="text-[11px] text-muted-foreground">
+                      {semAcessoMassa.length === 1
+                        ? "1 pessoa do grupo ficou de fora por não ter acesso ao sistema."
+                        : `${semAcessoMassa.length} pessoas do grupo ficaram de fora por não terem acesso ao sistema.`}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
           <div>
-            <Button
-              size="sm"
-              disabled={!podeGerenciar || !novaPessoa || !novoPapel || adicionar.isPending}
-              onClick={async () => {
-                await adicionar.mutateAsync({ userId: novaPessoa, papel: novoPapel });
-                setNovaPessoa("");
-                setNovoPapel("");
-              }}
-            >
-              <Plus className="mr-1 h-4 w-4" />
-              {pessoaEscolhida && papelEscolhido
-                ? `Adicionar ${pessoaEscolhida.nome} como ${papelEscolhido.nome}`
-                : "Escolha uma pessoa e um papel"}
-            </Button>
+            {modo === "uma" ? (
+              <Button
+                size="sm"
+                disabled={!podeGerenciar || !novaPessoa || !novoPapel || adicionar.isPending}
+                onClick={async () => {
+                  await adicionar.mutateAsync({ userId: novaPessoa, papel: novoPapel });
+                  setNovaPessoa("");
+                  setNovoPapel("");
+                }}
+              >
+                <Plus className="mr-1 h-4 w-4" />
+                {pessoaEscolhida && papelEscolhido
+                  ? `Adicionar ${pessoaEscolhida.nome} como ${papelEscolhido.nome}`
+                  : "Escolha uma pessoa e um papel"}
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                disabled={
+                  !podeGerenciar ||
+                  !valorCriterio ||
+                  !novoPapel ||
+                  elegiveisMassa.length === 0 ||
+                  adicionarMassa.isPending
+                }
+                onClick={async () => {
+                  await adicionarMassa.mutateAsync({
+                    userIds: elegiveisMassa.map((p) => p.user_id!),
+                    papel: novoPapel,
+                  });
+                  setValorCriterio("");
+                  setNovoPapel("");
+                }}
+              >
+                <Users className="mr-1 h-4 w-4" />
+                {papelEscolhido
+                  ? elegiveisMassa.length === 1
+                    ? `Adicionar 1 pessoa como ${papelEscolhido.nome}`
+                    : `Adicionar ${elegiveisMassa.length} pessoas como ${papelEscolhido.nome}`
+                  : "Escolha um grupo e um papel"}
+              </Button>
+            )}
           </div>
         </div>
       </section>
