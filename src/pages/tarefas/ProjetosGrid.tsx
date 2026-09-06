@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useNomePessoa } from "@/components/tarefas/detalhe/comuns";
+import { MarcaProjeto } from "@/components/tarefas/projetos/MarcaProjeto";
 import { NovoProjetoDialog } from "@/components/tarefas/projetos/NovoProjetoDialog";
 import { useMeusPapeisProjeto, usePapeisProjeto } from "@/hooks/tarefas/useProjetoMembros";
 import { useAuth } from "@/contexts/AuthContext";
@@ -63,9 +64,12 @@ export default function ProjetosGrid() {
               <Card className="h-full transition hover:shadow-md">
                 <CardContent className="space-y-3 p-4">
                   <div className="flex items-start gap-3">
-                    <span
-                      className="mt-0.5 h-9 w-9 shrink-0 rounded-xl"
-                      style={{ backgroundColor: p.cor }}
+                    <MarcaProjeto
+                      nome={p.nome}
+                      cor={p.cor}
+                      icone={p.icone}
+                      imagemUrl={p.imagem_url}
+                      className="mt-0.5 h-9 w-9"
                     />
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium">{p.nome}</p>
