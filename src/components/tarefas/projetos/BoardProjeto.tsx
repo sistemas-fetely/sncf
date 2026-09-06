@@ -43,6 +43,37 @@ const DIAS_CONCLUIDAS = 7;
 
 type AgruparPor = "secao" | "status";
 
+interface BotaoConcluirProps {
+  concluida: boolean;
+  onClick: (e: React.MouseEvent) => void;
+  className?: string;
+  ariaLabel?: string;
+}
+
+function BotaoConcluir({ concluida, onClick, className, ariaLabel }: BotaoConcluirProps) {
+  return (
+    <button
+      type="button"
+      aria-label={ariaLabel ?? (concluida ? "Reabrir tarefa" : "Concluir tarefa")}
+      onClick={onClick}
+      className={cn(
+        "flex h-7 w-7 items-center justify-center rounded-full transition-colors duration-200",
+        className
+      )}
+    >
+      <span
+        className={cn(
+          "flex h-[18px] w-[18px] items-center justify-center rounded-full border transition-colors duration-200",
+          concluida
+            ? "border-success bg-success text-success-foreground"
+            : "border-muted-foreground/40 bg-transparent text-transparent hover:border-muted-foreground/70 hover:text-muted-foreground/70"
+        )}
+      >
+        <Check className="h-3 w-3 stroke-[2.5]" />
+      </span>
+    </button>
+  );
+}
 
 const PRIORIDADE_CLASSE: Record<string, string> = {
   urgente: "border-destructive/40 bg-destructive/10 text-destructive",
