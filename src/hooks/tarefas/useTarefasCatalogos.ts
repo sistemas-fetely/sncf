@@ -105,8 +105,12 @@ export function casarPorNome<T extends { id: string; nome: string }>(
   alvo: string | null
 ): string | null {
   if (!alvo || !itens?.length) return null;
+  // hífen/underscore contam como espaço: o parser corta o token no espaço, então
+  // nomes compostos são digitados como "Financeiro-Interno".
   const chave = (s: string) =>
-    s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+      .replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
+
   const a = chave(alvo);
   return (
     itens.find((i) => chave(i.nome) === a)?.id ??
