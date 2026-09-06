@@ -148,14 +148,18 @@ export function LoteAcaoContasDialog({ open, onOpenChange, ids, acao, dataPreten
           <AlertDialogHeader>
             <AlertDialogTitle>
               {acao?.rotulo_acao}
-              {resumo ? ` — ${resumo.titulos} títulos, ${formatBRL(Number(resumo.valor_total || 0))}` : ""}
+              {resumo
+                ? ` — ${resumo.titulos} título${resumo.titulos === 1 ? "" : "s"}, ${formatBRL(Number(resumo.valor_total || 0))}`
+                : ""}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {resumoQuery.isLoading
                 ? "Somando os títulos selecionados..."
                 : resumoQuery.error
                   ? (resumoQuery.error as Error).message
-                  : `Esta ação vale para todos os ${ids.length} títulos selecionados.`}
+                  : ids.length === 1
+                    ? "Esta ação vale para o título selecionado."
+                    : `Esta ação vale para todos os ${ids.length} títulos selecionados.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
 
