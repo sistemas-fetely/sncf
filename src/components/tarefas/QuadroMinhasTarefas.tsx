@@ -77,15 +77,15 @@ export function QuadroMinhasTarefas({
 
   const abertos = (statusDim ?? []).filter((s) => s.e_aberto);
   const arrastavelNoModo = agruparPor === "status" && !somenteLeitura;
+  /** abertas + concluídas recentes — base do modo status e do lookup no arraste */
+  const todas = [
+    ...grupos.flatMap(([, lista]) => lista),
+    ...concluidasRecentes,
+  ];
   const rotulo = (codigo: string) => statusDim?.find((s) => s.codigo === codigo)?.nome ?? codigo;
 
   let colunas: Coluna[];
   if (agruparPor === "status") {
-    /** abertas + concluídas recentes, distribuídas pelo status exibido (otimista) */
-    const todas = [
-      ...grupos.flatMap(([, lista]) => lista),
-      ...concluidasRecentes,
-    ];
     const chaves = [...abertos.map((s) => s.codigo), "concluida"];
     const porColuna = new Map<string, TarefaComPapel[]>(chaves.map((c) => [c, []]));
     for (const t of todas) {
@@ -105,7 +105,6 @@ export function QuadroMinhasTarefas({
       },
     ];
   } else {
-    const todas = grupos.flatMap(([, lista]) => lista);
     colunas = grupos.map(([chave, lista]) => ({
       chave,
       titulo: nomeProjeto(chave),
