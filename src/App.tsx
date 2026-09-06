@@ -128,7 +128,6 @@ const SistemaReportes = lazy(() => import("@/pages/admin/SistemaReportes"));
 const HistoricoImportacoesPDF = lazy(() => import("@/pages/admin/HistoricoImportacoesPDF"));
 const GerenciarVisibilidade = lazy(() => import("@/pages/admin/GerenciarVisibilidade"));
 const MesaDeclaracoes = lazy(() => import("@/pages/admin/MesaDeclaracoes"));
-const AtribuicoesCarga = lazy(() => import("@/pages/admin/AtribuicoesCarga"));
 const CamposTarefa = lazy(() => import("@/pages/admin/CamposTarefa"));
 const NomesBling = lazy(() => import("@/pages/acervo/NomesBling"));
 const MesaProduto = lazy(() => import("@/pages/acervo/MesaProduto"));
@@ -704,11 +703,6 @@ const App = () => (
                 <Route path="declaracoes" element={
                   <ProtectedRoute>
                     <MesaDeclaracoes />
-                  </ProtectedRoute>
-                } />
-                <Route path="atribuicoes" element={
-                  <ProtectedRoute>
-                    <AtribuicoesCarga />
                   </ProtectedRoute>
                 } />
                 <Route path="campos-tarefa" element={
