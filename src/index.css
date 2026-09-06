@@ -11,9 +11,9 @@
     /* Backgrounds */
     --background: 35 36% 90%;       /* #F0E7DB cream */
     --foreground: 30 22% 14%;       /* marrom escuro pra texto */
-    --card: 36 50% 94%;             /* #F8F1E6 surface */
+    --card: 36 50% 97%;             /* #FCF9F4 surface */
     --card-foreground: 30 22% 14%;
-    --popover: 36 50% 94%;
+    --popover: 36 50% 97%;
     --popover-foreground: 30 22% 14%;
 
     /* Ouro Fetély */
@@ -87,9 +87,9 @@
   .dark {
     --background: 0 0% 4%;          /* #0A0A0A */
     --foreground: 36 38% 93%;       /* #F5F0E8 cream */
-    --card: 0 0% 7%;                /* #111 */
+    --card: 0 0% 11%;               /* #1C1C1C */
     --card-foreground: 36 38% 93%;
-    --popover: 0 0% 7%;
+    --popover: 0 0% 11%;
     --popover-foreground: 36 38% 93%;
 
     --primary: 45 53% 55%;          /* #C9A84C ouro brilhante */
