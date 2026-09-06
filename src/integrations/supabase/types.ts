@@ -36246,6 +36246,36 @@ export type Database = {
         }
         Relationships: []
       }
+      projeto_papel_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          descricao: string
+          nome: string
+          ordem: number
+          pode_editar_projeto: boolean
+          pode_editar_tarefas: boolean
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          descricao: string
+          nome: string
+          ordem?: number
+          pode_editar_projeto: boolean
+          pode_editar_tarefas: boolean
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          descricao?: string
+          nome?: string
+          ordem?: number
+          pode_editar_projeto?: boolean
+          pode_editar_tarefas?: boolean
+        }
+        Relationships: []
+      }
       provisao_recebimento: {
         Row: {
           analise_credito_id: string | null
@@ -44223,6 +44253,58 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_tarefa_meu_papel"
             referencedColumns: ["mae_id"]
+          },
+        ]
+      }
+      tarefas_projeto_membros: {
+        Row: {
+          adicionado_por: string | null
+          created_at: string
+          desde: string
+          id: string
+          papel: string
+          projeto_id: string
+          user_id: string
+        }
+        Insert: {
+          adicionado_por?: string | null
+          created_at?: string
+          desde?: string
+          id?: string
+          papel: string
+          projeto_id: string
+          user_id: string
+        }
+        Update: {
+          adicionado_por?: string | null
+          created_at?: string
+          desde?: string
+          id?: string
+          papel?: string
+          projeto_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_projeto_membros_papel_fkey"
+            columns: ["papel"]
+            isOneToOne: false
+            referencedRelation: "projeto_papel_dim"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "tarefas_projeto_membros_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas_projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_projeto_membros_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_painel_projeto"
+            referencedColumns: ["projeto_id"]
           },
         ]
       }
@@ -84063,6 +84145,7 @@ export type Database = {
             }
             Returns: number
           }
+      fn_papel_no_projeto: { Args: { _projeto_id: string }; Returns: string }
       fn_parceiro_apelido: {
         Args: { p_fantasia: string; p_razao: string }
         Returns: string
@@ -84150,6 +84233,7 @@ export type Database = {
         Returns: boolean
       }
       fn_pode_operar_mercadoria: { Args: never; Returns: boolean }
+      fn_pode_ver_projeto: { Args: { _projeto_id: string }; Returns: boolean }
       fn_portao_consignado: {
         Args: { p_parceiro_id: string; p_valor_pedido: number }
         Returns: Json
@@ -84469,6 +84553,7 @@ export type Database = {
           valor: number
         }[]
       }
+      fn_titulo_pagar_tem_prova: { Args: { p_cpr_id: string }; Returns: Json }
       fn_titulo_pagar_transicionar: {
         Args: {
           p_cpr_id: string

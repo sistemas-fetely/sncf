@@ -9,6 +9,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useNomePessoa } from "@/components/tarefas/detalhe/comuns";
 import { NovoProjetoDialog } from "@/components/tarefas/projetos/NovoProjetoDialog";
+import { useMeusPapeisProjeto, usePapeisProjeto } from "@/hooks/tarefas/useProjetoMembros";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   SAUDE_CLASSE, SAUDE_ROTULO, useContagemAbertasPorProjeto, useProjetosLista,
 } from "@/hooks/tarefas/useProjetosTarefas";
@@ -17,7 +19,18 @@ export default function ProjetosGrid() {
   const { data: projetos, isLoading } = useProjetosLista();
   const { data: contagem } = useContagemAbertasPorProjeto();
   const nomePessoa = useNomePessoa();
+  const { user } = useAuth();
+  const { data: meusPapeis } = useMeusPapeisProjeto();
+  const { data: papeis } = usePapeisProjeto();
   const [novo, setNovo] = useState(false);
+
+  /** Vínculo do usuário logado com o projeto: responsável vence o papel de membro. */
+  const vinculo = (projetoId: string, responsavelId: string | null): string | null => {
+    if (user?.id && responsavelId === user.id) return "Responsável";
+    const codigo = meusPapeis?.[projetoId];
+    if (!codigo) return null;
+    return papeis?.find((p) => p.codigo === codigo)?.nome ?? codigo;
+  };
 
   return (
     <PageShell>
@@ -68,9 +81,16 @@ export default function ProjetosGrid() {
                     <Badge variant="outline" className={cn("text-[10px]", SAUDE_CLASSE[p.saude])}>
                       {SAUDE_ROTULO[p.saude]}
                     </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {contagem?.[p.id] ?? 0} abertas
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {vinculo(p.id, p.responsavel_id) && (
+                        <Badge variant="secondary" className="text-[10px]">
+                          {vinculo(p.id, p.responsavel_id)}
+                        </Badge>
+                      )}
+                      <span className="text-xs text-muted-foreground">
+                        {contagem?.[p.id] ?? 0} abertas
+                      </span>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
