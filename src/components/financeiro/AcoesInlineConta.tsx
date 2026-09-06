@@ -91,12 +91,19 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
       ? "pendente"
       : "na";
 
-  // PROVA 3 — Comprovante. SOMENTE LEITURA: não existe mecanismo de anexo de
-  // comprovante de SAÍDA no sistema (`comprovante_pagamento` tem `pedido_id`
-  // NOT NULL — é comprovante de ENTRADA). Por isso o ícone nunca fica vermelho:
-  // vermelho promete uma ação que não existe. Cinza = ausente, verde = presente.
+  // PROVA 3 — Comprovante de SAÍDA. Verde = já existe prova (clique abre o
+  // arquivo). Vermelho = título programado ou pago e ainda sem comprovante
+  // (clique abre o anexo). Cinza = não faz sentido pedir comprovante ainda.
+  //
+  // As duas provas NÃO têm a mesma força: extrato bancário é conciliação;
+  // comprovante anexado é promessa que ainda espera o extrato. O tooltip diz qual.
   const temComprovante = !!conta.comprovante_url;
-  const estadoComprovante: EstadoIcone = temComprovante ? "feito" : "na";
+  const PEDE_COMPROVANTE = ["programado", "pago"];
+  const estadoComprovante: EstadoIcone = temComprovante
+    ? "feito"
+    : PEDE_COMPROVANTE.includes(status)
+      ? "pendente"
+      : "na";
 
   async function handleSelecionarNFDoStage(nfStageId: string) {
     setVinculandoNF(true);
