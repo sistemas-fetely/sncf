@@ -370,6 +370,8 @@ export function BoardProjeto({ projetoId }: Props) {
                     const filhas = filhasPorMae.get(t.id) ?? [];
                     const feitas = filhas.filter((f) => f.status === "concluida").length;
                     const passosVisiveis = !!passosAbertos[t.id];
+                    const container = filhas.length > 0;
+                    const statusDoCard = statusExibido(t);
                     const camposDoCard = camposCard
                       .map((c) => {
                         const meta = catalogo?.find((k) => k.id === c.campo_id);
@@ -384,6 +386,7 @@ export function BoardProjeto({ projetoId }: Props) {
                         key={t.id}
                         draggable={arrastavel}
                         onDragStart={(e) => {
+                          if (!arrastavel) return;
                           e.dataTransfer.setData("text/tarefa-id", t.id);
                           e.dataTransfer.effectAllowed = "move";
                         }}
@@ -391,7 +394,7 @@ export function BoardProjeto({ projetoId }: Props) {
                         className={cn(
                           "cursor-pointer space-y-2 border p-3 transition hover:shadow-sm",
                           arrastavel ? "active:opacity-70" : "opacity-95",
-                          t.status === "concluida" && "opacity-60"
+                          statusDoCard === "concluida" && "opacity-60"
                         )}
                       >
                         <div className="flex items-start gap-2">
@@ -403,14 +406,38 @@ export function BoardProjeto({ projetoId }: Props) {
                                 <TooltipTrigger asChild>
                                   <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                                 </TooltipTrigger>
-                                <TooltipContent>Você não pode mover esta tarefa</TooltipContent>
+                                <TooltipContent>
+                                  {agruparPor === "status" && container
+                                    ? "Agrupador: fecha pelo progresso das subtarefas, não arrasta"
+                                    : "Você não pode mover esta tarefa"}
+                                </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                           )}
+                          {/* contêiner NÃO tem checkbox: fecha pelo progresso das filhas */}
+                          {!container && (
+                            <Checkbox
+                              className="mt-0.5"
+                              checked={statusDoCard === "concluida"}
+                              aria-label="Concluir tarefa"
+                              onClick={(e) => e.stopPropagation()}
+                              onCheckedChange={(v) =>
+                                void trocarStatus(t.id, v ? "concluida" : "pendente")
+                              }
+                            />
+                          )}
                           <div className="min-w-0 flex-1">
-                            <span className="text-sm font-medium leading-snug">{t.titulo}</span>
+                            <span
+                              className={cn(
+                                "text-sm font-medium leading-snug",
+                                statusDoCard === "concluida" && "text-muted-foreground line-through"
+                              )}
+                            >
+                              {t.titulo}
+                            </span>
                           </div>
                         </div>
+
 
                         <div className="flex flex-wrap items-center gap-1.5">
                           <Badge variant="outline" className={cn("text-[10px]", PRIORIDADE_CLASSE[t.prioridade])}>
