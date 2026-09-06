@@ -175,22 +175,22 @@ export function PessoasProjeto({ projetoId }: Props) {
     return (
       <Card className="relative">
         {acoes && <div className="absolute right-2 top-2">{acoes}</div>}
-        <CardContent className="flex flex-col items-center p-5 text-center">
-          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+        <CardContent className="flex flex-col items-center p-4 text-center">
+          <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
             {iniciais(nome)}
           </div>
           <p className="w-full truncate text-sm font-semibold" title={nome}>{nome}</p>
           {detalhePessoa(pessoa) ? (
-            <p className="mt-1 w-full truncate text-xs text-muted-foreground" title={detalhePessoa(pessoa)!}>
+            <p className="mt-0.5 w-full truncate text-xs text-muted-foreground" title={detalhePessoa(pessoa)!}>
               {detalhePessoa(pessoa)}
             </p>
           ) : (
-            <p className="mt-1 text-xs text-muted-foreground">Cargo e departamento não informados</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Cargo e departamento não informados</p>
           )}
           {pessoa?.gestor_nome && (
-            <p className="mt-1 text-[11px] text-muted-foreground">reporta a {pessoa.gestor_nome}</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">reporta a {pessoa.gestor_nome}</p>
           )}
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
             {vinculo ? (
               <Badge variant="secondary" className="text-[10px]">{vinculo}</Badge>
             ) : papel ? (
@@ -198,7 +198,7 @@ export function PessoasProjeto({ projetoId }: Props) {
             ) : null}
           </div>
           {papel && (
-            <p className="mt-3 text-[11px] text-muted-foreground">desde {dataBr(desde)}</p>
+            <p className="mt-2 text-[11px] text-muted-foreground">desde {dataBr(desde)}</p>
           )}
         </CardContent>
       </Card>
@@ -206,8 +206,8 @@ export function PessoasProjeto({ projetoId }: Props) {
   };
 
   return (
-    <div className="space-y-6">
-      <section className="space-y-3">
+    <div className="max-w-6xl space-y-4">
+      <section className="space-y-2">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium">Quem participa</h3>
           {!podeGerenciar && (
@@ -221,7 +221,7 @@ export function PessoasProjeto({ projetoId }: Props) {
           <p className="text-sm text-muted-foreground">Ninguém participa deste projeto ainda.</p>
         )}
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {fixos.map((f) => (
             <CardPessoa key={`fixo-${f.id}`} userId={f.id} vinculo={f.vinculo} />
           ))}
@@ -272,7 +272,7 @@ export function PessoasProjeto({ projetoId }: Props) {
         </div>
       </section>
 
-      <section className="space-y-3 border-t pt-4">
+      <section className="space-y-2 border-t pt-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-medium">Adicionar participante</h3>
           {podeGerenciar && (
@@ -300,7 +300,7 @@ export function PessoasProjeto({ projetoId }: Props) {
             </div>
           )}
         </div>
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           {modo === "uma" ? (
             <>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -415,7 +415,7 @@ export function PessoasProjeto({ projetoId }: Props) {
             </>
           ) : (
             <>
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid max-w-[900px] gap-3 sm:grid-cols-[1fr_180px_180px]">
                 <div className="space-y-2">
                   <Label htmlFor="busca-massa">Buscar</Label>
                   <Input
@@ -479,9 +479,9 @@ export function PessoasProjeto({ projetoId }: Props) {
                 </div>
               </div>
 
-              <div className="max-h-72 divide-y overflow-y-auto rounded-md border">
+              <div className="grid max-h-72 grid-cols-1 gap-2 overflow-y-auto rounded-md border p-2 md:grid-cols-2 lg:grid-cols-3">
                 {visiveisMassa.length === 0 ? (
-                  <p className="p-4 text-sm text-muted-foreground">
+                  <p className="col-span-full p-4 text-sm text-muted-foreground">
                     Ninguém encontrado com esses filtros.
                   </p>
                 ) : (
@@ -492,7 +492,7 @@ export function PessoasProjeto({ projetoId }: Props) {
                       <label
                         key={p.pessoa_id}
                         className={cn(
-                          "flex items-start gap-3 p-3",
+                          "flex items-start gap-2 rounded-sm border p-2",
                           desabilitada ? "opacity-60" : "cursor-pointer hover:bg-muted/40"
                         )}
                       >
@@ -515,35 +515,35 @@ export function PessoasProjeto({ projetoId }: Props) {
                 )}
               </div>
 
-              <div className="max-w-sm space-y-2">
-                <Label htmlFor="papel-novo">Papel</Label>
-                <Select
-                  value={novoPapel}
-                  disabled={!podeGerenciar}
-                  onValueChange={(v) => setNovoPapel(v)}
-                >
-                  <SelectTrigger id="papel-novo" className="w-full">
-                    <SelectValue placeholder="Escolha um papel" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(papeis ?? []).map((p) => (
-                      <SelectItem key={p.codigo} value={p.codigo}>
-                        <span className="flex flex-col">
-                          <span>{p.nome}</span>
-                          {p.descricao && (
-                            <span className="text-[11px] text-muted-foreground">{p.descricao}</span>
-                          )}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {papelEscolhido?.descricao && (
-                  <p className="text-xs text-muted-foreground">{papelEscolhido.descricao}</p>
-                )}
-              </div>
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="w-full space-y-1 sm:w-[240px]">
+                  <Label htmlFor="papel-novo">Papel</Label>
+                  <Select
+                    value={novoPapel}
+                    disabled={!podeGerenciar}
+                    onValueChange={(v) => setNovoPapel(v)}
+                  >
+                    <SelectTrigger id="papel-novo" className="w-full">
+                      <SelectValue placeholder="Escolha um papel" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(papeis ?? []).map((p) => (
+                        <SelectItem key={p.codigo} value={p.codigo}>
+                          <span className="flex flex-col">
+                            <span>{p.nome}</span>
+                            {p.descricao && (
+                              <span className="text-[11px] text-muted-foreground">{p.descricao}</span>
+                            )}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {papelEscolhido?.descricao && (
+                    <p className="text-xs text-muted-foreground">{papelEscolhido.descricao}</p>
+                  )}
+                </div>
 
-              <div>
                 <Button
                   size="sm"
                   disabled={
