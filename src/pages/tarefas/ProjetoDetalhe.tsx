@@ -95,6 +95,9 @@ export default function ProjetoDetalhe() {
         <TabsContent value="pessoas" className="pt-4">
           <PessoasProjeto projetoId={id} />
         </TabsContent>
+        <TabsContent value="config" className="pt-4">
+          <ConfiguracoesProjeto projetoId={id} />
+        </TabsContent>
       </Tabs>
 
       <SalvarProjetoComoTemplateDialog
