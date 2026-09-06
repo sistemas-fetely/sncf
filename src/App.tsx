@@ -373,6 +373,11 @@ const App = () => (
                 <Route path="/vendas/bling-pedidos" element={<PedidosVenda />} />
                 
                 <Route path="/vendas/produto" element={<Produtos />} />
+                <Route path="/vendas/produto/mesa" element={
+                  <ProtectedRoute>
+                    <MesaProduto />
+                  </ProtectedRoute>
+                } />
                 <Route element={<ProdutoEstoqueLayout />}>
                   
                   <Route path="/vendas/produto/estoque/virtual" element={<EstoqueVirtual />} />
