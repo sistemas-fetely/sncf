@@ -446,13 +446,16 @@ export function NovaContaPagarSheet({ open, onOpenChange, initialData }: Props) 
 
       // Status do stage é recalculado automaticamente por trigger no banco
       // (ver função recalcular_status_nf_stage / Fase E)
+      return "criado" as const;
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
+      if (res === "gemeos") return; // aguardando decisão do humano
       toast.success(parcelas > 1 ? `${parcelas} parcelas registradas!` : "Despesa registrada!");
       qc.invalidateQueries({ queryKey: ["contas-pagar"] });
       setNfStageId(null);
       onOpenChange(false);
     },
+
     onError: (e: Error) => toast.error(e.message),
   });
 
