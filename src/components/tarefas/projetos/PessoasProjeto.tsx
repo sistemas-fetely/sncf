@@ -175,22 +175,22 @@ export function PessoasProjeto({ projetoId }: Props) {
     return (
       <Card className="relative">
         {acoes && <div className="absolute right-2 top-2">{acoes}</div>}
-        <CardContent className="flex flex-col items-center p-5 text-center">
-          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+        <CardContent className="flex flex-col items-center p-4 text-center">
+          <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
             {iniciais(nome)}
           </div>
           <p className="w-full truncate text-sm font-semibold" title={nome}>{nome}</p>
           {detalhePessoa(pessoa) ? (
-            <p className="mt-1 w-full truncate text-xs text-muted-foreground" title={detalhePessoa(pessoa)!}>
+            <p className="mt-0.5 w-full truncate text-xs text-muted-foreground" title={detalhePessoa(pessoa)!}>
               {detalhePessoa(pessoa)}
             </p>
           ) : (
-            <p className="mt-1 text-xs text-muted-foreground">Cargo e departamento não informados</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Cargo e departamento não informados</p>
           )}
           {pessoa?.gestor_nome && (
-            <p className="mt-1 text-[11px] text-muted-foreground">reporta a {pessoa.gestor_nome}</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">reporta a {pessoa.gestor_nome}</p>
           )}
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
             {vinculo ? (
               <Badge variant="secondary" className="text-[10px]">{vinculo}</Badge>
             ) : papel ? (
@@ -198,7 +198,7 @@ export function PessoasProjeto({ projetoId }: Props) {
             ) : null}
           </div>
           {papel && (
-            <p className="mt-3 text-[11px] text-muted-foreground">desde {dataBr(desde)}</p>
+            <p className="mt-2 text-[11px] text-muted-foreground">desde {dataBr(desde)}</p>
           )}
         </CardContent>
       </Card>
