@@ -332,6 +332,38 @@ export function PessoasProjeto({ projetoId }: Props) {
                 <p className="text-xs text-muted-foreground">Ninguém mais com acesso ao sistema.</p>
               ) : null}
             </div>
+            ) : (
+            <div className="space-y-2">
+              <Label htmlFor="criterio-massa">Adicionar por</Label>
+              <Select
+                value={criterio}
+                onValueChange={(v) => {
+                  setCriterio(v as CriterioMassa);
+                  setValorCriterio("");
+                }}
+              >
+                <SelectTrigger id="criterio-massa" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="departamento">Departamento</SelectItem>
+                  <SelectItem value="nivel">Nível do cargo</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={valorCriterio} onValueChange={setValorCriterio}>
+                <SelectTrigger className="w-full" aria-label="Grupo">
+                  <SelectValue placeholder={criterio === "departamento" ? "Escolha o departamento" : "Escolha o nível"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {grupos.map((g) => (
+                    <SelectItem key={g.valor} value={g.valor}>
+                      {g.rotulo} ({contagemElegiveis(g)})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="papel-novo">Papel</Label>
