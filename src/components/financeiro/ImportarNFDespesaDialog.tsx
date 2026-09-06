@@ -130,12 +130,14 @@ export function ImportarNFDespesaDialog({
     }
   }
 
-  async function criarDespesa(data: {
+  type DadosCriacao = {
     formaPgtoId: string | null;
     cartaoId: string | null;
     parcelas: number;
     dataPrimeiraParcela: string;
-  }) {
+  };
+
+  async function criarDespesa(data: DadosCriacao, forcar = false) {
     const item = fila[filaIndex];
     if (!item) return;
 
@@ -172,8 +174,30 @@ export function ImportarNFDespesaDialog({
           parcela_atual: i + 1,
           parcela_grupo_id: grupoId,
           status: "aberto",
-          origem: nf.stageId ? "nf_import" : "manual",
+          origem: nf.stageId ? "nf_stage" : "manual",
         });
+      }
+
+      // Guarda de duplicata: sistema sugere, humano decide. Nunca bloqueia.
+      if (!forcar) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: gemeosRaw, error: gemeosErr } = await (supabase as any).rpc(
+          "fn_titulo_pagar_gemeos",
+          {
+            p_parceiro_id: nf.parceiroId,
+            p_valor: nf.valor,
+            p_data_vencimento: rows[0].data_vencimento,
+            p_nf_numero: nf.nfNumero ?? null,
+          },
+        );
+        if (gemeosErr) throw gemeosErr;
+        const lista = (gemeosRaw ?? []) as TituloGemeo[];
+        if (lista.length > 0) {
+          setGemeos(lista);
+          setDadosPendentes(data);
+          setCriandoDespesa(false);
+          return;
+        }
       }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -182,6 +206,7 @@ export function ImportarNFDespesaDialog({
         .insert(rows)
         .select("id, parcela_atual");
       if (error) throw error;
+
 
       // Vincula a NF à PRIMEIRA parcela (modelo N:1: NF aponta para uma CPR).
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
