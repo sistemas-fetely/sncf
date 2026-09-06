@@ -20,7 +20,6 @@ import {
   ChevronDown,
   CreditCard,
   Pencil,
-  Trash2,
   ArrowRightLeft,
   Loader2,
   ExternalLink,
@@ -59,7 +58,6 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatError } from "@/lib/format-error";
 
 type Conta = {
   id: string;
@@ -125,7 +123,6 @@ export default function ContaPagarDetalheDrawer({
   const [showPag, setShowPag] = useState(false);
   const [showEnviar, setShowEnviar] = useState(false);
   const [modoEdit, setModoEdit] = useState(false);
-  const [apagando, setApagando] = useState(false);
   const [lancandoMov, setLancandoMov] = useState(false);
   
   const [acaoPendente, setAcaoPendente] = useState<TituloPagarAcao | null>(null);
@@ -166,65 +163,6 @@ export default function ContaPagarDetalheDrawer({
     }
   }
 
-  async function handleApagar(apagarGrupoInteiro = false) {
-    if (!conta) return;
-    setApagando(true);
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: result, error } = await (supabase as any).rpc(
-        "apagar_conta_pagar",
-        {
-          p_id: conta.id,
-          p_apagar_grupo_inteiro: apagarGrupoInteiro,
-        },
-      );
-      if (error) throw error;
-
-      // Caso 1: grupo de parcelas — pede confirmação cascade
-      if (result?.precisa_confirmar_grupo) {
-        const qtd = result.qtd_parcelas_grupo;
-        const ok = window.confirm(
-          `Esta conta faz parte de um grupo de ${qtd} parcelas.\n\n` +
-          `Apagar TODAS as ${qtd} parcelas?\n\n` +
-          `OK = apaga todas\n` +
-          `Cancelar = cancela operação`
-        );
-        if (ok) {
-          await handleApagar(true);
-        }
-        return;
-      }
-
-      // Caso 2: erro de regra (status, cartão vinculado, conciliado etc)
-      if (!result?.ok) {
-        toast.error(result?.erro || "Erro ao apagar");
-        return;
-      }
-
-      // Caso 3: sucesso
-      const msg = result.cascade_grupo
-        ? `${result.apagadas} parcelas apagadas`
-        : "Conta apagada";
-      toast.success(msg);
-
-      if (result.nfs_desvinculadas > 0) {
-        toast.info(`${result.nfs_desvinculadas} NF(s) voltaram pra fila de não-vinculadas`);
-      }
-
-      qc.invalidateQueries({ queryKey: ["contas-pagar"] });
-      qc.invalidateQueries({ queryKey: ["nfs-stage"] });
-      onClose();
-    } catch (e) {
-      const msg =
-        e instanceof Error ? e.message :
-        typeof e === "object" && e !== null
-          ? ((e as { message?: string }).message ?? JSON.stringify(e))
-          : String(e);
-      toast.error("Erro: " + msg);
-    } finally {
-      setApagando(false);
-    }
-  }
 
   useEffect(() => {
     setModoEdit(false);
@@ -815,12 +753,101 @@ function CancelarButton({
   onClose,
   temIrmasAtivas,
 }: {
-  conta: { id: string; status: string };
+  conta: { id: string; status: string; parcela_grupo_id?: string | null };
   onClose: () => void;
   temIrmasAtivas: boolean;
 }) {
+  const [open, setOpen] = useState(false);
+  const [motivo, setMotivo] = useState("");
+  const [loading, setLoading] = useState(false);
+  const qc = useQueryClient();
+
+  const motivoValido = motivo.trim().length >= 5;
+
+  async function transicionarCancelado(cprId: string) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc("fn_titulo_pagar_transicionar", {
+      p_cpr_id: cprId,
+      p_para: "cancelado",
+      p_motivo: motivo.trim(),
+      p_data_pretendida: null,
+    });
+    if (error) throw error;
+    if (!data?.ok) throw new Error(data?.erro || "Falha ao cancelar título");
+  }
+
+  function invalidar() {
+    qc.invalidateQueries({ queryKey: ["contas-pagar"] });
+    qc.invalidateQueries({ queryKey: ["conta-pagar-detalhe", conta.id] });
+    qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+    qc.invalidateQueries({ queryKey: ["titulo-pagar-acoes"] });
+    qc.invalidateQueries({ queryKey: ["cp-historico"] });
+  }
+
+  async function cancelarEsta() {
+    if (!motivoValido) return;
+    setLoading(true);
+    try {
+      await transicionarCancelado(conta.id);
+      toast.success("Conta cancelada com sucesso!");
+      invalidar();
+      setOpen(false);
+      setMotivo("");
+      onClose();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error("Erro ao cancelar: " + msg);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function cancelarGrupo() {
+    if (!motivoValido || !conta.parcela_grupo_id) return;
+    setLoading(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("contas_pagar_receber")
+        .select("id, status")
+        .eq("parcela_grupo_id", conta.parcela_grupo_id);
+      if (error) throw error;
+      const ativas = (data || []).filter(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (r: any) => !["cancelado", "finalizado", "conciliado"].includes(r.status)
+      );
+      let sucessos = 0;
+      const erros: string[] = [];
+      for (const item of ativas) {
+        try {
+          await transicionarCancelado(item.id);
+          sucessos++;
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          erros.push(msg);
+        }
+      }
+      if (erros.length > 0) {
+        const resumo = `${sucessos} cancelada(s), ${erros.length} falha(s).`;
+        const detalhe = erros.slice(0, 3).join(" | ");
+        toast.error(resumo + " " + detalhe, { duration: 8000 });
+      } else {
+        toast.success(`${sucessos} parcela(s) cancelada(s) — pedido inteiro.`);
+      }
+      invalidar();
+      setOpen(false);
+      setMotivo("");
+      onClose();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error("Erro ao cancelar grupo: " + msg);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
-    <AlertDialog>
+    <AlertDialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setMotivo(""); }}>
       <AlertDialogTrigger asChild>
         <Button
           variant="ghost"
@@ -849,68 +876,38 @@ function CancelarButton({
             )}
           </AlertDialogDescription>
         </AlertDialogHeader>
+        <div className="space-y-2 py-2">
+          <Label htmlFor="motivo-cancelamento">Motivo do cancelamento *</Label>
+          <Textarea
+            id="motivo-cancelamento"
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            placeholder="Descreva por que este título está sendo cancelado"
+            rows={3}
+          />
+          {motivo.trim().length > 0 && motivo.trim().length < 5 && (
+            <p className="text-xs text-destructive">O motivo precisa ter pelo menos 5 caracteres.</p>
+          )}
+        </div>
         <AlertDialogFooter>
-          <AlertDialogCancel>Voltar</AlertDialogCancel>
-          <AlertDialogAction
+          <AlertDialogCancel disabled={loading}>Voltar</AlertDialogCancel>
+          <Button
             className="bg-destructive hover:bg-destructive text-white"
-            onClick={async () => {
-              try {
-                const { data, error } = await supabase.rpc("cancelar_conta_pagar", {
-                  p_conta_id: conta.id,
-                });
-                if (error) throw error;
-                const result = data as { success: boolean; error?: string; nf_desvinculada?: boolean };
-                if (!result?.success) {
-                  toast.error(result?.error || "Erro ao cancelar conta");
-                  return;
-                }
-                toast.success(
-                  result.nf_desvinculada
-                    ? "Conta cancelada e NF desvinculada com sucesso!"
-                    : "Conta cancelada com sucesso!"
-                );
-                onClose();
-              } catch (e) {
-                console.error("Erro ao cancelar:", e);
-                toast.error("Erro ao cancelar: " + formatError(e));
-              }
-            }}
+            disabled={!motivoValido || loading}
+            onClick={cancelarEsta}
           >
+            {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
             {temIrmasAtivas ? "Só esta parcela" : "Sim, cancelar"}
-          </AlertDialogAction>
+          </Button>
           {temIrmasAtivas && (
-            <AlertDialogAction
+            <Button
               className="bg-destructive hover:bg-destructive text-white"
-              onClick={async () => {
-                try {
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  const { data, error } = await (supabase as any).rpc(
-                    "cancelar_pedido_inteiro_via_cpr",
-                    { p_cpr_id: conta.id },
-                  );
-                  if (error) throw error;
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  const result = data as any;
-                  if (!result?.ok) {
-                    toast.error(result?.erro || "Erro ao cancelar pedido");
-                    return;
-                  }
-                  const canceladas = result.parcelas_canceladas as number;
-                  const protegidas = result.parcelas_protegidas as number;
-                  toast.success(
-                    protegidas > 0
-                      ? `${canceladas} parcelas canceladas. ${protegidas} preservadas (já pagas ou canceladas).`
-                      : `${canceladas} parcelas canceladas — pedido inteiro.`,
-                  );
-                  onClose();
-                } catch (e) {
-                  console.error("Erro ao cancelar pedido:", e);
-                  toast.error("Erro: " + formatError(e));
-                }
-              }}
+              disabled={!motivoValido || loading}
+              onClick={cancelarGrupo}
             >
+              {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Pedido inteiro
-            </AlertDialogAction>
+            </Button>
           )}
         </AlertDialogFooter>
       </AlertDialogContent>
