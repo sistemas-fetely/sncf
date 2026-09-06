@@ -43245,11 +43245,13 @@ export type Database = {
           altura_cm: number | null
           ativo: boolean
           atualizado_em: string
+          categoria: string | null
           cest: string | null
           cod_cadastro: string | null
           colecao: string | null
           cor: string | null
           cor_nome: string | null
+          departamento: string | null
           descricao_produto: string | null
           ean: string | null
           estampa: string | null
@@ -43281,11 +43283,13 @@ export type Database = {
           altura_cm?: number | null
           ativo?: boolean
           atualizado_em?: string
+          categoria?: string | null
           cest?: string | null
           cod_cadastro?: string | null
           colecao?: string | null
           cor?: string | null
           cor_nome?: string | null
+          departamento?: string | null
           descricao_produto?: string | null
           ean?: string | null
           estampa?: string | null
@@ -43317,11 +43321,13 @@ export type Database = {
           altura_cm?: number | null
           ativo?: boolean
           atualizado_em?: string
+          categoria?: string | null
           cest?: string | null
           cod_cadastro?: string | null
           colecao?: string | null
           cor?: string | null
           cor_nome?: string | null
+          departamento?: string | null
           descricao_produto?: string | null
           ean?: string | null
           estampa?: string | null

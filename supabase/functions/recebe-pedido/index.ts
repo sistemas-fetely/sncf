@@ -377,6 +377,8 @@ if (body.tipo === "dimensoes_produto") {
         linha: p.linha,
         grupo: p.grupo,
         tipo: p.tipo,
+        departamento: p.departamento,
+        categoria: p.categoria,
         colecao: p.colecao,
         cor_nome: p.cor_nome,
         // cor e estampa sao os atributos DISCRIMINANTES do produto. Alimentam
