@@ -206,7 +206,7 @@ export function PessoasProjeto({ projetoId }: Props) {
   };
 
   return (
-    <div className="max-w-6xl space-y-4">
+    <div className="space-y-4">
       <section className="space-y-2">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium">Quem participa</h3>
@@ -221,7 +221,7 @@ export function PessoasProjeto({ projetoId }: Props) {
           <p className="text-sm text-muted-foreground">Ninguém participa deste projeto ainda.</p>
         )}
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
           {fixos.map((f) => (
             <CardPessoa key={`fixo-${f.id}`} userId={f.id} vinculo={f.vinculo} />
           ))}
@@ -415,7 +415,7 @@ export function PessoasProjeto({ projetoId }: Props) {
             </>
           ) : (
             <>
-              <div className="grid max-w-[900px] gap-3 sm:grid-cols-[1fr_180px_180px]">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_200px_200px]">
                 <div className="space-y-2">
                   <Label htmlFor="busca-massa">Buscar</Label>
                   <Input
@@ -479,7 +479,7 @@ export function PessoasProjeto({ projetoId }: Props) {
                 </div>
               </div>
 
-              <div className="grid max-h-72 grid-cols-1 gap-2 overflow-y-auto rounded-md border p-2 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid max-h-80 gap-2 overflow-y-auto rounded-md border p-2 [grid-template-columns:repeat(auto-fill,minmax(260px,1fr))]">
                 {visiveisMassa.length === 0 ? (
                   <p className="col-span-full p-4 text-sm text-muted-foreground">
                     Ninguém encontrado com esses filtros.
