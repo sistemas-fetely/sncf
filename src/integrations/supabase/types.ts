@@ -69329,14 +69329,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -75049,6 +75049,18 @@ export type Database = {
           nome: string | null
           saldo_bling: number | null
           tem_saldo: boolean | null
+        }
+        Relationships: []
+      }
+      vw_produto_ficha_pendencias: {
+        Row: {
+          bloco: string | null
+          campo: string | null
+          cod_cadastro: string | null
+          colecao: string | null
+          dono: string | null
+          nome_comercial: string | null
+          sku: string | null
         }
         Relationships: []
       }
