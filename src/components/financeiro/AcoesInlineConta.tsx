@@ -6,6 +6,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { NfStageBuscadorModal } from "./NfStageBuscadorModal";
 import { cn } from "@/lib/utils";
+import { getUrlAssinada } from "@/lib/storage/arquivoPrivado";
+import { ComprovanteSaidaDialog } from "./ComprovanteSaidaDialog";
 
 /**
  * EIXO PROVAS do título a pagar (reforma ESTADO × PROVAS, Camada 3b — 02/09/2026).
@@ -241,16 +243,33 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
         )}
       </Button>
 
-      {/* PROVA 3 — Comprovante (somente leitura) */}
+      {/* PROVA 3 — Comprovante de saída */}
       <Button
         size="icon"
         variant="ghost"
         className={cn("h-7 w-7", COR_ICONE[estadoComprovante])}
         title={tooltipComprovante}
-        onClick={(e) => e.stopPropagation()}
+        disabled={abrindoComprovante}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (estadoComprovante === "feito") abrirComprovante();
+          else if (estadoComprovante === "pendente") setShowComprovante(true);
+        }}
       >
-        <Receipt className="h-3.5 w-3.5" />
+        {abrindoComprovante ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Receipt className="h-3.5 w-3.5" />
+        )}
       </Button>
+
+      <ComprovanteSaidaDialog
+        open={showComprovante}
+        onOpenChange={setShowComprovante}
+        contaId={conta.id}
+        descricao={conta.descricao}
+        valor={conta.valor}
+      />
 
       <NfStageBuscadorModal
         open={showAnexarNF}
