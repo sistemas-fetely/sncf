@@ -40,6 +40,8 @@ export type AgruparPor = "status" | "projeto";
 interface Props {
   /** raízes já agrupadas por projeto (chave = projeto_id ou "__sem__") */
   grupos: [string, TarefaComPapel[]][];
+  /** concluídas dos últimos 7 dias — coluna própria no modo status */
+  concluidasRecentes?: TarefaComPapel[];
   filhasPorMae: Map<string, TarefaComPapel[]>;
   somenteLeitura: boolean;
   nomeProjeto: (id: string) => string;
@@ -61,7 +63,7 @@ interface Coluna {
  * Contêiner aparece como card com selo de progresso, mas NÃO arrasta.
  */
 export function QuadroMinhasTarefas({
-  grupos, filhasPorMae, somenteLeitura, nomeProjeto, agruparPor,
+  grupos, concluidasRecentes = [], filhasPorMae, somenteLeitura, nomeProjeto, agruparPor,
 }: Props) {
   const { abrir: abrirTarefa } = useTarefaAberta();
   const alterarStatus = useAlterarStatusTarefa();
