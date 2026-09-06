@@ -40,6 +40,8 @@ export type AgruparPor = "status" | "projeto";
 interface Props {
   /** raízes já agrupadas por projeto (chave = projeto_id ou "__sem__") */
   grupos: [string, TarefaComPapel[]][];
+  /** concluídas dos últimos 7 dias — coluna própria no modo status */
+  concluidasRecentes?: TarefaComPapel[];
   filhasPorMae: Map<string, TarefaComPapel[]>;
   somenteLeitura: boolean;
   nomeProjeto: (id: string) => string;
@@ -61,7 +63,7 @@ interface Coluna {
  * Contêiner aparece como card com selo de progresso, mas NÃO arrasta.
  */
 export function QuadroMinhasTarefas({
-  grupos, filhasPorMae, somenteLeitura, nomeProjeto, agruparPor,
+  grupos, concluidasRecentes = [], filhasPorMae, somenteLeitura, nomeProjeto, agruparPor,
 }: Props) {
   const { abrir: abrirTarefa } = useTarefaAberta();
   const alterarStatus = useAlterarStatusTarefa();
@@ -75,21 +77,33 @@ export function QuadroMinhasTarefas({
 
   const abertos = (statusDim ?? []).filter((s) => s.e_aberto);
   const arrastavelNoModo = agruparPor === "status" && !somenteLeitura;
-  const todas = grupos.flatMap(([, lista]) => lista);
+  /** abertas + concluídas recentes — base do modo status e do lookup no arraste */
+  const todas = [
+    ...grupos.flatMap(([, lista]) => lista),
+    ...concluidasRecentes,
+  ];
   const rotulo = (codigo: string) => statusDim?.find((s) => s.codigo === codigo)?.nome ?? codigo;
 
   let colunas: Coluna[];
   if (agruparPor === "status") {
-    const porColuna = new Map<string, TarefaComPapel[]>(abertos.map((s) => [s.codigo, []]));
+    const chaves = [...abertos.map((s) => s.codigo), "concluida"];
+    const porColuna = new Map<string, TarefaComPapel[]>(chaves.map((c) => [c, []]));
     for (const t of todas) {
       const col = porColuna.get(otimista[t.id] ?? t.status);
       if (col) col.push(t);
     }
-    colunas = abertos.map((s) => ({
-      chave: s.codigo,
-      titulo: s.nome,
-      itens: porColuna.get(s.codigo) ?? [],
-    }));
+    colunas = [
+      ...abertos.map((s) => ({
+        chave: s.codigo,
+        titulo: s.nome,
+        itens: porColuna.get(s.codigo) ?? [],
+      })),
+      {
+        chave: "concluida",
+        titulo: `${rotulo("concluida")} · últimos 7 dias`,
+        itens: porColuna.get("concluida") ?? [],
+      },
+    ];
   } else {
     colunas = grupos.map(([chave, lista]) => ({
       chave,
@@ -127,7 +141,8 @@ export function QuadroMinhasTarefas({
     if (!tarefa || tarefa.eh_container) return;
     if ((otimista[tarefaId] ?? tarefa.status) === status) return;
 
-    const dim = abertos.find((s) => s.codigo === status);
+    // dimensão inteira, não só abertos: a coluna Concluída também é alvo
+    const dim = statusDim?.find((s) => s.codigo === status);
     if (dim?.exige_motivo) {
       setMotivo("");
       setPedido({ tarefaId, status: dim });

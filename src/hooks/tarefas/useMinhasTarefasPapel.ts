@@ -47,6 +47,37 @@ export function useMinhasTarefasPapel(userId: string | undefined, filtro: Filtro
 }
 
 /**
+ * Concluídas recentes (últimos 7 dias) — alimenta a coluna "Concluída" do
+ * quadro. Busca própria porque o filtro padrão da tela ("Em aberto") exclui
+ * concluídas; sem recorte a coluna viraria depósito. Recorte por
+ * data_conclusao; cai em atualizado_em quando ela é nula.
+ */
+export function useConcluidasRecentesPapel(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["tarefas", "meu-papel", "concluidas-recentes", userId],
+    enabled: !!userId,
+    queryFn: async (): Promise<TarefaComPapel[]> => {
+      const d = new Date();
+      d.setDate(d.getDate() - 7);
+      const limite = d.toISOString();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("vw_tarefa_meu_papel")
+        .select(CAMPOS)
+        .eq("status", "concluida")
+        .or(
+          `and(data_conclusao.not.is.null,data_conclusao.gte.${limite}),` +
+            `and(data_conclusao.is.null,atualizado_em.gte.${limite})`
+        )
+        .order("data_conclusao", { ascending: false, nullsFirst: false })
+        .limit(50);
+      if (error) throw error;
+      return (data ?? []) as TarefaComPapel[];
+    },
+  });
+}
+
+/**
  * Bloco "Respondo por" da tela Hoje: sou A e a coisa está pedindo atenção —
  * vencida, vencendo hoje, ou parada em revisão esperando meu aval.
  */
