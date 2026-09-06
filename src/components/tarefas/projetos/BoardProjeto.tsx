@@ -259,30 +259,44 @@ export function BoardProjeto({ projetoId }: Props) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        <Input
-          value={novaSecao}
-          onChange={(e) => setNovaSecao(e.target.value)}
-          placeholder="Nome da nova seção"
-          className="h-9 w-56"
-          disabled={!podeGerenciar}
-        />
-        <Button
-          size="sm"
-          disabled={!podeGerenciar || !novaSecao.trim() || criarSecao.isPending}
-          onClick={() => {
-            criarSecao.mutate({ nome: novaSecao.trim(), ordem: (secoes?.length ?? 0) });
-            setNovaSecao("");
-          }}
-        >
-          <Plus className="mr-1 h-4 w-4" /> Nova seção
-        </Button>
+        <span className="text-xs text-muted-foreground">Agrupar por:</span>
+        <Select value={agruparPor} onValueChange={(v) => setAgruparPor(v as AgruparPor)}>
+          <SelectTrigger className="h-9 w-40"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="secao">Seção</SelectItem>
+            <SelectItem value="status">Status</SelectItem>
+          </SelectContent>
+        </Select>
 
-        {!podeGerenciar && (
-          <span className="text-xs text-muted-foreground">
-            Você não gerencia este projeto — seções são somente leitura.
-          </span>
+        {agruparPor === "secao" && (
+          <>
+            <Input
+              value={novaSecao}
+              onChange={(e) => setNovaSecao(e.target.value)}
+              placeholder="Nome da nova seção"
+              className="h-9 w-56"
+              disabled={!podeGerenciar}
+            />
+            <Button
+              size="sm"
+              disabled={!podeGerenciar || !novaSecao.trim() || criarSecao.isPending}
+              onClick={() => {
+                criarSecao.mutate({ nome: novaSecao.trim(), ordem: (secoes?.length ?? 0) });
+                setNovaSecao("");
+              }}
+            >
+              <Plus className="mr-1 h-4 w-4" /> Nova seção
+            </Button>
+
+            {!podeGerenciar && (
+              <span className="text-xs text-muted-foreground">
+                Você não gerencia este projeto — seções são somente leitura.
+              </span>
+            )}
+          </>
         )}
       </div>
+
 
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando board…</p>
