@@ -107,7 +107,7 @@ function Conteudo({ tarefaId }: { tarefaId: string }) {
               {tarefa.tipo_tarefa === "marco" ? "Marco" : "Aprovação"}
             </Badge>
           )}
-          <LinkOrigemTarefa acaoUrl={linkOrigem} />
+          <LinkOrigemTarefa acaoUrl={linkOrigem} moduloOrigem={tarefa.modulo_origem} />
           {linkOrigem && (
             <Button size="sm" variant="outline" onClick={() => navigate(linkOrigem)}>
               <ExternalLink className="mr-1 h-3.5 w-3.5" /> Abrir origem
