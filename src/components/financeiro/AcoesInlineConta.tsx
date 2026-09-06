@@ -6,6 +6,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { NfStageBuscadorModal } from "./NfStageBuscadorModal";
 import { cn } from "@/lib/utils";
+import { getUrlAssinada } from "@/lib/storage/arquivoPrivado";
+import { ComprovanteSaidaDialog } from "./ComprovanteSaidaDialog";
 
 /**
  * EIXO PROVAS do título a pagar (reforma ESTADO × PROVAS, Camada 3b — 02/09/2026).
@@ -64,6 +66,8 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
   const [lancandoMov, setLancandoMov] = useState(false);
   const [showAnexarNF, setShowAnexarNF] = useState(false);
   const [vinculandoNF, setVinculandoNF] = useState(false);
+  const [showComprovante, setShowComprovante] = useState(false);
+  const [abrindoComprovante, setAbrindoComprovante] = useState(false);
 
   const extractMsg = (e: unknown) =>
     e instanceof Error
@@ -91,12 +95,19 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
       ? "pendente"
       : "na";
 
-  // PROVA 3 — Comprovante. SOMENTE LEITURA: não existe mecanismo de anexo de
-  // comprovante de SAÍDA no sistema (`comprovante_pagamento` tem `pedido_id`
-  // NOT NULL — é comprovante de ENTRADA). Por isso o ícone nunca fica vermelho:
-  // vermelho promete uma ação que não existe. Cinza = ausente, verde = presente.
+  // PROVA 3 — Comprovante de SAÍDA. Verde = já existe prova (clique abre o
+  // arquivo). Vermelho = título programado ou pago e ainda sem comprovante
+  // (clique abre o anexo). Cinza = não faz sentido pedir comprovante ainda.
+  //
+  // As duas provas NÃO têm a mesma força: extrato bancário é conciliação;
+  // comprovante anexado é promessa que ainda espera o extrato. O tooltip diz qual.
   const temComprovante = !!conta.comprovante_url;
-  const estadoComprovante: EstadoIcone = temComprovante ? "feito" : "na";
+  const PEDE_COMPROVANTE = ["programado", "pago"];
+  const estadoComprovante: EstadoIcone = temComprovante
+    ? "feito"
+    : PEDE_COMPROVANTE.includes(status)
+      ? "pendente"
+      : "na";
 
   async function handleSelecionarNFDoStage(nfStageId: string) {
     setVinculandoNF(true);
@@ -170,9 +181,28 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
       : estadoMov === "pendente"
         ? "Lançar movimentação (marcar como paga)"
         : "Aprove ou programe o título antes";
+  // A prova mais forte é a conciliação bancária; comprovante anexado ainda espera o extrato.
   const tooltipComprovante = temComprovante
-    ? "Comprovante anexado"
-    : "Sem comprovante — ainda não há anexo de comprovante de saída no sistema";
+    ? temMov
+      ? "Provado pelo extrato bancário"
+      : "Provado por comprovante anexado (aguarda conciliação bancária)"
+    : estadoComprovante === "pendente"
+      ? "Sem comprovante — clique para anexar o comprovante de pagamento"
+      : "Comprovante de saída só depois de programar o título";
+
+  async function abrirComprovante() {
+    if (!conta.comprovante_url) return;
+    setAbrindoComprovante(true);
+    try {
+      const url = await getUrlAssinada("comprovantes-pagamento", conta.comprovante_url, 600);
+      if (!url) throw new Error("Não foi possível gerar o link do comprovante");
+      window.open(url, "_blank", "noopener");
+    } catch (e) {
+      toast.error("Erro: " + extractMsg(e));
+    } finally {
+      setAbrindoComprovante(false);
+    }
+  }
 
   return (
     <div className="flex items-center gap-1">
@@ -213,16 +243,33 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
         )}
       </Button>
 
-      {/* PROVA 3 — Comprovante (somente leitura) */}
+      {/* PROVA 3 — Comprovante de saída */}
       <Button
         size="icon"
         variant="ghost"
         className={cn("h-7 w-7", COR_ICONE[estadoComprovante])}
         title={tooltipComprovante}
-        onClick={(e) => e.stopPropagation()}
+        disabled={abrindoComprovante}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (estadoComprovante === "feito") abrirComprovante();
+          else if (estadoComprovante === "pendente") setShowComprovante(true);
+        }}
       >
-        <Receipt className="h-3.5 w-3.5" />
+        {abrindoComprovante ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Receipt className="h-3.5 w-3.5" />
+        )}
       </Button>
+
+      <ComprovanteSaidaDialog
+        open={showComprovante}
+        onOpenChange={setShowComprovante}
+        contaId={conta.id}
+        descricao={conta.descricao}
+        valor={conta.valor}
+      />
 
       <NfStageBuscadorModal
         open={showAnexarNF}

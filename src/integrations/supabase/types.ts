@@ -85241,6 +85241,22 @@ export type Database = {
           tabela: string
         }[]
       }
+      fn_comprovante_saida_registrar: {
+        Args: {
+          p_beneficiario_cnpj_lido?: string
+          p_confianca_ia?: string
+          p_conta_pagar_id: string
+          p_data_lida?: string
+          p_divergencia_justificativa?: string
+          p_hash_arquivo: string
+          p_mime_type?: string
+          p_payload_ia?: Json
+          p_storage_path: string
+          p_tamanho_bytes?: number
+          p_valor_lido?: number
+        }
+        Returns: Json
+      }
       fn_conciliar_comprovante_chave: {
         Args: { p_dry_run?: boolean }
         Returns: Json
@@ -86307,10 +86323,23 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_titulo_pagar_lote_resumo: {
+        Args: { p_cpr_ids: string[] }
+        Returns: Json
+      }
       fn_titulo_pagar_tem_prova: { Args: { p_cpr_id: string }; Returns: Json }
       fn_titulo_pagar_transicionar: {
         Args: {
           p_cpr_id: string
+          p_data_pretendida?: string
+          p_motivo?: string
+          p_para: string
+        }
+        Returns: Json
+      }
+      fn_titulo_pagar_transicionar_lote: {
+        Args: {
+          p_cpr_ids: string[]
           p_data_pretendida?: string
           p_motivo?: string
           p_para: string
