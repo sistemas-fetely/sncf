@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SeletorPedidoVinculo } from "./SeletorPedidoVinculo";
 import { SeletorTituloVinculo } from "./SeletorTituloVinculo";
@@ -33,12 +34,18 @@ export function SeletorVinculoTarefa({
   const pedidoId = moduloOrigem === "pedidos" ? entidadeId : pedidoIdDaUrl(acaoUrl);
   const tituloId = moduloOrigem === "cobranca" ? entidadeId : tituloIdDaUrl(acaoUrl);
 
-  const tipo: Tipo =
+  const tipoGravado: Tipo =
     moduloOrigem === "cobranca" || (!pedidoId && !!tituloId)
       ? "cobranca"
       : pedidoId
         ? "pedidos"
         : "nenhum";
+
+  // O tipo é escolha de tela: precisa aparecer antes de existir item escolhido.
+  const [tipo, setTipo] = useState<Tipo>(tipoGravado);
+  useEffect(() => {
+    if (tipoGravado !== "nenhum") setTipo(tipoGravado);
+  }, [tipoGravado]);
 
   return (
     <div className="space-y-1.5">
@@ -47,7 +54,10 @@ export function SeletorVinculoTarefa({
         disabled={disabled}
         onValueChange={(v) => {
           // trocar de tipo limpa a escolha anterior
-          if (v !== tipo) onChange(VAZIO);
+          if (v === tipo) return;
+          setTipo(v as Tipo);
+          // trocar de tipo limpa a escolha anterior
+          if (tipoGravado !== "nenhum") onChange(VAZIO);
         }}
       >
         <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
