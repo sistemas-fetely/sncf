@@ -53,6 +53,8 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   ids: string[];
   acao: TituloPagarAcao | null;
+  /** Data pretendida inicial, calculada a partir do menor vencimento dos títulos selecionados. */
+  dataPretendidaInicial?: string | null;
   /** Chamado quando o lote foi aplicado sem falhas (para limpar a seleção). */
   onAplicado: () => void;
 }
