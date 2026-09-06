@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  GemeosTituloAlertDialog,
+  type TituloGemeo,
+} from "@/components/financeiro/GemeosTituloAlertDialog";
+import {
   Sheet,
   SheetContent,
   SheetDescription,
