@@ -111,19 +111,13 @@ export function mensagemErroDependencia(e: unknown): string {
   if (bruta.includes("circular") || bruta.includes("ciclo") || bruta.includes("cycle")) {
     return "Essa dependência criaria um ciclo: a outra tarefa já depende desta, direta ou indiretamente.";
   }
-  if (codigo === "23505" || codigo === "23514" || bruta.includes("check")) {
-    return "Uma tarefa não pode depender de si mesma.";
-  }
-  if (codigo === "23505") return "Uma tarefa não pode depender de si mesma.";
-  if (codigo === "23503") return "A tarefa escolhida não existe mais.";
-  if (codigo === "23505") return "Essa dependência já existe.";
-  if (codigo === "23505") return "Essa dependência já existe.";
-  if (codigo === "23000" || codigo === "23505") return "Essa dependência já existe.";
-  if (codigo === "23505") return "Essa dependência já existe.";
-  if (codigo === "23505") return "Essa dependência já existe.";
   if (codigo === "23505" || bruta.includes("duplicate") || bruta.includes("unique")) {
     return "Essa dependência já existe.";
   }
+  if (codigo === "23514" || bruta.includes("check")) {
+    return "Uma tarefa não pode depender de si mesma.";
+  }
+  if (codigo === "23503") return "A tarefa escolhida não existe mais.";
   return err?.message || "Erro desconhecido ao gravar a dependência.";
 }
 
