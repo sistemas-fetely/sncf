@@ -45,7 +45,6 @@ const ROTULO_NIVEL: Record<string, string> = {
 const rotuloNivel = (nivel: string) => ROTULO_NIVEL[nivel] ?? nivel;
 
 type ModoAdicao = "uma" | "massa";
-type CriterioMassa = "departamento" | "nivel";
 
 const dataBr = (iso: string | null | undefined) =>
   iso ? iso.slice(0, 10).split("-").reverse().join("/") : "—";
