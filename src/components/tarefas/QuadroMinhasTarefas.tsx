@@ -221,7 +221,8 @@ export function QuadroMinhasTarefas({
               </div>
             </div>
 
-            <div className="flex flex-col gap-2">
+            {/* cabeçalho fica fora desta área: título e contagem não rolam com os cards */}
+            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-0.5">
               {coluna.itens.length === 0 && (
                 <p className="rounded-lg border border-dashed border-border/60 px-3 py-4 text-center text-[11px] text-muted-foreground">
                   Nada aqui.
