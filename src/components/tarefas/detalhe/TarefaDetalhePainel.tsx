@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
-import { LinkPedidoTarefa } from "@/components/tarefas/LinkPedidoTarefa";
+import { LinkOrigemTarefa } from "@/components/tarefas/LinkOrigemTarefa";
 import { useStatusRotulo } from "./comuns";
 import {
   useDecidirAprovacao, useSalvarCampoTarefa, useTarefaDetalhe,
@@ -107,7 +107,7 @@ function Conteudo({ tarefaId }: { tarefaId: string }) {
               {tarefa.tipo_tarefa === "marco" ? "Marco" : "Aprovação"}
             </Badge>
           )}
-          <LinkPedidoTarefa acaoUrl={linkOrigem} />
+          <LinkOrigemTarefa acaoUrl={linkOrigem} />
           {linkOrigem && (
             <Button size="sm" variant="outline" onClick={() => navigate(linkOrigem)}>
               <ExternalLink className="mr-1 h-3.5 w-3.5" /> Abrir origem
