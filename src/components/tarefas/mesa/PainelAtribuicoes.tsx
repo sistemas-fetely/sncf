@@ -457,6 +457,24 @@ export default function PainelAtribuicoes() {
                           )}
                         </div>
                         <div className="flex shrink-0 gap-1">
+                          {!l.processo_id && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => setANascerProcesso(l)}
+                                  aria-label={`Criar processo para ${l.nome}`}
+                                >
+                                  <Workflow className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs text-[11px]">
+                                Criar processo para este trabalho
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"
