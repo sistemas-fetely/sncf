@@ -72,10 +72,10 @@ export function QuemExecutaProcesso({ processoId }: { processoId: string }) {
         )}
 
         {!executores.isLoading && (executores.data ?? []).length === 0 && (
-          <p className="text-xs text-muted-foreground">
+          <div className="text-xs text-muted-foreground">
             Nenhuma atribuição declarada aponta para este processo ainda. Quem liga o processo a uma
             pessoa é o líder, na Mesa do Gestor.
-          </p>
+          </div>
         )}
 
         {(executores.data ?? []).length > 0 && (
