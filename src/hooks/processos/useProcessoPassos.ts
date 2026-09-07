@@ -1,8 +1,33 @@
 // Passos do processo, divergências e custo — via dupla processo ⇄ atribuição.
 // Leitura: processo_passo, vw_processo_divergencia, vw_processo_custo.
 // Escrita de passo: direto em processo_passo (tabela própria do módulo de processos).
+// Escrita de ATRIBUIÇÃO: SEMPRE por fn_atribuicao_salvar — a regra de escopo do
+// líder, dono obrigatório e tempo > 0 vive no banco e a mensagem de erro vem dela.
+import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { usePessoasDoTime } from "@/hooks/tarefas/useTarefasDoTime";
+
+/** Quem executa o passo: só 'time' consome tempo da equipe e pede atribuição. */
+export type QuemExecuta = "time" | "requerente" | "externo";
+
+export const QUEM_EXECUTA_OPCOES: { valor: QuemExecuta; rotulo: string; explicacao: string }[] = [
+  {
+    valor: "time",
+    rotulo: "Time",
+    explicacao: "Consome tempo da equipe e pede atribuição.",
+  },
+  {
+    valor: "requerente",
+    rotulo: "Requerente",
+    explicacao: "Auto-serviço de quem pediu. Não custa tempo do time.",
+  },
+  {
+    valor: "externo",
+    rotulo: "Externo",
+    explicacao: "Feito fora da Fetely. Não custa tempo do time.",
+  },
+];
 
 export interface ProcessoPasso {
   id: string;
@@ -12,9 +37,11 @@ export interface ProcessoPasso {
   descricao: string | null;
   atribuicao_id: string | null;
   condicional: boolean;
+  quem_executa: QuemExecuta | null;
   ativo: boolean;
   created_at: string;
 }
+
 
 export interface DivergenciaProcesso {
   processo_id: string;
