@@ -624,6 +624,36 @@ export default function PainelAtribuicoes() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog
+        open={!!aNascerProcesso}
+        onOpenChange={(o) => !o && !nascerProcesso.isPending && setANascerProcesso(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Criar processo para “{aNascerProcesso?.nome}”?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Nasce um processo em rascunho, com narrativa de esqueleto dizendo o que ainda falta
+              escrever, e um primeiro passo já ligado a esta atribuição. Você completa depois.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={nascerProcesso.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                if (aNascerProcesso) nascerProcesso.mutate(aNascerProcesso);
+              }}
+              disabled={nascerProcesso.isPending}
+            >
+              {nascerProcesso.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Criar processo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
