@@ -19,6 +19,9 @@ export interface ProcessoUnificado {
   versao_vigente_em: string | null;
   owner_user_id: string | null;
   owner_perfil_codigo: string | null;
+  /** Até onde o processo vale: empresa | area | departamento (nulável). Vem de processos.abrangencia. */
+  abrangencia: string | null;
+
   owner_nome: string | null;
   area_negocio_id: string | null;
   area_nome: string | null;
@@ -47,7 +50,10 @@ export interface FiltrosProcessos {
   owner_user_id?: string;
   status?: string;
   natureza?: string;
+  /** empresa | area | departamento */
+  abrangencia?: string;
   busca?: string;
+
 }
 
 export function useProcessos(filtros?: FiltrosProcessos) {
@@ -75,8 +81,29 @@ export function useProcessos(filtros?: FiltrosProcessos) {
 
       let lista = (data || []) as ProcessoUnificado[];
 
+      // A view não expõe abrangencia; lemos da tabela e casamos por id.
+      if (lista.length > 0) {
+        const { data: abr, error: erroAbr } = await (supabase as any)
+          .from("processos")
+          .select("id, abrangencia")
+          .in("id", lista.map((p) => p.id));
+        if (erroAbr) throw erroAbr;
+        const mapa = new Map<string, string | null>(
+          ((abr ?? []) as { id: string; abrangencia: string | null }[]).map((r) => [
+            r.id,
+            r.abrangencia,
+          ]),
+        );
+        lista = lista.map((p) => ({ ...p, abrangencia: mapa.get(p.id) ?? null }));
+      }
+
+      if (filtros?.abrangencia) {
+        lista = lista.filter((p) => p.abrangencia === filtros.abrangencia);
+      }
+
       // Filtros por tag (em memória)
       if (filtros?.departamento_id) {
+
         lista = lista.filter((p) =>
           p.tags_departamentos.some((t) => t.id === filtros.departamento_id),
         );
@@ -120,18 +147,26 @@ export function useProcessoDetalhe(processoId: string | null) {
         .eq("id", processoId)
         .maybeSingle();
       if (error) throw error;
+      if (!data) return null;
+
+      // A view não expõe abrangencia; lemos da tabela.
+      const { data: linha, error: erroAbr } = await (supabase as any)
+        .from("processos")
+        .select("abrangencia")
+        .eq("id", processoId)
+        .maybeSingle();
+      if (erroAbr) throw erroAbr;
 
       // Registrar consulta (LGPD) — fire and forget
-      if (data) {
-        (supabase as any)
-          .rpc("registrar_consulta_processo", { _processo_id: processoId })
-          .then(
-            () => {},
-            (e: unknown) => console.warn("Falha ao registrar consulta:", e),
-          );
-      }
+      (supabase as any)
+        .rpc("registrar_consulta_processo", { _processo_id: processoId })
+        .then(
+          () => {},
+          (e: unknown) => console.warn("Falha ao registrar consulta:", e),
+        );
 
-      return (data as ProcessoUnificado | null) ?? null;
+      return { ...(data as ProcessoUnificado), abrangencia: linha?.abrangencia ?? null };
+
     },
     staleTime: 30 * 1000,
   });

@@ -27,6 +27,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { MermaidRenderer } from "@/components/processos/MermaidRenderer";
+import { useAbrangenciaDim } from "@/hooks/processos/useAbrangencia";
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -43,6 +44,7 @@ export default function ProcessoEditor() {
   const { data: unidades } = useUnidades();
   const { data: cargos } = useCargos();
   const { data: perfis } = usePerfisV2();
+  const { data: abrangencias } = useAbrangenciaDim();
   const { data: sistemas } = useQuery({
     queryKey: ["sncf-sistemas-ativos"],
     queryFn: async () => {
@@ -65,6 +67,7 @@ export default function ProcessoEditor() {
   const [statusValor, setStatusValor] = useState("rascunho");
   const [ownerPerfil, setOwnerPerfil] = useState("");
   const [sensivel, setSensivel] = useState(false);
+  const [abrangencia, setAbrangencia] = useState("");
 
   const [tagsAreas, setTagsAreas] = useState<string[]>([]);
   const [tagsDeptos, setTagsDeptos] = useState<string[]>([]);
@@ -87,6 +90,7 @@ export default function ProcessoEditor() {
   const naturezas = (parametros || []).filter((p) => p.categoria === "natureza_processo" && p.ativo);
   const statusOpcoes = (parametros || []).filter((p) => p.categoria === "status_processo" && p.ativo);
   const tiposLigacao = (parametros || []).filter((p) => p.categoria === "tipo_ligacao_processo" && p.ativo);
+  const abrangenciaEscolhida = (abrangencias || []).find((a) => a.codigo === abrangencia);
 
   const { data: ligacoesAtuais, refetch: refetchLigacoes } = useQuery({
     queryKey: ["processo-ligacoes-edicao", id],
@@ -122,6 +126,7 @@ export default function ProcessoEditor() {
       setStatusValor(processo.status_valor);
       setOwnerPerfil(processo.owner_perfil_codigo || "");
       setSensivel(processo.sensivel);
+      setAbrangencia((processo as any).abrangencia || "");
       setTagsAreas(processo.tags_areas.map((t) => t.id));
       setTagsDeptos(processo.tags_departamentos.map((t) => t.id));
       setTagsUnidades(processo.tags_unidades.map((t) => t.id));
@@ -177,9 +182,12 @@ export default function ProcessoEditor() {
   }
 
   async function sincronizarTags(processoId: string) {
+    // Abrangência de empresa com área/departamento marcado é contradição: as tags morrem.
+    const areasEfetivas = abrangencia === "empresa" ? [] : tagsAreas;
+    const deptosEfetivos = abrangencia === "empresa" ? [] : tagsDeptos;
     const tabelas = [
-      { table: "processos_tags_areas", col: "area_id", values: tagsAreas },
-      { table: "processos_tags_departamentos", col: "departamento_id", values: tagsDeptos },
+      { table: "processos_tags_areas", col: "area_id", values: areasEfetivas },
+      { table: "processos_tags_departamentos", col: "departamento_id", values: deptosEfetivos },
       { table: "processos_tags_unidades", col: "unidade_id", values: tagsUnidades },
       { table: "processos_tags_cargos", col: "cargo_id", values: tagsCargos },
       { table: "processos_tags_sistemas", col: "sistema_id", values: tagsSistemas },
@@ -226,6 +234,7 @@ export default function ProcessoEditor() {
         owner_perfil_codigo: ownerPerfil || null,
         owner_user_id: user?.id || null,
         sensivel,
+        abrangencia: abrangencia || null,
       };
 
       if (isNovo) {
@@ -459,6 +468,67 @@ export default function ProcessoEditor() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-3">
+                <div>
+                  <Label>Abrangência</Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    Até onde este processo vale. Escolher empresa inteira apaga áreas e
+                    departamentos marcados — as duas coisas juntas seriam contradição.
+                  </p>
+                </div>
+                <div className="grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(240px,1fr))]">
+                  {(abrangencias || []).map((a) => {
+                    const ativa = abrangencia === a.codigo;
+                    return (
+                      <button
+                        key={a.codigo}
+                        type="button"
+                        onClick={() => setAbrangencia(ativa ? "" : a.codigo)}
+                        className={`rounded-lg border p-3 text-left transition-colors ${
+                          ativa
+                            ? "border-primary bg-primary/5"
+                            : "border-border bg-card hover:border-primary/40"
+                        }`}
+                      >
+                        <p className="text-sm font-medium">{a.nome}</p>
+                        {a.descricao && (
+                          <p className="text-[11px] text-muted-foreground">{a.descricao}</p>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {abrangenciaEscolhida?.exige_alvo && (
+                  <div className="space-y-4 rounded-lg border bg-card p-4">
+                    <p className="text-[11px] text-muted-foreground">
+                      Esta abrangência exige alvo: diga quais áreas e/ou departamentos.
+                    </p>
+                    <TagSelector
+                      label="Áreas alvo"
+                      items={areas.map((a) => ({ id: a.id, label: a.label }))}
+                      selected={tagsAreas}
+                      onToggle={(tid) => toggleTag(tagsAreas, setTagsAreas, tid)}
+                    />
+                    <TagSelector
+                      label="Departamentos alvo"
+                      items={departamentos.map((d) => ({ id: d.id, label: d.label }))}
+                      selected={tagsDeptos}
+                      onToggle={(tid) => toggleTag(tagsDeptos, setTagsDeptos, tid)}
+                    />
+                  </div>
+                )}
+
+                {abrangencia === "empresa" && (tagsAreas.length > 0 || tagsDeptos.length > 0) && (
+                  <p className="text-[11px] text-warning">
+                    Ao salvar, as {tagsAreas.length + tagsDeptos.length} marcação(ões) de área e
+                    departamento serão removidas.
+                  </p>
+                )}
               </div>
 
               <Separator />

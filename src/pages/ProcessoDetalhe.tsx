@@ -30,6 +30,7 @@ import { QuemExecutaProcesso } from "@/components/processos/QuemExecutaProcesso"
 import { PassosProcesso } from "@/components/processos/PassosProcesso";
 import { DivergenciasProcesso } from "@/components/processos/DivergenciasProcesso";
 import { CustoProcesso } from "@/components/processos/CustoProcesso";
+import { SeloAbrangencia } from "@/components/processos/SeloAbrangencia";
 
 
 import { PageShell } from "@/components/layout/PageShell";
@@ -182,7 +183,7 @@ export default function ProcessoDetalhe() {
   const totalLigacoes = (ligacoes || []).length;
 
   return (
-    <PageShell variant="leitura">
+    <PageShell>
       {/* Header */}
       <div className="flex items-center justify-between gap-2">
         <SmartBackButton fallback="/processos" fallbackLabel="Processos" />
@@ -214,16 +215,23 @@ export default function ProcessoDetalhe() {
         </div>
       </div>
 
-      {/* Cabeçalho */}
-      <Card>
+      {/* Cabeçalho — largura de leitura confortável */}
+      <Card className="w-full max-w-[1100px]">
         <CardContent className="p-6 space-y-4">
           <PageHeader
             titulo={processo.nome}
             estado={processo.descricao || undefined}
             acoes={(
-              <Badge variant="outline" className={STATUS_COR[processo.status_valor] || ""}>
-                {processo.status_valor}
-              </Badge>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <SeloAbrangencia
+                  abrangencia={processo.abrangencia}
+                  areas={processo.tags_areas}
+                  departamentos={processo.tags_departamentos}
+                />
+                <Badge variant="outline" className={STATUS_COR[processo.status_valor] || ""}>
+                  {processo.status_valor}
+                </Badge>
+              </div>
             )}
           />
           {importacaoInfo && (
@@ -314,13 +322,16 @@ export default function ProcessoDetalhe() {
         </div>
       )}
 
-      {/* Quem executa — caminho de volta processo → atribuição */}
-      <QuemExecutaProcesso processoId={id!} />
-
-      {/* Via dupla: passos estruturados, divergências e custo */}
-      <PassosProcesso processoId={id!} />
-      <DivergenciasProcesso processoId={id!} />
-      <CustoProcesso processoId={id!} />
+      {/* Blocos de dados: usam toda a largura da tela, em grade que se acomoda sozinha. */}
+      <div className="grid items-start gap-4 [grid-template-columns:repeat(auto-fill,minmax(360px,1fr))]">
+        {/* Passos pede espaço: é lista com cartões dentro. */}
+        <div className="[grid-column:1/-1] xl:[grid-column:span_2]">
+          <PassosProcesso processoId={id!} />
+        </div>
+        <QuemExecutaProcesso processoId={id!} />
+        <DivergenciasProcesso processoId={id!} />
+        <CustoProcesso processoId={id!} />
+      </div>
 
       {/* Tabs */}
 
@@ -346,7 +357,7 @@ export default function ProcessoDetalhe() {
           <Card>
             <CardContent className="p-6">
               {processo.narrativa ? (
-                <div className="prose prose-sm max-w-none dark:prose-invert">
+                <div className="prose prose-sm mx-auto max-w-[896px] dark:prose-invert">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{processo.narrativa}</ReactMarkdown>
                 </div>
               ) : (

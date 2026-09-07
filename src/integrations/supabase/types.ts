@@ -36329,6 +36329,33 @@ export type Database = {
           },
         ]
       }
+      processo_abrangencia_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          descricao: string
+          exige_alvo: boolean
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          descricao: string
+          exige_alvo?: boolean
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          descricao?: string
+          exige_alvo?: boolean
+          nome?: string
+          ordem?: number
+        }
+        Relationships: []
+      }
       processo_passo: {
         Row: {
           ativo: boolean
@@ -36421,8 +36448,76 @@ export type Database = {
           },
         ]
       }
+      processo_passo_sugerido: {
+        Row: {
+          avaliado_em: string | null
+          avaliado_por: string | null
+          descricao: string | null
+          gerado_em: string
+          gerado_por: string | null
+          id: string
+          modelo: string | null
+          nome: string
+          ordem: number
+          processo_id: string
+          status: string
+          trecho_origem: string | null
+        }
+        Insert: {
+          avaliado_em?: string | null
+          avaliado_por?: string | null
+          descricao?: string | null
+          gerado_em?: string
+          gerado_por?: string | null
+          id?: string
+          modelo?: string | null
+          nome: string
+          ordem: number
+          processo_id: string
+          status?: string
+          trecho_origem?: string | null
+        }
+        Update: {
+          avaliado_em?: string | null
+          avaliado_por?: string | null
+          descricao?: string | null
+          gerado_em?: string
+          gerado_por?: string | null
+          id?: string
+          modelo?: string | null
+          nome?: string
+          ordem?: number
+          processo_id?: string
+          status?: string
+          trecho_origem?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processo_passo_sugerido_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_passo_sugerido_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos_unificados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_passo_sugerido_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_processo_custo"
+            referencedColumns: ["processo_id"]
+          },
+        ]
+      }
       processos: {
         Row: {
+          abrangencia: string | null
           area_negocio_id: string | null
           codigo: string
           created_at: string
@@ -36446,6 +36541,7 @@ export type Database = {
           versao_vigente_em: string | null
         }
         Insert: {
+          abrangencia?: string | null
           area_negocio_id?: string | null
           codigo: string
           created_at?: string
@@ -36469,6 +36565,7 @@ export type Database = {
           versao_vigente_em?: string | null
         }
         Update: {
+          abrangencia?: string | null
           area_negocio_id?: string | null
           codigo?: string
           created_at?: string
@@ -36492,6 +36589,13 @@ export type Database = {
           versao_vigente_em?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "processos_abrangencia_fkey"
+            columns: ["abrangencia"]
+            isOneToOne: false
+            referencedRelation: "processo_abrangencia_dim"
+            referencedColumns: ["codigo"]
+          },
           {
             foreignKeyName: "processos_area_negocio_id_fkey"
             columns: ["area_negocio_id"]
