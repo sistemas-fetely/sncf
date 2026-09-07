@@ -126,6 +126,8 @@ export default function PainelTime({ onDeclarar }: { onDeclarar: () => void }) {
 
   const visiveis = useQuery({
     queryKey: [...QK, "visiveis"],
+    staleTime: 30_000,
+    refetchOnMount: "always",
     queryFn: async (): Promise<string[]> => {
       const { data, error } = await (supabase as any).rpc("fn_mesa_pessoas_visiveis");
       if (error) throw error;
@@ -139,6 +141,8 @@ export default function PainelTime({ onDeclarar }: { onDeclarar: () => void }) {
 
   const mesa = useQuery({
     queryKey: [...QK, "linhas"],
+    staleTime: 30_000,
+    refetchOnMount: "always",
     queryFn: async (): Promise<LinhaMesa[]> => {
       const { data, error } = await (supabase as any).from("vw_mesa_gestor").select("*");
       if (error) throw error;
@@ -149,6 +153,8 @@ export default function PainelTime({ onDeclarar }: { onDeclarar: () => void }) {
   /** Furos do catálogo — serve para o estado inicial dizer o que falta declarar. */
   const furos = useQuery({
     queryKey: [...QK, "furos-catalogo"],
+    staleTime: 30_000,
+    refetchOnMount: "always",
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("vw_carga_atribuicao")
