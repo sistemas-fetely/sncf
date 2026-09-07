@@ -313,6 +313,7 @@ if (body.tipo === "dimensoes_produto") {
         cod_cadastro: p.cod_cadastro,
         fase: p.fase,
         ean: p.ean,
+        dun: p.dun,
         nome_comercial: p.nome_comercial,
         nome_completo: p.nome_completo,
         marca: p.marca,
