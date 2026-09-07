@@ -50,7 +50,10 @@ export interface FiltrosProcessos {
   owner_user_id?: string;
   status?: string;
   natureza?: string;
+  /** empresa | area | departamento */
+  abrangencia?: string;
   busca?: string;
+
 }
 
 export function useProcessos(filtros?: FiltrosProcessos) {
