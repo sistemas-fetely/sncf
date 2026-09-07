@@ -27,6 +27,9 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { MermaidRenderer } from "@/components/processos/MermaidRenderer";
 import { QuemExecutaProcesso } from "@/components/processos/QuemExecutaProcesso";
+import { PassosProcesso } from "@/components/processos/PassosProcesso";
+import { DivergenciasProcesso } from "@/components/processos/DivergenciasProcesso";
+import { CustoProcesso } from "@/components/processos/CustoProcesso";
 
 
 import { PageShell } from "@/components/layout/PageShell";
@@ -313,6 +316,11 @@ export default function ProcessoDetalhe() {
 
       {/* Quem executa — caminho de volta processo → atribuição */}
       <QuemExecutaProcesso processoId={id!} />
+
+      {/* Via dupla: passos estruturados, divergências e custo */}
+      <PassosProcesso processoId={id!} />
+      <DivergenciasProcesso processoId={id!} />
+      <CustoProcesso processoId={id!} />
 
       {/* Tabs */}
 

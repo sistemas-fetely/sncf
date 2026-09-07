@@ -628,24 +628,7 @@ function DialogAtribuicao({
       const filaEscolhida = comFila && filaId !== SEM_FILA ? filaId : null;
       if (comFila && !filaEscolhida) throw new Error("Escolha a fila ou desligue a opção.");
 
-      const { data, error } = await (supabase as any).rpc("fn_atribuicao_salvar", {
-        _id: linha?.atribuicao_id ?? null,
-        _nome: nome.trim(),
-        _descricao: descricao.trim() === "" ? null : descricao.trim(),
-        _pessoa_id: pessoaId,
-        _tempo_unitario_min: tempoNum,
-        _fluxo_diario: fluxoNum,
-        _fonte_volume: filaEscolhida ? "fila" : "demanda_livre",
-        _fila_id: filaEscolhida,
-        _recorrencia_id: null,
-        _departamento_id: linha?.departamento_id ?? null,
-      });
-      if (error) throw error;
-      const id = data as string;
-
-      // fn_atribuicao_salvar ainda NÃO recebe processo_id nem macro_processo_id.
-      // Até a RPC ganhar os parâmetros, esses dois campos vão por update direto
-      // (as policies de atribuicao_catalogo permitem). FAIL-LOUD.
+      // Macro processo novo nasce antes, para entrar já no parâmetro da RPC.
       let macroFinal: string | null = macroId === SEM_MACRO || macroId === MACRO_NOVO ? null : macroId;
       if (macroId === MACRO_NOVO) {
         const nomeMacro = macroNovo.trim();
@@ -659,13 +642,24 @@ function DialogAtribuicao({
         macroFinal = criado.id as string;
       }
 
-      const { error: errVinculo } = await (supabase as any)
-        .from("atribuicao_catalogo")
-        .update({ macro_processo_id: macroFinal, processo_id: processoId })
-        .eq("id", id);
-      if (errVinculo) throw errVinculo;
-
-      return id;
+      // CAMINHO DE ESCRITA ÚNICO: fn_atribuicao_salvar agora também grava
+      // macro_processo_id e processo_id. Update direto está proibido aqui.
+      const { data, error } = await (supabase as any).rpc("fn_atribuicao_salvar", {
+        _id: linha?.atribuicao_id ?? null,
+        _nome: nome.trim(),
+        _descricao: descricao.trim() === "" ? null : descricao.trim(),
+        _pessoa_id: pessoaId,
+        _tempo_unitario_min: tempoNum,
+        _fluxo_diario: fluxoNum,
+        _fonte_volume: filaEscolhida ? "fila" : "demanda_livre",
+        _fila_id: filaEscolhida,
+        _recorrencia_id: null,
+        _departamento_id: linha?.departamento_id ?? null,
+        _macro_processo_id: macroFinal,
+        _processo_id: processoId,
+      });
+      if (error) throw error;
+      return data as string;
     },
     onSuccess: () => {
       toast.success(linha ? "Atribuição atualizada." : "Atribuição criada.");
