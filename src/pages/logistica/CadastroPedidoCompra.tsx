@@ -15,6 +15,7 @@ import {
   Download,
   FileSpreadsheet,
   Trash2,
+  Info,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -232,6 +233,10 @@ const EMPTY_HEADER: HeaderForm = {
 const fmtBRL = (v: number, moeda = "BRL") =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: moeda || "BRL" }).format(v || 0);
 
+const fmtInt = (v: number) => new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(v || 0);
+const fmtPct = (v: number) =>
+  new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(v || 0) + "%";
+
 const fmtDate = (d?: string | null) =>
   d ? format(parseISO(d), "dd/MM/yyyy") : "—";
 
@@ -262,6 +267,9 @@ interface TresCamadasPedidoLinha {
   pedido_id: number;
   a_faturar: number | null;
   a_confirmar: number | null;
+  qtd_faturada: number | null;
+  valor_faturado_brl: number | null;
+  pct_faturado_sobre_iv: number | null;
 }
 
 /** dd/mm/aaaa ou aaaa-mm-dd vindos da planilha viram aaaa-mm-dd para o input date. */
@@ -503,7 +511,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("vw_compra_tres_camadas_pedido")
-        .select("pedido_id, a_faturar, a_confirmar");
+        .select("pedido_id, a_faturar, a_confirmar, qtd_faturada, valor_faturado_brl, pct_faturado_sobre_iv");
       if (error) throw error;
       return (data ?? []) as TresCamadasPedidoLinha[];
     },
@@ -878,6 +886,21 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                     <TableHead>Realizado</TableHead>
                     <TableHead className="text-right">Linhas</TableHead>
                     <TableHead className="text-right">Custo FOB</TableHead>
+                    <TableHead className="text-right">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex items-center gap-1 cursor-help">
+                              Faturado <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-xs">
+                            Quantidade e valor já cobertos por nota fiscal. Valor sempre em BRL — a NF do
+                            fornecedor é em reais, ainda que o pedido seja em outra moeda.
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableHead>
                     <TableHead>Fase XPM</TableHead>
                     <TableHead>Andamento</TableHead>
                     <TableHead className="text-right">A faturar</TableHead>
@@ -927,6 +950,34 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                       <TableCell className="text-right tabular-nums">
                         {fmtBRL(Number(p.custo_total ?? 0), p.moeda ?? "BRL")}
                       </TableCell>
+                      {(() => {
+                        const tcFat = tresCamadasPorPedido.get(Number(p.id));
+                        const qtdFaturada = Number(tcFat?.qtd_faturada ?? 0);
+                        const valorFaturado = Number(tcFat?.valor_faturado_brl ?? 0);
+                        const pctFaturado = Number(tcFat?.pct_faturado_sobre_iv ?? 0);
+                        return (
+                          <TableCell className="text-right">
+                            {qtdFaturada > 0 ? (
+                              <div className="flex flex-col items-end gap-0.5">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="tabular-nums">{fmtInt(qtdFaturada)}</span>
+                                  {pctFaturado < 100 && (
+                                    <Selo estado="warning">{fmtPct(pctFaturado)}</Selo>
+                                  )}
+                                </div>
+                                <div className="text-xs text-muted-foreground tabular-nums">
+                                  {fmtBRL(valorFaturado, "BRL")}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-end gap-0.5 text-muted-foreground">
+                                <span>—</span>
+                                <span className="text-xs">—</span>
+                              </div>
+                            )}
+                          </TableCell>
+                        );
+                      })()}
                       <TableCell>
                         {p.fase_xpm === 2 ? (
                           <Selo estado="info">Fase 2 · com NF</Selo>
