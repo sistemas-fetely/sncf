@@ -2,28 +2,19 @@
 // Fonte única: vw_processo_divergencia. São duas listas porque significam coisas opostas.
 import { useState } from "react";
 import { GitCompareArrows, Link2, Plus } from "lucide-react";
-import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatError } from "@/lib/format-error";
 import {
   useProcessoDivergencias,
-  useSalvarPasso,
+  useProcessoPassos,
   type DivergenciaProcesso,
 } from "@/hooks/processos/useProcessoPassos";
-import { SeletorAtribuicaoPasso } from "@/components/processos/SeletorAtribuicaoPasso";
+import { DialogLigarAtribuicao } from "@/components/processos/DialogLigarAtribuicao";
 import { DialogPasso } from "@/components/processos/PassosProcesso";
+
 
 export function DivergenciasProcesso({ processoId }: { processoId: string }) {
   const divergencias = useProcessoDivergencias(processoId);
