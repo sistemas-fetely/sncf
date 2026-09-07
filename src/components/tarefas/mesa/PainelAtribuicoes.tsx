@@ -219,6 +219,8 @@ export default function PainelAtribuicoes() {
 
   const carga = useQuery({
     queryKey: [...QK, "lista"],
+    staleTime: 30_000,
+    refetchOnMount: "always",
     queryFn: async (): Promise<LinhaCarga[]> => {
       const { data, error } = await (supabase as any)
         .from("vw_carga_atribuicao")
@@ -267,7 +269,8 @@ export default function PainelAtribuicoes() {
 
   const macros = useQuery({
     queryKey: [...QK, "macro-processos"],
-    staleTime: 60 * 1000,
+    staleTime: 30_000,
+    refetchOnMount: "always",
     queryFn: async (): Promise<OpcaoMacro[]> => {
       const { data, error } = await (supabase as any)
         .from("macro_processo")
