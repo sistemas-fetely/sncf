@@ -17933,6 +17933,13 @@ export type Database = {
             referencedRelation: "vw_sku_embalagem_classe"
             referencedColumns: ["sku"]
           },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
         ]
       }
       fornecedor_regime_pagamento: {
@@ -21816,6 +21823,13 @@ export type Database = {
             referencedRelation: "vw_sku_embalagem_classe"
             referencedColumns: ["sku"]
           },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
         ]
       }
       importacao_invoice_pedido: {
@@ -22084,6 +22098,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_sku_embalagem_classe"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_cadastro_divergencia"
             referencedColumns: ["sku"]
           },
         ]
@@ -22762,6 +22783,13 @@ export type Database = {
             referencedRelation: "vw_sku_embalagem_classe"
             referencedColumns: ["sku"]
           },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
         ]
       }
       importacao_nf_pedido: {
@@ -23289,6 +23317,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_sku_embalagem_classe"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_cadastro_divergencia"
             referencedColumns: ["sku"]
           },
         ]
@@ -55654,6 +55689,87 @@ export type Database = {
           },
         ]
       }
+      xpm_produtos_cache: {
+        Row: {
+          altura_m: number | null
+          camada: number | null
+          categoria_codigo: string | null
+          categoria_descricao: string | null
+          codigo: string
+          comprimento_m: number | null
+          controla_lote: boolean | null
+          controla_serie: boolean | null
+          controla_validade: boolean | null
+          depositante_cnpj: string | null
+          descricao: string | null
+          descricao_reduzida: string | null
+          largura_m: number | null
+          lastro: number | null
+          ncm: string | null
+          origem_dado: string | null
+          payload: Json | null
+          peso_bruto_kg: number | null
+          peso_unitario_kg: number | null
+          qtd_item_sku: number | null
+          sincronizado_em: string
+          sku_ean: string | null
+          unidade_medida: string | null
+          xpm_produto_id: number
+        }
+        Insert: {
+          altura_m?: number | null
+          camada?: number | null
+          categoria_codigo?: string | null
+          categoria_descricao?: string | null
+          codigo: string
+          comprimento_m?: number | null
+          controla_lote?: boolean | null
+          controla_serie?: boolean | null
+          controla_validade?: boolean | null
+          depositante_cnpj?: string | null
+          descricao?: string | null
+          descricao_reduzida?: string | null
+          largura_m?: number | null
+          lastro?: number | null
+          ncm?: string | null
+          origem_dado?: string | null
+          payload?: Json | null
+          peso_bruto_kg?: number | null
+          peso_unitario_kg?: number | null
+          qtd_item_sku?: number | null
+          sincronizado_em?: string
+          sku_ean?: string | null
+          unidade_medida?: string | null
+          xpm_produto_id: number
+        }
+        Update: {
+          altura_m?: number | null
+          camada?: number | null
+          categoria_codigo?: string | null
+          categoria_descricao?: string | null
+          codigo?: string
+          comprimento_m?: number | null
+          controla_lote?: boolean | null
+          controla_serie?: boolean | null
+          controla_validade?: boolean | null
+          depositante_cnpj?: string | null
+          descricao?: string | null
+          descricao_reduzida?: string | null
+          largura_m?: number | null
+          lastro?: number | null
+          ncm?: string | null
+          origem_dado?: string | null
+          payload?: Json | null
+          peso_bruto_kg?: number | null
+          peso_unitario_kg?: number | null
+          qtd_item_sku?: number | null
+          sincronizado_em?: string
+          sku_ean?: string | null
+          unidade_medida?: string | null
+          xpm_produto_id?: number
+        }
+        Relationships: []
+      }
       xpm_sla_canal: {
         Row: {
           ativo: boolean
@@ -55870,6 +55986,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_sku_embalagem_classe"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_cadastro_divergencia"
             referencedColumns: ["sku"]
           },
           {
@@ -60557,6 +60680,13 @@ export type Database = {
             referencedColumns: ["sku"]
           },
           {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
             foreignKeyName: "importacao_pedido_modalidade_fkey"
             columns: ["modalidade"]
             isOneToOne: false
@@ -60568,8 +60698,10 @@ export type Database = {
       vw_compra_tres_camadas_pedido: {
         Row: {
           a_confirmar: number | null
+          a_confirmar_liquido: number | null
           a_faturar: number | null
           aviso_iv_a_menos: number | null
+          ciclo_estado: string | null
           confirmada_iv: number | null
           confirmada_xpm: number | null
           custo_acordado_total: number | null
@@ -60581,12 +60713,14 @@ export type Database = {
           delta_custo: number | null
           delta_custo_pct: number | null
           dias_atraso: number | null
+          divergencia_total: number | null
           excesso_xpm: number | null
           falta_xpm: number | null
           modalidade: string | null
           moeda: string | null
           nao_conforme_xpm: number | null
           numero_pedido: string | null
+          pct_conferido_sobre_iv: number | null
           pct_confirmado: number | null
           pct_faturado: number | null
           pct_faturado_sobre_iv: number | null
@@ -60596,6 +60730,7 @@ export type Database = {
           qtd_faturada: number | null
           quem_deve: string | null
           skus_custo_incompleto: number | null
+          tem_divergencia: boolean | null
           valor_a_faturar_acordado: number | null
           valor_a_faturar_vigente: number | null
           valor_faturado: number | null
@@ -67542,6 +67677,13 @@ export type Database = {
             referencedRelation: "vw_sku_embalagem_classe"
             referencedColumns: ["sku"]
           },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
         ]
       }
       vw_frete_pedido: {
@@ -69305,6 +69447,13 @@ export type Database = {
             referencedColumns: ["sku"]
           },
           {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
             foreignKeyName: "importacao_invoice_pedido_importacao_pedido_id_fkey"
             columns: ["importacao_pedido_id"]
             isOneToOne: false
@@ -69448,6 +69597,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_sku_embalagem_classe"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_cadastro_divergencia"
             referencedColumns: ["sku"]
           },
           {
@@ -73037,14 +73193,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -75350,14 +75506,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -86532,6 +86688,41 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_sku_embalagem_classe"
             referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["codigo_material"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+        ]
+      }
+      vw_xpm_cadastro_divergencia: {
+        Row: {
+          categoria_xpm: string | null
+          classe: string | null
+          cod_cadastro: string | null
+          codigo_xpm: string | null
+          ean_sncf: string | null
+          ean_xpm: string | null
+          fase: string | null
+          grupo: string | null
+          ncm_sncf: string | null
+          ncm_xpm: string | null
+          nome_comercial: string | null
+          peso_kg_sncf: number | null
+          peso_kg_xpm: number | null
+          sku: string | null
+          xpm_produto_id: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_produto_grupo"
+            columns: ["grupo"]
+            isOneToOne: false
+            referencedRelation: "produto_grupo_dim"
+            referencedColumns: ["rotulo"]
           },
         ]
       }
