@@ -156,6 +156,7 @@ export interface PassoEntrada {
   descricao: string | null;
   atribuicao_id: string | null;
   condicional: boolean;
+  quem_executa?: QuemExecuta | null;
 }
 
 export function useSalvarPasso(processoId: string) {
@@ -164,12 +165,14 @@ export function useSalvarPasso(processoId: string) {
     mutationFn: async (entrada: PassoEntrada) => {
       const nome = entrada.nome.trim();
       if (!nome) throw new Error("Dê um nome ao passo.");
-      const corpo = {
+      const corpo: Record<string, unknown> = {
         nome,
         descricao: entrada.descricao?.trim() ? entrada.descricao.trim() : null,
         atribuicao_id: entrada.atribuicao_id,
         condicional: entrada.condicional,
       };
+      if (entrada.quem_executa) corpo.quem_executa = entrada.quem_executa;
+
 
       if (entrada.id) {
         const { error } = await (supabase as any)
