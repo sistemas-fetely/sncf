@@ -33,6 +33,8 @@ import { ptBR } from "date-fns/locale";
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { SeloAbrangencia } from "@/components/processos/SeloAbrangencia";
+import { useAbrangenciaDim } from "@/hooks/processos/useAbrangencia";
 const STATUS_COR: Record<string, string> = {
   vigente: "bg-success/10 text-success border-success/30",
   em_revisao: "bg-warning/10 text-warning border-warning/30",
@@ -83,6 +85,7 @@ export default function Processos() {
   const { data: parametros } = useAllParametros();
   const { data: unidades } = useUnidades();
   const { data: cargos } = useCargos();
+  const { data: abrangencias } = useAbrangenciaDim();
   const { data: sistemas } = useQuery({
     queryKey: ["sncf-sistemas"],
     queryFn: async () => {
@@ -177,6 +180,13 @@ export default function Processos() {
                 value={filtros.area_id}
                 options={areas.map((a) => ({ id: a.id, label: a.label }))}
                 onChange={(v) => setFiltros({ ...filtros, area_id: v })}
+              />
+              <FiltroSelect
+                label="Abrangência"
+                icon={<Building2 className="h-3.5 w-3.5" />}
+                value={filtros.abrangencia}
+                options={(abrangencias || []).map((a) => ({ id: a.codigo, label: a.nome }))}
+                onChange={(v) => setFiltros({ ...filtros, abrangencia: v })}
               />
               <FiltroSelect
                 label="Departamento"
@@ -335,6 +345,12 @@ export default function Processos() {
                   {p.versao_atual > 0 && (
                     <Badge variant="outline" className="text-[10px]">v{p.versao_atual}</Badge>
                   )}
+                  <SeloAbrangencia
+                    abrangencia={p.abrangencia}
+                    areas={p.tags_areas}
+                    departamentos={p.tags_departamentos}
+                    limite={2}
+                  />
                 </div>
 
                 {(p.tags_departamentos.length > 0 || p.tags_unidades.length > 0) && (
