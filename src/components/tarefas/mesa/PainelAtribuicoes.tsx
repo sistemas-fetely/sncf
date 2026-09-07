@@ -10,11 +10,11 @@
 //
 // Escrita SEMPRE por RPC (fn_atribuicao_salvar / fn_atribuicao_apagar): a regra de
 // escopo do líder, dono obrigatório e tempo > 0 vive no banco.
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, Pencil, Info, Check, ChevronsUpDown, ExternalLink, Workflow } from "lucide-react";
+import { AlertTriangle, Loader2, Plus, Trash2, Pencil, Info, Check, ChevronsUpDown, ExternalLink, Workflow } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,6 +61,19 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  SortableTableHead,
+  ordenarPor,
+  type SortState,
+} from "@/components/shared/SortableTableHead";
 import { cn } from "@/lib/utils";
 
 import { usePessoasDoTime } from "@/hooks/tarefas/useTarefasDoTime";
@@ -149,6 +162,16 @@ function minutos(v: number | null | undefined) {
   return m ? `${h}h ${m}min` : `${h}h`;
 }
 
+type ColunaOrd = "pessoa" | "macro" | "tempo" | "volume" | "carga";
+
+const resolvers: Record<ColunaOrd, (l: LinhaCarga) => string | number | null | undefined> = {
+  pessoa: (l) => l.pessoa_nome,
+  macro: (l) => l.macro_processo_nome,
+  tempo: (l) => l.tempo_unitario_min,
+  volume: (l) => l.fluxo_diario_estimado,
+  carga: (l) => l.minutos_fluxo_dia,
+};
+
 export default function PainelAtribuicoes() {
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -160,6 +183,11 @@ export default function PainelAtribuicoes() {
   const [aNascerProcesso, setANascerProcesso] = useState<LinhaCarga | null>(null);
   // Dois olhares sobre o mesmo catálogo: por macro processo (como se faz) ou por pessoa (quem faz).
   const [eixo, setEixo] = useState<"macro" | "pessoa">("macro");
+  // Gestão compara: tabela ordenável. Padrão = carga por dia, do maior para o menor.
+  const [sort, setSort] = useState<SortState<ColunaOrd> | null>({
+    column: "carga",
+    direction: "desc",
+  });
 
   // Só a RPC cria o processo esqueleto (status rascunho + narrativa + primeiro passo
   // ligado à atribuição). O front não replica nada disso. FAIL-LOUD: erro vira toast.
