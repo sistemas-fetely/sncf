@@ -33,16 +33,6 @@ OUTPUT: JSON válido, sem markdown, sem texto fora do JSON:
 const MODELO_PRIMARIO = "openai/gpt-5.5";
 const MODELO_FALLBACK = "google/gemini-2.5-pro";
 
-/** Segredos vêm do vault, nunca de Deno.env — regra da casa. */
-async function segredoDoVault(admin: any, nome: string): Promise<string | null> {
-  const { data, error } = await admin.rpc("get_vault_secret", { p_name: nome });
-  if (error) {
-    console.error("[sugerir-passos-processo] vault:", nome, error.message);
-    return null;
-  }
-  return data ? String(data) : null;
-}
-
 function json(status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
     status,
