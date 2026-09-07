@@ -322,15 +322,16 @@ export default function ProcessoDetalhe() {
         </div>
       )}
 
-      {/* Blocos de dados: usam toda a largura da tela, em grade que se acomoda sozinha. */}
-      <div className="grid items-start gap-4 [grid-template-columns:repeat(auto-fill,minmax(360px,1fr))]">
-        {/* Passos pede espaço: é lista com cartões dentro. */}
-        <div className="[grid-column:1/-1] xl:[grid-column:span_2]">
+      {/* Blocos de dados: Passos manda, o resto acompanha. */}
+      <div className="grid items-start gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-2 lg:row-span-2">
           <PassosProcesso processoId={id!} />
         </div>
         <QuemExecutaProcesso processoId={id!} />
         <DivergenciasProcesso processoId={id!} />
-        <CustoProcesso processoId={id!} />
+        <div className="lg:col-span-3">
+          <CustoProcesso processoId={id!} />
+        </div>
       </div>
 
       {/* Tabs */}
