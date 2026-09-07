@@ -196,6 +196,51 @@ export function PassosProcesso({ processoId }: { processoId: string }) {
                     )}
                   </div>
 
+                  {/* Quem executa: só 'time' consome tempo da equipe e pede atribuição. */}
+                  <div className="space-y-1">
+                    <Select
+                      value={p.quem_executa ?? "time"}
+                      onValueChange={(v) =>
+                        quemExecuta.mutate(
+                          { passoId: p.id, valor: v as QuemExecuta },
+                          {
+                            onError: (e) =>
+                              toast.error("Não mudou quem executa", {
+                                description: formatError(e),
+                              }),
+                          },
+                        )
+                      }
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {QUEM_EXECUTA_OPCOES.map((o) => (
+                          <SelectItem key={o.valor} value={o.valor} className="text-xs">
+                            {o.rotulo}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground">
+                      {QUEM_EXECUTA_OPCOES.find((o) => o.valor === (p.quem_executa ?? "time"))
+                        ?.explicacao}
+                    </p>
+                  </div>
+
+                  {(p.quem_executa ?? "time") === "time" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full gap-1"
+                      onClick={() => setLigando(p)}
+                    >
+                      <Link2 className="h-3.5 w-3.5" />
+                      {p.atribuicao_id ? "Trocar atribuição" : "Ligar a uma atribuição"}
+                    </Button>
+                  )}
+
                   <div className="flex items-center gap-1 border-t pt-2">
                     <Button
                       size="icon"
@@ -218,6 +263,26 @@ export function PassosProcesso({ processoId }: { processoId: string }) {
                       <ArrowDown className="h-3.5 w-3.5" />
                     </Button>
                     <div className="flex-1" />
+                    {/* Passo que não é do time: ligar existe, mas como ação secundária. */}
+                    {(p.quem_executa ?? "time") !== "time" && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            aria-label="Mais ações do passo"
+                          >
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setLigando(p)} className="gap-2 text-xs">
+                            <Link2 className="h-3.5 w-3.5" /> Ligar a uma atribuição
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                     <Button
                       size="icon"
                       variant="ghost"
@@ -237,6 +302,7 @@ export function PassosProcesso({ processoId }: { processoId: string }) {
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
+
                 </div>
               );
             })}
