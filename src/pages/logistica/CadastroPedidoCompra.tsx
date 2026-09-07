@@ -851,16 +851,24 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                 </Button>
               ),
             }}
-            total={pedidosOrdenados.length}
+            busca={{
+              valor: buscaPedido,
+              aoMudar: setBuscaPedido,
+              placeholder: "Buscar por número, proforma, invoice, PL, processo ou categoria…",
+            }}
+            semResultado="Nenhum pedido com esse número, referência ou categoria."
+            total={pedidosQ.data?.length ?? 0}
             exibidos={pedidosOrdenados.length}
             rotulo="pedidos"
+
           >
               <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Número</TableHead>
-                    <TableHead>Ref.</TableHead>
+                    <TableHead>Referências</TableHead>
+
                     <TableHead>Modalidade</TableHead>
                     <TableHead>Fornecedor</TableHead>
                     <TableHead>Centro</TableHead>
@@ -889,8 +897,16 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                       className="cursor-pointer"
                       onClick={() => navigate(`/logistica/chegada-mercadoria/${p.id}`)}
                     >
-                      <TableCell className="font-medium">{p.numero_pedido}</TableCell>
-                      <TableCell>{p.rocabella_ref ?? "—"}</TableCell>
+                      <TableCell>
+                        <CelulaIdentidade
+                          identidade={identidade.porPedido.get(Number(p.id))}
+                          numeroCru={p.numero_pedido}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <CelulaReferencias identidade={identidade.porPedido.get(Number(p.id))} />
+                      </TableCell>
+
                       <TableCell>{p.modalidade ?? "—"}</TableCell>
                       <TableCell>
                         <div>{p.fornecedor ?? "—"}</div>
