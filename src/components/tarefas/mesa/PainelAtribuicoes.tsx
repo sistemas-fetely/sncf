@@ -416,47 +416,121 @@ export default function PainelAtribuicoes() {
       )}
 
       <TooltipProvider>
-        <div className="space-y-4">
-          {grupos.map(([chave, grupo]) => (
-            <Card key={chave}>
-              <CardHeader className="pb-2">
-                <CardTitle className="flex flex-wrap items-center gap-2 text-sm">
-                  {grupo.nome}
-                  <span className="font-normal text-muted-foreground">
-                    ({grupo.itens.length})
-                  </span>
-                  {grupo.pendente && eixo === "pessoa" && (
-                    <Selo estado="destructive">rascunho — atribua ou apague</Selo>
-                  )}
-                  {grupo.pendente && eixo === "macro" && (
-                    <Selo estado="muted">mapeamento pendente</Selo>
-                  )}
-                  {grupo.complemento && (
-                    <span className="text-[11px] font-normal text-muted-foreground">
-                      {grupo.complemento}
-                    </span>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(260px,1fr))]">
-                  {grupo.itens.map((l) => (
-                    <div
-                      key={l.atribuicao_id}
-                      className={`flex flex-col gap-2 rounded-lg border bg-card p-3 ${
-                        l.ativo === false ? "opacity-60" : ""
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-medium">{l.nome}</div>
-                          {l.descricao && (
-                            <div className="line-clamp-2 text-[11px] text-muted-foreground">
-                              {l.descricao}
-                            </div>
+        <div className="rounded-lg border bg-card">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Atribuição</TableHead>
+                <SortableTableHead column="pessoa" sort={sort} onSort={setSort}>
+                  Pessoa
+                </SortableTableHead>
+                <SortableTableHead column="macro" sort={sort} onSort={setSort}>
+                  Macro processo
+                </SortableTableHead>
+                <TableHead>Processo</TableHead>
+                <SortableTableHead column="tempo" sort={sort} onSort={setSort} align="right">
+                  Tempo unit.
+                </SortableTableHead>
+                <SortableTableHead column="volume" sort={sort} onSort={setSort} align="right">
+                  Volume/dia
+                </SortableTableHead>
+                <SortableTableHead column="carga" sort={sort} onSort={setSort} align="right">
+                  Carga/dia
+                </SortableTableHead>
+                <TableHead className="w-[110px] text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {grupos.map(([chave, grupo]) => (
+                <Fragment key={chave}>
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
+                    <TableCell colSpan={6} className="py-2 text-sm font-medium">
+                      <span className="flex flex-wrap items-center gap-2">
+                        {grupo.nome}
+                        <span className="font-normal text-muted-foreground">
+                          ({grupo.itens.length})
+                        </span>
+                        {grupo.pendente && eixo === "pessoa" && (
+                          <Selo estado="destructive">rascunho — atribua ou apague</Selo>
+                        )}
+                        {grupo.pendente && eixo === "macro" && (
+                          <Selo estado="muted">mapeamento pendente</Selo>
+                        )}
+                        {grupo.complemento && (
+                          <span className="text-[11px] font-normal text-muted-foreground">
+                            {grupo.complemento}
+                          </span>
+                        )}
+                      </span>
+                    </TableCell>
+                    <TableCell className="py-2 text-right text-sm font-semibold tabular-nums">
+                      {minutos(
+                        grupo.itens.reduce((s, i) => s + Number(i.minutos_fluxo_dia ?? 0), 0),
+                      )}
+                    </TableCell>
+                    <TableCell className="py-2" />
+                  </TableRow>
+
+                  {ordenarPor(grupo.itens, sort, resolvers).map((l) => (
+                    <TableRow key={l.atribuicao_id} className={l.ativo === false ? "opacity-60" : ""}>
+                      <TableCell className="max-w-[280px]">
+                        <span className="flex items-center gap-1.5">
+                          {(l.furo_sem_dono || l.furo_dono_sem_acesso) && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="cursor-help">
+                                  <AlertTriangle className="h-3.5 w-3.5 text-warning" />
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs text-[11px]">
+                                {l.furo_sem_dono
+                                  ? "Sem dono: ninguém responde por este trabalho."
+                                  : "O dono não tem acesso ao sistema."}
+                              </TooltipContent>
+                            </Tooltip>
                           )}
-                        </div>
-                        <div className="flex shrink-0 gap-1">
+                          <span className="truncate text-sm font-medium" title={l.descricao ?? undefined}>
+                            {l.nome}
+                          </span>
+                          {l.ativo === false && <Selo estado="muted">inativa</Selo>}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {l.pessoa_nome ?? <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {l.macro_processo_nome ?? <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell>
+                        {l.processo_id ? (
+                          <Link
+                            to={`/processos/${l.processo_id}`}
+                            className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/20"
+                            title={l.processo_nome ?? undefined}
+                          >
+                            {l.processo_codigo ?? "processo"}
+                            <ExternalLink className="h-3 w-3" />
+                          </Link>
+                        ) : (
+                          <Selo estado="muted">sem processo</Selo>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right text-sm tabular-nums">
+                        {num(l.tempo_unitario_min, "min")}
+                      </TableCell>
+                      <TableCell className="text-right text-sm tabular-nums">
+                        {num(l.fluxo_diario_estimado)}
+                        {l.fila_id && l.fila_nome && (
+                          <div className="text-[11px] font-normal text-muted-foreground">
+                            medido pela fila: {l.fila_nome}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right text-sm font-semibold tabular-nums">
+                        {minutos(l.minutos_fluxo_dia)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="flex justify-end gap-1">
                           {!l.processo_id && (
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -493,94 +567,17 @@ export default function PainelAtribuicoes() {
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap gap-1">
-                        {l.ativo === false && <Selo estado="muted">inativa</Selo>}
-                        {(l.furo_sem_dono || !l.pessoa_id) && (
-                          <Selo estado="destructive">sem dono</Selo>
-                        )}
-                        {l.furo_dono_sem_acesso && <Selo estado="warning">dono sem acesso</Selo>}
-                        {l.furo_sem_numero && <Selo estado="warning">sem número</Selo>}
-                        {l.processo_id ? (
-                          <Link
-                            to={`/processos/${l.processo_id}`}
-                            className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/20"
-                            title={l.processo_nome ?? undefined}
-                          >
-                            {l.processo_codigo ?? "processo"}
-                            <ExternalLink className="h-3 w-3" />
-                          </Link>
-                        ) : (
-                          <Selo estado="muted">sem processo</Selo>
-                        )}
-                        {l.fila_nome ? (
-                          <Selo estado="info">fila: {l.fila_nome}</Selo>
-                        ) : (
-                          <Selo estado="muted">sem fila</Selo>
-                        )}
-                      </div>
-
-                      <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
-                        <div>
-                          <dt className="text-muted-foreground">Tempo unitário</dt>
-                          <dd className="text-sm">{num(l.tempo_unitario_min, "min")}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-muted-foreground">Fluxo diário</dt>
-                          <dd className="text-sm">{num(l.fluxo_diario_estimado, "/dia")}</dd>
-                        </div>
-                        <div>
-                          <dt className="flex items-center gap-1 text-muted-foreground">
-                            Carga por dia
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="cursor-help">
-                                  <Info className="h-3 w-3" />
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent className="max-w-xs text-[11px]">
-                                Trabalho que entra por dia. Dimensiona equipe. Nunca se soma ao
-                                acumulado.
-                              </TooltipContent>
-                            </Tooltip>
-                          </dt>
-                          <dd className="text-sm">{minutos(l.minutos_fluxo_dia)}</dd>
-                        </div>
-                        {l.fila_id ? (
-                          <div>
-                            <dt className="flex items-center gap-1 text-muted-foreground">
-                              Acumulado na fila
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className="cursor-help">
-                                    <Info className="h-3 w-3" />
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-xs text-[11px]">
-                                  Dívida operacional já parada ({num(l.estoque_atual)} itens).
-                                  Medida separada, nunca somada à carga por dia.
-                                </TooltipContent>
-                              </Tooltip>
-                            </dt>
-                            <dd className="text-sm">{minutos(l.minutos_estoque)}</dd>
-                          </div>
-                        ) : (
-                          <div>
-                            <dt className="text-muted-foreground">Acumulado</dt>
-                            <dd className="text-sm text-muted-foreground">não medido</dd>
-                          </div>
-                        )}
-                      </dl>
-                    </div>
+                        </span>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </Fragment>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       </TooltipProvider>
+
 
       {(criando || emEdicao) && (
         <DialogAtribuicao
