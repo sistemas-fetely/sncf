@@ -151,12 +151,44 @@ function minutos(v: number | null | undefined) {
 
 export default function PainelAtribuicoes() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const time = usePessoasDoTime();
   const [emEdicao, setEmEdicao] = useState<LinhaCarga | null>(null);
   const [criando, setCriando] = useState(false);
   const [aApagar, setAApagar] = useState<LinhaCarga | null>(null);
+  // Nascer processo a partir da atribuição: confirmação explícita antes da RPC.
+  const [aNascerProcesso, setANascerProcesso] = useState<LinhaCarga | null>(null);
   // Dois olhares sobre o mesmo catálogo: por macro processo (como se faz) ou por pessoa (quem faz).
   const [eixo, setEixo] = useState<"macro" | "pessoa">("macro");
+
+  // Só a RPC cria o processo esqueleto (status rascunho + narrativa + primeiro passo
+  // ligado à atribuição). O front não replica nada disso. FAIL-LOUD: erro vira toast.
+  const nascerProcesso = useMutation({
+    mutationFn: async (l: LinhaCarga): Promise<string> => {
+      const { data, error } = await (supabase as any).rpc("fn_processo_nascer_de_atribuicao", {
+        p_atribuicao_id: l.atribuicao_id,
+        p_nome: null,
+        p_codigo: null,
+      });
+      if (error) throw error;
+      const id = (Array.isArray(data) ? data[0] : data) as string | null;
+      if (!id) throw new Error("A função não devolveu o processo criado.");
+      return id;
+    },
+    onSuccess: (processoId, l) => {
+      setANascerProcesso(null);
+      qc.invalidateQueries({ queryKey: QK });
+      toast.success(`Processo em rascunho criado para “${l.nome}”.`, {
+        description: "Um passo já foi criado ligado a esta atribuição.",
+        action: {
+          label: "Abrir processo",
+          onClick: () => navigate(`/processos/${processoId}`),
+        },
+      });
+    },
+    onError: (e) => toast.error(formatError(e)),
+  });
+
 
   const carga = useQuery({
     queryKey: [...QK, "lista"],
