@@ -2,7 +2,20 @@
 // Cada passo pode apontar para a atribuição que o executa: é isso que dá endereço
 // à divergência entre o que está documentado e o que está declarado.
 import { useState } from "react";
-import { ArrowDown, ArrowUp, ListOrdered, Pencil, Plus, Trash2, User } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Check,
+  ListOrdered,
+  Loader2,
+  Pencil,
+  Plus,
+  Quote,
+  Sparkles,
+  Trash2,
+  User,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -31,12 +44,20 @@ import {
   type ProcessoPasso,
 } from "@/hooks/processos/useProcessoPassos";
 import { SeletorAtribuicaoPasso } from "@/components/processos/SeletorAtribuicaoPasso";
+import {
+  useAceitarPassoSugerido,
+  useGerarPassosSugeridos,
+  usePassosSugeridos,
+  useRejeitarPassoSugerido,
+  type PassoSugerido,
+} from "@/hooks/processos/usePassosSugeridos";
 
 export function PassosProcesso({ processoId }: { processoId: string }) {
   const passos = useProcessoPassos(processoId);
   const { data: atribuicoes } = useAtribuicoesParaPasso();
   const reordenar = useReordenarPassos(processoId);
   const remover = useRemoverPasso(processoId);
+  const gerar = useGerarPassosSugeridos(processoId);
   const [emEdicao, setEmEdicao] = useState<ProcessoPasso | null>(null);
   const [criando, setCriando] = useState(false);
 
@@ -76,9 +97,34 @@ export function PassosProcesso({ processoId }: { processoId: string }) {
             <h2 className="text-sm font-medium">Passos</h2>
             <span className="text-xs text-muted-foreground">({lista.length})</span>
           </div>
-          <Button size="sm" variant="outline" onClick={() => setCriando(true)} className="gap-1">
-            <Plus className="h-3.5 w-3.5" /> Novo passo
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                gerar.mutate(undefined, {
+                  onSuccess: (r) =>
+                    toast.success(`${r.total} passo(s) sugerido(s) para você conferir.`, {
+                      description: r.modelo ? `Modelo: ${r.modelo}` : undefined,
+                    }),
+                  onError: (e) =>
+                    toast.error("Não sugeriu passos", { description: formatError(e) }),
+                })
+              }
+              disabled={gerar.isPending}
+              className="gap-1"
+            >
+              {gerar.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="h-3.5 w-3.5 text-info" />
+              )}
+              {gerar.isPending ? "Lendo a narrativa…" : "Sugerir passos pela narrativa"}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setCriando(true)} className="gap-1">
+              <Plus className="h-3.5 w-3.5" /> Novo passo
+            </Button>
+          </div>
         </div>
 
         <p className="text-xs text-muted-foreground">
@@ -182,6 +228,8 @@ export function PassosProcesso({ processoId }: { processoId: string }) {
             })}
           </div>
         )}
+
+        <SugestoesPassos processoId={processoId} />
 
         {(criando || emEdicao) && (
           <DialogPasso
@@ -292,5 +340,103 @@ export function DialogPasso({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+
+/**
+ * Sugestões da IA. Elas vivem em processo_passo_sugerido, NUNCA em processo_passo:
+ * só o aceite humano vira passo de verdade. O trecho de origem fica visível porque
+ * é o que permite conferir se a IA entendeu a narrativa.
+ */
+function SugestoesPassos({ processoId }: { processoId: string }) {
+  const sugestoes = usePassosSugeridos(processoId);
+  const aceitar = useAceitarPassoSugerido(processoId);
+  const rejeitar = useRejeitarPassoSugerido(processoId);
+
+  const lista = sugestoes.data ?? [];
+  if (sugestoes.isError) {
+    return <p className="text-sm text-destructive">{formatError(sugestoes.error)}</p>;
+  }
+  if (lista.length === 0) return null;
+
+  const aceitarLote = (itens: PassoSugerido[]) =>
+    aceitar.mutate(itens, {
+      onSuccess: (n) => toast.success(`${n} passo(s) criado(s).`),
+      onError: (e) => toast.error("Não aceitou", { description: formatError(e) }),
+    });
+
+  return (
+    <div className="space-y-3 rounded-lg border border-info/40 bg-info/5 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-info" />
+          <h3 className="text-sm font-medium">Sugestões da narrativa ({lista.length})</h3>
+        </div>
+        <Button
+          size="sm"
+          onClick={() => aceitarLote(lista)}
+          disabled={aceitar.isPending}
+          className="gap-1"
+        >
+          <Check className="h-3.5 w-3.5" /> Aceitar todas
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Nada disso virou passo ainda. Confira o trecho de origem de cada item: é o pedaço da
+        narrativa que gerou a sugestão.
+      </p>
+
+      <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(300px,1fr))]">
+        {lista.map((s) => (
+          <div key={s.id} className="space-y-2 rounded-lg border bg-card p-3">
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-info/15 text-[11px] font-medium text-info">
+                {s.ordem}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">{s.nome}</p>
+                {s.descricao && (
+                  <p className="text-[11px] text-muted-foreground">{s.descricao}</p>
+                )}
+              </div>
+            </div>
+
+            {s.trecho_origem && (
+              <div className="flex gap-1.5 rounded-md bg-muted/60 p-2">
+                <Quote className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
+                <p className="text-[11px] italic text-muted-foreground">{s.trecho_origem}</p>
+              </div>
+            )}
+
+            <div className="flex items-center gap-1 border-t pt-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 gap-1 text-success"
+                disabled={aceitar.isPending}
+                onClick={() => aceitarLote([s])}
+              >
+                <Check className="h-3.5 w-3.5" /> Aceitar
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 gap-1 text-muted-foreground"
+                disabled={rejeitar.isPending}
+                onClick={() =>
+                  rejeitar.mutate(s.id, {
+                    onSuccess: () => toast.success("Sugestão rejeitada."),
+                    onError: (e) => toast.error("Não rejeitou", { description: formatError(e) }),
+                  })
+                }
+              >
+                <X className="h-3.5 w-3.5" /> Rejeitar
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
