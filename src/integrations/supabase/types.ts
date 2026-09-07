@@ -44679,6 +44679,24 @@ export type Database = {
           },
         ]
       }
+      stg_p2604: {
+        Row: {
+          cod: string
+          preco: number | null
+          qtd: number | null
+        }
+        Insert: {
+          cod: string
+          preco?: number | null
+          qtd?: number | null
+        }
+        Update: {
+          cod?: string
+          preco?: number | null
+          qtd?: number | null
+        }
+        Relationships: []
+      }
       suppressed_emails: {
         Row: {
           created_at: string
@@ -73434,14 +73452,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -80053,6 +80071,19 @@ export type Database = {
           },
         ]
       }
+      vw_rota_diff: {
+        Row: {
+          achado: string | null
+          explicacao: string | null
+          label: string | null
+          ref: string | null
+          rota: string | null
+          severidade: string | null
+          status: string | null
+          tela_slug: string | null
+        }
+        Relationships: []
+      }
       vw_rotina_aderencia: {
         Row: {
           aderencia_pct: number | null
@@ -81293,14 +81324,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
