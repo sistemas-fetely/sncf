@@ -68,6 +68,8 @@ import { formatError } from "@/lib/format-error";
 
 const QK = ["atribuicoes-time"] as const;
 const SEM_FILA = "__sem_fila__";
+const SEM_MACRO = "__sem_macro__";
+const MACRO_NOVO = "__novo_macro__";
 
 interface LinhaCarga {
   atribuicao_id: string;
@@ -582,12 +584,16 @@ function DialogAtribuicao({
   linha,
   pessoas,
   filas,
+  macros,
+  processos,
   onFechar,
   onSalvo,
 }: {
   linha: LinhaCarga | null;
   pessoas: OpcaoPessoa[];
   filas: OpcaoFila[];
+  macros: OpcaoMacro[];
+  processos: OpcaoProcesso[];
   onFechar: () => void;
   onSalvo: () => void;
 }) {
@@ -600,6 +606,10 @@ function DialogAtribuicao({
   const [fluxo, setFluxo] = useState(
     linha?.fluxo_diario_estimado == null ? "" : String(linha.fluxo_diario_estimado),
   );
+  const [macroId, setMacroId] = useState(linha?.macro_processo_id ?? SEM_MACRO);
+  const [macroNovo, setMacroNovo] = useState("");
+  const [processoId, setProcessoId] = useState<string | null>(linha?.processo_id ?? null);
+  const [buscaProcessoAberta, setBuscaProcessoAberta] = useState(false);
   const [comFila, setComFila] = useState(!!linha?.fila_id);
   const [filaId, setFilaId] = useState(linha?.fila_id ?? SEM_FILA);
 
@@ -631,7 +641,31 @@ function DialogAtribuicao({
         _departamento_id: linha?.departamento_id ?? null,
       });
       if (error) throw error;
-      return data as string;
+      const id = data as string;
+
+      // fn_atribuicao_salvar ainda NÃO recebe processo_id nem macro_processo_id.
+      // Até a RPC ganhar os parâmetros, esses dois campos vão por update direto
+      // (as policies de atribuicao_catalogo permitem). FAIL-LOUD.
+      let macroFinal: string | null = macroId === SEM_MACRO || macroId === MACRO_NOVO ? null : macroId;
+      if (macroId === MACRO_NOVO) {
+        const nomeMacro = macroNovo.trim();
+        if (!nomeMacro) throw new Error("Dê um nome ao macro processo novo.");
+        const { data: criado, error: errMacro } = await (supabase as any)
+          .from("macro_processo")
+          .insert({ nome: nomeMacro })
+          .select("id")
+          .single();
+        if (errMacro) throw errMacro;
+        macroFinal = criado.id as string;
+      }
+
+      const { error: errVinculo } = await (supabase as any)
+        .from("atribuicao_catalogo")
+        .update({ macro_processo_id: macroFinal, processo_id: processoId })
+        .eq("id", id);
+      if (errVinculo) throw errVinculo;
+
+      return id;
     },
     onSuccess: () => {
       toast.success(linha ? "Atribuição atualizada." : "Atribuição criada.");
@@ -712,6 +746,118 @@ function DialogAtribuicao({
                 onChange={(e) => setFluxo(e.target.value)}
                 placeholder="Ex.: 8"
               />
+            </div>
+          </div>
+
+          <div className="space-y-3 rounded-lg border bg-secondary/40 p-3">
+            <p className="text-[11px] text-muted-foreground">
+              A atribuição diz <strong>quem faz e quanto custa</strong>. O processo diz{" "}
+              <strong>como se faz</strong>. Ligar os dois é opcional, mas é o que mostra a maturidade
+              do mapeamento.
+            </p>
+
+            <div className="space-y-1">
+              <Label>Macro processo (opcional)</Label>
+              <Select value={macroId} onValueChange={setMacroId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sem macro processo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={SEM_MACRO}>Sem macro processo</SelectItem>
+                  {macros.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.nome}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value={MACRO_NOVO}>+ Criar novo…</SelectItem>
+                </SelectContent>
+              </Select>
+              {macroId === MACRO_NOVO && (
+                <Input
+                  value={macroNovo}
+                  onChange={(e) => setMacroNovo(e.target.value)}
+                  placeholder="Nome do macro processo novo"
+                />
+              )}
+              <p className="text-[11px] text-muted-foreground">
+                A lista nasce vazia de propósito: quem nomeia os macro processos é o líder.
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <Label>Processo documentado (opcional)</Label>
+              <Popover open={buscaProcessoAberta} onOpenChange={setBuscaProcessoAberta}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between font-normal"
+                  >
+                    <span className="truncate">
+                      {processoId
+                        ? (() => {
+                            const p = processos.find((x) => x.id === processoId);
+                            return p ? `${p.codigo ? p.codigo + " · " : ""}${p.nome}` : "processo";
+                          })()
+                        : "Nenhum processo ligado"}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Buscar por código ou nome…" />
+                    <CommandList>
+                      <CommandEmpty>Nenhum processo encontrado.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value="nenhum"
+                          onSelect={() => {
+                            setProcessoId(null);
+                            setBuscaProcessoAberta(false);
+                          }}
+                        >
+                          <Check
+                            className={cn("mr-2 h-4 w-4", processoId ? "opacity-0" : "opacity-100")}
+                          />
+                          Nenhum processo ligado
+                        </CommandItem>
+                        {processos.map((p) => (
+                          <CommandItem
+                            key={p.id}
+                            value={`${p.codigo ?? ""} ${p.nome}`}
+                            onSelect={() => {
+                              setProcessoId(p.id);
+                              setBuscaProcessoAberta(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                processoId === p.id ? "opacity-100" : "opacity-0",
+                              )}
+                            />
+                            <span className="truncate">
+                              {p.codigo ? `${p.codigo} · ` : ""}
+                              {p.nome}
+                            </span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {processoId && (
+                <Link
+                  to={`/processos/${processoId}`}
+                  target="_blank"
+                  className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
+                >
+                  Abrir o processo documentado
+                  <ExternalLink className="h-3 w-3" />
+                </Link>
+              )}
             </div>
           </div>
 
