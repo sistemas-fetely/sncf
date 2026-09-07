@@ -27,6 +27,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { MermaidRenderer } from "@/components/processos/MermaidRenderer";
+import { useAbrangenciaDim } from "@/hooks/processos/useAbrangencia";
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -65,6 +66,7 @@ export default function ProcessoEditor() {
   const [statusValor, setStatusValor] = useState("rascunho");
   const [ownerPerfil, setOwnerPerfil] = useState("");
   const [sensivel, setSensivel] = useState(false);
+  const [abrangencia, setAbrangencia] = useState("");
 
   const [tagsAreas, setTagsAreas] = useState<string[]>([]);
   const [tagsDeptos, setTagsDeptos] = useState<string[]>([]);
@@ -122,6 +124,7 @@ export default function ProcessoEditor() {
       setStatusValor(processo.status_valor);
       setOwnerPerfil(processo.owner_perfil_codigo || "");
       setSensivel(processo.sensivel);
+      setAbrangencia((processo as any).abrangencia || "");
       setTagsAreas(processo.tags_areas.map((t) => t.id));
       setTagsDeptos(processo.tags_departamentos.map((t) => t.id));
       setTagsUnidades(processo.tags_unidades.map((t) => t.id));
@@ -177,9 +180,12 @@ export default function ProcessoEditor() {
   }
 
   async function sincronizarTags(processoId: string) {
+    // Abrangência de empresa com área/departamento marcado é contradição: as tags morrem.
+    const areasEfetivas = abrangencia === "empresa" ? [] : tagsAreas;
+    const deptosEfetivos = abrangencia === "empresa" ? [] : tagsDeptos;
     const tabelas = [
-      { table: "processos_tags_areas", col: "area_id", values: tagsAreas },
-      { table: "processos_tags_departamentos", col: "departamento_id", values: tagsDeptos },
+      { table: "processos_tags_areas", col: "area_id", values: areasEfetivas },
+      { table: "processos_tags_departamentos", col: "departamento_id", values: deptosEfetivos },
       { table: "processos_tags_unidades", col: "unidade_id", values: tagsUnidades },
       { table: "processos_tags_cargos", col: "cargo_id", values: tagsCargos },
       { table: "processos_tags_sistemas", col: "sistema_id", values: tagsSistemas },
@@ -226,6 +232,7 @@ export default function ProcessoEditor() {
         owner_perfil_codigo: ownerPerfil || null,
         owner_user_id: user?.id || null,
         sensivel,
+        abrangencia: abrangencia || null,
       };
 
       if (isNovo) {
