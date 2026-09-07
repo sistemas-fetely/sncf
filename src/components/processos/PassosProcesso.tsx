@@ -103,6 +103,9 @@ export function PassosProcesso({ processoId }: { processoId: string }) {
     });
   const [emEdicao, setEmEdicao] = useState<ProcessoPasso | null>(null);
   const [criando, setCriando] = useState(false);
+  const [ligando, setLigando] = useState<ProcessoPasso | null>(null);
+  const quemExecuta = useQuemExecutaPasso(processoId);
+
 
   const lista = passos.data ?? [];
 
@@ -370,6 +373,19 @@ export function PassosProcesso({ processoId }: { processoId: string }) {
             }}
           />
         )}
+
+        {ligando && (
+          <DialogLigarAtribuicao
+            processoId={processoId}
+            passoId={ligando.id}
+            passoNome={ligando.nome}
+            passoDescricao={ligando.descricao}
+            passoCondicional={ligando.condicional}
+            quemExecuta={ligando.quem_executa}
+            onFechar={() => setLigando(null)}
+          />
+        )}
+
       </CardContent>
     </Card>
   );
