@@ -263,6 +263,9 @@ interface TresCamadasPedidoLinha {
   pedido_id: number;
   a_faturar: number | null;
   a_confirmar: number | null;
+  qtd_faturada: number | null;
+  valor_faturado_brl: number | null;
+  pct_faturado_sobre_iv: number | null;
 }
 
 /** dd/mm/aaaa ou aaaa-mm-dd vindos da planilha viram aaaa-mm-dd para o input date. */
