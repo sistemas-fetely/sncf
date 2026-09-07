@@ -216,6 +216,57 @@ if (body.tipo === "ficha_pendencias") {
 }
 // ── fim branch ficha_pendencias ──
 
+// ── Branch: catalogo_espelho — leitura do espelho de produtos (FOP mestre) ──
+// Autenticação já validada acima via FOP_INBOUND_TOKEN
+if (body.tipo === "catalogo_espelho") {
+  const cods = Array.isArray(body.cods)
+    ? body.cods.map((c: unknown) => String(c).trim()).filter(Boolean)
+    : [];
+
+  if (cods.length > 0) {
+    const { data: produtos, error: errProdutos } = await supabase
+      .from("sncf_produtos")
+      .select(
+        "cod_cadastro, sku, fase, nome_comercial, preco_atacado, ean, dun, atualizado_em"
+      )
+      .in("cod_cadastro", cods);
+
+    if (errProdutos) {
+      console.error("[recebe-pedido] catalogo_espelho:", errProdutos);
+      return jsonResponse(500, { error: errProdutos.message });
+    }
+
+    return jsonResponse(200, {
+      ok: true,
+      modo: "por_cods",
+      produtos: produtos ?? [],
+    });
+  }
+
+  const { data: linhas, error: errInventario } = await supabase
+    .from("sncf_produtos")
+    .select("cod_cadastro")
+    .order("cod_cadastro", { ascending: true });
+
+  if (errInventario) {
+    console.error("[recebe-pedido] catalogo_espelho:", errInventario);
+    return jsonResponse(500, { error: errInventario.message });
+  }
+
+  const totalLinhas = (linhas ?? []).length;
+  const codsValidos = (linhas ?? [])
+    .map((l: any) => l.cod_cadastro)
+    .filter((c: unknown) => c !== null && c !== undefined);
+
+  return jsonResponse(200, {
+    ok: true,
+    modo: "inventario",
+    total_linhas: totalLinhas,
+    cods: codsValidos,
+  });
+}
+// ── fim branch catalogo_espelho ──
+
 // ── Branch: espelho de dimensões e matriz campo × fase do produto ─────
 // ESPELHO: o mestre da matriz campo x fase e da dimensao de fase e o FOP
 // (produto_fase_ficha / produto_fase_dim). Aqui so se recebe. Alterar
