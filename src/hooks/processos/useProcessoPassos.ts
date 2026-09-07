@@ -249,6 +249,119 @@ export function useReordenarPassos(processoId: string) {
   });
 }
 
+/** Troca só o quem_executa do passo. */
+export function useQuemExecutaPasso(processoId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ passoId, valor }: { passoId: string; valor: QuemExecuta }) => {
+      const { error } = await (supabase as any)
+        .from("processo_passo")
+        .update({ quem_executa: valor })
+        .eq("id", passoId);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidar(qc, processoId),
+  });
+}
+
+export interface OpcaoPessoaAtribuicao {
+  pessoa_id: string;
+  usuario_id: string | null;
+  nome: string;
+  cargo: string | null;
+}
+
+/**
+ * Pessoas que podem receber a atribuição: o time de quem está logado
+ * (mesmo critério da Mesa do Gestor — tarefas_meu_time decide no banco).
+ */
+export function usePessoasParaAtribuicao() {
+  const time = usePessoasDoTime();
+  const pessoas = useQuery({
+    queryKey: ["processo-passo-pessoas"],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async (): Promise<OpcaoPessoaAtribuicao[]> => {
+      const { data, error } = await (supabase as any)
+        .from("vw_gestao_pessoa")
+        .select("pessoa_id, usuario_id, nome, cargo")
+        .order("nome");
+      if (error) throw error;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (data ?? [])
+        .filter((p: any) => p.pessoa_id && p.nome)
+        .map((p: any) => ({
+          pessoa_id: p.pessoa_id as string,
+          usuario_id: (p.usuario_id ?? null) as string | null,
+          nome: p.nome as string,
+          cargo: p.cargo ?? null,
+        })) as OpcaoPessoaAtribuicao[];
+    },
+  });
+
+  const doTime = useMemo(() => {
+    const ids = new Set(time.data?.ids ?? []);
+    const todas = pessoas.data ?? [];
+    if (ids.size === 0) return todas;
+    const filtradas = todas.filter((p) => p.usuario_id && ids.has(p.usuario_id));
+    return filtradas.length > 0 ? filtradas : todas;
+  }, [pessoas.data, time.data]);
+
+  return { ...pessoas, pessoas: doTime };
+}
+
+export interface AtribuicaoNovaParaPasso {
+  passoId: string;
+  nome: string;
+  descricao: string | null;
+  pessoa_id: string;
+  tempo_unitario_min: number;
+  fluxo_diario: number | null;
+  processo_id: string;
+}
+
+/**
+ * Cria a atribuição pela RPC e liga ao passo na MESMA ação.
+ * FAIL-LOUD: qualquer exceção da RPC sobe com a mensagem em português dela.
+ * A atribuição pertence à PESSOA — pode ser reaproveitada em passos de outros processos.
+ */
+export function useCriarAtribuicaoParaPasso(processoId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (e: AtribuicaoNovaParaPasso) => {
+      const { data, error } = await (supabase as any).rpc("fn_atribuicao_salvar", {
+        _id: null,
+        _nome: e.nome.trim(),
+        _descricao: e.descricao?.trim() ? e.descricao.trim() : null,
+        _pessoa_id: e.pessoa_id,
+        _tempo_unitario_min: e.tempo_unitario_min,
+        _fluxo_diario: e.fluxo_diario,
+        _fonte_volume: "demanda_livre",
+        _fila_id: null,
+        _recorrencia_id: null,
+        _departamento_id: null,
+        _macro_processo_id: null,
+        _processo_id: e.processo_id,
+      });
+      if (error) throw error;
+      const atribuicaoId = data as string;
+      if (!atribuicaoId) throw new Error("A atribuição não foi criada — nada foi ligado ao passo.");
+
+      const { error: errLigar } = await (supabase as any)
+        .from("processo_passo")
+        .update({ atribuicao_id: atribuicaoId })
+        .eq("id", e.passoId);
+      if (errLigar) throw errLigar;
+      return atribuicaoId;
+    },
+    onSuccess: () => {
+      invalidar(qc, processoId);
+      qc.invalidateQueries({ queryKey: ["atribuicoes-para-passo"] });
+      qc.invalidateQueries({ queryKey: ["tarefas", "mesa", "atribuicoes"] });
+    },
+  });
+}
+
+
 function invalidar(qc: ReturnType<typeof useQueryClient>, processoId: string) {
   qc.invalidateQueries({ queryKey: CHAVE.passos(processoId) });
   qc.invalidateQueries({ queryKey: CHAVE.divergencia(processoId) });
