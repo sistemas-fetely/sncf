@@ -20,10 +20,16 @@ export function DivergenciasProcesso({ processoId }: { processoId: string }) {
   const divergencias = useProcessoDivergencias(processoId);
   const [ligar, setLigar] = useState<DivergenciaProcesso | null>(null);
   const [documentar, setDocumentar] = useState<DivergenciaProcesso | null>(null);
+  const passos = useProcessoPassos(processoId);
+
+  /** quem_executa do passo vem do catálogo de passos, não da view de divergência. */
+  const passoDoCatalogo = (passoId: string) =>
+    (passos.data ?? []).find((p) => p.id === passoId)?.quem_executa ?? null;
 
   const lista = divergencias.data ?? [];
   const semAtribuicao = lista.filter((d) => d.tipo === "passo_sem_atribuicao");
   const semPasso = lista.filter((d) => d.tipo === "atribuicao_sem_passo");
+
 
   return (
     <Card>
