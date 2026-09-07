@@ -36647,6 +36647,7 @@ export type Database = {
       }
       processo_passo: {
         Row: {
+          accountable_pessoa_id: string | null
           ativo: boolean
           atribuicao_id: string | null
           condicional: boolean
@@ -36657,9 +36658,11 @@ export type Database = {
           nome: string
           ordem: number
           processo_id: string
+          quem_executa: string
           updated_at: string
         }
         Insert: {
+          accountable_pessoa_id?: string | null
           ativo?: boolean
           atribuicao_id?: string | null
           condicional?: boolean
@@ -36670,9 +36673,11 @@ export type Database = {
           nome: string
           ordem: number
           processo_id: string
+          quem_executa?: string
           updated_at?: string
         }
         Update: {
+          accountable_pessoa_id?: string | null
           ativo?: boolean
           atribuicao_id?: string | null
           condicional?: boolean
@@ -36683,9 +36688,87 @@ export type Database = {
           nome?: string
           ordem?: number
           processo_id?: string
+          quem_executa?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "processo_passo_accountable_pessoa_id_fkey"
+            columns: ["accountable_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_passo_accountable_pessoa_id_fkey"
+            columns: ["accountable_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cadastro_pendencia"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "processo_passo_accountable_pessoa_id_fkey"
+            columns: ["accountable_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "processo_passo_accountable_pessoa_id_fkey"
+            columns: ["accountable_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_pessoa"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "processo_passo_accountable_pessoa_id_fkey"
+            columns: ["accountable_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_meu_cadastro_pendencia"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "processo_passo_accountable_pessoa_id_fkey"
+            columns: ["accountable_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_vinculo_pessoa"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "processo_passo_accountable_pessoa_id_fkey"
+            columns: ["accountable_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organograma"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "processo_passo_accountable_pessoa_id_fkey"
+            columns: ["accountable_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pessoa_para_projeto"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "processo_passo_accountable_pessoa_id_fkey"
+            columns: ["accountable_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "processo_passo_accountable_pessoa_id_fkey"
+            columns: ["accountable_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "processo_passo_accountable_pessoa_id_fkey"
+            columns: ["accountable_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_reembolso_saneamento"
+            referencedColumns: ["pessoa_id"]
+          },
           {
             foreignKeyName: "processo_passo_atribuicao_id_fkey"
             columns: ["atribuicao_id"]
