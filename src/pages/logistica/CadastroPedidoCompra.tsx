@@ -974,14 +974,12 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                           <TableCell className="text-right">
                             {qtdFaturada > 0 ? (
                               <div className="flex flex-col items-end gap-0.5">
-                                <div className="flex items-center gap-1.5">
+                                <div className="tabular-nums">{fmtBRL(valorFaturado, "BRL")}</div>
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                   <span className="tabular-nums">{fmtInt(qtdFaturada)}</span>
                                   {pctFaturado < 100 && (
                                     <Selo estado="warning">{fmtPct(pctFaturado)}</Selo>
                                   )}
-                                </div>
-                                <div className="text-xs text-muted-foreground tabular-nums">
-                                  {fmtBRL(valorFaturado, "BRL")}
                                 </div>
                               </div>
                             ) : (
