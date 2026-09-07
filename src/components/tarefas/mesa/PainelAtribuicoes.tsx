@@ -306,6 +306,7 @@ export default function PainelAtribuicoes() {
       total: linhas.length,
       semDono: linhas.filter((l) => l.furo_sem_dono || !l.pessoa_id).length,
       semNumero: linhas.filter((l) => l.furo_sem_numero).length,
+      semProcesso: linhas.filter((l) => l.furo_sem_processo || !l.processo_id).length,
     }),
     [linhas],
   );
@@ -329,8 +330,25 @@ export default function PainelAtribuicoes() {
         <p className="text-xs text-muted-foreground">
           {carga.isLoading
             ? "carregando"
-            : `${totais.total} atribuições · ${totais.semDono} sem dono · ${totais.semNumero} sem número declarado`}
+            : `${totais.total} atribuições · ${totais.semDono} sem dono · ${totais.semNumero} sem número declarado · ${totais.semProcesso} sem processo`}
         </p>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Agrupar por</span>
+          <ToggleGroup
+            type="single"
+            value={eixo}
+            onValueChange={(v) => v && setEixo(v as "macro" | "pessoa")}
+            variant="outline"
+            size="sm"
+          >
+            <ToggleGroupItem value="macro" className="text-xs">
+              Macro processo
+            </ToggleGroupItem>
+            <ToggleGroupItem value="pessoa" className="text-xs">
+              Pessoa
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
         <Button onClick={() => setCriando(true)} className="gap-2">
           <Plus className="h-4 w-4" />
           Nova atribuição
@@ -373,12 +391,15 @@ export default function PainelAtribuicoes() {
                   <span className="font-normal text-muted-foreground">
                     ({grupo.itens.length})
                   </span>
-                  {!grupo.pessoaId && (
+                  {grupo.pendente && eixo === "pessoa" && (
                     <Selo estado="destructive">rascunho — atribua ou apague</Selo>
                   )}
-                  {grupo.pessoaId && grupo.itens[0]?.gestor_nome && (
+                  {grupo.pendente && eixo === "macro" && (
+                    <Selo estado="muted">mapeamento pendente</Selo>
+                  )}
+                  {grupo.complemento && (
                     <span className="text-[11px] font-normal text-muted-foreground">
-                      gestor: {grupo.itens[0].gestor_nome}
+                      {grupo.complemento}
                     </span>
                   )}
                 </CardTitle>
@@ -430,6 +451,18 @@ export default function PainelAtribuicoes() {
                         )}
                         {l.furo_dono_sem_acesso && <Selo estado="warning">dono sem acesso</Selo>}
                         {l.furo_sem_numero && <Selo estado="warning">sem número</Selo>}
+                        {l.processo_id ? (
+                          <Link
+                            to={`/processos/${l.processo_id}`}
+                            className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/20"
+                            title={l.processo_nome ?? undefined}
+                          >
+                            {l.processo_codigo ?? "processo"}
+                            <ExternalLink className="h-3 w-3" />
+                          </Link>
+                        ) : (
+                          <Selo estado="muted">sem processo</Selo>
+                        )}
                         {l.fila_nome ? (
                           <Selo estado="info">fila: {l.fila_nome}</Selo>
                         ) : (
@@ -502,6 +535,8 @@ export default function PainelAtribuicoes() {
           linha={emEdicao}
           pessoas={pessoasDoTime}
           filas={filas.data ?? []}
+          macros={macros.data ?? []}
+          processos={processos.data ?? []}
           onFechar={() => {
             setCriando(false);
             setEmEdicao(null);
