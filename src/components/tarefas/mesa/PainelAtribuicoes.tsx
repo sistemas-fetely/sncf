@@ -153,6 +153,8 @@ export default function PainelAtribuicoes() {
   const [emEdicao, setEmEdicao] = useState<LinhaCarga | null>(null);
   const [criando, setCriando] = useState(false);
   const [aApagar, setAApagar] = useState<LinhaCarga | null>(null);
+  // Dois olhares sobre o mesmo catálogo: por macro processo (como se faz) ou por pessoa (quem faz).
+  const [eixo, setEixo] = useState<"macro" | "pessoa">("macro");
 
   const carga = useQuery({
     queryKey: [...QK, "lista"],
@@ -202,6 +204,34 @@ export default function PainelAtribuicoes() {
     },
   });
 
+  const macros = useQuery({
+    queryKey: [...QK, "macro-processos"],
+    staleTime: 60 * 1000,
+    queryFn: async (): Promise<OpcaoMacro[]> => {
+      const { data, error } = await (supabase as any)
+        .from("macro_processo")
+        .select("id, nome, ordem, cor")
+        .eq("ativo", true)
+        .order("ordem", { ascending: true, nullsFirst: false })
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as OpcaoMacro[];
+    },
+  });
+
+  const processos = useQuery({
+    queryKey: [...QK, "processos"],
+    staleTime: 60 * 1000,
+    queryFn: async (): Promise<OpcaoProcesso[]> => {
+      const { data, error } = await (supabase as any)
+        .from("processos")
+        .select("id, codigo, nome")
+        .order("codigo", { ascending: true, nullsFirst: false });
+      if (error) throw error;
+      return (data ?? []) as OpcaoProcesso[];
+    },
+  });
+
   /** Pessoas do meu time: quem reporta a mim (decidido no banco por tarefas_meu_time). */
   const pessoasDoTime = useMemo(() => {
     const idsUsuario = new Set(time.data?.ids ?? []);
@@ -224,20 +254,52 @@ export default function PainelAtribuicoes() {
   }, [carga.data, idsTime]);
 
   const grupos = useMemo(() => {
-    const mapa = new Map<string, { nome: string; pessoaId: string | null; itens: LinhaCarga[] }>();
+    const ordemMacro = new Map((macros.data ?? []).map((m) => [m.id, m.ordem ?? 999]));
+
+    if (eixo === "pessoa") {
+      const mapa = new Map<string, { nome: string; complemento: string | null; pendente: boolean; itens: LinhaCarga[] }>();
+      for (const l of linhas) {
+        const k = l.pessoa_id ?? "__sem_dono__";
+        const atual =
+          mapa.get(k) ??
+          {
+            nome: l.pessoa_nome ?? "Sem dono (rascunho)",
+            complemento: l.gestor_nome ? `gestor: ${l.gestor_nome}` : null,
+            pendente: !l.pessoa_id,
+            itens: [] as LinhaCarga[],
+          };
+        atual.itens.push(l);
+        mapa.set(k, atual);
+      }
+      // Sem dono primeiro: é o que pede ação.
+      return [...mapa.entries()].sort(([a], [b]) =>
+        a === "__sem_dono__" ? -1 : b === "__sem_dono__" ? 1 : 0,
+      );
+    }
+
+    const mapa = new Map<string, { nome: string; complemento: string | null; pendente: boolean; itens: LinhaCarga[] }>();
     for (const l of linhas) {
-      const k = l.pessoa_id ?? "__sem_dono__";
+      const k = l.macro_processo_id ?? "__sem_processo__";
       const atual =
         mapa.get(k) ??
-        { nome: l.pessoa_nome ?? "Sem dono (rascunho)", pessoaId: l.pessoa_id ?? null, itens: [] };
+        {
+          nome: l.macro_processo_nome ?? "Sem processo",
+          complemento: null,
+          pendente: !l.macro_processo_id,
+          itens: [] as LinhaCarga[],
+        };
       atual.itens.push(l);
       mapa.set(k, atual);
     }
-    // Sem dono primeiro: é o que pede ação.
-    return [...mapa.entries()].sort(([a], [b]) =>
-      a === "__sem_dono__" ? -1 : b === "__sem_dono__" ? 1 : 0,
-    );
-  }, [linhas]);
+    return [...mapa.entries()].sort(([a, ga], [b, gb]) => {
+      if (a === "__sem_processo__") return 1;
+      if (b === "__sem_processo__") return -1;
+      const oa = ordemMacro.get(a) ?? 999;
+      const ob = ordemMacro.get(b) ?? 999;
+      if (oa !== ob) return oa - ob;
+      return ga.nome.localeCompare(gb.nome, "pt-BR");
+    });
+  }, [linhas, eixo, macros.data]);
 
   const totais = useMemo(
     () => ({
