@@ -932,10 +932,25 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
 
                       <TableCell>{p.modalidade ?? "—"}</TableCell>
                       <TableCell>
-                        <div>{p.fornecedor ?? "—"}</div>
-                        {p.apelido && (
-                          <div className="text-xs text-muted-foreground">{p.apelido}</div>
-                        )}
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span
+                                className="block max-w-[160px] truncate"
+                                title={p.fornecedor ?? undefined}
+                              >
+                                {p.apelido?.trim()
+                                  ? p.apelido.trim()
+                                  : (p.fornecedor ?? "—")}
+                              </span>
+                            </TooltipTrigger>
+                            {p.fornecedor && (
+                              <TooltipContent side="top">
+                                <p className="max-w-xs">{p.fornecedor}</p>
+                              </TooltipContent>
+                            )}
+                          </Tooltip>
+                        </TooltipProvider>
                       </TableCell>
                       <TableCell>{p.centro ?? "—"}</TableCell>
                       <TableCell>{p.status ?? "—"}</TableCell>
