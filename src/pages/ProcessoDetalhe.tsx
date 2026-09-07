@@ -314,6 +314,11 @@ export default function ProcessoDetalhe() {
       {/* Quem executa — caminho de volta processo → atribuição */}
       <QuemExecutaProcesso processoId={id!} />
 
+      {/* Via dupla: passos estruturados, divergências e custo */}
+      <PassosProcesso processoId={id!} />
+      <DivergenciasProcesso processoId={id!} />
+      <CustoProcesso processoId={id!} />
+
       {/* Tabs */}
 
       <Tabs defaultValue="narrativa">
