@@ -85,6 +85,12 @@ import {
   type TipoPendencia,
 } from "@/lib/compras/pendencias";
 import { cn } from "@/lib/utils";
+import {
+  CelulaIdentidade,
+  CelulaReferencias,
+  useIdentidadePedidos,
+} from "@/components/compras/IdentidadePedidoCelula";
+
 
 
 // ============================================================================
@@ -452,6 +458,11 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
   });
 
   // ---------------- Lista de pedidos existentes ----------------
+  const [buscaPedido, setBuscaPedido] = useState("");
+
+  // Identidade humana do pedido (view pronta: rótulo, competência, referências, busca).
+  const identidade = useIdentidadePedidos();
+
   const pedidosQ = useQuery({
     queryKey: ["importacao-pedido-lista"],
     queryFn: async () => {
@@ -464,6 +475,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
       return (data ?? []) as PedidoListaRow[];
     },
   });
+
 
   // Saldo por pedido (view pronta — nada e calculado aqui)
   const saldoQ = useQuery({
