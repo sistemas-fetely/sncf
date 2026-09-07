@@ -6395,6 +6395,89 @@ export type Database = {
           },
         ]
       }
+      cartorio_banco_ean: {
+        Row: {
+          cod_fim: string | null
+          cod_inicio: string | null
+          criado_em: string
+          descricao: string
+          esgotado: boolean
+          observacao: string | null
+          prefixo: string
+          total_licenciado: number
+        }
+        Insert: {
+          cod_fim?: string | null
+          cod_inicio?: string | null
+          criado_em?: string
+          descricao: string
+          esgotado?: boolean
+          observacao?: string | null
+          prefixo: string
+          total_licenciado: number
+        }
+        Update: {
+          cod_fim?: string | null
+          cod_inicio?: string | null
+          criado_em?: string
+          descricao?: string
+          esgotado?: boolean
+          observacao?: string | null
+          prefixo?: string
+          total_licenciado?: number
+        }
+        Relationships: []
+      }
+      cartorio_codigo: {
+        Row: {
+          atualizado_em: string
+          banco_ean: string
+          cod_cadastro: string | null
+          criado_em: string
+          dun: string | null
+          ean: string
+          estado: string | null
+          id: string
+          inner_qtd: number | null
+          observacao: string | null
+          sku: string | null
+        }
+        Insert: {
+          atualizado_em?: string
+          banco_ean: string
+          cod_cadastro?: string | null
+          criado_em?: string
+          dun?: string | null
+          ean: string
+          estado?: string | null
+          id?: string
+          inner_qtd?: number | null
+          observacao?: string | null
+          sku?: string | null
+        }
+        Update: {
+          atualizado_em?: string
+          banco_ean?: string
+          cod_cadastro?: string | null
+          criado_em?: string
+          dun?: string | null
+          ean?: string
+          estado?: string | null
+          id?: string
+          inner_qtd?: number | null
+          observacao?: string | null
+          sku?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cartorio_codigo_banco_ean_fkey"
+            columns: ["banco_ean"]
+            isOneToOne: false
+            referencedRelation: "cartorio_banco_ean"
+            referencedColumns: ["prefixo"]
+          },
+        ]
+      }
       centro_distribuicao: {
         Row: {
           ativo: boolean
@@ -87138,6 +87221,7 @@ export type Database = {
         Args: { p_ate: string; p_de: string }
         Returns: number
       }
+      fn_dun_de_ean: { Args: { p_ean: string }; Returns: string }
       fn_eh_comprador: { Args: { p_user_id: string }; Returns: boolean }
       fn_email_tem_login: { Args: { p_email: string }; Returns: boolean }
       fn_email_usuario: { Args: { p_user_id: string }; Returns: string }
@@ -87287,6 +87371,7 @@ export type Database = {
         Args: { p_ncm: string; p_origem: string }
         Returns: string
       }
+      fn_gtin_dv: { Args: { p_base: string }; Returns: number }
       fn_gtin14: {
         Args: { p_ean13: string; p_indicador?: string }
         Returns: string

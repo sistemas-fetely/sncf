@@ -33,16 +33,6 @@ OUTPUT: JSON válido, sem markdown, sem texto fora do JSON:
 const MODELO_PRIMARIO = "openai/gpt-5.5";
 const MODELO_FALLBACK = "google/gemini-2.5-pro";
 
-/** Segredos vêm do vault, nunca de Deno.env — regra da casa. */
-async function segredoDoVault(admin: any, nome: string): Promise<string | null> {
-  const { data, error } = await admin.rpc("get_vault_secret", { p_name: nome });
-  if (error) {
-    console.error("[sugerir-passos-processo] vault:", nome, error.message);
-    return null;
-  }
-  return data ? String(data) : null;
-}
-
 function json(status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
     status,
@@ -87,15 +77,13 @@ Deno.serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return json(401, { error: "Não autorizado" });
 
-    // Cliente de serviço só para o vault; toda leitura/escrita de dados segue com o JWT do usuário.
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-    const LOVABLE_API_KEY = await segredoDoVault(admin, "LOVABLE_API_KEY");
+    // LOVABLE_API_KEY é injetada pela plataforma Lovable como env das edge functions,
+    // igual em analisar-credito-ia. Não está no vault porque não é uma credencial cadastrada
+    // pela Fetely (Braspress, Qive, ZenLOG, Resend etc.) — é fornecida pela plataforma.
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      console.error("[sugerir-passos-processo] LOVABLE_API_KEY ausente no vault");
-      return json(500, { error: "A chave da IA não está configurada no vault (LOVABLE_API_KEY)." });
+      console.error("[sugerir-passos-processo] LOVABLE_API_KEY ausente");
+      return json(500, { error: "A chave da IA não está configurada (LOVABLE_API_KEY)." });
     }
 
     const body = await req.json().catch(() => ({}));
