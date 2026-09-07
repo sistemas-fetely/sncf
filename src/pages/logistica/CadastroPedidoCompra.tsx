@@ -777,16 +777,33 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
     header.modalidade.length > 0 &&
     header.fornecedor_id.length > 0;
 
+  // ORDENACAO-POR-COMPETENCIA: competência (aaaa_mm) desc, desempate por número do pedido.
+  // A busca varre o campo `busca` da view de identidade (números + categoria, minúsculo).
   const pedidosOrdenados = useMemo(() => {
-    const lista = [...(pedidosQ.data ?? [])];
+    const termo = buscaPedido.trim().toLowerCase();
+    let lista = [...(pedidosQ.data ?? [])];
+    if (termo) {
+      lista = lista.filter((p) => {
+        const id = identidade.porPedido.get(Number(p.id));
+        const alvo = (id?.busca ?? p.numero_pedido ?? "").toLowerCase();
+        return alvo.includes(termo);
+      });
+    }
     lista.sort((a, b) => {
-      if (!a.data_pedido && !b.data_pedido) return 0;
-      if (!a.data_pedido) return 1;
-      if (!b.data_pedido) return -1;
-      return b.data_pedido.localeCompare(a.data_pedido);
+      const ia = identidade.porPedido.get(Number(a.id));
+      const ib = identidade.porPedido.get(Number(b.id));
+      const ca = ia?.competencia ?? "";
+      const cb = ib?.competencia ?? "";
+      if (ca !== cb) {
+        if (!ca) return 1;
+        if (!cb) return -1;
+        return cb.localeCompare(ca);
+      }
+      return (a.numero_pedido ?? "").localeCompare(b.numero_pedido ?? "");
     });
     return lista;
-  }, [pedidosQ.data]);
+  }, [pedidosQ.data, identidade.porPedido, buscaPedido]);
+
 
   // ============================ RENDER ============================
   return (
