@@ -11328,6 +11328,8 @@ export type Database = {
           apuracao_historica_por: string | null
           bling_id: string | null
           boleto_avulso_justificativa: string | null
+          boleto_linha_digitavel: string | null
+          boleto_nosso_numero: string | null
           canal_venda_id: string | null
           cartao_id: string | null
           categoria_confirmada: boolean | null
@@ -11423,6 +11425,8 @@ export type Database = {
           apuracao_historica_por?: string | null
           bling_id?: string | null
           boleto_avulso_justificativa?: string | null
+          boleto_linha_digitavel?: string | null
+          boleto_nosso_numero?: string | null
           canal_venda_id?: string | null
           cartao_id?: string | null
           categoria_confirmada?: boolean | null
@@ -11518,6 +11522,8 @@ export type Database = {
           apuracao_historica_por?: string | null
           bling_id?: string | null
           boleto_avulso_justificativa?: string | null
+          boleto_linha_digitavel?: string | null
+          boleto_nosso_numero?: string | null
           canal_venda_id?: string | null
           cartao_id?: string | null
           categoria_confirmada?: boolean | null
@@ -23649,6 +23655,39 @@ export type Database = {
           dias_limite?: number
           modo_alimentacao?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      macro_processo: {
+        Row: {
+          ativo: boolean
+          cor: string | null
+          created_at: string
+          criado_por: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          ativo?: boolean
+          cor?: string | null
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          ativo?: boolean
+          cor?: string | null
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
         }
         Relationships: []
       }
@@ -43120,6 +43159,7 @@ export type Database = {
           cor_nome: string | null
           departamento: string | null
           descricao_produto: string | null
+          dun: string | null
           ean: string | null
           estampa: string | null
           fase: string | null
@@ -43158,6 +43198,7 @@ export type Database = {
           cor_nome?: string | null
           departamento?: string | null
           descricao_produto?: string | null
+          dun?: string | null
           ean?: string | null
           estampa?: string | null
           fase?: string | null
@@ -43196,6 +43237,7 @@ export type Database = {
           cor_nome?: string | null
           departamento?: string | null
           descricao_produto?: string | null
+          dun?: string | null
           ean?: string | null
           estampa?: string | null
           fase?: string | null
@@ -72030,14 +72072,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -81324,14 +81366,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
