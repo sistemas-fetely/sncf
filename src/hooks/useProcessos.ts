@@ -19,6 +19,9 @@ export interface ProcessoUnificado {
   versao_vigente_em: string | null;
   owner_user_id: string | null;
   owner_perfil_codigo: string | null;
+  /** Até onde o processo vale: empresa | area | departamento (nulável). Vem de processos.abrangencia. */
+  abrangencia: string | null;
+
   owner_nome: string | null;
   area_negocio_id: string | null;
   area_nome: string | null;
