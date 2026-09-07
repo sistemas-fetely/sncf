@@ -1,3 +1,4 @@
+// Painel "Atribuições" — aba da Mesa do Gestor (/tarefas/mesa-gestor?aba=atribuicoes).
 // Atribuições do Time — QUEM-RESPONDE-POR-QUE (tela do líder, não do admin)
 //
 // Eixo: PESSOA. Cargo não define responsabilidade — pessoa define.
@@ -13,10 +14,8 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, Pencil, Users, Info } from "lucide-react";
+import { Loader2, Plus, Trash2, Pencil, Info } from "lucide-react";
 
-import { PageShell } from "@/components/layout/PageShell";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -115,7 +114,7 @@ function minutos(v: number | null | undefined) {
   return m ? `${h}h ${m}min` : `${h}h`;
 }
 
-export default function AtribuicoesTime() {
+export default function PainelAtribuicoes() {
   const qc = useQueryClient();
   const time = usePessoasDoTime();
   const [emEdicao, setEmEdicao] = useState<LinhaCarga | null>(null);
@@ -230,22 +229,18 @@ export default function AtribuicoesTime() {
   });
 
   return (
-    <PageShell>
-      <PageHeader
-        titulo="Atribuições do Time"
-        icone={Users}
-        estado={
-          carga.isLoading
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-muted-foreground">
+          {carga.isLoading
             ? "carregando"
-            : `${totais.total} atribuições · ${totais.semDono} sem dono · ${totais.semNumero} sem número declarado`
-        }
-        acoes={
-          <Button onClick={() => setCriando(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Nova atribuição
-          </Button>
-        }
-      />
+            : `${totais.total} atribuições · ${totais.semDono} sem dono · ${totais.semNumero} sem número declarado`}
+        </p>
+        <Button onClick={() => setCriando(true)} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Nova atribuição
+        </Button>
+      </div>
 
       <div className="space-y-1 rounded-lg border bg-card p-3">
         <p className="text-xs text-muted-foreground">
@@ -447,7 +442,7 @@ export default function AtribuicoesTime() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </PageShell>
+    </div>
   );
 }
 

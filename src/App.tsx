@@ -106,7 +106,6 @@ const CalendarioTarefas = lazy(() => import("@/pages/tarefas/CalendarioTarefas")
 const CargaTrabalho = lazy(() => import("@/pages/tarefas/CargaTrabalho"));
 const MeuTime = lazy(() => import("@/pages/tarefas/MeuTime"));
 const MesaGestor = lazy(() => import("@/pages/tarefas/MesaGestor"));
-const AtribuicoesTime = lazy(() => import("@/pages/tarefas/AtribuicoesTime"));
 const RecorrenciasTarefas = lazy(() => import("@/pages/tarefas/Recorrencias"));
 const TemplatesTarefas = lazy(() => import("@/pages/tarefas/Templates"));
 const NotificacoesPreferencias = lazy(() => import("@/pages/tarefas/NotificacoesPreferencias"));
@@ -458,7 +457,11 @@ const App = () => (
                 <Route path="/tarefas/carga" element={<CargaTrabalho />} />
                 <Route path="/tarefas/time" element={<MeuTime />} />
                 <Route path="/tarefas/mesa-gestor" element={<MesaGestor />} />
-                <Route path="/tarefas/atribuicoes" element={<AtribuicoesTime />} />
+                {/* Atribuições virou aba da Mesa do Gestor (07/09/2026). Rota mantida para não dar 404 em link salvo. */}
+                <Route
+                  path="/tarefas/atribuicoes"
+                  element={<Navigate to="/tarefas/mesa-gestor?aba=atribuicoes" replace />}
+                />
                 <Route path="/tarefas/recorrencias" element={<RecorrenciasTarefas />} />
                 <Route path="/tarefas/templates" element={<TemplatesTarefas />} />
                 <Route path="/tarefas/notificacoes" element={<NotificacoesPreferencias />} />
