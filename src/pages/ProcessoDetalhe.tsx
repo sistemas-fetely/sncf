@@ -26,6 +26,8 @@ import { ptBR } from "date-fns/locale";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { MermaidRenderer } from "@/components/processos/MermaidRenderer";
+import { QuemExecutaProcesso } from "@/components/processos/QuemExecutaProcesso";
+
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
