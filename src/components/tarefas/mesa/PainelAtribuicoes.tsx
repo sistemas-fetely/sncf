@@ -14,8 +14,8 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, Pencil, Info, Check, ChevronsUpDown, ExternalLink } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Loader2, Plus, Trash2, Pencil, Info, Check, ChevronsUpDown, ExternalLink, Workflow } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -151,12 +151,44 @@ function minutos(v: number | null | undefined) {
 
 export default function PainelAtribuicoes() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const time = usePessoasDoTime();
   const [emEdicao, setEmEdicao] = useState<LinhaCarga | null>(null);
   const [criando, setCriando] = useState(false);
   const [aApagar, setAApagar] = useState<LinhaCarga | null>(null);
+  // Nascer processo a partir da atribuição: confirmação explícita antes da RPC.
+  const [aNascerProcesso, setANascerProcesso] = useState<LinhaCarga | null>(null);
   // Dois olhares sobre o mesmo catálogo: por macro processo (como se faz) ou por pessoa (quem faz).
   const [eixo, setEixo] = useState<"macro" | "pessoa">("macro");
+
+  // Só a RPC cria o processo esqueleto (status rascunho + narrativa + primeiro passo
+  // ligado à atribuição). O front não replica nada disso. FAIL-LOUD: erro vira toast.
+  const nascerProcesso = useMutation({
+    mutationFn: async (l: LinhaCarga): Promise<string> => {
+      const { data, error } = await (supabase as any).rpc("fn_processo_nascer_de_atribuicao", {
+        p_atribuicao_id: l.atribuicao_id,
+        p_nome: null,
+        p_codigo: null,
+      });
+      if (error) throw error;
+      const id = (Array.isArray(data) ? data[0] : data) as string | null;
+      if (!id) throw new Error("A função não devolveu o processo criado.");
+      return id;
+    },
+    onSuccess: (processoId, l) => {
+      setANascerProcesso(null);
+      qc.invalidateQueries({ queryKey: QK });
+      toast.success(`Processo em rascunho criado para “${l.nome}”.`, {
+        description: "Um passo já foi criado ligado a esta atribuição.",
+        action: {
+          label: "Abrir processo",
+          onClick: () => navigate(`/processos/${processoId}`),
+        },
+      });
+    },
+    onError: (e) => toast.error(formatError(e)),
+  });
+
 
   const carga = useQuery({
     queryKey: [...QK, "lista"],
@@ -425,6 +457,24 @@ export default function PainelAtribuicoes() {
                           )}
                         </div>
                         <div className="flex shrink-0 gap-1">
+                          {!l.processo_id && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => setANascerProcesso(l)}
+                                  aria-label={`Criar processo para ${l.nome}`}
+                                >
+                                  <Workflow className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs text-[11px]">
+                                Criar processo para este trabalho
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"
@@ -570,6 +620,36 @@ export default function PainelAtribuicoes() {
             >
               {apagar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Apagar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!aNascerProcesso}
+        onOpenChange={(o) => !o && !nascerProcesso.isPending && setANascerProcesso(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Criar processo para “{aNascerProcesso?.nome}”?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Nasce um processo em rascunho, com narrativa de esqueleto dizendo o que ainda falta
+              escrever, e um primeiro passo já ligado a esta atribuição. Você completa depois.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={nascerProcesso.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                if (aNascerProcesso) nascerProcesso.mutate(aNascerProcesso);
+              }}
+              disabled={nascerProcesso.isPending}
+            >
+              {nascerProcesso.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Criar processo
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
