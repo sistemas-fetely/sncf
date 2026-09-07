@@ -125,8 +125,6 @@ export function CelulaIdentidade({
           </TooltipProvider>
         )}
         <span className={mista ? "font-medium" : undefined}>{identidade.categorias ?? "—"}</span>
-        {identidade.status && <span aria-hidden="true">·</span>}
-        {identidade.status && <span>{identidade.status}</span>}
       </div>
     </div>
   );
