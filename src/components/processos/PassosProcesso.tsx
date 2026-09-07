@@ -140,21 +140,22 @@ export function PassosProcesso({ processoId }: { processoId: string }) {
           </div>
         </div>
 
-        <p className="text-xs text-muted-foreground">
-          O passo diz o que se faz; a atribuição ligada diz quem faz e quanto custa. Passo marcado
-          como condicional só acontece às vezes e não é cobrado como divergência.
-        </p>
-
         {passos.isLoading && <Skeleton className="h-24 w-full" />}
         {passos.isError && (
           <p className="text-sm text-destructive">{formatError(passos.error)}</p>
         )}
 
         {!passos.isLoading && lista.length === 0 && (
-          <p className="text-xs text-muted-foreground">
-            Nenhum passo declarado ainda. Sem passo, a narrativa não pode ser comparada com o que as
-            pessoas declaram executar.
-          </p>
+          <div className="space-y-2 text-xs text-muted-foreground">
+            <p>
+              O passo diz o que se faz; a atribuição ligada diz quem faz e quanto custa. Passo
+              marcado como condicional só acontece às vezes e não é cobrado como divergência.
+            </p>
+            <p>
+              Nenhum passo declarado ainda. Sem passo, a narrativa não pode ser comparada com o
+              que as pessoas declaram executar.
+            </p>
+          </div>
         )}
 
         {lista.length > 0 && (
