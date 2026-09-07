@@ -950,6 +950,34 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                       <TableCell className="text-right tabular-nums">
                         {fmtBRL(Number(p.custo_total ?? 0), p.moeda ?? "BRL")}
                       </TableCell>
+                      {(() => {
+                        const tcFat = tresCamadasPorPedido.get(Number(p.id));
+                        const qtdFaturada = Number(tcFat?.qtd_faturada ?? 0);
+                        const valorFaturado = Number(tcFat?.valor_faturado_brl ?? 0);
+                        const pctFaturado = Number(tcFat?.pct_faturado_sobre_iv ?? 0);
+                        return (
+                          <TableCell className="text-right">
+                            {qtdFaturada > 0 ? (
+                              <div className="flex flex-col items-end gap-0.5">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="tabular-nums">{fmtInt(qtdFaturada)}</span>
+                                  {pctFaturado < 100 && (
+                                    <Selo estado="warning">{fmtPct(pctFaturado)}</Selo>
+                                  )}
+                                </div>
+                                <div className="text-xs text-muted-foreground tabular-nums">
+                                  {fmtBRL(valorFaturado, "BRL")}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-end gap-0.5 text-muted-foreground">
+                                <span>—</span>
+                                <span className="text-xs">—</span>
+                              </div>
+                            )}
+                          </TableCell>
+                        );
+                      })()}
                       <TableCell>
                         {p.fase_xpm === 2 ? (
                           <Selo estado="info">Fase 2 · com NF</Selo>
