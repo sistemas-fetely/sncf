@@ -81,8 +81,29 @@ export function useProcessos(filtros?: FiltrosProcessos) {
 
       let lista = (data || []) as ProcessoUnificado[];
 
+      // A view não expõe abrangencia; lemos da tabela e casamos por id.
+      if (lista.length > 0) {
+        const { data: abr, error: erroAbr } = await (supabase as any)
+          .from("processos")
+          .select("id, abrangencia")
+          .in("id", lista.map((p) => p.id));
+        if (erroAbr) throw erroAbr;
+        const mapa = new Map<string, string | null>(
+          ((abr ?? []) as { id: string; abrangencia: string | null }[]).map((r) => [
+            r.id,
+            r.abrangencia,
+          ]),
+        );
+        lista = lista.map((p) => ({ ...p, abrangencia: mapa.get(p.id) ?? null }));
+      }
+
+      if (filtros?.abrangencia) {
+        lista = lista.filter((p) => p.abrangencia === filtros.abrangencia);
+      }
+
       // Filtros por tag (em memória)
       if (filtros?.departamento_id) {
+
         lista = lista.filter((p) =>
           p.tags_departamentos.some((t) => t.id === filtros.departamento_id),
         );
