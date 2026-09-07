@@ -233,6 +233,10 @@ const EMPTY_HEADER: HeaderForm = {
 const fmtBRL = (v: number, moeda = "BRL") =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: moeda || "BRL" }).format(v || 0);
 
+const fmtInt = (v: number) => new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(v || 0);
+const fmtPct = (v: number) =>
+  new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(v || 0) + "%";
+
 const fmtDate = (d?: string | null) =>
   d ? format(parseISO(d), "dd/MM/yyyy") : "—";
 
