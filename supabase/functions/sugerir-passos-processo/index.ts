@@ -33,6 +33,16 @@ OUTPUT: JSON válido, sem markdown, sem texto fora do JSON:
 const MODELO_PRIMARIO = "openai/gpt-5.5";
 const MODELO_FALLBACK = "google/gemini-2.5-pro";
 
+/** Segredos vêm do vault, nunca de Deno.env — regra da casa. */
+async function segredoDoVault(admin: any, nome: string): Promise<string | null> {
+  const { data, error } = await admin.rpc("get_vault_secret", { p_name: nome });
+  if (error) {
+    console.error("[sugerir-passos-processo] vault:", nome, error.message);
+    return null;
+  }
+  return data ? String(data) : null;
+}
+
 function json(status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
     status,
@@ -77,8 +87,16 @@ Deno.serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return json(401, { error: "Não autorizado" });
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY não configurada");
+    // Cliente de serviço só para o vault; toda leitura/escrita de dados segue com o JWT do usuário.
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const LOVABLE_API_KEY = await segredoDoVault(admin, "LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      console.error("[sugerir-passos-processo] LOVABLE_API_KEY ausente no vault");
+      return json(500, { error: "A chave da IA não está configurada no vault (LOVABLE_API_KEY)." });
+    }
 
     const body = await req.json().catch(() => ({}));
     const processo_id = typeof body?.processo_id === "string" ? body.processo_id.trim() : "";
@@ -170,6 +188,7 @@ Quebre esta narrativa em passos executáveis conforme o system prompt.`;
         trecho_origem: p?.trecho_origem ? String(p.trecho_origem).trim().slice(0, 2000) : null,
         status: "pendente",
         modelo: modeloUsado,
+        gerado_por: user.id,
       }))
       .filter((p) => p.nome.length > 0)
       .sort((a, b) => a.ordem - b.ordem)
