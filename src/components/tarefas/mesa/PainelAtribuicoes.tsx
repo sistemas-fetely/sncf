@@ -14,7 +14,8 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, Pencil, Info } from "lucide-react";
+import { Loader2, Plus, Trash2, Pencil, Info, Check, ChevronsUpDown, ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,17 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { cn } from "@/lib/utils";
 
 import { usePessoasDoTime } from "@/hooks/tarefas/useTarefasDoTime";
 import { formatError } from "@/lib/format-error";
@@ -78,7 +90,28 @@ interface LinhaCarga {
   furo_sem_dono: boolean | null;
   furo_dono_sem_acesso: boolean | null;
   furo_sem_numero: boolean | null;
+  furo_sem_processo: boolean | null;
+  macro_processo_id: string | null;
+  macro_processo_nome: string | null;
+  processo_id: string | null;
+  processo_codigo: string | null;
+  processo_nome: string | null;
+  processo_tem_narrativa: boolean | null;
+  processo_tem_diagrama: boolean | null;
   ativo: boolean | null;
+}
+
+interface OpcaoMacro {
+  id: string;
+  nome: string;
+  ordem: number | null;
+  cor: string | null;
+}
+
+interface OpcaoProcesso {
+  id: string;
+  codigo: string | null;
+  nome: string;
 }
 
 interface OpcaoPessoa {
