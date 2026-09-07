@@ -6,8 +6,10 @@ import {
   ArrowDown,
   ArrowUp,
   Check,
+  Link2,
   ListOrdered,
   Loader2,
+  MoreHorizontal,
   Pencil,
   Plus,
   Quote,
@@ -16,6 +18,7 @@ import {
   User,
   X,
 } from "lucide-react";
+
 import { toast } from "sonner";
 
 import {
