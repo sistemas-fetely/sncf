@@ -215,8 +215,8 @@ export default function ProcessoDetalhe() {
         </div>
       </div>
 
-      {/* Cabeçalho — largura de leitura confortável */}
-      <Card className="w-full max-w-[1100px]">
+      {/* Cabeçalho */}
+      <Card className="w-full">
         <CardContent className="p-6 space-y-4">
           <PageHeader
             titulo={processo.nome}
