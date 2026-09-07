@@ -243,10 +243,15 @@ if (body.tipo === "catalogo_espelho") {
     });
   }
 
-  const { data: linhas, error: errInventario } = await supabase
+  const {
+    data: linhas,
+    error: errInventario,
+    count,
+  } = await supabase
     .from("sncf_produtos")
-    .select("cod_cadastro")
-    .order("cod_cadastro", { ascending: true });
+    .select("cod_cadastro", { count: "exact" })
+    .order("cod_cadastro", { ascending: true })
+    .range(0, 49999);
 
   if (errInventario) {
     console.error("[recebe-pedido] catalogo_espelho:", errInventario);
@@ -254,6 +259,17 @@ if (body.tipo === "catalogo_espelho") {
   }
 
   const totalLinhas = (linhas ?? []).length;
+  const totalBanco = count ?? totalLinhas;
+
+  if (totalBanco !== totalLinhas) {
+    console.error(
+      `[recebe-pedido] catalogo_espelho: inventário truncado — banco tem ${totalBanco} linhas, leitura devolveu ${totalLinhas}. Aumentar o range.`
+    );
+    return jsonResponse(500, {
+      error: `catalogo_espelho: inventário truncado — banco tem ${totalBanco} linhas, leitura devolveu ${totalLinhas}. Aumentar o range.`,
+    });
+  }
+
   const codsValidos = (linhas ?? [])
     .map((l: any) => l.cod_cadastro)
     .filter((c: unknown) => c !== null && c !== undefined);
@@ -261,6 +277,7 @@ if (body.tipo === "catalogo_espelho") {
   return jsonResponse(200, {
     ok: true,
     modo: "inventario",
+    total_banco: totalBanco,
     total_linhas: totalLinhas,
     cods: codsValidos,
   });
