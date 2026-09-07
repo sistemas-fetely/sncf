@@ -69,7 +69,7 @@ import {
 } from "@/components/ui/tooltip";
 
 
-import { Selo } from "@/components/ui/selo";
+import { Selo, type EstadoSelo } from "@/components/ui/selo";
 import {
   Dialog,
   DialogContent,
@@ -143,7 +143,6 @@ interface PedidoListaRow {
   linhas: number | null;
   kits: number | null;
   custo_total: number | null;
-  fase_xpm: number | null;
 }
 
 interface PreviaExclusao {
@@ -157,8 +156,6 @@ interface PreviaExclusao {
 
 interface SaldoPedidoLinha {
   pedido_id: number;
-  fase_calculada: string | null;
-  divergencia_status: string | null;
   data_prevista: string | null;
   data_realizada: string | null;
   dias_atraso: number | null;
@@ -248,18 +245,18 @@ function rotuloAtraso(diasAtraso?: number | null) {
   return <Selo estado="warning">{dias} {dias === 1 ? "dia" : "dias"}</Selo>;
 }
 
-const ROTULO_FASE_CALCULADA: Record<string, string> = {
-  sem_nf: "Sem NF",
-  nf_parcial: "NF parcial",
-  fatia_conferida: "Fatia conferida",
-  faturado_nao_conferido: "Faturado, não conferido",
-  conferido_parcial: "Conferido parcial",
-  conferido_total: "Conferido",
+const ROTULO_CICLO_ESTADO: Record<string, { rotulo: string; estado: EstadoSelo; icone?: boolean }> = {
+  aguardando_nf: { rotulo: "Aguardando NF", estado: "muted" },
+  faturando: { rotulo: "Faturando", estado: "warning" },
+  aguardando_conferencia: { rotulo: "Aguardando conferência", estado: "warning" },
+  divergencia: { rotulo: "Divergência", estado: "destructive" },
+  completo: { rotulo: "Completo", estado: "success", icone: true },
 };
 
-function rotuloFaseCalculada(v: string | null | undefined): string {
-  if (!v) return "—";
-  return ROTULO_FASE_CALCULADA[v] ?? v;
+function corBarraProgresso(estado: string | null | undefined): string {
+  if (estado === "completo") return "bg-success";
+  if (estado === "divergencia") return "bg-destructive";
+  return "bg-warning";
 }
 
 /** Saldos de três camadas por pedido (view pronta — nada é calculado aqui). */
@@ -270,6 +267,10 @@ interface TresCamadasPedidoLinha {
   qtd_faturada: number | null;
   valor_faturado_brl: number | null;
   pct_faturado_sobre_iv: number | null;
+  ciclo_estado: string | null;
+  tem_divergencia: boolean | null;
+  divergencia_total: number | null;
+  pct_conferido_sobre_iv: number | null;
 }
 
 /** dd/mm/aaaa ou aaaa-mm-dd vindos da planilha viram aaaa-mm-dd para o input date. */
@@ -477,7 +478,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
       const { data, error } = await (supabase as any)
         .from("vw_importacao_pedido_detalhe")
         .select(
-          "id, numero_pedido, rocabella_ref, modalidade, moeda, data_pedido, prazo_entrega_acordado, etd, eta, fornecedor, apelido, centro, status, linhas, kits, custo_total, fase_xpm",
+          "id, numero_pedido, rocabella_ref, modalidade, moeda, data_pedido, prazo_entrega_acordado, etd, eta, fornecedor, apelido, centro, status, linhas, kits, custo_total",
         );
       if (error) throw error;
       return (data ?? []) as PedidoListaRow[];
@@ -492,7 +493,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
       const { data, error } = await (supabase as any)
         .from("vw_importacao_saldo_pedido")
         .select(
-          "pedido_id, fase_calculada, divergencia_status, data_prevista, data_realizada, dias_atraso",
+          "pedido_id, data_prevista, data_realizada, dias_atraso",
         );
       if (error) throw error;
       return (data ?? []) as SaldoPedidoLinha[];
@@ -511,7 +512,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("vw_compra_tres_camadas_pedido")
-        .select("pedido_id, a_faturar, a_confirmar, qtd_faturada, valor_faturado_brl, pct_faturado_sobre_iv");
+        .select("pedido_id, a_faturar, a_confirmar, qtd_faturada, valor_faturado_brl, pct_faturado_sobre_iv, ciclo_estado, tem_divergencia, divergencia_total, pct_conferido_sobre_iv");
       if (error) throw error;
       return (data ?? []) as TresCamadasPedidoLinha[];
     },
@@ -901,7 +902,6 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                         </Tooltip>
                       </TooltipProvider>
                     </TableHead>
-                    <TableHead>Fase XPM</TableHead>
                     <TableHead>Andamento</TableHead>
                     <TableHead className="text-right">A faturar</TableHead>
                     <TableHead className="text-right">A confirmar</TableHead>
@@ -991,41 +991,63 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                           </TableCell>
                         );
                       })()}
-                      <TableCell>
-                        {p.fase_xpm === 2 ? (
-                          <Selo estado="info">Fase 2 · com NF</Selo>
-                        ) : p.fase_xpm === 1 ? (
-                          <Selo estado="muted">Fase 1 · sem NF</Selo>
-                        ) : (
-                          "—"
-                        )}
-                      </TableCell>
                       {(() => {
-                        const s = saldoPorPedido.get(Number(p.id));
                         const tc = tresCamadasPorPedido.get(Number(p.id));
                         const aFaturar = Number(tc?.a_faturar ?? 0);
                         const aConfirmar = Number(tc?.a_confirmar ?? 0);
+                        const ciclo = tc?.ciclo_estado;
+                        const cfg = ciclo ? ROTULO_CICLO_ESTADO[ciclo] : undefined;
+                        const pctFat = Math.min(Number(tc?.pct_faturado_sobre_iv ?? 0), 100);
+                        const pctConf = Math.min(Number(tc?.pct_conferido_sobre_iv ?? 0), 100);
+                        const fillClass = corBarraProgresso(ciclo);
                         const NUM_BR = new Intl.NumberFormat("pt-BR");
                         return (
                           <>
                             <TableCell>
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-sm">
-                                  {rotuloFaseCalculada(s?.fase_calculada)}
-                                </span>
-                                {s?.divergencia_status && (
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <AlertTriangle
-                                          className="h-4 w-4 shrink-0 text-warning"
-                                          aria-label={s.divergencia_status}
-                                        />
-                                      </TooltipTrigger>
-                                      <TooltipContent>{s.divergencia_status}</TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                )}
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  {cfg ? (
+                                    <Selo
+                                      estado={cfg.estado}
+                                      className={cfg.estado === "success" ? "font-medium" : undefined}
+                                    >
+                                      {cfg.icone && (
+                                        <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                                      )}
+                                      {cfg.rotulo}
+                                    </Selo>
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                  {tc?.tem_divergencia && (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Selo estado="destructive">
+                                            {fmtInt(Number(tc.divergencia_total ?? 0))} un
+                                          </Selo>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          Falta, excesso ou não conforme apurados na conferência
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-0.5 h-1.5">
+                                  <div className="w-1/2 h-full bg-muted rounded-sm overflow-hidden">
+                                    <div
+                                      className={cn("h-full rounded-sm", fillClass)}
+                                      style={{ width: `${pctFat}%` }}
+                                    />
+                                  </div>
+                                  <div className="w-1/2 h-full bg-muted rounded-sm overflow-hidden">
+                                    <div
+                                      className={cn("h-full rounded-sm", fillClass)}
+                                      style={{ width: `${pctConf}%` }}
+                                    />
+                                  </div>
+                                </div>
                               </div>
                             </TableCell>
                             <TableCell
