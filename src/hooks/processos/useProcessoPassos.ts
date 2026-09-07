@@ -87,7 +87,10 @@ export function useProcessoPassos(processoId: string) {
     queryFn: async (): Promise<ProcessoPasso[]> => {
       const { data, error } = await (supabase as any)
         .from("processo_passo")
-        .select("id,processo_id,ordem,nome,descricao,atribuicao_id,condicional,ativo,created_at")
+        .select(
+          "id,processo_id,ordem,nome,descricao,atribuicao_id,condicional,quem_executa,ativo,created_at",
+        )
+
         .eq("processo_id", processoId)
         .eq("ativo", true)
         .order("ordem", { ascending: true });
