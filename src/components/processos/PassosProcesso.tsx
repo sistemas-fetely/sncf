@@ -18,6 +18,16 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -58,6 +68,18 @@ export function PassosProcesso({ processoId }: { processoId: string }) {
   const reordenar = useReordenarPassos(processoId);
   const remover = useRemoverPasso(processoId);
   const gerar = useGerarPassosSugeridos(processoId);
+  const sugeridos = usePassosSugeridos(processoId);
+  const pendentes = sugeridos.data?.length ?? 0;
+  const [confirmarSubstituir, setConfirmarSubstituir] = useState(false);
+
+  const rodarSugestao = () =>
+    gerar.mutate(undefined, {
+      onSuccess: (r) =>
+        toast.success(`${r.total} passo(s) sugerido(s) para você conferir.`, {
+          description: r.modelo ? `Modelo: ${r.modelo}` : undefined,
+        }),
+      onError: (e) => toast.error("Não sugeriu passos", { description: formatError(e) }),
+    });
   const [emEdicao, setEmEdicao] = useState<ProcessoPasso | null>(null);
   const [criando, setCriando] = useState(false);
 
@@ -101,16 +123,7 @@ export function PassosProcesso({ processoId }: { processoId: string }) {
             <Button
               size="sm"
               variant="outline"
-              onClick={() =>
-                gerar.mutate(undefined, {
-                  onSuccess: (r) =>
-                    toast.success(`${r.total} passo(s) sugerido(s) para você conferir.`, {
-                      description: r.modelo ? `Modelo: ${r.modelo}` : undefined,
-                    }),
-                  onError: (e) =>
-                    toast.error("Não sugeriu passos", { description: formatError(e) }),
-                })
-              }
+              onClick={() => (pendentes > 0 ? setConfirmarSubstituir(true) : rodarSugestao())}
               disabled={gerar.isPending}
               className="gap-1"
             >
@@ -226,6 +239,34 @@ export function PassosProcesso({ processoId }: { processoId: string }) {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        <AlertDialog open={confirmarSubstituir} onOpenChange={setConfirmarSubstituir}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Substituir as {pendentes} sugestões pendentes?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Rodar de novo apaga as sugestões que ainda não foram aceitas nem rejeitadas e gera
+                uma lista nova. Passos já aceitos não são tocados.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Deixar como está</AlertDialogCancel>
+              <AlertDialogAction onClick={() => rodarSugestao()}>
+                Substituir e sugerir de novo
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {gerar.isPending && (
+          <div className="flex items-center gap-2 rounded-lg border border-info/40 bg-info/5 p-4 text-sm">
+            <Loader2 className="h-4 w-4 animate-spin text-info" />
+            <span>
+              A IA está lendo a narrativa e separando os passos. Isso leva de alguns segundos a um
+              minuto — pode deixar a tela aberta.
+            </span>
           </div>
         )}
 
