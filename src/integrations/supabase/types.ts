@@ -87136,39 +87136,23 @@ export type Database = {
         Returns: Json
       }
       fn_atribuicao_apagar: { Args: { _id: string }; Returns: undefined }
-      fn_atribuicao_salvar:
-        | {
-            Args: {
-              _departamento_id?: string
-              _descricao: string
-              _fila_id?: string
-              _fluxo_diario: number
-              _fonte_volume?: string
-              _id: string
-              _nome: string
-              _pessoa_id: string
-              _recorrencia_id?: string
-              _tempo_unitario_min: number
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              _departamento_id?: string
-              _descricao: string
-              _fila_id?: string
-              _fluxo_diario: number
-              _fonte_volume?: string
-              _id: string
-              _macro_processo_id?: string
-              _nome: string
-              _pessoa_id: string
-              _processo_id?: string
-              _recorrencia_id?: string
-              _tempo_unitario_min: number
-            }
-            Returns: string
-          }
+      fn_atribuicao_salvar: {
+        Args: {
+          _departamento_id?: string
+          _descricao: string
+          _fila_id?: string
+          _fluxo_diario: number
+          _fonte_volume?: string
+          _id: string
+          _macro_processo_id?: string
+          _nome: string
+          _pessoa_id: string
+          _processo_id?: string
+          _recorrencia_id?: string
+          _tempo_unitario_min: number
+        }
+        Returns: string
+      }
       fn_auditoria_conferir_tipos: {
         Args: { p_amostra: Json }
         Returns: string
@@ -88127,6 +88111,10 @@ export type Database = {
           p_pedido_id: string
           p_transportadora_id: string
         }
+        Returns: string
+      }
+      fn_processo_nascer_de_atribuicao: {
+        Args: { _atribuicao_id: string; _codigo?: string; _nome?: string }
         Returns: string
       }
       fn_rastreio_conciliar_entregue: {
