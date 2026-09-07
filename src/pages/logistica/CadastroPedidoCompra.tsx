@@ -85,6 +85,12 @@ import {
   type TipoPendencia,
 } from "@/lib/compras/pendencias";
 import { cn } from "@/lib/utils";
+import {
+  CelulaIdentidade,
+  CelulaReferencias,
+  useIdentidadePedidos,
+} from "@/components/compras/IdentidadePedidoCelula";
+
 
 
 // ============================================================================
@@ -452,6 +458,11 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
   });
 
   // ---------------- Lista de pedidos existentes ----------------
+  const [buscaPedido, setBuscaPedido] = useState("");
+
+  // Identidade humana do pedido (view pronta: rótulo, competência, referências, busca).
+  const identidade = useIdentidadePedidos();
+
   const pedidosQ = useQuery({
     queryKey: ["importacao-pedido-lista"],
     queryFn: async () => {
@@ -464,6 +475,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
       return (data ?? []) as PedidoListaRow[];
     },
   });
+
 
   // Saldo por pedido (view pronta — nada e calculado aqui)
   const saldoQ = useQuery({
@@ -777,16 +789,33 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
     header.modalidade.length > 0 &&
     header.fornecedor_id.length > 0;
 
+  // ORDENACAO-POR-COMPETENCIA: competência (aaaa_mm) desc, desempate por número do pedido.
+  // A busca varre o campo `busca` da view de identidade (números + categoria, minúsculo).
   const pedidosOrdenados = useMemo(() => {
-    const lista = [...(pedidosQ.data ?? [])];
+    const termo = buscaPedido.trim().toLowerCase();
+    let lista = [...(pedidosQ.data ?? [])];
+    if (termo) {
+      lista = lista.filter((p) => {
+        const id = identidade.porPedido.get(Number(p.id));
+        const alvo = (id?.busca ?? p.numero_pedido ?? "").toLowerCase();
+        return alvo.includes(termo);
+      });
+    }
     lista.sort((a, b) => {
-      if (!a.data_pedido && !b.data_pedido) return 0;
-      if (!a.data_pedido) return 1;
-      if (!b.data_pedido) return -1;
-      return b.data_pedido.localeCompare(a.data_pedido);
+      const ia = identidade.porPedido.get(Number(a.id));
+      const ib = identidade.porPedido.get(Number(b.id));
+      const ca = ia?.competencia ?? "";
+      const cb = ib?.competencia ?? "";
+      if (ca !== cb) {
+        if (!ca) return 1;
+        if (!cb) return -1;
+        return cb.localeCompare(ca);
+      }
+      return (a.numero_pedido ?? "").localeCompare(b.numero_pedido ?? "");
     });
     return lista;
-  }, [pedidosQ.data]);
+  }, [pedidosQ.data, identidade.porPedido, buscaPedido]);
+
 
   // ============================ RENDER ============================
   return (
@@ -822,16 +851,24 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                 </Button>
               ),
             }}
-            total={pedidosOrdenados.length}
+            busca={{
+              valor: buscaPedido,
+              aoMudar: setBuscaPedido,
+              placeholder: "Buscar por número, proforma, invoice, PL, processo ou categoria…",
+            }}
+            semResultado="Nenhum pedido com esse número, referência ou categoria."
+            total={pedidosQ.data?.length ?? 0}
             exibidos={pedidosOrdenados.length}
             rotulo="pedidos"
+
           >
               <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Número</TableHead>
-                    <TableHead>Ref.</TableHead>
+                    <TableHead>Referências</TableHead>
+
                     <TableHead>Modalidade</TableHead>
                     <TableHead>Fornecedor</TableHead>
                     <TableHead>Centro</TableHead>
@@ -860,8 +897,16 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                       className="cursor-pointer"
                       onClick={() => navigate(`/logistica/chegada-mercadoria/${p.id}`)}
                     >
-                      <TableCell className="font-medium">{p.numero_pedido}</TableCell>
-                      <TableCell>{p.rocabella_ref ?? "—"}</TableCell>
+                      <TableCell>
+                        <CelulaIdentidade
+                          identidade={identidade.porPedido.get(Number(p.id))}
+                          numeroCru={p.numero_pedido}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <CelulaReferencias identidade={identidade.porPedido.get(Number(p.id))} />
+                      </TableCell>
+
                       <TableCell>{p.modalidade ?? "—"}</TableCell>
                       <TableCell>
                         <div>{p.fornecedor ?? "—"}</div>

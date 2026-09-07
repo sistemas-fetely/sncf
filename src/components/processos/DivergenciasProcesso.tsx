@@ -2,37 +2,34 @@
 // Fonte única: vw_processo_divergencia. São duas listas porque significam coisas opostas.
 import { useState } from "react";
 import { GitCompareArrows, Link2, Plus } from "lucide-react";
-import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatError } from "@/lib/format-error";
 import {
   useProcessoDivergencias,
-  useSalvarPasso,
+  useProcessoPassos,
   type DivergenciaProcesso,
 } from "@/hooks/processos/useProcessoPassos";
-import { SeletorAtribuicaoPasso } from "@/components/processos/SeletorAtribuicaoPasso";
+import { DialogLigarAtribuicao } from "@/components/processos/DialogLigarAtribuicao";
 import { DialogPasso } from "@/components/processos/PassosProcesso";
+
 
 export function DivergenciasProcesso({ processoId }: { processoId: string }) {
   const divergencias = useProcessoDivergencias(processoId);
   const [ligar, setLigar] = useState<DivergenciaProcesso | null>(null);
   const [documentar, setDocumentar] = useState<DivergenciaProcesso | null>(null);
+  const passos = useProcessoPassos(processoId);
+
+  /** quem_executa do passo vem do catálogo de passos, não da view de divergência. */
+  const passoDoCatalogo = (passoId: string) =>
+    (passos.data ?? []).find((p) => p.id === passoId)?.quem_executa ?? null;
 
   const lista = divergencias.data ?? [];
   const semAtribuicao = lista.filter((d) => d.tipo === "passo_sem_atribuicao");
   const semPasso = lista.filter((d) => d.tipo === "atribuicao_sem_passo");
+
 
   return (
     <Card>
@@ -115,10 +112,12 @@ export function DivergenciasProcesso({ processoId }: { processoId: string }) {
           </div>
         )}
 
-        {ligar && (
+        {ligar?.passo_id && (
           <DialogLigarAtribuicao
             processoId={processoId}
-            divergencia={ligar}
+            passoId={ligar.passo_id}
+            passoNome={ligar.item_nome ?? "sem nome"}
+            quemExecuta={passoDoCatalogo(ligar.passo_id)}
             onFechar={() => setLigar(null)}
           />
         )}
@@ -136,70 +135,3 @@ export function DivergenciasProcesso({ processoId }: { processoId: string }) {
   );
 }
 
-function DialogLigarAtribuicao({
-  processoId,
-  divergencia,
-  onFechar,
-}: {
-  processoId: string;
-  divergencia: DivergenciaProcesso;
-  onFechar: () => void;
-}) {
-  const [atribuicaoId, setAtribuicaoId] = useState<string | null>(null);
-  const salvar = useSalvarPasso(processoId);
-
-  const enviar = () => {
-    if (!atribuicaoId) {
-      toast.error("Escolha a atribuição que executa este passo.");
-      return;
-    }
-    if (!divergencia.passo_id) {
-      toast.error("Divergência sem passo identificado.");
-      return;
-    }
-    salvar.mutate(
-      {
-        id: divergencia.passo_id,
-        nome: divergencia.item_nome ?? "sem nome",
-        descricao: null,
-        atribuicao_id: atribuicaoId,
-        condicional: false,
-      },
-      {
-        onSuccess: () => {
-          toast.success("Passo ligado à atribuição.");
-          onFechar();
-        },
-        onError: (e) => toast.error("Não ligou", { description: formatError(e) }),
-      },
-    );
-  };
-
-  return (
-    <Dialog open onOpenChange={(o) => !o && onFechar()}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Ligar passo a uma atribuição</DialogTitle>
-          <DialogDescription>
-            Passo “{divergencia.item_nome ?? "sem nome"}”. Escolha quem executa para o custo do
-            processo passar a contar este passo.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-1">
-          <Label>Atribuição</Label>
-          <SeletorAtribuicaoPasso valor={atribuicaoId} onChange={setAtribuicaoId} />
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onFechar}>
-            Cancelar
-          </Button>
-          <Button onClick={enviar} disabled={salvar.isPending}>
-            {salvar.isPending ? "Ligando…" : "Ligar"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}

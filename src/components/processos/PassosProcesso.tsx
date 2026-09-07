@@ -6,8 +6,10 @@ import {
   ArrowDown,
   ArrowUp,
   Check,
+  Link2,
   ListOrdered,
   Loader2,
+  MoreHorizontal,
   Pencil,
   Plus,
   Quote,
@@ -16,6 +18,7 @@ import {
   User,
   X,
 } from "lucide-react";
+
 import { toast } from "sonner";
 
 import {
@@ -41,19 +44,37 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { formatError } from "@/lib/format-error";
 import {
+  QUEM_EXECUTA_OPCOES,
   useAtribuicoesParaPasso,
   useProcessoPassos,
+  useQuemExecutaPasso,
   useRemoverPasso,
   useReordenarPassos,
   useSalvarPasso,
   type ProcessoPasso,
+  type QuemExecuta,
 } from "@/hooks/processos/useProcessoPassos";
+import { DialogLigarAtribuicao } from "@/components/processos/DialogLigarAtribuicao";
 import { SeletorAtribuicaoPasso } from "@/components/processos/SeletorAtribuicaoPasso";
+
 import {
   useAceitarPassoSugerido,
   useGerarPassosSugeridos,
@@ -82,6 +103,9 @@ export function PassosProcesso({ processoId }: { processoId: string }) {
     });
   const [emEdicao, setEmEdicao] = useState<ProcessoPasso | null>(null);
   const [criando, setCriando] = useState(false);
+  const [ligando, setLigando] = useState<ProcessoPasso | null>(null);
+  const quemExecuta = useQuemExecutaPasso(processoId);
+
 
   const lista = passos.data ?? [];
 
@@ -196,6 +220,51 @@ export function PassosProcesso({ processoId }: { processoId: string }) {
                     )}
                   </div>
 
+                  {/* Quem executa: só 'time' consome tempo da equipe e pede atribuição. */}
+                  <div className="space-y-1">
+                    <Select
+                      value={p.quem_executa ?? "time"}
+                      onValueChange={(v) =>
+                        quemExecuta.mutate(
+                          { passoId: p.id, valor: v as QuemExecuta },
+                          {
+                            onError: (e) =>
+                              toast.error("Não mudou quem executa", {
+                                description: formatError(e),
+                              }),
+                          },
+                        )
+                      }
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {QUEM_EXECUTA_OPCOES.map((o) => (
+                          <SelectItem key={o.valor} value={o.valor} className="text-xs">
+                            {o.rotulo}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground">
+                      {QUEM_EXECUTA_OPCOES.find((o) => o.valor === (p.quem_executa ?? "time"))
+                        ?.explicacao}
+                    </p>
+                  </div>
+
+                  {(p.quem_executa ?? "time") === "time" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full gap-1"
+                      onClick={() => setLigando(p)}
+                    >
+                      <Link2 className="h-3.5 w-3.5" />
+                      {p.atribuicao_id ? "Trocar atribuição" : "Ligar a uma atribuição"}
+                    </Button>
+                  )}
+
                   <div className="flex items-center gap-1 border-t pt-2">
                     <Button
                       size="icon"
@@ -218,6 +287,26 @@ export function PassosProcesso({ processoId }: { processoId: string }) {
                       <ArrowDown className="h-3.5 w-3.5" />
                     </Button>
                     <div className="flex-1" />
+                    {/* Passo que não é do time: ligar existe, mas como ação secundária. */}
+                    {(p.quem_executa ?? "time") !== "time" && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            aria-label="Mais ações do passo"
+                          >
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setLigando(p)} className="gap-2 text-xs">
+                            <Link2 className="h-3.5 w-3.5" /> Ligar a uma atribuição
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                     <Button
                       size="icon"
                       variant="ghost"
@@ -237,6 +326,7 @@ export function PassosProcesso({ processoId }: { processoId: string }) {
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
+
                 </div>
               );
             })}
@@ -283,6 +373,19 @@ export function PassosProcesso({ processoId }: { processoId: string }) {
             }}
           />
         )}
+
+        {ligando && (
+          <DialogLigarAtribuicao
+            processoId={processoId}
+            passoId={ligando.id}
+            passoNome={ligando.nome}
+            passoDescricao={ligando.descricao}
+            passoCondicional={ligando.condicional}
+            quemExecuta={ligando.quem_executa}
+            onFechar={() => setLigando(null)}
+          />
+        )}
+
       </CardContent>
     </Card>
   );
