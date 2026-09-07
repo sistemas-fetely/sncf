@@ -886,6 +886,21 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                     <TableHead>Realizado</TableHead>
                     <TableHead className="text-right">Linhas</TableHead>
                     <TableHead className="text-right">Custo FOB</TableHead>
+                    <TableHead className="text-right">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex items-center gap-1 cursor-help">
+                              Faturado <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-xs">
+                            Quantidade e valor já cobertos por nota fiscal. Valor sempre em BRL — a NF do
+                            fornecedor é em reais, ainda que o pedido seja em outra moeda.
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableHead>
                     <TableHead>Fase XPM</TableHead>
                     <TableHead>Andamento</TableHead>
                     <TableHead className="text-right">A faturar</TableHead>
