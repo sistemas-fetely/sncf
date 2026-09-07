@@ -322,16 +322,14 @@ export default function ProcessoDetalhe() {
         </div>
       )}
 
-      {/* Blocos de dados: Passos manda, o resto acompanha. */}
-      <div className="grid items-start gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2 lg:row-span-2">
-          <PassosProcesso processoId={id!} />
+      {/* Blocos de dados: Quem executa + Divergências, depois Passos, depois Custo. */}
+      <div className="space-y-4">
+        <div className="grid items-start gap-4 md:grid-cols-2">
+          <QuemExecutaProcesso processoId={id!} />
+          <DivergenciasProcesso processoId={id!} />
         </div>
-        <QuemExecutaProcesso processoId={id!} />
-        <DivergenciasProcesso processoId={id!} />
-        <div className="lg:col-span-3">
-          <CustoProcesso processoId={id!} />
-        </div>
+        <PassosProcesso processoId={id!} />
+        <CustoProcesso processoId={id!} />
       </div>
 
       {/* Tabs */}

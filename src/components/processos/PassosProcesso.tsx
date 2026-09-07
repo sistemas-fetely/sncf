@@ -159,7 +159,7 @@ export function PassosProcesso({ processoId }: { processoId: string }) {
         )}
 
         {lista.length > 0 && (
-          <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(280px,1fr))]">
+          <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(300px,1fr))]">
             {lista.map((p, i) => {
               const atr = nomeAtribuicao(p.atribuicao_id);
               return (
