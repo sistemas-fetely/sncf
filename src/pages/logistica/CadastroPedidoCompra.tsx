@@ -15,6 +15,7 @@ import {
   Download,
   FileSpreadsheet,
   Trash2,
+  Info,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
