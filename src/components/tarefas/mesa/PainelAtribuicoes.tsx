@@ -14,7 +14,8 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, Pencil, Info } from "lucide-react";
+import { Loader2, Plus, Trash2, Pencil, Info, Check, ChevronsUpDown, ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -50,12 +51,25 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { cn } from "@/lib/utils";
 
 import { usePessoasDoTime } from "@/hooks/tarefas/useTarefasDoTime";
 import { formatError } from "@/lib/format-error";
 
 const QK = ["atribuicoes-time"] as const;
 const SEM_FILA = "__sem_fila__";
+const SEM_MACRO = "__sem_macro__";
+const MACRO_NOVO = "__novo_macro__";
 
 interface LinhaCarga {
   atribuicao_id: string;
@@ -78,7 +92,28 @@ interface LinhaCarga {
   furo_sem_dono: boolean | null;
   furo_dono_sem_acesso: boolean | null;
   furo_sem_numero: boolean | null;
+  furo_sem_processo: boolean | null;
+  macro_processo_id: string | null;
+  macro_processo_nome: string | null;
+  processo_id: string | null;
+  processo_codigo: string | null;
+  processo_nome: string | null;
+  processo_tem_narrativa: boolean | null;
+  processo_tem_diagrama: boolean | null;
   ativo: boolean | null;
+}
+
+interface OpcaoMacro {
+  id: string;
+  nome: string;
+  ordem: number | null;
+  cor: string | null;
+}
+
+interface OpcaoProcesso {
+  id: string;
+  codigo: string | null;
+  nome: string;
 }
 
 interface OpcaoPessoa {
@@ -120,6 +155,8 @@ export default function PainelAtribuicoes() {
   const [emEdicao, setEmEdicao] = useState<LinhaCarga | null>(null);
   const [criando, setCriando] = useState(false);
   const [aApagar, setAApagar] = useState<LinhaCarga | null>(null);
+  // Dois olhares sobre o mesmo catálogo: por macro processo (como se faz) ou por pessoa (quem faz).
+  const [eixo, setEixo] = useState<"macro" | "pessoa">("macro");
 
   const carga = useQuery({
     queryKey: [...QK, "lista"],
@@ -169,6 +206,34 @@ export default function PainelAtribuicoes() {
     },
   });
 
+  const macros = useQuery({
+    queryKey: [...QK, "macro-processos"],
+    staleTime: 60 * 1000,
+    queryFn: async (): Promise<OpcaoMacro[]> => {
+      const { data, error } = await (supabase as any)
+        .from("macro_processo")
+        .select("id, nome, ordem, cor")
+        .eq("ativo", true)
+        .order("ordem", { ascending: true, nullsFirst: false })
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as OpcaoMacro[];
+    },
+  });
+
+  const processos = useQuery({
+    queryKey: [...QK, "processos"],
+    staleTime: 60 * 1000,
+    queryFn: async (): Promise<OpcaoProcesso[]> => {
+      const { data, error } = await (supabase as any)
+        .from("processos")
+        .select("id, codigo, nome")
+        .order("codigo", { ascending: true, nullsFirst: false });
+      if (error) throw error;
+      return (data ?? []) as OpcaoProcesso[];
+    },
+  });
+
   /** Pessoas do meu time: quem reporta a mim (decidido no banco por tarefas_meu_time). */
   const pessoasDoTime = useMemo(() => {
     const idsUsuario = new Set(time.data?.ids ?? []);
@@ -191,26 +256,59 @@ export default function PainelAtribuicoes() {
   }, [carga.data, idsTime]);
 
   const grupos = useMemo(() => {
-    const mapa = new Map<string, { nome: string; pessoaId: string | null; itens: LinhaCarga[] }>();
+    const ordemMacro = new Map((macros.data ?? []).map((m) => [m.id, m.ordem ?? 999]));
+
+    if (eixo === "pessoa") {
+      const mapa = new Map<string, { nome: string; complemento: string | null; pendente: boolean; itens: LinhaCarga[] }>();
+      for (const l of linhas) {
+        const k = l.pessoa_id ?? "__sem_dono__";
+        const atual =
+          mapa.get(k) ??
+          {
+            nome: l.pessoa_nome ?? "Sem dono (rascunho)",
+            complemento: l.gestor_nome ? `gestor: ${l.gestor_nome}` : null,
+            pendente: !l.pessoa_id,
+            itens: [] as LinhaCarga[],
+          };
+        atual.itens.push(l);
+        mapa.set(k, atual);
+      }
+      // Sem dono primeiro: é o que pede ação.
+      return [...mapa.entries()].sort(([a], [b]) =>
+        a === "__sem_dono__" ? -1 : b === "__sem_dono__" ? 1 : 0,
+      );
+    }
+
+    const mapa = new Map<string, { nome: string; complemento: string | null; pendente: boolean; itens: LinhaCarga[] }>();
     for (const l of linhas) {
-      const k = l.pessoa_id ?? "__sem_dono__";
+      const k = l.macro_processo_id ?? "__sem_processo__";
       const atual =
         mapa.get(k) ??
-        { nome: l.pessoa_nome ?? "Sem dono (rascunho)", pessoaId: l.pessoa_id ?? null, itens: [] };
+        {
+          nome: l.macro_processo_nome ?? "Sem processo",
+          complemento: null,
+          pendente: !l.macro_processo_id,
+          itens: [] as LinhaCarga[],
+        };
       atual.itens.push(l);
       mapa.set(k, atual);
     }
-    // Sem dono primeiro: é o que pede ação.
-    return [...mapa.entries()].sort(([a], [b]) =>
-      a === "__sem_dono__" ? -1 : b === "__sem_dono__" ? 1 : 0,
-    );
-  }, [linhas]);
+    return [...mapa.entries()].sort(([a, ga], [b, gb]) => {
+      if (a === "__sem_processo__") return 1;
+      if (b === "__sem_processo__") return -1;
+      const oa = ordemMacro.get(a) ?? 999;
+      const ob = ordemMacro.get(b) ?? 999;
+      if (oa !== ob) return oa - ob;
+      return ga.nome.localeCompare(gb.nome, "pt-BR");
+    });
+  }, [linhas, eixo, macros.data]);
 
   const totais = useMemo(
     () => ({
       total: linhas.length,
       semDono: linhas.filter((l) => l.furo_sem_dono || !l.pessoa_id).length,
       semNumero: linhas.filter((l) => l.furo_sem_numero).length,
+      semProcesso: linhas.filter((l) => l.furo_sem_processo || !l.processo_id).length,
     }),
     [linhas],
   );
@@ -234,8 +332,25 @@ export default function PainelAtribuicoes() {
         <p className="text-xs text-muted-foreground">
           {carga.isLoading
             ? "carregando"
-            : `${totais.total} atribuições · ${totais.semDono} sem dono · ${totais.semNumero} sem número declarado`}
+            : `${totais.total} atribuições · ${totais.semDono} sem dono · ${totais.semNumero} sem número declarado · ${totais.semProcesso} sem processo`}
         </p>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Agrupar por</span>
+          <ToggleGroup
+            type="single"
+            value={eixo}
+            onValueChange={(v) => v && setEixo(v as "macro" | "pessoa")}
+            variant="outline"
+            size="sm"
+          >
+            <ToggleGroupItem value="macro" className="text-xs">
+              Macro processo
+            </ToggleGroupItem>
+            <ToggleGroupItem value="pessoa" className="text-xs">
+              Pessoa
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
         <Button onClick={() => setCriando(true)} className="gap-2">
           <Plus className="h-4 w-4" />
           Nova atribuição
@@ -278,12 +393,15 @@ export default function PainelAtribuicoes() {
                   <span className="font-normal text-muted-foreground">
                     ({grupo.itens.length})
                   </span>
-                  {!grupo.pessoaId && (
+                  {grupo.pendente && eixo === "pessoa" && (
                     <Selo estado="destructive">rascunho — atribua ou apague</Selo>
                   )}
-                  {grupo.pessoaId && grupo.itens[0]?.gestor_nome && (
+                  {grupo.pendente && eixo === "macro" && (
+                    <Selo estado="muted">mapeamento pendente</Selo>
+                  )}
+                  {grupo.complemento && (
                     <span className="text-[11px] font-normal text-muted-foreground">
-                      gestor: {grupo.itens[0].gestor_nome}
+                      {grupo.complemento}
                     </span>
                   )}
                 </CardTitle>
@@ -335,6 +453,18 @@ export default function PainelAtribuicoes() {
                         )}
                         {l.furo_dono_sem_acesso && <Selo estado="warning">dono sem acesso</Selo>}
                         {l.furo_sem_numero && <Selo estado="warning">sem número</Selo>}
+                        {l.processo_id ? (
+                          <Link
+                            to={`/processos/${l.processo_id}`}
+                            className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/20"
+                            title={l.processo_nome ?? undefined}
+                          >
+                            {l.processo_codigo ?? "processo"}
+                            <ExternalLink className="h-3 w-3" />
+                          </Link>
+                        ) : (
+                          <Selo estado="muted">sem processo</Selo>
+                        )}
                         {l.fila_nome ? (
                           <Selo estado="info">fila: {l.fila_nome}</Selo>
                         ) : (
@@ -407,6 +537,8 @@ export default function PainelAtribuicoes() {
           linha={emEdicao}
           pessoas={pessoasDoTime}
           filas={filas.data ?? []}
+          macros={macros.data ?? []}
+          processos={processos.data ?? []}
           onFechar={() => {
             setCriando(false);
             setEmEdicao(null);
@@ -452,12 +584,16 @@ function DialogAtribuicao({
   linha,
   pessoas,
   filas,
+  macros,
+  processos,
   onFechar,
   onSalvo,
 }: {
   linha: LinhaCarga | null;
   pessoas: OpcaoPessoa[];
   filas: OpcaoFila[];
+  macros: OpcaoMacro[];
+  processos: OpcaoProcesso[];
   onFechar: () => void;
   onSalvo: () => void;
 }) {
@@ -470,6 +606,10 @@ function DialogAtribuicao({
   const [fluxo, setFluxo] = useState(
     linha?.fluxo_diario_estimado == null ? "" : String(linha.fluxo_diario_estimado),
   );
+  const [macroId, setMacroId] = useState(linha?.macro_processo_id ?? SEM_MACRO);
+  const [macroNovo, setMacroNovo] = useState("");
+  const [processoId, setProcessoId] = useState<string | null>(linha?.processo_id ?? null);
+  const [buscaProcessoAberta, setBuscaProcessoAberta] = useState(false);
   const [comFila, setComFila] = useState(!!linha?.fila_id);
   const [filaId, setFilaId] = useState(linha?.fila_id ?? SEM_FILA);
 
@@ -501,7 +641,31 @@ function DialogAtribuicao({
         _departamento_id: linha?.departamento_id ?? null,
       });
       if (error) throw error;
-      return data as string;
+      const id = data as string;
+
+      // fn_atribuicao_salvar ainda NÃO recebe processo_id nem macro_processo_id.
+      // Até a RPC ganhar os parâmetros, esses dois campos vão por update direto
+      // (as policies de atribuicao_catalogo permitem). FAIL-LOUD.
+      let macroFinal: string | null = macroId === SEM_MACRO || macroId === MACRO_NOVO ? null : macroId;
+      if (macroId === MACRO_NOVO) {
+        const nomeMacro = macroNovo.trim();
+        if (!nomeMacro) throw new Error("Dê um nome ao macro processo novo.");
+        const { data: criado, error: errMacro } = await (supabase as any)
+          .from("macro_processo")
+          .insert({ nome: nomeMacro })
+          .select("id")
+          .single();
+        if (errMacro) throw errMacro;
+        macroFinal = criado.id as string;
+      }
+
+      const { error: errVinculo } = await (supabase as any)
+        .from("atribuicao_catalogo")
+        .update({ macro_processo_id: macroFinal, processo_id: processoId })
+        .eq("id", id);
+      if (errVinculo) throw errVinculo;
+
+      return id;
     },
     onSuccess: () => {
       toast.success(linha ? "Atribuição atualizada." : "Atribuição criada.");
@@ -582,6 +746,118 @@ function DialogAtribuicao({
                 onChange={(e) => setFluxo(e.target.value)}
                 placeholder="Ex.: 8"
               />
+            </div>
+          </div>
+
+          <div className="space-y-3 rounded-lg border bg-secondary/40 p-3">
+            <p className="text-[11px] text-muted-foreground">
+              A atribuição diz <strong>quem faz e quanto custa</strong>. O processo diz{" "}
+              <strong>como se faz</strong>. Ligar os dois é opcional, mas é o que mostra a maturidade
+              do mapeamento.
+            </p>
+
+            <div className="space-y-1">
+              <Label>Macro processo (opcional)</Label>
+              <Select value={macroId} onValueChange={setMacroId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sem macro processo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={SEM_MACRO}>Sem macro processo</SelectItem>
+                  {macros.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.nome}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value={MACRO_NOVO}>+ Criar novo…</SelectItem>
+                </SelectContent>
+              </Select>
+              {macroId === MACRO_NOVO && (
+                <Input
+                  value={macroNovo}
+                  onChange={(e) => setMacroNovo(e.target.value)}
+                  placeholder="Nome do macro processo novo"
+                />
+              )}
+              <p className="text-[11px] text-muted-foreground">
+                A lista nasce vazia de propósito: quem nomeia os macro processos é o líder.
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <Label>Processo documentado (opcional)</Label>
+              <Popover open={buscaProcessoAberta} onOpenChange={setBuscaProcessoAberta}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between font-normal"
+                  >
+                    <span className="truncate">
+                      {processoId
+                        ? (() => {
+                            const p = processos.find((x) => x.id === processoId);
+                            return p ? `${p.codigo ? p.codigo + " · " : ""}${p.nome}` : "processo";
+                          })()
+                        : "Nenhum processo ligado"}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Buscar por código ou nome…" />
+                    <CommandList>
+                      <CommandEmpty>Nenhum processo encontrado.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value="nenhum"
+                          onSelect={() => {
+                            setProcessoId(null);
+                            setBuscaProcessoAberta(false);
+                          }}
+                        >
+                          <Check
+                            className={cn("mr-2 h-4 w-4", processoId ? "opacity-0" : "opacity-100")}
+                          />
+                          Nenhum processo ligado
+                        </CommandItem>
+                        {processos.map((p) => (
+                          <CommandItem
+                            key={p.id}
+                            value={`${p.codigo ?? ""} ${p.nome}`}
+                            onSelect={() => {
+                              setProcessoId(p.id);
+                              setBuscaProcessoAberta(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                processoId === p.id ? "opacity-100" : "opacity-0",
+                              )}
+                            />
+                            <span className="truncate">
+                              {p.codigo ? `${p.codigo} · ` : ""}
+                              {p.nome}
+                            </span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {processoId && (
+                <Link
+                  to={`/processos/${processoId}`}
+                  target="_blank"
+                  className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
+                >
+                  Abrir o processo documentado
+                  <ExternalLink className="h-3 w-3" />
+                </Link>
+              )}
             </div>
           </div>
 

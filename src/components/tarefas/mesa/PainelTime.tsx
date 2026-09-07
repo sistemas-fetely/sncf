@@ -49,6 +49,7 @@ interface LinhaMesa {
   gestor_nome: string | null;
   atribuicoes: number | null;
   atribuicoes_sem_numero: number | null;
+  atribuicoes_sem_processo: number | null;
   dono_sem_acesso: boolean | null;
   minutos_fluxo_dia: number | null;
   minutos_estoque: number | null;
@@ -356,6 +357,11 @@ export default function PainelTime({ onDeclarar }: { onDeclarar: () => void }) {
                           {Number(l.atribuicoes_sem_numero ?? 0) > 0 && (
                             <Selo estado="warning">
                               carga subestimada · {l.atribuicoes_sem_numero} sem número
+                            </Selo>
+                          )}
+                          {Number(l.atribuicoes_sem_processo ?? 0) > 0 && (
+                            <Selo estado="muted">
+                              {l.atribuicoes_sem_processo} sem processo mapeado
                             </Selo>
                           )}
                           {l.dono_sem_acesso && <Selo estado="destructive">sem login</Selo>}

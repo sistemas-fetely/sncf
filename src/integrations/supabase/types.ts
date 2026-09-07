@@ -2165,9 +2165,11 @@ export type Database = {
           fluxo_origem: string
           fonte_volume: string
           id: string
+          macro_processo_id: string | null
           nome: string
           origem_medida: string
           pessoa_id: string | null
+          processo_id: string | null
           recorrencia_id: string | null
           tempo_unitario_min: number | null
           updated_at: string
@@ -2186,9 +2188,11 @@ export type Database = {
           fluxo_origem?: string
           fonte_volume: string
           id?: string
+          macro_processo_id?: string | null
           nome: string
           origem_medida?: string
           pessoa_id?: string | null
+          processo_id?: string | null
           recorrencia_id?: string | null
           tempo_unitario_min?: number | null
           updated_at?: string
@@ -2207,9 +2211,11 @@ export type Database = {
           fluxo_origem?: string
           fonte_volume?: string
           id?: string
+          macro_processo_id?: string | null
           nome?: string
           origem_medida?: string
           pessoa_id?: string | null
+          processo_id?: string | null
           recorrencia_id?: string | null
           tempo_unitario_min?: number | null
           updated_at?: string
@@ -2249,6 +2255,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "atribuicao_fonte_volume_dim"
             referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_macro_processo_id_fkey"
+            columns: ["macro_processo_id"]
+            isOneToOne: false
+            referencedRelation: "macro_processo"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
@@ -2326,6 +2339,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_reembolso_saneamento"
             referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos_unificados"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "atribuicao_catalogo_recorrencia_id_fkey"
@@ -2463,6 +2490,13 @@ export type Database = {
             columns: ["atribuicao_id"]
             isOneToOne: false
             referencedRelation: "vw_carga_atribuicao"
+            referencedColumns: ["atribuicao_id"]
+          },
+          {
+            foreignKeyName: "atribuicao_pessoa_atribuicao_id_fkey"
+            columns: ["atribuicao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_processo_atribuicao"
             referencedColumns: ["atribuicao_id"]
           },
           {
@@ -58150,14 +58184,22 @@ export type Database = {
           furo_dono_sem_acesso: boolean | null
           furo_sem_dono: boolean | null
           furo_sem_numero: boolean | null
+          furo_sem_processo: boolean | null
           gestor_nome: string | null
           gestor_pessoa_id: string | null
+          macro_processo_id: string | null
+          macro_processo_nome: string | null
           minutos_estoque: number | null
           minutos_fluxo_dia: number | null
           nome: string | null
           origem_medida: string | null
           pessoa_id: string | null
           pessoa_nome: string | null
+          processo_codigo: string | null
+          processo_id: string | null
+          processo_nome: string | null
+          processo_tem_diagrama: boolean | null
+          processo_tem_narrativa: boolean | null
           recorrencia_id: string | null
           tempo_unitario_min: number | null
         }
@@ -58196,6 +58238,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "atribuicao_fonte_volume_dim"
             referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_macro_processo_id_fkey"
+            columns: ["macro_processo_id"]
+            isOneToOne: false
+            referencedRelation: "macro_processo"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
@@ -58273,6 +58322,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_reembolso_saneamento"
             referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos_unificados"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "atribuicao_catalogo_recorrencia_id_fkey"
@@ -69048,6 +69111,7 @@ export type Database = {
         Row: {
           atribuicoes: number | null
           atribuicoes_sem_numero: number | null
+          atribuicoes_sem_processo: number | null
           capacidade_presumida: boolean | null
           dono_sem_acesso: boolean | null
           gestor_nome: string | null
@@ -71181,14 +71245,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -73494,14 +73558,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -76945,6 +77009,112 @@ export type Database = {
           valor: number | null
         }
         Relationships: []
+      }
+      vw_processo_atribuicao: {
+        Row: {
+          ativo: boolean | null
+          atribuicao_id: string | null
+          atribuicao_nome: string | null
+          fluxo_diario_estimado: number | null
+          minutos_fluxo_dia: number | null
+          pessoa_id: string | null
+          pessoa_nome: string | null
+          processo_id: string | null
+          tempo_unitario_min: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cadastro_pendencia"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_pessoa"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_meu_cadastro_pendencia"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_vinculo_pessoa"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organograma"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pessoa_para_projeto"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_reembolso_saneamento"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos_unificados"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vw_produto_carteira_resumo: {
         Row: {
