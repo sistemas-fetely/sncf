@@ -44,19 +44,37 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { formatError } from "@/lib/format-error";
 import {
+  QUEM_EXECUTA_OPCOES,
   useAtribuicoesParaPasso,
   useProcessoPassos,
+  useQuemExecutaPasso,
   useRemoverPasso,
   useReordenarPassos,
   useSalvarPasso,
   type ProcessoPasso,
+  type QuemExecuta,
 } from "@/hooks/processos/useProcessoPassos";
+import { DialogLigarAtribuicao } from "@/components/processos/DialogLigarAtribuicao";
 import { SeletorAtribuicaoPasso } from "@/components/processos/SeletorAtribuicaoPasso";
+
 import {
   useAceitarPassoSugerido,
   useGerarPassosSugeridos,
