@@ -309,7 +309,11 @@ export default function ProcessoDetalhe() {
         </div>
       )}
 
+      {/* Quem executa — caminho de volta processo → atribuição */}
+      <QuemExecutaProcesso processoId={id!} />
+
       {/* Tabs */}
+
       <Tabs defaultValue="narrativa">
         <TabsList>
           <TabsTrigger value="narrativa">Narrativa</TabsTrigger>
