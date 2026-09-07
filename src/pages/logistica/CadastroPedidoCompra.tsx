@@ -507,7 +507,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("vw_compra_tres_camadas_pedido")
-        .select("pedido_id, a_faturar, a_confirmar");
+        .select("pedido_id, a_faturar, a_confirmar, qtd_faturada, valor_faturado_brl, pct_faturado_sobre_iv");
       if (error) throw error;
       return (data ?? []) as TresCamadasPedidoLinha[];
     },
