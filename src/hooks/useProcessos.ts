@@ -147,18 +147,26 @@ export function useProcessoDetalhe(processoId: string | null) {
         .eq("id", processoId)
         .maybeSingle();
       if (error) throw error;
+      if (!data) return null;
+
+      // A view não expõe abrangencia; lemos da tabela.
+      const { data: linha, error: erroAbr } = await (supabase as any)
+        .from("processos")
+        .select("abrangencia")
+        .eq("id", processoId)
+        .maybeSingle();
+      if (erroAbr) throw erroAbr;
 
       // Registrar consulta (LGPD) — fire and forget
-      if (data) {
-        (supabase as any)
-          .rpc("registrar_consulta_processo", { _processo_id: processoId })
-          .then(
-            () => {},
-            (e: unknown) => console.warn("Falha ao registrar consulta:", e),
-          );
-      }
+      (supabase as any)
+        .rpc("registrar_consulta_processo", { _processo_id: processoId })
+        .then(
+          () => {},
+          (e: unknown) => console.warn("Falha ao registrar consulta:", e),
+        );
 
-      return (data as ProcessoUnificado | null) ?? null;
+      return { ...(data as ProcessoUnificado), abrangencia: linha?.abrangencia ?? null };
+
     },
     staleTime: 30 * 1000,
   });
