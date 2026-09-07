@@ -14,8 +14,8 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, Pencil, Info, Check, ChevronsUpDown, ExternalLink } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Loader2, Plus, Trash2, Pencil, Info, Check, ChevronsUpDown, ExternalLink, Workflow } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
