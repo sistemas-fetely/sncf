@@ -1623,7 +1623,7 @@ export default function ExtratoImportacao() {
             </div>
             <Button
               onClick={() => handleImportar("extrato")}
-              disabled={processando || !conta || arquivos.length === 0}
+              disabled={processando || arquivos.length === 0}
               className="bg-admin hover:bg-admin/90 text-admin-foreground gap-2"
             >
               {processando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
