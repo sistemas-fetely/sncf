@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { formatCNPJ } from "@/lib/cnpj";
 import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTituloHaverDialog";
-import { hojeISO } from "@/lib/data";
+import { useTituloEstado } from "@/hooks/financeiro/useTituloEstadoKpis";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (d: string | null) =>
@@ -22,8 +22,8 @@ const STATUS_LABEL: Record<string, string> = {
   pago_com_atraso: "Pago c/ atraso",
   vigente: "Vigente",
   cancelado: "Cancelado",
-  atrasado: "Atrasado",
-  vencido: "Atrasado",
+  atrasado: "Vencido (contábil)",
+  vencido: "Vencido (contábil)",
   vencido_suspenso: "Suspenso",
 };
 
@@ -52,12 +52,18 @@ export default function TodosTitulosTab() {
   const [busca, setBusca] = useState("");
   const [convertendo, setConvertendo] = useState<{ id: string; numero: string; valor: number } | null>(null);
 
-  const hoje = hojeISO();
+  /* VERDADE-UNICA-DO-VENCIDO (08/09/2026): nada de `data_vencimento_atual < hoje`
+     aqui. Quem diz se o título está vencido é `vw_titulo_estado.vencido_contabil`. */
+  const { data: estadoLinhas = [] } = useTituloEstado();
+  const vencidosContabil = useMemo(
+    () => new Set(estadoLinhas.filter((l) => l.vencido_contabil).map((l) => l.titulo_id)),
+    [estadoLinhas],
+  );
 
   const statusVisual = (t: TituloCompleto): string => {
     if (t.status.startsWith("pago")) return t.status;
     if (t.status === "cancelado" || t.status === "cancelado_recuperacao") return "cancelado";
-    if (t.data_vencimento_atual && t.data_vencimento_atual < hoje) return "atrasado";
+    if (vencidosContabil.has(t.id)) return "atrasado";
     return t.status;
   };
 
@@ -71,7 +77,7 @@ export default function TodosTitulosTab() {
       por[s].valor += t.valor_atual ?? t.valor_bruto;
     });
     return por;
-  }, [titulos]);
+  }, [titulos, vencidosContabil]);
 
   const semNfTotal = titulos.filter((t) => !t.nf_id && t.status !== "cancelado").length;
 
@@ -149,7 +155,7 @@ export default function TodosTitulosTab() {
             label: `Aguardando Bling (${kpis["aguardando_envio_bling"]?.qtd ?? 0})`,
           },
           { key: "pago", label: `Pagos (${kpis["pago"]?.qtd ?? 0})` },
-          { key: "atrasado", label: `Atrasados (${kpis["atrasado"]?.qtd ?? 0})` },
+          { key: "atrasado", label: `Vencidos (${kpis["atrasado"]?.qtd ?? 0})` },
           { key: "sem_nf", label: `Sem NF (${semNfTotal})` },
         ].map((tab) => (
           <button
