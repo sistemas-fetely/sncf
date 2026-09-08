@@ -10146,6 +10146,156 @@ export type Database = {
           },
         ]
       }
+      conta_cliente_alocacao: {
+        Row: {
+          criado_em: string
+          criado_por: string | null
+          id: string
+          lancamento_id: string
+          modo: string
+          titulo_id: string
+          valor: number
+        }
+        Insert: {
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          lancamento_id: string
+          modo: string
+          titulo_id: string
+          valor: number
+        }
+        Update: {
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          lancamento_id?: string
+          modo?: string
+          titulo_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conta_cliente_alocacao_lancamento_id_fkey"
+            columns: ["lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "conta_cliente_lancamento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conta_cliente_alocacao_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "titulo_a_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conta_cliente_alocacao_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_boleto_vencimento_conferencia"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "conta_cliente_alocacao_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ciclo_titulo"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "conta_cliente_alocacao_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cobranca_mesa"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "conta_cliente_alocacao_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_baixas_manuais_sem_batimento"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "conta_cliente_alocacao_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_baixas_pendentes"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "conta_cliente_alocacao_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebimento_pedido_nivel"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "conta_cliente_alocacao_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_b2b"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conta_cliente_alocacao_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_gestao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conta_cliente_alocacao_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_remessa_safra_titulos"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "conta_cliente_alocacao_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_safra_carteira_divergencia"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "conta_cliente_alocacao_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_boleto_vigente"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "conta_cliente_alocacao_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_espera_retorno"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "conta_cliente_alocacao_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_para_vinculo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conta_cliente_alocacao_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_vivo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conta_cliente_alocacao_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulos_cobranca"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conta_cliente_empenho: {
         Row: {
           cancelado_em: string | null
@@ -21587,6 +21737,32 @@ export type Database = {
           nome?: string | null
         }
         Relationships: []
+      }
+      importacao_fonte_conta: {
+        Row: {
+          conta_bancaria_id: string
+          fonte: string
+          observacao: string | null
+        }
+        Insert: {
+          conta_bancaria_id: string
+          fonte: string
+          observacao?: string | null
+        }
+        Update: {
+          conta_bancaria_id?: string
+          fonte?: string
+          observacao?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "importacao_fonte_conta_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       importacao_invoice: {
         Row: {
@@ -58403,6 +58579,19 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_boleto_espelho_dia: {
+        Row: {
+          dia: string | null
+          divergencia: number | null
+          lancamento_ids: string[] | null
+          qtd_linhas: number | null
+          qtd_liquidacoes: number | null
+          situacao: string | null
+          soma_retornos: number | null
+          valor_ofx: number | null
+        }
+        Relationships: []
+      }
       vw_boleto_vencimento_conferencia: {
         Row: {
           alteracoes_confirmadas: number | null
@@ -83533,14 +83722,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -88517,6 +88706,14 @@ export type Database = {
           total: number
         }[]
       }
+      fn_boleto_promover_prova_espelho: {
+        Args: { p_dry_run?: boolean }
+        Returns: {
+          dia: string
+          lancamentos: number
+          valor: number
+        }[]
+      }
       fn_brl: { Args: { p_valor: number }; Returns: string }
       fn_calcular_meta_base: { Args: { p_pedido_id: string }; Returns: string }
       fn_calcular_meta_entrega: {
@@ -88665,6 +88862,15 @@ export type Database = {
       fn_conta_conciliar_entradas:
         | { Args: { p_dry_run?: boolean }; Returns: Json }
         | { Args: { p_corte?: string; p_dry_run?: boolean }; Returns: Json }
+      fn_conta_consumir: {
+        Args: { p_dry_run?: boolean; p_parceiro: string }
+        Returns: {
+          lancamento: string
+          titulo: string
+          titulo_quitado: boolean
+          valor_alocado: number
+        }[]
+      }
       fn_contabil_evolucao_mensal: {
         Args: never
         Returns: {
