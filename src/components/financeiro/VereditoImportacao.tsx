@@ -75,9 +75,23 @@ export function VereditoImportacao({ itens }: { itens: VereditoArquivo[] }) {
               <FileText className="h-3 w-3 shrink-0" />
               <span className="font-medium">{r.arquivo}</span>
               <span className="text-muted-foreground">→ {r.parser}</span>
+              {r.conta && (
+                <span className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 font-medium">
+                  <Landmark className="h-3 w-3 shrink-0" />
+                  {r.conta}
+                </span>
+              )}
             </div>
 
+            {r.aviso && (
+              <div className="flex items-start gap-1 text-warning">
+                <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+                <span>{r.aviso}</span>
+              </div>
+            )}
+
             {r.efeito && <div className="text-muted-foreground italic">{r.efeito}</div>}
+
 
             <div
               className={
