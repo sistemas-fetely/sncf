@@ -1669,17 +1669,9 @@ export default function ExtratoImportacao() {
               </div>
             </div>
 
-            <div>
-              <Label>Conta bancária (relatórios auxiliares)</Label>
-              <Select value={contaAux} onValueChange={setContaAux}>
-                <SelectTrigger><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
-                <SelectContent>
-                  {contas.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.nome_exibicao}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* CONTA-VEM-DO-ARQUIVO: sem seletor. A conta sai do mapeamento da
+                fonte em `importacao_fonte_conta` (CRUD em /parametros). */}
+
 
 
             <div>
