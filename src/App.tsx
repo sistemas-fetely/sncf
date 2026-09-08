@@ -173,6 +173,7 @@ const RegrasInbox = lazy(() => import("@/pages/administrativo/RegrasInbox"));
 const ParesTransferencia = lazy(() => import("@/pages/administrativo/ParesTransferencia"));
 const ConciliacaoCartao = lazy(() => import("@/pages/administrativo/ConciliacaoCartao"));
 const ConciliacaoDespesas = lazy(() => import("@/pages/administrativo/ConciliacaoDespesas"));
+const ConciliacaoOrfaos = lazy(() => import("@/pages/administrativo/ConciliacaoOrfaos"));
 const Despesas = lazy(() => import("@/pages/administrativo/Despesas"));
 const FechamentoContabil = lazy(() => import("@/pages/administrativo/contabilidade/FechamentoContabil"));
 const PacoteContador = lazy(() => import("@/pages/administrativo/contabilidade/PacoteContador"));
@@ -751,6 +752,7 @@ const App = () => (
                 <Route path="extrato-pares" element={<ParesTransferencia />} />
                 <Route path="conciliacao-cartao" element={<ConciliacaoCartao />} />
                 <Route path="conciliacao-despesas" element={<ConciliacaoDespesas />} />
+                <Route path="conciliacao/orfaos" element={<ConciliacaoOrfaos />} />
                 <Route path="despesas" element={<Despesas />} />
                 <Route path="contabilidade/fechamento" element={<FechamentoContabil />} />
                 <Route path="contabilidade/pacote" element={<PacoteContador />} />
@@ -837,6 +839,7 @@ const App = () => (
             <Route path="/produto/estoque/virtual" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
             <Route path="/produto/estoque/saude" element={<Navigate to="/vendas/produto/estoque/saude" replace />} />
             <Route path="/produto/estoque/conciliacao" element={<Navigate to="/vendas/produto/estoque/conciliacao" replace />} />
+            <Route path="/conciliacao/orfaos" element={<Navigate to="/administrativo/conciliacao/orfaos" replace />} />
             <Route path="/acervo/estoque/recebimento-xpm" element={<Navigate to="/vendas/xpm" replace />} />
             <Route path="/acervo/estoque/saude" element={<Navigate to="/vendas/produto/estoque/saude" replace />} />
             <Route path="/acervo/produtos/conciliacao" element={<Navigate to="/vendas/produto/estoque/conciliacao" replace />} />
