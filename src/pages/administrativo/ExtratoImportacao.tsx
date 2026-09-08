@@ -1756,9 +1756,10 @@ export default function ExtratoImportacao() {
           </Button>
         </div>
         <ImportadorItauPagamentos
-          contaBancariaId={conta || undefined}
+          contaBancariaId={contaItau?.id}
           onSuccess={() => { enriquecerItau(); }}
         />
+
       </div>
 
       {/* 3 — FATURAS DE CARTÃO */}
