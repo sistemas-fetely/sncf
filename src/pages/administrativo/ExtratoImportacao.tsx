@@ -340,15 +340,23 @@ export default function ExtratoImportacao() {
   const { data: contas = [] } = useQuery({
     queryKey: ["extrato-import-contas"],
     queryFn: async () => {
+      // Sem filtro de `ativo`: se o mapeamento apontar para conta inativa,
+      // é melhor resolver e o operador ver do que recusar por engano.
       const { data, error } = await supabase
         .from("contas_bancarias")
-        .select("id, nome_exibicao")
-        .eq("ativo", true)
+        .select("id, nome_exibicao, banco_codigo, agencia, numero_conta")
         .order("nome_exibicao");
       if (error) throw error;
       return (data || []) as Conta[];
     },
   });
+
+  /** Relatório de Pagamentos Itaú: conta do banco 341, sem seletor manual. */
+  const contaItau = useMemo(() => {
+    const doItau = contas.filter((c) => digitos(c.banco_codigo) === "341");
+    return doItau.length === 1 ? doItau[0] : undefined;
+  }, [contas]);
+
 
   const { data: historico = [], refetch } = useQuery({
     queryKey: ["extrato-importacoes"],
