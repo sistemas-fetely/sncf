@@ -732,13 +732,18 @@ export default function TitulosTab() {
           onClick={() => toggleCard("vence_hoje")}
           tone="warn"
         />
+        {/* VERDADE-UNICA-DO-VENCIDO: número vem de `vw_titulo_estado` (vencido_contabil). */}
         <KpiCard
-          label="Atrasado"
-          qtd={kpis.atrasado.qtd}
-          valor={kpis.atrasado.valor}
+          label="Vencido (contábil)"
+          qtd={vencidoContabil.qtd}
+          valor={vencidoContabil.valor}
           ativo={cardsAtivos.has("atrasado")}
           onClick={() => toggleCard("atrasado")}
           tone="danger"
+          labelTooltip="A data de vencimento passou, ponto. É a medida contábil (aging, DSO, provisão) — feriado e fim de semana não mudam."
+          sublinha={emCarencia.qtd > 0
+            ? `dos quais ${emCarencia.qtd} em carência bancária (${formatBRL(emCarencia.valor)})`
+            : undefined}
         />
         <KpiCard
           label="Pago no mês"
