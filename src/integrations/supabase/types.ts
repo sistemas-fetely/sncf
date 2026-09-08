@@ -17250,6 +17250,21 @@ export type Database = {
           },
         ]
       }
+      feriado_nacional: {
+        Row: {
+          data: string
+          descricao: string
+        }
+        Insert: {
+          data: string
+          descricao: string
+        }
+        Update: {
+          data?: string
+          descricao?: string
+        }
+        Relationships: []
+      }
       ferias_periodos: {
         Row: {
           colaborador_id: string
@@ -59847,6 +59862,26 @@ export type Database = {
           },
         ]
       }
+      vw_cartao_dinheiro_identificado: {
+        Row: {
+          bruto: number | null
+          cartao_mascarado: string | null
+          data_pagamento: string | null
+          doc: string | null
+          forca: string | null
+          ja_creditado: boolean | null
+          liquidacao_id: string | null
+          liquido: number | null
+          mdr: number | null
+          nsu: string | null
+          parceiro_id: string | null
+          parceiro_nome: string | null
+          parcela: number | null
+          portador_nome: string | null
+          total_parcelas: number | null
+        }
+        Relationships: []
+      }
       vw_cartao_identidade_sugestao: {
         Row: {
           depara_confirmado: boolean | null
@@ -60397,6 +60432,7 @@ export type Database = {
           lastro_instrumento: string | null
           linha_digitavel: string | null
           link_pagamento: string | null
+          liquidado_informado: boolean | null
           mesa_exige_acao: boolean | null
           nf_numero: string | null
           nivel_prova: string | null
@@ -82708,6 +82744,7 @@ export type Database = {
       vw_safra_carteira_divergencia: {
         Row: {
           boleto_status: string | null
+          conta_bancaria_id: string | null
           data_referencia: string | null
           delta_dias_vencimento: number | null
           delta_valor: number | null
@@ -82727,7 +82764,15 @@ export type Database = {
           vencimento_banco: string | null
           vencimento_sncf: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "safra_carteira_conferencia_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vw_safra_retorno_pendente: {
         Row: {
@@ -88910,6 +88955,17 @@ export type Database = {
         Args: { p_dry_run?: boolean }
         Returns: Json
       }
+      fn_cartao_creditar_conta: {
+        Args: { p_dry_run?: boolean }
+        Returns: {
+          acao: string
+          bruto: number
+          mdr: number
+          nsu: string
+          parceiro: string
+          parcela: number
+        }[]
+      }
       fn_cartorio_alocar: {
         Args: {
           p_dry_run?: boolean
@@ -89052,8 +89108,8 @@ export type Database = {
         Args: { p_dry_run?: boolean; p_parceiro: string }
         Returns: {
           lancamento: string
+          modo: string
           titulo: string
-          titulo_quitado: boolean
           valor_alocado: number
         }[]
       }
@@ -89235,6 +89291,7 @@ export type Database = {
       }
       fn_dun_de_ean: { Args: { p_ean: string }; Returns: string }
       fn_eh_comprador: { Args: { p_user_id: string }; Returns: boolean }
+      fn_eh_dia_util: { Args: { p_data: string }; Returns: boolean }
       fn_email_tem_login: { Args: { p_email: string }; Returns: boolean }
       fn_email_usuario: { Args: { p_user_id: string }; Returns: string }
       fn_embalagem_calibracao_medir: { Args: never; Returns: number }
@@ -90078,6 +90135,14 @@ export type Database = {
         Returns: boolean
       }
       fn_tem_nf_anexada: { Args: { p_conta_id: string }; Returns: boolean }
+      fn_titulo_coberto_pela_conta: {
+        Args: { p_titulo_id: string }
+        Returns: boolean
+      }
+      fn_titulo_liquidacao_informada: {
+        Args: { p_titulo_id: string }
+        Returns: boolean
+      }
       fn_titulo_pagar_atrasados_relatorio: {
         Args: never
         Returns: {
@@ -90124,6 +90189,10 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_titulo_prova_classe_ajuste: {
+        Args: { p_prova_classe: string; p_titulo_id: string }
+        Returns: string
+      }
       fn_titulo_rotativo_rolar_vencimento: {
         Args: { p_data_ref?: string; p_titulo_id: string }
         Returns: Json
@@ -90160,6 +90229,7 @@ export type Database = {
           tipo_vinculo: string
         }[]
       }
+      fn_vencimento_efetivo: { Args: { p_venc: string }; Returns: string }
       fn_venda_anular: {
         Args: {
           p_motivo?: string

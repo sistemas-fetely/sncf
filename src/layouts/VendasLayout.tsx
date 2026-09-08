@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { Outlet } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { VendasSidebar } from "@/components/vendas/VendasSidebar";
+import { MobileSidebarTrigger } from "@/components/navegacao/MobileSidebarTrigger";
 
 export default function VendasLayout() {
   return (
@@ -11,6 +12,7 @@ export default function VendasLayout() {
         {/* SEM-SCROLLPORT-FALSO (24/08/2026): `overflow-auto` sem altura limitada não rola,
             mas sequestra o sticky dos filhos. A rolagem é da janela. */}
         <main className="flex-1 relative min-w-0">
+          <MobileSidebarTrigger />
           <Suspense
             fallback={
               <div className="flex items-center justify-center h-full p-12">

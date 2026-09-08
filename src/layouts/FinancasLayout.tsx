@@ -4,6 +4,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { FinancasContextSidebar } from "@/components/financas/FinancasContextSidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
+import { MobileSidebarTrigger } from "@/components/navegacao/MobileSidebarTrigger";
 
 export default function FinancasLayout() {
   const { user, loading } = useAuth();
@@ -26,6 +27,7 @@ export default function FinancasLayout() {
       <div className="flex w-full min-h-[calc(100vh-4rem)] bg-background">
         <FinancasContextSidebar />
         <main className="flex-1 relative min-w-0">
+          <MobileSidebarTrigger />
           <Suspense
             fallback={
               <div className="flex items-center justify-center h-full p-12">

@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { usePrefetchTelas } from "@/hooks/usePrefetchTelas";
 import { CommandPaletteProvider } from "@/components/navegacao/CommandPaletteProvider";
+import { MobileSidebarTrigger } from "@/components/navegacao/MobileSidebarTrigger";
 
 
 export default function TILayout() {
@@ -66,6 +67,7 @@ export default function TILayout() {
         <div className="flex-1 flex flex-col">
 
           <main className="flex-1 p-6 bg-background relative">
+            <MobileSidebarTrigger />
             <Suspense fallback={
               <div className="flex items-center justify-center h-full p-12">
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
