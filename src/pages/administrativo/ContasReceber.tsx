@@ -1425,8 +1425,8 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
           onClick={() => clicarInstrumento("sem_instrumento")}
         />
         <ColunaKpi
-          rotulo="Vencido"
-          valor={formatBRLCurto(estadoCarteira.vencido)}
+          rotulo="Vencido (contábil)"
+          valor={formatBRLCurto(vencidoContabil.valor)}
           corValor="text-destructive"
           ativo={filtroPrazo === "vencidos"}
           onClick={() => clicarPrazo("vencidos")}
@@ -1450,7 +1450,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
                   >
                     <span>{rotulo}</span>
                     <span className="tabular-nums">
-                      {formatBRL(estadoCarteira.faixas[chave])}
+                      {formatBRL(faixasAging[chave])}
                     </span>
                   </div>
                 ))}
@@ -1461,7 +1461,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
             <>
               <div className="mt-1 flex h-1 w-full overflow-hidden rounded-full bg-muted">
                 {FAIXAS_ATRASO.map(([chave], i) => {
-                  const valor = estadoCarteira.faixas[chave];
+                  const valor = faixasAging[chave];
                   const pct = totalAtraso > 0 ? (valor / totalAtraso) * 100 : 0;
                   if (pct <= 0) return null;
                   return (
@@ -1476,7 +1476,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
                 })}
               </div>
               <p className="mt-1 text-xs text-muted-foreground tabular-nums">
-                {estadoCarteira.vencidoQtd} títulos · {resumoAtraso}
+                {vencidoContabil.qtd} títulos · {resumoAtraso}
               </p>
             </>
           }
