@@ -504,6 +504,9 @@ export default function ExtratoImportacao() {
       throw e;
     }
 
+    if (!contaResolvida) throw new Error("Conta bancária não identificada para este arquivo.");
+    const conta = contaResolvida.id;
+
 
     try {
       // CONTA-FECHADA-OU-ERRO: toda linha lida cai em novas, duplicadas ou
