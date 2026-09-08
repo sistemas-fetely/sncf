@@ -189,6 +189,33 @@ const FONTE_TIPO_DB: Record<Fonte, string> = {
   retorno_safra: "retorno_safra",
 };
 
+/**
+ * Chave da fonte na dimensão `importacao_fonte_conta` (fonte → conta única).
+ * Só entra aqui a fonte cujo código na dimensão difere do `FONTE_TIPO_DB`.
+ * Fonte sem linha na dimensão faz o arquivo ser RECUSADO — de propósito.
+ */
+const FONTE_CONTA_CHAVE: Partial<Record<Fonte, string>> = {
+  safra_pix_lancamentos: "safra_pix_xlsx",
+  safra_francesinha: "francesinha",
+};
+
+/** Trilha do arquivo — o que o veredito por arquivo mostra na tela. */
+type TrilhaArquivo = {
+  fonte?: Fonte;
+  resumo?: string;
+  contagem?: ContagemImportacao;
+  /** Conta bancária resolvida automaticamente (nome de exibição). */
+  conta?: string;
+  /** Aviso não-fatal — ex.: divergência cabeçalho OFX × mapeamento da fonte. */
+  aviso?: string;
+  /**
+   * Sucesso idempotente: o arquivo não foi lido porque já tinha sido
+   * processado antes. Veredito em tom neutro, nem verde nem vermelho.
+   */
+  neutro?: { resultado: string; contagem?: string; detalhe?: Record<string, number> };
+};
+
+
 
 type Bloco = "extrato" | "auxiliar";
 
