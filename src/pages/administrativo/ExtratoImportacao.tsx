@@ -1588,17 +1588,15 @@ export default function ExtratoImportacao() {
         </div>
         <Card>
           <CardContent className="pt-6 space-y-4">
-            <div>
-              <Label>Conta bancária</Label>
-              <Select value={conta} onValueChange={setConta}>
-                <SelectTrigger><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
-                <SelectContent>
-                  {contas.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.nome_exibicao}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* CONTA-VEM-DO-ARQUIVO (08/09/2026): o seletor manual morreu. A conta
+                sai do cabeçalho do OFX; nas outras fontes, do mapeamento em
+                `importacao_fonte_conta`. Sem resolução, o arquivo é recusado. */}
+            <p className="text-xs text-muted-foreground border-l-2 border-muted pl-3">
+              A conta bancária é identificada automaticamente pelo arquivo (cabeçalho do OFX) ou
+              pelo mapeamento da fonte. Arquivo sem conta identificada é recusado — confira a conta
+              de cada arquivo no veredito abaixo.
+            </p>
+
             <div>
               <Label>Arquivos de extrato (.ofx, .xlsx de lançamentos — múltiplos)</Label>
               <Input
