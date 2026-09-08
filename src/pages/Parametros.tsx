@@ -538,6 +538,7 @@ export default function Parametros() {
               <div className="mb-6 space-y-6">
                 <ParametrosFinanceiroTab />
                 <ParametrosExtratoFontes />
+                <ParametrosImportacaoFonteConta />
                 {isSuperAdmin && <ParametrosCondicoesPagamento />}
               </div>
             )}
