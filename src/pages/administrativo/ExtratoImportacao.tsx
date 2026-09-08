@@ -1485,12 +1485,7 @@ export default function ExtratoImportacao() {
     const files = bloco === "extrato" ? arquivos : arquivosAux;
     const setFiles = bloco === "extrato" ? setArquivos : setArquivosAux;
     const setProc = bloco === "extrato" ? setProcessando : setProcessandoAux;
-    const contaBloco = bloco === "extrato" ? conta : contaAux;
 
-    if (!contaBloco) {
-      toast.error("Selecione a conta bancária");
-      return;
-    }
     if (files.length === 0) {
       toast.error("Selecione ao menos um arquivo");
       return;
@@ -1499,11 +1494,8 @@ export default function ExtratoImportacao() {
     setResultados([]);
     try {
       for (const f of files) {
-        const trilha: {
-          fonte?: Fonte;
-          contagem?: ContagemImportacao;
-          neutro?: { resultado: string; contagem?: string; detalhe?: Record<string, number> };
-        } = {};
+        const trilha: TrilhaArquivo = {};
+
         try {
           if (await ehRelatorioPagamentosItau(f)) {
             toast.error(
