@@ -38,6 +38,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import * as XLSX from "xlsx";
 import { useNivel } from "@/hooks/useNivel";
+import { useTituloEstadoKpis } from "@/hooks/financeiro/useTituloEstadoKpis";
 
 type RecebivelB2B = {
   id: string;
@@ -236,14 +237,16 @@ const formatBRLCurto = (v: number | null | undefined) =>
     maximumFractionDigits: 0,
   }).format(Number(v || 0));
 
-type ChaveFaixa = "f1_7" | "f8_30" | "f31_60" | "f60";
+/* As chaves são as MESMAS de `vw_titulo_estado.faixa_aging` — nada de faixa própria. */
+type ChaveFaixa = "1-7" | "8-30" | "31-60" | "60+";
 
 const FAIXAS_ATRASO: readonly [ChaveFaixa, string][] = [
-  ["f1_7", "1–7 dias de atraso"],
-  ["f8_30", "8–30 dias de atraso"],
-  ["f31_60", "31–60 dias de atraso"],
-  ["f60", "+60 dias de atraso"],
+  ["1-7", "1–7 dias de atraso"],
+  ["8-30", "8–30 dias de atraso"],
+  ["31-60", "31–60 dias de atraso"],
+  ["60+", "+60 dias de atraso"],
 ];
+
 
 /** Coluna da faixa de KPI: densa, clicável, ~90px de altura. */
 function ColunaKpi({
