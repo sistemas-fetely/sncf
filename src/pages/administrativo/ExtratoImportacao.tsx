@@ -480,6 +480,19 @@ export default function ExtratoImportacao() {
         );
       }
 
+      // FAIL-LOUD: sem conta resolvida o arquivo não entra. Nunca conta padrão.
+      const res = await resolverConta(file, fonte);
+      contaResolvida = res.conta;
+      trilha.conta = res.conta.nome_exibicao;
+      trilha.aviso = res.aviso;
+      if (res.aviso) toast.warning(`${file.name}: ${res.aviso}`);
+      await sb
+        .from("extrato_importacoes")
+        .update({ conta_bancaria_id: res.conta.id })
+        .eq("id", impId);
+
+
+
     } catch (e) {
       await sb
         .from("extrato_importacoes")
