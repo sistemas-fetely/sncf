@@ -58,7 +58,13 @@ import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
 
-type Conta = { id: string; nome_exibicao: string };
+type Conta = {
+  id: string;
+  nome_exibicao: string;
+  banco_codigo: string | null;
+  agencia: string | null;
+  numero_conta: string | null;
+};
 type Importacao = {
   id: string;
   conta_bancaria_id: string | null;
