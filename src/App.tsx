@@ -839,6 +839,7 @@ const App = () => (
             <Route path="/produto/estoque/virtual" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
             <Route path="/produto/estoque/saude" element={<Navigate to="/vendas/produto/estoque/saude" replace />} />
             <Route path="/produto/estoque/conciliacao" element={<Navigate to="/vendas/produto/estoque/conciliacao" replace />} />
+            <Route path="/conciliacao/orfaos" element={<Navigate to="/administrativo/conciliacao/orfaos" replace />} />
             <Route path="/acervo/estoque/recebimento-xpm" element={<Navigate to="/vendas/xpm" replace />} />
             <Route path="/acervo/estoque/saude" element={<Navigate to="/vendas/produto/estoque/saude" replace />} />
             <Route path="/acervo/produtos/conciliacao" element={<Navigate to="/vendas/produto/estoque/conciliacao" replace />} />
