@@ -31,6 +31,7 @@ import { Search, Copy, ExternalLink, RefreshCw, AlertTriangle, ChevronDown, Chev
 import { formatCNPJ } from "@/lib/cnpj";
 import { apelidoParceiro } from "@/lib/parceiros/nome";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { useTituloEstadoKpis } from "@/hooks/financeiro/useTituloEstadoKpis";
 import { cn } from "@/lib/utils";
 import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
 import { AvisoBoletosVivos, BoletoVigenteLinhas } from "@/components/credito/AvisoBoletosVivos";
@@ -652,6 +653,11 @@ export default function TitulosTab() {
 
   const kpis = useMemo(() => calcularKpis(baseSemCards), [baseSemCards]);
 
+  /* Vencido não se calcula na tela: vem da fonte única `vw_titulo_estado`. */
+  const { kpis: estadoTitulos } = useTituloEstadoKpis();
+  const vencidoContabil = estadoTitulos?.vencidoContabil ?? { qtd: 0, valor: 0 };
+  const emCarencia = estadoTitulos?.emCarenciaBancaria ?? { qtd: 0, valor: 0 };
+
   /* Estágio 2: recorte dos cards sobre a base. */
   const filtrados = useMemo(
     () => baseSemCards.filter((t) => matchCards(t, cardsAtivos, mesAtual)),
@@ -732,13 +738,18 @@ export default function TitulosTab() {
           onClick={() => toggleCard("vence_hoje")}
           tone="warn"
         />
+        {/* VERDADE-UNICA-DO-VENCIDO: número vem de `vw_titulo_estado` (vencido_contabil). */}
         <KpiCard
-          label="Atrasado"
-          qtd={kpis.atrasado.qtd}
-          valor={kpis.atrasado.valor}
+          label="Vencido (contábil)"
+          qtd={vencidoContabil.qtd}
+          valor={vencidoContabil.valor}
           ativo={cardsAtivos.has("atrasado")}
           onClick={() => toggleCard("atrasado")}
           tone="danger"
+          labelTooltip="A data de vencimento passou, ponto. É a medida contábil (aging, DSO, provisão) — feriado e fim de semana não mudam."
+          sublinha={emCarencia.qtd > 0
+            ? `dos quais ${emCarencia.qtd} em carência bancária (${formatBRL(emCarencia.valor)})`
+            : undefined}
         />
         <KpiCard
           label="Pago no mês"

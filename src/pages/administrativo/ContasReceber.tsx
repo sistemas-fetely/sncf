@@ -38,6 +38,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import * as XLSX from "xlsx";
 import { useNivel } from "@/hooks/useNivel";
+import { useTituloEstadoKpis } from "@/hooks/financeiro/useTituloEstadoKpis";
 
 type RecebivelB2B = {
   id: string;
@@ -236,14 +237,16 @@ const formatBRLCurto = (v: number | null | undefined) =>
     maximumFractionDigits: 0,
   }).format(Number(v || 0));
 
-type ChaveFaixa = "f1_7" | "f8_30" | "f31_60" | "f60";
+/* As chaves são as MESMAS de `vw_titulo_estado.faixa_aging` — nada de faixa própria. */
+type ChaveFaixa = "1-7" | "8-30" | "31-60" | "60+";
 
 const FAIXAS_ATRASO: readonly [ChaveFaixa, string][] = [
-  ["f1_7", "1–7 dias de atraso"],
-  ["f8_30", "8–30 dias de atraso"],
-  ["f31_60", "31–60 dias de atraso"],
-  ["f60", "+60 dias de atraso"],
+  ["1-7", "1–7 dias de atraso"],
+  ["8-30", "8–30 dias de atraso"],
+  ["31-60", "31–60 dias de atraso"],
+  ["60+", "+60 dias de atraso"],
 ];
+
 
 /** Coluna da faixa de KPI: densa, clicável, ~90px de altura. */
 function ColunaKpi({
@@ -643,26 +646,12 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
     let semInstrumentoQtd = 0;
     let outros = 0;
     let outrosQtd = 0;
-    let vencido = 0;
-    let vencidoQtd = 0;
-    const faixas = { f1_7: 0, f8_30: 0, f31_60: 0, f60: 0 };
 
+    /* VERDADE-UNICA-DO-VENCIDO (08/09/2026): vencido e faixas de aging NÃO são mais
+       calculados aqui. Vêm de `vw_titulo_estado` (vencido_contabil / faixa_aging).
+       Nenhuma subtração de datas no frontend. */
     for (const t of baseFiltros) {
       const v = efetivoDe(t);
-      if (estaVencido(t)) {
-        vencido += v;
-        vencidoQtd += 1;
-        const venc = t.data_vencimento_vigente;
-        if (venc) {
-          const dias = Math.floor(
-            (new Date(hojeIso + "T12:00:00").getTime() - new Date(venc + "T12:00:00").getTime()) / 86400000
-          );
-          if (dias <= 7) faixas.f1_7 += v;
-          else if (dias <= 30) faixas.f8_30 += v;
-          else if (dias <= 60) faixas.f31_60 += v;
-          else faixas.f60 += v;
-        }
-      }
       if (!naoRecebido(t)) continue;
 
       aReceber += v;
@@ -691,11 +680,15 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
       semInstrumentoQtd,
       outros,
       outrosQtd,
-      vencido,
-      vencidoQtd,
-      faixas,
     };
-  }, [baseFiltros, hojeIso]);
+  }, [baseFiltros]);
+
+  /* Fonte única do vencido contábil e das faixas de aging. */
+  const { kpis: estadoTitulos } = useTituloEstadoKpis();
+  const faixasAging: Record<ChaveFaixa, number> =
+    estadoTitulos?.faixas ?? { "1-7": 0, "8-30": 0, "31-60": 0, "60+": 0 };
+  const vencidoContabil = estadoTitulos?.vencidoContabil ?? { qtd: 0, valor: 0 };
+
 
   const semFiltroKpi = !filtroInstrumento && filtroPrazo === "todos";
 
@@ -821,10 +814,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
       : null;
 
   const totalAtraso =
-    estadoCarteira.faixas.f1_7 +
-    estadoCarteira.faixas.f8_30 +
-    estadoCarteira.faixas.f31_60 +
-    estadoCarteira.faixas.f60;
+    faixasAging["1-7"] + faixasAging["8-30"] + faixasAging["31-60"] + faixasAging["60+"];
 
   const pctGarantido =
     estadoCarteira.aReceber > 0
@@ -833,13 +823,13 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
 
   /** Uma frase honesta sobre o topo do aging, sem tabelinha. */
   const resumoAtraso = useMemo(() => {
-    const f = estadoCarteira.faixas;
     if (totalAtraso === 0) return "sem atraso";
-    if (f.f60 > 0) return `+60d: ${formatBRLCurto(f.f60)}`;
-    if (f.f31_60 > 0) return `31–60d: ${formatBRLCurto(f.f31_60)}`;
-    if (f.f8_30 > 0) return `8–30d: ${formatBRLCurto(f.f8_30)}`;
+    if (faixasAging["60+"] > 0) return `+60d: ${formatBRLCurto(faixasAging["60+"])}`;
+    if (faixasAging["31-60"] > 0) return `31–60d: ${formatBRLCurto(faixasAging["31-60"])}`;
+    if (faixasAging["8-30"] > 0) return `8–30d: ${formatBRLCurto(faixasAging["8-30"])}`;
     return "nada acima de 7d";
-  }, [estadoCarteira.faixas, totalAtraso]);
+  }, [faixasAging, totalAtraso]);
+
 
   const ACHADO_LABEL: Record<Achado, string> = {
     sobreposicao: "Sobreposição do instrumento",
@@ -1435,8 +1425,8 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
           onClick={() => clicarInstrumento("sem_instrumento")}
         />
         <ColunaKpi
-          rotulo="Vencido"
-          valor={formatBRLCurto(estadoCarteira.vencido)}
+          rotulo="Vencido (contábil)"
+          valor={formatBRLCurto(vencidoContabil.valor)}
           corValor="text-destructive"
           ativo={filtroPrazo === "vencidos"}
           onClick={() => clicarPrazo("vencidos")}
@@ -1460,7 +1450,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
                   >
                     <span>{rotulo}</span>
                     <span className="tabular-nums">
-                      {formatBRL(estadoCarteira.faixas[chave])}
+                      {formatBRL(faixasAging[chave])}
                     </span>
                   </div>
                 ))}
@@ -1471,7 +1461,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
             <>
               <div className="mt-1 flex h-1 w-full overflow-hidden rounded-full bg-muted">
                 {FAIXAS_ATRASO.map(([chave], i) => {
-                  const valor = estadoCarteira.faixas[chave];
+                  const valor = faixasAging[chave];
                   const pct = totalAtraso > 0 ? (valor / totalAtraso) * 100 : 0;
                   if (pct <= 0) return null;
                   return (
@@ -1486,7 +1476,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
                 })}
               </div>
               <p className="mt-1 text-xs text-muted-foreground tabular-nums">
-                {estadoCarteira.vencidoQtd} títulos · {resumoAtraso}
+                {vencidoContabil.qtd} títulos · {resumoAtraso}
               </p>
             </>
           }
