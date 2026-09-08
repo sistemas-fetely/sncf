@@ -1,6 +1,6 @@
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -49,6 +49,12 @@ import { gerarHashMov, identidadeMovOfx } from "@/lib/financeiro/hash-mov";
 import { ContagemImportacao } from "@/lib/financeiro/contagem-importacao";
 import { inserirMovimentacao, inserirMovimentacoes } from "@/lib/financeiro/inserir-mov";
 import { VereditoImportacao, type VereditoArquivo } from "@/components/financeiro/VereditoImportacao";
+import {
+  extrairCabecalhoOFX,
+  resolverContaPorCabecalhoOFX,
+  descreverCabecalho,
+  digitos,
+} from "@/lib/financeiro/resolver-conta-importacao";
 
 import { formatDateBR } from "@/lib/format-currency";
 import { formatError, rawMessage } from "@/lib/format-error";
@@ -58,7 +64,13 @@ import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
 
-type Conta = { id: string; nome_exibicao: string };
+type Conta = {
+  id: string;
+  nome_exibicao: string;
+  banco_codigo: string | null;
+  agencia: string | null;
+  numero_conta: string | null;
+};
 type Importacao = {
   id: string;
   conta_bancaria_id: string | null;
@@ -177,6 +189,33 @@ const FONTE_TIPO_DB: Record<Fonte, string> = {
   retorno_safra: "retorno_safra",
 };
 
+/**
+ * Chave da fonte na dimensão `importacao_fonte_conta` (fonte → conta única).
+ * Só entra aqui a fonte cujo código na dimensão difere do `FONTE_TIPO_DB`.
+ * Fonte sem linha na dimensão faz o arquivo ser RECUSADO — de propósito.
+ */
+const FONTE_CONTA_CHAVE: Partial<Record<Fonte, string>> = {
+  safra_pix_lancamentos: "safra_pix_xlsx",
+  safra_francesinha: "francesinha",
+};
+
+/** Trilha do arquivo — o que o veredito por arquivo mostra na tela. */
+type TrilhaArquivo = {
+  fonte?: Fonte;
+  resumo?: string;
+  contagem?: ContagemImportacao;
+  /** Conta bancária resolvida automaticamente (nome de exibição). */
+  conta?: string;
+  /** Aviso não-fatal — ex.: divergência cabeçalho OFX × mapeamento da fonte. */
+  aviso?: string;
+  /**
+   * Sucesso idempotente: o arquivo não foi lido porque já tinha sido
+   * processado antes. Veredito em tom neutro, nem verde nem vermelho.
+   */
+  neutro?: { resultado: string; contagem?: string; detalhe?: Record<string, number> };
+};
+
+
 
 type Bloco = "extrato" | "auxiliar";
 
@@ -260,8 +299,8 @@ export default function ExtratoImportacao() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const invalidarRecebivel = useInvalidarRecebivel();
-  const [conta, setConta] = useState<string>("");
-  const [contaAux, setContaAux] = useState<string>("");
+  // SELETOR-DE-CONTA-MORREU (08/09/2026): a conta vem do arquivo, não do operador.
+
   const [arquivos, setArquivos] = useState<File[]>([]);
   const [arquivosAux, setArquivosAux] = useState<File[]>([]);
   const [processando, setProcessando] = useState(false);
@@ -301,15 +340,23 @@ export default function ExtratoImportacao() {
   const { data: contas = [] } = useQuery({
     queryKey: ["extrato-import-contas"],
     queryFn: async () => {
+      // Sem filtro de `ativo`: se o mapeamento apontar para conta inativa,
+      // é melhor resolver e o operador ver do que recusar por engano.
       const { data, error } = await supabase
         .from("contas_bancarias")
-        .select("id, nome_exibicao")
-        .eq("ativo", true)
+        .select("id, nome_exibicao, banco_codigo, agencia, numero_conta")
         .order("nome_exibicao");
       if (error) throw error;
       return (data || []) as Conta[];
     },
   });
+
+  /** Relatório de Pagamentos Itaú: conta do banco 341, sem seletor manual. */
+  const contaItau = useMemo(() => {
+    const doItau = contas.filter((c) => digitos(c.banco_codigo) === "341");
+    return doItau.length === 1 ? doItau[0] : undefined;
+  }, [contas]);
+
 
   const { data: historico = [], refetch } = useQuery({
     queryKey: ["extrato-importacoes"],
@@ -324,22 +371,56 @@ export default function ExtratoImportacao() {
     },
   });
 
+  /**
+   * CONTA-VEM-DO-ARQUIVO (08/09/2026): resolve a conta bancária sem seletor.
+   * Ordem: cabeçalho OFX > mapeamento `importacao_fonte_conta` > REJEITA.
+   */
+  async function resolverConta(
+    file: File,
+    fonte: Fonte
+  ): Promise<{ conta: Conta; aviso?: string }> {
+    const chave = FONTE_CONTA_CHAVE[fonte] ?? FONTE_TIPO_DB[fonte];
+    const { data: mapa, error: errMapa } = await sb
+      .from("importacao_fonte_conta")
+      .select("conta_bancaria_id")
+      .eq("fonte", chave)
+      .maybeSingle();
+    if (errMapa) throw errMapa;
+    const porFonte = mapa
+      ? (contas.find((c) => c.id === mapa.conta_bancaria_id) ?? null)
+      : null;
+
+    if (fonte === "ofx") {
+      const cab = extrairCabecalhoOFX(await file.text());
+      const porCabecalho = resolverContaPorCabecalhoOFX(cab, contas);
+      if (porCabecalho) {
+        // BANCO-FALA-MAIS-ALTO: divergência entre cabeçalho e mapeamento da
+        // fonte é resolvida pelo cabeçalho — ele é o próprio banco falando.
+        const aviso =
+          porFonte && porFonte.id !== porCabecalho.id
+            ? `Divergência de conta: o cabeçalho do OFX aponta ${porCabecalho.nome_exibicao} e o mapeamento da fonte aponta ${porFonte.nome_exibicao}. Prevaleceu o cabeçalho do arquivo.`
+            : undefined;
+        return { conta: porCabecalho, aviso };
+      }
+      if (porFonte) return { conta: porFonte };
+      throw new Error(
+        `Conta bancária não identificada (${descreverCabecalho(cab)}). Cadastre a conta ou o mapeamento da fonte em /parametros.`
+      );
+    }
+
+    if (porFonte) return { conta: porFonte };
+    throw new Error(
+      `Conta bancária não identificada (fonte "${chave}" sem mapeamento). Cadastre a conta ou o mapeamento da fonte em /parametros.`
+    );
+  }
+
   async function processarArquivo(
     file: File,
-    conta: string,
     bloco: Bloco,
-    trilha: {
-      fonte?: Fonte;
-      resumo?: string;
-      contagem?: ContagemImportacao;
-      /**
-       * Sucesso idempotente: o arquivo não foi lido porque já tinha sido
-       * processado antes. Veredito em tom neutro, nem verde nem vermelho.
-       */
-      neutro?: { resultado: string; contagem?: string; detalhe?: Record<string, number> };
-    } = {}
+    trilha: TrilhaArquivo = {}
   ) {
-    if (!conta || !user) throw new Error("Selecione a conta bancária");
+    if (!user) throw new Error("Sessão expirada — entre novamente");
+
     const base = detectarFonteBase(file);
 
     // A linha do histórico nasce ANTES de qualquer leitura: se a detecção ou o
@@ -355,7 +436,8 @@ export default function ExtratoImportacao() {
     const { data: impRow, error: errImp } = await sb
       .from("extrato_importacoes")
       .insert({
-        conta_bancaria_id: conta,
+        // A conta só é conhecida depois de detectar a fonte — o rastro nasce sem ela.
+        conta_bancaria_id: null,
         fonte_tipo: tipoProvisorio,
         nome_arquivo: file.name,
         status: "processando",
@@ -367,7 +449,9 @@ export default function ExtratoImportacao() {
     const impId = impRow.id as string;
 
     let fonte: Fonte = "safra_lancamentos";
+    let contaResolvida: Conta | null = null;
     let textoCsv = "";
+
     try {
       if (!base) throw new Error(`Extensão não reconhecida: ${file.name} (aceito .ofx, .xlsx, .csv)`);
       if (base === "ofx") {
@@ -440,6 +524,19 @@ export default function ExtratoImportacao() {
         );
       }
 
+      // FAIL-LOUD: sem conta resolvida o arquivo não entra. Nunca conta padrão.
+      const res = await resolverConta(file, fonte);
+      contaResolvida = res.conta;
+      trilha.conta = res.conta.nome_exibicao;
+      trilha.aviso = res.aviso;
+      if (res.aviso) toast.warning(`${file.name}: ${res.aviso}`);
+      await sb
+        .from("extrato_importacoes")
+        .update({ conta_bancaria_id: res.conta.id })
+        .eq("id", impId);
+
+
+
     } catch (e) {
       await sb
         .from("extrato_importacoes")
@@ -447,6 +544,9 @@ export default function ExtratoImportacao() {
         .eq("id", impId);
       throw e;
     }
+
+    if (!contaResolvida) throw new Error("Conta bancária não identificada para este arquivo.");
+    const conta = contaResolvida.id;
 
 
     try {
@@ -1479,12 +1579,7 @@ export default function ExtratoImportacao() {
     const files = bloco === "extrato" ? arquivos : arquivosAux;
     const setFiles = bloco === "extrato" ? setArquivos : setArquivosAux;
     const setProc = bloco === "extrato" ? setProcessando : setProcessandoAux;
-    const contaBloco = bloco === "extrato" ? conta : contaAux;
 
-    if (!contaBloco) {
-      toast.error("Selecione a conta bancária");
-      return;
-    }
     if (files.length === 0) {
       toast.error("Selecione ao menos um arquivo");
       return;
@@ -1493,11 +1588,8 @@ export default function ExtratoImportacao() {
     setResultados([]);
     try {
       for (const f of files) {
-        const trilha: {
-          fonte?: Fonte;
-          contagem?: ContagemImportacao;
-          neutro?: { resultado: string; contagem?: string; detalhe?: Record<string, number> };
-        } = {};
+        const trilha: TrilhaArquivo = {};
+
         try {
           if (await ehRelatorioPagamentosItau(f)) {
             toast.error(
@@ -1514,12 +1606,14 @@ export default function ExtratoImportacao() {
             ]);
             continue;
           }
-          await processarArquivo(f, contaBloco, bloco, trilha);
+          await processarArquivo(f, bloco, trilha);
           setResultados((r) => [
             ...r,
             {
               arquivo: f.name,
               parser: trilha.fonte ? (PARSER_ROTULO[trilha.fonte] ?? trilha.fonte) : "—",
+              conta: trilha.conta,
+              aviso: trilha.aviso,
               efeito: trilha.fonte ? PARSER_EFEITO[trilha.fonte] : undefined,
               resultado: trilha.neutro?.resultado ?? "Importado",
               tom: trilha.neutro ? "neutro" : "ok",
@@ -1534,6 +1628,8 @@ export default function ExtratoImportacao() {
             {
               arquivo: f.name,
               parser: trilha.fonte ? (PARSER_ROTULO[trilha.fonte] ?? trilha.fonte) : "não reconhecido",
+              conta: trilha.conta,
+              aviso: trilha.aviso,
               efeito: trilha.fonte ? PARSER_EFEITO[trilha.fonte] : undefined,
               resultado: formatError(e),
               tom: "erro",
@@ -1542,6 +1638,7 @@ export default function ExtratoImportacao() {
             },
           ]);
         }
+
       }
       setFiles([]);
 
@@ -1582,17 +1679,15 @@ export default function ExtratoImportacao() {
         </div>
         <Card>
           <CardContent className="pt-6 space-y-4">
-            <div>
-              <Label>Conta bancária</Label>
-              <Select value={conta} onValueChange={setConta}>
-                <SelectTrigger><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
-                <SelectContent>
-                  {contas.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.nome_exibicao}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* CONTA-VEM-DO-ARQUIVO (08/09/2026): o seletor manual morreu. A conta
+                sai do cabeçalho do OFX; nas outras fontes, do mapeamento em
+                `importacao_fonte_conta`. Sem resolução, o arquivo é recusado. */}
+            <p className="text-xs text-muted-foreground border-l-2 border-muted pl-3">
+              A conta bancária é identificada automaticamente pelo arquivo (cabeçalho do OFX) ou
+              pelo mapeamento da fonte. Arquivo sem conta identificada é recusado — confira a conta
+              de cada arquivo no veredito abaixo.
+            </p>
+
             <div>
               <Label>Arquivos de extrato (.ofx, .xlsx de lançamentos — múltiplos)</Label>
               <Input
@@ -1617,7 +1712,7 @@ export default function ExtratoImportacao() {
             </div>
             <Button
               onClick={() => handleImportar("extrato")}
-              disabled={processando || !conta || arquivos.length === 0}
+              disabled={processando || arquivos.length === 0}
               className="bg-admin hover:bg-admin/90 text-admin-foreground gap-2"
             >
               {processando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
@@ -1663,17 +1758,9 @@ export default function ExtratoImportacao() {
               </div>
             </div>
 
-            <div>
-              <Label>Conta bancária (relatórios auxiliares)</Label>
-              <Select value={contaAux} onValueChange={setContaAux}>
-                <SelectTrigger><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
-                <SelectContent>
-                  {contas.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.nome_exibicao}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* CONTA-VEM-DO-ARQUIVO: sem seletor. A conta sai do mapeamento da
+                fonte em `importacao_fonte_conta` (CRUD em /parametros). */}
+
 
 
             <div>
@@ -1708,7 +1795,7 @@ export default function ExtratoImportacao() {
 
             <Button
               onClick={() => handleImportar("auxiliar")}
-              disabled={processandoAux || !contaAux || arquivosAux.length === 0}
+              disabled={processandoAux || arquivosAux.length === 0}
               className="bg-admin hover:bg-admin/90 text-admin-foreground gap-2"
             >
               {processandoAux ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
@@ -1750,9 +1837,10 @@ export default function ExtratoImportacao() {
           </Button>
         </div>
         <ImportadorItauPagamentos
-          contaBancariaId={conta || undefined}
+          contaBancariaId={contaItau?.id}
           onSuccess={() => { enriquecerItau(); }}
         />
+
       </div>
 
       {/* 3 — FATURAS DE CARTÃO */}

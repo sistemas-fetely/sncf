@@ -8,7 +8,7 @@
  * Arquivo com erro fica em destaque e não desaparece sozinho.
  */
 
-import { FileText, CheckCircle2, AlertTriangle, Info } from "lucide-react";
+import { FileText, CheckCircle2, AlertTriangle, Info, Landmark } from "lucide-react";
 import { MOTIVO_ROTULO, type MotivoDescarte } from "@/lib/financeiro/contagem-importacao";
 
 /**
@@ -21,6 +21,10 @@ export type TomVeredito = "ok" | "neutro" | "erro";
 export interface VereditoArquivo {
   arquivo: string;
   parser: string;
+  /** Conta bancária resolvida automaticamente (nome de exibição), para conferência visual. */
+  conta?: string;
+  /** Aviso não-fatal — ex.: divergência entre cabeçalho OFX e mapeamento da fonte. */
+  aviso?: string;
   /** Frase curta do EFEITO do arquivo — o que ele faz, além da conta fechar. */
   efeito?: string;
   resultado: string;
@@ -28,6 +32,7 @@ export interface VereditoArquivo {
   contagem?: string;
   ignoradas?: Record<string, number>;
 }
+
 
 /** Motivos que não são descarte de linha, e sim de arquivo inteiro. */
 const MOTIVO_EXTRA: Record<string, string> = {
@@ -70,9 +75,23 @@ export function VereditoImportacao({ itens }: { itens: VereditoArquivo[] }) {
               <FileText className="h-3 w-3 shrink-0" />
               <span className="font-medium">{r.arquivo}</span>
               <span className="text-muted-foreground">→ {r.parser}</span>
+              {r.conta && (
+                <span className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 font-medium">
+                  <Landmark className="h-3 w-3 shrink-0" />
+                  {r.conta}
+                </span>
+              )}
             </div>
 
+            {r.aviso && (
+              <div className="flex items-start gap-1 text-warning">
+                <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+                <span>{r.aviso}</span>
+              </div>
+            )}
+
             {r.efeito && <div className="text-muted-foreground italic">{r.efeito}</div>}
+
 
             <div
               className={

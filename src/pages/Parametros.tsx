@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ParametrosExtratoFontes } from "@/components/parametros/ParametrosExtratoFontes";
+import { ParametrosImportacaoFonteConta } from "@/components/parametros/ParametrosImportacaoFonteConta";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -538,6 +539,7 @@ export default function Parametros() {
               <div className="mb-6 space-y-6">
                 <ParametrosFinanceiroTab />
                 <ParametrosExtratoFontes />
+                <ParametrosImportacaoFonteConta />
                 {isSuperAdmin && <ParametrosCondicoesPagamento />}
               </div>
             )}
