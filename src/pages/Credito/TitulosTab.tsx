@@ -31,6 +31,7 @@ import { Search, Copy, ExternalLink, RefreshCw, AlertTriangle, ChevronDown, Chev
 import { formatCNPJ } from "@/lib/cnpj";
 import { apelidoParceiro } from "@/lib/parceiros/nome";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { useTituloEstadoKpis } from "@/hooks/financeiro/useTituloEstadoKpis";
 import { cn } from "@/lib/utils";
 import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
 import { AvisoBoletosVivos, BoletoVigenteLinhas } from "@/components/credito/AvisoBoletosVivos";
@@ -651,6 +652,11 @@ export default function TitulosTab() {
   );
 
   const kpis = useMemo(() => calcularKpis(baseSemCards), [baseSemCards]);
+
+  /* Vencido não se calcula na tela: vem da fonte única `vw_titulo_estado`. */
+  const { kpis: estadoTitulos } = useTituloEstadoKpis();
+  const vencidoContabil = estadoTitulos?.vencidoContabil ?? { qtd: 0, valor: 0 };
+  const emCarencia = estadoTitulos?.emCarenciaBancaria ?? { qtd: 0, valor: 0 };
 
   /* Estágio 2: recorte dos cards sobre a base. */
   const filtrados = useMemo(
