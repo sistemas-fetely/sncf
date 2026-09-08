@@ -752,6 +752,7 @@ const App = () => (
                 <Route path="extrato-pares" element={<ParesTransferencia />} />
                 <Route path="conciliacao-cartao" element={<ConciliacaoCartao />} />
                 <Route path="conciliacao-despesas" element={<ConciliacaoDespesas />} />
+                <Route path="conciliacao/orfaos" element={<ConciliacaoOrfaos />} />
                 <Route path="despesas" element={<Despesas />} />
                 <Route path="contabilidade/fechamento" element={<FechamentoContabil />} />
                 <Route path="contabilidade/pacote" element={<PacoteContador />} />
