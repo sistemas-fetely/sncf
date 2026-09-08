@@ -395,7 +395,8 @@ export default function ExtratoImportacao() {
     const { data: impRow, error: errImp } = await sb
       .from("extrato_importacoes")
       .insert({
-        conta_bancaria_id: conta,
+        // A conta só é conhecida depois de detectar a fonte — o rastro nasce sem ela.
+        conta_bancaria_id: null,
         fonte_tipo: tipoProvisorio,
         nome_arquivo: file.name,
         status: "processando",
@@ -407,7 +408,9 @@ export default function ExtratoImportacao() {
     const impId = impRow.id as string;
 
     let fonte: Fonte = "safra_lancamentos";
+    let contaResolvida: Conta | null = null;
     let textoCsv = "";
+
     try {
       if (!base) throw new Error(`Extensão não reconhecida: ${file.name} (aceito .ofx, .xlsx, .csv)`);
       if (base === "ofx") {
