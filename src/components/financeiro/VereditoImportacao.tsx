@@ -21,6 +21,10 @@ export type TomVeredito = "ok" | "neutro" | "erro";
 export interface VereditoArquivo {
   arquivo: string;
   parser: string;
+  /** Conta bancária resolvida automaticamente (nome de exibição), para conferência visual. */
+  conta?: string;
+  /** Aviso não-fatal — ex.: divergência entre cabeçalho OFX e mapeamento da fonte. */
+  aviso?: string;
   /** Frase curta do EFEITO do arquivo — o que ele faz, além da conta fechar. */
   efeito?: string;
   resultado: string;
@@ -28,6 +32,7 @@ export interface VereditoArquivo {
   contagem?: string;
   ignoradas?: Record<string, number>;
 }
+
 
 /** Motivos que não são descarte de linha, e sim de arquivo inteiro. */
 const MOTIVO_EXTRA: Record<string, string> = {
