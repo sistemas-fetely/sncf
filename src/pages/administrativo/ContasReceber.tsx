@@ -811,10 +811,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
       : null;
 
   const totalAtraso =
-    estadoCarteira.faixas.f1_7 +
-    estadoCarteira.faixas.f8_30 +
-    estadoCarteira.faixas.f31_60 +
-    estadoCarteira.faixas.f60;
+    faixasAging["1-7"] + faixasAging["8-30"] + faixasAging["31-60"] + faixasAging["60+"];
 
   const pctGarantido =
     estadoCarteira.aReceber > 0
@@ -823,13 +820,13 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
 
   /** Uma frase honesta sobre o topo do aging, sem tabelinha. */
   const resumoAtraso = useMemo(() => {
-    const f = estadoCarteira.faixas;
     if (totalAtraso === 0) return "sem atraso";
-    if (f.f60 > 0) return `+60d: ${formatBRLCurto(f.f60)}`;
-    if (f.f31_60 > 0) return `31–60d: ${formatBRLCurto(f.f31_60)}`;
-    if (f.f8_30 > 0) return `8–30d: ${formatBRLCurto(f.f8_30)}`;
+    if (faixasAging["60+"] > 0) return `+60d: ${formatBRLCurto(faixasAging["60+"])}`;
+    if (faixasAging["31-60"] > 0) return `31–60d: ${formatBRLCurto(faixasAging["31-60"])}`;
+    if (faixasAging["8-30"] > 0) return `8–30d: ${formatBRLCurto(faixasAging["8-30"])}`;
     return "nada acima de 7d";
-  }, [estadoCarteira.faixas, totalAtraso]);
+  }, [faixasAging, totalAtraso]);
+
 
   const ACHADO_LABEL: Record<Achado, string> = {
     sobreposicao: "Sobreposição do instrumento",
