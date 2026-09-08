@@ -28,7 +28,7 @@ import { PausarReguaDialog } from "@/components/credito/PausarReguaDialog";
 import { RenegociarTituloDialog } from "@/components/credito/RenegociarTituloDialog";
 import { EsperaRetornoSafra } from "@/components/credito/EsperaRetornoSafra";
 import { UltimoContatoRegua } from "@/components/credito/UltimoContatoRegua";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import type { LinhaMesa } from "@/lib/financeiro/adaptar-titulo-mesa";
 import { seloInstrumento, seloEntrega, seloEnvio, EntregaResumoInline, Selo, fmtDataMesa } from "@/lib/financeiro/mesa-lastros";
 import {
@@ -38,6 +38,7 @@ import {
 import { EnviarPacoteDialog } from "@/components/credito/EnviarPacoteDialog";
 import { estaVencido } from "@/lib/data";
 import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
+import { useTituloEstadoKpis } from "@/hooks/financeiro/useTituloEstadoKpis";
 
 type Vista = "fila" | "pausados";
 
@@ -51,7 +52,7 @@ const CANAL_LABEL: Record<string, string> = {
 };
 
 function KpiCard({
-  label, valor, total, ativo, onClick, tone,
+  label, valor, total, ativo, onClick, tone, labelTooltip,
 }: {
   label: string;
   valor: number;
@@ -59,6 +60,7 @@ function KpiCard({
   ativo: boolean;
   onClick: () => void;
   tone?: "default" | "danger" | "warn";
+  labelTooltip?: string;
 }) {
   const toneCls =
     tone === "danger"
@@ -76,7 +78,20 @@ function KpiCard({
         ativo && "ring-2 ring-foreground/40 bg-muted",
       )}
     >
-      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="text-xs text-muted-foreground">
+        {labelTooltip ? (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="underline decoration-dotted underline-offset-2">{label}</span>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs text-xs">{labelTooltip}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ) : (
+          label
+        )}
+      </div>
       <div className="text-2xl font-medium mt-1">{valor}</div>
       <div className="text-xs text-muted-foreground tabular-nums">{formatBRL(total)}</div>
     </button>
@@ -634,12 +649,15 @@ export default function ReguaTab() {
     );
   };
 
-  const totalEmAtraso = zonaAtraso.length + foraDaReguaVisivel.length;
+  /* Vencido não se calcula aqui: os números vêm da fonte única `vw_titulo_estado`. */
+  const { kpis: estadoTitulos } = useTituloEstadoKpis();
+  const cobravelHoje = estadoTitulos?.cobravelHoje ?? { qtd: 0, valor: 0 };
+  const emCarencia = estadoTitulos?.emCarenciaBancaria ?? { qtd: 0, valor: 0 };
 
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-2">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 flex-1 max-w-3xl">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 flex-1 max-w-4xl">
           <KpiCard
             label="Fila de hoje"
             valor={fila.length}
@@ -647,13 +665,24 @@ export default function ReguaTab() {
             ativo={vista === "fila"}
             onClick={() => setVista("fila")}
           />
+          {/* VERDADE-UNICA-DO-VENCIDO: duas medidas, dois cards, ambos de `vw_titulo_estado`. */}
           <KpiCard
-            label="Em atraso total"
-            valor={totalEmAtraso}
-            total={somaZona1 + somaZona2}
+            label="Cobrável hoje"
+            valor={cobravelHoje.qtd}
+            total={cobravelHoje.valor}
             ativo={false}
             onClick={() => irParaZona("zona-em-atraso")}
             tone="danger"
+            labelTooltip="Venceu em dia útil e já passou a carência D+1 de compensação bancária. É o que o operador cobra hoje."
+          />
+          <KpiCard
+            label="Em carência bancária"
+            valor={emCarencia.qtd}
+            total={emCarencia.valor}
+            ativo={false}
+            onClick={() => irParaZona("zona-em-atraso")}
+            tone="warn"
+            labelTooltip="Venceu em fim de semana ou feriado — pelo padrão bancário o pagamento é devido no próximo dia útil. Não cobrar ainda."
           />
           <KpiCard
             label="Fora da régua"
@@ -705,7 +734,7 @@ export default function ReguaTab() {
           <section className="space-y-2">
             <ZonaHeader
               id="zona-em-atraso"
-              titulo="Em atraso"
+              titulo="Cobrável hoje"
               qtd={zonaAtraso.length}
               total={somaZona1}
               tom="destructive"
