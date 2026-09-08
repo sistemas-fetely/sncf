@@ -15,6 +15,7 @@ import { Outlet } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AcervoSidebar } from "@/components/AcervoSidebar";
 import { CommandPaletteProvider } from "@/components/navegacao/CommandPaletteProvider";
+import { MobileSidebarTrigger } from "@/components/navegacao/MobileSidebarTrigger";
 
 export default function AcervoLayout() {
   return (
@@ -24,6 +25,7 @@ export default function AcervoLayout() {
         <div className="flex-1 flex flex-col min-w-0">
           {/* a faixa com o botão de recolher morreu: o controle mora no topo da própria sidebar */}
           <main className="flex-1 relative min-w-0">
+            <MobileSidebarTrigger />
             <Suspense
               fallback={
                 <div className="flex items-center justify-center h-full p-12">
