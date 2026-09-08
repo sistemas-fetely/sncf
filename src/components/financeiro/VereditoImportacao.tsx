@@ -8,7 +8,7 @@
  * Arquivo com erro fica em destaque e não desaparece sozinho.
  */
 
-import { FileText, CheckCircle2, AlertTriangle, Info } from "lucide-react";
+import { FileText, CheckCircle2, AlertTriangle, Info, Landmark } from "lucide-react";
 import { MOTIVO_ROTULO, type MotivoDescarte } from "@/lib/financeiro/contagem-importacao";
 
 /**
