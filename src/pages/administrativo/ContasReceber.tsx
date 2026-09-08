@@ -643,26 +643,12 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
     let semInstrumentoQtd = 0;
     let outros = 0;
     let outrosQtd = 0;
-    let vencido = 0;
-    let vencidoQtd = 0;
-    const faixas = { f1_7: 0, f8_30: 0, f31_60: 0, f60: 0 };
 
+    /* VERDADE-UNICA-DO-VENCIDO (08/09/2026): vencido e faixas de aging NÃO são mais
+       calculados aqui. Vêm de `vw_titulo_estado` (vencido_contabil / faixa_aging).
+       Nenhuma subtração de datas no frontend. */
     for (const t of baseFiltros) {
       const v = efetivoDe(t);
-      if (estaVencido(t)) {
-        vencido += v;
-        vencidoQtd += 1;
-        const venc = t.data_vencimento_vigente;
-        if (venc) {
-          const dias = Math.floor(
-            (new Date(hojeIso + "T12:00:00").getTime() - new Date(venc + "T12:00:00").getTime()) / 86400000
-          );
-          if (dias <= 7) faixas.f1_7 += v;
-          else if (dias <= 30) faixas.f8_30 += v;
-          else if (dias <= 60) faixas.f31_60 += v;
-          else faixas.f60 += v;
-        }
-      }
       if (!naoRecebido(t)) continue;
 
       aReceber += v;
@@ -691,11 +677,15 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
       semInstrumentoQtd,
       outros,
       outrosQtd,
-      vencido,
-      vencidoQtd,
-      faixas,
     };
-  }, [baseFiltros, hojeIso]);
+  }, [baseFiltros]);
+
+  /* Fonte única do vencido contábil e das faixas de aging. */
+  const { kpis: estadoTitulos } = useTituloEstadoKpis();
+  const faixasAging: Record<ChaveFaixa, number> =
+    estadoTitulos?.faixas ?? { "1-7": 0, "8-30": 0, "31-60": 0, "60+": 0 };
+  const vencidoContabil = estadoTitulos?.vencidoContabil ?? { qtd: 0, valor: 0 };
+
 
   const semFiltroKpi = !filtroInstrumento && filtroPrazo === "todos";
 
