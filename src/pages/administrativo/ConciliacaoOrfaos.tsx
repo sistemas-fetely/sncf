@@ -319,7 +319,7 @@ export default function ConciliacaoOrfaos() {
             : `${kpis.total} crédito(s) sem dono · ${kpis.comSug} com sugestão`
         }
         breadcrumb={[
-          { label: "Finanças", href: "/administrativo" },
+          { label: "Finanças", to: "/administrativo" },
           { label: "Órfãos de Entrada" },
         ]}
       />
