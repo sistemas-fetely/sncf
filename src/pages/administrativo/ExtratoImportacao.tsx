@@ -299,8 +299,8 @@ export default function ExtratoImportacao() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const invalidarRecebivel = useInvalidarRecebivel();
-  const [conta, setConta] = useState<string>("");
-  const [contaAux, setContaAux] = useState<string>("");
+  // SELETOR-DE-CONTA-MORREU (08/09/2026): a conta vem do arquivo, não do operador.
+
   const [arquivos, setArquivos] = useState<File[]>([]);
   const [arquivosAux, setArquivosAux] = useState<File[]>([]);
   const [processando, setProcessando] = useState(false);
