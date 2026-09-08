@@ -8,7 +8,7 @@
  * mesmo padrão de useContaCliente.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@tanstack/../integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 
 export const QK_ORFAOS = "conciliacao-orfaos";
 
