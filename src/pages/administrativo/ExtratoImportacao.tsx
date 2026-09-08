@@ -330,22 +330,56 @@ export default function ExtratoImportacao() {
     },
   });
 
+  /**
+   * CONTA-VEM-DO-ARQUIVO (08/09/2026): resolve a conta bancária sem seletor.
+   * Ordem: cabeçalho OFX > mapeamento `importacao_fonte_conta` > REJEITA.
+   */
+  async function resolverConta(
+    file: File,
+    fonte: Fonte
+  ): Promise<{ conta: Conta; aviso?: string }> {
+    const chave = FONTE_CONTA_CHAVE[fonte] ?? FONTE_TIPO_DB[fonte];
+    const { data: mapa, error: errMapa } = await sb
+      .from("importacao_fonte_conta")
+      .select("conta_bancaria_id")
+      .eq("fonte", chave)
+      .maybeSingle();
+    if (errMapa) throw errMapa;
+    const porFonte = mapa
+      ? (contas.find((c) => c.id === mapa.conta_bancaria_id) ?? null)
+      : null;
+
+    if (fonte === "ofx") {
+      const cab = extrairCabecalhoOFX(await file.text());
+      const porCabecalho = resolverContaPorCabecalhoOFX(cab, contas);
+      if (porCabecalho) {
+        // BANCO-FALA-MAIS-ALTO: divergência entre cabeçalho e mapeamento da
+        // fonte é resolvida pelo cabeçalho — ele é o próprio banco falando.
+        const aviso =
+          porFonte && porFonte.id !== porCabecalho.id
+            ? `Divergência de conta: o cabeçalho do OFX aponta ${porCabecalho.nome_exibicao} e o mapeamento da fonte aponta ${porFonte.nome_exibicao}. Prevaleceu o cabeçalho do arquivo.`
+            : undefined;
+        return { conta: porCabecalho, aviso };
+      }
+      if (porFonte) return { conta: porFonte };
+      throw new Error(
+        `Conta bancária não identificada (${descreverCabecalho(cab)}). Cadastre a conta ou o mapeamento da fonte em /parametros.`
+      );
+    }
+
+    if (porFonte) return { conta: porFonte };
+    throw new Error(
+      `Conta bancária não identificada (fonte "${chave}" sem mapeamento). Cadastre a conta ou o mapeamento da fonte em /parametros.`
+    );
+  }
+
   async function processarArquivo(
     file: File,
-    conta: string,
     bloco: Bloco,
-    trilha: {
-      fonte?: Fonte;
-      resumo?: string;
-      contagem?: ContagemImportacao;
-      /**
-       * Sucesso idempotente: o arquivo não foi lido porque já tinha sido
-       * processado antes. Veredito em tom neutro, nem verde nem vermelho.
-       */
-      neutro?: { resultado: string; contagem?: string; detalhe?: Record<string, number> };
-    } = {}
+    trilha: TrilhaArquivo = {}
   ) {
-    if (!conta || !user) throw new Error("Selecione a conta bancária");
+    if (!user) throw new Error("Sessão expirada — entre novamente");
+
     const base = detectarFonteBase(file);
 
     // A linha do histórico nasce ANTES de qualquer leitura: se a detecção ou o
