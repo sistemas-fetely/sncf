@@ -1520,12 +1520,14 @@ export default function ExtratoImportacao() {
             ]);
             continue;
           }
-          await processarArquivo(f, contaBloco, bloco, trilha);
+          await processarArquivo(f, bloco, trilha);
           setResultados((r) => [
             ...r,
             {
               arquivo: f.name,
               parser: trilha.fonte ? (PARSER_ROTULO[trilha.fonte] ?? trilha.fonte) : "—",
+              conta: trilha.conta,
+              aviso: trilha.aviso,
               efeito: trilha.fonte ? PARSER_EFEITO[trilha.fonte] : undefined,
               resultado: trilha.neutro?.resultado ?? "Importado",
               tom: trilha.neutro ? "neutro" : "ok",
@@ -1540,6 +1542,8 @@ export default function ExtratoImportacao() {
             {
               arquivo: f.name,
               parser: trilha.fonte ? (PARSER_ROTULO[trilha.fonte] ?? trilha.fonte) : "não reconhecido",
+              conta: trilha.conta,
+              aviso: trilha.aviso,
               efeito: trilha.fonte ? PARSER_EFEITO[trilha.fonte] : undefined,
               resultado: formatError(e),
               tom: "erro",
@@ -1548,6 +1552,7 @@ export default function ExtratoImportacao() {
             },
           ]);
         }
+
       }
       setFiles([]);
 
