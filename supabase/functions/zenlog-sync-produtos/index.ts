@@ -1,9 +1,23 @@
+// zenlog-sync-produtos — espelha o cadastro de item do XPM em xpm_produtos_cache.
+// SOMENTE GET: a doutrina em integracoes_config.doutrina exige OK explicito
+// nomeando o caso para qualquer POST/PUT no XPM. Aqui nao se cria produto.
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// xpm_envios_log.pedido_id e NOT NULL e nao se aplica a um sync de cadastro:
+// sentinela fixa marcando "nao ha pedido", em vez de criar coluna nova.
+const SEM_PEDIDO = "00000000-0000-0000-0000-000000000000";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+function num(v: unknown): number | null {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
@@ -27,6 +41,8 @@ Deno.serve(async (req) => {
     if (eCfg) throw new Error(`config zenlog_prd: ${eCfg.message}`);
     const cfg = cfgRow!.config as Record<string, string>;
 
+    if (!cfg.base_url) throw new Error("base_url ausente na config zenlog_prd");
+
     const { data: pat, error: ePat } = await sb.rpc("get_vault_secret", { p_name: cfg.pat_vault_key });
     if (ePat) throw new Error(`vault: ${ePat.message}`);
     if (!pat) throw new Error("PAT ausente no vault");
@@ -38,7 +54,7 @@ Deno.serve(async (req) => {
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({ personalAccessToken: pat, tenantName: cfg.tenant_name }),
     });
-    const authJson = await authRes.json();
+    const authJson = await authRes.json().catch(() => ({}));
     const token = authJson?.result?.accessToken;
     if (!authRes.ok || !token) {
       throw new Error(`auth falhou: ${authJson?.error?.message ?? authRes.status}`);
@@ -54,7 +70,7 @@ Deno.serve(async (req) => {
     while (skip < total && paginas < maxPaginas) {
       const url = `${base}/api/services/app/Produto/GetAll?MaxResultCount=${take}&SkipCount=${skip}`;
       const r = await fetch(url, { headers });
-      const j = await r.json();
+      const j = await r.json().catch(() => ({}));
       if (!r.ok || j?.success === false) {
         throw new Error(`Produto/GetAll SkipCount=${skip}: ${j?.error?.message ?? r.status}`);
       }
@@ -73,15 +89,15 @@ Deno.serve(async (req) => {
           unidade_medida: item.unidadeMedida?.codigo ?? null,
           categoria_codigo: item.categoria?.codigo ?? null,
           categoria_descricao: item.categoria?.descricao ?? null,
-          peso_unitario_kg: item.pesoUnitario ?? null,
-          altura_m: item.altura ?? null,
-          largura_m: item.largura ?? null,
-          comprimento_m: item.comprimento ?? null,
+          peso_unitario_kg: num(item.pesoUnitario),
+          altura_m: num(item.altura),
+          largura_m: num(item.largura),
+          comprimento_m: num(item.comprimento),
           sku_ean: item.produtoSKU?.codigo ?? null,
-          peso_bruto_kg: item.produtoSKU?.pesoBruto ?? null,
-          qtd_item_sku: item.produtoSKU?.qtdItemSKU ?? null,
-          camada: item.produtoSKU?.camada ?? null,
-          lastro: item.produtoSKU?.lastro ?? null,
+          peso_bruto_kg: num(item.produtoSKU?.pesoBruto),
+          qtd_item_sku: num(item.produtoSKU?.qtdItemSKU),
+          camada: num(item.produtoSKU?.camada),
+          lastro: num(item.produtoSKU?.lastro),
           controla_lote: item.controlaLote ?? null,
           controla_validade: item.controlaValidade ?? null,
           controla_serie: item.controlaSerie ?? null,
@@ -110,11 +126,13 @@ Deno.serve(async (req) => {
     }
 
     await sb.from("xpm_envios_log").insert({
-      pedido_identificador: null,
+      pedido_id: SEM_PEDIDO,
       operacao: "sync_produtos",
-      status: "sucesso",
-      payload: { paginas, itens, total_no_xpm },
-      criado_em: new Date().toISOString(),
+      payload_enviado: { endpoint: "Produto/GetAll", max_result_count: 350, max_paginas: 10 },
+      resposta_status: 200,
+      resposta_body: { paginas, itens, total_no_xpm },
+      sucesso: true,
+      duracao_ms: Date.now() - t0,
     });
 
     return new Response(JSON.stringify({ ok: true, paginas, itens, total_no_xpm }), {
@@ -123,11 +141,14 @@ Deno.serve(async (req) => {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     await sb.from("xpm_envios_log").insert({
-      pedido_identificador: null,
+      pedido_id: SEM_PEDIDO,
       operacao: "sync_produtos",
-      status: "erro",
-      payload: { erro: msg, paginas_antes_do_erro: paginas, itens_antes_do_erro: itens },
-      criado_em: new Date().toISOString(),
+      payload_enviado: { endpoint: "Produto/GetAll", max_result_count: 350, max_paginas: 10 },
+      resposta_status: 500,
+      resposta_body: { paginas, itens_antes_do_erro: itens, total_no_xpm },
+      sucesso: false,
+      erro_msg: msg,
+      duracao_ms: Date.now() - t0,
     });
     return new Response(JSON.stringify({ ok: false, erro: msg }), {
       status: 500,
