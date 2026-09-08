@@ -9,9 +9,6 @@ const cors = {
 // SOMENTE GET: a doutrina em integracoes_config.doutrina exige OK explicito
 // nomeando o caso para qualquer POST/PUT no XPM. Aqui nao se cria produto.
 
-// xpm_envios_log.pedido_id e NOT NULL e nao se aplica a um sync de cadastro:
-// sentinela fixa marcando "nao ha pedido", em vez de criar coluna nova.
-const SEM_PEDIDO = "00000000-0000-0000-0000-000000000000";
 
 function num(v: unknown): number | null {
   if (v === null || v === undefined || v === "") return null;
@@ -137,31 +134,32 @@ Deno.serve(async (req) => {
           itens = acumulado.length;
         }
 
-        await sb.from("xpm_envios_log").insert({
-          pedido_id: SEM_PEDIDO,
-          operacao: "sync_produtos",
-          payload_enviado: { endpoint: "Produto/GetAll", max_result_count: 350, max_paginas: 10 },
-          resposta_status: 200,
-          resposta_body: { paginas, itens, total_no_xpm },
-          sucesso: true,
+        // FAIL-LOUD: insert de log sem checagem de erro falhou calado por 1 execucao
+        // (FK de xpm_envios_log.pedido_id) e o sync parecia nao ter rodado. 07/09/2026.
+        const { error: eLog } = await sb.from("integracoes_sync_log").insert({
+          sistema: "zenlog_prd",
+          tipo: "produtos",
+          status: "sucesso",
+          registros_atualizados: itens,
           duracao_ms: Date.now() - t0,
+          detalhes: { paginas, total_no_xpm, endpoint: "Produto/GetAll" },
         });
+        if (eLog) throw new Error(`log sync produtos: ${eLog.message}`);
 
         return new Response(JSON.stringify({ ok: true, tipo: "produtos", paginas, itens, total_no_xpm }), {
           headers: { ...cors, "Content-Type": "application/json" },
         });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        await sb.from("xpm_envios_log").insert({
-          pedido_id: SEM_PEDIDO,
-          operacao: "sync_produtos",
-          payload_enviado: { endpoint: "Produto/GetAll", max_result_count: 350, max_paginas: 10 },
-          resposta_status: 500,
-          resposta_body: { paginas, itens_antes_do_erro: itens, total_no_xpm },
-          sucesso: false,
-          erro_msg: msg,
+        const { error: eLog } = await sb.from("integracoes_sync_log").insert({
+          sistema: "zenlog_prd",
+          tipo: "produtos",
+          status: "erro",
+          registros_erro: 1,
           duracao_ms: Date.now() - t0,
+          detalhes: { erro: msg, paginas_antes_do_erro: paginas, itens_antes_do_erro: itens },
         });
+        if (eLog) console.error("falha ao logar erro do sync produtos:", eLog.message);
         return new Response(JSON.stringify({ ok: false, tipo: "produtos", erro: msg }), {
           status: 500,
           headers: { ...cors, "Content-Type": "application/json" },
