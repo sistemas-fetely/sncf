@@ -49,6 +49,12 @@ import { gerarHashMov, identidadeMovOfx } from "@/lib/financeiro/hash-mov";
 import { ContagemImportacao } from "@/lib/financeiro/contagem-importacao";
 import { inserirMovimentacao, inserirMovimentacoes } from "@/lib/financeiro/inserir-mov";
 import { VereditoImportacao, type VereditoArquivo } from "@/components/financeiro/VereditoImportacao";
+import {
+  extrairCabecalhoOFX,
+  resolverContaPorCabecalhoOFX,
+  descreverCabecalho,
+  digitos,
+} from "@/lib/financeiro/resolver-conta-importacao";
 
 import { formatDateBR } from "@/lib/format-currency";
 import { formatError, rawMessage } from "@/lib/format-error";
