@@ -75,7 +75,7 @@ import {
 } from "@/components/shared/SortableTableHead";
 import { cn } from "@/lib/utils";
 
-import { usePessoasDoTime } from "@/hooks/tarefas/useTarefasDoTime";
+
 import { formatError } from "@/lib/format-error";
 
 const QK = ["atribuicoes-time"] as const;
@@ -174,7 +174,20 @@ const resolvers: Record<ColunaOrd, (l: LinhaCarga) => string | number | null | u
 export default function PainelAtribuicoes() {
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const time = usePessoasDoTime();
+  const visiveis = useQuery({
+    queryKey: [...QK, "visiveis"],
+    staleTime: 30_000,
+    refetchOnMount: "always",
+    queryFn: async (): Promise<string[]> => {
+      const { data, error } = await (supabase as any).rpc("fn_mesa_pessoas_visiveis");
+      if (error) throw error;
+      const linhas = (data ?? []) as unknown;
+      if (!Array.isArray(linhas)) return [];
+      return linhas
+        .map((l: any) => (typeof l === "string" ? l : l?.pessoa_id))
+        .filter((id: unknown): id is string => typeof id === "string" && id.length > 0);
+    },
+  });
   const [emEdicao, setEmEdicao] = useState<LinhaCarga | null>(null);
   const [criando, setCriando] = useState(false);
   const [aApagar, setAApagar] = useState<LinhaCarga | null>(null);
@@ -290,20 +303,22 @@ export default function PainelAtribuicoes() {
       const { data, error } = await (supabase as any)
         .from("processos")
         .select("id, codigo, nome")
+        .neq("status", "arquivado")
         .order("codigo", { ascending: true, nullsFirst: false });
       if (error) throw error;
       return (data ?? []) as OpcaoProcesso[];
     },
   });
 
-  /** Pessoas do meu time: quem reporta a mim (decidido no banco por tarefas_meu_time). */
+  /** Pessoas visíveis na mesa: inclui o próprio gestor e desce a hierarquia.
+   *  Mesma fonte da aba Time (FONTE-ÚNICA). */
   const pessoasDoTime = useMemo(() => {
-    const idsUsuario = new Set(time.data?.ids ?? []);
+    const ids = new Set(visiveis.data ?? []);
     const todas = pessoas.data ?? [];
-    if (idsUsuario.size === 0) return todas;
-    const doTime = todas.filter((p) => p.usuario_id && idsUsuario.has(p.usuario_id));
+    if (ids.size === 0) return todas;
+    const doTime = todas.filter((p) => p.pessoa_id && ids.has(p.pessoa_id));
     return doTime.length > 0 ? doTime : todas;
-  }, [pessoas.data, time.data]);
+  }, [pessoas.data, visiveis.data]);
 
   const idsTime = useMemo(
     () => new Set(pessoasDoTime.map((p) => p.pessoa_id)),
