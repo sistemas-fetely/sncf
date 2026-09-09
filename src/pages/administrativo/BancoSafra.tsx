@@ -2012,7 +2012,78 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         </DialogContent>
       </Dialog>
 
+      {/* Reemissão em um movimento: baixa do antigo + entrada do novo no mesmo arquivo */}
+      <Dialog
+        open={reemissaoDialogOpen}
+        onOpenChange={(v) => {
+          if (gerandoReemissao) return;
+          setReemissaoDialogOpen(v);
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Gerar remessa de reemissão</DialogTitle>
+            <DialogDescription>
+              Um arquivo, um movimento: a baixa do boleto antigo (ocorrência 02) e o registro
+              do boleto novo (ocorrência 01) vão juntos, nesta ordem. Enviando no SafraNet até
+              17h, o novo boleto fica disponível hoje.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-md border border-warning/40 bg-warning/5 p-3 text-sm">
+            <p className="font-medium text-warning">Enquanto o banco não confirmar a baixa, o boleto antigo continua registrado.</p>
+            <p className="text-muted-foreground">Não reenvie o boleto antigo ao cliente.</p>
+          </div>
+
+          <div className="max-h-[320px] overflow-y-auto rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Título</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Nosso número antigo</TableHead>
+                  <TableHead>Novo vencimento</TableHead>
+                  <TableHead className="text-right">Novo valor</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filaReemissao.map((b) => (
+                  <TableRow key={b.id}>
+                    <TableCell className="font-mono text-xs">{b.numero_titulo || "—"}</TableCell>
+                    <TableCell className="max-w-[200px] truncate">
+                      {b.conta?.parceiro?.razao_social || "—"}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{b.nosso_numero_seq || "—"}</TableCell>
+                    <TableCell className="tabular-nums">{formatDateBR(b.reemissao_nova_data)}</TableCell>
+                    <TableCell className="text-right font-mono">
+                      {formatBRL(Number(b.reemissao_novo_valor ?? b.valor_bruto ?? 0))}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setReemissaoDialogOpen(false)}
+              disabled={gerandoReemissao}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleGerarReemissao} disabled={gerandoReemissao} className="gap-2">
+              {gerandoReemissao && <Loader2 className="h-4 w-4 animate-spin" />}
+              Gerar remessa de reemissão ({filaReemissao.length}) · {formatBRL(totalReemissao)}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertaBaixaRejeitadaReemissao />
+
       <RetornoSafraPainel />
+
     </PageShell>
   );
 }
