@@ -20,6 +20,8 @@ export interface BoletoVigente {
   enviavel: boolean;
   nosso_numero: string | null;
   linha_digitavel: string | null;
+  /** Código de barras do boleto vigente — insumo do PDF imprimível. */
+  codigo_barras?: string | null;
   data_vencimento: string | null;
   valor: number | null;
   situacao: string | null;
