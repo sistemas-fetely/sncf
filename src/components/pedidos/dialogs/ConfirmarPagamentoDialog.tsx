@@ -238,7 +238,10 @@ export function ConfirmarPagamentoDialog({
 
   const anexoFaltando = modo === "mesa" && !temAnexo;
   const refFaltando = !referencia.trim();
-  const bancoFaltando = !bancoId;
+  // CARTAO-E-CAPTURA-UNICA: na captura o dinheiro fica com a adquirente; a conta
+  // bancaria so entra no repasse posterior. Por isso o campo de banco nao bloqueia
+  // confirmacao quando o caminho eh cartao, mas continua obrigatorio nos demais.
+  const bancoFaltando = !ehCartao && !bancoId;
   const linhaFaltando = !ehCartao && !provisaoEfetiva;
 
   const bloqueado =
