@@ -92,8 +92,6 @@ interface DadosBoleto {
   banco_codigo:      string;
   banco_nome:        string;
   especie_titulo:    string;
-  /** Texto da tarja de conferência; null = boleto registrado, sem tarja. */
-  tarja:             string | null;
   agencia_cedente:   string;
   carteira:          string;
   nosso_numero_seq:  string;
