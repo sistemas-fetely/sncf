@@ -869,6 +869,71 @@ export default function PainelAtribuicoes() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* F3 — adotar medido: o observado passa a ser o declarado (via RPC, único caminho). */}
+      <AlertDialog
+        open={!!aAdotar}
+        onOpenChange={(o) => !o && !adotarMedido.isPending && setAAdotar(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Adotar número medido em “{aAdotar?.nome}”?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                {aAdotar?.tempo_obs_p50_min != null && (
+                  <p>
+                    Tempo: {num(aAdotar.tempo_unitario_min)} min → {num(aAdotar.tempo_obs_p50_min)}{" "}
+                    min
+                  </p>
+                )}
+                {aAdotar?.volume_obs_dia_corrido != null && (
+                  <p>
+                    Volume: {num(aAdotar.fluxo_diario_estimado)}/dia →{" "}
+                    {num(aAdotar.volume_obs_dia_corrido)}/dia
+                  </p>
+                )}
+                <div className="space-y-2 pt-1">
+                  <label className="flex items-center gap-2 text-sm text-foreground">
+                    <Checkbox
+                      checked={adotarTempo}
+                      onCheckedChange={(v) => setAdotarTempo(v === true)}
+                      disabled={aAdotar?.tempo_obs_p50_min == null}
+                    />
+                    Adotar tempo observado
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-foreground">
+                    <Checkbox
+                      checked={adotarVolume}
+                      onCheckedChange={(v) => setAdotarVolume(v === true)}
+                      disabled={aAdotar?.volume_obs_dia_corrido == null}
+                    />
+                    Adotar volume observado
+                  </label>
+                </div>
+                <p>
+                  O número observado passa a ser o declarado da atribuição e fica marcado como
+                  medido. Você pode editar depois.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={adotarMedido.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                if (aAdotar && (adotarTempo || adotarVolume)) {
+                  adotarMedido.mutate({ l: aAdotar, tempo: adotarTempo, volume: adotarVolume });
+                }
+              }}
+              disabled={adotarMedido.isPending || (!adotarTempo && !adotarVolume)}
+            >
+              {adotarMedido.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Adotar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
