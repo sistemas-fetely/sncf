@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useInboxFilas, type FilaInbox } from "@/hooks/tarefas/useInboxFilas";
 import { useInboxFilaItens } from "@/hooks/tarefas/useInboxFilaItens";
+import { useFilaMedidas, fmtPrazoMedida, type FilaMedida } from "@/hooks/tarefas/useFilaMedidas";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -123,11 +124,71 @@ function TabelaFila({ fila }: { fila: FilaInbox }) {
   );
 }
 
+/** F2 — bloco compacto com o que a fila instrumentada mediu (últimos 90 dias).
+ *  Filas fora de vw_fila_medida simplesmente não mostram o bloco. */
+function BlocoMedida({ medida }: { medida: FilaMedida }) {
+  const chegada = `${medida.padrao ?? "sem dado"}${medida.padrao_ref ? ` · ${medida.padrao_ref}` : ""}`;
+  const volume =
+    medida.media_por_dia_corrido == null
+      ? "—"
+      : `${medida.media_por_dia_corrido.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}/dia`;
+  const volumeAtivo =
+    medida.padrao !== "diario" && medida.media_por_dia_ativo != null
+      ? `${medida.media_por_dia_ativo.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}/dia nos dias ativos`
+      : null;
+  const semHumano = (medida.amostra_humana ?? 0) === 0;
+
+  return (
+    <div className="rounded-lg border bg-muted/40 p-3 space-y-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div>
+          <p className="text-[11px] text-muted-foreground">Chegada</p>
+          <p className="text-sm font-medium capitalize">{chegada}</p>
+        </div>
+        <div>
+          <p className="text-[11px] text-muted-foreground">Volume</p>
+          <p className="text-sm font-medium tabular-nums">{volume}</p>
+          {volumeAtivo && (
+            <p className="text-[11px] text-muted-foreground tabular-nums">{volumeAtivo}</p>
+          )}
+        </div>
+        <div>
+          <p className="text-[11px] text-muted-foreground">Pico</p>
+          <p className="text-sm font-medium tabular-nums">
+            {medida.pico_dia_qtd != null ? `${medida.pico_dia_qtd} num dia` : "—"}
+          </p>
+        </div>
+        <div>
+          <p className="text-[11px] text-muted-foreground">Prazo real</p>
+          {semHumano ? (
+            <p className="text-[11px] text-muted-foreground">
+              sem execução humana registrada — resolvido por automação
+            </p>
+          ) : (
+            <>
+              <p className="text-sm font-medium tabular-nums">
+                {fmtPrazoMedida(medida.lead_p50_min)}
+              </p>
+              <p className="text-[11px] text-muted-foreground tabular-nums">
+                p80 {fmtPrazoMedida(medida.lead_p80_min)}
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        medido nos últimos 90 dias · {medida.entradas_total ?? 0} chegadas
+      </p>
+    </div>
+  );
+}
+
 export function InboxFilas() {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(true);
   const [filaAberta, setFilaAberta] = useState<FilaInbox | null>(null);
   const { data: filas, isLoading, isError, error, refetch, isFetching } = useInboxFilas();
+  const medidas = useFilaMedidas();
 
   const totalGeral = (filas ?? []).reduce((acc, f) => acc + f.total, 0);
 
@@ -267,7 +328,11 @@ export function InboxFilas() {
                 <SheetDescription>{filaAberta.area_nome ?? "Sem área"}</SheetDescription>
               </SheetHeader>
 
-              <div className="mt-4">
+              <div className="mt-4 space-y-3">
+                {(() => {
+                  const medida = medidas.data?.get(filaAberta.chave);
+                  return medida ? <BlocoMedida medida={medida} /> : null;
+                })()}
                 <TabelaFila fila={filaAberta} />
               </div>
 

@@ -17593,6 +17593,13 @@ export type Database = {
             referencedRelation: "vw_atribuicao_furo_fila"
             referencedColumns: ["chave"]
           },
+          {
+            foreignKeyName: "fila_snapshot_fila_chave_fkey"
+            columns: ["fila_chave"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_medida"
+            referencedColumns: ["chave"]
+          },
         ]
       }
       fila_snapshot_diario: {
@@ -59616,6 +59623,8 @@ export type Database = {
         Row: {
           ativo: boolean | null
           atribuicao_id: string | null
+          cadencia_obs: string | null
+          cadencia_obs_ref: string | null
           cargo_id: string | null
           cargo_nome: string | null
           chave: string | null
@@ -59627,6 +59636,7 @@ export type Database = {
           estoque_atual: number | null
           estoque_erro: string | null
           fila_id: string | null
+          fila_instrumentada: boolean | null
           fila_nome: string | null
           fluxo_diario_estimado: number | null
           fonte_volume: string | null
@@ -59640,10 +59650,17 @@ export type Database = {
           macro_processo_nome: string | null
           minutos_estoque: number | null
           minutos_fluxo_dia: number | null
+          minutos_fluxo_dia_obs: number | null
           nome: string | null
+          obs_amostra_entradas: number | null
+          obs_dias_com_entrada: number | null
+          obs_pico_dia: number | null
           origem_medida: string | null
           pessoa_id: string | null
           pessoa_nome: string | null
+          prazo_obs_amostra: number | null
+          prazo_obs_p50_min: number | null
+          prazo_obs_p80_min: number | null
           processo_codigo: string | null
           processo_id: string | null
           processo_nome: string | null
@@ -59651,6 +59668,8 @@ export type Database = {
           processo_tem_narrativa: boolean | null
           recorrencia_id: string | null
           tempo_unitario_min: number | null
+          volume_obs_dia_ativo: number | null
+          volume_obs_dia_corrido: number | null
         }
         Relationships: [
           {
@@ -66908,6 +66927,25 @@ export type Database = {
           },
         ]
       }
+      vw_fila_medida: {
+        Row: {
+          amostra_humana: number | null
+          chave: string | null
+          dias_com_entrada: number | null
+          entradas_total: number | null
+          exec_tabela: string | null
+          lead_p50_min: number | null
+          lead_p80_min: number | null
+          lead_p95_min: number | null
+          media_por_dia_ativo: number | null
+          media_por_dia_corrido: number | null
+          nome: string | null
+          padrao: string | null
+          padrao_ref: string | null
+          pico_dia_qtd: number | null
+        }
+        Relationships: []
+      }
       vw_fila_nfs_mercadoria: {
         Row: {
           apelido: string | null
@@ -73787,14 +73825,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -74678,14 +74716,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -76100,14 +76138,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -89976,6 +90014,20 @@ export type Database = {
         Args: { p_nf_id: string; p_pedido_id: string }
         Returns: Json
       }
+      fn_fila_cadencia: {
+        Args: { p_chave: string; p_dias?: number }
+        Returns: {
+          dias_com_entrada: number
+          dias_janela: number
+          dias_uteis_janela: number
+          entradas_total: number
+          media_por_dia_ativo: number
+          media_por_dia_corrido: number
+          padrao: string
+          padrao_ref: string
+          pico_dia_qtd: number
+        }[]
+      }
       fn_fila_execucoes: {
         Args: { p_ate?: string; p_chave: string; p_de?: string }
         Returns: {
@@ -90000,7 +90052,28 @@ export type Database = {
           fluxo_dia_piso: number
         }[]
       }
+      fn_fila_prazo_real: {
+        Args: { p_chave: string; p_dias?: number }
+        Returns: {
+          amostra: number
+          amostra_humana: number
+          lead_p50_dias: number
+          lead_p50_min: number
+          lead_p80_dias: number
+          lead_p80_min: number
+          lead_p95_min: number
+        }[]
+      }
       fn_fila_snapshot_gravar: { Args: never; Returns: number }
+      fn_fila_vazao: {
+        Args: { p_ate?: string; p_chave: string; p_de?: string }
+        Returns: {
+          dia: string
+          entradas: number
+          saidas: number
+          saidas_humanas: number
+        }[]
+      }
       fn_fluxo_caixa_projetado: {
         Args: { p_horizonte?: number; p_saldo_inicial?: number }
         Returns: {
@@ -90912,6 +90985,7 @@ export type Database = {
         Returns: boolean
       }
       fn_xpm_payload_atribui_nf: { Args: { p_nf_id: string }; Returns: Json }
+      fn_xpm_payload_cadastro: { Args: { p_sku: string }; Returns: Json }
       fn_xpm_payload_expedicao: {
         Args: { p_forcar?: string[]; p_pedido_id: string }
         Returns: Json
