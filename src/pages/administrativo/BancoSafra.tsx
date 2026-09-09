@@ -70,6 +70,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { RetornoSafraPainel } from "@/components/financeiro/RetornoSafraPainel";
 import { EsperaRetornoSafra } from "@/components/credito/EsperaRetornoSafra";
 import { hojeISO } from "@/lib/data";
+import { AlertaBaixaRejeitadaReemissao } from "@/components/financeiro/AlertaBaixaRejeitadaReemissao";
 import { OPCOES_QUERY_RECEBIVEL, useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 
 /** Dias corridos desde uma data ISO (null se inválida). */
