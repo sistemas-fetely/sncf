@@ -136,6 +136,9 @@ export default function ConciliacaoDespesas() {
 
   const { data: furos = [], isLoading } = useQuery({
     queryKey: ["conciliacao-furos"],
+    // CARGA-DO-BANCO (09/09/2026): view composta, cara. Cache maior evita
+    // refetch em cascata quando várias abas estão abertas.
+    staleTime: 3 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await sb
         .from("vw_conciliacao_furos")

@@ -49,12 +49,15 @@ const COLS =
 export function useDevolucoesRetornoPendente() {
   return useQuery({
     queryKey: ["devolucao-retorno-pendente"],
+    // CARGA-DO-BANCO (09/09/2026): view composta, cara. Cache maior evita
+    // refetch em cascata quando várias abas estão abertas.
+    staleTime: 3 * 60 * 1000,
     queryFn: async (): Promise<RetornoPendenteDevolucao[]> => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("vw_devolucao_retorno_pendente")
         .select(COLS)
-        .limit(5000);
+        .limit(2000);
       if (error) throw error;
 
       const linhas = (data ?? []) as RetornoPendenteLinha[];

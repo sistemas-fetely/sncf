@@ -42,11 +42,14 @@ export default function FunilFases({
 }) {
   const expedicoesQ = useQuery({
     queryKey: ["xpm-funil-fases"],
+    // CARGA-DO-BANCO (09/09/2026): view composta, cara. Cache maior evita
+    // refetch em cascata quando várias abas estão abertas.
+    staleTime: 3 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("vw_xpm_risco_atraso")
         .select("estagio_seq, fase_seq, quantidade_volumes, farol")
-        .limit(5000);
+        .limit(2000);
       if (error) throw error;
       return (data ?? []) as ExpedicaoResumo[];
     },
