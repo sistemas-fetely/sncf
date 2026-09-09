@@ -38,6 +38,7 @@ import { AvisoBoletosVivos, BoletoVigenteLinhas } from "@/components/credito/Avi
 import { EsperaRetornoSafra } from "@/components/credito/EsperaRetornoSafra";
 import { BadgeStatusGestao } from "@/lib/financeiro/status-gestao";
 import { BaixaManualDialog } from "@/components/credito/BaixaManualDialog";
+import { RegistrarRecebimentoDialog } from "@/components/financeiro/RegistrarRecebimentoDialog";
 import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTituloHaverDialog";
 import { ReemitirBoletoDialog } from "@/components/credito/ReemitirBoletoDialog";
 import { ProrrogarVencimentoDialog } from "@/components/credito/ProrrogarVencimentoDialog";
@@ -1341,17 +1342,41 @@ export default function TitulosTab() {
                         </Button>
                       )}
 
-                      {/* Baixa manual — em qualquer estágio (registro de pagamento por fora) */}
-                      {detalhe.eixo_status === "a_vencer" && (
-                        <div className="flex flex-col gap-1">
-                          <Button variant="outline" onClick={() => setBaixando(detalhe)}>
-                            Baixa manual — cliente pagou por fora
-                          </Button>
-                          <p className="text-[10px] text-muted-foreground px-1">
-                            Registra pagamento real recebido fora do fluxo bancário. Não é encerramento.
-                          </p>
-                        </div>
-                      )}
+                      {/* Cliente pagou por fora — porta certa: o dinheiro entra na CONTA do
+                          cliente e o FIFO do banco abate os títulos abertos. A baixa manual
+                          direta no título só sobra para haver/troca, onde não entrou dinheiro. */}
+                      {detalhe.eixo_status === "a_vencer" && (() => {
+                        const semDinheiro =
+                          detalhe.tipo_pagamento === "haver" ||
+                          detalhe.tipo_pagamento === "troca_mercadoria";
+                        if (semDinheiro) {
+                          return (
+                            <div className="flex flex-col gap-1">
+                              <Button variant="outline" onClick={() => setBaixando(detalhe)}>
+                                Baixa manual — {detalhe.tipo_pagamento === "haver" ? "haver" : "troca de mercadoria"}
+                              </Button>
+                              <p className="text-[10px] text-muted-foreground px-1">
+                                Não entrou dinheiro, então não há o que creditar na conta do cliente.
+                              </p>
+                            </div>
+                          );
+                        }
+                        return (
+                          <div className="flex flex-col gap-1">
+                            <RegistrarRecebimentoDialog
+                              parceiroId={detalhe.parceiro_id}
+                              parceiroNome={detalhe.parceiro_nome_fantasia ?? detalhe.parceiro_razao_social ?? null}
+                              valorSugerido={detalhe.valor_efetivo}
+                            >
+                              <Button variant="outline">Cliente pagou — declarar recebimento</Button>
+                            </RegistrarRecebimentoDialog>
+                            <p className="text-[10px] text-muted-foreground px-1">
+                              O valor entra na conta do cliente e abate os títulos abertos
+                              automaticamente, do mais antigo para o mais novo.
+                            </p>
+                          </div>
+                        );
+                      })()}
                     </>
                   );
                 })()}

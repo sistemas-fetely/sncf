@@ -48,6 +48,7 @@ import {
 } from "@/hooks/financeiro/useContaCliente";
 import type { LeituraComprovante } from "@/hooks/comercial/useComprovantePagamento";
 import { InputMoedaBR } from "@/components/compras/InputMoedaBR";
+import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 
 const MEIOS: { valor: string; label: string }[] = [
   { valor: "pix", label: "PIX" },
@@ -81,16 +82,24 @@ interface Props {
   /** Cliente pré-selecionado (vem do drawer da Conta do Cliente). */
   parceiroId?: string | null;
   parceiroNome?: string | null;
+  /**
+   * Valor sugerido (ex.: valor efetivo do título na aba Títulos). É só sugestão:
+   * o cliente pode ter pago mais ou menos, e isso é normal no modelo de conta.
+   */
+  valorSugerido?: number | null;
+  /** Chamado depois do registro bem-sucedido (fechar drawer, etc.). */
+  onSucesso?: () => void;
 }
 
-export function RegistrarRecebimentoDialog({ children, parceiroId, parceiroNome }: Props) {
+export function RegistrarRecebimentoDialog({ children, parceiroId, parceiroNome, valorSugerido, onSucesso }: Props) {
+
   const [open, setOpen] = useState(false);
   const [cliente, setCliente] = useState<{ id: string; nome: string } | null>(
     parceiroId ? { id: parceiroId, nome: parceiroNome || "Cliente" } : null,
   );
   const [buscaOpen, setBuscaOpen] = useState(false);
   const [busca, setBusca] = useState("");
-  const [valor, setValor] = useState(0);
+  const [valor, setValor] = useState(valorSugerido && valorSugerido > 0 ? valorSugerido : 0);
   const [data, setData] = useState(hojeIso());
   const [meio, setMeio] = useState("pix");
   const [chave, setChave] = useState("");
@@ -106,10 +115,16 @@ export function RegistrarRecebimentoDialog({ children, parceiroId, parceiroNome 
   const { data: opcoes = [], isLoading: buscando } = useClientesBusca(busca);
   const registrar = useRegistrarRecebimentoCliente();
   const lerComprovante = useLerComprovanteConta();
+  const invalidarRecebivel = useInvalidarRecebivel();
 
   useEffect(() => {
     if (parceiroId) setCliente({ id: parceiroId, nome: parceiroNome || "Cliente" });
   }, [parceiroId, parceiroNome]);
+
+  useEffect(() => {
+    if (valorSugerido && valorSugerido > 0) setValor(valorSugerido);
+  }, [valorSugerido]);
+
 
   const maxData = hojeIso();
   const dataFutura = data > maxData;
@@ -121,7 +136,7 @@ export function RegistrarRecebimentoDialog({ children, parceiroId, parceiroNome 
   );
 
   function limpar() {
-    setValor(0);
+    setValor(valorSugerido && valorSugerido > 0 ? valorSugerido : 0);
     setData(hojeIso());
     setMeio("pix");
     setChave("");
@@ -190,12 +205,23 @@ export function RegistrarRecebimentoDialog({ children, parceiroId, parceiroNome 
       });
       const nivel = (res.nivel_prova ?? "declarado_humano") as NivelProva;
       setUltimaProva({ nivel, aviso: res.aviso });
+      const saldoTxt =
+        typeof res.saldo_conta_apos === "number"
+          ? ` · saldo na conta: ${formatBRL(res.saldo_conta_apos)}`
+          : "";
       toast.success(
-        `${formatBRL(res.valor ?? valor)} registrado para ${res.cliente ?? cliente.nome} — prova: ${nivel}`,
-        { description: res.aviso ?? undefined },
+        `${formatBRL(res.valor ?? valor)} registrado para ${res.cliente ?? cliente.nome} — prova: ${nivel}${saldoTxt}`,
       );
+      // O aviso da RPC (ex.: sem chave e sem comprovante = declarado por humano)
+      // ganha toast próprio para não passar batido.
+      if (res.aviso) toast.warning(res.aviso);
+
+      // Títulos abertos do cliente são consumidos por FIFO no banco: as telas
+      // de cobrança/recebível precisam ser refeitas junto com a conta.
+      await invalidarRecebivel();
       limpar();
       setOpen(false);
+      onSucesso?.();
     } catch (e: any) {
       // FAIL-LOUD: a mensagem do banco vai crua para a tela.
       toast.error("Recebimento não registrado", {

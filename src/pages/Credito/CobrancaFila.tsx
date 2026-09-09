@@ -39,7 +39,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import {
   Search, FileDown, Upload, CheckCircle2, XCircle, Clock,
-  AlertTriangle, FileText, RefreshCw, ChevronDown, ChevronRight,
+  AlertTriangle, FileText, RefreshCw, ChevronDown, ChevronRight, Plus,
 } from "lucide-react";
 import { formatCNPJ } from "@/lib/cnpj";
 import { formatBRL } from "@/lib/format-currency";
@@ -47,6 +47,7 @@ import { baixarArquivoRemessa } from "@/lib/financeiro/baixarArquivoRemessa";
 import { supabase } from "@/integrations/supabase/client";
 import type { TituloBoletoPendente, ValidacaoRemessa, BoletoStatus, ResultadoRetorno } from "@/types/credito";
 import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
+import { RegistrarRecebimentoDialog } from "@/components/financeiro/RegistrarRecebimentoDialog";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -1256,7 +1257,15 @@ export default function CobrancaFila() {
         title="Cobrança"
         subtitle="Gestão de títulos, remessas bancárias e cobrança"
         actions={
-          totalBaixasPend > 0 ? (
+          <div className="flex items-center gap-2">
+            {/* Porta certa do "cliente pagou": entra na conta do cliente e o FIFO
+                abate os títulos. Visível de qualquer aba, de propósito. */}
+            <RegistrarRecebimentoDialog>
+              <Button size="sm" className="gap-1.5">
+                <Plus className="h-3.5 w-3.5" /> Declarar recebimento
+              </Button>
+            </RegistrarRecebimentoDialog>
+            {totalBaixasPend > 0 ? (
             <button
               type="button"
               onClick={() => setTabAtiva("banco")}
@@ -1266,7 +1275,8 @@ export default function CobrancaFila() {
               <AlertTriangle className="h-3.5 w-3.5" />
               {totalBaixasPend} {totalBaixasPend === 1 ? "baixa pendente" : "baixas pendentes"}
             </button>
-          ) : null
+            ) : null}
+          </div>
         }
       />
 
