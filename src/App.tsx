@@ -455,8 +455,10 @@ const App = () => (
                 <Route path="/tarefas/projetos" element={<ProjetosGrid />} />
                 <Route path="/tarefas/projetos/:id" element={<ProjetoDetalhe />} />
                 <Route path="/tarefas/calendario" element={<CalendarioTarefas />} />
+                {/* Carga virou aba da Mesa do Gestor (09/09/2026). Rota mantida para não dar 404 em link salvo. */}
                 <Route path="/tarefas/carga" element={<CargaTrabalho />} />
                 <Route path="/tarefas/time" element={<MeuTime />} />
+
                 <Route path="/tarefas/mesa-gestor" element={<MesaGestor />} />
                 {/* Atribuições virou aba da Mesa do Gestor (07/09/2026). Rota mantida para não dar 404 em link salvo. */}
                 <Route
