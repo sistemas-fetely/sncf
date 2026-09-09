@@ -20,6 +20,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Eye, EyeOff, Loader2, RefreshCw, CheckCircle2, XCircle, AlertCircle, Settings2, ExternalLink, Mail, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PUBLIC_APP_URL } from "@/lib/urls";
+import { fmtDataHora } from "@/lib/data";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -48,6 +49,13 @@ export default function ConfiguracaoIntegracao() {
   const [processingCode, setProcessingCode] = useState(false);
   const [fixExecutado, setFixExecutado] = useState(false);
   const [logsLimit, setLogsLimit] = useState(5);
+
+  // XPM / ZenLOG — inspeção somente leitura
+  const [xpmAmbiente, setXpmAmbiente] = useState<"producao" | "homologacao">("producao");
+  const [xpmBusca, setXpmBusca] = useState("");
+  const [xpmInspecionando, setXpmInspecionando] = useState(false);
+  const [xpmErro, setXpmErro] = useState<string | null>(null);
+  const [xpmResultado, setXpmResultado] = useState<any>(null);
 
   // Financeiro externo
   const [showDialogFin, setShowDialogFin] = useState(false);
@@ -123,6 +131,59 @@ export default function ConfiguracaoIntegracao() {
     },
     refetchInterval: syncing ? 2000 : 10_000,
   });
+
+  const { data: xpmOperacoes = [], isLoading: xpmLoading } = useQuery({
+    queryKey: ["xpm-api-operacao", xpmAmbiente],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("xpm_api_operacao")
+        .select("*")
+        .eq("ambiente", xpmAmbiente)
+        .order("path", { ascending: true })
+        .order("metodo", { ascending: true });
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  const xpmOperacoesFiltradas = xpmOperacoes.filter((op: any) => {
+    if (!xpmBusca.trim()) return true;
+    const b = xpmBusca.trim().toLowerCase();
+    return (
+      (op.path || "").toLowerCase().includes(b) ||
+      (op.operation_id || "").toLowerCase().includes(b)
+    );
+  });
+  const xpmColetadoEm = xpmOperacoes[0]?.coletado_em ?? null;
+
+  async function inspecionarXpm() {
+    setXpmInspecionando(true);
+    setXpmErro(null);
+    setXpmResultado(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("inspecionar-api-xpm", {
+        body: { ambiente: xpmAmbiente },
+      });
+      if (error) {
+        const corpo = (data as any)?.erro || (data as any)?.mensagem || "";
+        throw new Error(`${error.message}${corpo ? ` — ${corpo}` : ""}`);
+      }
+      if (data?.sucesso === false || data?.erro) {
+        throw new Error(data.erro || "A inspeção falhou sem detalhe.");
+      }
+      if (!data?.total) {
+        throw new Error("A inspeção retornou inventário vazio — nenhuma operação gravada. Verifique a URL e o ambiente.");
+      }
+      setXpmResultado(data);
+      toast.success(`Inventário XPM (${xpmAmbiente}): ${data.total} operações`);
+      qc.invalidateQueries({ queryKey: ["xpm-api-operacao"] });
+    } catch (e: any) {
+      setXpmErro(e?.message || String(e));
+      toast.error("Inspeção XPM falhou — veja o erro na tela");
+    } finally {
+      setXpmInspecionando(false);
+    }
+  }
 
   const { data: configFinanceiro = [] } = useQuery({
     queryKey: ["config-financeiro-externo"],
@@ -416,6 +477,7 @@ export default function ConfiguracaoIntegracao() {
         <TabsList>
           <TabsTrigger value="bling">Bling</TabsTrigger>
           <TabsTrigger value="email">Email Externo</TabsTrigger>
+          <TabsTrigger value="xpm">XPM / ZenLOG</TabsTrigger>
         </TabsList>
 
         {/* ABA BLING */}
@@ -889,6 +951,133 @@ export default function ConfiguracaoIntegracao() {
               >
                 <Plus className="h-4 w-4" /> Adicionar destinatário
               </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ABA XPM / ZENLOG */}
+        <TabsContent value="xpm" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Inventário da API</CardTitle>
+              <CardDescription>
+                Descobre quais operações a API da ZenLOG expõe, lendo o Swagger dela, sem chamar nenhuma operação de negócio.
+                A inspeção é somente leitura: nenhum pedido é criado, alterado ou movido na ZenLOG.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <Select
+                  value={xpmAmbiente}
+                  onValueChange={(v) => setXpmAmbiente(v as "producao" | "homologacao")}
+                >
+                  <SelectTrigger className="w-44">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="producao">Produção</SelectItem>
+                    <SelectItem value="homologacao">Homologação</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  onClick={inspecionarXpm}
+                  disabled={xpmInspecionando}
+                  className="bg-admin hover:bg-admin/90 text-admin-foreground"
+                >
+                  {xpmInspecionando ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  {xpmInspecionando ? "Inspecionando..." : "Inspecionar API"}
+                </Button>
+              </div>
+
+              {xpmErro && (
+                <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                  <p className="font-medium mb-1">A inspeção da API da ZenLOG falhou.</p>
+                  <p className="whitespace-pre-wrap break-words">{xpmErro}</p>
+                </div>
+              )}
+
+              {xpmResultado && !xpmErro && (
+                <div className="rounded-md border border-border bg-muted/40 p-3 text-sm space-y-1">
+                  <p>
+                    <span className="text-muted-foreground">Ambiente:</span> {xpmResultado.ambiente}
+                  </p>
+                  <p>
+                    <span className="text-muted-foreground">URL que respondeu:</span>{" "}
+                    {xpmResultado.swagger_url || xpmResultado.url || "—"}
+                  </p>
+                  <p>
+                    <span className="text-muted-foreground">Operações gravadas:</span> {xpmResultado.total}
+                  </p>
+                  {Array.isArray(xpmResultado.destaque) && xpmResultado.destaque.length > 0 && (
+                    <p>
+                      <span className="text-muted-foreground">Expedição/Pedido:</span>{" "}
+                      {xpmResultado.destaque.join(", ")}
+                    </p>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Operações expostas</CardTitle>
+              <CardDescription>
+                {xpmOperacoes.length > 0
+                  ? `${xpmOperacoes.length} operações no ambiente ${xpmAmbiente === "producao" ? "de produção" : "de homologação"}, coletadas em ${fmtDataHora(xpmColetadoEm)}.`
+                  : "Inventário do ambiente selecionado."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Input
+                placeholder="Buscar por path ou operation_id (ex.: Expedicao, Pedido)"
+                value={xpmBusca}
+                onChange={(e) => setXpmBusca(e.target.value)}
+                className="max-w-md"
+              />
+
+              {xpmLoading ? (
+                <div className="flex items-center justify-center py-10">
+                  <Loader2 className="h-5 w-5 animate-spin text-admin" />
+                </div>
+              ) : xpmOperacoes.length === 0 ? (
+                <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+                  A inspeção nunca foi rodada para este ambiente. Use o botão acima para coletar o inventário.
+                </div>
+              ) : xpmOperacoesFiltradas.length === 0 ? (
+                <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+                  Nenhuma operação bate com a busca.
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Path</TableHead>
+                      <TableHead className="w-24">Método</TableHead>
+                      <TableHead>Operation ID</TableHead>
+                      <TableHead>Summary</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {xpmOperacoesFiltradas.map((op: any) => (
+                      <TableRow key={`${op.metodo}:${op.path}`}>
+                        <TableCell className="font-mono text-xs">{op.path}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-mono">
+                            {op.metodo}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm">{op.operation_id || "—"}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{op.summary || "—"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
