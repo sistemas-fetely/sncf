@@ -211,6 +211,8 @@ type TrilhaArquivo = {
   conta?: string;
   /** Aviso não-fatal — ex.: divergência cabeçalho OFX × mapeamento da fonte. */
   aviso?: string;
+  /** Aprendizado: cadastro completado com agência/conta vindas do arquivo. */
+  completado?: string;
   /**
    * Sucesso idempotente: o arquivo não foi lido porque já tinha sido
    * processado antes. Veredito em tom neutro, nem verde nem vermelho.
