@@ -706,6 +706,22 @@ serve(async (req) => {
     // O FATOR e calculado contra o PLANO COMPLETO (portao incluido): se fosse contra o que sobra,
     // as parcelas a prazo seriam INFLADAS para cobrir o que o cliente ja pagou. Medido: entrada de
     // cartao e 25-33% do plano nos pedidos mistos.
+
+    // SEM-DUPLICATA-SAI-DO-ARRAY (09/09/2026, PED-2189): o que sai do array e o que NUNCA sera
+    // cobrado do cliente — seja porque o dinheiro ja entrou (portao), seja porque nao e dinheiro
+    // a receber (gera_duplicata = false na dimensao: haver, sem_pagamento). Sem este filtro a
+    // linha de haver descia fantasiada da forma do pedido e o Bling recusava: soma das parcelas
+    // != total da venda (erro 22). A lista NAO mora aqui: a dimensao e o banco.
+    const { data: formasDim, error: formasDimErr } = await supabase
+      .from("formas_pagamento")
+      .select("codigo, gera_duplicata");
+    if (formasDimErr) {
+      return await falhaLimpando(
+        `Não foi possível ler formas_pagamento (dimensão de duplicatas): ${formasDimErr.message}`, 500);
+    }
+    const semDuplicata = new Set(
+      (formasDim ?? []).filter((f: any) => f.gera_duplicata === false).map((f: any) => f.codigo),
+    );
     const somaPlano = parseFloat(
       titulos.reduce((s: number, t: any) => s + Number(t.valor_bruto), 0).toFixed(2),
     );
