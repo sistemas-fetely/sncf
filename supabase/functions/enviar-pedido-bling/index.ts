@@ -469,6 +469,8 @@ serve(async (req) => {
       // validação dos itens. Toda saída de erro entre a criação e o POST passa por
       // `falhaLimpando()`, que apaga a remessa criada nesta chamada. Remessa preexistente
       // nunca é apagada, e nada é apagado depois que o POST foi efetivamente enviado.
+      // Só cria quando nenhuma remessa foi adotada acima.
+      if (!remessa) {
       const { data: rpcResult, error: rpcErr } = await supabase.rpc("criar_remessa" as string, {
         p_pedido_id: pedido_id,
         p_status: "pronta_para_envio",
