@@ -342,9 +342,33 @@ export default function ShopifyB2c() {
                                 <span className="font-mono text-xs">{txt(p.order_name)}</span>
                                 {p.alerta && (
                                   <div className="mt-1">
-                                    <Selo estado={ALERTA_ESTADO[p.alerta] ?? "muted"}>
-                                      {rotuloAlerta(p.alerta)}
-                                    </Selo>
+                                    {p.bloqueio_motivo ? (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span>
+                                            <Selo estado={severidadeDoAlerta(p.alerta)}>
+                                              {rotuloDoAlerta(p.alerta)}
+                                            </Selo>
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <div className="max-w-xs space-y-1">
+                                            <p className="text-sm">{p.bloqueio_motivo}</p>
+                                            {p.bloqueio_tentativas != null && (
+                                              <p className="text-xs text-muted-foreground">
+                                                {p.bloqueio_tentativas} tentativa
+                                                {p.bloqueio_tentativas === 1 ? "" : "s"}, última em{" "}
+                                                {fmtDataHora(p.bloqueio_em)}
+                                              </p>
+                                            )}
+                                          </div>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    ) : (
+                                      <Selo estado={severidadeDoAlerta(p.alerta)}>
+                                        {rotuloDoAlerta(p.alerta)}
+                                      </Selo>
+                                    )}
                                   </div>
                                 )}
                               </TableCell>
