@@ -317,6 +317,12 @@ serve(async (req) => {
       ator: string;
       payload: Record<string, unknown>;
     }> = [];
+    const liquidacoesParaConferir: Array<{
+      numeroLinha: number;
+      nossoNumero: string;
+      numeroTitulo: string;
+      valorCreditado: number;
+    }> = [];
     const registrarEvento = (
       tituloId: string,
       tipo: string,
@@ -786,24 +792,15 @@ serve(async (req) => {
             data_pagamento: dataPagamentoIso.slice(0, 10),
           });
 
-          // GUARDA FAIL-LOUD: o pagamento do título vem do crédito na conta do cliente
-          // (gatilho fn_tg_retorno_credita_conta + FIFO). Se o crédito não entrou, o
-          // título fica ABERTO com o banco tendo liquidado — precisa gritar no relatório.
-          const { data: lanc } = await sb
-            .from("conta_cliente_lancamento")
-            .select("id, valor")
-            .eq("chave", `retorno06:${linha.nossoNumero}`)
-            .maybeSingle();
-          if (!lanc) {
-            alertas.push(
-              `⚠ LIQUIDAÇÃO SEM CRÉDITO NA CONTA — título ${t.numero_titulo ?? t.nosso_numero_seq ?? "s/n"}, nosso número ${linha.nossoNumero}, R$ ${valorCreditado.toFixed(2)}. O banco liquidou mas o crédito não entrou na conta do cliente (verifique o corte de data do gatilho). O título segue ABERTO e será cobrado indevidamente.`,
-            );
-            contadores.nao_aplicadas++;
-          } else if (Math.abs(Number(lanc.valor) - valorCreditado) > 0.01) {
-            alertas.push(
-              `⚠ DIVERGÊNCIA ENTRE LIQUIDAÇÃO E CRÉDITO — título ${t.numero_titulo ?? t.nosso_numero_seq ?? "s/n"}, nosso número ${linha.nossoNumero}: banco liquidou R$ ${valorCreditado.toFixed(2)} e a conta do cliente recebeu R$ ${Number(lanc.valor).toFixed(2)}.`,
-            );
-          }
+          // Coleta para conferência depois que o gatilho de banco tiver rodado.
+          // A gravação em safra_retorno_ocorrencia (e o crédito na conta) só acontece
+          // após este loop, então a guarda falso-positiva se consultasse aqui.
+          liquidacoesParaConferir.push({
+            numeroLinha: linha.numeroLinha,
+            nossoNumero: linha.nossoNumero,
+            numeroTitulo: t.numero_titulo ?? t.nosso_numero_seq ?? "s/n",
+            valorCreditado,
+          });
 
           contadores.liquidacoes++;
           marcarDesfecho(linha.numeroLinha, true, null);
@@ -1148,6 +1145,37 @@ serve(async (req) => {
         .from("safra_retorno_ocorrencia")
         .upsert(rowsOc.slice(i, i + 200), { onConflict: "nro_sequencial,linha" });
       if (errOc) erros.push({ linha: 0, nosso_numero: "", erro: `gravar ocorrências: ${errOc.message}` });
+    }
+
+    // ── GUARDA FAIL-LOUD: conferir que toda liquidação gerou crédito na conta ─
+    // O gatilho fn_tg_retorno_credita_conta já rodou no upsert acima. Se o crédito
+    // não entrou, o título fica ABERTO com o banco tendo liquidado — precisa gritar.
+    if (liquidacoesParaConferir.length > 0) {
+      const chaves = liquidacoesParaConferir.map((l) => `retorno06:${l.nossoNumero}`);
+      const { data: lancs, error: errLanc } = await sb
+        .from("conta_cliente_lancamento")
+        .select("chave, valor")
+        .in("chave", chaves);
+      if (errLanc) {
+        erros.push({ linha: 0, nosso_numero: "", erro: `conferir crédito na conta: ${errLanc.message}` });
+      } else {
+        const porChave = new Map<string, number>(
+          (lancs ?? []).map((l: { chave: string; valor: number }) => [l.chave, Number(l.valor)]),
+        );
+        for (const l of liquidacoesParaConferir) {
+          const v = porChave.get(`retorno06:${l.nossoNumero}`);
+          if (v === undefined) {
+            alertas.push(
+              `⚠ LIQUIDAÇÃO SEM CRÉDITO NA CONTA — título ${l.numeroTitulo}, nosso número ${l.nossoNumero}, R$ ${l.valorCreditado.toFixed(2)}. O banco liquidou mas o crédito não entrou na conta do cliente (verifique o corte de data do gatilho). O título segue ABERTO e será cobrado indevidamente.`,
+            );
+            contadores.nao_aplicadas++;
+          } else if (Math.abs(v - l.valorCreditado) > 0.01) {
+            alertas.push(
+              `⚠ DIVERGÊNCIA ENTRE LIQUIDAÇÃO E CRÉDITO — título ${l.numeroTitulo}, nosso número ${l.nossoNumero}: banco liquidou R$ ${l.valorCreditado.toFixed(2)} e a conta do cliente recebeu R$ ${v.toFixed(2)}.`,
+            );
+          }
+        }
+      }
     }
 
     // ── EVENTO-NO-TITULO: grava o rastro no grão do TÍTULO ────────────────
