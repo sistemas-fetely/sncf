@@ -376,6 +376,25 @@ serve(async (req) => {
     // para permitir a compensação em qualquer caminho de erro antes do POST.
     let remessaCriadaNestaChamada: string | null = null;
 
+    // Compensação: apaga a remessa criada nesta chamada antes de devolver o erro.
+    const limparRemessaOrfa = async () => {
+      if (!remessaCriadaNestaChamada) return;
+      const id = remessaCriadaNestaChamada;
+      remessaCriadaNestaChamada = null;
+      try {
+        await supabase.from("pedido_remessa").delete().eq("id", id).is("bling_pedido_id", null);
+      } catch (e) {
+        console.error("[enviar-pedido-bling] falha ao limpar remessa órfã", id, e);
+      }
+    };
+    const falhaLimpando = async (msg: string, status = 400) => {
+      await limparRemessaOrfa();
+      return err(msg, status);
+    };
+    cleanupRemessaOrfa = limparRemessaOrfa;
+
+
+
 
     if (remessa_id_input) {
       // Remessa explícita (split)
@@ -405,14 +424,38 @@ serve(async (req) => {
         .neq("status", "cancelada");
 
       if (remessasExistentes && remessasExistentes.length > 0) {
-        const lista = remessasExistentes
-          .map((r: any) => `seq ${r.sequencia} (${r.status}${r.bling_pedido_id ? ` — Bling ${r.bling_pedido_id}` : ""})`)
-          .join(", ");
-        return err(
-          `Pedido já possui ${remessasExistentes.length} remessa(s) ativa(s): ${lista}. ` +
-          `Selecione uma remessa específica para enviar ao invés de criar nova automaticamente.`,
-          409,
-        );
+        // Adoção: com UMA única remessa pronta_para_envio e nunca enviada ao Bling
+        // (bling_pedido_id nulo) não existe ambiguidade — adotar é o mesmo que o
+        // operador faria escolhendo a remessa na mão. O guardrail existe para
+        // ambiguidade (2+ remessas) e idempotência (remessa já enviada nunca é
+        // adotada), não para punir uma tentativa anterior cujo POST falhou.
+        const unica = remessasExistentes.length === 1 ? remessasExistentes[0] : null;
+        if (unica && unica.status === "pronta_para_envio" && !unica.bling_pedido_id) {
+          const { data: remAdotada, error: remAdotadaErr } = await supabase
+            .from("pedido_remessa")
+            .select("*")
+            .eq("id", unica.id)
+            .maybeSingle();
+          if (remAdotadaErr || !remAdotada) {
+            return await falhaLimpando(
+              `Falha ao carregar a remessa seq ${unica.sequencia} para adoção: ${remAdotadaErr?.message ?? "não encontrada"}`,
+              500,
+            );
+          }
+          remessa = remAdotada;
+          console.log(
+            `[enviar-pedido-bling] remessa seq ${unica.sequencia} ADOTADA (preexistente, nunca enviada) em vez de criada — pedido ${pedido_id}`,
+          );
+        } else {
+          const lista = remessasExistentes
+            .map((r: any) => `seq ${r.sequencia} (${r.status}${r.bling_pedido_id ? ` — Bling ${r.bling_pedido_id}` : ""})`)
+            .join(", ");
+          return err(
+            `Pedido já possui ${remessasExistentes.length} remessa(s) ativa(s): ${lista}. ` +
+            `Selecione uma remessa específica para enviar ao invés de criar nova automaticamente.`,
+            409,
+          );
+        }
       }
 
       // FAIL-LOUD SEM DEIXAR RASTRO — a remessa e um efeito colateral persistente.
@@ -426,6 +469,8 @@ serve(async (req) => {
       // validação dos itens. Toda saída de erro entre a criação e o POST passa por
       // `falhaLimpando()`, que apaga a remessa criada nesta chamada. Remessa preexistente
       // nunca é apagada, e nada é apagado depois que o POST foi efetivamente enviado.
+      // Só cria quando nenhuma remessa foi adotada acima.
+      if (!remessa) {
       const { data: rpcResult, error: rpcErr } = await supabase.rpc("criar_remessa" as string, {
         p_pedido_id: pedido_id,
         p_status: "pronta_para_envio",
@@ -447,24 +492,9 @@ serve(async (req) => {
         return err("Remessa /01 criada mas não encontrada", 500);
       }
       remessa = rem;
+      }
     }
 
-    // Compensação: apaga a remessa criada nesta chamada antes de devolver o erro.
-    const limparRemessaOrfa = async () => {
-      if (!remessaCriadaNestaChamada) return;
-      const id = remessaCriadaNestaChamada;
-      remessaCriadaNestaChamada = null;
-      try {
-        await supabase.from("pedido_remessa").delete().eq("id", id).is("bling_pedido_id", null);
-      } catch (e) {
-        console.error("[enviar-pedido-bling] falha ao limpar remessa órfã", id, e);
-      }
-    };
-    const falhaLimpando = async (msg: string, status = 400) => {
-      await limparRemessaOrfa();
-      return err(msg, status);
-    };
-    cleanupRemessaOrfa = limparRemessaOrfa;
 
 
     // Código e valor da remessa
