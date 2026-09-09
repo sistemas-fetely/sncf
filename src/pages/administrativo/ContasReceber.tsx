@@ -573,6 +573,29 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
     return t.eh_inadimplente === true;
   };
 
+  /* DUAS-MEDIDAS-DO-VENCIDO (09/09/2026): o CFO precisa separar atraso real
+     (cobravel_hoje) de fim de semana/feriado ainda no prazo bancário
+     (em_carencia_bancaria). Sets por titulo_id — mesma chave de TodosTitulosTab. */
+  const { data: tituloEstadoLinhas } = useTituloEstado();
+  const cobravelIds = useMemo(
+    () =>
+      new Set(
+        (tituloEstadoLinhas ?? [])
+          .filter((l) => l.cobravel_hoje && l.titulo_id)
+          .map((l) => l.titulo_id as string),
+      ),
+    [tituloEstadoLinhas],
+  );
+  const carenciaIds = useMemo(
+    () =>
+      new Set(
+        (tituloEstadoLinhas ?? [])
+          .filter((l) => l.em_carencia_bancaria && l.titulo_id)
+          .map((l) => l.titulo_id as string),
+      ),
+    [tituloEstadoLinhas],
+  );
+
   /**
    * Camada nova entre `baseFiltros` e `baseCarteira`: filtros da faixa de KPI.
    * Os totais das colunas continuam vindo de `baseFiltros` — senão a coluna
