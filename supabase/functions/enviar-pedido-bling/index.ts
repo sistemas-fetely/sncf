@@ -729,6 +729,8 @@ serve(async (req) => {
       ? parseFloat((remessaValor / somaPlano).toFixed(6))
       : 1;
 
+    // Sai do array o que nunca será cobrado do cliente: dinheiro que já entrou
+    // (portão) ou que não é dinheiro a receber (gera_duplicata = false na dimensão).
     const titulosAPrazo = titulos.filter((t: any) => !t.eh_portao && !semDuplicata.has(t.tipo_pagamento));
     const valorPortaoPlano = parseFloat(
       titulos.filter((t: any) => t.eh_portao)
@@ -770,6 +772,7 @@ serve(async (req) => {
     console.log("[parcelas] plano", {
       linhas_plano: titulos.length, linhas_a_prazo: titulosAPrazo.length,
       valor_portao_plano: valorPortaoPlano, fator: fatorRemessa,
+      linhas_sem_duplicata: linhasSemDuplicata.length, valor_sem_duplicata: valorSemDuplicata,
       total: totalExato, soma_parcelas_enviadas: alvoAPrazo, tem_parcelas: temParcelas,
     });
 
