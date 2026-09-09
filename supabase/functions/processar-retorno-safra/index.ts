@@ -356,12 +356,7 @@ serve(async (req) => {
     }
 
 
-    // ── conta bancária Safra p/ movimentacoes_bancarias ────────────────────
-    const { data: safraConta } = await sb
-      .from("contas_bancarias").select("id").eq("banco_codigo", "422").eq("ativo", true).maybeSingle();
-    if (!safraConta) {
-      console.warn("[retorno-safra] Conta bancária Safra (422) não encontrada — movimentacoes_bancarias não serão gravadas");
-    }
+
 
     // ── parâmetros de remessa (para recálculo de código de barras) ─────────
     const { data: paramRows } = await sb.from("parametros_remessa_safra").select("chave, valor");
