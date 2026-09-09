@@ -1437,7 +1437,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
       {/* Faixa 1 — Estado da carteira. Recorte fixo: período, busca e banco.
           Colunas são filtro: "A receber" é o universo (limpa), garantido ×
           sem instrumento são par exclusivo, vencido é transversal. */}
-      <div className="grid grid-cols-2 divide-x divide-border rounded-xl border border-border bg-card md:grid-cols-4">
+      <div className="grid grid-cols-2 divide-x divide-border rounded-xl border border-border bg-card md:grid-cols-5">
         <ColunaKpi
           rotulo="A receber"
           valor={formatBRLCurto(estadoCarteira.aReceber)}
@@ -1465,12 +1465,15 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
           ativo={filtroInstrumento === "sem_instrumento"}
           onClick={() => clicarInstrumento("sem_instrumento")}
         />
+        {/* DUAS-MEDIDAS-DO-VENCIDO: atraso real (cobrável) separado da carência
+            bancária. A barra de faixas continua contábil (faixa_aging). */}
         <ColunaKpi
-          rotulo="Vencido (contábil)"
-          valor={formatBRLCurto(vencidoContabil.valor)}
+          rotulo="Vencido — cobrável"
+          valor={formatBRLCurto(cobravelHoje.valor)}
           corValor="text-destructive"
-          ativo={filtroPrazo === "vencidos"}
-          onClick={() => clicarPrazo("vencidos")}
+          sublinha={`de ${formatBRLCurto(vencidoContabil.valor)} vencidos no total`}
+          ativo={filtroPrazo === "cobravel"}
+          onClick={() => clicarPrazo("cobravel")}
           extraRotulo={
             <Popover>
               <PopoverTrigger asChild>
