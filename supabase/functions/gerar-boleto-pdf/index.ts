@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
-import { PDFDocument, StandardFonts, rgb } from "npm:pdf-lib@1.17.1";
+import { PDFDocument, StandardFonts, rgb, degrees } from "npm:pdf-lib@1.17.1";
 import { exigirPorta, NaoAutorizado } from "../_shared/autorizacao.ts";
 
 const corsHeaders = {
@@ -89,6 +89,11 @@ function desenharCodigoBarras(
 interface DadosBoleto {
   beneficiario_nome: string;
   beneficiario_cnpj: string;
+  banco_codigo:      string;
+  banco_nome:        string;
+  especie_titulo:    string;
+  /** Texto da tarja de conferência; null = boleto registrado, sem tarja. */
+  tarja:             string | null;
   agencia_cedente:   string;
   carteira:          string;
   nosso_numero_seq:  string;
@@ -152,10 +157,11 @@ async function buildPdf(dados: DadosBoleto): Promise<Uint8Array> {
     page.drawLine({ start: { x: mx, y: y - hdrH }, end: { x: mx, y }, thickness: 1.2, color: PRETO });
     page.drawLine({ start: { x: mx + lw, y: y - hdrH }, end: { x: mx + lw, y }, thickness: 1.2, color: PRETO });
 
-    page.drawText("BANCO SAFRA S.A.", { x: mx + 4, y: y - 19, size: 9, font: fontBold, color: PRETO });
+    page.drawText(dados.banco_nome, { x: mx + 4, y: y - 19, size: 9, font: fontBold, color: PRETO });
     vline(mx + nomeW, y - hdrH, hdrH);
 
-    page.drawText("422-7", { x: mx + nomeW + 9, y: y - 20, size: 11, font: fontBold, color: PRETO });
+    const codBanco = `${dados.banco_codigo}-${dvMod10(dados.banco_codigo)}`;
+    page.drawText(codBanco, { x: mx + nomeW + 9, y: y - 20, size: 11, font: fontBold, color: PRETO });
     vline(mx + nomeW + codW, y - hdrH, hdrH);
 
     const ldSize = 9.5;
@@ -187,7 +193,7 @@ async function buildPdf(dados: DadosBoleto): Promise<Uint8Array> {
     let rx = mx;
     cell(rx, y - r3H, w_dd, "Data do Documento",    fmtDateBR(dados.data_documento));  rx += w_dd; vline(rx, y - r3H, r3H);
     cell(rx, y - r3H, w_nd, "Numero do Documento",  dados.numero_documento);           rx += w_nd; vline(rx, y - r3H, r3H);
-    cell(rx, y - r3H, w_es, "Especie Doc.",         "DM");                             rx += w_es; vline(rx, y - r3H, r3H);
+    cell(rx, y - r3H, w_es, "Especie Doc.", dados.especie_titulo);                     rx += w_es; vline(rx, y - r3H, r3H);
     cell(rx, y - r3H, w_ac, "Aceite",               "N");                              rx += w_ac; vline(rx, y - r3H, r3H);
     cell(rx, y - r3H, w_dp, "Data do Processamento", fmtDateBR(dados.data_documento));
     vline(mx + lw - nnW, y - r3H, r3H);
@@ -275,6 +281,16 @@ async function buildPdf(dados: DadosBoleto): Promise<Uint8Array> {
   page.drawText("Autenticacao Mecanica", { x: mx + lw - 88, y: cbTop - 12, size: 7, font, color: CINZA });
   page.drawText("Ficha de Compensacao",  { x: mx + lw - 88, y: cbTop - 23, size: 7, font, color: CINZA });
 
+  // Tarja diagonal de conferencia — sai nas duas vias, por cima de tudo.
+  if (dados.tarja) {
+    for (const ty of [height * 0.72, height * 0.30]) {
+      page.drawText(dados.tarja, {
+        x: 60, y: ty, size: 17, font: fontBold,
+        color: rgb(0.85, 0.22, 0.18), opacity: 0.32, rotate: degrees(24),
+      });
+    }
+  }
+
   return await pdf.save();
 }
 
@@ -330,7 +346,7 @@ serve(async (req) => {
       .from("titulo_a_receber")
       .select(`
         id, numero_titulo, numero_parcela, total_parcelas, valor_bruto,
-        data_vencimento_atual, data_criacao, nosso_numero_seq,
+        data_vencimento_atual, data_criacao, nosso_numero_seq, boleto_status,
         linha_digitavel, codigo_barras_boleto,
         conta:contas_pagar_receber(
           parceiro:parceiros_comerciais(
@@ -425,11 +441,31 @@ serve(async (req) => {
 
     if (instrucoes.length === 0) instrucoes.push("NAO RECEBER APOS 30 DIAS DO VENCIMENTO.");
 
+    // BENEFICIARIO-VEM-DO-PARAMETRO: razao social, CNPJ, banco e carteira sao
+    // cadastro (parametros_remessa_safra), nao literal de codigo. Se faltar,
+    // FAIL-LOUD — boleto com beneficiario errado nao volta atras.
+    const faltandoParam = ["razao_social_cedente", "cnpj_cedente", "codigo_banco", "nome_banco", "tipo_carteira"]
+      .filter((k) => !params[k]);
+    if (faltandoParam.length > 0) {
+      return new Response(JSON.stringify({
+        ok: false,
+        erro: `Parametros do beneficiario ausentes em parametros_remessa_safra: ${faltandoParam.join(", ")}`,
+      }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const dados: DadosBoleto = {
-      beneficiario_nome: "FETELY COMERCIO IMPORTACAO E EXPORTACAO LTDA",
-      beneficiario_cnpj: "63.591.078/0001-48",
+      beneficiario_nome: params.razao_social_cedente,
+      beneficiario_cnpj: params.cnpj_cedente,
+      banco_codigo:      params.codigo_banco,
+      banco_nome:        params.nome_banco,
+      especie_titulo:    params.especie_titulo ?? "DM",
+      // Tarja de conferencia: boleto ainda nao confirmado pelo banco nao pode
+      // circular por engano. A marca vai NO PDF, de proposito.
+      tarja: t.boleto_status === "remessa_gerada"
+        ? "AGUARDANDO REGISTRO NO BANCO - NAO ENVIAR AO CLIENTE"
+        : null,
       agencia_cedente:   agenciaCedente,
-      carteira:          params.tipo_carteira ?? "60",
+      carteira:          params.tipo_carteira,
       nosso_numero_seq:  bv.nosso_numero,
       pagador_nome:      parceiro?.razao_social ?? "—",
       pagador_doc:       parceiro?.cnpj ?? parceiro?.cpf ?? "—",

@@ -35,6 +35,7 @@ import { useTituloEstadoKpis } from "@/hooks/financeiro/useTituloEstadoKpis";
 import { cn } from "@/lib/utils";
 import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
 import { AvisoBoletosVivos, BoletoVigenteLinhas } from "@/components/credito/AvisoBoletosVivos";
+import { BoletoImprimivelAcoes } from "@/components/credito/BoletoImprimivelAcoes";
 import { EsperaRetornoSafra } from "@/components/credito/EsperaRetornoSafra";
 import { BadgeStatusGestao } from "@/lib/financeiro/status-gestao";
 import { BaixaManualDialog } from "@/components/credito/BaixaManualDialog";
@@ -1132,6 +1133,18 @@ export default function TitulosTab() {
                         tituloId={detalhe.id}
                         fallbackNossoNumero={detalhe.nosso_numero_seq}
                         onCopiar={copiar}
+                      />
+                      {/* Cobrança Direta: o beneficiário imprime o boleto. Baixar
+                          para conferir e enviar ao cliente são portas separadas. */}
+                      <BoletoImprimivelAcoes
+                        tituloId={detalhe.id}
+                        boletoStatus={detalhe.boleto_status}
+                        linhaDigitavel={
+                          detalhe.boleto_vigente?.linha_digitavel ?? detalhe.linha_digitavel
+                        }
+                        codigoBarras={detalhe.boleto_vigente?.codigo_barras ?? null}
+                        enviando={enviarBoleto.isPending}
+                        onEnviar={() => setConfirmarEnvioBoleto(detalhe)}
                       />
                       <EnviosBoletoSection
                         pedidoId={detalhe.pedido_id}

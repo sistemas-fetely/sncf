@@ -200,7 +200,7 @@ export function useTitulosCobranca() {
       // sobre envio pelo estado do titulo, que e o defeito que isto conserta.
       const { data: vig, error: errV } = await (supabase as any)
         .from("vw_titulo_boleto_vigente")
-        .select("titulo_id, enviavel, nosso_numero, linha_digitavel, data_vencimento, valor, situacao, vigente_em_baixa, boletos_vivos, nosso_numero_em_baixa")
+        .select("titulo_id, enviavel, nosso_numero, linha_digitavel, codigo_barras, data_vencimento, valor, situacao, vigente_em_baixa, boletos_vivos, nosso_numero_em_baixa")
         .not("nosso_numero", "is", null);
       if (errV) throw new Error(`Falha ao resolver o boleto vigente: ${errV.message}`);
       const porTitulo = new Map<string, BoletoVigente>(
