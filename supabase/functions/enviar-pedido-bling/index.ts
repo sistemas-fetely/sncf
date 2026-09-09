@@ -492,6 +492,7 @@ serve(async (req) => {
         return err("Remessa /01 criada mas não encontrada", 500);
       }
       remessa = rem;
+      }
     }
 
 
