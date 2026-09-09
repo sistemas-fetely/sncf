@@ -312,7 +312,10 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
 
         return (
           <div key={rem.id} className="space-y-2">
-            {podeEnviar && (
+            {/* Com remessa única o caminho oficial é o "Enviar ao Bling e faturar"
+                do PreFaturamentoCard (passa pela conferência) — o botão de
+                tentativa só aparece quando existe mais de uma elegível. */}
+            {podeEnviar && elegiveis.length > 1 && (
               <>
                 {!podeEnviarBling && (
                   <Alert variant="default" className="bg-muted/60 border-border">
