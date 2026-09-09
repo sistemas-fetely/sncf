@@ -97,7 +97,11 @@ export default function ShopifyB2c() {
   const { data: pedidos, isLoading, isError, error } = usePedidosB2c();
   const { data: carrinhos, isLoading: carregandoCarrinhos } = useCarrinhosAbandonados();
   const { data: devolucoes, isLoading: carregandoDevolucoes } = useDevolucoesB2c();
-  const { data: alertasDim } = usePedidoAlertaDim();
+  const {
+    data: alertasDim,
+    isError: alertasDimErro,
+    error: alertasDimErroObj,
+  } = usePedidoAlertaDim();
 
   const setAba = (valor: string) => {
     const next = new URLSearchParams(searchParams);
