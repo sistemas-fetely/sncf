@@ -226,6 +226,7 @@ const PREFIXO_REMESSA: Record<string, string> = {
   entrada:     "SAFRA_",
   baixa:       "SAFRAB",
   prorrogacao: "SAFRAP",
+  reemissao:   "SAFRAR",
 };
 
 function nomeArquivoRemessa(tipo: string, nroSeq: number): string {
@@ -409,6 +410,214 @@ serve(async (req) => {
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    // BRANCH: REEMISSÃO EM UM MOVIMENTO (decisão Flavio 09/09/2026)
+    // Um único arquivo carrega, para cada título: o movimento 02 (baixa do
+    // boleto antigo, com o nosso_numero ANTIGO) e, na sequência, o movimento
+    // 01 (entrada do boleto novo, com vencimento/valor da reemissão e nosso
+    // número novo). A ordem 02 → 01 é obrigatória: o banco precisa processar
+    // a baixa antes da entrada. Enviado até 17h, tudo cai no mesmo dia.
+    // FAIL-LOUD por LOTE: um título inapto aborta o arquivo inteiro. Arquivo
+    // parcial de reemissão é pior que nenhum — deixa boleto vivo sem par.
+    // ═══════════════════════════════════════════════════════════════
+    if (tipo === "reemissao") {
+      const tituloIds: string[] = Array.isArray(body.titulo_ids) ? body.titulo_ids.filter(Boolean) : [];
+
+      let qRe = sb
+        .from("titulo_a_receber")
+        .select(`
+          id, numero_titulo, numero_parcela, total_parcelas,
+          valor_bruto, data_vencimento_atual, nosso_numero_seq, boleto_status,
+          reemissao_nova_data, reemissao_novo_valor,
+          conta:contas_pagar_receber(
+            parceiro:parceiros_comerciais(
+              id, razao_social, cnpj, cpf,
+              logradouro, numero, bairro, cep, cidade, uf
+            )
+          )
+        `)
+        .in("boleto_status", ["baixa_solicitada", "baixa_remessa_gerada"])
+        .not("reemissao_nova_data", "is", null);
+      if (tituloIds.length > 0) qRe = qRe.in("id", tituloIds);
+
+      const { data: titulosRe, error: reErr } = await qRe;
+      if (reErr) throw new Error(`Erro ao buscar títulos para reemissão: ${reErr.message}`);
+
+      if (!titulosRe || titulosRe.length === 0) {
+        return new Response(
+          JSON.stringify({ ok: false, erro: "Nenhum título com reemissão solicitada" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // deno-lint-ignore no-explicit-any
+      const inaptos = (titulosRe as any[])
+        // deno-lint-ignore no-explicit-any
+        .map((t: any) => {
+          if (!t.nosso_numero_seq) return { titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "Sem nosso_numero antigo — não há boleto a baixar" };
+          if (!t.reemissao_nova_data) return { titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "Sem reemissao_nova_data — reemissão não foi solicitada" };
+          if (!t.conta?.parceiro) return { titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "Parceiro não encontrado" };
+          return null;
+        })
+        .filter(Boolean);
+
+      if (inaptos.length > 0) {
+        return new Response(
+          JSON.stringify({
+            ok: false,
+            erro: "LOTE_REEMISSAO_ABORTADO: título inapto no lote — nenhum arquivo foi gerado",
+            erros: inaptos,
+          }),
+          { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const nroSeqRe = await proximoSequencial(sb);
+      const hojeRe   = new Date().toISOString().slice(0, 10);
+      const linhasRe: string[] = [];
+      linhasRe.push(gerarHeader(params, nroSeqRe, hojeRe));
+
+      let nroRegRe    = 2;
+      let valorNovoTotal = 0;
+      let valorArquivo   = 0;
+
+      const paresRe: Array<{
+        id: string; numero_titulo: string | null;
+        nossoNumeroAntigo: string; nossoNumeroNovo: string;
+        linhaDigitavel: string; codigoBarras: string;
+        venc: string; valor: number;
+      }> = [];
+
+      // deno-lint-ignore no-explicit-any
+      for (const t of titulosRe as any[]) {
+        const parceiro = t.conta.parceiro;
+        const nossoAntigo = String(t.nosso_numero_seq);
+
+        // 1º registro: BAIXA do boleto antigo (dados do boleto que morre).
+        linhasRe.push(gerarDetalhe(
+          { ...t, parceiro },
+          nossoAntigo,
+          params, nroSeqRe, nroRegRe,
+          "02"
+        ));
+        valorArquivo += Number(t.valor_bruto);
+        nroRegRe++;
+
+        // 2º registro: ENTRADA do boleto novo.
+        const nossoNovo = await alocarNossoNumero(sb);
+        const venc  = t.reemissao_nova_data as string;
+        const valor = Number(t.reemissao_novo_valor ?? t.valor_bruto);
+        const { linha, barras } = montarLinhaDigitavel(nossoNovo, venc, Math.round(valor * 100), params);
+
+        linhasRe.push(gerarDetalhe(
+          { ...t, parceiro, data_vencimento_atual: venc, valor_bruto: valor },
+          nossoNovo,
+          params, nroSeqRe, nroRegRe,
+          "01"
+        ));
+        valorArquivo    += valor;
+        valorNovoTotal  += valor;
+        nroRegRe++;
+
+        paresRe.push({
+          id: t.id, numero_titulo: t.numero_titulo,
+          nossoNumeroAntigo: nossoAntigo, nossoNumeroNovo: nossoNovo,
+          linhaDigitavel: linha, codigoBarras: barras,
+          venc, valor,
+        });
+      }
+
+      linhasRe.push(gerarTrailer(nroSeqRe, nroRegRe - 2, valorArquivo, nroRegRe));
+      const conteudoRe = linhasRe.join("\r\n") + "\r\n";
+      const nomeRe     = nomeArquivoRemessa("reemissao", nroSeqRe);
+
+      const { data: remessaRe, error: remessaReErr } = await sb
+        .from("remessas_safra")
+        .insert({
+          nro_sequencial: nroSeqRe,
+          gerado_por:     callerId,
+          qtd_titulos:    paresRe.length,
+          valor_total:    valorNovoTotal,
+          status:         "gerada",
+          arquivo_nome:   nomeRe,
+          tipo:           "reemissao",
+          conteudo:       conteudoRe,
+        })
+        .select("id")
+        .single();
+      if (remessaReErr || !remessaRe) throw new Error(`Erro ao gravar remessa de reemissão: ${remessaReErr?.message}`);
+
+      // deno-lint-ignore no-explicit-any
+      const remessaReId = (remessaRe as any).id as string;
+
+      for (const p of paresRe) {
+        // Boleto antigo: amarra à remessa que pediu a baixa.
+        const { error: bolAntigoErr } = await sb
+          .from("titulo_boleto")
+          .update({ remessa_baixa_id: remessaReId })
+          .eq("nosso_numero", p.nossoNumeroAntigo);
+        if (bolAntigoErr) console.error(`[gerar-remessa/reemissao] vincular baixa ${p.nossoNumeroAntigo}:`, bolAntigoErr);
+
+        // Boleto novo no histórico — FAIL-LOUD: boleto sem registro é buraco.
+        const { error: bolNovoErr } = await sb.from("titulo_boleto").insert({
+          titulo_id:          p.id,
+          nosso_numero:       p.nossoNumeroNovo,
+          remessa_entrada_id: remessaReId,
+          data_vencimento:    p.venc,
+          valor:              p.valor,
+          linha_digitavel:    p.linhaDigitavel,
+          codigo_barras:      p.codigoBarras,
+          situacao:           "emitido",
+          origem:             "gerar_remessa_reemissao_unica",
+          observacao:         `Baixa (02) e entrada (01) na mesma remessa ${nroSeqRe}. Boleto anterior: ${p.nossoNumeroAntigo}`,
+        });
+        if (bolNovoErr) throw new Error(`Falha ao registrar historico do boleto ${p.nossoNumeroNovo}: ${bolNovoErr.message}`);
+
+        // Aplica a reemissão: 'baixado_banco' é o gatilho da trigger
+        // trg_aplicar_reemissao_boleto (BEFORE) — ela aplica data/valor novos,
+        // zera nosso_numero/linha/código e devolve boleto_status='pendente'.
+        // Só pode acontecer DEPOIS de ler o nosso_numero antigo (feito acima).
+        const { error: aplicarErr } = await sb
+          .from("titulo_a_receber")
+          .update({
+            boleto_status:    "baixado_banco",
+            baixa_remessa_id: remessaReId,
+            remessa_safra_id: remessaReId,
+          })
+          .eq("id", p.id);
+        if (aplicarErr) throw new Error(`Erro ao aplicar reemissão no título ${p.numero_titulo ?? p.id}: ${aplicarErr.message}`);
+
+        // Segunda passada: a trigger zerou as chaves do boleto. Agora o título
+        // passa a descrever o boleto NOVO, que já está no arquivo.
+        const { error: novoErr } = await sb
+          .from("titulo_a_receber")
+          .update({
+            boleto_status:        "remessa_gerada",
+            nosso_numero_seq:     p.nossoNumeroNovo,
+            linha_digitavel:      p.linhaDigitavel,
+            codigo_barras_boleto: p.codigoBarras,
+          })
+          .eq("id", p.id);
+        if (novoErr) throw new Error(`Erro ao gravar boleto novo no título ${p.numero_titulo ?? p.id}: ${novoErr.message}`);
+      }
+
+      return new Response(
+        JSON.stringify({
+          ok:               true,
+          arquivo_conteudo: conteudoRe,
+          arquivo_nome:     nomeRe,
+          remessa_id:       remessaReId,
+          nro_sequencial:   nroSeqRe,
+          qtd_titulos:      paresRe.length,
+          qtd_registros:    nroRegRe - 2,
+          valor_total:      valorNovoTotal,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+
 
     // ═══════════════════════════════════════════════════════════════
     // BRANCH: PRORROGAÇÃO (ocorrência 06)

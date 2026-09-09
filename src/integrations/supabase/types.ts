@@ -90916,6 +90916,7 @@ export type Database = {
         Args: { p_titulo_id: string }
         Returns: boolean
       }
+      fn_titulo_espera_banco: { Args: { p_titulo_id: string }; Returns: string }
       fn_titulo_liquidacao_informada: {
         Args: { p_titulo_id: string }
         Returns: boolean

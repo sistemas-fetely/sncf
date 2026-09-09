@@ -70,6 +70,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { RetornoSafraPainel } from "@/components/financeiro/RetornoSafraPainel";
 import { EsperaRetornoSafra } from "@/components/credito/EsperaRetornoSafra";
 import { hojeISO } from "@/lib/data";
+import { AlertaBaixaRejeitadaReemissao } from "@/components/financeiro/AlertaBaixaRejeitadaReemissao";
 import { OPCOES_QUERY_RECEBIVEL, useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 
 /** Dias corridos desde uma data ISO (null se inválida). */
@@ -91,6 +92,10 @@ type TitulosBoleto = {
   boleto_enviado_em: string | null;
   prorrogacao_nova_data: string | null;
   prorrogacao_solicitada_em: string | null;
+  /** Reemissão solicitada: data/valor do boleto NOVO, ainda não aplicados ao título. */
+  reemissao_nova_data: string | null;
+  reemissao_novo_valor: number | null;
+  nosso_numero_seq: string | null;
   numero_parcela: number | null;
   total_parcelas: number | null;
   conta: { parceiro: { razao_social: string | null } | null } | null;
@@ -372,7 +377,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       // Anotada como `string` de propósito: alarga o literal e evita TS2589 no select aninhado.
       // O resultado segue tipado à mão via `as unknown as TitulosBoleto[]` abaixo.
       const SELECT_BOLETOS: string =
-        "id, numero_titulo, status, data_vencimento_atual, valor_bruto, boleto_status, boleto_enviado_em, prorrogacao_nova_data, prorrogacao_solicitada_em, numero_parcela, total_parcelas, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social)), pedido:pedidos(id, id_externo, faturado_em, condicao_solicitada)";
+        "id, numero_titulo, status, data_vencimento_atual, valor_bruto, boleto_status, boleto_enviado_em, prorrogacao_nova_data, prorrogacao_solicitada_em, reemissao_nova_data, reemissao_novo_valor, nosso_numero_seq, numero_parcela, total_parcelas, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social)), pedido:pedidos(id, id_externo, faturado_em, condicao_solicitada)";
       const { data, error } = await supabase
         .from("titulo_a_receber")
         .select(SELECT_BOLETOS)
@@ -394,6 +399,8 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
 
   const [gerandoBaixa, setGerandoBaixa] = useState(false);
   const [gerandoProrrogacao, setGerandoProrrogacao] = useState(false);
+  const [gerandoReemissao, setGerandoReemissao] = useState(false);
+  const [reemissaoDialogOpen, setReemissaoDialogOpen] = useState(false);
   const [gerandoEntrada, setGerandoEntrada] = useState(false);
   const [entradaDialogOpen, setEntradaDialogOpen] = useState(false);
   /** Quando existe, o Dialog de entrada considera apenas estes títulos (escopo de um cliente). */
@@ -416,6 +423,26 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
   const pendentesEntrada = useMemo(
     () => boletos.filter((b) => b.boleto_status === "pendente"),
     [boletos],
+  );
+
+  /**
+   * Fila de reemissão: título com reemissão solicitada e boleto antigo ainda
+   * registrado no banco. Vai inteira em UM arquivo (baixa 02 + entrada 01).
+   */
+  const filaReemissao = useMemo(
+    () =>
+      boletos.filter(
+        (b) =>
+          !!b.reemissao_nova_data &&
+          (b.boleto_status === "baixa_solicitada" ||
+            b.boleto_status === "baixa_remessa_gerada"),
+      ),
+    [boletos],
+  );
+
+  const totalReemissao = filaReemissao.reduce(
+    (s, b) => s + Number(b.reemissao_novo_valor ?? b.valor_bruto ?? 0),
+    0,
   );
 
   // edição inline de boletos (declarada aqui porque as sugestões dependem dela)
@@ -740,6 +767,43 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       toast({ title: "Erro ao gerar baixa", description: msg, variant: "destructive" });
     } finally {
       setGerandoBaixa(false);
+    }
+  };
+
+  /**
+   * REEMISSÃO EM UM MOVIMENTO: um clique, um arquivo. O arquivo carrega a baixa
+   * do boleto antigo (02) e o registro do novo (01) na mesma remessa.
+   */
+  const handleGerarReemissao = async () => {
+    setGerandoReemissao(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("gerar-remessa-safra", {
+        body: { tipo: "reemissao", titulo_ids: filaReemissao.map((b) => b.id) },
+      });
+      if (error || !data?.ok) {
+        const detalhe = Array.isArray(data?.erros)
+          ? data.erros.map((x: { numero_titulo?: string; motivo?: string }) => `${x.numero_titulo ?? "?"}: ${x.motivo ?? "?"}`).join(" · ")
+          : null;
+        throw new Error([data?.erro ?? error?.message ?? "Erro ao gerar remessa de reemissão", detalhe].filter(Boolean).join(" — "));
+      }
+      const blob = new Blob([data.arquivo_conteudo], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = data.arquivo_nome;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({
+        title: `Remessa de reemissão gerada: ${data.qtd_titulos} título(s)`,
+        description: `${data.qtd_registros ?? ""} registros no arquivo (baixa + novo boleto). Envie no SafraNet até 17h.`,
+      });
+      setReemissaoDialogOpen(false);
+      await revalidarTitulos();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: "Erro ao gerar reemissão", description: msg, variant: "destructive" });
+    } finally {
+      setGerandoReemissao(false);
     }
   };
 
@@ -1274,6 +1338,29 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       acao: onIrParaRemessas
         ? { label: "Abrir Remessas", onClick: onIrParaRemessas }
         : null,
+    });
+  }
+  if (filaReemissao.length > 0) {
+    linhasFaixa.push({
+      key: "reemissoes",
+      filtro: null,
+      tom: "ambar",
+      valor: totalReemissao,
+      texto: (
+        <>
+          {filaReemissao.length} reemissões aguardando envio
+          <span className="block text-xs text-muted-foreground">
+            O arquivo leva a baixa do boleto antigo e o registro do novo na mesma remessa.
+            Enviando até 17h, o novo boleto fica disponível hoje.
+          </span>
+        </>
+      ),
+      acao: {
+        label: "Gerar remessa de reemissão (baixa + novo boleto)",
+        onClick: () => setReemissaoDialogOpen(true),
+        disabled: gerandoReemissao,
+        loading: gerandoReemissao,
+      },
     });
   }
   if (boletosKpis.prorrogacaoPendente > 0) {
@@ -1926,7 +2013,78 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         </DialogContent>
       </Dialog>
 
+      {/* Reemissão em um movimento: baixa do antigo + entrada do novo no mesmo arquivo */}
+      <Dialog
+        open={reemissaoDialogOpen}
+        onOpenChange={(v) => {
+          if (gerandoReemissao) return;
+          setReemissaoDialogOpen(v);
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Gerar remessa de reemissão</DialogTitle>
+            <DialogDescription>
+              Um arquivo, um movimento: a baixa do boleto antigo (ocorrência 02) e o registro
+              do boleto novo (ocorrência 01) vão juntos, nesta ordem. Enviando no SafraNet até
+              17h, o novo boleto fica disponível hoje.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-md border border-warning/40 bg-warning/5 p-3 text-sm">
+            <p className="font-medium text-warning">Enquanto o banco não confirmar a baixa, o boleto antigo continua registrado.</p>
+            <p className="text-muted-foreground">Não reenvie o boleto antigo ao cliente.</p>
+          </div>
+
+          <div className="max-h-[320px] overflow-y-auto rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Título</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Nosso número antigo</TableHead>
+                  <TableHead>Novo vencimento</TableHead>
+                  <TableHead className="text-right">Novo valor</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filaReemissao.map((b) => (
+                  <TableRow key={b.id}>
+                    <TableCell className="font-mono text-xs">{b.numero_titulo || "—"}</TableCell>
+                    <TableCell className="max-w-[200px] truncate">
+                      {b.conta?.parceiro?.razao_social || "—"}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{b.nosso_numero_seq || "—"}</TableCell>
+                    <TableCell className="tabular-nums">{formatDateBR(b.reemissao_nova_data)}</TableCell>
+                    <TableCell className="text-right font-mono">
+                      {formatBRL(Number(b.reemissao_novo_valor ?? b.valor_bruto ?? 0))}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setReemissaoDialogOpen(false)}
+              disabled={gerandoReemissao}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleGerarReemissao} disabled={gerandoReemissao} className="gap-2">
+              {gerandoReemissao && <Loader2 className="h-4 w-4 animate-spin" />}
+              Gerar remessa de reemissão ({filaReemissao.length}) · {formatBRL(totalReemissao)}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertaBaixaRejeitadaReemissao />
+
       <RetornoSafraPainel />
+
     </PageShell>
   );
 }
