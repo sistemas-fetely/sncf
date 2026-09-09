@@ -132,6 +132,59 @@ export default function ConfiguracaoIntegracao() {
     refetchInterval: syncing ? 2000 : 10_000,
   });
 
+  const { data: xpmOperacoes = [], isLoading: xpmLoading } = useQuery({
+    queryKey: ["xpm-api-operacao", xpmAmbiente],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("xpm_api_operacao")
+        .select("*")
+        .eq("ambiente", xpmAmbiente)
+        .order("path", { ascending: true })
+        .order("metodo", { ascending: true });
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  const xpmOperacoesFiltradas = xpmOperacoes.filter((op: any) => {
+    if (!xpmBusca.trim()) return true;
+    const b = xpmBusca.trim().toLowerCase();
+    return (
+      (op.path || "").toLowerCase().includes(b) ||
+      (op.operation_id || "").toLowerCase().includes(b)
+    );
+  });
+  const xpmColetadoEm = xpmOperacoes[0]?.coletado_em ?? null;
+
+  async function inspecionarXpm() {
+    setXpmInspecionando(true);
+    setXpmErro(null);
+    setXpmResultado(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("inspecionar-api-xpm", {
+        body: { ambiente: xpmAmbiente },
+      });
+      if (error) {
+        const corpo = (data as any)?.erro || (data as any)?.mensagem || "";
+        throw new Error(`${error.message}${corpo ? ` — ${corpo}` : ""}`);
+      }
+      if (data?.sucesso === false || data?.erro) {
+        throw new Error(data.erro || "A inspeção falhou sem detalhe.");
+      }
+      if (!data?.total) {
+        throw new Error("A inspeção retornou inventário vazio — nenhuma operação gravada. Verifique a URL e o ambiente.");
+      }
+      setXpmResultado(data);
+      toast.success(`Inventário XPM (${xpmAmbiente}): ${data.total} operações`);
+      qc.invalidateQueries({ queryKey: ["xpm-api-operacao"] });
+    } catch (e: any) {
+      setXpmErro(e?.message || String(e));
+      toast.error("Inspeção XPM falhou — veja o erro na tela");
+    } finally {
+      setXpmInspecionando(false);
+    }
+  }
+
   const { data: configFinanceiro = [] } = useQuery({
     queryKey: ["config-financeiro-externo"],
     queryFn: async () => {
