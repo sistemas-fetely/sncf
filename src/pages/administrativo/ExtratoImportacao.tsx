@@ -72,6 +72,7 @@ type Conta = {
   banco_codigo: string | null;
   agencia: string | null;
   numero_conta: string | null;
+  ativo: boolean | null;
 };
 type Importacao = {
   id: string;
