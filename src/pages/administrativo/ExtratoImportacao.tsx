@@ -392,19 +392,34 @@ export default function ExtratoImportacao() {
 
     if (fonte === "ofx") {
       const cab = extrairCabecalhoOFX(await file.text());
-      const porCabecalho = resolverContaPorCabecalhoOFX(cab, contas);
-      if (porCabecalho) {
+      const res = resolverContaPorCabecalhoOFX(cab, contas);
+      if (res) {
+        const conta = res.conta;
         // BANCO-FALA-MAIS-ALTO: divergência entre cabeçalho e mapeamento da
         // fonte é resolvida pelo cabeçalho — ele é o próprio banco falando.
         const aviso =
-          porFonte && porFonte.id !== porCabecalho.id
-            ? `Divergência de conta: o cabeçalho do OFX aponta ${porCabecalho.nome_exibicao} e o mapeamento da fonte aponta ${porFonte.nome_exibicao}. Prevaleceu o cabeçalho do arquivo.`
+          porFonte && porFonte.id !== conta.id
+            ? `Divergência de conta: o cabeçalho do OFX aponta ${conta.nome_exibicao} e o mapeamento da fonte aponta ${porFonte.nome_exibicao}. Prevaleceu o cabeçalho do arquivo.`
             : undefined;
-        return { conta: porCabecalho, aviso };
+
+        // APRENDIZADO: o arquivo declara agência/conta que o cadastro não tem.
+        // Grava no cadastro para o próximo import resolver pela tríade.
+        let completado: string | undefined;
+        if (Object.keys(res.completar).length > 0) {
+          const { error: errCompletar } = await sb
+            .from("contas_bancarias")
+            .update(res.completar)
+            .eq("id", conta.id);
+          if (errCompletar) throw errCompletar;
+          completado = descreverCompletados(conta.nome_exibicao, res.completar);
+          qc.invalidateQueries({ queryKey: ["extrato-import-contas"] });
+        }
+
+        return { conta, aviso, completado };
       }
       if (porFonte) return { conta: porFonte };
       throw new Error(
-        `Conta bancária não identificada (${descreverCabecalho(cab)}). Cadastre a conta ou o mapeamento da fonte em /parametros.`
+        `Conta bancária não identificada (${descreverCabecalho(cab)}). ${explicarContasDoBanco(cab, contas)}`
       );
     }
 
