@@ -1186,8 +1186,11 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
             })[0]
           : null;
       const escolhido = inadimplente || aberto || recenteFechado || primeiro;
-      const estadoRotulo = escolhido.estado_rotulo ?? null;
-      const estadoCor = escolhido.estado_cor ?? null;
+      const escolhidoEmCarencia = carenciaIds.has(escolhido.id);
+      const estadoRotulo = escolhidoEmCarencia
+        ? "Em carência"
+        : (escolhido.estado_rotulo ?? null);
+      const estadoCor = escolhidoEmCarencia ? "amber" : (escolhido.estado_cor ?? null);
 
       const desvios = titulos
         .map((t) => t.desvio_registro_dias)
@@ -1366,7 +1369,12 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
         </TableCell>
         <TableCell className="text-right tabular-nums">{formatBRL(efetivoDe(t))}</TableCell>
         <TableCell>
-          <BadgeEstado rotulo={t.estado_rotulo} cor={t.estado_cor} />
+          {/* Em carência bancária não é atraso: badge de aviso, não destrutivo. */}
+          {carenciaIds.has(t.id) ? (
+            <BadgeEstado rotulo="Em carência" cor="amber" />
+          ) : (
+            <BadgeEstado rotulo={t.estado_rotulo} cor={t.estado_cor} />
+          )}
         </TableCell>
       </TableRow>
     );
@@ -1523,6 +1531,34 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
                 {vencidoContabil.qtd} títulos · {resumoAtraso}
               </p>
             </>
+          }
+        />
+        <ColunaKpi
+          rotulo="Em carência bancária"
+          valor={formatBRLCurto(emCarenciaBancaria.valor)}
+          corValor="text-warning"
+          sublinha={`${emCarenciaBancaria.qtd} ${
+            emCarenciaBancaria.qtd === 1 ? "título" : "títulos"
+          }`}
+          ativo={filtroPrazo === "carencia"}
+          onClick={() => clicarPrazo("carencia")}
+          extraRotulo={
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="O que é carência bancária"
+                  className="text-muted-foreground hover:text-foreground"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Info className="h-[13px] w-[13px]" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-72">
+                Venceu em fim de semana ou feriado — pelo padrão bancário o
+                pagamento é devido no próximo dia útil. Não é atraso.
+              </TooltipContent>
+            </Tooltip>
           }
         />
       </div>
