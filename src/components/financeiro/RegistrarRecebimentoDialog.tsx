@@ -48,6 +48,7 @@ import {
 } from "@/hooks/financeiro/useContaCliente";
 import type { LeituraComprovante } from "@/hooks/comercial/useComprovantePagamento";
 import { InputMoedaBR } from "@/components/compras/InputMoedaBR";
+import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 
 const MEIOS: { valor: string; label: string }[] = [
   { valor: "pix", label: "PIX" },
@@ -135,7 +136,7 @@ export function RegistrarRecebimentoDialog({ children, parceiroId, parceiroNome,
   );
 
   function limpar() {
-    setValor(0);
+    setValor(valorSugerido && valorSugerido > 0 ? valorSugerido : 0);
     setData(hojeIso());
     setMeio("pix");
     setChave("");
@@ -208,8 +209,12 @@ export function RegistrarRecebimentoDialog({ children, parceiroId, parceiroNome,
         `${formatBRL(res.valor ?? valor)} registrado para ${res.cliente ?? cliente.nome} — prova: ${nivel}`,
         { description: res.aviso ?? undefined },
       );
+      // Títulos abertos do cliente são consumidos por FIFO no banco: as telas
+      // de cobrança/recebível precisam ser refeitas junto com a conta.
+      await invalidarRecebivel();
       limpar();
       setOpen(false);
+      onSucesso?.();
     } catch (e: any) {
       // FAIL-LOUD: a mensagem do banco vai crua para a tela.
       toast.error("Recebimento não registrado", {
