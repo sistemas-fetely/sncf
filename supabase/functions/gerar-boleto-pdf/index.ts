@@ -193,7 +193,7 @@ async function buildPdf(dados: DadosBoleto): Promise<Uint8Array> {
     let rx = mx;
     cell(rx, y - r3H, w_dd, "Data do Documento",    fmtDateBR(dados.data_documento));  rx += w_dd; vline(rx, y - r3H, r3H);
     cell(rx, y - r3H, w_nd, "Numero do Documento",  dados.numero_documento);           rx += w_nd; vline(rx, y - r3H, r3H);
-    cell(rx, y - r3H, w_es, "Especie Doc.",         "DM");                             rx += w_es; vline(rx, y - r3H, r3H);
+    cell(rx, y - r3H, w_es, "Especie Doc.", dados.especie_titulo);                     rx += w_es; vline(rx, y - r3H, r3H);
     cell(rx, y - r3H, w_ac, "Aceite",               "N");                              rx += w_ac; vline(rx, y - r3H, r3H);
     cell(rx, y - r3H, w_dp, "Data do Processamento", fmtDateBR(dados.data_documento));
     vline(mx + lw - nnW, y - r3H, r3H);
