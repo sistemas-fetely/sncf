@@ -17546,62 +17546,6 @@ export type Database = {
         }
         Relationships: []
       }
-      fila_snapshot: {
-        Row: {
-          criado_em: string
-          data: string
-          erro: string | null
-          fila_chave: string
-          id: number
-          total: number | null
-        }
-        Insert: {
-          criado_em?: string
-          data?: string
-          erro?: string | null
-          fila_chave: string
-          id?: number
-          total?: number | null
-        }
-        Update: {
-          criado_em?: string
-          data?: string
-          erro?: string | null
-          fila_chave?: string
-          id?: number
-          total?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fila_snapshot_fila_chave_fkey"
-            columns: ["fila_chave"]
-            isOneToOne: false
-            referencedRelation: "tarefas_filas"
-            referencedColumns: ["chave"]
-          },
-          {
-            foreignKeyName: "fila_snapshot_fila_chave_fkey"
-            columns: ["fila_chave"]
-            isOneToOne: false
-            referencedRelation: "vw_atribuicao_fluxo_confronto"
-            referencedColumns: ["fila_chave"]
-          },
-          {
-            foreignKeyName: "fila_snapshot_fila_chave_fkey"
-            columns: ["fila_chave"]
-            isOneToOne: false
-            referencedRelation: "vw_atribuicao_furo_fila"
-            referencedColumns: ["chave"]
-          },
-          {
-            foreignKeyName: "fila_snapshot_fila_chave_fkey"
-            columns: ["fila_chave"]
-            isOneToOne: false
-            referencedRelation: "vw_fila_medida"
-            referencedColumns: ["chave"]
-          },
-        ]
-      }
       fila_snapshot_diario: {
         Row: {
           created_at: string
@@ -90064,7 +90008,6 @@ export type Database = {
           lead_p95_min: number
         }[]
       }
-      fn_fila_snapshot_gravar: { Args: never; Returns: number }
       fn_fila_vazao: {
         Args: { p_ate?: string; p_chave: string; p_de?: string }
         Returns: {
