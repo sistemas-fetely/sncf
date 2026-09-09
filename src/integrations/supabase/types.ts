@@ -30466,6 +30466,36 @@ export type Database = {
           },
         ]
       }
+      pedido_alerta_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          criado_em: string
+          descricao: string | null
+          prioridade: number
+          rotulo: string
+          severidade: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          criado_em?: string
+          descricao?: string | null
+          prioridade: number
+          rotulo: string
+          severidade: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          criado_em?: string
+          descricao?: string | null
+          prioridade?: number
+          rotulo?: string
+          severidade?: string
+        }
+        Relationships: []
+      }
       pedido_edicao_campo: {
         Row: {
           ativo: boolean
@@ -69649,6 +69679,9 @@ export type Database = {
           alerta: string | null
           area_responsavel: string | null
           bling_pedido_numero: string | null
+          bloqueio_em: string | null
+          bloqueio_motivo: string | null
+          bloqueio_tentativas: number | null
           cancelled_at: string | null
           created_at_shopify: string | null
           data_pedido: string | null
@@ -69675,6 +69708,7 @@ export type Database = {
           paid_at: string | null
           payment_method: string | null
           payment_reference: string | null
+          pedido_ausente: boolean | null
           previsao_entrega: string | null
           proxima_acao: string | null
           rastreio_atualizado_em: string | null
@@ -69713,6 +69747,9 @@ export type Database = {
           alerta: string | null
           area_responsavel: string | null
           bling_pedido_numero: string | null
+          bloqueio_em: string | null
+          bloqueio_motivo: string | null
+          bloqueio_tentativas: number | null
           cancelled_at: string | null
           cliente: string | null
           coerencia_status: string | null
@@ -69743,6 +69780,7 @@ export type Database = {
           parceiro_id: string | null
           payment_method: string | null
           payment_reference: string | null
+          pedido_ausente: boolean | null
           pedido_id: string | null
           previsao_entrega: string | null
           proxima_acao: string | null
@@ -74756,14 +74794,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -84221,14 +84259,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
