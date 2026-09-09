@@ -17546,6 +17546,55 @@ export type Database = {
         }
         Relationships: []
       }
+      fila_snapshot: {
+        Row: {
+          criado_em: string
+          data: string
+          erro: string | null
+          fila_chave: string
+          id: number
+          total: number | null
+        }
+        Insert: {
+          criado_em?: string
+          data?: string
+          erro?: string | null
+          fila_chave: string
+          id?: number
+          total?: number | null
+        }
+        Update: {
+          criado_em?: string
+          data?: string
+          erro?: string | null
+          fila_chave?: string
+          id?: number
+          total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fila_snapshot_fila_chave_fkey"
+            columns: ["fila_chave"]
+            isOneToOne: false
+            referencedRelation: "tarefas_filas"
+            referencedColumns: ["chave"]
+          },
+          {
+            foreignKeyName: "fila_snapshot_fila_chave_fkey"
+            columns: ["fila_chave"]
+            isOneToOne: false
+            referencedRelation: "vw_atribuicao_fluxo_confronto"
+            referencedColumns: ["fila_chave"]
+          },
+          {
+            foreignKeyName: "fila_snapshot_fila_chave_fkey"
+            columns: ["fila_chave"]
+            isOneToOne: false
+            referencedRelation: "vw_atribuicao_furo_fila"
+            referencedColumns: ["chave"]
+          },
+        ]
+      }
       fila_snapshot_diario: {
         Row: {
           created_at: string
@@ -46859,6 +46908,11 @@ export type Database = {
           departamento_id: string | null
           descricao: string | null
           estado: string
+          exec_coluna_entrada: string | null
+          exec_coluna_executor: string | null
+          exec_coluna_id: string | null
+          exec_coluna_saida: string | null
+          exec_tabela: string | null
           fonte_contagem: string | null
           fonte_tipo: string
           id: string
@@ -46877,6 +46931,11 @@ export type Database = {
           departamento_id?: string | null
           descricao?: string | null
           estado?: string
+          exec_coluna_entrada?: string | null
+          exec_coluna_executor?: string | null
+          exec_coluna_id?: string | null
+          exec_coluna_saida?: string | null
+          exec_tabela?: string | null
           fonte_contagem?: string | null
           fonte_tipo?: string
           id?: string
@@ -46895,6 +46954,11 @@ export type Database = {
           departamento_id?: string | null
           descricao?: string | null
           estado?: string
+          exec_coluna_entrada?: string | null
+          exec_coluna_executor?: string | null
+          exec_coluna_id?: string | null
+          exec_coluna_saida?: string | null
+          exec_tabela?: string | null
           fonte_contagem?: string | null
           fonte_tipo?: string
           id?: string
@@ -89891,6 +89955,20 @@ export type Database = {
         Args: { p_nf_id: string; p_pedido_id: string }
         Returns: Json
       }
+      fn_fila_execucoes: {
+        Args: { p_ate?: string; p_chave: string; p_de?: string }
+        Returns: {
+          entrada: string
+          executor_uuid: string
+          fila_chave: string
+          item_ref: string
+          lead_minutos: number
+          pessoa_id: string
+          pessoa_nome: string
+          por_servico: boolean
+          saida: string
+        }[]
+      }
       fn_fila_fluxo_piso: {
         Args: { _dias?: number }
         Returns: {
@@ -89901,6 +89979,7 @@ export type Database = {
           fluxo_dia_piso: number
         }[]
       }
+      fn_fila_snapshot_gravar: { Args: never; Returns: number }
       fn_fluxo_caixa_projetado: {
         Args: { p_horizonte?: number; p_saldo_inicial?: number }
         Returns: {
