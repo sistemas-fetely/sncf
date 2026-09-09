@@ -283,7 +283,7 @@ export default function ShopifyB2c() {
                 <SelectItem value="todos">Alerta: todos</SelectItem>
                 {alertas.map((a) => (
                   <SelectItem key={a} value={a}>
-                    {rotuloAlerta(a)}
+                    {rotuloDoAlerta(a)}
                   </SelectItem>
                 ))}
               </SelectContent>
