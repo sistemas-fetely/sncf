@@ -714,34 +714,11 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
 
   /* Fonte única do vencido contábil e das faixas de aging. */
   const { kpis: estadoTitulos } = useTituloEstadoKpis();
-  const { data: tituloEstadoLinhas } = useTituloEstado();
   const faixasAging: Record<ChaveFaixa, number> =
     estadoTitulos?.faixas ?? { "1-7": 0, "8-30": 0, "31-60": 0, "60+": 0 };
   const vencidoContabil = estadoTitulos?.vencidoContabil ?? { qtd: 0, valor: 0 };
   const cobravelHoje = estadoTitulos?.cobravelHoje ?? { qtd: 0, valor: 0 };
   const emCarenciaBancaria = estadoTitulos?.emCarenciaBancaria ?? { qtd: 0, valor: 0 };
-
-  /* DUAS-MEDIDAS-DO-VENCIDO (09/09/2026): o CFO precisa separar atraso real
-     (cobravel_hoje) de fim de semana/feriado ainda no prazo bancário
-     (em_carencia_bancaria). Sets por titulo_id — mesma chave de TodosTitulosTab. */
-  const cobravelIds = useMemo(
-    () =>
-      new Set(
-        (tituloEstadoLinhas ?? [])
-          .filter((l) => l.cobravel_hoje && l.titulo_id)
-          .map((l) => l.titulo_id as string),
-      ),
-    [tituloEstadoLinhas],
-  );
-  const carenciaIds = useMemo(
-    () =>
-      new Set(
-        (tituloEstadoLinhas ?? [])
-          .filter((l) => l.em_carencia_bancaria && l.titulo_id)
-          .map((l) => l.titulo_id as string),
-      ),
-    [tituloEstadoLinhas],
-  );
 
 
   const semFiltroKpi = !filtroInstrumento && filtroPrazo === "todos";
