@@ -21,7 +21,8 @@ import { PedidoB2cDrawer } from "@/components/vendas/PedidoB2cDrawer";
 import { ExportarB2cButton } from "@/components/vendas/ExportarB2cButton";
 import { DashB2c } from "@/components/vendas/DashB2c";
 import {
-  usePedidosB2c, useCarrinhosAbandonados, useDevolucoesB2c, type PedidoB2cRow,
+  usePedidosB2c, useCarrinhosAbandonados, useDevolucoesB2c, usePedidoAlertaDim,
+  type PedidoB2cRow, type AlertaDim,
 } from "@/hooks/vendas/useB2c";
 import { fmtDataHora } from "@/lib/data";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
