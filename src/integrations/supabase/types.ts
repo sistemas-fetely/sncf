@@ -59611,6 +59611,12 @@ export type Database = {
           processo_tem_diagrama: boolean | null
           processo_tem_narrativa: boolean | null
           recorrencia_id: string | null
+          tempo_obs_amostra: number | null
+          tempo_obs_escopo: string | null
+          tempo_obs_p25_min: number | null
+          tempo_obs_p50_min: number | null
+          tempo_obs_p75_min: number | null
+          tempo_obs_sessoes: number | null
           tempo_unitario_min: number | null
           volume_obs_dia_ativo: number | null
           volume_obs_dia_corrido: number | null
@@ -68026,6 +68032,31 @@ export type Database = {
           },
         ]
       }
+      vw_fila_tempo_medido: {
+        Row: {
+          fila_chave: string | null
+          fila_nome: string | null
+          intervalos: number | null
+          itens_em_rajada: number | null
+          pessoa_id: string | null
+          pessoa_nome: string | null
+          sessoes: number | null
+          tempo_p25_min: number | null
+          tempo_p50_min: number | null
+          tempo_p75_min: number | null
+        }
+        Relationships: []
+      }
+      vw_fila_tempo_medido_fila: {
+        Row: {
+          fila_chave: string | null
+          fila_nome: string | null
+          intervalos: number | null
+          pessoas_medidas: number | null
+          tempo_p50_min: number | null
+        }
+        Relationships: []
+      }
       vw_fin_competencia_mensal: {
         Row: {
           custo_mercadoria: number | null
@@ -73769,14 +73800,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -89395,6 +89426,10 @@ export type Database = {
         Args: { p_forcar?: boolean; p_pedido_id: string }
         Returns: Json
       }
+      fn_atribuicao_adotar_medido: {
+        Args: { _adotar_tempo?: boolean; _adotar_volume?: boolean; _id: string }
+        Returns: Json
+      }
       fn_atribuicao_apagar: { Args: { _id: string }; Returns: undefined }
       fn_atribuicao_salvar: {
         Args: {
@@ -90006,6 +90041,24 @@ export type Database = {
           lead_p80_dias: number
           lead_p80_min: number
           lead_p95_min: number
+        }[]
+      }
+      fn_fila_tempo_rajada: {
+        Args: {
+          p_chave: string
+          p_corte_min?: number
+          p_dias?: number
+          p_min_itens?: number
+        }
+        Returns: {
+          intervalos: number
+          itens_em_rajada: number
+          pessoa_id: string
+          pessoa_nome: string
+          sessoes: number
+          tempo_p25_min: number
+          tempo_p50_min: number
+          tempo_p75_min: number
         }[]
       }
       fn_fila_vazao: {
