@@ -347,7 +347,7 @@ export default function ExtratoImportacao() {
       // é melhor resolver e o operador ver do que recusar por engano.
       const { data, error } = await supabase
         .from("contas_bancarias")
-        .select("id, nome_exibicao, banco_codigo, agencia, numero_conta")
+        .select("id, nome_exibicao, banco_codigo, agencia, numero_conta, ativo")
         .order("nome_exibicao");
       if (error) throw error;
       return (data || []) as Conta[];
