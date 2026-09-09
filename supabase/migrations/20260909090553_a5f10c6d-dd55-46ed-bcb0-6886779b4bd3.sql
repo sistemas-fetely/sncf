@@ -1,0 +1,2 @@
+ALTER TABLE public.remessas_safra DROP CONSTRAINT IF EXISTS remessas_safra_tipo_check;
+ALTER TABLE public.remessas_safra ADD CONSTRAINT remessas_safra_tipo_check CHECK (tipo = ANY (ARRAY['entrada'::text, 'baixa'::text, 'prorrogacao'::text, 'reemissao'::text]));
