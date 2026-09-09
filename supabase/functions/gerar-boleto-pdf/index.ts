@@ -157,10 +157,11 @@ async function buildPdf(dados: DadosBoleto): Promise<Uint8Array> {
     page.drawLine({ start: { x: mx, y: y - hdrH }, end: { x: mx, y }, thickness: 1.2, color: PRETO });
     page.drawLine({ start: { x: mx + lw, y: y - hdrH }, end: { x: mx + lw, y }, thickness: 1.2, color: PRETO });
 
-    page.drawText("BANCO SAFRA S.A.", { x: mx + 4, y: y - 19, size: 9, font: fontBold, color: PRETO });
+    page.drawText(dados.banco_nome, { x: mx + 4, y: y - 19, size: 9, font: fontBold, color: PRETO });
     vline(mx + nomeW, y - hdrH, hdrH);
 
-    page.drawText("422-7", { x: mx + nomeW + 9, y: y - 20, size: 11, font: fontBold, color: PRETO });
+    const codBanco = `${dados.banco_codigo}-${dvMod10(dados.banco_codigo)}`;
+    page.drawText(codBanco, { x: mx + nomeW + 9, y: y - 20, size: 11, font: fontBold, color: PRETO });
     vline(mx + nomeW + codW, y - hdrH, hdrH);
 
     const ldSize = 9.5;
