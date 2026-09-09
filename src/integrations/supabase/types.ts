@@ -54010,6 +54010,27 @@ export type Database = {
           },
         ]
       }
+      xpm_categoria_map: {
+        Row: {
+          categoria_codigo: string
+          categoria_descricao: string
+          criado_em: string
+          grupo: string
+        }
+        Insert: {
+          categoria_codigo: string
+          categoria_descricao: string
+          criado_em?: string
+          grupo: string
+        }
+        Update: {
+          categoria_codigo?: string
+          categoria_descricao?: string
+          criado_em?: string
+          grupo?: string
+        }
+        Relationships: []
+      }
       xpm_envios_log: {
         Row: {
           duracao_ms: number | null

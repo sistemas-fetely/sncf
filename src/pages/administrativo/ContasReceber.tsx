@@ -38,7 +38,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import * as XLSX from "xlsx";
 import { useNivel } from "@/hooks/useNivel";
-import { useTituloEstadoKpis } from "@/hooks/financeiro/useTituloEstadoKpis";
+import {
+  useTituloEstado,
+  useTituloEstadoKpis,
+} from "@/hooks/financeiro/useTituloEstadoKpis";
 
 type RecebivelB2B = {
   id: string;
@@ -456,9 +459,9 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
    * `eixo_recebimento` — é um subconjunto de "Em aberto". Um sexto chip
    * faria os totais deixarem de somar. O controle de prazo fica fora da fila.
    */
-  const [filtroPrazo, setFiltroPrazo] = useState<"todos" | "a_vencer" | "vencidos">(
-    "todos"
-  );
+  const [filtroPrazo, setFiltroPrazo] = useState<
+    "todos" | "a_vencer" | "vencidos" | "cobravel" | "carencia"
+  >("todos");
 
   const [qualidadeAberta, setQualidadeAberta] = useState(false);
   const [baseMensal, setBaseMensal] = useState<BaseMensal>("competencia");
@@ -570,6 +573,29 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
     return t.eh_inadimplente === true;
   };
 
+  /* DUAS-MEDIDAS-DO-VENCIDO (09/09/2026): o CFO precisa separar atraso real
+     (cobravel_hoje) de fim de semana/feriado ainda no prazo bancário
+     (em_carencia_bancaria). Sets por titulo_id — mesma chave de TodosTitulosTab. */
+  const { data: tituloEstadoLinhas } = useTituloEstado();
+  const cobravelIds = useMemo(
+    () =>
+      new Set(
+        (tituloEstadoLinhas ?? [])
+          .filter((l) => l.cobravel_hoje && l.titulo_id)
+          .map((l) => l.titulo_id as string),
+      ),
+    [tituloEstadoLinhas],
+  );
+  const carenciaIds = useMemo(
+    () =>
+      new Set(
+        (tituloEstadoLinhas ?? [])
+          .filter((l) => l.em_carencia_bancaria && l.titulo_id)
+          .map((l) => l.titulo_id as string),
+      ),
+    [tituloEstadoLinhas],
+  );
+
   /**
    * Camada nova entre `baseFiltros` e `baseCarteira`: filtros da faixa de KPI.
    * Os totais das colunas continuam vindo de `baseFiltros` — senão a coluna
@@ -588,10 +614,13 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
       if (filtroPrazo === "vencidos" && !estaVencido(t)) return false;
       if (filtroPrazo === "a_vencer" && (!naoRecebido(t) || estaVencido(t)))
         return false;
+      /* DUAS-MEDIDAS-DO-VENCIDO: cobrável/carência vêm de vw_titulo_estado. */
+      if (filtroPrazo === "cobravel" && !cobravelIds.has(t.id)) return false;
+      if (filtroPrazo === "carencia" && !carenciaIds.has(t.id)) return false;
 
       return true;
     });
-  }, [baseFiltros, filtroInstrumento, filtroPrazo]);
+  }, [baseFiltros, filtroInstrumento, filtroPrazo, cobravelIds, carenciaIds]);
 
   /**
    * Base dos chips de recebimento: já com carteira, achado e instrumento
@@ -688,6 +717,8 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
   const faixasAging: Record<ChaveFaixa, number> =
     estadoTitulos?.faixas ?? { "1-7": 0, "8-30": 0, "31-60": 0, "60+": 0 };
   const vencidoContabil = estadoTitulos?.vencidoContabil ?? { qtd: 0, valor: 0 };
+  const cobravelHoje = estadoTitulos?.cobravelHoje ?? { qtd: 0, valor: 0 };
+  const emCarenciaBancaria = estadoTitulos?.emCarenciaBancaria ?? { qtd: 0, valor: 0 };
 
 
   const semFiltroKpi = !filtroInstrumento && filtroPrazo === "todos";
@@ -703,7 +734,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
     setPage(1);
   };
 
-  const clicarPrazo = (k: "a_vencer" | "vencidos") => {
+  const clicarPrazo = (k: "a_vencer" | "vencidos" | "cobravel" | "carencia") => {
     setFiltroPrazo((prev) => (prev === k ? "todos" : k));
     setPage(1);
   };
@@ -809,6 +840,10 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
       ? "Sem instrumento"
       : filtroPrazo === "vencidos"
       ? "Prazo: Vencidos"
+      : filtroPrazo === "cobravel"
+      ? "Prazo: Cobrável hoje"
+      : filtroPrazo === "carencia"
+      ? "Prazo: Em carência bancária"
       : filtroPrazo === "a_vencer"
       ? "Prazo: A vencer"
       : null;
@@ -883,9 +918,15 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
       });
     }
     if (filtroPrazo !== "todos") {
+      const rotuloPrazo: Record<string, string> = {
+        vencidos: "Prazo: Vencidos",
+        a_vencer: "Prazo: A vencer",
+        cobravel: "Prazo: Cobrável hoje",
+        carencia: "Prazo: Em carência bancária",
+      };
       lista.push({
         chave: "prazo",
-        rotulo: filtroPrazo === "vencidos" ? "Prazo: Vencidos" : "Prazo: A vencer",
+        rotulo: rotuloPrazo[filtroPrazo] ?? "Prazo",
         limpar: () => {
           setFiltroPrazo("todos");
           setPage(1);
@@ -1145,8 +1186,11 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
             })[0]
           : null;
       const escolhido = inadimplente || aberto || recenteFechado || primeiro;
-      const estadoRotulo = escolhido.estado_rotulo ?? null;
-      const estadoCor = escolhido.estado_cor ?? null;
+      const escolhidoEmCarencia = carenciaIds.has(escolhido.id);
+      const estadoRotulo = escolhidoEmCarencia
+        ? "Em carência"
+        : (escolhido.estado_rotulo ?? null);
+      const estadoCor = escolhidoEmCarencia ? "amber" : (escolhido.estado_cor ?? null);
 
       const desvios = titulos
         .map((t) => t.desvio_registro_dias)
@@ -1189,7 +1233,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
           universo.get(chave)?.total ?? titulos.reduce((s, t) => s + efetivoDe(t), 0),
       };
     });
-  }, [filtrados, data, hojeIso]);
+  }, [filtrados, data, hojeIso, carenciaIds]);
 
   const [abertos, setAbertos] = useState<Set<string>>(new Set());
   const toggleGrupo = (chave: string) =>
@@ -1325,7 +1369,12 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
         </TableCell>
         <TableCell className="text-right tabular-nums">{formatBRL(efetivoDe(t))}</TableCell>
         <TableCell>
-          <BadgeEstado rotulo={t.estado_rotulo} cor={t.estado_cor} />
+          {/* Em carência bancária não é atraso: badge de aviso, não destrutivo. */}
+          {carenciaIds.has(t.id) ? (
+            <BadgeEstado rotulo="Em carência" cor="amber" />
+          ) : (
+            <BadgeEstado rotulo={t.estado_rotulo} cor={t.estado_cor} />
+          )}
         </TableCell>
       </TableRow>
     );
@@ -1396,7 +1445,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
       {/* Faixa 1 — Estado da carteira. Recorte fixo: período, busca e banco.
           Colunas são filtro: "A receber" é o universo (limpa), garantido ×
           sem instrumento são par exclusivo, vencido é transversal. */}
-      <div className="grid grid-cols-2 divide-x divide-border rounded-xl border border-border bg-card md:grid-cols-4">
+      <div className="grid grid-cols-2 divide-x divide-border rounded-xl border border-border bg-card md:grid-cols-5">
         <ColunaKpi
           rotulo="A receber"
           valor={formatBRLCurto(estadoCarteira.aReceber)}
@@ -1424,12 +1473,15 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
           ativo={filtroInstrumento === "sem_instrumento"}
           onClick={() => clicarInstrumento("sem_instrumento")}
         />
+        {/* DUAS-MEDIDAS-DO-VENCIDO: atraso real (cobrável) separado da carência
+            bancária. A barra de faixas continua contábil (faixa_aging). */}
         <ColunaKpi
-          rotulo="Vencido (contábil)"
-          valor={formatBRLCurto(vencidoContabil.valor)}
+          rotulo="Vencido — cobrável"
+          valor={formatBRLCurto(cobravelHoje.valor)}
           corValor="text-destructive"
-          ativo={filtroPrazo === "vencidos"}
-          onClick={() => clicarPrazo("vencidos")}
+          sublinha={`de ${formatBRLCurto(vencidoContabil.valor)} vencidos no total`}
+          ativo={filtroPrazo === "cobravel"}
+          onClick={() => clicarPrazo("cobravel")}
           extraRotulo={
             <Popover>
               <PopoverTrigger asChild>
@@ -1479,6 +1531,34 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
                 {vencidoContabil.qtd} títulos · {resumoAtraso}
               </p>
             </>
+          }
+        />
+        <ColunaKpi
+          rotulo="Em carência bancária"
+          valor={formatBRLCurto(emCarenciaBancaria.valor)}
+          corValor="text-warning"
+          sublinha={`${emCarenciaBancaria.qtd} ${
+            emCarenciaBancaria.qtd === 1 ? "título" : "títulos"
+          }`}
+          ativo={filtroPrazo === "carencia"}
+          onClick={() => clicarPrazo("carencia")}
+          extraRotulo={
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="O que é carência bancária"
+                  className="text-muted-foreground hover:text-foreground"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Info className="h-[13px] w-[13px]" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-72">
+                Venceu em fim de semana ou feriado — pelo padrão bancário o
+                pagamento é devido no próximo dia útil. Não é atraso.
+              </TooltipContent>
+            </Tooltip>
           }
         />
       </div>
@@ -1624,13 +1704,22 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
                 >
                   A vencer ({contagensPrazo.aVencer})
                 </Button>
-                <Button
-                  size="sm"
-                  variant={filtroPrazo === "vencidos" ? "default" : "outline"}
-                  onClick={() => clicarPrazo("vencidos")}
-                >
-                  Vencidos ({contagensPrazo.vencidos})
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant={filtroPrazo === "vencidos" ? "default" : "outline"}
+                      onClick={() => clicarPrazo("vencidos")}
+                    >
+                      Vencidos ({contagensPrazo.vencidos})
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {cobravelHoje.qtd}{" "}
+                    {cobravelHoje.qtd === 1 ? "cobrável" : "cobráveis"} ·{" "}
+                    {emCarenciaBancaria.qtd} em carência
+                  </TooltipContent>
+                </Tooltip>
               </div>
             </div>
           </div>
