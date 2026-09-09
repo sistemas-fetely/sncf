@@ -448,8 +448,28 @@ export default function ShopifyB2c() {
                               <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                                 {txt(p.area_responsavel)}
                               </TableCell>
-                              <TableCell className="max-w-[220px] text-xs">
+                              <TableCell className="min-w-[260px] text-xs">
                                 <span className="line-clamp-2">{txt(p.proxima_acao)}</span>
+                                {p.bloqueio_motivo && (
+                                  (() => {
+                                    const partes = p.bloqueio_motivo
+                                      .split(" · ")
+                                      .map((s) => s.trim())
+                                      .filter(Boolean);
+                                    if (partes.length > 1) {
+                                      return (
+                                        <ul className="mt-1 list-disc list-inside text-xs text-destructive">
+                                          {partes.map((parte, idx) => (
+                                            <li key={idx}>{parte}</li>
+                                          ))}
+                                        </ul>
+                                      );
+                                    }
+                                    return (
+                                      <p className="mt-1 text-xs text-destructive">{partes[0]}</p>
+                                    );
+                                  })()
+                                )}
                               </TableCell>
                               <TableCell className="whitespace-nowrap">
                                 <div className="flex items-center gap-1">
