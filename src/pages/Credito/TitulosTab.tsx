@@ -35,6 +35,7 @@ import { useTituloEstadoKpis } from "@/hooks/financeiro/useTituloEstadoKpis";
 import { cn } from "@/lib/utils";
 import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
 import { AvisoBoletosVivos, BoletoVigenteLinhas } from "@/components/credito/AvisoBoletosVivos";
+import { BoletoImprimivelAcoes } from "@/components/credito/BoletoImprimivelAcoes";
 import { EsperaRetornoSafra } from "@/components/credito/EsperaRetornoSafra";
 import { BadgeStatusGestao } from "@/lib/financeiro/status-gestao";
 import { BaixaManualDialog } from "@/components/credito/BaixaManualDialog";
