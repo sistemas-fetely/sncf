@@ -22,8 +22,13 @@ export function useEnviarEmailBoleto() {
         .eq("id", titulo_id)
         .maybeSingle();
       if (errT || !titulo) throw new Error("Título não encontrado");
-      if (titulo.boleto_status !== "registrado")
-        throw new Error("Boleto precisa estar com status 'registrado' para enviar email");
+      // Envio liberado ja em 'remessa_gerada': o banco nao aceita pagamento de
+      // titulo nao registrado, logo nao ha dinheiro em limbo. Bloquear o envio
+      // custaria certo e recorrente. So barra instrumento morto/rejeitado.
+      if (!["registrado", "remessa_gerada"].includes(titulo.boleto_status ?? ""))
+        throw new Error(
+          `Boleto com status '${titulo.boleto_status ?? "—"}' não pode ser enviado ao cliente — reemita antes.`,
+        );
       if (!titulo.linha_digitavel)
         throw new Error("Boleto sem linha digitável — gere a remessa Safra primeiro");
 

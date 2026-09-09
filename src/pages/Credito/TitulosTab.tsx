@@ -27,7 +27,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Search, Copy, ExternalLink, RefreshCw, AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
+import { Search, Copy, ExternalLink, RefreshCw, AlertTriangle, AlertOctagon, ChevronDown, ChevronRight } from "lucide-react";
 import { formatCNPJ } from "@/lib/cnpj";
 import { apelidoParceiro } from "@/lib/parceiros/nome";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
