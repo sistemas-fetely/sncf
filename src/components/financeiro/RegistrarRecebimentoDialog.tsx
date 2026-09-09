@@ -81,9 +81,17 @@ interface Props {
   /** Cliente pré-selecionado (vem do drawer da Conta do Cliente). */
   parceiroId?: string | null;
   parceiroNome?: string | null;
+  /**
+   * Valor sugerido (ex.: valor efetivo do título na aba Títulos). É só sugestão:
+   * o cliente pode ter pago mais ou menos, e isso é normal no modelo de conta.
+   */
+  valorSugerido?: number | null;
+  /** Chamado depois do registro bem-sucedido (fechar drawer, etc.). */
+  onSucesso?: () => void;
 }
 
-export function RegistrarRecebimentoDialog({ children, parceiroId, parceiroNome }: Props) {
+export function RegistrarRecebimentoDialog({ children, parceiroId, parceiroNome, valorSugerido, onSucesso }: Props) {
+
   const [open, setOpen] = useState(false);
   const [cliente, setCliente] = useState<{ id: string; nome: string } | null>(
     parceiroId ? { id: parceiroId, nome: parceiroNome || "Cliente" } : null,
