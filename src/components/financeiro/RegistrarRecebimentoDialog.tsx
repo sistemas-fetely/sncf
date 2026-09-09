@@ -205,10 +205,17 @@ export function RegistrarRecebimentoDialog({ children, parceiroId, parceiroNome,
       });
       const nivel = (res.nivel_prova ?? "declarado_humano") as NivelProva;
       setUltimaProva({ nivel, aviso: res.aviso });
+      const saldoTxt =
+        typeof res.saldo_conta_apos === "number"
+          ? ` · saldo na conta: ${formatBRL(res.saldo_conta_apos)}`
+          : "";
       toast.success(
-        `${formatBRL(res.valor ?? valor)} registrado para ${res.cliente ?? cliente.nome} — prova: ${nivel}`,
-        { description: res.aviso ?? undefined },
+        `${formatBRL(res.valor ?? valor)} registrado para ${res.cliente ?? cliente.nome} — prova: ${nivel}${saldoTxt}`,
       );
+      // O aviso da RPC (ex.: sem chave e sem comprovante = declarado por humano)
+      // ganha toast próprio para não passar batido.
+      if (res.aviso) toast.warning(res.aviso);
+
       // Títulos abertos do cliente são consumidos por FIFO no banco: as telas
       // de cobrança/recebível precisam ser refeitas junto com a conta.
       await invalidarRecebivel();
