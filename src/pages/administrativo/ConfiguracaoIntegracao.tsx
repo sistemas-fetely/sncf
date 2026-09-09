@@ -20,6 +20,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Eye, EyeOff, Loader2, RefreshCw, CheckCircle2, XCircle, AlertCircle, Settings2, ExternalLink, Mail, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PUBLIC_APP_URL } from "@/lib/urls";
+import { fmtDataHora } from "@/lib/data";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -48,6 +49,13 @@ export default function ConfiguracaoIntegracao() {
   const [processingCode, setProcessingCode] = useState(false);
   const [fixExecutado, setFixExecutado] = useState(false);
   const [logsLimit, setLogsLimit] = useState(5);
+
+  // XPM / ZenLOG — inspeção somente leitura
+  const [xpmAmbiente, setXpmAmbiente] = useState<"producao" | "homologacao">("producao");
+  const [xpmBusca, setXpmBusca] = useState("");
+  const [xpmInspecionando, setXpmInspecionando] = useState(false);
+  const [xpmErro, setXpmErro] = useState<string | null>(null);
+  const [xpmResultado, setXpmResultado] = useState<any>(null);
 
   // Financeiro externo
   const [showDialogFin, setShowDialogFin] = useState(false);
