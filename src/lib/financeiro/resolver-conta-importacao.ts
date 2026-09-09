@@ -30,13 +30,15 @@ export function digitos(v: string | null | undefined): string | null {
   return d.length > 0 ? d : null;
 }
 
-/** Mesma conta com e sem dígito verificador: compara também sem o último dígito. */
+/**
+ * Mesma conta com e sem dígito verificador.
+ * NÃO compara "os dois sem o último dígito": 12345-6 e 12345-7 são contas
+ * diferentes e cair nisso era justamente o erro de conta trocada.
+ */
 function contaCombina(doArquivo: string | null, doCadastro: string | null): boolean | null {
   if (!doArquivo || !doCadastro) return null; // sem dado dos dois lados: não decide
   if (doArquivo === doCadastro) return true;
-  const semDvA = doArquivo.slice(0, -1);
-  const semDvB = doCadastro.slice(0, -1);
-  return doArquivo === semDvB || doCadastro === semDvA || (semDvA.length > 0 && semDvA === semDvB);
+  return doArquivo === doCadastro.slice(0, -1) || doCadastro === doArquivo.slice(0, -1);
 }
 
 function tagOFX(texto: string, tag: string): string | null {
@@ -83,9 +85,12 @@ export function resolverContaPorCabecalhoOFX(
     });
   }
 
-  // Conta e agência só filtram quando os dois lados têm o dado.
-  const porConta = candidatas.filter((c) => contaCombina(cc, digitos(c.numero_conta)) === true);
-  if (porConta.length > 0) candidatas = porConta;
+  // CONTA-DO-ARQUIVO-MANDA: quando o arquivo diz o número da conta, ele é
+  // eliminatório. Antes, se nenhuma cadastrada batesse, o filtro era ignorado e
+  // um banco com uma única conta cadastrada absorvia o extrato de outra conta.
+  if (cc) {
+    candidatas = candidatas.filter((c) => contaCombina(cc, digitos(c.numero_conta)) === true);
+  }
 
   const porAgencia = candidatas.filter((c) => contaCombina(ag, digitos(c.agencia)) === true);
   if (porAgencia.length > 0) candidatas = porAgencia;

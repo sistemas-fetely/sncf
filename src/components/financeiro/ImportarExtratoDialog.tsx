@@ -92,7 +92,11 @@ export function ImportarExtratoDialog({ open, onOpenChange, contaPreSelecionada 
       const novas = movsComHash.filter((m) => !setExist.has(m.hash_unico));
       const duplicadas = movsComHash.length - novas.length;
 
-      const inserts = movsComHash
+      // Linhas já presentes pelo hash_unico são duplicata exata: mandá-las ao
+      // banco estourava a UNIQUE de hash_unico (o ON CONFLICT do lote com FITID
+      // só cobre a chave conta+data+valor+tipo+fitid) e abortava a importação
+      // inteira. Aqui saem antes de virar insert.
+      const inserts = novas
         .filter((m) => m.data_transacao)
         .map((m) => ({
           conta_bancaria_id: impConta,

@@ -210,8 +210,21 @@ export function ImportarOFXDialog({ open, onOpenChange, onSuccess, contaBancaria
 
       // DUPLICATA-BANCÁRIA-NÃO-DEPENDE-DE-DESCRIÇÃO (25/08/2026): hash_unico incluía a descrição, que o banco muda entre exportações — 577 duplicatas entraram em 22/08. A identidade estável é o FITID dentro da conta.
       // Separação obrigatória: o índice único parcial uq_mov_bancaria_transacao_viva só cobre id_transacao_banco IS NOT NULL. Linhas COM FITID usam a chave estável (conta + data + valor + tipo + fitid); linhas SEM FITID continuam pelo hash_unico.
-      const linhasComFitid = linhas.filter((l) => l.id_transacao_banco);
-      const linhasSemFitid = linhas.filter((l) => !l.id_transacao_banco);
+      // Linhas já no stage pelo hash_unico saem ANTES do insert: a UNIQUE de
+      // hash_unico não é a chave do ON CONFLICT do lote com FITID, então
+      // reimportar arquivo sobreposto abortava a importação inteira (23505).
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: jaNoStage } = await (supabase as any)
+        .from("ofx_transacoes_stage")
+        .select("hash_unico")
+        .in("hash_unico", linhas.map((l) => l.hash_unico));
+      const setStage = new Set(
+        ((jaNoStage ?? []) as { hash_unico: string | null }[]).map((r) => r.hash_unico),
+      );
+      const linhasNovas = linhas.filter((l) => !setStage.has(l.hash_unico));
+      const duplicatasHash = linhas.length - linhasNovas.length;
+      const linhasComFitid = linhasNovas.filter((l) => l.id_transacao_banco);
+      const linhasSemFitid = linhasNovas.filter((l) => !l.id_transacao_banco);
 
       for (let i = 0; i < linhasComFitid.length; i += 50) {
         const lote = linhasComFitid.slice(i, i + 50);
@@ -232,8 +245,8 @@ export function ImportarOFXDialog({ open, onOpenChange, onSuccess, contaBancaria
       }
 
       setResultadoFinal({
-        novas: parseado.transacoes.length,
-        duplicatas: 0,
+        novas: linhasNovas.length,
+        duplicatas: duplicatasHash,
       });
       setEtapa("concluido");
       qc.invalidateQueries({ queryKey: ["ofx-stage"] });
