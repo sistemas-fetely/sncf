@@ -18,8 +18,11 @@ export type MesaComercialContagem = {
 export function useMesaComercialContagem() {
   return useQuery({
     queryKey: ["mesa-comercial-contagem"],
-    staleTime: 30 * 1000,
-    refetchInterval: 60 * 1000,
+    // CUSTO-DA-VIEW (09/09/2026): vw_oportunidades_comercial custa ~3s por
+    // chamada e era refeita a cada minuto em toda aba aberta — 923 execuções
+    // empilhadas nos picos de timeout. Cinco minutos basta para um contador.
+    staleTime: 5 * 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
     queryFn: async (): Promise<MesaComercialContagem> => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)

@@ -23,7 +23,7 @@ export function useLiberacaoExpedicaoLote(pedidoIds: string[]) {
   return useQuery({
     queryKey: ["liberacao-expedicao-lote", ids],
     enabled: ids.length > 0,
-    staleTime: 30 * 1000,
+    staleTime: 3 * 60 * 1000,
     queryFn: async (): Promise<Map<string, LiberacaoExpedicao>> => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
