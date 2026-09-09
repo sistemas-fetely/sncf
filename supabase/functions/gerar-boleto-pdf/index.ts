@@ -281,6 +281,16 @@ async function buildPdf(dados: DadosBoleto): Promise<Uint8Array> {
   page.drawText("Autenticacao Mecanica", { x: mx + lw - 88, y: cbTop - 12, size: 7, font, color: CINZA });
   page.drawText("Ficha de Compensacao",  { x: mx + lw - 88, y: cbTop - 23, size: 7, font, color: CINZA });
 
+  // Tarja diagonal de conferencia — sai nas duas vias, por cima de tudo.
+  if (dados.tarja) {
+    for (const ty of [height * 0.72, height * 0.30]) {
+      page.drawText(dados.tarja, {
+        x: 60, y: ty, size: 17, font: fontBold,
+        color: rgb(0.85, 0.22, 0.18), opacity: 0.32, rotate: degrees(24),
+      });
+    }
+  }
+
   return await pdf.save();
 }
 
