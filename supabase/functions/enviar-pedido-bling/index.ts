@@ -842,8 +842,7 @@ if (novosCacheEntries.length > 0) {
   supabase
     .from("bling_produtos_cache")
     .upsert(novosCacheEntries, { onConflict: "sku" })
-    .then(() => {})
-    .catch(() => {});
+    .then(() => {}, () => {});
 }
 
 // Guardrail pós-sync — FAIL-LOUD: produtos com SKU que não foram resolvidos
