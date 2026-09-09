@@ -1147,6 +1147,37 @@ serve(async (req) => {
       if (errOc) erros.push({ linha: 0, nosso_numero: "", erro: `gravar ocorrências: ${errOc.message}` });
     }
 
+    // ── GUARDA FAIL-LOUD: conferir que toda liquidação gerou crédito na conta ─
+    // O gatilho fn_tg_retorno_credita_conta já rodou no upsert acima. Se o crédito
+    // não entrou, o título fica ABERTO com o banco tendo liquidado — precisa gritar.
+    if (liquidacoesParaConferir.length > 0) {
+      const chaves = liquidacoesParaConferir.map((l) => `retorno06:${l.nossoNumero}`);
+      const { data: lancs, error: errLanc } = await sb
+        .from("conta_cliente_lancamento")
+        .select("chave, valor")
+        .in("chave", chaves);
+      if (errLanc) {
+        erros.push({ linha: 0, nosso_numero: "", erro: `conferir crédito na conta: ${errLanc.message}` });
+      } else {
+        const porChave = new Map<string, number>(
+          (lancs ?? []).map((l: { chave: string; valor: number }) => [l.chave, Number(l.valor)]),
+        );
+        for (const l of liquidacoesParaConferir) {
+          const v = porChave.get(`retorno06:${l.nossoNumero}`);
+          if (v === undefined) {
+            alertas.push(
+              `⚠ LIQUIDAÇÃO SEM CRÉDITO NA CONTA — título ${l.numeroTitulo}, nosso número ${l.nossoNumero}, R$ ${l.valorCreditado.toFixed(2)}. O banco liquidou mas o crédito não entrou na conta do cliente (verifique o corte de data do gatilho). O título segue ABERTO e será cobrado indevidamente.`,
+            );
+            contadores.nao_aplicadas++;
+          } else if (Math.abs(v - l.valorCreditado) > 0.01) {
+            alertas.push(
+              `⚠ DIVERGÊNCIA ENTRE LIQUIDAÇÃO E CRÉDITO — título ${l.numeroTitulo}, nosso número ${l.nossoNumero}: banco liquidou R$ ${l.valorCreditado.toFixed(2)} e a conta do cliente recebeu R$ ${v.toFixed(2)}.`,
+            );
+          }
+        }
+      }
+    }
+
     // ── EVENTO-NO-TITULO: grava o rastro no grão do TÍTULO ────────────────
     // FAIL-LOUD sem derrubar efeito: o dinheiro e o estado do título já foram
     // aplicados acima. Se a trilha falhar, ela grita em `erros` (que vai para
