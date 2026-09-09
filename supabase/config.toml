@@ -100,3 +100,7 @@ additional_redirect_urls = ["https://people-fetely.lovable.app/**"]
 
   [functions.extrair-documento-cadastro]
     verify_jwt = true
+
+  [functions.inspecionar-api-xpm]
+    verify_jwt = true
+

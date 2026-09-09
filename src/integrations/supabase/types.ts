@@ -54034,6 +54034,60 @@ export type Database = {
         }
         Relationships: []
       }
+      xpm_api_operacao: {
+        Row: {
+          ambiente: string
+          coletado_em: string
+          metodo: string
+          operation_id: string | null
+          path: string
+          summary: string | null
+          tags: string[] | null
+        }
+        Insert: {
+          ambiente: string
+          coletado_em?: string
+          metodo: string
+          operation_id?: string | null
+          path: string
+          summary?: string | null
+          tags?: string[] | null
+        }
+        Update: {
+          ambiente?: string
+          coletado_em?: string
+          metodo?: string
+          operation_id?: string | null
+          path?: string
+          summary?: string | null
+          tags?: string[] | null
+        }
+        Relationships: []
+      }
+      xpm_api_swagger: {
+        Row: {
+          ambiente: string
+          base_url: string | null
+          coletado_em: string
+          documento: Json
+          swagger_url: string | null
+        }
+        Insert: {
+          ambiente: string
+          base_url?: string | null
+          coletado_em?: string
+          documento: Json
+          swagger_url?: string | null
+        }
+        Update: {
+          ambiente?: string
+          base_url?: string | null
+          coletado_em?: string
+          documento?: Json
+          swagger_url?: string | null
+        }
+        Relationships: []
+      }
       xpm_arquivo_fase_dim: {
         Row: {
           ativo: boolean
