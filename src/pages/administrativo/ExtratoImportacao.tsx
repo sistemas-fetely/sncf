@@ -549,7 +549,9 @@ export default function ExtratoImportacao() {
       contaResolvida = res.conta;
       trilha.conta = res.conta.nome_exibicao;
       trilha.aviso = res.aviso;
+      trilha.completado = res.completado;
       if (res.aviso) toast.warning(`${file.name}: ${res.aviso}`);
+      if (res.completado) toast.info(`${file.name}: ${res.completado}`);
       await sb
         .from("extrato_importacoes")
         .update({ conta_bancaria_id: res.conta.id })
