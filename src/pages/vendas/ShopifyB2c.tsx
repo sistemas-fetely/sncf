@@ -23,6 +23,7 @@ import { DashB2c } from "@/components/vendas/DashB2c";
 import {
   usePedidosB2c, useCarrinhosAbandonados, useDevolucoesB2c, type PedidoB2cRow,
 } from "@/hooks/vendas/useB2c";
+import { fmtDataHora } from "@/lib/data";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { AbaPermitida, ConteudoAba, usePodeVerAba } from "@/components/AbaGate";
 
@@ -373,7 +374,7 @@ export default function ShopifyB2c() {
                                 )}
                               </TableCell>
                               <TableCell className="whitespace-nowrap text-xs">
-                                {formatDateBR(p.data_pedido)}
+                                {fmtDataHora(p.created_at_shopify)}
                                 <div className="text-muted-foreground">{diasTexto(p.dias_no_estagio)}</div>
                               </TableCell>
                               <TableCell className="max-w-[220px] text-xs">
