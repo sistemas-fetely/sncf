@@ -26,7 +26,8 @@ export function ExportarB2cButton({ linhas }: { linhas: PedidoB2cRow[] }) {
       const ws = wb.addWorksheet("Loja B2C");
       ws.columns = [
         { header: "Pedido", key: "order_name", width: 12 },
-        { header: "Data", key: "data_pedido", width: 12 },
+        { header: "Pedido Bling", key: "bling_pedido_numero", width: 14 },
+        { header: "Data", key: "created_at_shopify", width: 18, style: { numFmt: "dd/mm/yyyy hh:mm" } },
         { header: "Cliente", key: "cliente", width: 32 },
         { header: "Cidade", key: "shipping_city", width: 20 },
         { header: "UF", key: "shipping_province", width: 6 },
@@ -35,6 +36,7 @@ export function ExportarB2cButton({ linhas }: { linhas: PedidoB2cRow[] }) {
         { header: "Dono", key: "area_responsavel", width: 14 },
         { header: "Próxima ação", key: "proxima_acao", width: 34 },
         { header: "Alerta", key: "alerta", width: 22 },
+        { header: "Bloqueio", key: "bloqueio_motivo", width: 48 },
         { header: "NF", key: "nf_refs", width: 16 },
         { header: "Rastreio", key: "tracking_number", width: 24 },
       ];
@@ -42,7 +44,8 @@ export function ExportarB2cButton({ linhas }: { linhas: PedidoB2cRow[] }) {
       linhas.forEach((p) => {
         ws.addRow({
           order_name: p.order_name ?? "",
-          data_pedido: parseDataPura(p.data_pedido),
+          bling_pedido_numero: p.bling_pedido_numero ?? "",
+          created_at_shopify: p.created_at_shopify ? new Date(p.created_at_shopify) : null,
           cliente: p.cliente ?? "",
           shipping_city: p.shipping_city ?? "",
           shipping_province: p.shipping_province ?? "",
@@ -51,6 +54,7 @@ export function ExportarB2cButton({ linhas }: { linhas: PedidoB2cRow[] }) {
           area_responsavel: p.area_responsavel ?? "",
           proxima_acao: p.proxima_acao ?? "",
           alerta: p.alerta ?? "",
+          bloqueio_motivo: p.bloqueio_motivo ?? "",
           nf_refs: p.nf_refs ?? "",
           tracking_number: p.tracking_number ?? "",
         });
