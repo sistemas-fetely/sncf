@@ -356,12 +356,7 @@ serve(async (req) => {
     }
 
 
-    // ── conta bancária Safra p/ movimentacoes_bancarias ────────────────────
-    const { data: safraConta } = await sb
-      .from("contas_bancarias").select("id").eq("banco_codigo", "422").eq("ativo", true).maybeSingle();
-    if (!safraConta) {
-      console.warn("[retorno-safra] Conta bancária Safra (422) não encontrada — movimentacoes_bancarias não serão gravadas");
-    }
+
 
     // ── parâmetros de remessa (para recálculo de código de barras) ─────────
     const { data: paramRows } = await sb.from("parametros_remessa_safra").select("chave, valor");
@@ -742,53 +737,10 @@ serve(async (req) => {
             alertas.push(`⚠ Valor pago fora do esperado no título ${linha.nossoNumero} (arquivo: ${valorPagoArq}) — movimentação lançada pelo valor nominal. Validar layout.`);
           }
 
-          const { error: errMarca } = await sb.rpc("marcar_titulo_pago" as string, {
-            p_titulo_id: t.id,
-            p_data_pagamento: dataPagamentoIso,
-          });
-          if (errMarca) {
-            erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `marcar_titulo_pago: ${errMarca.message}` });
-            marcarDesfecho(linha.numeroLinha, false, "erro em marcar_titulo_pago");
-            continue;
-          }
-
-          let movimentacaoBaixaId: string | null = null;
-          if (safraConta) {
-            const { data: movCriada, error: errMov } = await sb
-              .from("movimentacoes_bancarias")
-              .insert({
-                conta_bancaria_id:  safraConta.id,
-                data_transacao:     dataPagamentoIso.slice(0, 10),
-                descricao:          `Boleto ${t.numero_titulo ?? t.nosso_numero_seq ?? "s/n"} — ${parceiro?.razao_social ?? "Cliente"}`,
-                valor:              valorCreditado,
-                tipo:               "credito",
-                origem:             "retorno_safra",
-                hash_unico:         `safra_boleto_${t.id}`,
-                id_transacao_banco: linha.nossoNumero || null,
-                conciliado:         true,
-                conciliado_em:      new Date().toISOString(),
-              })
-              .select("id")
-              .single();
-            if (errMov) {
-              if (errMov.code === "23505") {
-                // Idempotência: busca a movimentação já existente pelo hash para gravar a ponte
-                const { data: movExistente } = await sb
-                  .from("movimentacoes_bancarias")
-                  .select("id")
-                  .eq("hash_unico", `safra_boleto_${t.id}`)
-                  .maybeSingle();
-                movimentacaoBaixaId = movExistente?.id ?? null;
-              } else {
-                erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `mov bancária: ${errMov.message}` });
-                marcarDesfecho(linha.numeroLinha, false, "erro na movimentacao bancaria");
-                continue;
-              }
-            } else {
-              movimentacaoBaixaId = movCriada?.id ?? null;
-            }
-          }
-
+          // TRILHO NOVO (09/09/2026): a edge NAO marca mais o titulo como pago e NAO
+          // cria movimentacao bancaria. Quem escreve o pagamento e o consumo da conta
+          // corrente do cliente (fn_conta_consumir), acionado pelo gatilho
+          // fn_tg_retorno_credita_conta. Aqui so registramos o FATO BANCARIO.
           const { error: errBoleto } = await sb
             .from("titulo_a_receber")
             .update({
@@ -796,10 +748,10 @@ serve(async (req) => {
               data_pagamento_banco: dataPagamentoIso,
               valor_juros: jurosArq,
               valor_desconto: descontoArq,
-              ...(movimentacaoBaixaId ? { movimentacao_baixa_id: movimentacaoBaixaId } : {}),
               ...(!t.nosso_numero_safra ? { nosso_numero_safra: linha.nossoNumero } : {}),
             } as any)
             .eq("id", t.id);
+
           if (errBoleto) {
             erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `update boleto: ${errBoleto.message}` });
           } else {
@@ -832,8 +784,27 @@ serve(async (req) => {
             juros_mora: jurosArq,
             desconto: descontoArq,
             data_pagamento: dataPagamentoIso.slice(0, 10),
-            movimentacao: movimentacaoBaixaId,
           });
+
+          // GUARDA FAIL-LOUD: o pagamento do título vem do crédito na conta do cliente
+          // (gatilho fn_tg_retorno_credita_conta + FIFO). Se o crédito não entrou, o
+          // título fica ABERTO com o banco tendo liquidado — precisa gritar no relatório.
+          const { data: lanc } = await sb
+            .from("conta_cliente_lancamento")
+            .select("id, valor")
+            .eq("chave", `retorno06:${linha.nossoNumero}`)
+            .maybeSingle();
+          if (!lanc) {
+            alertas.push(
+              `⚠ LIQUIDAÇÃO SEM CRÉDITO NA CONTA — título ${t.numero_titulo ?? t.nosso_numero_seq ?? "s/n"}, nosso número ${linha.nossoNumero}, R$ ${valorCreditado.toFixed(2)}. O banco liquidou mas o crédito não entrou na conta do cliente (verifique o corte de data do gatilho). O título segue ABERTO e será cobrado indevidamente.`,
+            );
+            contadores.nao_aplicadas++;
+          } else if (Math.abs(Number(lanc.valor) - valorCreditado) > 0.01) {
+            alertas.push(
+              `⚠ DIVERGÊNCIA ENTRE LIQUIDAÇÃO E CRÉDITO — título ${t.numero_titulo ?? t.nosso_numero_seq ?? "s/n"}, nosso número ${linha.nossoNumero}: banco liquidou R$ ${valorCreditado.toFixed(2)} e a conta do cliente recebeu R$ ${Number(lanc.valor).toFixed(2)}.`,
+            );
+          }
+
           contadores.liquidacoes++;
           marcarDesfecho(linha.numeroLinha, true, null);
           continue;
