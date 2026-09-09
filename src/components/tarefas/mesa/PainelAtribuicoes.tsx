@@ -14,7 +14,7 @@ import { Fragment, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { AlertTriangle, Loader2, Plus, Trash2, Pencil, Check, ChevronsUpDown, ExternalLink, Workflow } from "lucide-react";
+import { AlertTriangle, Loader2, Plus, Trash2, Pencil, Check, ChevronsUpDown, ExternalLink, Workflow, TrendingUp } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -127,6 +128,14 @@ interface LinhaCarga {
   prazo_obs_p50_min: number | null;
   prazo_obs_p80_min: number | null;
   prazo_obs_amostra: number | null;
+  // F3 — tempo unitário observado (medido pela execução, nunca substitui o declarado sozinho).
+  origem_medida: string | null;
+  tempo_obs_p50_min: number | null;
+  tempo_obs_p25_min: number | null;
+  tempo_obs_p75_min: number | null;
+  tempo_obs_amostra: number | null;
+  tempo_obs_sessoes: number | null;
+  tempo_obs_escopo: "pessoa" | "fila" | null;
 }
 
 interface OpcaoMacro {
@@ -175,8 +184,9 @@ function minutos(v: number | null | undefined) {
   return m ? `${h}h ${m}min` : `${h}h`;
 }
 
-/** Declarado x observado: diverge quando a diferença passa de 30% para qualquer lado. */
-function divergeVolume(declarado: number | null, observado: number | null) {
+/** Declarado x observado: diverge quando a diferença passa de 30% para qualquer lado.
+ *  Vale para volume/dia e para tempo unitário (mesma régua). */
+function divergeMais30(declarado: number | null, observado: number | null) {
   if (observado == null || declarado == null || declarado <= 0) return false;
   return Math.abs(Number(observado) - Number(declarado)) / Number(declarado) > 0.3;
 }
