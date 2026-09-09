@@ -14,7 +14,7 @@ import { Fragment, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { AlertTriangle, Loader2, Plus, Trash2, Pencil, Check, ChevronsUpDown, ExternalLink, Workflow } from "lucide-react";
+import { AlertTriangle, Loader2, Plus, Trash2, Pencil, Check, ChevronsUpDown, ExternalLink, Workflow, TrendingUp } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -127,6 +128,14 @@ interface LinhaCarga {
   prazo_obs_p50_min: number | null;
   prazo_obs_p80_min: number | null;
   prazo_obs_amostra: number | null;
+  // F3 — tempo unitário observado (medido pela execução, nunca substitui o declarado sozinho).
+  origem_medida: string | null;
+  tempo_obs_p50_min: number | null;
+  tempo_obs_p25_min: number | null;
+  tempo_obs_p75_min: number | null;
+  tempo_obs_amostra: number | null;
+  tempo_obs_sessoes: number | null;
+  tempo_obs_escopo: "pessoa" | "fila" | null;
 }
 
 interface OpcaoMacro {
@@ -175,8 +184,9 @@ function minutos(v: number | null | undefined) {
   return m ? `${h}h ${m}min` : `${h}h`;
 }
 
-/** Declarado x observado: diverge quando a diferença passa de 30% para qualquer lado. */
-function divergeVolume(declarado: number | null, observado: number | null) {
+/** Declarado x observado: diverge quando a diferença passa de 30% para qualquer lado.
+ *  Vale para volume/dia e para tempo unitário (mesma régua). */
+function divergeMais30(declarado: number | null, observado: number | null) {
   if (observado == null || declarado == null || declarado <= 0) return false;
   return Math.abs(Number(observado) - Number(declarado)) / Number(declarado) > 0.3;
 }
@@ -213,6 +223,10 @@ export default function PainelAtribuicoes() {
   const [aApagar, setAApagar] = useState<LinhaCarga | null>(null);
   // Nascer processo a partir da atribuição: confirmação explícita antes da RPC.
   const [aNascerProcesso, setANascerProcesso] = useState<LinhaCarga | null>(null);
+  // F3 — adoção do número medido: confirmação explícita, gravação SÓ via RPC.
+  const [aAdotar, setAAdotar] = useState<LinhaCarga | null>(null);
+  const [adotarTempo, setAdotarTempo] = useState(true);
+  const [adotarVolume, setAdotarVolume] = useState(true);
   // Dois olhares sobre o mesmo catálogo: por macro processo (como se faz) ou por pessoa (quem faz).
   const [eixo, setEixo] = useState<"macro" | "pessoa">("macro");
   // Gestão compara: tabela ordenável. Padrão = carga por dia, do maior para o menor.
@@ -245,6 +259,34 @@ export default function PainelAtribuicoes() {
           onClick: () => navigate(`/processos/${processoId}`),
         },
       });
+    },
+    onError: (e) => toast.error(formatError(e)),
+  });
+
+  // F3 — adoção em 1 clique: a RPC fn_atribuicao_adotar_medido é o ÚNICO caminho
+  // que grava o observado como declarado (e marca origem 'medido'). FAIL-LOUD.
+  const adotarMedido = useMutation({
+    mutationFn: async (p: { l: LinhaCarga; tempo: boolean; volume: boolean }) => {
+      const { data, error } = await (supabase as any).rpc("fn_atribuicao_adotar_medido", {
+        _id: p.l.atribuicao_id,
+        _adotar_tempo: p.tempo,
+        _adotar_volume: p.volume,
+      });
+      if (error) throw error;
+      return data as {
+        tempo_de: number | null; tempo_para: number | null;
+        volume_de: number | null; volume_para: number | null;
+      } | null;
+    },
+    onSuccess: (r) => {
+      const partes: string[] = [];
+      if (r?.tempo_para != null) partes.push(`tempo ${r.tempo_de ?? "—"} → ${r.tempo_para} min`);
+      if (r?.volume_para != null) partes.push(`volume ${r.volume_de ?? "—"} → ${r.volume_para}/dia`);
+      toast.success("Número medido adotado.", {
+        description: partes.length ? partes.join(" · ") : "Nada a adotar.",
+      });
+      setAAdotar(null);
+      qc.invalidateQueries({ queryKey: QK });
     },
     onError: (e) => toast.error(formatError(e)),
   });
@@ -581,7 +623,51 @@ export default function PainelAtribuicoes() {
                         )}
                       </TableCell>
                       <TableCell className="text-right text-sm tabular-nums">
-                        {num(l.tempo_unitario_min, "min")}
+                        <span className="inline-flex items-center justify-end gap-1">
+                          {num(l.tempo_unitario_min, "min")}
+                          {l.origem_medida === "medido" && <Selo estado="info">medido</Selo>}
+                          {/* Divergência declarado x observado de tempo: mesma régua de 30%. */}
+                          {l.tempo_obs_p50_min != null &&
+                            divergeMais30(l.tempo_unitario_min, l.tempo_obs_p50_min) && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="cursor-help">
+                                    <AlertTriangle className="h-3.5 w-3.5 text-warning" />
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs text-[11px]">
+                                  Declarado {num(l.tempo_unitario_min)} min, observado{" "}
+                                  {num(l.tempo_obs_p50_min)} min em {l.tempo_obs_amostra ?? 0}{" "}
+                                  intervalos.
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                        </span>
+                        {l.tempo_obs_p50_min != null && (
+                          <div className="text-[11px] font-normal text-muted-foreground">
+                            {l.tempo_obs_escopo === "pessoa" &&
+                            l.tempo_obs_p25_min != null &&
+                            l.tempo_obs_p75_min != null ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="cursor-help">
+                                    observado: {num(l.tempo_obs_p50_min)} min
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs text-[11px]">
+                                  p25 {num(l.tempo_obs_p25_min)} · p75 {num(l.tempo_obs_p75_min)} ·{" "}
+                                  {l.tempo_obs_amostra ?? 0} intervalos em{" "}
+                                  {l.tempo_obs_sessoes ?? 0} sessões
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              <>
+                                observado: {num(l.tempo_obs_p50_min)} min
+                                {l.tempo_obs_escopo === "fila" && " (média da fila)"}
+                              </>
+                            )}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="text-right text-sm tabular-nums">
                         <span className="inline-flex items-center justify-end gap-1">
@@ -589,7 +675,7 @@ export default function PainelAtribuicoes() {
                           {/* Divergência declarado x observado: nada é adotado sozinho,
                               o alerta convida a editar. */}
                           {l.fila_instrumentada &&
-                            divergeVolume(l.fluxo_diario_estimado, l.volume_obs_dia_corrido) && (
+                            divergeMais30(l.fluxo_diario_estimado, l.volume_obs_dia_corrido) && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <span className="cursor-help">
@@ -637,6 +723,32 @@ export default function PainelAtribuicoes() {
                       </TableCell>
                       <TableCell className="text-right">
                         <span className="flex justify-end gap-1">
+                          {/* Adotar medido: só aparece quando há observado divergente. */}
+                          {((l.tempo_obs_p50_min != null &&
+                            divergeMais30(l.tempo_unitario_min, l.tempo_obs_p50_min)) ||
+                            (l.volume_obs_dia_corrido != null &&
+                              divergeMais30(l.fluxo_diario_estimado, l.volume_obs_dia_corrido))) && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => {
+                                    setAdotarTempo(l.tempo_obs_p50_min != null);
+                                    setAdotarVolume(l.volume_obs_dia_corrido != null);
+                                    setAAdotar(l);
+                                  }}
+                                  aria-label={`Adotar número medido em ${l.nome}`}
+                                >
+                                  <TrendingUp className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs text-[11px]">
+                                Adotar medido
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
                           {!l.processo_id && (
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -753,6 +865,71 @@ export default function PainelAtribuicoes() {
             >
               {nascerProcesso.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Criar processo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* F3 — adotar medido: o observado passa a ser o declarado (via RPC, único caminho). */}
+      <AlertDialog
+        open={!!aAdotar}
+        onOpenChange={(o) => !o && !adotarMedido.isPending && setAAdotar(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Adotar número medido em “{aAdotar?.nome}”?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                {aAdotar?.tempo_obs_p50_min != null && (
+                  <p>
+                    Tempo: {num(aAdotar.tempo_unitario_min)} min → {num(aAdotar.tempo_obs_p50_min)}{" "}
+                    min
+                  </p>
+                )}
+                {aAdotar?.volume_obs_dia_corrido != null && (
+                  <p>
+                    Volume: {num(aAdotar.fluxo_diario_estimado)}/dia →{" "}
+                    {num(aAdotar.volume_obs_dia_corrido)}/dia
+                  </p>
+                )}
+                <div className="space-y-2 pt-1">
+                  <label className="flex items-center gap-2 text-sm text-foreground">
+                    <Checkbox
+                      checked={adotarTempo}
+                      onCheckedChange={(v) => setAdotarTempo(v === true)}
+                      disabled={aAdotar?.tempo_obs_p50_min == null}
+                    />
+                    Adotar tempo observado
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-foreground">
+                    <Checkbox
+                      checked={adotarVolume}
+                      onCheckedChange={(v) => setAdotarVolume(v === true)}
+                      disabled={aAdotar?.volume_obs_dia_corrido == null}
+                    />
+                    Adotar volume observado
+                  </label>
+                </div>
+                <p>
+                  O número observado passa a ser o declarado da atribuição e fica marcado como
+                  medido. Você pode editar depois.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={adotarMedido.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                if (aAdotar && (adotarTempo || adotarVolume)) {
+                  adotarMedido.mutate({ l: aAdotar, tempo: adotarTempo, volume: adotarVolume });
+                }
+              }}
+              disabled={adotarMedido.isPending || (!adotarTempo && !adotarVolume)}
+            >
+              {adotarMedido.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Adotar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
