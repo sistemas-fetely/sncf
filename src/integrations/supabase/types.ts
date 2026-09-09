@@ -53996,18 +53996,21 @@ export type Database = {
         Row: {
           categoria_codigo: string
           categoria_descricao: string
+          categoria_id: number | null
           criado_em: string
           grupo: string
         }
         Insert: {
           categoria_codigo: string
           categoria_descricao: string
+          categoria_id?: number | null
           criado_em?: string
           grupo: string
         }
         Update: {
           categoria_codigo?: string
           categoria_descricao?: string
+          categoria_id?: number | null
           criado_em?: string
           grupo?: string
         }
