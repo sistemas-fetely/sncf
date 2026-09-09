@@ -115,6 +115,30 @@ export function usePedidosB2c() {
   });
 }
 
+export interface AlertaDim {
+  codigo: string;
+  rotulo: string | null;
+  severidade: string | null;
+  prioridade: number | null;
+  ativo: boolean | null;
+}
+
+export function usePedidoAlertaDim() {
+  return useQuery({
+    queryKey: ["pedido-alerta-dim"],
+    staleTime: 10 * 60 * 1000,
+    queryFn: async (): Promise<AlertaDim[]> => {
+      const { data, error } = await supabase
+        .from("pedido_alerta_dim")
+        .select("codigo, rotulo, severidade, prioridade, ativo")
+        .eq("ativo", true)
+        .order("prioridade", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as AlertaDim[];
+    },
+  });
+}
+
 export interface ItemB2c {
   id: string;
   sku: string | null;
