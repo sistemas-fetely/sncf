@@ -7,11 +7,13 @@
 //  - estoque = acumulado parado na fila   → dívida operacional, pede mutirão
 // A ocupação é calculada só sobre o fluxo.
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertTriangle, ArrowRight, Gauge, Info, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Selo } from "@/components/ui/selo";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -515,6 +517,63 @@ export default function PainelTime({ onDeclarar }: { onDeclarar: () => void }) {
           </div>
         </SheetContent>
       </Sheet>
+    </div>
+  );
+}
+
+/**
+ * Capacidade declarada por pessoa — escrita SÓ por fn_capacidade_definir,
+ * que valida 1..80 e o escopo do gestor. Não altera o cálculo de ocupação.
+ */
+function CelulaCapacidade({ linha }: { linha: LinhaMesa }) {
+  const qc = useQueryClient();
+  const [horas, setHoras] = useState("");
+
+  const salvar = useMutation({
+    mutationFn: async (h: number) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc("fn_capacidade_definir", {
+        _pessoa_id: linha.pessoa_id,
+        _horas_semana: h,
+      });
+      if (error) throw error;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return data as any;
+    },
+    onSuccess: (r) => {
+      toast.success(`Capacidade: ${r?.de ?? "—"}h → ${r?.para ?? "—"}h por semana`);
+      qc.invalidateQueries({ queryKey: QK });
+      setHoras("");
+    },
+    onError: (e) => toast.error(formatError(e)),
+  });
+
+  return (
+    <div
+      className="mt-1 flex items-center justify-end gap-1"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <Input
+        type="number"
+        min={1}
+        max={80}
+        aria-label="Horas por semana"
+        placeholder={linha.capacidade_presumida ? "40" : undefined}
+        value={horas}
+        onChange={(e) => setHoras(e.target.value)}
+        className="h-7 w-16 text-right text-xs"
+      />
+      <span className="text-[11px] text-muted-foreground">h/sem</span>
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-7 px-2 text-[11px]"
+        disabled={salvar.isPending || horas.trim() === ""}
+        onClick={() => salvar.mutate(Number(horas))}
+      >
+        {salvar.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Salvar"}
+      </Button>
+      {linha.capacidade_presumida && <Selo estado="muted">presumida 40h</Selo>}
     </div>
   );
 }
