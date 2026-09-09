@@ -91,6 +91,10 @@ export interface PedidoB2cRow {
   cancelled_at: string | null;
   refunded_amount: number | null;
   coerencia_status: string | null;
+  bloqueio_motivo: string | null;
+  bloqueio_tentativas: number | null;
+  bloqueio_em: string | null;
+  pedido_ausente: boolean | null;
 }
 
 const CAMPOS_PEDIDO =
