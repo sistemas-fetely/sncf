@@ -769,6 +769,43 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     }
   };
 
+  /**
+   * REEMISSÃO EM UM MOVIMENTO: um clique, um arquivo. O arquivo carrega a baixa
+   * do boleto antigo (02) e o registro do novo (01) na mesma remessa.
+   */
+  const handleGerarReemissao = async () => {
+    setGerandoReemissao(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("gerar-remessa-safra", {
+        body: { tipo: "reemissao", titulo_ids: filaReemissao.map((b) => b.id) },
+      });
+      if (error || !data?.ok) {
+        const detalhe = Array.isArray(data?.erros)
+          ? data.erros.map((x: { numero_titulo?: string; motivo?: string }) => `${x.numero_titulo ?? "?"}: ${x.motivo ?? "?"}`).join(" · ")
+          : null;
+        throw new Error([data?.erro ?? error?.message ?? "Erro ao gerar remessa de reemissão", detalhe].filter(Boolean).join(" — "));
+      }
+      const blob = new Blob([data.arquivo_conteudo], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = data.arquivo_nome;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({
+        title: `Remessa de reemissão gerada: ${data.qtd_titulos} título(s)`,
+        description: `${data.qtd_registros ?? ""} registros no arquivo (baixa + novo boleto). Envie no SafraNet até 17h.`,
+      });
+      setReemissaoDialogOpen(false);
+      await revalidarTitulos();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: "Erro ao gerar reemissão", description: msg, variant: "destructive" });
+    } finally {
+      setGerandoReemissao(false);
+    }
+  };
+
 
   const handleGerarProrrogacao = async () => {
     setGerandoProrrogacao(true);
