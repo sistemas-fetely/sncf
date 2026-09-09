@@ -3642,6 +3642,51 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_migracao_boleto_sintetica_20260909: {
+        Row: {
+          congelado_em: string | null
+          conta_bancaria_id: string | null
+          data_transacao: string | null
+          descricao: string | null
+          mov_id: string | null
+          nosso_numero: string | null
+          numero_titulo: string | null
+          parceiro_id: string | null
+          titulo_id: string | null
+          titulo_prova_antes: string | null
+          titulo_status_antes: string | null
+          valor: number | null
+        }
+        Insert: {
+          congelado_em?: string | null
+          conta_bancaria_id?: string | null
+          data_transacao?: string | null
+          descricao?: string | null
+          mov_id?: string | null
+          nosso_numero?: string | null
+          numero_titulo?: string | null
+          parceiro_id?: string | null
+          titulo_id?: string | null
+          titulo_prova_antes?: string | null
+          titulo_status_antes?: string | null
+          valor?: number | null
+        }
+        Update: {
+          congelado_em?: string | null
+          conta_bancaria_id?: string | null
+          data_transacao?: string | null
+          descricao?: string | null
+          mov_id?: string | null
+          nosso_numero?: string | null
+          numero_titulo?: string | null
+          parceiro_id?: string | null
+          titulo_id?: string | null
+          titulo_prova_antes?: string | null
+          titulo_status_antes?: string | null
+          valor?: number | null
+        }
+        Relationships: []
+      }
       backup_migracao_ciclo_20260806_cprs: {
         Row: {
           aprovado_em: string | null
