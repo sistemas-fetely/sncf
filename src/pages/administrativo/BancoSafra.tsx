@@ -424,6 +424,26 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     [boletos],
   );
 
+  /**
+   * Fila de reemissão: título com reemissão solicitada e boleto antigo ainda
+   * registrado no banco. Vai inteira em UM arquivo (baixa 02 + entrada 01).
+   */
+  const filaReemissao = useMemo(
+    () =>
+      boletos.filter(
+        (b) =>
+          !!b.reemissao_nova_data &&
+          (b.boleto_status === "baixa_solicitada" ||
+            b.boleto_status === "baixa_remessa_gerada"),
+      ),
+    [boletos],
+  );
+
+  const totalReemissao = filaReemissao.reduce(
+    (s, b) => s + Number(b.reemissao_novo_valor ?? b.valor_bruto ?? 0),
+    0,
+  );
+
   // edição inline de boletos (declarada aqui porque as sugestões dependem dela)
   const [edits, setEdits] = useState<Record<string, { data?: string; valor?: string }>>({});
 
