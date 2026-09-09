@@ -821,7 +821,9 @@ export default function ExpedicoesXpm() {
     setSincronizando(true);
     try {
       const { data, error } = await supabase.functions.invoke("zenlog-sync-expedicoes", {
-        body: { dias: 45 },
+        // Janela curta por clique: a função tem teto de páginas por execução e
+        // o resto drena na chamada seguinte. 45 dias de uma vez dava 504.
+        body: { dias: 7 },
       });
       if (error) throw error;
       if (data && (data as any).ok === false) throw new Error((data as any).erro ?? "Falha na sincronização");
