@@ -336,6 +336,42 @@ export default function ShopifyB2c() {
                                   </div>
                                 )}
                               </TableCell>
+                              <TableCell className="whitespace-nowrap">
+                                {p.bling_pedido_numero || p.nf_refs ? (
+                                  <div className="flex flex-col items-start gap-0.5">
+                                    {p.bling_pedido_numero && (
+                                      <button
+                                        type="button"
+                                        title="Copiar número do pedido Bling"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          copiar(p.bling_pedido_numero!, "Pedido Bling");
+                                        }}
+                                        className="inline-flex items-center gap-1 font-mono text-xs transition-colors hover:text-gold"
+                                      >
+                                        <span>#{p.bling_pedido_numero}</span>
+                                        <Copy className="h-3 w-3 text-muted-foreground" />
+                                      </button>
+                                    )}
+                                    {p.nf_refs && (
+                                      <button
+                                        type="button"
+                                        title="Copiar NF"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          copiar(p.nf_refs!, "NF");
+                                        }}
+                                        className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground transition-colors hover:text-gold"
+                                      >
+                                        <span>NF {p.nf_refs}</span>
+                                        <Copy className="h-3 w-3" />
+                                      </button>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">—</span>
+                                )}
+                              </TableCell>
                               <TableCell className="whitespace-nowrap text-xs">
                                 {formatDateBR(p.data_pedido)}
                                 <div className="text-muted-foreground">{diasTexto(p.dias_no_estagio)}</div>
