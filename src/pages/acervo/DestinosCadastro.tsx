@@ -205,11 +205,11 @@ export default function DestinosCadastro() {
         (supabase as any)
           .from("vw_estoque")
           .select("sku, nome_comercial, estoque_virtual, tem_razao")
-          .range(0, 9999),
+          .range(0, 1999),
         (supabase as any)
           .from("sncf_produtos")
           .select("sku, origem_fisc")
-          .range(0, 9999),
+          .range(0, 1999),
       ]);
 
       if (resEstoque.error) setEstoqueErro(formatError(resEstoque.error));

@@ -177,12 +177,15 @@ export default function EstoqueVirtual() {
 
   const produtosQuery = useQuery({
     queryKey: ["vw_estoque_rede"],
+    // CARGA-DO-BANCO (09/09/2026): view composta, cara. Cache maior evita
+    // refetch em cascata quando várias abas estão abertas.
+    staleTime: 3 * 60 * 1000,
     queryFn: async (): Promise<EstoqueRede[]> => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("vw_estoque_rede")
         .select(COLS)
-        .limit(5000);
+        .limit(2000);
       if (error) throw error;
       return (data ?? []) as EstoqueRede[];
     },

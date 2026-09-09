@@ -108,7 +108,7 @@ export default function EntradasEstoque() {
         .gte("data", de)
         .lte("data", ate)
         .order("data", { ascending: false })
-        .limit(5000);
+        .limit(2000);
       if (error) throw error;
       return (data ?? []) as unknown as EntradaLinha[];
     },
