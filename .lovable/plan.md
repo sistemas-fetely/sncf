@@ -1,32 +1,48 @@
-# Identificação humana nos Pedidos de Mercadoria
+# Telas travando por tempo limite do banco
 
-Trocar a identificação da lista "Pedidos existentes" (aba Acompanhamento de `/logistica/chegada-mercadoria`, em `src/pages/logistica/CadastroPedidoCompra.tsx`) pelo rótulo pronto da view `vw_compra_pedido_identidade`. Só frontend — nenhuma mudança de banco.
+Dois avisos ainda abertos apontam para o mesmo problema de fundo: consultas grandes demais
+para o tempo que o banco permite. Não são erros de uma tela só, então não mexi no código
+sem sua aprovação.
 
-## Confirmações feitas
-- A view existe e retorna: `pedido_id`, `identificacao`, `competencia`, `base_da_competencia`, `data_chegada_precisao`, `numero_pedido`, `categorias`, `categoria_mista`, `status`, `numero_proforma`, `numero_invoice`, `numero_packing_list`, `processo_ref`, `busca` (confirmado por query real).
-- Hoje a lista usa `vw_importacao_pedido_detalhe` e **não tem campo de busca** — será adicionado via prop `busca` do `TabelaFetely`.
+## O que está acontecendo
 
-## Mudanças (arquivo: `src/pages/logistica/CadastroPedidoCompra.tsx`)
+1. Várias telas de lista pedem de uma vez 2.000 a 5.000 linhas (estoque, produtos,
+   conciliação de despesas, destinos, funil, auditoria). Em horário de movimento essas
+   consultas passam do tempo limite e a tela fica carregando ou aparece vazia.
+2. O serviço que atende todas as chamadas ao banco também falhou ao recarregar o mapa das
+   tabelas (16 vezes em dois dias). Quando isso acontece, qualquer tela pode dar erro ao
+   mesmo tempo. A causa é a quantidade de tabelas e views no banco somada à carga dessas
+   consultas pesadas.
 
-1. **Nova query** `useQuery` lendo `vw_compra_pedido_identidade` com os campos acima, montando um `Map` por `pedido_id` (mesmo padrão de `saldoPorPedido`). Nada é recalculado no front.
+## O que eu faria
 
-2. **Coluna "Número"**: mostra `competencia` como prefixo discreto (`text-xs text-muted-foreground`) com ícone de informação e tooltip; o `numero_pedido` em destaque (`font-medium`); abaixo, `categorias` + `status` como texto secundário. Tooltip por `base_da_competencia`:
-   - chegada → "Competência pela data de chegada da mercadoria"
-   - termo → "Competência pela data do termo de conferência (chegada não informada)"
-   - eta → "Competência pela ETA prevista"
-   - pedido → "Competência pela data do pedido (ainda não chegou)"
-   - se `data_chegada_precisao === 'mes'`, acrescenta "· mês aproximado".
-   - Se `categoria_mista`, um marcador leve (ex.: selo "mista" ou ícone) junto das categorias.
-   - Fallback: pedido sem linha na view mantém o `numero_pedido` cru.
+Passo 1 — telas pesadas (uma por vez, começando pelas mais usadas)
+- Trocar o bloco único de milhares de linhas por páginas de 100 a 200, com botão de
+  carregar mais.
+- Filtrar por período no banco (últimos 90 dias por padrão), em vez de trazer tudo e
+  filtrar na tela.
+- Criar índices para as consultas que continuarem lentas, medindo antes e depois.
 
-3. **Coluna "Ref."** vira "Referências": lista empilhada de `numero_proforma` (Proforma), `numero_invoice` (Invoice), `numero_packing_list` (PL) e `processo_ref` (Processo), cada um com rótulo curto em `text-xs`; só os não nulos; todos nulos → "—". `rocabella_ref` sai dessa coluna.
+Passo 2 — aliviar o banco
+- Levantar tabelas e views que ninguém mais usa e aposentá-las, com sua confirmação item
+  por item.
+- Ajustar o tempo limite do serviço de dados para o recarregamento do mapa não morrer no
+  meio.
 
-4. **Busca**: estado local + prop `busca` do `TabelaFetely` (placeholder ex.: "Buscar por número, proforma, invoice, PL, processo ou categoria…"). Filtro case-insensitive por conteúdo parcial sobre o campo `busca` da view.
+## Como saber que funcionou
 
-5. **Ordenação padrão**: `competencia` decrescente, desempate por `numero_pedido`, em `pedidosOrdenados` (substitui a ordenação atual por `data_pedido`).
+Abrir Estoque, Produtos e Conciliação de despesas em horário de movimento e ver a lista
+aparecer em poucos segundos, sem tela vazia. E nenhum novo aviso de tempo limite nos
+registros durante uma semana.
 
-6. Demais colunas (Linhas, Custo FOB, Fase XPM, Andamento, A faturar, A confirmar, Atraso, Pendências, datas) inalteradas.
+## Detalhes técnicos
 
-## Verificação
-- Type-check (`bunx tsc --noEmit`).
-- Conferência visual via Playwright na aba Acompanhamento: novo formato do Número, tooltip da competência, referências e busca funcionando (ex.: digitar "D003" encontra o pedido).
+- Telas com limite alto: `EstoqueVirtual.tsx` (5000), `SaudeEstoque.tsx` (5000),
+  `Produtos.tsx` (5000), `EntradasEstoque.tsx` (5000), `FunilFases.tsx` (5000),
+  `useDevolucoesRetornoPendente.ts` (5000), `ConciliacaoDespesas.tsx` (2000),
+  `EstoqueXpm.tsx` (2000), `useAuditoria.ts` (2000), `DestinosCadastro.tsx` `.range(0,9999)`.
+- Erro observado: SQLSTATE 57014 (`canceling statement due to statement timeout`) via
+  PostgREST, e falha de reload do schema cache com o mesmo código.
+- Paginação por `.range()` com `count: "exact"` nos hooks, mantendo as query keys atuais
+  com o número da página.
+- Índices sobre as colunas de filtro/ordenação das views compostas envolvidas.
