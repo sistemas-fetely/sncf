@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ParametrosExtratoFontes } from "@/components/parametros/ParametrosExtratoFontes";
 import { ParametrosImportacaoFonteConta } from "@/components/parametros/ParametrosImportacaoFonteConta";
+import { ParametrosContasBancariasIdentificacao } from "@/components/parametros/ParametrosContasBancariasIdentificacao";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
