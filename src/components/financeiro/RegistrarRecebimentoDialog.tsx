@@ -98,7 +98,7 @@ export function RegistrarRecebimentoDialog({ children, parceiroId, parceiroNome,
   );
   const [buscaOpen, setBuscaOpen] = useState(false);
   const [busca, setBusca] = useState("");
-  const [valor, setValor] = useState(0);
+  const [valor, setValor] = useState(valorSugerido && valorSugerido > 0 ? valorSugerido : 0);
   const [data, setData] = useState(hojeIso());
   const [meio, setMeio] = useState("pix");
   const [chave, setChave] = useState("");
@@ -114,10 +114,16 @@ export function RegistrarRecebimentoDialog({ children, parceiroId, parceiroNome,
   const { data: opcoes = [], isLoading: buscando } = useClientesBusca(busca);
   const registrar = useRegistrarRecebimentoCliente();
   const lerComprovante = useLerComprovanteConta();
+  const invalidarRecebivel = useInvalidarRecebivel();
 
   useEffect(() => {
     if (parceiroId) setCliente({ id: parceiroId, nome: parceiroNome || "Cliente" });
   }, [parceiroId, parceiroNome]);
+
+  useEffect(() => {
+    if (valorSugerido && valorSugerido > 0) setValor(valorSugerido);
+  }, [valorSugerido]);
+
 
   const maxData = hojeIso();
   const dataFutura = data > maxData;
