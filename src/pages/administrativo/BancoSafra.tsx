@@ -91,6 +91,10 @@ type TitulosBoleto = {
   boleto_enviado_em: string | null;
   prorrogacao_nova_data: string | null;
   prorrogacao_solicitada_em: string | null;
+  /** Reemissão solicitada: data/valor do boleto NOVO, ainda não aplicados ao título. */
+  reemissao_nova_data: string | null;
+  reemissao_novo_valor: number | null;
+  nosso_numero_seq: string | null;
   numero_parcela: number | null;
   total_parcelas: number | null;
   conta: { parceiro: { razao_social: string | null } | null } | null;
