@@ -53,6 +53,8 @@ import {
   extrairCabecalhoOFX,
   resolverContaPorCabecalhoOFX,
   descreverCabecalho,
+  explicarContasDoBanco,
+  descreverCompletados,
   digitos,
 } from "@/lib/financeiro/resolver-conta-importacao";
 
