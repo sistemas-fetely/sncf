@@ -53,6 +53,8 @@ import {
   extrairCabecalhoOFX,
   resolverContaPorCabecalhoOFX,
   descreverCabecalho,
+  explicarContasDoBanco,
+  descreverCompletados,
   digitos,
 } from "@/lib/financeiro/resolver-conta-importacao";
 
@@ -70,6 +72,7 @@ type Conta = {
   banco_codigo: string | null;
   agencia: string | null;
   numero_conta: string | null;
+  ativo: boolean | null;
 };
 type Importacao = {
   id: string;
@@ -208,6 +211,8 @@ type TrilhaArquivo = {
   conta?: string;
   /** Aviso não-fatal — ex.: divergência cabeçalho OFX × mapeamento da fonte. */
   aviso?: string;
+  /** Aprendizado: cadastro completado com agência/conta vindas do arquivo. */
+  completado?: string;
   /**
    * Sucesso idempotente: o arquivo não foi lido porque já tinha sido
    * processado antes. Veredito em tom neutro, nem verde nem vermelho.
@@ -344,7 +349,7 @@ export default function ExtratoImportacao() {
       // é melhor resolver e o operador ver do que recusar por engano.
       const { data, error } = await supabase
         .from("contas_bancarias")
-        .select("id, nome_exibicao, banco_codigo, agencia, numero_conta")
+        .select("id, nome_exibicao, banco_codigo, agencia, numero_conta, ativo")
         .order("nome_exibicao");
       if (error) throw error;
       return (data || []) as Conta[];
@@ -378,7 +383,7 @@ export default function ExtratoImportacao() {
   async function resolverConta(
     file: File,
     fonte: Fonte
-  ): Promise<{ conta: Conta; aviso?: string }> {
+  ): Promise<{ conta: Conta; aviso?: string; completado?: string }> {
     const chave = FONTE_CONTA_CHAVE[fonte] ?? FONTE_TIPO_DB[fonte];
     const { data: mapa, error: errMapa } = await sb
       .from("importacao_fonte_conta")
@@ -392,19 +397,34 @@ export default function ExtratoImportacao() {
 
     if (fonte === "ofx") {
       const cab = extrairCabecalhoOFX(await file.text());
-      const porCabecalho = resolverContaPorCabecalhoOFX(cab, contas);
-      if (porCabecalho) {
+      const res = resolverContaPorCabecalhoOFX(cab, contas);
+      if (res) {
+        const conta = res.conta as Conta;
         // BANCO-FALA-MAIS-ALTO: divergência entre cabeçalho e mapeamento da
         // fonte é resolvida pelo cabeçalho — ele é o próprio banco falando.
         const aviso =
-          porFonte && porFonte.id !== porCabecalho.id
-            ? `Divergência de conta: o cabeçalho do OFX aponta ${porCabecalho.nome_exibicao} e o mapeamento da fonte aponta ${porFonte.nome_exibicao}. Prevaleceu o cabeçalho do arquivo.`
+          porFonte && porFonte.id !== conta.id
+            ? `Divergência de conta: o cabeçalho do OFX aponta ${conta.nome_exibicao} e o mapeamento da fonte aponta ${porFonte.nome_exibicao}. Prevaleceu o cabeçalho do arquivo.`
             : undefined;
-        return { conta: porCabecalho, aviso };
+
+        // APRENDIZADO: o arquivo declara agência/conta que o cadastro não tem.
+        // Grava no cadastro para o próximo import resolver pela tríade.
+        let completado: string | undefined;
+        if (Object.keys(res.completar).length > 0) {
+          const { error: errCompletar } = await sb
+            .from("contas_bancarias")
+            .update(res.completar)
+            .eq("id", conta.id);
+          if (errCompletar) throw errCompletar;
+          completado = descreverCompletados(conta.nome_exibicao, res.completar);
+          qc.invalidateQueries({ queryKey: ["extrato-import-contas"] });
+        }
+
+        return { conta, aviso, completado };
       }
       if (porFonte) return { conta: porFonte };
       throw new Error(
-        `Conta bancária não identificada (${descreverCabecalho(cab)}). Cadastre a conta ou o mapeamento da fonte em /parametros.`
+        `Conta bancária não identificada (${descreverCabecalho(cab)}). ${explicarContasDoBanco(cab, contas)}`
       );
     }
 
@@ -529,7 +549,9 @@ export default function ExtratoImportacao() {
       contaResolvida = res.conta;
       trilha.conta = res.conta.nome_exibicao;
       trilha.aviso = res.aviso;
+      trilha.completado = res.completado;
       if (res.aviso) toast.warning(`${file.name}: ${res.aviso}`);
+      if (res.completado) toast.info(`${file.name}: ${res.completado}`);
       await sb
         .from("extrato_importacoes")
         .update({ conta_bancaria_id: res.conta.id })
@@ -1614,6 +1636,7 @@ export default function ExtratoImportacao() {
               parser: trilha.fonte ? (PARSER_ROTULO[trilha.fonte] ?? trilha.fonte) : "—",
               conta: trilha.conta,
               aviso: trilha.aviso,
+              completado: trilha.completado,
               efeito: trilha.fonte ? PARSER_EFEITO[trilha.fonte] : undefined,
               resultado: trilha.neutro?.resultado ?? "Importado",
               tom: trilha.neutro ? "neutro" : "ok",
@@ -1630,6 +1653,7 @@ export default function ExtratoImportacao() {
               parser: trilha.fonte ? (PARSER_ROTULO[trilha.fonte] ?? trilha.fonte) : "não reconhecido",
               conta: trilha.conta,
               aviso: trilha.aviso,
+              completado: trilha.completado,
               efeito: trilha.fonte ? PARSER_EFEITO[trilha.fonte] : undefined,
               resultado: formatError(e),
               tom: "erro",

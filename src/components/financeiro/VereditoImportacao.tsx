@@ -25,6 +25,8 @@ export interface VereditoArquivo {
   conta?: string;
   /** Aviso não-fatal — ex.: divergência entre cabeçalho OFX e mapeamento da fonte. */
   aviso?: string;
+  /** Aprendizado: cadastro da conta completado com dados do próprio arquivo. */
+  completado?: string;
   /** Frase curta do EFEITO do arquivo — o que ele faz, além da conta fechar. */
   efeito?: string;
   resultado: string;
@@ -87,6 +89,13 @@ export function VereditoImportacao({ itens }: { itens: VereditoArquivo[] }) {
               <div className="flex items-start gap-1 text-warning">
                 <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
                 <span>{r.aviso}</span>
+              </div>
+            )}
+
+            {r.completado && (
+              <div className="flex items-start gap-1 text-success">
+                <CheckCircle2 className="h-3 w-3 mt-0.5 shrink-0" />
+                <span>{r.completado}</span>
               </div>
             )}
 
