@@ -401,6 +401,7 @@ export default function PainelTime({ onDeclarar }: { onDeclarar: () => void }) {
                             </TooltipContent>
                           </Tooltip>
                         )}
+                        <CelulaCapacidade linha={l} />
                       </TableCell>
                       <TableCell className="text-right">
                         <span className="inline-flex flex-col items-end gap-1">
