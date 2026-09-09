@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
@@ -8,22 +7,21 @@ import { BotaoBaixarBoletoPdf } from "@/components/credito/BotaoBaixarBoletoPdf"
 
 /**
  * BOLETO IMPRIMÍVEL — Cobrança Direta carteira 1 Safra: o beneficiário imprime
- * o próprio boleto. O renderizador é a edge function `gerar-boleto-pdf`
- * (pdf-lib + I25), reaproveitada aqui pelo mesmo motor de download já usado na
- * tela Banco (`BotaoBaixarBoletoPdf`).
+ * o próprio boleto. O renderizador é a edge function `gerar-boleto-pdf`.
  *
- * Duas portas separadas de propósito:
- *  - BAIXAR serve para CONFERÊNCIA interna e fica liberado sempre que existir
- *    linha digitável + código de barras.
- *  - ENVIAR ao cliente exige `boleto_status = 'registrado'`.
+ * ANÁLISE DE RISCO (revisada 09/09/2026): o banco não aceita pagamento de
+ * título não registrado, então não existe dinheiro em limbo. Pior caso: o
+ * cliente tenta pagar, dá erro e liga. Bloquear o envio, por outro lado, custa
+ * CERTO e RECORRENTE (processo não fecha no dia). Logo: caminho comum flui —
+ * sem tarja no PDF e envio liberado já em `remessa_gerada`. A exceção real
+ * (rejeição de boleto já enviado) é instrumentada com alerta alto em
+ * `AlertaBoletoRejeitadoEnviado`.
  */
 
-/** Estados em que o boleto não deve nem ser impresso: o instrumento morreu ou nunca nasceu. */
+/** Estados em que o instrumento morreu: não imprime nem envia. */
 const MOTIVO_BLOQUEIO: Record<string, string> = {
-  rejeitado:
-    "Boleto rejeitado pelo banco — não existe instrumento registrado para imprimir. Corrija a rejeição e gere nova remessa.",
   baixa_remessa_gerada:
-    "Baixa já pedida ao banco: este boleto está morrendo. Imprimir agora entregaria um documento que o banco vai baixar.",
+    "Baixa já pedida ao banco: este boleto está sendo baixado — não imprimir nem enviar.",
   baixado_banco:
     "Boleto já baixado no banco — o documento não é mais pagável.",
 };
@@ -31,6 +29,7 @@ const MOTIVO_BLOQUEIO: Record<string, string> = {
 export function BoletoImprimivelAcoes({
   tituloId,
   boletoStatus,
+  codigoRejeicao,
   linhaDigitavel,
   codigoBarras,
   onEnviar,
@@ -38,6 +37,7 @@ export function BoletoImprimivelAcoes({
 }: {
   tituloId: string;
   boletoStatus: string | null;
+  codigoRejeicao?: string | null;
   linhaDigitavel: string | null;
   codigoBarras: string | null;
   onEnviar: () => void;
@@ -48,21 +48,27 @@ export function BoletoImprimivelAcoes({
   if (!linhaDigitavel) faltando.push("linha digitável");
   if (!codigoBarras) faltando.push("código de barras");
 
-  const motivoEstado = boletoStatus ? MOTIVO_BLOQUEIO[boletoStatus] : undefined;
+  const motivoEstado =
+    boletoStatus === "rejeitado"
+      ? `Boleto rejeitado pelo banco${codigoRejeicao ? ` (motivo ${codigoRejeicao})` : ""} — reemitir.`
+      : boletoStatus
+        ? MOTIVO_BLOQUEIO[boletoStatus]
+        : undefined;
+
   const motivoDesabilitado =
     faltando.length > 0
       ? `Falta ${faltando.join(" e ")} — gere a remessa de entrada no Safra antes de imprimir.`
       : motivoEstado;
 
-  const aguardandoRegistro = boletoStatus === "remessa_gerada";
-  const podeEnviar = boletoStatus === "registrado";
+  const emConfirmacao = boletoStatus === "remessa_gerada";
+  const podeEnviar =
+    !motivoDesabilitado &&
+    (boletoStatus === "registrado" || boletoStatus === "remessa_gerada");
 
   const motivoEnvio = podeEnviar
     ? undefined
-    : aguardandoRegistro
-      ? "Aguardando confirmação de registro no banco — o cliente receberia um boleto que o banco ainda não conhece."
-      : (motivoEstado ??
-        "Só é possível enviar ao cliente quando o banco confirma o registro do boleto.");
+    : (motivoDesabilitado ??
+      "Só é possível enviar ao cliente quando existe boleto vivo para o título.");
 
   const botaoEnviar = (
     <Button
@@ -101,14 +107,12 @@ export function BoletoImprimivelAcoes({
         )}
       </div>
 
-      {aguardandoRegistro && !motivoDesabilitado && (
-        <Alert className="border-warning/40 bg-warning/10">
-          <AlertTriangle className="h-4 w-4 !text-warning" />
-          <AlertDescription className="text-warning text-xs">
-            Aguardando confirmação de registro no banco — não enviar ao cliente
-            ainda. O PDF sai com tarja de conferência.
-          </AlertDescription>
-        </Alert>
+      {emConfirmacao && !motivoDesabilitado && (
+        // Contexto, não bloqueio.
+        <p className="text-xs text-muted-foreground">
+          Registro em confirmação no banco. O boleto entra no DDA do cliente após
+          a confirmação (hoje mesmo, se a remessa saiu antes das 17h).
+        </p>
       )}
     </div>
   );

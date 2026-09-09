@@ -27,7 +27,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Search, Copy, ExternalLink, RefreshCw, AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
+import { Search, Copy, ExternalLink, RefreshCw, AlertTriangle, AlertOctagon, ChevronDown, ChevronRight } from "lucide-react";
 import { formatCNPJ } from "@/lib/cnpj";
 import { apelidoParceiro } from "@/lib/parceiros/nome";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
@@ -1127,6 +1127,21 @@ export default function TitulosTab() {
                       {detalhe.boleto_status === "rejeitado" && detalhe.boleto_codigo_rejeicao && (
                         <MotivoRejeicaoSafra codigo={detalhe.boleto_codigo_rejeicao} />
                       )}
+                      {/* Exceção instrumentada: rejeição DEPOIS do envio significa
+                          cliente com documento inválido na mão. Grita até haver
+                          novo boleto registrado. */}
+                      {detalhe.boleto_status === "rejeitado" && detalhe.boleto_enviado_em && (
+                        <Alert variant="destructive">
+                          <AlertOctagon className="h-4 w-4" />
+                          <AlertDescription className="text-xs">
+                            Boleto já enviado ao cliente foi <strong>REJEITADO</strong> pelo banco
+                            {detalhe.boleto_codigo_rejeicao
+                              ? ` (motivo ${detalhe.boleto_codigo_rejeicao})`
+                              : ""}
+                            . O cliente está com um boleto inválido. Reemitir e avisar o cliente.
+                          </AlertDescription>
+                        </Alert>
+                      )}
                       <EsperaRetornoSafra tituloId={detalhe.id} />
                       <AvisoBoletosVivos tituloId={detalhe.id} />
                       <BoletoVigenteLinhas
@@ -1139,6 +1154,7 @@ export default function TitulosTab() {
                       <BoletoImprimivelAcoes
                         tituloId={detalhe.id}
                         boletoStatus={detalhe.boleto_status}
+                        codigoRejeicao={detalhe.boleto_codigo_rejeicao}
                         linhaDigitavel={
                           detalhe.boleto_vigente?.linha_digitavel ?? detalhe.linha_digitavel
                         }

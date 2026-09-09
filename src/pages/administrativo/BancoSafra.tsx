@@ -71,6 +71,7 @@ import { RetornoSafraPainel } from "@/components/financeiro/RetornoSafraPainel";
 import { EsperaRetornoSafra } from "@/components/credito/EsperaRetornoSafra";
 import { hojeISO } from "@/lib/data";
 import { AlertaBaixaRejeitadaReemissao } from "@/components/financeiro/AlertaBaixaRejeitadaReemissao";
+import { AlertaBoletoRejeitadoEnviado } from "@/components/financeiro/AlertaBoletoRejeitadoEnviado";
 import { OPCOES_QUERY_RECEBIVEL, useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 
 /** Dias corridos desde uma data ISO (null se inválida). */
@@ -2081,6 +2082,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         </DialogContent>
       </Dialog>
 
+      <AlertaBoletoRejeitadoEnviado />
       <AlertaBaixaRejeitadaReemissao />
 
       <RetornoSafraPainel />
