@@ -38,20 +38,6 @@ import { AbaPermitida, ConteudoAba, usePodeVerAba } from "@/components/AbaGate";
 const ABAS = ["fila", "dash", "carrinhos", "posvenda"] as const;
 type Aba = (typeof ABAS)[number];
 
-const ALERTA_ESTADO: Record<string, EstadoSelo> = {
-  pago_sem_nf: "warning",
-  faturado_sem_expedicao: "warning",
-  expedido_sem_rastreio: "destructive",
-  prazo_estourado: "destructive",
-  sem_conciliacao_mp: "muted",
-  reembolso_parcial: "muted",
-  sla_xpm_estourado: "destructive",
-};
-
-function rotuloAlerta(a: string): string {
-  return a.replace(/_/g, " ");
-}
-
 function txt(v: string | null | undefined): string {
   return v && String(v).trim() !== "" ? String(v) : "—";
 }
