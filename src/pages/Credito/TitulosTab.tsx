@@ -1133,6 +1133,18 @@ export default function TitulosTab() {
                         fallbackNossoNumero={detalhe.nosso_numero_seq}
                         onCopiar={copiar}
                       />
+                      {/* Cobrança Direta: o beneficiário imprime o boleto. Baixar
+                          para conferir e enviar ao cliente são portas separadas. */}
+                      <BoletoImprimivelAcoes
+                        tituloId={detalhe.id}
+                        boletoStatus={detalhe.boleto_status}
+                        linhaDigitavel={
+                          detalhe.boleto_vigente?.linha_digitavel ?? detalhe.linha_digitavel
+                        }
+                        codigoBarras={detalhe.boleto_vigente?.codigo_barras ?? null}
+                        enviando={enviarBoleto.isPending}
+                        onEnviar={() => setConfirmarEnvioBoleto(detalhe)}
+                      />
                       <EnviosBoletoSection
                         pedidoId={detalhe.pedido_id}
                         tituloId={detalhe.id}
