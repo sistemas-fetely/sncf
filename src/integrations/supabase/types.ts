@@ -2291,6 +2291,13 @@ export type Database = {
             referencedColumns: ["fila_id"]
           },
           {
+            foreignKeyName: "atribuicao_catalogo_fila_id_fkey"
+            columns: ["fila_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_pressao"
+            referencedColumns: ["fila_id"]
+          },
+          {
             foreignKeyName: "atribuicao_catalogo_fonte_volume_fkey"
             columns: ["fonte_volume"]
             isOneToOne: false
@@ -17543,6 +17550,27 @@ export type Database = {
           criado_por?: string | null
           ferramenta?: string
           id?: string
+        }
+        Relationships: []
+      }
+      fila_severidade_prazo: {
+        Row: {
+          atualizado_em: string
+          descricao: string | null
+          prazo_dias_uteis: number
+          severidade: string
+        }
+        Insert: {
+          atualizado_em?: string
+          descricao?: string | null
+          prazo_dias_uteis: number
+          severidade: string
+        }
+        Update: {
+          atualizado_em?: string
+          descricao?: string | null
+          prazo_dias_uteis?: number
+          severidade?: string
         }
         Relationships: []
       }
@@ -46869,6 +46897,7 @@ export type Database = {
           id: string
           nome: string
           ordem: number
+          prazo_resposta_dias: number | null
           rota: string | null
           severidade: string
           updated_at: string
@@ -46892,6 +46921,7 @@ export type Database = {
           id?: string
           nome: string
           ordem?: number
+          prazo_resposta_dias?: number | null
           rota?: string | null
           severidade?: string
           updated_at?: string
@@ -46915,6 +46945,7 @@ export type Database = {
           id?: string
           nome?: string
           ordem?: number
+          prazo_resposta_dias?: number | null
           rota?: string | null
           severidade?: string
           updated_at?: string
@@ -59651,6 +59682,13 @@ export type Database = {
             referencedColumns: ["fila_id"]
           },
           {
+            foreignKeyName: "atribuicao_catalogo_fila_id_fkey"
+            columns: ["fila_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_pressao"
+            referencedColumns: ["fila_id"]
+          },
+          {
             foreignKeyName: "atribuicao_catalogo_fonte_volume_fkey"
             columns: ["fonte_volume"]
             isOneToOne: false
@@ -66915,6 +66953,30 @@ export type Database = {
           nfs_stage_id: string | null
           pedidos_do_fornecedor: number | null
           valor_no_xml: number | null
+        }
+        Relationships: []
+      }
+      vw_fila_pressao: {
+        Row: {
+          area_nome: string | null
+          chave: string | null
+          fila_id: string | null
+          itens_adiaveis: number | null
+          itens_divida: number | null
+          itens_inadiaveis: number | null
+          itens_total: number | null
+          minutos_adiaveis: number | null
+          minutos_divida: number | null
+          minutos_inadiaveis: number | null
+          nome: string | null
+          prazo_dias: number | null
+          prazo_proprio: boolean | null
+          responsavel_nome: string | null
+          rota: string | null
+          severidade: string | null
+          tempo_origem: string | null
+          tempo_unit_min: number | null
+          vencimento_mais_antigo: string | null
         }
         Relationships: []
       }
@@ -76113,14 +76175,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -89575,6 +89637,10 @@ export type Database = {
         Args: { p_pedido_id: string }
         Returns: string
       }
+      fn_capacidade_definir: {
+        Args: { _horas_semana: number; _pessoa_id: string }
+        Returns: Json
+      }
       fn_cartao_aplicar_identidade: {
         Args: { p_dry_run?: boolean }
         Returns: Json
@@ -89909,6 +89975,10 @@ export type Database = {
         Returns: string
       }
       fn_devolucao_sugerir_vinculos: { Args: never; Returns: Json }
+      fn_dia_util_add: {
+        Args: { p_data: string; p_dias: number }
+        Returns: string
+      }
       fn_dias_uteis_entre: {
         Args: { p_ate: string; p_de: string }
         Returns: number
@@ -90031,6 +90101,10 @@ export type Database = {
           fluxo_dia_piso: number
         }[]
       }
+      fn_fila_prazo_definir: {
+        Args: { _chave: string; _dias: number }
+        Returns: Json
+      }
       fn_fila_prazo_real: {
         Args: { p_chave: string; p_dias?: number }
         Returns: {
@@ -90068,6 +90142,15 @@ export type Database = {
           entradas: number
           saidas: number
           saidas_humanas: number
+        }[]
+      }
+      fn_fila_vencimento: {
+        Args: { p_chave: string }
+        Returns: {
+          entrada: string
+          fila_chave: string
+          itens: number
+          vencimento: string
         }[]
       }
       fn_fluxo_caixa_projetado: {
