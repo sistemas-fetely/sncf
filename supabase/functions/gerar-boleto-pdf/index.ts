@@ -279,16 +279,8 @@ async function buildPdf(dados: DadosBoleto): Promise<Uint8Array> {
   page.drawText("Autenticacao Mecanica", { x: mx + lw - 88, y: cbTop - 12, size: 7, font, color: CINZA });
   page.drawText("Ficha de Compensacao",  { x: mx + lw - 88, y: cbTop - 23, size: 7, font, color: CINZA });
 
-  // Tarja diagonal de conferencia — sai nas duas vias, por cima de tudo.
-  if (dados.tarja) {
-    for (const ty of [height * 0.72, height * 0.30]) {
-      page.drawText(dados.tarja, {
-        x: 60, y: ty, size: 17, font: fontBold,
-        color: rgb(0.85, 0.22, 0.18), opacity: 0.32, rotate: degrees(24),
-      });
-    }
-  }
-
+  // Sem tarja em nenhum estado: o banco nao aceita pagamento de titulo nao
+  // registrado, entao nao ha dinheiro em limbo. O PDF sai sempre limpo.
   return await pdf.save();
 }
 
@@ -457,11 +449,6 @@ serve(async (req) => {
       banco_codigo:      params.codigo_banco,
       banco_nome:        params.nome_banco,
       especie_titulo:    params.especie_titulo ?? "DM",
-      // Tarja de conferencia: boleto ainda nao confirmado pelo banco nao pode
-      // circular por engano. A marca vai NO PDF, de proposito.
-      tarja: t.boleto_status === "remessa_gerada"
-        ? "AGUARDANDO REGISTRO NO BANCO - NAO ENVIAR AO CLIENTE"
-        : null,
       agencia_cedente:   agenciaCedente,
       carteira:          params.tipo_carteira,
       nosso_numero_seq:  bv.nosso_numero,
