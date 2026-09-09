@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
-import { PDFDocument, StandardFonts, rgb } from "npm:pdf-lib@1.17.1";
+import { PDFDocument, StandardFonts, rgb, degrees } from "npm:pdf-lib@1.17.1";
 import { exigirPorta, NaoAutorizado } from "../_shared/autorizacao.ts";
 
 const corsHeaders = {
@@ -346,7 +346,7 @@ serve(async (req) => {
       .from("titulo_a_receber")
       .select(`
         id, numero_titulo, numero_parcela, total_parcelas, valor_bruto,
-        data_vencimento_atual, data_criacao, nosso_numero_seq,
+        data_vencimento_atual, data_criacao, nosso_numero_seq, boleto_status,
         linha_digitavel, codigo_barras_boleto,
         conta:contas_pagar_receber(
           parceiro:parceiros_comerciais(
