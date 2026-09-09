@@ -729,10 +729,14 @@ serve(async (req) => {
       ? parseFloat((remessaValor / somaPlano).toFixed(6))
       : 1;
 
-    const titulosAPrazo = titulos.filter((t: any) => !t.eh_portao);
+    const titulosAPrazo = titulos.filter((t: any) => !t.eh_portao && !semDuplicata.has(t.tipo_pagamento));
     const valorPortaoPlano = parseFloat(
       titulos.filter((t: any) => t.eh_portao)
         .reduce((s: number, t: any) => s + Number(t.valor_bruto), 0).toFixed(2),
+    );
+    const linhasSemDuplicata = titulos.filter((t: any) => !t.eh_portao && semDuplicata.has(t.tipo_pagamento));
+    const valorSemDuplicata = parseFloat(
+      linhasSemDuplicata.reduce((s: number, t: any) => s + Number(t.valor_bruto), 0).toFixed(2),
     );
 
     // Data: `data_vencimento_efetiva` = ANCORA declarada no pre-faturamento (fn_declarar_ancora_
