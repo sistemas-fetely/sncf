@@ -74,6 +74,7 @@ import {
   type SortState,
 } from "@/components/shared/SortableTableHead";
 import { cn } from "@/lib/utils";
+import { useFilaMedidas } from "@/hooks/tarefas/useFilaMedidas";
 
 
 import { formatError } from "@/lib/format-error";
@@ -583,15 +584,56 @@ export default function PainelAtribuicoes() {
                         {num(l.tempo_unitario_min, "min")}
                       </TableCell>
                       <TableCell className="text-right text-sm tabular-nums">
-                        {num(l.fluxo_diario_estimado)}
+                        <span className="inline-flex items-center justify-end gap-1">
+                          {num(l.fluxo_diario_estimado)}
+                          {/* Divergência declarado x observado: nada é adotado sozinho,
+                              o alerta convida a editar. */}
+                          {l.fila_instrumentada &&
+                            divergeVolume(l.fluxo_diario_estimado, l.volume_obs_dia_corrido) && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="cursor-help">
+                                    <AlertTriangle className="h-3.5 w-3.5 text-warning" />
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs text-[11px]">
+                                  Declarado {num(l.fluxo_diario_estimado)}/dia, observado{" "}
+                                  {num(l.volume_obs_dia_corrido)}/dia em{" "}
+                                  {l.obs_amostra_entradas ?? 0} chegadas. Editar para adotar.
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                        </span>
                         {l.fila_id && l.fila_nome && (
                           <div className="text-[11px] font-normal text-muted-foreground">
                             medido pela fila: {l.fila_nome}
                           </div>
                         )}
+                        {l.fila_instrumentada && l.volume_obs_dia_corrido != null && (
+                          <div className="text-[11px] font-normal text-muted-foreground">
+                            observado: {num(l.volume_obs_dia_corrido)}/dia
+                            {(l.cadencia_obs === "semanal" || l.cadencia_obs === "mensal") &&
+                              l.volume_obs_dia_ativo != null &&
+                              ` (${num(l.volume_obs_dia_ativo)}/dia nos dias em que chega)`}
+                          </div>
+                        )}
+                        {l.fila_instrumentada &&
+                          (l.cadencia_obs === "semanal" || l.cadencia_obs === "mensal") && (
+                            <div className="mt-0.5">
+                              <Selo estado="muted">
+                                {l.cadencia_obs}
+                                {l.cadencia_obs_ref ? ` · ${l.cadencia_obs_ref}` : ""}
+                              </Selo>
+                            </div>
+                          )}
                       </TableCell>
                       <TableCell className="text-right text-sm font-semibold tabular-nums">
                         {minutos(l.minutos_fluxo_dia)}
+                        {l.minutos_fluxo_dia_obs != null && (
+                          <div className="text-[11px] font-normal text-muted-foreground">
+                            obs: {minutos(l.minutos_fluxo_dia_obs)}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <span className="flex justify-end gap-1">
@@ -753,6 +795,12 @@ function DialogAtribuicao({
   const [buscaProcessoAberta, setBuscaProcessoAberta] = useState(false);
   const [comFila, setComFila] = useState(!!linha?.fila_id);
   const [filaId, setFilaId] = useState(linha?.fila_id ?? SEM_FILA);
+  // F2 — selo "mede execução" e linha do observado vêm da vw_fila_medida.
+  const medidas = useFilaMedidas();
+  const medidaEscolhida =
+    comFila && filaId !== SEM_FILA
+      ? medidas.data?.get(filas.find((f) => f.id === filaId)?.chave ?? "")
+      : undefined;
 
   const salvar = useMutation({
     mutationFn: async () => {
@@ -1015,18 +1063,33 @@ function DialogAtribuicao({
               />
             </div>
             {comFila && (
-              <Select value={filaId} onValueChange={setFilaId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Escolha a fila" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filas.map((f) => (
-                    <SelectItem key={f.id} value={f.id}>
-                      {f.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-1">
+                <Select value={filaId} onValueChange={setFilaId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Escolha a fila" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filas.map((f) => (
+                      <SelectItem key={f.id} value={f.id}>
+                        <span className="flex items-center gap-2">
+                          {f.nome}
+                          {medidas.data?.has(f.chave) && (
+                            <Selo estado="info">mede execução</Selo>
+                          )}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {medidaEscolhida && (
+                  <p className="text-[11px] text-muted-foreground">
+                    {medidaEscolhida.padrao ?? "sem_dado"}
+                    {medidaEscolhida.padrao_ref ? ` · ${medidaEscolhida.padrao_ref}` : ""} ·{" "}
+                    {num(medidaEscolhida.media_por_dia_corrido)}/dia · amostra de{" "}
+                    {medidaEscolhida.entradas_total ?? 0} chegadas
+                  </p>
+                )}
+              </div>
             )}
           </div>
         </div>
