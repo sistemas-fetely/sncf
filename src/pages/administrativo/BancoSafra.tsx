@@ -1339,6 +1339,29 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         : null,
     });
   }
+  if (filaReemissao.length > 0) {
+    linhasFaixa.push({
+      key: "reemissoes",
+      filtro: null,
+      tom: "ambar",
+      valor: totalReemissao,
+      texto: (
+        <>
+          {filaReemissao.length} reemissões aguardando envio
+          <span className="block text-xs text-muted-foreground">
+            O arquivo leva a baixa do boleto antigo e o registro do novo na mesma remessa.
+            Enviando até 17h, o novo boleto fica disponível hoje.
+          </span>
+        </>
+      ),
+      acao: {
+        label: "Gerar remessa de reemissão (baixa + novo boleto)",
+        onClick: () => setReemissaoDialogOpen(true),
+        disabled: gerandoReemissao,
+        loading: gerandoReemissao,
+      },
+    });
+  }
   if (boletosKpis.prorrogacaoPendente > 0) {
     linhasFaixa.push({
       key: "prorrogacoes",
