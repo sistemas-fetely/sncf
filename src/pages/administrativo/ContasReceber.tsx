@@ -1704,13 +1704,22 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
                 >
                   A vencer ({contagensPrazo.aVencer})
                 </Button>
-                <Button
-                  size="sm"
-                  variant={filtroPrazo === "vencidos" ? "default" : "outline"}
-                  onClick={() => clicarPrazo("vencidos")}
-                >
-                  Vencidos ({contagensPrazo.vencidos})
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant={filtroPrazo === "vencidos" ? "default" : "outline"}
+                      onClick={() => clicarPrazo("vencidos")}
+                    >
+                      Vencidos ({contagensPrazo.vencidos})
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {cobravelHoje.qtd}{" "}
+                    {cobravelHoje.qtd === 1 ? "cobrável" : "cobráveis"} ·{" "}
+                    {emCarenciaBancaria.qtd} em carência
+                  </TooltipContent>
+                </Tooltip>
               </div>
             </div>
           </div>
