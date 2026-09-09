@@ -398,6 +398,8 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
 
   const [gerandoBaixa, setGerandoBaixa] = useState(false);
   const [gerandoProrrogacao, setGerandoProrrogacao] = useState(false);
+  const [gerandoReemissao, setGerandoReemissao] = useState(false);
+  const [reemissaoDialogOpen, setReemissaoDialogOpen] = useState(false);
   const [gerandoEntrada, setGerandoEntrada] = useState(false);
   const [entradaDialogOpen, setEntradaDialogOpen] = useState(false);
   /** Quando existe, o Dialog de entrada considera apenas estes títulos (escopo de um cliente). */
