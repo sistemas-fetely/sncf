@@ -623,7 +623,51 @@ export default function PainelAtribuicoes() {
                         )}
                       </TableCell>
                       <TableCell className="text-right text-sm tabular-nums">
-                        {num(l.tempo_unitario_min, "min")}
+                        <span className="inline-flex items-center justify-end gap-1">
+                          {num(l.tempo_unitario_min, "min")}
+                          {l.origem_medida === "medido" && <Selo estado="info">medido</Selo>}
+                          {/* Divergência declarado x observado de tempo: mesma régua de 30%. */}
+                          {l.tempo_obs_p50_min != null &&
+                            divergeMais30(l.tempo_unitario_min, l.tempo_obs_p50_min) && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="cursor-help">
+                                    <AlertTriangle className="h-3.5 w-3.5 text-warning" />
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs text-[11px]">
+                                  Declarado {num(l.tempo_unitario_min)} min, observado{" "}
+                                  {num(l.tempo_obs_p50_min)} min em {l.tempo_obs_amostra ?? 0}{" "}
+                                  intervalos.
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                        </span>
+                        {l.tempo_obs_p50_min != null && (
+                          <div className="text-[11px] font-normal text-muted-foreground">
+                            {l.tempo_obs_escopo === "pessoa" &&
+                            l.tempo_obs_p25_min != null &&
+                            l.tempo_obs_p75_min != null ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="cursor-help">
+                                    observado: {num(l.tempo_obs_p50_min)} min
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs text-[11px]">
+                                  p25 {num(l.tempo_obs_p25_min)} · p75 {num(l.tempo_obs_p75_min)} ·{" "}
+                                  {l.tempo_obs_amostra ?? 0} intervalos em{" "}
+                                  {l.tempo_obs_sessoes ?? 0} sessões
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              <>
+                                observado: {num(l.tempo_obs_p50_min)} min
+                                {l.tempo_obs_escopo === "fila" && " (média da fila)"}
+                              </>
+                            )}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="text-right text-sm tabular-nums">
                         <span className="inline-flex items-center justify-end gap-1">
@@ -679,6 +723,32 @@ export default function PainelAtribuicoes() {
                       </TableCell>
                       <TableCell className="text-right">
                         <span className="flex justify-end gap-1">
+                          {/* Adotar medido: só aparece quando há observado divergente. */}
+                          {((l.tempo_obs_p50_min != null &&
+                            divergeMais30(l.tempo_unitario_min, l.tempo_obs_p50_min)) ||
+                            (l.volume_obs_dia_corrido != null &&
+                              divergeMais30(l.fluxo_diario_estimado, l.volume_obs_dia_corrido))) && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => {
+                                    setAdotarTempo(l.tempo_obs_p50_min != null);
+                                    setAdotarVolume(l.volume_obs_dia_corrido != null);
+                                    setAAdotar(l);
+                                  }}
+                                  aria-label={`Adotar número medido em ${l.nome}`}
+                                >
+                                  <TrendingUp className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs text-[11px]">
+                                Adotar medido
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
                           {!l.processo_id && (
                             <Tooltip>
                               <TooltipTrigger asChild>
