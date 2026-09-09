@@ -25,6 +25,8 @@ export interface VereditoArquivo {
   conta?: string;
   /** Aviso não-fatal — ex.: divergência entre cabeçalho OFX e mapeamento da fonte. */
   aviso?: string;
+  /** Aprendizado: cadastro da conta completado com dados do próprio arquivo. */
+  completado?: string;
   /** Frase curta do EFEITO do arquivo — o que ele faz, além da conta fechar. */
   efeito?: string;
   resultado: string;
