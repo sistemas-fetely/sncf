@@ -397,7 +397,7 @@ export default function ExtratoImportacao() {
       const cab = extrairCabecalhoOFX(await file.text());
       const res = resolverContaPorCabecalhoOFX(cab, contas);
       if (res) {
-        const conta = res.conta;
+        const conta = res.conta as Conta;
         // BANCO-FALA-MAIS-ALTO: divergência entre cabeçalho e mapeamento da
         // fonte é resolvida pelo cabeçalho — ele é o próprio banco falando.
         const aviso =
