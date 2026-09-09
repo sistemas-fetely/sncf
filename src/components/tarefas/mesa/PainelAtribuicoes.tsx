@@ -113,6 +113,19 @@ interface LinhaCarga {
   processo_tem_narrativa: boolean | null;
   processo_tem_diagrama: boolean | null;
   ativo: boolean | null;
+  // F2 — observado da fila instrumentada (nunca substitui o declarado).
+  fila_instrumentada: boolean | null;
+  volume_obs_dia_corrido: number | null;
+  volume_obs_dia_ativo: number | null;
+  cadencia_obs: string | null;
+  cadencia_obs_ref: string | null;
+  obs_dias_com_entrada: number | null;
+  obs_amostra_entradas: number | null;
+  obs_pico_dia: number | null;
+  minutos_fluxo_dia_obs: number | null;
+  prazo_obs_p50_min: number | null;
+  prazo_obs_p80_min: number | null;
+  prazo_obs_amostra: number | null;
 }
 
 interface OpcaoMacro {
@@ -159,6 +172,12 @@ function minutos(v: number | null | undefined) {
   const h = Math.floor(n / 60);
   const m = n % 60;
   return m ? `${h}h ${m}min` : `${h}h`;
+}
+
+/** Declarado x observado: diverge quando a diferença passa de 30% para qualquer lado. */
+function divergeVolume(declarado: number | null, observado: number | null) {
+  if (observado == null || declarado == null || declarado <= 0) return false;
+  return Math.abs(Number(observado) - Number(declarado)) / Number(declarado) > 0.3;
 }
 
 type ColunaOrd = "pessoa" | "macro" | "tempo" | "volume" | "carga";
