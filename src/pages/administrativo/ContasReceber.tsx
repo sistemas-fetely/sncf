@@ -1233,7 +1233,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
           universo.get(chave)?.total ?? titulos.reduce((s, t) => s + efetivoDe(t), 0),
       };
     });
-  }, [filtrados, data, hojeIso]);
+  }, [filtrados, data, hojeIso, carenciaIds]);
 
   const [abertos, setAbertos] = useState<Set<string>>(new Set());
   const toggleGrupo = (chave: string) =>
