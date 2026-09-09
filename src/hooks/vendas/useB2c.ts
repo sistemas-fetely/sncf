@@ -91,10 +91,14 @@ export interface PedidoB2cRow {
   cancelled_at: string | null;
   refunded_amount: number | null;
   coerencia_status: string | null;
+  bloqueio_motivo: string | null;
+  bloqueio_tentativas: number | null;
+  bloqueio_em: string | null;
+  pedido_ausente: boolean | null;
 }
 
 const CAMPOS_PEDIDO =
-  "shopify_id, order_name, pedido_id, id_externo, cliente, created_at_shopify, data_pedido, shipping_city, shipping_province, shipping_zip, total, subtotal, discount_amount, shipping_cost, estagio, estagio_rotulo, estagio_ordem, area_responsavel, proxima_acao, dias_no_estagio, alerta, na_carteira_ativa, eh_final, tem_nf, nf_refs, nf_data_emissao, bling_pedido_numero, tem_recebimento, liquido_mp, taxa_mp, situacao_financeira, xpm_codigo, xpm_estagio, xpm_farol_sla, xpm_horas_ciclo, tracking_number, tracking_company, tracking_url, rastreio_status, rastreio_entregue, entrega_prevista, shipping_method, payment_method, financial_status, fulfillment_status, paid_at, fulfilled_at, cancelled_at, refunded_amount, coerencia_status";
+  "shopify_id, order_name, pedido_id, id_externo, cliente, created_at_shopify, data_pedido, shipping_city, shipping_province, shipping_zip, total, subtotal, discount_amount, shipping_cost, estagio, estagio_rotulo, estagio_ordem, area_responsavel, proxima_acao, dias_no_estagio, alerta, na_carteira_ativa, eh_final, tem_nf, nf_refs, nf_data_emissao, bling_pedido_numero, tem_recebimento, liquido_mp, taxa_mp, situacao_financeira, xpm_codigo, xpm_estagio, xpm_farol_sla, xpm_horas_ciclo, tracking_number, tracking_company, tracking_url, rastreio_status, rastreio_entregue, entrega_prevista, shipping_method, payment_method, financial_status, fulfillment_status, paid_at, fulfilled_at, cancelled_at, refunded_amount, coerencia_status, bloqueio_motivo, bloqueio_tentativas, bloqueio_em, pedido_ausente";
 
 export function usePedidosB2c() {
   return useQuery({
@@ -107,6 +111,30 @@ export function usePedidosB2c() {
         .order("data_pedido", { ascending: false });
       if (error) throw error;
       return (data ?? []) as PedidoB2cRow[];
+    },
+  });
+}
+
+export interface AlertaDim {
+  codigo: string;
+  rotulo: string | null;
+  severidade: string | null;
+  prioridade: number | null;
+  ativo: boolean | null;
+}
+
+export function usePedidoAlertaDim() {
+  return useQuery({
+    queryKey: ["pedido-alerta-dim"],
+    staleTime: 10 * 60 * 1000,
+    queryFn: async (): Promise<AlertaDim[]> => {
+      const { data, error } = await supabase
+        .from("pedido_alerta_dim")
+        .select("codigo, rotulo, severidade, prioridade, ativo")
+        .eq("ativo", true)
+        .order("prioridade", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as AlertaDim[];
     },
   });
 }

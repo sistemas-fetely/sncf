@@ -21,7 +21,8 @@ import { PedidoB2cDrawer } from "@/components/vendas/PedidoB2cDrawer";
 import { ExportarB2cButton } from "@/components/vendas/ExportarB2cButton";
 import { DashB2c } from "@/components/vendas/DashB2c";
 import {
-  usePedidosB2c, useCarrinhosAbandonados, useDevolucoesB2c, type PedidoB2cRow,
+  usePedidosB2c, useCarrinhosAbandonados, useDevolucoesB2c, usePedidoAlertaDim,
+  type PedidoB2cRow, type AlertaDim,
 } from "@/hooks/vendas/useB2c";
 import { fmtDataHora } from "@/lib/data";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
@@ -36,20 +37,6 @@ import { AbaPermitida, ConteudoAba, usePodeVerAba } from "@/components/AbaGate";
 
 const ABAS = ["fila", "dash", "carrinhos", "posvenda"] as const;
 type Aba = (typeof ABAS)[number];
-
-const ALERTA_ESTADO: Record<string, EstadoSelo> = {
-  pago_sem_nf: "warning",
-  faturado_sem_expedicao: "warning",
-  expedido_sem_rastreio: "destructive",
-  prazo_estourado: "destructive",
-  sem_conciliacao_mp: "muted",
-  reembolso_parcial: "muted",
-  sla_xpm_estourado: "destructive",
-};
-
-function rotuloAlerta(a: string): string {
-  return a.replace(/_/g, " ");
-}
 
 function txt(v: string | null | undefined): string {
   return v && String(v).trim() !== "" ? String(v) : "—";
@@ -110,6 +97,7 @@ export default function ShopifyB2c() {
   const { data: pedidos, isLoading, isError, error } = usePedidosB2c();
   const { data: carrinhos, isLoading: carregandoCarrinhos } = useCarrinhosAbandonados();
   const { data: devolucoes, isLoading: carregandoDevolucoes } = useDevolucoesB2c();
+  const { data: alertasDim } = usePedidoAlertaDim();
 
   const setAba = (valor: string) => {
     const next = new URLSearchParams(searchParams);
@@ -146,6 +134,29 @@ export default function ShopifyB2c() {
       valor: ativos.reduce((s, p) => s + Number(p.total ?? 0), 0),
     };
   }, [lista]);
+
+  const mapaAlerta = useMemo(() => {
+    const m = new Map<string, AlertaDim>();
+    (alertasDim ?? []).forEach((a) => m.set(a.codigo, a));
+    return m;
+  }, [alertasDim]);
+
+  function severidadeDoAlerta(codigo: string | null): EstadoSelo {
+    if (!codigo) return "muted";
+    const a = mapaAlerta.get(codigo);
+    const s = a?.severidade;
+    if (s === "success" || s === "warning" || s === "destructive" || s === "info" || s === "muted") {
+      return s;
+    }
+    return "muted";
+  }
+
+  function rotuloDoAlerta(codigo: string | null): string {
+    if (!codigo) return "";
+    const a = mapaAlerta.get(codigo);
+    if (a?.rotulo) return a.rotulo;
+    return codigo.replace(/_/g, " ");
+  }
 
   const carrinhosResumo = useMemo(
     () => ({
@@ -272,7 +283,7 @@ export default function ShopifyB2c() {
                 <SelectItem value="todos">Alerta: todos</SelectItem>
                 {alertas.map((a) => (
                   <SelectItem key={a} value={a}>
-                    {rotuloAlerta(a)}
+                    {rotuloDoAlerta(a)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -331,9 +342,33 @@ export default function ShopifyB2c() {
                                 <span className="font-mono text-xs">{txt(p.order_name)}</span>
                                 {p.alerta && (
                                   <div className="mt-1">
-                                    <Selo estado={ALERTA_ESTADO[p.alerta] ?? "muted"}>
-                                      {rotuloAlerta(p.alerta)}
-                                    </Selo>
+                                    {p.bloqueio_motivo ? (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span>
+                                            <Selo estado={severidadeDoAlerta(p.alerta)}>
+                                              {rotuloDoAlerta(p.alerta)}
+                                            </Selo>
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <div className="max-w-xs space-y-1">
+                                            <p className="text-sm">{p.bloqueio_motivo}</p>
+                                            {p.bloqueio_tentativas != null && (
+                                              <p className="text-xs text-muted-foreground">
+                                                {p.bloqueio_tentativas} tentativa
+                                                {p.bloqueio_tentativas === 1 ? "" : "s"}, última em{" "}
+                                                {fmtDataHora(p.bloqueio_em)}
+                                              </p>
+                                            )}
+                                          </div>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    ) : (
+                                      <Selo estado={severidadeDoAlerta(p.alerta)}>
+                                        {rotuloDoAlerta(p.alerta)}
+                                      </Selo>
+                                    )}
                                   </div>
                                 )}
                               </TableCell>
