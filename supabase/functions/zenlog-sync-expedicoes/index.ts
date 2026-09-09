@@ -18,7 +18,12 @@ Deno.serve(async (req) => {
 
   try {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
-    const dias = Number(body?.dias ?? 45);
+    const dias = Number(body?.dias ?? 7);
+    // TETO-POR-EXECUCAO: 45 dias paginando 50 em 50 com inserts por expedicao
+    // estourava o tempo da Edge Function (504) e morria antes de logar. Cada
+    // execucao processa no maximo maxPaginas; o resto drena na proxima chamada.
+    const maxPaginas = Number(body?.max_paginas ?? 6);
+
 
     const { data: cfgRow, error: eCfg } = await sb
       .from("integracoes_config").select("config").eq("sistema", "zenlog_prd").single();
