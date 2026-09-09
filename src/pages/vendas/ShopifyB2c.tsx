@@ -135,6 +135,29 @@ export default function ShopifyB2c() {
     };
   }, [lista]);
 
+  const mapaAlerta = useMemo(() => {
+    const m = new Map<string, AlertaDim>();
+    (alertasDim ?? []).forEach((a) => m.set(a.codigo, a));
+    return m;
+  }, [alertasDim]);
+
+  function severidadeDoAlerta(codigo: string | null): EstadoSelo {
+    if (!codigo) return "muted";
+    const a = mapaAlerta.get(codigo);
+    const s = a?.severidade;
+    if (s === "success" || s === "warning" || s === "destructive" || s === "info" || s === "muted") {
+      return s;
+    }
+    return "muted";
+  }
+
+  function rotuloDoAlerta(codigo: string | null): string {
+    if (!codigo) return "";
+    const a = mapaAlerta.get(codigo);
+    if (a?.rotulo) return a.rotulo;
+    return codigo.replace(/_/g, " ");
+  }
+
   const carrinhosResumo = useMemo(
     () => ({
       qtd: (carrinhos ?? []).length,
