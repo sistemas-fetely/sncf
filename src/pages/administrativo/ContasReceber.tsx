@@ -38,7 +38,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import * as XLSX from "xlsx";
 import { useNivel } from "@/hooks/useNivel";
-import { useTituloEstadoKpis } from "@/hooks/financeiro/useTituloEstadoKpis";
+import {
+  useTituloEstado,
+  useTituloEstadoKpis,
+} from "@/hooks/financeiro/useTituloEstadoKpis";
 
 type RecebivelB2B = {
   id: string;
@@ -456,9 +459,9 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
    * `eixo_recebimento` — é um subconjunto de "Em aberto". Um sexto chip
    * faria os totais deixarem de somar. O controle de prazo fica fora da fila.
    */
-  const [filtroPrazo, setFiltroPrazo] = useState<"todos" | "a_vencer" | "vencidos">(
-    "todos"
-  );
+  const [filtroPrazo, setFiltroPrazo] = useState<
+    "todos" | "a_vencer" | "vencidos" | "cobravel" | "carencia"
+  >("todos");
 
   const [qualidadeAberta, setQualidadeAberta] = useState(false);
   const [baseMensal, setBaseMensal] = useState<BaseMensal>("competencia");
@@ -588,10 +591,13 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
       if (filtroPrazo === "vencidos" && !estaVencido(t)) return false;
       if (filtroPrazo === "a_vencer" && (!naoRecebido(t) || estaVencido(t)))
         return false;
+      /* DUAS-MEDIDAS-DO-VENCIDO: cobrável/carência vêm de vw_titulo_estado. */
+      if (filtroPrazo === "cobravel" && !cobravelIds.has(t.id)) return false;
+      if (filtroPrazo === "carencia" && !carenciaIds.has(t.id)) return false;
 
       return true;
     });
-  }, [baseFiltros, filtroInstrumento, filtroPrazo]);
+  }, [baseFiltros, filtroInstrumento, filtroPrazo, cobravelIds, carenciaIds]);
 
   /**
    * Base dos chips de recebimento: já com carteira, achado e instrumento
@@ -685,9 +691,34 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
 
   /* Fonte única do vencido contábil e das faixas de aging. */
   const { kpis: estadoTitulos } = useTituloEstadoKpis();
+  const { data: tituloEstadoLinhas } = useTituloEstado();
   const faixasAging: Record<ChaveFaixa, number> =
     estadoTitulos?.faixas ?? { "1-7": 0, "8-30": 0, "31-60": 0, "60+": 0 };
   const vencidoContabil = estadoTitulos?.vencidoContabil ?? { qtd: 0, valor: 0 };
+  const cobravelHoje = estadoTitulos?.cobravelHoje ?? { qtd: 0, valor: 0 };
+  const emCarenciaBancaria = estadoTitulos?.emCarenciaBancaria ?? { qtd: 0, valor: 0 };
+
+  /* DUAS-MEDIDAS-DO-VENCIDO (09/09/2026): o CFO precisa separar atraso real
+     (cobravel_hoje) de fim de semana/feriado ainda no prazo bancário
+     (em_carencia_bancaria). Sets por titulo_id — mesma chave de TodosTitulosTab. */
+  const cobravelIds = useMemo(
+    () =>
+      new Set(
+        (tituloEstadoLinhas ?? [])
+          .filter((l) => l.cobravel_hoje && l.titulo_id)
+          .map((l) => l.titulo_id as string),
+      ),
+    [tituloEstadoLinhas],
+  );
+  const carenciaIds = useMemo(
+    () =>
+      new Set(
+        (tituloEstadoLinhas ?? [])
+          .filter((l) => l.em_carencia_bancaria && l.titulo_id)
+          .map((l) => l.titulo_id as string),
+      ),
+    [tituloEstadoLinhas],
+  );
 
 
   const semFiltroKpi = !filtroInstrumento && filtroPrazo === "todos";
@@ -703,7 +734,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
     setPage(1);
   };
 
-  const clicarPrazo = (k: "a_vencer" | "vencidos") => {
+  const clicarPrazo = (k: "a_vencer" | "vencidos" | "cobravel" | "carencia") => {
     setFiltroPrazo((prev) => (prev === k ? "todos" : k));
     setPage(1);
   };
@@ -809,6 +840,10 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
       ? "Sem instrumento"
       : filtroPrazo === "vencidos"
       ? "Prazo: Vencidos"
+      : filtroPrazo === "cobravel"
+      ? "Prazo: Cobrável hoje"
+      : filtroPrazo === "carencia"
+      ? "Prazo: Em carência bancária"
       : filtroPrazo === "a_vencer"
       ? "Prazo: A vencer"
       : null;
@@ -883,9 +918,15 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
       });
     }
     if (filtroPrazo !== "todos") {
+      const rotuloPrazo: Record<string, string> = {
+        vencidos: "Prazo: Vencidos",
+        a_vencer: "Prazo: A vencer",
+        cobravel: "Prazo: Cobrável hoje",
+        carencia: "Prazo: Em carência bancária",
+      };
       lista.push({
         chave: "prazo",
-        rotulo: filtroPrazo === "vencidos" ? "Prazo: Vencidos" : "Prazo: A vencer",
+        rotulo: rotuloPrazo[filtroPrazo] ?? "Prazo",
         limpar: () => {
           setFiltroPrazo("todos");
           setPage(1);
