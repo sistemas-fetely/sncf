@@ -18,7 +18,12 @@ Deno.serve(async (req) => {
 
   try {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
-    const dias = Number(body?.dias ?? 45);
+    const dias = Number(body?.dias ?? 7);
+    // TETO-POR-EXECUCAO: 45 dias paginando 50 em 50 com inserts por expedicao
+    // estourava o tempo da Edge Function (504) e morria antes de logar. Cada
+    // execucao processa no maximo maxPaginas; o resto drena na proxima chamada.
+    const maxPaginas = Number(body?.max_paginas ?? 6);
+
 
     const { data: cfgRow, error: eCfg } = await sb
       .from("integracoes_config").select("config").eq("sistema", "zenlog_prd").single();
@@ -48,8 +53,15 @@ Deno.serve(async (req) => {
     let skip = 0;
     const take = 50;
     let total = Infinity;
+    let paginas = 0;
+    let pendentes = 0;
+    const vazia = (v: unknown) => !v || String(v).startsWith("0001");
 
     while (skip < total) {
+      if (paginas >= maxPaginas) {
+        pendentes = Math.max(0, total - skip);
+        break;
+      }
       const qs = new URLSearchParams({
         DataInicial: desde,
         MaxResultCount: String(take),
@@ -64,12 +76,19 @@ Deno.serve(async (req) => {
       total = j?.result?.totalCount ?? 0;
       const items = j?.result?.items ?? [];
       if (items.length === 0) break;
+      paginas++;
+
+      const cabs: Record<string, any>[] = [];
+      const itensLote: Record<string, any>[] = [];
+      const eventosLote: Record<string, any>[] = [];
+      const codigos: string[] = [];
 
       for (const it of items) {
         const doc = it.documentos?.[0] ?? {};
         const codigo = String(it.codigo);
+        codigos.push(codigo);
 
-        const cab = {
+        cabs.push({
           codigo,
           expedicao_id_zenlog: it.id ?? null,
           data_expedicao: it.data ?? null,
@@ -90,10 +109,7 @@ Deno.serve(async (req) => {
           quantidade_volumes: doc.quantidadeVolumes ?? null,
           peso_bruto: doc.pesoBruto ?? null,
           sincronizado_em: new Date().toISOString(),
-        };
-
-        const { error: eUp } = await sb.from("xpm_expedicao").upsert(cab, { onConflict: "codigo" });
-        if (eUp) throw new Error(`upsert expedicao ${codigo}: ${eUp.message}`);
+        });
 
         const atendidos = new Map<string, number>();
         for (const a of doc.produtosAtendidos ?? []) {
@@ -101,32 +117,23 @@ Deno.serve(async (req) => {
           atendidos.set(chave, Number(a.quantidadeAtendida ?? 0));
         }
 
-        const itens = (doc.produtos ?? [])
-          .map((p: Record<string, any>) => {
-            const cod = p.produto?.codigo ?? null;
-            return {
-              expedicao_codigo: codigo,
-              sequencia: p.sequencia ?? null,
-              numero_item: p.numeroItem ?? null,
-              codigo_produto: cod,
-              quantidade_solicitada: p.quantidadeSolicitada ?? null,
-              quantidade_atendida: atendidos.get(`${p.numeroItem ?? ""}|${cod ?? ""}`) ?? null,
-              valor_unitario: p.valorUnitario ?? null,
-            };
-          })
-          .filter((x: Record<string, any>) => x.codigo_produto);
-
-        const { error: eDelI } = await sb.from("xpm_expedicao_item").delete().eq("expedicao_codigo", codigo);
-        if (eDelI) throw new Error(`limpar itens ${codigo}: ${eDelI.message}`);
-        if (itens.length > 0) {
-          const { error: eI } = await sb.from("xpm_expedicao_item").insert(itens);
-          if (eI) throw new Error(`inserir itens ${codigo}: ${eI.message}`);
+        for (const p of (doc.produtos ?? []) as Record<string, any>[]) {
+          const cod = p.produto?.codigo ?? null;
+          if (!cod) continue;
+          itensLote.push({
+            expedicao_codigo: codigo,
+            sequencia: p.sequencia ?? null,
+            numero_item: p.numeroItem ?? null,
+            codigo_produto: cod,
+            quantidade_solicitada: p.quantidadeSolicitada ?? null,
+            quantidade_atendida: atendidos.get(`${p.numeroItem ?? ""}|${cod}`) ?? null,
+            valor_unitario: p.valorUnitario ?? null,
+          });
         }
 
-        const vazia = (v: unknown) => !v || String(v).startsWith("0001");
-        const eventos = (it.eventos ?? [])
-          .filter((e: Record<string, any>) => e.eventoId != null)
-          .map((e: Record<string, any>) => ({
+        for (const e of (it.eventos ?? []) as Record<string, any>[]) {
+          if (e.eventoId == null) continue;
+          eventosLote.push({
             expedicao_codigo: codigo,
             evento_zenlog_id: e.id ?? null,
             evento_id: e.eventoId,
@@ -134,18 +141,28 @@ Deno.serve(async (req) => {
             inicio: vazia(e.inicio) ? null : e.inicio,
             fim: vazia(e.fim) ? null : e.fim,
             quantidade: e.quantidade ?? null,
-          }));
-
-        const { error: eDelE } = await sb.from("xpm_expedicao_evento").delete().eq("expedicao_codigo", codigo);
-        if (eDelE) throw new Error(`limpar eventos ${codigo}: ${eDelE.message}`);
-        if (eventos.length > 0) {
-          const { error: eE } = await sb.from("xpm_expedicao_evento").insert(eventos);
-          if (eE) throw new Error(`inserir eventos ${codigo}: ${eE.message}`);
+          });
         }
-
-        processadas++;
       }
 
+      const { error: eUp } = await sb.from("xpm_expedicao").upsert(cabs, { onConflict: "codigo" });
+      if (eUp) throw new Error(`upsert expedicoes (pagina ${paginas}): ${eUp.message}`);
+
+      const { error: eDelI } = await sb.from("xpm_expedicao_item").delete().in("expedicao_codigo", codigos);
+      if (eDelI) throw new Error(`limpar itens (pagina ${paginas}): ${eDelI.message}`);
+      if (itensLote.length > 0) {
+        const { error: eI } = await sb.from("xpm_expedicao_item").insert(itensLote);
+        if (eI) throw new Error(`inserir itens (pagina ${paginas}): ${eI.message}`);
+      }
+
+      const { error: eDelE } = await sb.from("xpm_expedicao_evento").delete().in("expedicao_codigo", codigos);
+      if (eDelE) throw new Error(`limpar eventos (pagina ${paginas}): ${eDelE.message}`);
+      if (eventosLote.length > 0) {
+        const { error: eE } = await sb.from("xpm_expedicao_evento").insert(eventosLote);
+        if (eE) throw new Error(`inserir eventos (pagina ${paginas}): ${eE.message}`);
+      }
+
+      processadas += items.length;
       skip += items.length;
     }
 
@@ -155,12 +172,20 @@ Deno.serve(async (req) => {
       status: "sucesso",
       registros_atualizados: processadas,
       duracao_ms: Date.now() - t0,
-      detalhes: { dias, total_api: total },
+      detalhes: {
+        dias,
+        total_api: total,
+        paginas,
+        teto_por_execucao: maxPaginas,
+        expedicoes_pendentes: pendentes,
+      },
     });
 
-    return new Response(JSON.stringify({ ok: true, expedicoes: processadas, total }), {
-      headers: { ...cors, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ ok: true, expedicoes: processadas, total, paginas, pendentes }),
+      { headers: { ...cors, "Content-Type": "application/json" } },
+    );
+
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     await sb.from("integracoes_sync_log").insert({
