@@ -3642,6 +3642,51 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_migracao_boleto_ancora_ofx_20260909: {
+        Row: {
+          congelado_em: string | null
+          dia: string | null
+          mov_ancora: string | null
+          nosso_numero: string | null
+          numero_titulo: string | null
+          ocorrencia_id: string | null
+          parceiro_id: string | null
+          prova_antes: string | null
+          status_antes: string | null
+          titulo_id: string | null
+          valor: number | null
+          valor_atual: number | null
+        }
+        Insert: {
+          congelado_em?: string | null
+          dia?: string | null
+          mov_ancora?: string | null
+          nosso_numero?: string | null
+          numero_titulo?: string | null
+          ocorrencia_id?: string | null
+          parceiro_id?: string | null
+          prova_antes?: string | null
+          status_antes?: string | null
+          titulo_id?: string | null
+          valor?: number | null
+          valor_atual?: number | null
+        }
+        Update: {
+          congelado_em?: string | null
+          dia?: string | null
+          mov_ancora?: string | null
+          nosso_numero?: string | null
+          numero_titulo?: string | null
+          ocorrencia_id?: string | null
+          parceiro_id?: string | null
+          prova_antes?: string | null
+          status_antes?: string | null
+          titulo_id?: string | null
+          valor?: number | null
+          valor_atual?: number | null
+        }
+        Relationships: []
+      }
       backup_migracao_boleto_sintetica_20260909: {
         Row: {
           congelado_em: string | null
@@ -3679,6 +3724,99 @@ export type Database = {
           mov_id?: string | null
           nosso_numero?: string | null
           numero_titulo?: string | null
+          parceiro_id?: string | null
+          titulo_id?: string | null
+          titulo_prova_antes?: string | null
+          titulo_status_antes?: string | null
+          valor?: number | null
+        }
+        Relationships: []
+      }
+      backup_migracao_boleto_sintetica_c3_20260909: {
+        Row: {
+          congelado_em: string | null
+          data_transacao: string | null
+          descricao: string | null
+          duplicada_de: string | null
+          mov_id: string | null
+          nosso_numero: string | null
+          numero_titulo: string | null
+          parceiro_id: string | null
+          titulo_id: string | null
+          titulo_prova_antes: string | null
+          titulo_status_antes: string | null
+          valor: number | null
+        }
+        Insert: {
+          congelado_em?: string | null
+          data_transacao?: string | null
+          descricao?: string | null
+          duplicada_de?: string | null
+          mov_id?: string | null
+          nosso_numero?: string | null
+          numero_titulo?: string | null
+          parceiro_id?: string | null
+          titulo_id?: string | null
+          titulo_prova_antes?: string | null
+          titulo_status_antes?: string | null
+          valor?: number | null
+        }
+        Update: {
+          congelado_em?: string | null
+          data_transacao?: string | null
+          descricao?: string | null
+          duplicada_de?: string | null
+          mov_id?: string | null
+          nosso_numero?: string | null
+          numero_titulo?: string | null
+          parceiro_id?: string | null
+          titulo_id?: string | null
+          titulo_prova_antes?: string | null
+          titulo_status_antes?: string | null
+          valor?: number | null
+        }
+        Relationships: []
+      }
+      backup_migracao_boleto_sintetica_c4_20260909: {
+        Row: {
+          congelado_em: string | null
+          data_transacao: string | null
+          descricao: string | null
+          duplicada_de: string | null
+          mov_id: string | null
+          nosso_numero: string | null
+          numero_titulo: string | null
+          origem: string | null
+          parceiro_id: string | null
+          titulo_id: string | null
+          titulo_prova_antes: string | null
+          titulo_status_antes: string | null
+          valor: number | null
+        }
+        Insert: {
+          congelado_em?: string | null
+          data_transacao?: string | null
+          descricao?: string | null
+          duplicada_de?: string | null
+          mov_id?: string | null
+          nosso_numero?: string | null
+          numero_titulo?: string | null
+          origem?: string | null
+          parceiro_id?: string | null
+          titulo_id?: string | null
+          titulo_prova_antes?: string | null
+          titulo_status_antes?: string | null
+          valor?: number | null
+        }
+        Update: {
+          congelado_em?: string | null
+          data_transacao?: string | null
+          descricao?: string | null
+          duplicada_de?: string | null
+          mov_id?: string | null
+          nosso_numero?: string | null
+          numero_titulo?: string | null
+          origem?: string | null
           parceiro_id?: string | null
           titulo_id?: string | null
           titulo_prova_antes?: string | null
@@ -17890,6 +18028,7 @@ export type Database = {
           cobra_email: boolean
           codigo: string
           envio_agrupa_parcelas: boolean
+          gera_duplicata: boolean
           gera_fatura: boolean
           gera_movimento_bancario: boolean
           id: string
@@ -17906,6 +18045,7 @@ export type Database = {
           cobra_email?: boolean
           codigo: string
           envio_agrupa_parcelas?: boolean
+          gera_duplicata?: boolean
           gera_fatura?: boolean
           gera_movimento_bancario?: boolean
           id?: string
@@ -17922,6 +18062,7 @@ export type Database = {
           cobra_email?: boolean
           codigo?: string
           envio_agrupa_parcelas?: boolean
+          gera_duplicata?: boolean
           gera_fatura?: boolean
           gera_movimento_bancario?: boolean
           id?: string

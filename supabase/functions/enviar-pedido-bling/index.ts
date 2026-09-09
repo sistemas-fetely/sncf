@@ -706,6 +706,22 @@ serve(async (req) => {
     // O FATOR e calculado contra o PLANO COMPLETO (portao incluido): se fosse contra o que sobra,
     // as parcelas a prazo seriam INFLADAS para cobrir o que o cliente ja pagou. Medido: entrada de
     // cartao e 25-33% do plano nos pedidos mistos.
+
+    // SEM-DUPLICATA-SAI-DO-ARRAY (09/09/2026, PED-2189): o que sai do array e o que NUNCA sera
+    // cobrado do cliente — seja porque o dinheiro ja entrou (portao), seja porque nao e dinheiro
+    // a receber (gera_duplicata = false na dimensao: haver, sem_pagamento). Sem este filtro a
+    // linha de haver descia fantasiada da forma do pedido e o Bling recusava: soma das parcelas
+    // != total da venda (erro 22). A lista NAO mora aqui: a dimensao e o banco.
+    const { data: formasDim, error: formasDimErr } = await supabase
+      .from("formas_pagamento")
+      .select("codigo, gera_duplicata");
+    if (formasDimErr) {
+      return await falhaLimpando(
+        `Não foi possível ler formas_pagamento (dimensão de duplicatas): ${formasDimErr.message}`, 500);
+    }
+    const semDuplicata = new Set(
+      (formasDim ?? []).filter((f: any) => f.gera_duplicata === false).map((f: any) => f.codigo),
+    );
     const somaPlano = parseFloat(
       titulos.reduce((s: number, t: any) => s + Number(t.valor_bruto), 0).toFixed(2),
     );
@@ -713,10 +729,16 @@ serve(async (req) => {
       ? parseFloat((remessaValor / somaPlano).toFixed(6))
       : 1;
 
-    const titulosAPrazo = titulos.filter((t: any) => !t.eh_portao);
+    // Sai do array o que nunca será cobrado do cliente: dinheiro que já entrou
+    // (portão) ou que não é dinheiro a receber (gera_duplicata = false na dimensão).
+    const titulosAPrazo = titulos.filter((t: any) => !t.eh_portao && !semDuplicata.has(t.tipo_pagamento));
     const valorPortaoPlano = parseFloat(
       titulos.filter((t: any) => t.eh_portao)
         .reduce((s: number, t: any) => s + Number(t.valor_bruto), 0).toFixed(2),
+    );
+    const linhasSemDuplicata = titulos.filter((t: any) => !t.eh_portao && semDuplicata.has(t.tipo_pagamento));
+    const valorSemDuplicata = parseFloat(
+      linhasSemDuplicata.reduce((s: number, t: any) => s + Number(t.valor_bruto), 0).toFixed(2),
     );
 
     // Data: `data_vencimento_efetiva` = ANCORA declarada no pre-faturamento (fn_declarar_ancora_
@@ -750,6 +772,7 @@ serve(async (req) => {
     console.log("[parcelas] plano", {
       linhas_plano: titulos.length, linhas_a_prazo: titulosAPrazo.length,
       valor_portao_plano: valorPortaoPlano, fator: fatorRemessa,
+      linhas_sem_duplicata: linhasSemDuplicata.length, valor_sem_duplicata: valorSemDuplicata,
       total: totalExato, soma_parcelas_enviadas: alvoAPrazo, tem_parcelas: temParcelas,
     });
 
@@ -819,8 +842,7 @@ if (novosCacheEntries.length > 0) {
   supabase
     .from("bling_produtos_cache")
     .upsert(novosCacheEntries, { onConflict: "sku" })
-    .then(() => {})
-    .catch(() => {});
+    .then(() => {}, () => {});
 }
 
 // Guardrail pós-sync — FAIL-LOUD: produtos com SKU que não foram resolvidos
