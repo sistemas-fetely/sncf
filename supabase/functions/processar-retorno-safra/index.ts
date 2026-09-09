@@ -317,6 +317,12 @@ serve(async (req) => {
       ator: string;
       payload: Record<string, unknown>;
     }> = [];
+    const liquidacoesParaConferir: Array<{
+      numeroLinha: number;
+      nossoNumero: string;
+      numeroTitulo: string;
+      valorCreditado: number;
+    }> = [];
     const registrarEvento = (
       tituloId: string,
       tipo: string,
