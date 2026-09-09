@@ -232,11 +232,18 @@ export function BoardProjeto({ projetoId }: Props) {
     return true;
   }
 
-  /** FAIL-LOUD: otimista, await real, rollback e toast no erro. */
+  /** FAIL-LOUD: otimista, await real, rollback e toast no erro.
+   *  Em caso de sucesso removemos o override — a query invalidada traz o
+   *  status real do servidor, evitando que um valor otimista antigo fique
+   *  preso se o título for alterado por outro caminho. */
   async function trocarStatus(tarefaId: string, status: TarefaStatus, motivoTexto?: string) {
     setOtimista((o) => ({ ...o, [tarefaId]: status }));
     try {
       await alterarStatus.mutateAsync({ id: tarefaId, status, motivo: motivoTexto ?? null });
+      setOtimista((o) => {
+        const { [tarefaId]: _fora, ...resto } = o;
+        return resto;
+      });
     } catch (err) {
       setOtimista((o) => {
         const { [tarefaId]: _fora, ...resto } = o;
