@@ -46,6 +46,7 @@ export interface PedidoB2cRow {
   pedido_id: string | null;
   id_externo: string | null;
   cliente: string | null;
+  created_at_shopify: string | null;
   data_pedido: string | null;
   shipping_city: string | null;
   shipping_province: string | null;
@@ -93,7 +94,7 @@ export interface PedidoB2cRow {
 }
 
 const CAMPOS_PEDIDO =
-  "shopify_id, order_name, pedido_id, id_externo, cliente, data_pedido, shipping_city, shipping_province, shipping_zip, total, subtotal, discount_amount, shipping_cost, estagio, estagio_rotulo, estagio_ordem, area_responsavel, proxima_acao, dias_no_estagio, alerta, na_carteira_ativa, eh_final, tem_nf, nf_refs, nf_data_emissao, bling_pedido_numero, tem_recebimento, liquido_mp, taxa_mp, situacao_financeira, xpm_codigo, xpm_estagio, xpm_farol_sla, xpm_horas_ciclo, tracking_number, tracking_company, tracking_url, rastreio_status, rastreio_entregue, entrega_prevista, shipping_method, payment_method, financial_status, fulfillment_status, paid_at, fulfilled_at, cancelled_at, refunded_amount, coerencia_status";
+  "shopify_id, order_name, pedido_id, id_externo, cliente, created_at_shopify, data_pedido, shipping_city, shipping_province, shipping_zip, total, subtotal, discount_amount, shipping_cost, estagio, estagio_rotulo, estagio_ordem, area_responsavel, proxima_acao, dias_no_estagio, alerta, na_carteira_ativa, eh_final, tem_nf, nf_refs, nf_data_emissao, bling_pedido_numero, tem_recebimento, liquido_mp, taxa_mp, situacao_financeira, xpm_codigo, xpm_estagio, xpm_farol_sla, xpm_horas_ciclo, tracking_number, tracking_company, tracking_url, rastreio_status, rastreio_entregue, entrega_prevista, shipping_method, payment_method, financial_status, fulfillment_status, paid_at, fulfilled_at, cancelled_at, refunded_amount, coerencia_status";
 
 export function usePedidosB2c() {
   return useQuery({
