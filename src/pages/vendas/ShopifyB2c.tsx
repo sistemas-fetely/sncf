@@ -97,7 +97,11 @@ export default function ShopifyB2c() {
   const { data: pedidos, isLoading, isError, error } = usePedidosB2c();
   const { data: carrinhos, isLoading: carregandoCarrinhos } = useCarrinhosAbandonados();
   const { data: devolucoes, isLoading: carregandoDevolucoes } = useDevolucoesB2c();
-  const { data: alertasDim } = usePedidoAlertaDim();
+  const {
+    data: alertasDim,
+    isError: alertasDimErro,
+    error: alertasDimErroObj,
+  } = usePedidoAlertaDim();
 
   const setAba = (valor: string) => {
     const next = new URLSearchParams(searchParams);
@@ -293,11 +297,20 @@ export default function ShopifyB2c() {
             </span>
           </div>
 
-          {isError ? (
+          {isError && (
             <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
               Erro ao carregar os pedidos da loja: {(error as Error)?.message ?? "erro desconhecido"}
             </div>
-          ) : (
+          )}
+
+          {alertasDimErro && (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              Dimensão de alertas não carregou. Os selos abaixo estão sem cor e sem rótulo oficial, então um alerta grave pode estar aparecendo em cinza.{" "}
+              {(alertasDimErroObj as Error)?.message ?? "erro desconhecido"}
+            </div>
+          )}
+
+          {!isError && (
             <Card>
               <CardContent className="p-0">
                 <TooltipProvider>
