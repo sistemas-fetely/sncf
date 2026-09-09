@@ -425,11 +425,31 @@ serve(async (req) => {
 
     if (instrucoes.length === 0) instrucoes.push("NAO RECEBER APOS 30 DIAS DO VENCIMENTO.");
 
+    // BENEFICIARIO-VEM-DO-PARAMETRO: razao social, CNPJ, banco e carteira sao
+    // cadastro (parametros_remessa_safra), nao literal de codigo. Se faltar,
+    // FAIL-LOUD — boleto com beneficiario errado nao volta atras.
+    const faltandoParam = ["razao_social_cedente", "cnpj_cedente", "codigo_banco", "nome_banco", "tipo_carteira"]
+      .filter((k) => !params[k]);
+    if (faltandoParam.length > 0) {
+      return new Response(JSON.stringify({
+        ok: false,
+        erro: `Parametros do beneficiario ausentes em parametros_remessa_safra: ${faltandoParam.join(", ")}`,
+      }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const dados: DadosBoleto = {
-      beneficiario_nome: "FETELY COMERCIO IMPORTACAO E EXPORTACAO LTDA",
-      beneficiario_cnpj: "63.591.078/0001-48",
+      beneficiario_nome: params.razao_social_cedente,
+      beneficiario_cnpj: params.cnpj_cedente,
+      banco_codigo:      params.codigo_banco,
+      banco_nome:        params.nome_banco,
+      especie_titulo:    params.especie_titulo ?? "DM",
+      // Tarja de conferencia: boleto ainda nao confirmado pelo banco nao pode
+      // circular por engano. A marca vai NO PDF, de proposito.
+      tarja: t.boleto_status === "remessa_gerada"
+        ? "AGUARDANDO REGISTRO NO BANCO - NAO ENVIAR AO CLIENTE"
+        : null,
       agencia_cedente:   agenciaCedente,
-      carteira:          params.tipo_carteira ?? "60",
+      carteira:          params.tipo_carteira,
       nosso_numero_seq:  bv.nosso_numero,
       pagador_nome:      parceiro?.razao_social ?? "—",
       pagador_doc:       parceiro?.cnpj ?? parceiro?.cpf ?? "—",
