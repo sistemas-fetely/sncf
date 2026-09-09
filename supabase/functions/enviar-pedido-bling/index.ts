@@ -376,6 +376,25 @@ serve(async (req) => {
     // para permitir a compensação em qualquer caminho de erro antes do POST.
     let remessaCriadaNestaChamada: string | null = null;
 
+    // Compensação: apaga a remessa criada nesta chamada antes de devolver o erro.
+    const limparRemessaOrfa = async () => {
+      if (!remessaCriadaNestaChamada) return;
+      const id = remessaCriadaNestaChamada;
+      remessaCriadaNestaChamada = null;
+      try {
+        await supabase.from("pedido_remessa").delete().eq("id", id).is("bling_pedido_id", null);
+      } catch (e) {
+        console.error("[enviar-pedido-bling] falha ao limpar remessa órfã", id, e);
+      }
+    };
+    const falhaLimpando = async (msg: string, status = 400) => {
+      await limparRemessaOrfa();
+      return err(msg, status);
+    };
+    cleanupRemessaOrfa = limparRemessaOrfa;
+
+
+
 
     if (remessa_id_input) {
       // Remessa explícita (split)
