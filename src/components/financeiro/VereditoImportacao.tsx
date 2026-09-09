@@ -92,6 +92,13 @@ export function VereditoImportacao({ itens }: { itens: VereditoArquivo[] }) {
               </div>
             )}
 
+            {r.completado && (
+              <div className="flex items-start gap-1 text-success">
+                <CheckCircle2 className="h-3 w-3 mt-0.5 shrink-0" />
+                <span>{r.completado}</span>
+              </div>
+            )}
+
             {r.efeito && <div className="text-muted-foreground italic">{r.efeito}</div>}
 
 
