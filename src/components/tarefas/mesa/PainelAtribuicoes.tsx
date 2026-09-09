@@ -223,6 +223,10 @@ export default function PainelAtribuicoes() {
   const [aApagar, setAApagar] = useState<LinhaCarga | null>(null);
   // Nascer processo a partir da atribuição: confirmação explícita antes da RPC.
   const [aNascerProcesso, setANascerProcesso] = useState<LinhaCarga | null>(null);
+  // F3 — adoção do número medido: confirmação explícita, gravação SÓ via RPC.
+  const [aAdotar, setAAdotar] = useState<LinhaCarga | null>(null);
+  const [adotarTempo, setAdotarTempo] = useState(true);
+  const [adotarVolume, setAdotarVolume] = useState(true);
   // Dois olhares sobre o mesmo catálogo: por macro processo (como se faz) ou por pessoa (quem faz).
   const [eixo, setEixo] = useState<"macro" | "pessoa">("macro");
   // Gestão compara: tabela ordenável. Padrão = carga por dia, do maior para o menor.
@@ -255,6 +259,34 @@ export default function PainelAtribuicoes() {
           onClick: () => navigate(`/processos/${processoId}`),
         },
       });
+    },
+    onError: (e) => toast.error(formatError(e)),
+  });
+
+  // F3 — adoção em 1 clique: a RPC fn_atribuicao_adotar_medido é o ÚNICO caminho
+  // que grava o observado como declarado (e marca origem 'medido'). FAIL-LOUD.
+  const adotarMedido = useMutation({
+    mutationFn: async (p: { l: LinhaCarga; tempo: boolean; volume: boolean }) => {
+      const { data, error } = await (supabase as any).rpc("fn_atribuicao_adotar_medido", {
+        _id: p.l.atribuicao_id,
+        _adotar_tempo: p.tempo,
+        _adotar_volume: p.volume,
+      });
+      if (error) throw error;
+      return data as {
+        tempo_de: number | null; tempo_para: number | null;
+        volume_de: number | null; volume_para: number | null;
+      } | null;
+    },
+    onSuccess: (r) => {
+      const partes: string[] = [];
+      if (r?.tempo_para != null) partes.push(`tempo ${r.tempo_de ?? "—"} → ${r.tempo_para} min`);
+      if (r?.volume_para != null) partes.push(`volume ${r.volume_de ?? "—"} → ${r.volume_para}/dia`);
+      toast.success("Número medido adotado.", {
+        description: partes.length ? partes.join(" · ") : "Nada a adotar.",
+      });
+      setAAdotar(null);
+      qc.invalidateQueries({ queryKey: QK });
     },
     onError: (e) => toast.error(formatError(e)),
   });
