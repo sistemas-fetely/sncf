@@ -380,7 +380,7 @@ export default function ExtratoImportacao() {
   async function resolverConta(
     file: File,
     fonte: Fonte
-  ): Promise<{ conta: Conta; aviso?: string }> {
+  ): Promise<{ conta: Conta; aviso?: string; completado?: string }> {
     const chave = FONTE_CONTA_CHAVE[fonte] ?? FONTE_TIPO_DB[fonte];
     const { data: mapa, error: errMapa } = await sb
       .from("importacao_fonte_conta")
