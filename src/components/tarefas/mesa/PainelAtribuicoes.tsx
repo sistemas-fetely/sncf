@@ -599,7 +599,7 @@ export default function PainelAtribuicoes() {
                           {/* Divergência declarado x observado: nada é adotado sozinho,
                               o alerta convida a editar. */}
                           {l.fila_instrumentada &&
-                            divergeVolume(l.fluxo_diario_estimado, l.volume_obs_dia_corrido) && (
+                            divergeMais30(l.fluxo_diario_estimado, l.volume_obs_dia_corrido) && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <span className="cursor-help">
