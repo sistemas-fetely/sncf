@@ -226,6 +226,7 @@ const PREFIXO_REMESSA: Record<string, string> = {
   entrada:     "SAFRA_",
   baixa:       "SAFRAB",
   prorrogacao: "SAFRAP",
+  reemissao:   "SAFRAR",
 };
 
 function nomeArquivoRemessa(tipo: string, nroSeq: number): string {
