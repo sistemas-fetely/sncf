@@ -74615,6 +74615,24 @@ export type Database = {
           },
         ]
       }
+      vw_minhas_filas: {
+        Row: {
+          cadeira: string | null
+          fila_chave: string | null
+          fila_nome: string | null
+          itens: number | null
+          meu_papel: string | null
+          minutos_fila: number | null
+          prazo_dias: number | null
+          precisa_declarar: boolean | null
+          rota: string | null
+          severidade: string | null
+          tempo_declarado_em: string | null
+          tempo_declarado_por: string | null
+          tempo_unitario_min: number | null
+        }
+        Relationships: []
+      }
       vw_motor_fila_por_cnpj: {
         Row: {
           fornecedor: string | null
@@ -79022,14 +79040,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -92349,6 +92367,15 @@ export type Database = {
         Returns: {
           alvo_user_id: string
           modo: string
+        }[]
+      }
+      declarar_tempo_fila: {
+        Args: { p_fila_chave: string; p_tempo_min: number }
+        Returns: {
+          cadeira: string
+          declarado_em: string
+          fila_chave: string
+          tempo_unitario_min: number
         }[]
       }
       definir_origem_nf: {
