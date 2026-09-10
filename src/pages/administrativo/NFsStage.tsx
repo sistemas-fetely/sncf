@@ -264,6 +264,7 @@ export default function NFsStage() {
   const [gerandoResumo, setGerandoResumo] = useState<Set<string>>(new Set());
   const [classificandoIA, setClassificandoIA] = useState(false);
   const [buscandoQive, setBuscandoQive] = useState(false);
+  const [confirmarBuscaQive, setConfirmarBuscaQive] = useState(false);
   const [destinoFiltro, setDestinoFiltro] = useState<string | null>(null);
   const [uniformizarOpen, setUniformizarOpen] = useState(false);
   const [uniformizarEscolha, setUniformizarEscolha] = useState<string | null>(null);
