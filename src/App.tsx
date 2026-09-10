@@ -234,6 +234,7 @@ const PedidosVenda = lazy(() => import("@/pages/administrativo/PedidosVenda"));
 const Logistica = lazy(() => import("@/pages/logistica/Logistica"));
 
 const CanalCPO = lazy(() => import("@/pages/CanalCPO"));
+const MesaAtendimento = lazy(() => import("@/pages/MesaAtendimento"));
 
 
 const queryClient = new QueryClient({
@@ -432,6 +433,7 @@ const App = () => (
                 <Route path="/administrativo-fetely/parceiros" element={<Parceiros />} />
 
                 <Route path="/canal-cpo" element={<CanalCPO />} />
+                <Route path="/mesa-atendimento" element={<MesaAtendimento />} />
                 <Route path="/devolucoes" element={<RetornoDevolucao />} />
               </Route>
 
