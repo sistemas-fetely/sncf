@@ -264,6 +264,7 @@ export default function NFsStage() {
   const [gerandoResumo, setGerandoResumo] = useState<Set<string>>(new Set());
   const [classificandoIA, setClassificandoIA] = useState(false);
   const [buscandoQive, setBuscandoQive] = useState(false);
+  const [confirmarBuscaQive, setConfirmarBuscaQive] = useState(false);
   const [destinoFiltro, setDestinoFiltro] = useState<string | null>(null);
   const [uniformizarOpen, setUniformizarOpen] = useState(false);
   const [uniformizarEscolha, setUniformizarEscolha] = useState<string | null>(null);
@@ -333,9 +334,12 @@ export default function NFsStage() {
   };
 
   async function buscarNaQive() {
+    setConfirmarBuscaQive(false);
     setBuscandoQive(true);
     try {
-      const resp = await supabase.functions.invoke("sync-qive-dfe", { body: {} });
+      const resp = await supabase.functions.invoke("sync-qive-dfe", {
+        body: { ambiente: "producao", simular: false },
+      });
       if (resp.error) throw new Error(resp.error.message);
       const data = resp.data as {
         ok: boolean;
@@ -1289,17 +1293,17 @@ export default function NFsStage() {
               </Button>
               <Button
                 variant="outline"
-                onClick={buscarNaQive}
+                onClick={() => setConfirmarBuscaQive(true)}
                 disabled={buscandoQive}
                 className="gap-2"
-                title="Busca documentos na Qive em modo simulação (sandbox) — nada é gravado"
+                title="Captura documentos fiscais de entrada na Qive (produção) e grava em NFs em Stage"
               >
                 {buscandoQive ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <CloudDownload className="h-4 w-4" />
                 )}
-                {buscandoQive ? "Buscando..." : "Simular busca na Qive"}
+                {buscandoQive ? "Buscando..." : "Buscar na Qive"}
               </Button>
               <Button
                 variant="outline"
@@ -2428,6 +2432,24 @@ export default function NFsStage() {
           }}
         />
       )}
+
+      <AlertDialog open={confirmarBuscaQive} onOpenChange={setConfirmarBuscaQive}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Buscar documentos na Qive?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>Os documentos capturados serão gravados em NFs em Stage.</p>
+              <p>Fornecedores ainda não cadastrados serão criados automaticamente.</p>
+              <p>Documentos classificados como despesa geram lançamento de despesa.</p>
+              <p>A captura só traz o que entrou na base da Qive; não há busca retroativa.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={buscarNaQive}>Buscar agora</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
 
   );
