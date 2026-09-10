@@ -2432,6 +2432,24 @@ export default function NFsStage() {
           }}
         />
       )}
+
+      <AlertDialog open={confirmarBuscaQive} onOpenChange={setConfirmarBuscaQive}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Buscar documentos na Qive?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>Os documentos capturados serão gravados em NFs em Stage.</p>
+              <p>Fornecedores ainda não cadastrados serão criados automaticamente.</p>
+              <p>Documentos classificados como despesa geram lançamento de despesa.</p>
+              <p>A captura só traz o que entrou na base da Qive; não há busca retroativa.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={buscarNaQive}>Buscar agora</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
 
   );
