@@ -115,7 +115,7 @@ function usePedidoMinimo(pedidoId: string | undefined) {
           id, id_externo, estagio, data_pedido, nf_numero, valor_bruto, valor_liquido, bonus_pix_valor, condicao_solicitada, parceiro_id,
           itens_json, frete_tipo, valor_frete,
           parceiro:parceiros_comerciais!parceiro_id(razao_social, nome_fantasia, cnpj, cpf, email, telefone, cep, logradouro, numero, endereco_complemento, bairro, cidade, uf),
-          analises_credito!analises_credito_pedido_id_fkey(parecer_final, status_final, decidido_em, exige_portao)
+          analises_credito!analises_credito_pedido_id_fkey(parecer_final, status_final, decidido_em)
         `)
         .eq("id", pedidoId)
         .maybeSingle();
@@ -1023,7 +1023,6 @@ export default function CobrancaDetalhe() {
     parecer_final: string | null;
     status_final: string | null;
     decidido_em: string | null;
-    exige_portao: boolean | null;
   }>;
   const analiseEscolhida = (() => {
     if (!analisesPedido.length) return null;
