@@ -433,6 +433,7 @@ const App = () => (
                 <Route path="/administrativo-fetely/parceiros" element={<Parceiros />} />
 
                 <Route path="/canal-cpo" element={<CanalCPO />} />
+                <Route path="/mesa-atendimento" element={<MesaAtendimento />} />
                 <Route path="/devolucoes" element={<RetornoDevolucao />} />
               </Route>
 
