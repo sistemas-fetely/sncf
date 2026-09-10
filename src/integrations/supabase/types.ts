@@ -69961,7 +69961,9 @@ export type Database = {
           liquido_mp: number | null
           na_carteira_ativa: boolean | null
           nf_data_emissao: string | null
+          nf_emitida_em: string | null
           nf_refs: string | null
+          nf_tem_fila: boolean | null
           order_name: string | null
           paid_at: string | null
           payment_method: string | null
@@ -70032,7 +70034,9 @@ export type Database = {
           liquido_mp: number | null
           na_carteira_ativa: boolean | null
           nf_data_emissao: string | null
+          nf_emitida_em: string | null
           nf_refs: string | null
+          nf_tem_fila: boolean | null
           order_name: string | null
           paid_at: string | null
           parceiro_id: string | null
@@ -74161,14 +74165,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -75052,14 +75056,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
