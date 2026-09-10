@@ -3,7 +3,10 @@
 // (FAIL-LOUD) — importacao silenciosa e pior que importacao que falha.
 
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import type { extrairLinhas } from "./lerPlanilhaPI";
+
+type StageInsert = Database["public"]["Tables"]["pi_import_stage"]["Insert"];
 
 export type LinhaExtraida = {
   linhaNum: number;
