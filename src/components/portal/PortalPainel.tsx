@@ -49,7 +49,15 @@ export function PortalPainel({ sessao, painel, onRecarregar, onSair }: Props) {
           <div className="rounded-md border border-success/60 bg-success/10 p-3">
             <p className="text-xs font-medium text-success">Liberado — já pode ser pago</p>
             <p className="text-2xl font-medium">{fmtBRL(resumo.liberado_total)}</p>
-...
+          </div>
+          <div className="rounded-md border border-warning/60 bg-warning/10 p-3">
+            <p className="text-xs font-medium text-warning">
+              Pendente — depende do cliente pagar
+            </p>
+            <p className="text-2xl font-medium">{fmtBRL(resumo.pendente_total)}</p>
+          </div>
+          <div className="rounded-md border border-border/60 p-3">
+            <p className="text-xs text-muted-foreground">Apurado no total</p>
             <p className="text-2xl font-medium">{fmtBRL(resumo.apurado_total)}</p>
           </div>
         </CardContent>
@@ -109,7 +117,12 @@ export function PortalPainel({ sessao, painel, onRecarregar, onSair }: Props) {
                 </div>
               ))
             )}
-...
+          </div>
+
+          <div className="space-y-1">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Régua de desconto
+            </p>
             {(Array.isArray(regras.regua) ? regras.regua : []).length === 0 ? (
               <p className="text-sm text-muted-foreground">Sem régua publicada.</p>
             ) : (
