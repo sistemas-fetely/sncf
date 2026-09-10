@@ -47,6 +47,15 @@ export function PedidoB2cDrawer({ pedido, open, onOpenChange }: Props) {
   const navigate = useNavigate();
   const { data: itens, isLoading } = useItensB2c(open ? pedido?.shopify_id ?? null : null);
 
+  // quantity e o original da compra; current_quantity e o que vale apos edicao na
+  // loja. Linhas legadas (current_quantity nulo) caem para quantity. Linha com
+  // quantidade vigente zero foi removida na loja: sai da tabela, mas e listada
+  // abaixo para a edicao ficar visivel.
+  const qtdVigente = (it: { quantity: number; current_quantity: number | null }) =>
+    it.current_quantity ?? it.quantity;
+  const itensVigentes = (itens ?? []).filter((it) => qtdVigente(it) > 0);
+  const itensRemovidos = (itens ?? []).filter((it) => qtdVigente(it) === 0);
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex w-full flex-col gap-0 sm:max-w-xl">
@@ -79,23 +88,23 @@ export function PedidoB2cDrawer({ pedido, open, onOpenChange }: Props) {
                         <Skeleton className="h-4 w-32" />
                       </TableCell>
                     </TableRow>
-                  ) : (itens ?? []).length === 0 ? (
+                  ) : itensVigentes.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="py-6 text-center text-xs text-muted-foreground">
                         Sem itens registrados.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    (itens ?? []).map((it) => (
+                    itensVigentes.map((it) => (
                       <TableRow key={it.id}>
                         <TableCell className="font-mono text-xs">{txt(it.sku)}</TableCell>
                         <TableCell className="text-xs">{txt(it.product_name)}</TableCell>
-                        <TableCell className="text-right text-xs tabular-nums">{it.quantity}</TableCell>
+                        <TableCell className="text-right text-xs tabular-nums">{qtdVigente(it)}</TableCell>
                         <TableCell className="text-right text-xs tabular-nums">
                           {formatBRL(it.unit_price)}
                         </TableCell>
                         <TableCell className="text-right text-xs tabular-nums">
-                          {formatBRL(Number(it.unit_price) * Number(it.quantity))}
+                          {formatBRL(Number(it.unit_price) * qtdVigente(it))}
                         </TableCell>
                       </TableRow>
                     ))
@@ -103,6 +112,14 @@ export function PedidoB2cDrawer({ pedido, open, onOpenChange }: Props) {
                 </TableBody>
               </Table>
             </div>
+            {itensRemovidos.length > 0 && (
+              <p className="pt-1 text-xs text-muted-foreground">
+                {itensRemovidos.length === 1
+                  ? "1 item removido na loja depois da compra: "
+                  : `${itensRemovidos.length} itens removidos na loja depois da compra: `}
+                {itensRemovidos.map((it) => txt(it.sku)).join(", ")}
+              </p>
+            )}
             <div className="space-y-1 pt-1">
               <Linha rotulo="Subtotal">{formatBRL(pedido?.subtotal)}</Linha>
               <Linha rotulo="Desconto">{formatBRL(pedido?.discount_amount)}</Linha>
