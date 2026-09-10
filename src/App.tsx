@@ -70,6 +70,7 @@ const PagamentoPJRelatorio = lazy(() => import("@/pages/PagamentoPJRelatorio"));
 
 const PagarPix = lazy(() => import("@/pages/publico/PagarPix"));
 const Unsubscribe = lazy(() => import("@/pages/Unsubscribe"));
+const PortalRepresentante = lazy(() => import("@/pages/publico/PortalRepresentante"));
 const ConfigurarPerfis = lazy(() => import("@/pages/ConfigurarPerfis"));
 const Onboarding = lazy(() => import("@/pages/Onboarding"));
 const OnboardingDetalhe = lazy(() => import("@/pages/OnboardingDetalhe"));
@@ -331,6 +332,8 @@ const App = () => (
               
               <Route path="/pagar/:token" element={<PagarPix />} />
               <Route path="/unsubscribe" element={<Unsubscribe />} />
+              {/* Portal do Representante — público, fora da Casa (sem sidebar/menu) */}
+              <Route path="/portal" element={<PortalRepresentante />} />
             </Route>
 
             {/* Bling OAuth callback — público (recebe redirect externo), fora da Casa */}
