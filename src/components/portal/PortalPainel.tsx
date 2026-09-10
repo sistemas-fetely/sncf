@@ -79,7 +79,7 @@ export function PortalPainel({ sessao, painel, onRecarregar, onSair }: Props) {
                 <div>
                   <p className="text-sm font-medium">{fmtCompetencia(e.competencia)}</p>
                   <p className="text-xs text-muted-foreground">
-                    {e.nfs ?? 0} NF(s) · pagamento até {fmtData(e.data_limite_pagamento ?? e.data_limite)}
+                    {e.notas} NF(s): {e.nfs} · pagamento até {fmtData(e.pagar_ate)}
                   </p>
                 </div>
                 <p className="text-lg font-medium">{fmtBRL(e.valor_a_pagar)}</p>
@@ -99,36 +99,26 @@ export function PortalPainel({ sessao, painel, onRecarregar, onSair }: Props) {
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Percentual por linha
             </p>
-            {(Array.isArray(regras.linhas) ? regras.linhas : []).length === 0 ? (
+            {(Array.isArray(regras.por_linha) ? regras.por_linha : []).length === 0 ? (
               <p className="text-sm text-muted-foreground">Sem percentuais publicados.</p>
             ) : (
-              (regras.linhas as any[]).map((l: any, i: number) => (
+              (regras.por_linha as any[]).map((l: any, i: number) => (
                 <div key={i} className="flex items-baseline justify-between text-sm">
-                  <span>{l.linha ?? "—"}</span>
+                  <span>{l.linha}</span>
                   <span className="font-medium">{fmtPct(l.pct)}</span>
                 </div>
               ))
             )}
-          </div>
-
-          <div className="space-y-1">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Régua de desconto
-            </p>
-            {(Array.isArray(regras.desconto) ? regras.desconto : []).length === 0 ? (
+...
+            {(Array.isArray(regras.regua) ? regras.regua : []).length === 0 ? (
               <p className="text-sm text-muted-foreground">Sem régua publicada.</p>
             ) : (
-              (regras.desconto as any[]).map((d: any, i: number) => (
+              (regras.regua as any[]).map((d: any, i: number) => (
                 <div key={i} className="flex items-baseline justify-between text-sm">
                   <span>
-                    Desconto {fmtPct(d.desconto_de ?? d.de)}
-                    {d.desconto_ate ?? d.ate ? ` a ${fmtPct(d.desconto_ate ?? d.ate)}` : ""}
+                    Desconto de {fmtPct(d.de)} a {fmtPct(d.ate)}
                   </span>
-                  <span className="font-medium">
-                    {d.fator !== undefined && d.fator !== null
-                      ? `fator ${d.fator}`
-                      : fmtPct(d.pct ?? d.pct_efetivo)}
-                  </span>
+                  <span className="font-medium">−{d.ajuste_pp} p.p.</span>
                 </div>
               ))
             )}

@@ -128,7 +128,7 @@ export function PortalComissoes({ sessao, comissoes, onMudou }: Props) {
                   </div>
                   <div>
                     <p className="text-muted-foreground">Desconto</p>
-                    <p className="font-medium">{fmtPct(c.desconto)}</p>
+                    <p className="font-medium">{fmtPct(c.desconto_pct)}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Liberado</p>
@@ -141,7 +141,7 @@ export function PortalComissoes({ sessao, comissoes, onMudou }: Props) {
                   <div>
                     <p className="text-muted-foreground">Parcelas pagas</p>
                     <p className="font-medium">
-                      {c.parcelas_pagas ?? 0}/{c.parcelas_total ?? 0}
+                      {c.parcelas_pagas}/{c.parcelas}
                     </p>
                   </div>
                   <div>
