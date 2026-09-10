@@ -403,6 +403,79 @@ export default function MesaAtendimento() {
     atender.mutate();
   }
 
+  const escalar = useMutation({
+    mutationFn: async () => {
+      const id = escalando!.demanda_id;
+      const { data, error } = await supabase.rpc("escalar_demanda", {
+        p_demanda_id: id,
+        p_cadeira_destino: cadeiraDestino,
+        p_motivo_texto: motivoEscalar.trim(),
+      });
+      if (error) throw error;
+      return {
+        id,
+        r: data as unknown as {
+          ok: boolean;
+          codigo: string;
+          cadeira: string;
+          camada: string | null;
+        },
+      };
+    },
+    onSuccess: ({ id, r }) => {
+      toast.success(`${r.codigo} escalada para ${r.cadeira}`);
+      setEscalando(null);
+      setCadeiraDestino("");
+      setMotivoEscalar("");
+      invalidarTela(id);
+    },
+    onError: (e) => toast.error(formatError(e)),
+  });
+
+  const devolver = useMutation({
+    mutationFn: async () => {
+      const id = devolvendo!.demanda_id;
+      const { data, error } = await supabase.rpc("devolver_demanda", {
+        p_demanda_id: id,
+        p_motivo_texto: comoResolver.trim(),
+      });
+      if (error) throw error;
+      return {
+        id,
+        r: data as unknown as {
+          ok: boolean;
+          codigo: string;
+          devolvida_para: string;
+        },
+      };
+    },
+    onSuccess: ({ id, r }) => {
+      toast.success(`${r.codigo} devolvida para ${r.devolvida_para}`);
+      setDevolvendo(null);
+      setComoResolver("");
+      invalidarTela(id);
+    },
+    onError: (e) => toast.error(formatError(e)),
+  });
+
+  function salvarEscalada() {
+    if (!cadeiraDestino) return toast.error("Escolha a cadeira de destino.");
+    if (!motivoEscalar.trim())
+      return toast.error("O motivo é obrigatório e fica na trilha da demanda.");
+    escalar.mutate();
+  }
+
+  function salvarDevolucao() {
+    if (!comoResolver.trim())
+      return toast.error("Escreva como quem recebe deve resolver.");
+    devolver.mutate();
+  }
+
+  const cadeirasDestino = (cadeiras.data ?? []).filter(
+    (c) => c.nome !== escalando?.cadeira,
+  );
+
+
   const cadeirasFiltro = useMemo(
     () =>
       Array.from(
