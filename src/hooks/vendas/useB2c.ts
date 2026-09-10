@@ -141,9 +141,11 @@ export function usePedidoAlertaDim() {
 
 export interface ItemB2c {
   id: string;
+  line_item_id: number | null;
   sku: string | null;
   product_name: string | null;
   quantity: number;
+  current_quantity: number | null;
   unit_price: number;
 }
 
@@ -154,7 +156,7 @@ export function useItensB2c(shopifyId: string | null) {
     queryFn: async (): Promise<ItemB2c[]> => {
       const { data, error } = await supabase
         .from("shopify_itens")
-        .select("id, sku, product_name, quantity, unit_price")
+        .select("id, line_item_id, sku, product_name, quantity, current_quantity, unit_price")
         .eq("pedido_id", shopifyId!);
       if (error) throw error;
       return (data ?? []) as ItemB2c[];
