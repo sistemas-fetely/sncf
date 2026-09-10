@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState } from "react";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
-import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
@@ -11,12 +10,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { XpmCadastroPainel } from "@/components/acervo/XpmCadastroPainel";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { hojeISO } from "@/lib/data";
 import {
-  AlertTriangle, ChevronDown, Download, FileSpreadsheet, Loader2, Upload, ExternalLink, Info,
+  AlertTriangle, ChevronDown, Download, FileSpreadsheet, Loader2, Upload, Info,
 } from "lucide-react";
 
 const VERDE = "#1A4A3A";
@@ -1064,16 +1064,7 @@ export default function DestinosCadastro() {
         </TabsContent>
 
         <TabsContent value="xpm" className="mt-4">
-          <Card>
-            <CardContent className="py-12 text-center space-y-3">
-              <p className="text-sm text-muted-foreground">Em construção</p>
-              <Button asChild variant="outline" size="sm" className="gap-2">
-                <Link to="/vendas/xpm">
-                  Ir para XPM <ExternalLink className="h-3.5 w-3.5" />
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
+          <XpmCadastroPainel />
         </TabsContent>
 
         <TabsContent value="shopify" className="mt-4">
