@@ -41,6 +41,24 @@ export type Database = {
         }
         Relationships: []
       }
+      _tmp_portao_antes: {
+        Row: {
+          antes: boolean | null
+          id: string | null
+          id_externo: string | null
+        }
+        Insert: {
+          antes?: boolean | null
+          id?: string | null
+          id_externo?: string | null
+        }
+        Update: {
+          antes?: boolean | null
+          id?: string | null
+          id_externo?: string | null
+        }
+        Relationships: []
+      }
       acao_snapshot: {
         Row: {
           acao: string
@@ -14764,6 +14782,7 @@ export type Database = {
           nome: string
           ordem: number | null
           prazo_dias: number | null
+          tipo_legado: string | null
           updated_at: string
         }
         Insert: {
@@ -14779,6 +14798,7 @@ export type Database = {
           nome: string
           ordem?: number | null
           prazo_dias?: number | null
+          tipo_legado?: string | null
           updated_at?: string
         }
         Update: {
@@ -14794,6 +14814,7 @@ export type Database = {
           nome?: string
           ordem?: number | null
           prazo_dias?: number | null
+          tipo_legado?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -38615,6 +38636,219 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "perfis"
             referencedColumns: ["codigo"]
+          },
+        ]
+      }
+      portal_acesso_log: {
+        Row: {
+          criado_em: string
+          detalhe: Json | null
+          email: string | null
+          evento: string
+          id: string
+          ip: string | null
+          user_agent: string | null
+          vendedor_id: string | null
+        }
+        Insert: {
+          criado_em?: string
+          detalhe?: Json | null
+          email?: string | null
+          evento: string
+          id?: string
+          ip?: string | null
+          user_agent?: string | null
+          vendedor_id?: string | null
+        }
+        Update: {
+          criado_em?: string
+          detalhe?: Json | null
+          email?: string | null
+          evento?: string
+          id?: string
+          ip?: string | null
+          user_agent?: string | null
+          vendedor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_acesso_log_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vendedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_acesso_log_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_a_apurar"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "portal_acesso_log_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_candidata"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "portal_acesso_log_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_posicao"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "portal_acesso_log_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_vendedor_contato"
+            referencedColumns: ["vendedor_id"]
+          },
+        ]
+      }
+      portal_habilitacao: {
+        Row: {
+          email: string
+          habilitado_em: string
+          habilitado_por: string | null
+          id: string
+          motivo_revogacao: string | null
+          revogado_em: string | null
+          revogado_por: string | null
+          vendedor_id: string
+        }
+        Insert: {
+          email: string
+          habilitado_em?: string
+          habilitado_por?: string | null
+          id?: string
+          motivo_revogacao?: string | null
+          revogado_em?: string | null
+          revogado_por?: string | null
+          vendedor_id: string
+        }
+        Update: {
+          email?: string
+          habilitado_em?: string
+          habilitado_por?: string | null
+          id?: string
+          motivo_revogacao?: string | null
+          revogado_em?: string | null
+          revogado_por?: string | null
+          vendedor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_habilitacao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vendedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_habilitacao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_a_apurar"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "portal_habilitacao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_candidata"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "portal_habilitacao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_posicao"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "portal_habilitacao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_vendedor_contato"
+            referencedColumns: ["vendedor_id"]
+          },
+        ]
+      }
+      portal_sessao: {
+        Row: {
+          consumido_em: string | null
+          criado_em: string
+          encerrada_em: string | null
+          expira_em: string
+          id: string
+          ip: string | null
+          tipo: string
+          token_hash: string
+          user_agent: string | null
+          vendedor_id: string
+        }
+        Insert: {
+          consumido_em?: string | null
+          criado_em?: string
+          encerrada_em?: string | null
+          expira_em: string
+          id?: string
+          ip?: string | null
+          tipo: string
+          token_hash: string
+          user_agent?: string | null
+          vendedor_id: string
+        }
+        Update: {
+          consumido_em?: string | null
+          criado_em?: string
+          encerrada_em?: string | null
+          expira_em?: string
+          id?: string
+          ip?: string | null
+          tipo?: string
+          token_hash?: string
+          user_agent?: string | null
+          vendedor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_sessao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vendedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_sessao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_a_apurar"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "portal_sessao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_candidata"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "portal_sessao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_posicao"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "portal_sessao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_vendedor_contato"
+            referencedColumns: ["vendedor_id"]
           },
         ]
       }
@@ -91602,7 +91836,12 @@ export type Database = {
         Returns: string
       }
       abrir_solicitacao_comercial: {
-        Args: { p_detalhe: string; p_pedido_id: string; p_tipo: string }
+        Args: {
+          p_assunto_codigo?: string
+          p_detalhe: string
+          p_pedido_id: string
+          p_tipo: string
+        }
         Returns: Json
       }
       ajustar_haver_cliente: {
@@ -93082,10 +93321,16 @@ export type Database = {
           tipo_linha: string
         }[]
       }
-      fn_conta_cliente_cobertura: {
+      fn_conta_cliente_classe: {
         Args: { p_parceiro_id: string }
         Returns: Json
       }
+      fn_conta_cliente_cobertura:
+        | { Args: { p_parceiro_id: string }; Returns: Json }
+        | {
+            Args: { p_parceiro_id: string; p_pedido_id: string }
+            Returns: Json
+          }
       fn_conta_cliente_empenho_consumir: {
         Args: { p_pedido_id: string }
         Returns: Json
@@ -93883,6 +94128,20 @@ export type Database = {
       }
       fn_pode_operar_mercadoria: { Args: never; Returns: boolean }
       fn_pode_ver_projeto: { Args: { _projeto_id: string }; Returns: boolean }
+      fn_portal_link_solicitar: {
+        Args: { p_email: string; p_ip?: string; p_ua?: string }
+        Returns: Json
+      }
+      fn_portal_painel: { Args: { p_token: string }; Returns: Json }
+      fn_portal_sessao_abrir: {
+        Args: { p_ip?: string; p_token: string; p_ua?: string }
+        Returns: Json
+      }
+      fn_portal_sessao_encerrar: { Args: { p_token: string }; Returns: Json }
+      fn_portal_vendedor_da_sessao: {
+        Args: { p_token: string }
+        Returns: string
+      }
       fn_portao_consignado: {
         Args: { p_parceiro_id: string; p_valor_pedido: number }
         Returns: Json
