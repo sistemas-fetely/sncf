@@ -206,7 +206,7 @@ export default function CartorioCodigos() {
         titulo="Cartório de Códigos"
         estado="Livro-razão de identidade de produto — cod_cadastro, EAN, DUN e Inner."
         breadcrumb={[
-          { label: "Produto", href: "/vendas/produto" },
+          { label: "Produto", to: "/vendas/produto" },
           { label: "Cartório de Códigos" },
         ]}
       />
