@@ -145,14 +145,34 @@ Deno.serve(async (req) => {
       throw new Error(`auth falhou: ${authJson?.error?.message ?? `HTTP ${authRes.status}`}`);
     }
 
-    // CancelaExpedicaoDto: só codigo + cpfCnpjDepositante. O Swagger aceita
-    // cpfCnpjOperadorLogistico, mas a XPM recusou com HTTP 500 em 09/09:
-    // "Nenhuma Entidade encontrada para o CPF/CNPJ informado (08898687000136)".
-    // O operador logístico é o próprio tenant, resolvido pelo PAT na autenticação,
-    // então não vai no payload — espelhando o Create que funciona.
+    // ZenLOG casa entidade pelo CNPJ MASCARADO. Aprendizado de 09/09/2026:
+    // 1) cpfCnpjOperadorLogistico com dígitos crus (08898687000136) → HTTP 500
+    //    "Nenhuma Entidade encontrada para o CPF/CNPJ informado (08898687000136)".
+    // 2) Remover cpfCnpjOperadorLogistico → HTTP 400
+    //    "OperadorLogisticoId ou CpfCnpj devem estar preenchidos".
+    // O Create de expedição já envia os documentos mascarados (08.898.687/0001-36)
+    // e o maxLength 18 do DTO confirma a máscara. Portanto usamos fn_mascara_cnpj_cpf.
+    const { data: depMask, error: eDepMask } = await sb.rpc("fn_mascara_cnpj_cpf", {
+      p_doc: cfg.cpf_cnpj_depositante,
+    });
+    if (eDepMask || !depMask) {
+      throw new Error(
+        `Não foi possível mascarar o CNPJ do depositante (${cfg.cpf_cnpj_depositante}): ${eDepMask?.message ?? "retorno vazio"}`,
+      );
+    }
+    const { data: opMask, error: eOpMask } = await sb.rpc("fn_mascara_cnpj_cpf", {
+      p_doc: cfg.cpf_cnpj_operador_logistico,
+    });
+    if (eOpMask || !opMask) {
+      throw new Error(
+        `Não foi possível mascarar o CNPJ do operador logístico (${cfg.cpf_cnpj_operador_logistico}): ${eOpMask?.message ?? "retorno vazio"}`,
+      );
+    }
+
     payload = {
       codigo: expedicaoCodigo,
-      cpfCnpjDepositante: cfg.cpf_cnpj_depositante,
+      cpfCnpjDepositante: depMask,
+      cpfCnpjOperadorLogistico: opMask,
     };
 
     let respStatus: number | null = null;
