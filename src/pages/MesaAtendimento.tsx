@@ -131,13 +131,53 @@ interface CargaCadeira {
   mais_antiga: string | null;
 }
 
+interface CadeiraDestino {
+  id: string;
+  nome: string;
+}
+
+interface PassoTrilha {
+  demanda_id: string;
+  codigo: string | null;
+  evento: string | null;
+  cadeira_de: string | null;
+  cadeira_para: string | null;
+  status_de: string | null;
+  status_para: string | null;
+  camada_de: string | null;
+  camada_para: string | null;
+  motivo_texto: string | null;
+  ator: string | null;
+  criado_em: string | null;
+  passo: number | null;
+}
+
 const QK = {
   canais: ["demanda_canal"] as const,
   assuntos: ["demanda_assunto"] as const,
   motivos: ["demanda_motivo"] as const,
   fila: ["vw_demanda_aberta"] as const,
   carga: ["vw_demanda_carga_cadeira"] as const,
+  cadeiras: ["departamentos", "atende_mesa"] as const,
+  trilha: (id: string) => ["vw_demanda_trilha", id] as const,
 };
+
+const EVENTO_VARIANTE: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
+  aberta: "outline",
+  classificada: "secondary",
+  assumida: "secondary",
+  escalada: "default",
+  devolvida: "destructive",
+  resolvida: "default",
+  descartada: "destructive",
+  reaberta: "destructive",
+};
+
+function dataHora(iso: string | null) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleString("pt-BR");
+}
 
 function ErroQuery({ o_que, erro }: { o_que: string; erro: unknown }) {
   return (
