@@ -45,7 +45,7 @@ function ipReal(req: Request): string | null {
 
 // Envia o link por e-mail. Lança em qualquer falha — nunca silencioso.
 async function enviarLink(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   destinatario: string,
   nome: string | null,
   link: string,
