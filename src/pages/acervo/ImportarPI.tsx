@@ -227,8 +227,12 @@ export default function ImportarPI() {
   return (
     <PageShell>
       <PageHeader
-        title="Importação de PI"
-        description="Lê a proforma da fábrica no navegador, o humano confirma o mapeamento e o lote nasce em estágio."
+        titulo="Importação de PI"
+        estado="Lê a proforma da fábrica no navegador, o humano confirma o mapeamento e o lote nasce em estágio."
+        breadcrumb={[
+          { label: "Produto", to: "/vendas/produto" },
+          { label: "Importação de PI" },
+        ]}
       />
 
       {sinonimosQuery.isError && (
