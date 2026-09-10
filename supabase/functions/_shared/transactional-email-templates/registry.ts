@@ -24,6 +24,7 @@ import { template as nfEntregaBoleto } from './nf-entrega-boleto.tsx'
 import { template as reguaCobranca } from './regua-cobranca.tsx'
 import { template as solicitacaoDocumento } from './solicitacao-documento.tsx'
 import { template as pedidoEspelho } from './pedido-espelho.tsx'
+import { template as portalRepresentanteLink } from './portal-representante-link.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'nf-pagamento': nfPagamento,
