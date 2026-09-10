@@ -214,6 +214,15 @@ export default function MesaAtendimento() {
   const [resolucao, setResolucao] = useState("");
   const [motivo, setMotivo] = useState("");
 
+  // ── escalar / devolver / trilha
+  const [escalando, setEscalando] = useState<DemandaAberta | null>(null);
+  const [cadeiraDestino, setCadeiraDestino] = useState("");
+  const [motivoEscalar, setMotivoEscalar] = useState("");
+  const [devolvendo, setDevolvendo] = useState<DemandaAberta | null>(null);
+  const [comoResolver, setComoResolver] = useState("");
+  const [demandaSelecionada, setDemandaSelecionada] = useState<DemandaAberta | null>(null);
+
+
   const canais = useQuery({
     queryKey: QK.canais,
     queryFn: async (): Promise<Canal[]> => {
