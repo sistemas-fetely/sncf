@@ -26,7 +26,7 @@ export function PortalPainel({ sessao, painel, onRecarregar, onSair }: Props) {
             Portal do Representante · Fetély
           </p>
           <h1 className="text-xl font-medium tracking-tight">
-            {painel?.representante?.nome ?? painel?.nome ?? "Representante"}
+            {painel?.representante ?? "Representante"}
           </h1>
         </div>
         <Button variant="outline" size="sm" onClick={onSair}>
@@ -48,17 +48,9 @@ export function PortalPainel({ sessao, painel, onRecarregar, onSair }: Props) {
         <CardContent className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-md border border-success/60 bg-success/10 p-3">
             <p className="text-xs font-medium text-success">Liberado — já pode ser pago</p>
-            <p className="text-2xl font-medium">{fmtBRL(resumo.liberado)}</p>
-          </div>
-          <div className="rounded-md border border-warning/60 bg-warning/10 p-3">
-            <p className="text-xs font-medium text-warning">
-              Pendente — depende do cliente pagar
-            </p>
-            <p className="text-2xl font-medium">{fmtBRL(resumo.pendente)}</p>
-          </div>
-          <div className="rounded-md border border-border/60 p-3">
-            <p className="text-xs text-muted-foreground">Apurado no total</p>
-            <p className="text-2xl font-medium">{fmtBRL(resumo.apurado)}</p>
+            <p className="text-2xl font-medium">{fmtBRL(resumo.liberado_total)}</p>
+...
+            <p className="text-2xl font-medium">{fmtBRL(resumo.apurado_total)}</p>
           </div>
         </CardContent>
       </Card>
