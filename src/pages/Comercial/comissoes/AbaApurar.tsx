@@ -42,10 +42,10 @@ export function AbaApurar() {
   const [apurando, setApurando] = useState(false);
 
   const q = useQuery({
-    queryKey: ["comissao-candidata"],
+    queryKey: ["comissao-a-apurar"],
     queryFn: async (): Promise<Candidata[]> => {
       const { data, error } = await (supabase as any)
-        .from("vw_comissao_candidata")
+        .from("vw_comissao_a_apurar")
         .select(
           "nf_numero, pedido, representante, base_comissionavel, desconto_regua_pct, ajuste_pp, linha, base_linha, pct_base, pct_efetivo, comissao_linha, situacao",
         )
