@@ -77,9 +77,13 @@ export function AbaApuradas() {
       const { data, error } = await (supabase as any).rpc("fn_comissao_liberar_pendentes");
       if (error) throw error;
       const r = (data ?? {}) as Record<string, unknown>;
-      const qtd = Number(r.liberadas ?? r.total ?? 0);
-      const valor = Number(r.valor_total ?? r.valor ?? 0);
-      toast.success(`${qtd} liberação(ões) registrada(s) · ${fmtBRL(valor)}`);
+      const qtd = Number(r.liberacoes ?? 0);
+      const valor = Number(r.valor_liberado ?? 0);
+      if (qtd === 0) {
+        toast.info("Nenhuma parcela nova liquidada — nada a liberar.");
+      } else {
+        toast.success(`${qtd} liberação(ões) registrada(s) · ${fmtBRL(valor)}`);
+      }
       await qc.invalidateQueries({ queryKey: ["comissao-posicao"] });
       await qc.invalidateQueries({ queryKey: ["comissao-extrato"] });
     } catch (e) {
