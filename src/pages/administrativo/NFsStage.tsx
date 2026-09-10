@@ -1293,17 +1293,17 @@ export default function NFsStage() {
               </Button>
               <Button
                 variant="outline"
-                onClick={buscarNaQive}
+                onClick={() => setConfirmarBuscaQive(true)}
                 disabled={buscandoQive}
                 className="gap-2"
-                title="Busca documentos na Qive em modo simulação (sandbox) — nada é gravado"
+                title="Captura documentos fiscais de entrada na Qive (produção) e grava em NFs em Stage"
               >
                 {buscandoQive ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <CloudDownload className="h-4 w-4" />
                 )}
-                {buscandoQive ? "Buscando..." : "Simular busca na Qive"}
+                {buscandoQive ? "Buscando..." : "Buscar na Qive"}
               </Button>
               <Button
                 variant="outline"
