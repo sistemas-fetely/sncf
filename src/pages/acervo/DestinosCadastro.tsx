@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState } from "react";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
-import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
@@ -17,7 +16,7 @@ import {
 } from "@/components/ui/table";
 import { hojeISO } from "@/lib/data";
 import {
-  AlertTriangle, ChevronDown, Download, FileSpreadsheet, Loader2, Upload, ExternalLink, Info,
+  AlertTriangle, ChevronDown, Download, FileSpreadsheet, Loader2, Upload, Info,
 } from "lucide-react";
 
 const VERDE = "#1A4A3A";

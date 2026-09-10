@@ -189,10 +189,10 @@ export function XpmCadastroPainel() {
   return (
     <div className="space-y-4">
       {/* BLOCO 1 — consequência real */}
-      <Card className="border-amber-500/60">
+      <Card className="border-warning/60">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertTriangle className="h-4 w-4 text-warning" />
             Vendável e fora do WMS
           </CardTitle>
           <p className="text-sm text-muted-foreground">
@@ -383,7 +383,7 @@ export function XpmCadastroPainel() {
         <CardContent className="pt-4">
           <Accordion type="single" collapsible>
             <AccordionItem value="pre-venda" className="border-none">
-              <AccordionTrigger className="text-base font-semibold hover:no-underline">
+              <AccordionTrigger className="text-base font-medium hover:no-underline">
                 Pré-venda fora do WMS ({preVenda.length})
               </AccordionTrigger>
               <AccordionContent className="space-y-3">
