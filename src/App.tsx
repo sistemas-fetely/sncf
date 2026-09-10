@@ -203,6 +203,7 @@ const ClientePainel = lazy(() => import("@/pages/clientes/ClientePainel"));
 const ClientesLista = lazy(() => import("@/pages/clientes/ClientesLista"));
 const EstoqueVirtual = lazy(() => import("@/pages/Comercial/EstoqueVirtual"));
 const ConsignadoDetalhe = lazy(() => import("@/pages/Comercial/ConsignadoDetalhe"));
+const ComissoesIndex = lazy(() => import("@/pages/Comercial/comissoes/ComissoesIndex"));
 
 const XpmIndex = lazy(() => import("@/pages/vendas/xpm/XpmIndex"));
 const SaudeEstoque = lazy(() => import("@/pages/acervo/SaudeEstoque"));
@@ -361,6 +362,10 @@ const App = () => (
               <Route path="/pedidos/:id" element={<PedidoDetalhe />} />
               <Route path="/parceiros/:id" element={<ParceiroDetalhe />} />
               <Route path="/cliente/:id" element={<ClientePainel />} />
+
+              {/* Comercial — Comissões de Representante (menu comercial.comissoes) */}
+              <Route path="/comercial/comissoes" element={<ComissoesIndex />} />
+
 
               {/* ═══════════════════════════════════════════════
                   App SOPs — com sidebar lateral
