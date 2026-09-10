@@ -23,7 +23,7 @@ const json = (body: unknown, status = 200) =>
     headers: { ...cors, "Content-Type": "application/json" },
   });
 
-const METODOS = ["get", "post", "put", "patch", "delete", "head", "options", "trace"];
+const METODOS = ["get", "post", "put", "patch", "delete", "head", "options"];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
@@ -104,7 +104,9 @@ Deno.serve(async (req) => {
       });
       if (ePat) throw new Error(`vault: ${ePat.message}`);
       if (!pat) throw new Error("PAT ausente no vault");
-      const authUrl = cfg!.auth_endpoint ?? `${base}/api/TokenAuth/AuthenticatePAT`;
+      // config.auth_endpoint e caminho relativo ("/api/TokenAuth/AuthenticatePAT").
+      const endpoint = cfg!.auth_endpoint ?? "/api/TokenAuth/AuthenticatePAT";
+      const authUrl = endpoint.startsWith("http") ? endpoint : `${base}${endpoint}`;
       const r = await fetch(authUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -190,12 +192,19 @@ Deno.serve(async (req) => {
     if (eSw) throw new Error(`gravar xpm_api_swagger (${urlUsada}): ${eSw.message}`);
 
     // 5. Inventario e coleta atual, nao acumulado.
+    // Swagger 2.0: `paths` na raiz, chaves de metodo em minusculo, e o objeto do path
+    // tambem carrega chaves que NAO sao verbo (parameters, $ref, x-*). So verbo entra.
+    // `vistos` evita chave repetida no mesmo lote (upsert nao aceita duplicata).
     const linhas: Record<string, unknown>[] = [];
+    const vistos = new Set<string>();
     for (const [path, item] of Object.entries(paths as Record<string, any>)) {
       if (!item || typeof item !== "object") continue;
       for (const metodo of METODOS) {
         const op = (item as Record<string, any>)[metodo];
-        if (!op || typeof op !== "object") continue;
+        if (!op || typeof op !== "object" || Array.isArray(op)) continue;
+        const chave = `${path}\u0000${metodo}`;
+        if (vistos.has(chave)) continue;
+        vistos.add(chave);
         linhas.push({
           ambiente,
           path,
@@ -220,9 +229,29 @@ Deno.serve(async (req) => {
     const { error: eDel } = await sb.from("xpm_api_operacao").delete().eq("ambiente", ambiente);
     if (eDel) throw new Error(`limpar inventario de ${ambiente}: ${eDel.message}`);
 
-    for (let i = 0; i < linhas.length; i += 500) {
-      const { error: eIns } = await sb.from("xpm_api_operacao").insert(linhas.slice(i, i + 500));
-      if (eIns) throw new Error(`gravar inventario (lote ${i / 500 + 1}): ${eIns.message}`);
+    // LOTE-QUE-FALHA-TEM-NOME: swagger de producao tem ~487 paths e ~1000 operacoes.
+    // Insert unico estoura; e lote que falha em silencio deixa inventario parcial
+    // passando por completo. Cada lote e nomeado no erro.
+    const TAM_LOTE = 500;
+    let gravadas = 0;
+    for (let i = 0; i < linhas.length; i += TAM_LOTE) {
+      const lote = linhas.slice(i, i + TAM_LOTE);
+      const nLote = Math.floor(i / TAM_LOTE) + 1;
+      const { error: eIns } = await sb
+        .from("xpm_api_operacao")
+        .upsert(lote, { onConflict: "ambiente,path,metodo" });
+      if (eIns) {
+        return json({
+          ok: false,
+          erro: `Falha ao gravar o lote ${nLote} de ${
+            Math.ceil(linhas.length / TAM_LOTE)
+          } (linhas ${i + 1}-${i + lote.length}) do inventario de ${ambiente}: ${eIns.message}`,
+          ambiente,
+          swagger_url: urlUsada,
+          gravadas_antes_da_falha: gravadas,
+        }, 500);
+      }
+      gravadas += lote.length;
     }
 
     const relevantes = linhas
@@ -234,7 +263,10 @@ Deno.serve(async (req) => {
       ambiente,
       sistema_config: sistemaUsado,
       swagger_url: urlUsada,
-      operacoes_gravadas: linhas.length,
+      // A aba XPM em ConfiguracaoIntegracao le `total`. `operacoes_gravadas` fica
+      // por compatibilidade com quem ja lia esse nome.
+      total: gravadas,
+      operacoes_gravadas: gravadas,
       expedicao_e_pedido: relevantes,
     });
   } catch (e) {

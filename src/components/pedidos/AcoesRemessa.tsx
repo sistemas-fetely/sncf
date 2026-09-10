@@ -17,6 +17,7 @@ import { ForcarXpmDialog } from "@/components/pedidos/dialogs/ForcarXpmDialog";
 import { ForcarXpmEstoqueDialog } from "@/components/pedidos/dialogs/ForcarXpmEstoqueDialog";
 import { usePreviaEstoqueXpm } from "@/hooks/pedidos/usePreviaEstoqueXpm";
 import { DeclararCancelamentoXpmDialog } from "@/components/pedidos/dialogs/DeclararCancelamentoXpmDialog";
+import { CancelarExpedicaoXpmDialog } from "@/components/pedidos/dialogs/CancelarExpedicaoXpmDialog";
 import { PREFIXO_PRE_VOO } from "@/lib/pedidos/xpm";
 
 
@@ -289,10 +290,18 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
           </p>
           {/* CONTRATO DE NÍVEL: cancelar/declarar cancelamento é APAGAR — nível 4 (Gerente). */}
           {temNivel(4) && (
-            <DeclararCancelamentoXpmDialog
-              pedidoId={pedido_id}
-              expedicaoCodigo={String(pedidoXpm!.xpm_expedicao_codigo)}
-            />
+            <>
+              {/* Caminho primário: cancela na XPM pela API (liberado em 09/09/2026). */}
+              <CancelarExpedicaoXpmDialog
+                pedidoId={pedido_id}
+                expedicaoCodigo={String(pedidoXpm!.xpm_expedicao_codigo)}
+              />
+              {/* Caminho secundário: a XPM cancelou por fora e alguém registra o fato. */}
+              <DeclararCancelamentoXpmDialog
+                pedidoId={pedido_id}
+                expedicaoCodigo={String(pedidoXpm!.xpm_expedicao_codigo)}
+              />
+            </>
           )}
         </>
       )}
