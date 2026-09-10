@@ -1,7 +1,16 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Headphones, Plus, AlertTriangle, Inbox } from "lucide-react";
+import {
+  Headphones,
+  Plus,
+  AlertTriangle,
+  Inbox,
+  ArrowUpRight,
+  Undo2,
+  History,
+  MoreHorizontal,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +41,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -116,13 +131,53 @@ interface CargaCadeira {
   mais_antiga: string | null;
 }
 
+interface CadeiraDestino {
+  id: string;
+  nome: string;
+}
+
+interface PassoTrilha {
+  demanda_id: string;
+  codigo: string | null;
+  evento: string | null;
+  cadeira_de: string | null;
+  cadeira_para: string | null;
+  status_de: string | null;
+  status_para: string | null;
+  camada_de: string | null;
+  camada_para: string | null;
+  motivo_texto: string | null;
+  ator: string | null;
+  criado_em: string | null;
+  passo: number | null;
+}
+
 const QK = {
   canais: ["demanda_canal"] as const,
   assuntos: ["demanda_assunto"] as const,
   motivos: ["demanda_motivo"] as const,
   fila: ["vw_demanda_aberta"] as const,
   carga: ["vw_demanda_carga_cadeira"] as const,
+  cadeiras: ["departamentos", "atende_mesa"] as const,
+  trilha: (id: string) => ["vw_demanda_trilha", id] as const,
 };
+
+const EVENTO_VARIANTE: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
+  aberta: "outline",
+  classificada: "secondary",
+  assumida: "secondary",
+  escalada: "default",
+  devolvida: "destructive",
+  resolvida: "default",
+  descartada: "destructive",
+  reaberta: "destructive",
+};
+
+function dataHora(iso: string | null) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleString("pt-BR");
+}
 
 function ErroQuery({ o_que, erro }: { o_que: string; erro: unknown }) {
   return (
@@ -158,6 +213,15 @@ export default function MesaAtendimento() {
   const [atendendo, setAtendendo] = useState<DemandaAberta | null>(null);
   const [resolucao, setResolucao] = useState("");
   const [motivo, setMotivo] = useState("");
+
+  // ── escalar / devolver / trilha
+  const [escalando, setEscalando] = useState<DemandaAberta | null>(null);
+  const [cadeiraDestino, setCadeiraDestino] = useState("");
+  const [motivoEscalar, setMotivoEscalar] = useState("");
+  const [devolvendo, setDevolvendo] = useState<DemandaAberta | null>(null);
+  const [comoResolver, setComoResolver] = useState("");
+  const [demandaSelecionada, setDemandaSelecionada] = useState<DemandaAberta | null>(null);
+
 
   const canais = useQuery({
     queryKey: QK.canais,
@@ -223,10 +287,40 @@ export default function MesaAtendimento() {
     },
   });
 
-  function invalidarTela() {
+  const cadeiras = useQuery({
+    queryKey: QK.cadeiras,
+    queryFn: async (): Promise<CadeiraDestino[]> => {
+      const { data, error } = await supabase
+        .from("departamentos")
+        .select("id, nome")
+        .eq("ativo", true)
+        .eq("atende_mesa", true)
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as CadeiraDestino[];
+    },
+  });
+
+  const trilha = useQuery({
+    queryKey: QK.trilha(demandaSelecionada?.demanda_id ?? ""),
+    enabled: !!demandaSelecionada,
+    queryFn: async (): Promise<PassoTrilha[]> => {
+      const { data, error } = await supabase
+        .from("vw_demanda_trilha")
+        .select("*")
+        .eq("demanda_id", demandaSelecionada!.demanda_id)
+        .order("passo", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as PassoTrilha[];
+    },
+  });
+
+  function invalidarTela(demandaId?: string) {
     void qc.invalidateQueries({ queryKey: QK.fila });
     void qc.invalidateQueries({ queryKey: QK.carga });
+    if (demandaId) void qc.invalidateQueries({ queryKey: QK.trilha(demandaId) });
   }
+
 
   const canalSelecionado = canais.data?.find((c) => c.codigo === canal) ?? null;
   const exigeSolicitante = canalSelecionado?.exige_solicitante_externo === true;
@@ -308,6 +402,79 @@ export default function MesaAtendimento() {
     if (!motivo) return toast.error("Escolha o motivo.");
     atender.mutate();
   }
+
+  const escalar = useMutation({
+    mutationFn: async () => {
+      const id = escalando!.demanda_id;
+      const { data, error } = await supabase.rpc("escalar_demanda", {
+        p_demanda_id: id,
+        p_cadeira_destino: cadeiraDestino,
+        p_motivo_texto: motivoEscalar.trim(),
+      });
+      if (error) throw error;
+      return {
+        id,
+        r: data as unknown as {
+          ok: boolean;
+          codigo: string;
+          cadeira: string;
+          camada: string | null;
+        },
+      };
+    },
+    onSuccess: ({ id, r }) => {
+      toast.success(`${r.codigo} escalada para ${r.cadeira}`);
+      setEscalando(null);
+      setCadeiraDestino("");
+      setMotivoEscalar("");
+      invalidarTela(id);
+    },
+    onError: (e) => toast.error(formatError(e)),
+  });
+
+  const devolver = useMutation({
+    mutationFn: async () => {
+      const id = devolvendo!.demanda_id;
+      const { data, error } = await supabase.rpc("devolver_demanda", {
+        p_demanda_id: id,
+        p_motivo_texto: comoResolver.trim(),
+      });
+      if (error) throw error;
+      return {
+        id,
+        r: data as unknown as {
+          ok: boolean;
+          codigo: string;
+          devolvida_para: string;
+        },
+      };
+    },
+    onSuccess: ({ id, r }) => {
+      toast.success(`${r.codigo} devolvida para ${r.devolvida_para}`);
+      setDevolvendo(null);
+      setComoResolver("");
+      invalidarTela(id);
+    },
+    onError: (e) => toast.error(formatError(e)),
+  });
+
+  function salvarEscalada() {
+    if (!cadeiraDestino) return toast.error("Escolha a cadeira de destino.");
+    if (!motivoEscalar.trim())
+      return toast.error("O motivo é obrigatório e fica na trilha da demanda.");
+    escalar.mutate();
+  }
+
+  function salvarDevolucao() {
+    if (!comoResolver.trim())
+      return toast.error("Escreva como quem recebe deve resolver.");
+    devolver.mutate();
+  }
+
+  const cadeirasDestino = (cadeiras.data ?? []).filter(
+    (c) => c.nome !== escalando?.cadeira,
+  );
+
 
   const cadeirasFiltro = useMemo(
     () =>
@@ -515,17 +682,56 @@ export default function MesaAtendimento() {
                         {d.dias_aberta ?? 0}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setAtendendo(d);
-                            setResolucao("");
-                            setMotivo("");
-                          }}
-                        >
-                          Atender
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setAtendendo(d);
+                              setResolucao("");
+                              setMotivo("");
+                            }}
+                          >
+                            Atender
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            title="Ver trilha"
+                            onClick={() => setDemandaSelecionada(d)}
+                          >
+                            <History className="h-4 w-4" />
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="icon" variant="ghost" title="Mais ações">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setEscalando(d);
+                                  setCadeiraDestino("");
+                                  setMotivoEscalar("");
+                                }}
+                              >
+                                <ArrowUpRight className="mr-2 h-4 w-4" /> Escalar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setDevolvendo(d);
+                                  setComoResolver("");
+                                }}
+                              >
+                                <Undo2 className="mr-2 h-4 w-4" /> Devolver
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setDemandaSelecionada(d)}>
+                                <History className="mr-2 h-4 w-4" /> Trilha
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -724,6 +930,178 @@ export default function MesaAtendimento() {
             </Button>
             <Button onClick={salvarAtendimento} disabled={atender.isPending}>
               {atender.isPending ? "Registrando..." : "Atender"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dialog escalar */}
+      <Dialog open={!!escalando} onOpenChange={(o) => !o && setEscalando(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Escalar {escalando?.codigo ?? ""}</DialogTitle>
+            <DialogDescription>
+              Cadeira atual: {escalando?.cadeira ?? "—"}. O motivo é obrigatório e fica
+              registrado na trilha permanente da demanda.
+            </DialogDescription>
+          </DialogHeader>
+
+          {cadeiras.isError && <ErroQuery o_que="as cadeiras" erro={cadeiras.error} />}
+
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>
+                Cadeira de destino <span className="text-destructive">*</span>
+              </Label>
+              <Select value={cadeiraDestino} onValueChange={setCadeiraDestino}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Quem vai receber" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cadeirasDestino.map((c) => (
+                    <SelectItem key={c.id} value={c.nome}>
+                      {c.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {!cadeiras.isLoading && !cadeiras.isError && cadeirasDestino.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Nenhuma outra cadeira atende a mesa.
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>
+                Motivo <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                rows={4}
+                value={motivoEscalar}
+                onChange={(e) => setMotivoEscalar(e.target.value)}
+                placeholder="Por que esta cadeira não resolve e o que a próxima precisa fazer"
+              />
+              <p className="text-xs text-muted-foreground">
+                Obrigatório — vai para a trilha permanente e não pode ser apagado.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEscalando(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={salvarEscalada} disabled={escalar.isPending}>
+              {escalar.isPending ? "Escalando..." : "Escalar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dialog devolver */}
+      <Dialog open={!!devolvendo} onOpenChange={(o) => !o && setDevolvendo(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Devolver {devolvendo?.codigo ?? ""}</DialogTitle>
+            <DialogDescription>
+              Volta para a cadeira de entrada (Atendimento ao Cliente) com a instrução de
+              como resolver. Fica na trilha permanente.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-1.5">
+            <Label>
+              Como resolver <span className="text-destructive">*</span>
+            </Label>
+            <Textarea
+              rows={5}
+              value={comoResolver}
+              onChange={(e) => setComoResolver(e.target.value)}
+              placeholder="O passo a passo que quem recebe deve seguir para resolver"
+            />
+            <p className="text-xs text-muted-foreground">
+              Obrigatório — é a instrução de resolução, não uma justificativa.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDevolvendo(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={salvarDevolucao} disabled={devolver.isPending}>
+              {devolver.isPending ? "Devolvendo..." : "Devolver"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dialog trilha */}
+      <Dialog
+        open={!!demandaSelecionada}
+        onOpenChange={(o) => !o && setDemandaSelecionada(null)}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Trilha de {demandaSelecionada?.codigo ?? ""}</DialogTitle>
+            <DialogDescription>
+              Todo passo que a demanda deu, em ordem, com quem fez e por quê.
+            </DialogDescription>
+          </DialogHeader>
+
+          {trilha.isError ? (
+            <ErroQuery o_que="a trilha da demanda" erro={trilha.error} />
+          ) : trilha.isLoading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          ) : (trilha.data ?? []).length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              Nenhum passo registrado nesta demanda.
+            </p>
+          ) : (
+            <ol className="relative space-y-4 border-l border-border pl-5">
+              {trilha.data!.map((p) => {
+                const mudouCadeira =
+                  !!p.cadeira_de && !!p.cadeira_para && p.cadeira_de !== p.cadeira_para;
+                return (
+                  <li key={`${p.passo}-${p.criado_em}`} className="relative">
+                    <span className="absolute -left-[26px] top-1.5 h-2.5 w-2.5 rounded-full bg-border ring-4 ring-background" />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge
+                        variant={EVENTO_VARIANTE[p.evento ?? ""] ?? "outline"}
+                        className="text-[10px]"
+                      >
+                        {p.evento ?? "—"}
+                      </Badge>
+                      {mudouCadeira && (
+                        <span className="text-xs text-muted-foreground">
+                          {p.cadeira_de} → {p.cadeira_para}
+                        </span>
+                      )}
+                      <span className="text-xs text-muted-foreground">
+                        {dataHora(p.criado_em)}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {p.ator ?? "ator não registrado"}
+                    </div>
+                    {p.motivo_texto && (
+                      <p className="mt-2 whitespace-pre-wrap rounded-md border border-border bg-muted/40 p-2 text-sm">
+                        {p.motivo_texto}
+                      </p>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDemandaSelecionada(null)}>
+              Fechar
             </Button>
           </DialogFooter>
         </DialogContent>
