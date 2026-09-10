@@ -26,7 +26,7 @@ export function PortalPainel({ sessao, painel, onRecarregar, onSair }: Props) {
             Portal do Representante · Fetély
           </p>
           <h1 className="text-xl font-medium tracking-tight">
-            {painel?.representante?.nome ?? painel?.nome ?? "Representante"}
+            {painel?.representante ?? "Representante"}
           </h1>
         </div>
         <Button variant="outline" size="sm" onClick={onSair}>
@@ -48,17 +48,17 @@ export function PortalPainel({ sessao, painel, onRecarregar, onSair }: Props) {
         <CardContent className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-md border border-success/60 bg-success/10 p-3">
             <p className="text-xs font-medium text-success">Liberado — já pode ser pago</p>
-            <p className="text-2xl font-medium">{fmtBRL(resumo.liberado)}</p>
+            <p className="text-2xl font-medium">{fmtBRL(resumo.liberado_total)}</p>
           </div>
           <div className="rounded-md border border-warning/60 bg-warning/10 p-3">
             <p className="text-xs font-medium text-warning">
               Pendente — depende do cliente pagar
             </p>
-            <p className="text-2xl font-medium">{fmtBRL(resumo.pendente)}</p>
+            <p className="text-2xl font-medium">{fmtBRL(resumo.pendente_total)}</p>
           </div>
           <div className="rounded-md border border-border/60 p-3">
             <p className="text-xs text-muted-foreground">Apurado no total</p>
-            <p className="text-2xl font-medium">{fmtBRL(resumo.apurado)}</p>
+            <p className="text-2xl font-medium">{fmtBRL(resumo.apurado_total)}</p>
           </div>
         </CardContent>
       </Card>
@@ -87,7 +87,7 @@ export function PortalPainel({ sessao, painel, onRecarregar, onSair }: Props) {
                 <div>
                   <p className="text-sm font-medium">{fmtCompetencia(e.competencia)}</p>
                   <p className="text-xs text-muted-foreground">
-                    {e.nfs ?? 0} NF(s) · pagamento até {fmtData(e.data_limite_pagamento ?? e.data_limite)}
+                    {e.notas} NF(s): {e.nfs} · pagamento até {fmtData(e.pagar_ate)}
                   </p>
                 </div>
                 <p className="text-lg font-medium">{fmtBRL(e.valor_a_pagar)}</p>
@@ -107,12 +107,12 @@ export function PortalPainel({ sessao, painel, onRecarregar, onSair }: Props) {
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Percentual por linha
             </p>
-            {(Array.isArray(regras.linhas) ? regras.linhas : []).length === 0 ? (
+            {(Array.isArray(regras.por_linha) ? regras.por_linha : []).length === 0 ? (
               <p className="text-sm text-muted-foreground">Sem percentuais publicados.</p>
             ) : (
-              (regras.linhas as any[]).map((l: any, i: number) => (
+              (regras.por_linha as any[]).map((l: any, i: number) => (
                 <div key={i} className="flex items-baseline justify-between text-sm">
-                  <span>{l.linha ?? "—"}</span>
+                  <span>{l.linha}</span>
                   <span className="font-medium">{fmtPct(l.pct)}</span>
                 </div>
               ))
@@ -123,20 +123,15 @@ export function PortalPainel({ sessao, painel, onRecarregar, onSair }: Props) {
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Régua de desconto
             </p>
-            {(Array.isArray(regras.desconto) ? regras.desconto : []).length === 0 ? (
+            {(Array.isArray(regras.regua) ? regras.regua : []).length === 0 ? (
               <p className="text-sm text-muted-foreground">Sem régua publicada.</p>
             ) : (
-              (regras.desconto as any[]).map((d: any, i: number) => (
+              (regras.regua as any[]).map((d: any, i: number) => (
                 <div key={i} className="flex items-baseline justify-between text-sm">
                   <span>
-                    Desconto {fmtPct(d.desconto_de ?? d.de)}
-                    {d.desconto_ate ?? d.ate ? ` a ${fmtPct(d.desconto_ate ?? d.ate)}` : ""}
+                    Desconto de {fmtPct(d.de)} a {fmtPct(d.ate)}
                   </span>
-                  <span className="font-medium">
-                    {d.fator !== undefined && d.fator !== null
-                      ? `fator ${d.fator}`
-                      : fmtPct(d.pct ?? d.pct_efetivo)}
-                  </span>
+                  <span className="font-medium">−{d.ajuste_pp} p.p.</span>
                 </div>
               ))
             )}

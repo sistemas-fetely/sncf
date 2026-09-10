@@ -52,7 +52,7 @@ export function PortalComissoes({ sessao, comissoes, onMudou }: Props) {
     try {
       await chamarPortal("contestar", {
         sessao,
-        apuracao_id: contestando?.apuracao_id ?? contestando?.id,
+        apuracao_id: contestando?.apuracao_id,
         motivo: motivo.trim(),
         valor_esperado: valorEsperado.trim() === "" ? null : Number(valorEsperado.replace(",", ".")),
       });
@@ -91,7 +91,7 @@ export function PortalComissoes({ sessao, comissoes, onMudou }: Props) {
         </CardHeader>
         <CardContent className="space-y-3">
           {comissoes.map((c: any, i: number) => {
-            const id = String(c.apuracao_id ?? c.id ?? i);
+            const id = String(c.apuracao_id);
             const expandida = aberta === id;
             const atraso = emAtraso(c.situacao_cliente);
             return (
@@ -128,7 +128,7 @@ export function PortalComissoes({ sessao, comissoes, onMudou }: Props) {
                   </div>
                   <div>
                     <p className="text-muted-foreground">Desconto</p>
-                    <p className="font-medium">{fmtPct(c.desconto)}</p>
+                    <p className="font-medium">{fmtPct(c.desconto_pct)}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Liberado</p>
@@ -141,7 +141,7 @@ export function PortalComissoes({ sessao, comissoes, onMudou }: Props) {
                   <div>
                     <p className="text-muted-foreground">Parcelas pagas</p>
                     <p className="font-medium">
-                      {c.parcelas_pagas ?? 0}/{c.parcelas_total ?? 0}
+                      {c.parcelas_pagas}/{c.parcelas}
                     </p>
                   </div>
                   <div>

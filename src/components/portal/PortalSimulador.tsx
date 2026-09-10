@@ -65,9 +65,6 @@ export function PortalSimulador({ sessao }: Props) {
     }
   }
 
-  const cenarios: any[] = Array.isArray(resultado?.se_desconto_fosse)
-    ? resultado.se_desconto_fosse
-    : [];
 
   return (
     <Card>
@@ -139,38 +136,69 @@ export function PortalSimulador({ sessao }: Props) {
           <div className="space-y-3 rounded-md border border-border/60 p-3">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <span className="text-sm text-muted-foreground">Comissão estimada</span>
-              <span className="text-2xl font-medium">{fmtBRL(resultado.valor_comissao)}</span>
+              <span className="text-2xl font-medium">{fmtBRL(resultado.comissao_estimada)}</span>
             </div>
-            {resultado.pct_efetivo !== undefined && (
-              <p className="text-xs text-muted-foreground">
-                % efetivo: {fmtPct(resultado.pct_efetivo)}
-                {resultado.base !== undefined ? ` · base ${fmtBRL(resultado.base)}` : ""}
+            <p className="text-xs text-muted-foreground">
+              Mercadoria a tabela {fmtBRL(resultado.mercadoria_tabela)} · base{" "}
+              {fmtBRL(resultado.base_estimada)} com {fmtPct(resultado.desconto_pct)} de desconto
+            </p>
+
+            {resultado.faixa?.ajuste_pp > 0 && (
+              <p className="text-xs text-warning">
+                Seu desconto caiu na faixa de {fmtPct(resultado.faixa.de)} a{" "}
+                {fmtPct(resultado.faixa.ate)}, que reduz {resultado.faixa.ajuste_pp} ponto(s) da
+                comissão.
+              </p>
+            )}
+            {resultado.faixa?.exige_diretoria && (
+              <p className="text-xs text-destructive">
+                Esse desconto depende de aprovação da diretoria.
               </p>
             )}
 
-            {cenarios.length > 0 && (
-              <div className="space-y-2 rounded-md bg-warning/10 p-3">
-                <p className="text-sm font-medium">Se o desconto fosse…</p>
-                <div className="space-y-1">
-                  {cenarios.map((c: any, i: number) => (
-                    <div key={i} className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
-                      <span>Com {fmtPct(c.desconto_pct)} de desconto</span>
-                      <span className="font-medium">{fmtBRL(c.valor_comissao)}</span>
-                      {c.diferenca !== undefined && c.diferenca !== null && (
-                        <span
-                          className={
-                            Number(c.diferenca) < 0
-                              ? "text-xs text-destructive"
-                              : "text-xs text-success"
-                          }
-                        >
-                          diferença {fmtBRL(c.diferenca)}
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
+            {(resultado.linhas ?? []).length > 0 && (
+              <div className="space-y-1 border-t border-border/60 pt-2">
+                {(resultado.linhas as any[]).map((l: any, i: number) => (
+                  <div
+                    key={i}
+                    className="flex flex-wrap items-baseline justify-between gap-2 text-xs"
+                  >
+                    <span className="font-medium">{l.linha}</span>
+                    <span className="text-muted-foreground">
+                      base {fmtBRL(l.base)} · {fmtPct(l.pct_efetivo)} efetivo
+                    </span>
+                    <span className="font-medium">{fmtBRL(l.comissao)}</span>
+                  </div>
+                ))}
               </div>
+            )}
+
+            {resultado.se_desconto_fosse && (
+              <div className="rounded-md border border-success/60 bg-success/10 p-3">
+                <p className="text-sm">
+                  Com {fmtPct(resultado.desconto_pct)} de desconto:{" "}
+                  {fmtBRL(resultado.comissao_estimada)}. Com{" "}
+                  {fmtPct(resultado.se_desconto_fosse.desconto_pct)}:{" "}
+                  {fmtBRL(resultado.se_desconto_fosse.comissao)}.
+                </p>
+                <p className="mt-1 text-base font-semibold text-success">
+                  Diferença: {fmtBRL(resultado.se_desconto_fosse.diferenca)} a mais para você.
+                </p>
+              </div>
+            )}
+
+            {(resultado.avisos ?? []).length > 0 && (
+              <div className="space-y-1 rounded-md bg-warning/10 p-3">
+                {(resultado.avisos as string[]).map((a: string, i: number) => (
+                  <p key={i} className="text-xs text-warning">
+                    {a}
+                  </p>
+                ))}
+              </div>
+            )}
+
+            {resultado.nota && (
+              <p className="text-xs text-muted-foreground">{resultado.nota}</p>
             )}
           </div>
         )}
