@@ -380,6 +380,11 @@ const App = () => (
                   <ProtectedRoute>
                     <MesaProduto />
                   </ProtectedRoute>
+                 } />
+                <Route path="/vendas/produto/cartorio" element={
+                  <ProtectedRoute>
+                    <CartorioCodigos />
+                  </ProtectedRoute>
                 } />
                 <Route element={<ProdutoEstoqueLayout />}>
                   
